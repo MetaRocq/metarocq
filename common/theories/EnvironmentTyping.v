@@ -288,7 +288,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
 
   Definition wf_universe_dec Σ u : {wf_universe Σ u} + {~wf_universe Σ u}.
   Proof.
-    cbv [wf_universe LevelExprSet.In LevelExprSet.this t_set].
+    cbv [wf_universe LevelExprSet.In LevelExprSet.this LevelExprSet.t_set].
     destruct u as [[t _] _].
     induction t as [|t ts [IHt|IHt]]; [ left | | right ].
     { inversion 1. }

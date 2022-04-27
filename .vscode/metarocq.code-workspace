@@ -35,6 +35,7 @@
 		"-R", "examples", "MetaRocq.Examples",
 	    ],
 		"vscoq.args": [
+
 		// "-bt", // get backtraces from Rocq on errors
 		"-R", "utils/theories", "MetaRocq.Utils",
 		"-R", "common/theories", "MetaRocq.Common",

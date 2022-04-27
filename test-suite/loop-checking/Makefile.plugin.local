@@ -1,0 +1,10 @@
+CAMLFLAGS+=-w -20 # Unused argument (produced by extraction)
+CAMLFLAGS+=-w -33 # Unused opens
+CAMLFLAGS+=-w -32 # Unused value
+CAMLFLAGS+=-w -39 # Unused rec flag
+CAMLFLAGS+=-w -26 # Unused variable
+CAMLFLAGS+=-w -34 # Unused type
+CAMLFLAGS+=-w -60 # Unused module
+CAMLFLAGS+=-w -8 # Non-exhaustive pattern-matchings (BEWARE, just for extracted code)
+CAMLFLAGS+=-bin-annot # For merlin
+CAMLFLAGS+=-open Metacoq_template_plugin

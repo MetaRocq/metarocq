@@ -223,7 +223,9 @@ Next Obligation.
 Qed.
 
 Scheme level_lt_ind_dep := Induction for Level.lt_ Sort Prop.
+Scheme level_expr_lt_ind_dep := Induction for LevelExpr.lt_ Sort Prop.
 Scheme constraint_type_lt_ind_dep := Induction for ConstraintType.lt_ Sort Prop.
+Scheme level_constraint_lt_ind_dep := Induction for LevelConstraint.lt_ Sort Prop.
 Scheme constraint_lt_ind_dep := Induction for UnivConstraint.lt_ Sort Prop.
 Derive Signature for UnivConstraint.lt_.
 Derive Signature for le.
@@ -254,6 +256,33 @@ Proof.
   - f_equal. apply nat_le_irrel.
 Qed.
 
+Lemma lt_levelexpr_irrel {x y : LevelExpr.t} (l l' : LevelExpr.lt_ x y) : l = l'.
+Proof.
+  induction l using level_expr_lt_ind_dep.
+  - depelim l'; auto.
+    * now replace l0 with l2 by now apply nat_le_irrel.
+    * exfalso. now eapply RelationClasses.irreflexivity in l2.
+  - depelim l'; auto.
+    * exfalso. now eapply RelationClasses.irreflexivity in l0.
+    * now replace l0 with l2 by now apply lt_level_irrel.
+Qed.
+
+From Coq Require Import ProofIrrelevance.
+
+Lemma lt_universe_irrel {x y : Universe.t} (l l' : LevelExprSet.lt x y) : l = l'.
+Proof.
+  apply ProofIrrelevance.proof_irrelevance.
+Qed.
+  (* destruct l.
+  induction l using level_expr_set_lt_ind_dep.
+  - depelim l'; auto.
+    * now replace l0 with l2 by now apply nat_le_irrel.
+    * exfalso. now eapply RelationClasses.irreflexivity in l2.
+  - depelim l'; auto.
+    * exfalso. now eapply RelationClasses.irreflexivity in l0.
+    * now replace l0 with l2 by now apply lt_level_irrel.
+Qed. *)
+
 Lemma constraint_type_lt_level_irrel {x y} (l l' : ConstraintType.lt_ x y) : l = l'.
 Proof.
   induction l using constraint_type_lt_ind_dep; depelim l'; auto.
@@ -265,6 +294,23 @@ From Stdlib Require Import RelationClasses.
 Lemma constraint_lt_irrel (x y : UnivConstraint.t) (l l' : UnivConstraint.lt_ x y) : l = l'.
 Proof.
   revert l'. induction l using constraint_lt_ind_dep.
+  - intros l'. depelim l'. f_equal.
+    apply lt_universe_irrel.
+    now elim (irreflexivity (R:=ConstraintType.lt) l4).
+    now elim (irreflexivity l4).
+  - intros l'; depelim l'.
+    now elim (irreflexivity (R:=ConstraintType.lt) l).
+    now rewrite (constraint_type_lt_level_irrel l l4).
+    now elim (irreflexivity l4).
+  - intros l'; depelim l'.
+    now elim (irreflexivity l).
+    now elim (irreflexivity l).
+    now rewrite (lt_universe_irrel l l4).
+Qed.
+
+Lemma levelconstraint_lt_irrel (x y : LevelConstraint.t) (l l' : LevelConstraint.lt_ x y) : l = l'.
+Proof.
+  revert l'. induction l using level_constraint_lt_ind_dep.
   - intros l'. depelim l'.
     now rewrite (lt_level_irrel l l4).
     now elim (irreflexivity (R:=ConstraintType.lt) l4).
@@ -372,9 +418,9 @@ Module ConstraintSetsUIP.
     - depelim o'. f_equal; auto.
       clear -l0 l2. red in l0, l2.
       extensionality y. extensionality inl.
-      apply constraint_lt_irrel.
+      apply levelconstraint_lt_irrel.
       extensionality y. extensionality inl.
-      apply constraint_lt_irrel.
+      apply levelconstraint_lt_irrel.
   Qed.
 
   #[global,program] Instance reflect_ConstraintSet : ReflectEq ConstraintSet.t :=

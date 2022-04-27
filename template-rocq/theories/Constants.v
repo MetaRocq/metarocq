@@ -119,7 +119,7 @@ Register MetaRocq.Common.Universes.Level.lzero as metarocq.ast.level.lzero.
 Register MetaRocq.Common.Universes.Level.lvar as metarocq.ast.level.Var.
 
 Register MetaRocq.Common.Universes.LevelExprSet.Mkt as metarocq.ast.levelexprset.mkt.
-Register MetaRocq.Common.Universes.Build_nonEmptyLevelExprSet as metarocq.ast.universe.build0.
+Register MetaRocq.Common.Universes.LevelExprSet.Build_nonEmptyLevelExprSet as metarocq.ast.universe.build0.
 Register MetaRocq.Common.Universes.Sort.sSProp as metarocq.ast.sort.sprop.
 Register MetaRocq.Common.Universes.Sort.sProp as metarocq.ast.sort.prop.
 Register MetaRocq.Common.Universes.Sort.sType as metarocq.ast.sort.type.

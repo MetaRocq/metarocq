@@ -42,7 +42,7 @@ Record TMInstance@{t u r} :=
 
 (* Quote the body of a definition or inductive. Its name need not be fully quaified *)
 ; tmQuoteInductive : kername -> TemplateMonad mutual_inductive_body
-; tmQuoteUniverses : TemplateMonad ConstraintSet.t
+; tmQuoteUniverses : TemplateMonad ContextSet.t
 ; tmQuoteConstant : kername -> bool (* bypass opacity? *) -> TemplateMonad constant_body
 (* unquote before making the definition *)
 (* FIXME take an optional universe context as well *)

@@ -357,7 +357,7 @@ Section GcOfConstraint.
   (* None -> not satisfiable *)
   (* Some empty -> useless *)
   (* else: singleton or two elements set (l = l' -> {l<=l', l'<=l}) *)
-  Definition gc_of_constraint `{checker_flags} (uc : UnivConstraint.t)
+  Definition gc_of_constraint `{checker_flags} (uc : LevelConstraint.t)
   : option GoodConstraintSet.t
   := let empty := Some GoodConstraintSet.empty in
      let singleton := fun x => Some (GoodConstraintSet.singleton x) in
@@ -2922,7 +2922,7 @@ Section AddLevelsCstrs.
     - constructor.
       + intros.
         setoid_rewrite ConstraintSetFact.elements_iff. setoid_rewrite InA_In_eq.
-        transitivity ((exists (c : UnivConstraint.t) (gcs : GoodConstraintSet.t),
+        transitivity ((exists (c : LevelConstraint.t) (gcs : GoodConstraintSet.t),
           gc_of_constraint c = Some gcs /\
           In c (ConstraintSet.elements s) /\ GoodConstraintSet.In gc gcs) \/ GCS.In gc GCS.empty).
         2:gcsets.

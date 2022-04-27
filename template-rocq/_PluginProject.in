@@ -152,8 +152,10 @@ gen-src/mSetFacts.ml
 gen-src/mSetFacts.mli
 gen-src/mSetInterface.ml
 gen-src/mSetInterface.mli
-gen-src/mSetList.ml
-gen-src/mSetList.mli
+# gen-src/mSetList.ml
+# gen-src/mSetList.mli
+gen-src/mSetAVL.ml
+gen-src/mSetAVL.mli
 gen-src/mSetProperties.ml
 gen-src/mSetProperties.mli
 gen-src/monad_utils.ml

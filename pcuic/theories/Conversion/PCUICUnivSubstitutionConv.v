@@ -581,7 +581,7 @@ Proof.
     split; apply LS.union_spec; right; apply H.
 Qed.
 
-Definition is_monomorphic_cstr (c : UnivConstraint.t)
+Definition is_monomorphic_cstr (c : LevelConstraint.t)
   := negb (Level.is_var c.1.1) && negb (Level.is_var c.2).
 
 Lemma monomorphic_global_constraint {cf : checker_flags} Σ (hΣ : wf Σ) c :

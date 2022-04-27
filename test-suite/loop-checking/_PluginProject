@@ -1,0 +1,20 @@
+-R ../../template-coq/theories MetaCoq.Template
+-I ../../template-coq/build
+
+-I src
+-I gen-src
+-R theories MetaCoq.LoopChecking
+
+src/g_metacoq_loop_checking_plugin.mlg
+src/metacoq_loop_checking_plugin.mlpack
+
+theories/Loader.v
+test/test.v
+
+# given by [ls -1 gen-src/*.ml gen-src/*.mli]
+gen-src/loopChecking.ml
+gen-src/loopChecking.mli
+gen-src/templateLoopChecking.ml
+gen-src/templateLoopChecking.mli
+gen-src/loopCheckingPlugin.mli
+gen-src/loopCheckingPlugin.ml

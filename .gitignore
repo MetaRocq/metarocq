@@ -413,3 +413,7 @@ template-rocq/_TemplateRocqProject
 .gitignore
 template-rocq/_PluginProject
 template-rocq/_RocqProject
+template-coq/extraction_clauses/clauses.ml
+template-coq/extraction_clauses/clauses.mli
+template-coq/extraction_clauses/loop_checking.mli
+template-coq/extraction_clauses/loop_checking.ml
