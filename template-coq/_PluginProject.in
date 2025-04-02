@@ -131,6 +131,14 @@ gen-src/mCMSets.ml
 gen-src/mCMSets.mli
 gen-src/mCOption.ml
 gen-src/mCOption.mli
+gen-src/utils.ml
+gen-src/utils.mli
+gen-src/monad0.ml
+gen-src/monad0.mli
+gen-src/documents.ml
+gen-src/documents.mli
+gen-src/rendering.ml
+gen-src/rendering.mli
 gen-src/mCPrelude.ml
 gen-src/mCPrelude.mli
 gen-src/mCProd.ml

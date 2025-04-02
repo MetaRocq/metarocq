@@ -10,6 +10,7 @@ From Coq Require Ascii Extraction ZArith NArith.
 From MetaCoq.Utils Require Import utils.
 From MetaCoq.Common Require Import Reflect config.
 From MetaCoq.Template Require Import Ast Induction.
+From PPrint Require Import All.
 From Coq Require Import FSets ExtrOcamlBasic ExtrOCamlFloats ExtrOCamlInt63 ExtrOCamlPString.
 
 Extract Inductive Equations.Init.sigma => "( * )" ["(,)"].
@@ -42,6 +43,10 @@ Extraction Library Sumbool.
 Extraction Library Zbool.
 Extraction Library SpecFloat. *)
 Separate Extraction FloatOps.Prim2SF.
+
+(* PPrint *)
+Extraction Blacklist Monad.
+Separate Extraction monad_utils.Monad Utils PPrint.Monad Documents Rendering.
 
 Recursive Extraction Library Extractable.
 Extraction Library MCPrelude.

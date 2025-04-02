@@ -1,6 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import Ascii FSets ExtrOcamlBasic ExtrOCamlFloats ExtrOCamlInt63.
 From MetaCoq.Utils Require Import utils.
+From PPrint Require Import Utils.
 
 (** * Extraction setup for the erasure phase of template-coq.
 
@@ -41,5 +42,5 @@ Set Extraction Output Directory "src".
 
 Separate Extraction ErasureFunction.erase Erasure
          (* The following directives ensure separate extraction does not produce name clashes *)
-         Coq.Strings.String utils Template.UnivSubst ELiftSubst EGlobalEnv.
+         PPrint.Utils Coq.Strings.String utils Template.UnivSubst ELiftSubst EGlobalEnv.
 

@@ -29,6 +29,7 @@ install: [
 ]
 depends: [
   "coq-metacoq-common" {= version}
+  "coq-pprint" {>= "0.2.1+8.20"}
 ]
 synopsis: "A quoting and unquoting library for Coq in Coq"
 description: """

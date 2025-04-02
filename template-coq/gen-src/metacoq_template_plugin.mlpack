@@ -84,6 +84,10 @@ Signature
 All_Forall
 MCFSets
 MCMSets
+Utils
+Monad0
+Documents
+Rendering
 Config0
 Kernames
 Primitive

@@ -11,8 +11,8 @@ src/wGraph.ml
 src/wGraph.mli
 src/etaExpand.mli
 src/etaExpand.ml
-src/utils.mli
-src/utils.ml
+src/utils0.mli
+src/utils0.ml
 
 src/resultMonad.mli
 src/resultMonad.ml
