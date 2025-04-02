@@ -231,3 +231,11 @@ Definition tmFix@{a b t u} {A : Type@{a}} {B : Type@{b}} (f : (A -> TemplateMona
             qu <- tmQuoteLevel@{u _ _};;
             let self := tConst (MPfile ["Core"; "TemplateMonad"; "Template"; "MetaCoq"], "tmFix'")%bs [qa;qb;qt;qu] in
             @tmFix'@{a b t u} A B (mkApps self [qA; qB]) f a)).
+
+Class tmTryHelper@{t u} {A : Type@{t}} (run : TemplateMonad@{t u} A) := tmTry_ret : A.
+Definition tmTry@{t u} {A : Type@{t}} (run : TemplateMonad@{t u} A) : TemplateMonad@{t u} (option_try@{t} A)
+  := tmBind (tmInferInstance None (tmTryHelper run))
+            (fun inst => match inst with
+                         | my_Some x => tmReturn (my_Value x)
+                         | my_None => tmReturn (my_Error GenericError)
+                         end).

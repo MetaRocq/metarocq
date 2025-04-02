@@ -12,3 +12,5 @@ Notation "<% x %>" := (ltac:(let p y := exact y in quote_term x p))
 (* Use [return _] to avoid running the program twice on failure *)
 Notation "<# x #>" := (match TemplateMonad.Core.tmQuoteRec x return _ with qx => ltac:(let p y := exact y in run_template_program qx p) end)
   (only parsing).
+
+#[global] Hint Extern 0 (Core.tmTryHelper ?run) => run_template_program run (fun v => refine v) : typeclass_instances.
