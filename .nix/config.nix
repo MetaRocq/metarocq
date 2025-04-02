@@ -31,53 +31,19 @@
 
   ## select an entry to build in the following `bundles` set
   ## defaults to "default"
-  default-bundle = "coq-dev";
+  default-bundle = "rocq-dev";
 
   # MetaCoq is expected to be compatible with a single coq version
   # The name of the bundle should finish with the coq version to use
   # cachedMake.sh
-  bundles."coq-dev" = {
-
-    ## You can override Coq and other Coq coqPackages
-    ## through the following attribute
-    coqPackages.coq.override.version = "master";
+  bundles."rocq-dev" = {
+    rocqPackages.rocq-core.override.version = "master";
+    rocqPackages.stdlib.override.version = "master";
     coqPackages.equations.override.version = "main";
+    coqPackages.coq.override.version = "master";
+    coqPackages.stdlib.override.version = "master";
 
-    ## In some cases, light overrides are not available/enough
-    ## in which case you can use either
-    # coqPackages.<coq-pkg>.overrideAttrs = o: <overrides>;
-    # coqPackages.equations.overrideAttrs = o: <overrides>;
-    ## or a "long" overlay to put in `.nix/coq-overlays
-    ## you may use `nix-shell --run fetchOverlay <coq-pkg>`
-    ## to automatically retrieve the one from nixpkgs
-    ## if it exists and is correctly named/located
-
-    ## You can override Coq and other coqPackages
-    ## through the following attribute
-    ## If <ocaml-pkg> does not support light overrides,
-    ## you may use `overrideAttrs` or long overlays
-    ## located in `.nix/ocaml-overlays`
-    ## (there is no automation for this one)
-    #  ocamlPackages.<ocaml-pkg>.override.version = "x.xx";
-
-    ## You can also override packages from the nixpkgs toplevel
-    # <nix-pkg>.override.overrideAttrs = o: <overrides>;
-    ## Or put an overlay in `.nix/overlays`
-
-    ## you may mark a package as a main CI job (one to take deps and
-    ## rev deps from) as follows
-    # coqPackages.<main-pkg>.main-job = true;
-    ## by default the current package and its shell attributes are main jobs
-
-    ## you may mark a package as a CI job as follows
-    #  coqPackages.<another-pkg>.job = "test";
-    ## It can then built through
-    ## nix-build --argstr bundle "default" --arg job "test";
-    ## in the absence of such a directive, the job "another-pkg" will
-    ## is still available, but will be automatically included in the CI
-    ## via the command genNixActions only if it is a dependency or a
-    ## reverse dependency of a job flagged as "main-job" (see above).
-
+    push-branches = ["main"];
   };
 
   ## Cachix caches to use in CI

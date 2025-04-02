@@ -5,8 +5,7 @@
 }@args:
 let auto = fetchGit {
   url = "https://github.com/coq-community/coq-nix-toolbox.git";
-  allRefs = true ;
-  # ref = "master";
+  ref = "master";
   rev = import .nix/coq-nix-toolbox.nix;
 };
 in
