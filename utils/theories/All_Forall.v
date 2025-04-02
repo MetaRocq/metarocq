@@ -25,6 +25,7 @@ Arguments Alli_nil {_ _ _}.
 Arguments Alli_cons {_ _ _ _ _}.
 Derive Signature for Alli.
 Derive NoConfusionHom for Alli.
+#[global] Hint Constructors Alli : core.
 
 Inductive All2 {A B : Type} (R : A -> B -> Type) : list A -> list B -> Type :=
   All2_nil : All2 R [] []
@@ -67,6 +68,7 @@ Arguments All2i_nil {_ _ _ _}.
 Arguments All2i_cons {_ _ _ _ _ _ _ _}.
 
 Derive Signature NoConfusionHom for All2i.
+#[global] Hint Constructors All2i : core.
 
 
 Inductive All3 {A B C : Type} (R : A -> B -> C -> Type) : list A -> list B -> list C -> Type :=
@@ -76,6 +78,7 @@ Inductive All3 {A B C : Type} (R : A -> B -> C -> Type) : list A -> list B -> li
 Arguments All3_nil {_ _ _ _}.
 Arguments All3_cons {_ _ _ _ _ _ _ _ _ _}.
 Derive Signature NoConfusionHom for All3.
+#[global] Hint Constructors All3 : core.
 
 Definition invert_Forall2 {A B R l l'} (a : @Forall2 A B R l l')
   := match a in Forall2 _ l l'
@@ -160,6 +163,821 @@ Section alli.
   end.
 End alli.
 
+Section Forallb2.
+  Context {A B} (f : A -> B -> bool).
+
+  Fixpoint forallb2 l l' :=
+    match l, l' with
+    | hd :: tl, hd' :: tl' => f hd hd' && forallb2 tl tl'
+    | [], [] => true
+    | _, _ => false
+    end.
+
+End Forallb2.
+
+Inductive OnOne2 {A : Type} (P : A -> A -> Type) : list A -> list A -> Type :=
+| OnOne2_hd hd hd' tl : P hd hd' -> OnOne2 P (hd :: tl) (hd' :: tl)
+| OnOne2_tl hd tl tl' : OnOne2 P tl tl' -> OnOne2 P (hd :: tl) (hd :: tl').
+Derive Signature NoConfusion for OnOne2.
+
+Inductive OnOne2i {A : Type} (P : nat -> A -> A -> Type) : nat -> list A -> list A -> Type :=
+| OnOne2i_hd i hd hd' tl : P i hd hd' -> OnOne2i P i (hd :: tl) (hd' :: tl)
+| OnOne2i_tl i hd tl tl' : OnOne2i P (S i) tl tl' -> OnOne2i P i (hd :: tl) (hd :: tl').
+Derive Signature NoConfusion for OnOne2i.
+#[global] Hint Constructors OnOne2i : core.
+
+Inductive OnOne2All {A B : Type} (P : B -> A -> A -> Type) : list B -> list A -> list A -> Type :=
+| OnOne2All_hd b bs hd hd' tl : P b hd hd' -> #|bs| = #|tl| -> OnOne2All P (b :: bs) (hd :: tl) (hd' :: tl)
+| OnOne2All_tl b bs hd tl tl' : OnOne2All P bs tl tl' -> OnOne2All P (b :: bs) (hd :: tl) (hd :: tl').
+Derive Signature NoConfusion for OnOne2All.
+#[global] Hint Constructors OnOne2All : core.
+
+Inductive All_fold {A} (P : list A -> A -> Type) : list A -> Type :=
+  | All_fold_nil : All_fold P nil
+  | All_fold_cons {d Γ} : All_fold P Γ -> P Γ d -> All_fold P (d :: Γ).
+#[global] Hint Constructors All_fold : core.
+
+Derive Signature NoConfusionHom for All_fold.
+Inductive All2_fold {A} (P : list A -> list A -> A -> A -> Type)
+            : list A -> list A -> Type :=
+| All2_fold_nil : All2_fold P nil nil
+| All2_fold_cons {d d' Γ Γ'} : All2_fold P Γ Γ' -> P Γ Γ' d d' -> All2_fold P (d :: Γ) (d' :: Γ').
+
+Derive Signature NoConfusion for All2_fold.
+#[global] Hint Constructors All2_fold : core.
+
+Definition All_over {A B} (P : list B -> list B -> A -> A -> Type) (Γ Γ' : list B) :=
+  fun Δ Δ' => P (Δ ++ Γ) (Δ' ++ Γ').
+
+Definition size := nat.
+
+Section All_size.
+  Context {A} (P : A -> Type) (fn : forall x1, P x1 -> size).
+  Fixpoint all_size {l1 : list A} (f : All P l1) : size :=
+  match f with
+  | All_nil => 0
+  | All_cons px pl => fn _ px + all_size pl
+  end.
+End All_size.
+
+Section Alli_size.
+  Context {A} (P : nat -> A -> Type) (fn : forall n x1, P n x1 -> size).
+  Fixpoint alli_size {l1 : list A} {n} (f : Alli P n l1) : size :=
+  match f with
+  | Alli_nil => 0
+  | Alli_cons px pl => fn _ _ px + alli_size pl
+  end.
+End Alli_size.
+
+Section All2_size.
+  Context {A B} (P : A -> B -> Type) (fn : forall x1 x2, P x1 x2 -> size).
+  Fixpoint all2_size {l1 l2} (f : All2 P l1 l2) : size :=
+  match f with
+  | All2_nil => 0
+  | All2_cons rxy rll' => fn _ _ rxy + all2_size rll'
+  end.
+End All2_size.
+
+Section All2i_size.
+  Context {A B} (P : nat -> A -> B -> Type) (fn : forall i x1 x2, P i x1 x2 -> size).
+  Fixpoint all2i_size {n l1 l2} (f : All2i P n l1 l2) : size :=
+  match f with
+  | All2i_nil => 0
+  | All2i_cons rxy rll' => fn _ _ _ rxy + all2i_size rll'
+  end.
+End All2i_size.
+
+
+(** Generic strategy for dealing with Forall/forall, etc, in a fully information-preserving way:
+
+    1) Normalize towards [nth_error]
+    2) Use [nth_error] rewriting lemmas
+    3) optionally simplify and call eauto.
+ *)
+
+Local Ltac pose_rename H lem :=
+  let H' := fresh in
+  pose proof lem as H';
+  clear H; rename H' into H.
+
+Lemma nth_error_app_forall_iff A P l1 l2
+  : (forall i x, @nth_error A (l1 ++ l2) i = Some x -> P i x)
+      <~> ((forall i x, nth_error l1 i = Some x -> P i x)
+             × (forall i x, nth_error l2 i = Some x -> P (#|l1| + i) x)).
+Proof.
+  split => [H|[H1 H2]]; [ split | ].
+  { intros; eapply H; rewrite nth_error_app1 => //; eapply nth_error_Some; congruence. }
+  { clear -H; let H' := fresh in intros ?? H'; eapply H; rewrite nth_error_app2 -?H' => //; f_equal; lia. }
+  { intros i x H.
+    apply nth_error_app_inv in H.
+    destruct (lt_dec i #|l1|);
+      [ apply H1
+      | replace i with (#|l1| + (i - #|l1|)) by lia; apply H2 ].
+    all: destruct H as [[??]|[??]]; try lia; auto. }
+Qed.
+Ltac simplify_nth_error_app_step :=
+  match goal with
+  | [ H : context[#|_ ++ _|] |- _ ] => rewrite app_length in H
+  | [ |- context[#|_ ++ _|] ] => rewrite app_length
+  | [ H : nth_error (_ ++ _) _ = Some _ |- _ ] => apply nth_error_app_inv in H
+  | [ |- context[nth_error (_ ++ _) _] ] => rewrite nth_error_app_full
+  | [ H : forall i x, nth_error (?l1 ++ ?l2) i = Some x -> @?P i x |- _ ]
+    => pose_rename H (fst (@nth_error_app_forall_iff _ _ _ _) H)
+  | [ H : (forall i x, nth_error (?l1 ++ ?l2) i = Some x -> @?P i x) -> False |- _ ]
+    => pose_rename H (fun pf => H (snd (@nth_error_app_forall_iff _ _ _ _) pf))
+  end.
+Ltac simplify_nth_error_rev_step :=
+  match goal with
+  | [ H : context[#|rev _|] |- _ ] => rewrite rev_length in H
+  | [ |- context[#|rev _|] ] => rewrite rev_length
+  | [ H : context[#|List.rev _|] |- _ ] => rewrite List.rev_length in H
+  | [ |- context[#|List.rev _|] ] => rewrite List.rev_length
+  | [ H : context[nth_error (rev _) _] |- _ ] => rewrite nth_error_rev_full in H
+  | [ |- context[nth_error (rev _) _] ] => rewrite nth_error_rev_full
+  | [ H : context[nth_error (List.rev _) _] |- _ ] => rewrite nth_error_List_rev_full in H
+  | [ |- context[nth_error (List.rev _) _] ] => rewrite nth_error_List_rev_full
+  | [ H : forall i x, nth_error (@List.rev ?A ?l) i = Some x -> _ |- _ ]
+    => let H' := fresh in
+       (pose H' := X _ _ ltac:(rewrite <- nth_error_rev));
+       clearbody H'; clear H; rename H' into H
+  end.
+Ltac simplify_nth_error_rev_map_step :=
+  match goal with
+  | [ H : context[#|rev_map _ _|] |- _ ] => rewrite rev_map_length in H
+  | [ |- context[#|rev_map _ _|] ] => rewrite rev_map_length
+  | [ H : context[nth_error (rev_map _ _) _] |- _ ] => rewrite nth_error_rev_map in H
+  | [ |- context[nth_error (rev_map _ _) _] ] => rewrite nth_error_rev_map
+  end.
+Ltac simplify_nth_error_map_step :=
+  match goal with
+  | [ H : context[#|map _ _|] |- _ ] => rewrite map_length in H
+  | [ |- context[#|map _ _|] ] => rewrite map_length
+  | [ H : forall i x, nth_error (@map ?A ?B ?f ?l) i = Some x -> _ |- _ ]
+    => pose proof (fun i x pf => H i _ (@map_nth_error A B f i l x pf));
+       clear H
+  | [ H : (forall i x, nth_error (@map ?A ?B ?f ?l) i = Some x -> @?P i x) -> False |- _ ]
+    => assert ((forall i x, nth_error l i = Some x -> P i (f x)) -> False)
+      by (clear -H;
+          let H' := fresh in
+          let i := fresh in
+          intros H'; apply H; clear -H'; intros i *; specialize (H' i);
+          rewrite nth_error_map; revert H'; destruct nth_error; cbn [option_map]; intro H'; inversion 1; subst; auto);
+       clear H
+  | [ H : context[nth_error (map _ _) _] |- _ ] => rewrite nth_error_map in H
+  | [ |- context[nth_error (map _ _) _] ] => rewrite nth_error_map
+  end.
+Ltac simplify_nth_error_mapi_step :=
+  match goal with
+  | [ H : context[#|mapi _ _|] |- _ ] => rewrite mapi_length in H
+  | [ |- context[#|mapi _ _|] ] => rewrite mapi_length
+  | [ H : forall i x, nth_error (@mapi ?A ?B ?f ?l) i = Some x -> _ |- _ ]
+    => pose proof (fun i x pf => H i _ (@mapi_nth_error A B f i l x pf));
+       clear H
+  | [ H : (forall i x, nth_error (@mapi ?A ?B ?f ?l) i = Some x -> @?P i x) -> False |- _ ]
+    => assert ((forall i x, nth_error l i = Some x -> P i (f i x)) -> False)
+      by (clear -H;
+          let H' := fresh in
+          let i := fresh in
+          intros H'; apply H; clear -H'; intros i *; specialize (H' i);
+          rewrite nth_error_mapi; revert H'; destruct nth_error; cbn [option_map]; intro H'; inversion 1; subst; auto);
+       clear H
+  | [ H : context[nth_error (mapi _ _) _] |- _ ] => rewrite nth_error_mapi in H
+  | [ |- context[nth_error (mapi _ _) _] ] => rewrite nth_error_mapi
+  end.
+Ltac simplify_nth_error_mapi_rec_step :=
+  match goal with
+  | [ H : context[#|mapi_rec _ _ _|] |- _ ] => rewrite mapi_rec_length in H
+  | [ |- context[#|mapi_rec _ _ _|] ] => rewrite mapi_rec_length
+  | [ H : forall i x, nth_error (@mapi_rec ?A ?B ?f ?l ?k) i = Some x -> _ |- _ ]
+    => pose proof (fun i x pf => H i _ (@mapi_rec_nth_error A B f i l x k pf));
+       clear H
+  | [ H : (forall i x, nth_error (@mapi_rec ?A ?B ?f ?l ?k) i = Some x -> @?P i x) -> False |- _ ]
+    => assert ((forall i x, nth_error l i = Some x -> P i (f (i + k) x)) -> False)
+      by (clear -H;
+          let H' := fresh in
+          let i := fresh in
+          intros H'; apply H; clear -H'; intros i *; specialize (H' i);
+          rewrite nth_error_mapi_rec; revert H'; destruct nth_error; cbn [option_map]; intro H'; inversion 1; subst; auto);
+       clear H
+  | [ H : context[nth_error (mapi_rec _ _ _) _] |- _ ] => rewrite nth_error_mapi_rec in H
+  | [ |- context[nth_error (mapi_rec _ _ _) _] ] => rewrite nth_error_mapi_rec
+  end.
+Ltac simplify_nth_error_skipn_step :=
+  match goal with
+  | [ H : context[nth_error (skipn _ _) _] |- _ ] => rewrite nth_error_skipn in H
+  | [ H : context[nth_error (skipn _ _) _] |- _ ] => setoid_rewrite nth_error_skipn in H
+  | [ |- context[nth_error (skipn _ _) _] ] => rewrite nth_error_skipn
+  end.
+Ltac simplify_nth_error_firstn_step :=
+  match goal with
+  | [ H : context[nth_error (firstn _ _) _] |- _ ] => rewrite nth_error_firstn in H
+  | [ H : context[nth_error (firstn _ _) _] |- _ ] => setoid_rewrite nth_error_firstn in H
+  | [ |- context[nth_error (firstn _ _) _] ] => rewrite nth_error_firstn
+  end.
+Ltac simplify_nth_error_last_step :=
+  let go T :=
+    match T with
+    | context[@last ?A ?l ?a]
+      => let H := fresh in
+         have : {l = []} + {l <> []}; [ clear; now destruct l; [ left | right ] | move => [H|H] ];
+         [ assert (@last A l a = a) by now rewrite H
+         | generalize (@nth_error_last A l a H) ];
+         generalize dependent (@last A l a); intros; subst
+    end in
+  match goal with
+  | [ H : ?T |- _ ] => go T
+  | [ |- ?T ] => go T
+  end.
+Ltac simplify_nth_error_safe_nth_step :=
+  let go T :=
+    match T with
+    | context[@safe_nth ?A ?l ?pf]
+      => lazymatch pf with
+         | exist ?P ?n ?isdecl
+           => generalize (@nth_error_safe_nth A n l isdecl : nth_error l n = Some (safe_nth l (exist P n isdecl)));
+              generalize dependent (safe_nth l (exist P n isdecl)); intros; subst
+         | _ => destruct pf eqn:?; subst
+         end
+    end in
+  match goal with
+  | [ H : ?T |- _ ] => go T
+  | [ |- ?T ] => go T
+  end.
+Ltac simplify_nth_error_map_option_out_step :=
+  let go T :=
+    match T with
+    | context[@map_option_out ?A ?l]
+      => let HS := fresh in
+         let HN := fresh in
+         pose proof (fun l' => proj1 (@map_option_out_Some_spec A l l')) as HS;
+         pose proof (proj1 (@map_option_out_None_spec A l)) as HN;
+         destruct (@map_option_out A l);
+         first [ specialize (HS _ eq_refl) | clear HS ];
+         first [ specialize (HN eq_refl) | clear HN ]
+    end in
+  match goal with
+  | [ H : ?T |- _ ] => go T
+  | [ |- ?T ] => go T
+  end.
+Ltac simplify_nth_error_saturate_diseq_step n' n :=
+  assert_fails constr_eq n n';
+  lazymatch goal with
+  | [ H : n = n' |- _ ] => fail
+  | [ H : n' = n |- _ ] => fail
+  | [ H : n <> n' |- _ ] => fail
+  | [ H : n' <> n |- _ ] => fail
+  | [ H : n = n' -> False |- _ ] => fail
+  | [ H : n' = n -> False |- _ ] => fail
+  | _ => destruct (Nat.eqb_spec n n')
+  end.
+Ltac simplify_nth_error_saturate_diseq H' n :=
+  repeat match type of H' with
+    | context[_ <> ?n'] => simplify_nth_error_saturate_diseq_step n' n
+    end.
+Ltac simplify_nth_error_find_eq n' n :=
+  first [ constr_eq n n'
+        | lazymatch goal with
+          | [ H : n = n' |- _ ] => idtac
+          | [ H : n' = n |- _ ] => idtac
+          end ].
+Ltac simplify_nth_error_check_no_diseq H' n :=
+  lazymatch type of H' with
+  | context[_ <> n] => fail
+  | _ => idtac
+  end;
+  match type of H' with
+  | context[_ <> ?n']
+    => tryif simplify_nth_error_find_eq n n' then fail 1 else fail
+  | _ => idtac
+  end.
+Ltac simplify_nth_error_check_no_self_diseq H' n :=
+  lazymatch type of H' with
+  | context[n <> n] => fail
+  | _ => idtac
+  end;
+  match type of H' with
+  | context[n <> ?n']
+    => tryif simplify_nth_error_find_eq n n' then fail 1 else fail
+  | _ => idtac
+  end;
+  match type of H' with
+  | context[?n' <> n]
+    => tryif simplify_nth_error_find_eq n n' then fail 1 else fail
+  | _ => idtac
+  end;
+  match type of H' with
+  | context[?n' <> ?n'']
+    => tryif first [ constr_eq n' n | constr_eq n'' n ]
+      then (* already handled *) fail
+      else tryif (simplify_nth_error_find_eq n n'; simplify_nth_error_find_eq n n'') then fail 1 else fail
+  | _ => idtac
+  end.
+Ltac simplify_nth_error_case_step :=
+  let destr c n :=
+    (assert_fails has_evar (c n);
+     first [ match goal with
+             | [ H' : c ?n' = _ |- _ ] => simplify_nth_error_saturate_diseq_step n' n
+             end
+           | match goal with
+             | [ H' : c ?n' = _ |- _ ] => tryif simplify_nth_error_find_eq n n' then fail 1 else fail
+             | _ => idtac
+             end;
+             destruct (c n) eqn:? ]) in
+  match goal with
+  | [ H : context[match @nth_error ?A ?l ?i with _ => _ end] |- _ ] => destruct (@nth_error A l i) eqn:?
+  | [ |- context[match @nth_error ?A ?l ?i with _ => _ end] ] => destruct (@nth_error A l i) eqn:?
+  | [ H : context[@nth_error ?A ?ls ?n = _] |- _ ]
+    => destr (@nth_error A ls) n
+  | [ H : context[option_map _ (@nth_error ?A ?ls ?n)] |- _ ]
+    => destr (@nth_error A ls) n; cbn [option_map] in *
+  | [ |- context[@nth_error ?A ?ls ?n = _] ]
+    => destr (@nth_error A ls) n
+  | [ |- context[_ = @nth_error ?A ?ls ?n] ]
+    => destr (@nth_error A ls) n
+  | [ |- context[option_map _ (@nth_error ?A ?ls ?n)] ]
+    => destr (@nth_error A ls) n; cbn [option_map] in *
+  | [ H : nth_error ?ls ?n = Some _, H' : #|?ls| = #|?l| |- _ ]
+    => destr (nth_error l) n
+  | [ H : nth_error ?ls ?n = Some _, H' : #|?l| = #|?ls| |- _ ]
+    => destr (nth_error l) n
+  | [ H : nth_error ?ls ?n = None, H' : #|?ls| = #|?l| |- _ ]
+    => destr (nth_error l) n
+  | [ H : nth_error ?ls ?n = None, H' : #|?l| = #|?ls| |- _ ]
+    => destr (nth_error l) n
+  end.
+Local Definition nth_error' {A} := Eval cbv [nth_error] in @nth_error A.
+Global Arguments nth_error' {_} !_ !_ / .
+Ltac simplify_nth_error_ctor_step :=
+  first [ progress (change (@nth_error) with (@nth_error') in *;
+                    cbn [nth_error'] in *;
+                    change (@nth_error') with (@nth_error) in * )
+        | rewrite nth_error_nil
+        | match goal with
+          | [ H : context[nth_error [] _] |- _ ] => rewrite nth_error_nil in H
+          | [ H : context[nth_error (_ :: _) ?n] |- _ ] => is_var n; destruct n
+          | [ |- context[nth_error (_ :: _) ?n] ] => is_var n; destruct n
+          end ].
+Ltac simplify_nth_error_fin_step :=
+  first [ exfalso; assumption
+        | congruence
+        | match goal with
+          | [ H : nth_error ?l ?x = Some _ |- _ ]
+            => exfalso;
+               lazymatch goal with
+               | [ H' : ~x < #|l| |- _ ] => clear -H H'
+               | [ H' : #|l| <= x |- _ ] => clear -H H'
+               | [ H' : x = #|l| |- _ ] => clear -H H'
+               | [ H' : #|l| = x |- _ ] => clear -H H'
+               | _ => constr_eq x #|l|; clear -H
+               end;
+               apply nth_error_Some_length in H; auto; lia
+          | [ H : ?x < ?y, H' : ?y <= ?x |- _ ] => exfalso; lia
+          | [ H : ?x >= ?y |- _ ] => change (y <= x) in H
+          | [ H : nth_error ?l ?i = None, H' : nth_error ?l' ?i = Some _ |- _ ]
+            => let fin_with H'' :=
+                 (exfalso; clear -H'' H H';
+                  apply nth_error_Some_length in H';
+                  apply nth_error_None in H) in
+               lazymatch goal with
+               | [ H'' : #|l| = #|l'| |- _ ] => fin_with H''
+               | [ H'' : #|l'| = #|l| |- _ ] => fin_with H''
+               | [ H'' : #|l| <> #|l'| |- _ ] => fail
+               | [ H'' : #|l'| <> #|l| |- _ ] => fail
+               | _ => is_var l; is_var l';
+                      let H'' := fresh in
+                      destruct (Nat.eq_dec (#|l|) (#|l'|)) as [H''|H''];
+                      [ fin_with H''
+                      | try (exfalso; lia) ]
+               end
+          end ].
+Ltac simplify_nth_error_option_map_step :=
+  match goal with
+  | [ H : context[option_map ?f ?x = Some _] |- _ ] => destruct x eqn:?; cbv [option_map] in H
+  | [ H : context[option_map ?f ?x = None] |- _ ] => destruct x eqn:?; cbv [option_map] in H
+  | [ |- context[option_map ?f ?x = Some _] ] => destruct x eqn:?; cbv [option_map]
+  | [ |- context[option_map ?f ?x = None] ] => destruct x eqn:?; cbv [option_map]
+  end.
+Ltac simplify_nth_error_specialize_step :=
+  match goal with
+  | [ H : forall x, ?y = Some x -> _, H' : ?y = Some _ |- _ ] => specialize (H _ H')
+  | [ H : nth_error ?ls ?n = Some ?x, H' : context[nth_error ?ls _ = Some _ -> _] |- _ ]
+    => progress simplify_nth_error_saturate_diseq H' n
+  | [ H : nth_error ?ls ?n = Some ?x, H' : forall n' x', nth_error ?ls n' = Some x' -> _ |- _ ]
+    => pose proof (fun n' x' pf' (pf : n' <> n) => H' n' x' pf');
+       specialize (H' _ _ H);
+       simplify_nth_error_check_no_self_diseq H' n
+  | [ H : nth_error ?ls ?n = Some ?x, H' : forall n' x' x'', nth_error ?ls n' = Some x' -> nth_error ?ls' n' = Some x'' -> _ |- _ ]
+    => pose proof (fun n' x' x'' pf0 pf1 (pf : n' <> n) => H' n' x' x'' pf0 pf1);
+       specialize (fun x'' => H' _ _ x'' H);
+       simplify_nth_error_check_no_self_diseq H' n
+  | [ H : nth_error ?ls' ?n = Some ?x, H' : forall n' x' x'', nth_error ?ls n' = Some x' -> nth_error ?ls' n' = Some x'' -> _ |- _ ]
+    => pose proof (fun n' x' x'' pf0 pf1 (pf : n' <> n) => H' n' x' x'' pf0 pf1);
+       specialize (fun x' H'' => H' _ x' _ H'' H);
+       simplify_nth_error_check_no_self_diseq H' n
+  | [ H : nth_error ?ls' ?n = Some ?x, H' : forall n' x', nth_error ?ls n' = Some x' -> forall x'', nth_error ?ls' n' = Some x'' -> _ |- _ ]
+    => pose proof (fun n' x' pf0 (pf : n' <> n) x'' pf1 => H' n' x' pf0 x'' pf1);
+       specialize (fun x' H'' => H' _ x' H'' _ H);
+       simplify_nth_error_check_no_self_diseq H' n
+  | [ H : forall n x1 x2 p1 p2, S _ <> 0 -> _ |- _ ]
+    => specialize (fun n x1 x2 p1 p2 => H n x1 x2 p1 p2 ltac:(congruence))
+  | [ H : forall i x, nth_error (_ :: _) i = Some x -> _ |- _ ]
+    => pose proof (H 0); specialize (fun i x => H (S i) x)
+  | [ H : forall i x x', nth_error (_ :: _) i = Some x -> _ |- _ ]
+    => pose proof (H 0); specialize (fun i x => H (S i) x)
+  | [ H : forall i x x' x'', nth_error (_ :: _) i = Some x -> _ |- _ ]
+    => pose proof (H 0); specialize (fun i x => H (S i) x)
+  | [ H : forall x, Some ?v = Some x -> _ |- _ ] => specialize (H _ eq_refl)
+  | [ H : forall x x', Some ?v = Some x -> _ |- _ ] => specialize (fun x' => H _ x' eq_refl)
+  | [ H : forall i x x', nth_error _ i = Some x -> _ |- _ ]
+    => specialize (fun i x pf x' => H i x x' pf)
+  | [ H : forall i x x' x'', nth_error _ i = Some x -> _ |- _ ]
+    => specialize (fun i x pf x' x'' => H i x x' x'' pf)
+  end.
+Ltac simplify_nth_error_eq_list_step :=
+  match goal with
+  | [ H : forall n x1 x2, nth_error ?l1 n = Some x1 -> nth_error ?l2 n = Some x2 -> x1 = x2 |- _ ]
+    => first [ is_var l1 | is_var l2 ];
+       (assert (l1 = l2) by now apply nth_error_Some_ext_iff); clear H
+  | [ H : forall n x1, nth_error ?l1 n = Some x1 -> forall x2, nth_error ?l2 n = Some x2 -> x1 = x2 |- _ ]
+    => first [ is_var l1 | is_var l2 ];
+       (assert (l1 = l2) by now apply nth_error_Some_ext_iff); clear H
+  | [ H : _ = _ :> list _ |- _ ]
+    => rewrite <- nth_error_Some_ext_iff in H
+  | [ |- _ = _ :> list _ ] => apply nth_error_ext_iff
+  end.
+Ltac simplify_nth_error_step :=
+  first [ simplify_nth_error_ctor_step
+        | simplify_nth_error_fin_step
+        | simplify_nth_error_option_map_step
+        | progress subst
+        | progress cbn [length] in *
+        | match goal with
+          | [ H : Some _ = Some _ |- _ ] => inversion H; clear H
+          | [ H : ?x = Some _, H' : ?x = Some _ |- _ ] => rewrite H in H'
+          | [ H : S _ = S _ |- _ ] => inversion H; clear H
+          | [ H : S ?x <> S ?y |- _ ] => assert (x <> y) by (clear -H; congruence); clear H
+          end
+        | simplify_nth_error_specialize_step
+        | simplify_nth_error_eq_list_step
+        | match goal with
+          | [ H : ?x < #|?l| -> _, H' : nth_error ?l ?x = Some _ |- _ ]
+            => (idtac + (assert (x < #|l|) by now eapply nth_error_Some_length));
+               forward H by assumption
+          | [ H : nth_error ?l ?x = Some _, H' : nth_error ?l ?y = Some _ |- _ ]
+            => destruct (@Nat.eqb_spec x y); try lia; [ progress subst | ]
+          end
+        | simplify_nth_error_app_step
+        | simplify_nth_error_map_step
+        | simplify_nth_error_mapi_step
+        | simplify_nth_error_mapi_rec_step
+        | simplify_nth_error_rev_map_step
+        | simplify_nth_error_rev_step
+        | simplify_nth_error_skipn_step
+        | simplify_nth_error_firstn_step
+        | simplify_nth_error_last_step
+        | simplify_nth_error_safe_nth_step
+        | simplify_nth_error_map_option_out_step
+        | simplify_nth_error_case_step ].
+Ltac simplify_nth_error := repeat simplify_nth_error_step.
+Local Ltac simplify_nth_error_logic_step :=
+  first [ match goal with
+          | [ H : ?A, H' : ?A -> ?B |- _ ] => specialize (H' H)
+          | [ H : ?x <> ?y, H' : ?y <> ?x -> ?B |- _ ] => forward H' by (clear -H; easy)
+          | [ H' : ?x <> S ?x -> ?B |- _ ] => forward H' by (clear; lia)
+          | [ H' : S ?x <> ?x -> ?B |- _ ] => forward H' by (clear; lia)
+          | [ H : ?x = ?x -> ?B |- _ ] => specialize (H eq_refl)
+          | [ H : _ × _ -> _ |- _ ] => specialize (fun a b => H (a, b))
+          | [ H : _ /\ _ -> _ |- _ ] => specialize (fun a b => H (conj a b))
+          | [ H : forall x, ex _ -> _ |- _ ] => specialize (fun x y z => H x (ex_intro _ y z))
+          | [ H : ?x = ?x |- _ ] => clear H
+          | [ H : ?x <> ?x -> _ |- _ ] => clear H
+          | [ H : S ?x <> S ?y -> ?B |- _ ]
+            => assert (x <> y -> B) by (clear -H; intro; apply H; lia);
+               clear H
+          | [ H : #|?x| + 1 = #|?y| + 1 |- _ ]
+            => lazymatch goal with
+               | [ H : #|x| = #|y| |- _ ] => fail
+               | _ => assert (#|x| = #|y|) by (clear -H; lia)
+               end
+          | [ H : #|?x| = #|?y|, H' : context[#|?x|] |- _ ]
+            => lazymatch type of H' with
+               | _ = _ :> nat => fail
+               | _ = _ :> nat -> False => fail
+               | _ <> _ :> nat => fail
+               | _ => rewrite H in H'
+               end
+          | [ H : ?l <> nil |- _ ]
+            => lazymatch goal with _ : #|l| <> 0 |- _ => fail | _ => idtac end;
+               assert (#|l| <> 0) by now clear -H; move: H; case: l => //=
+          | [ H : #|?l| <> 0 |- _ ]
+            => lazymatch goal with _ : l <> [] |- _ => fail | _ => idtac end;
+               assert (l <> []) by now clear -H; move: H; case: l => //=
+          | [ H : #|?x| <> 0, H' : #|?x| = #|?y| |- _ ]
+            => lazymatch goal with _ : #|y| <> 0 |- _ => fail | _ => idtac end;
+               assert (#|y| <> 0) by now clear -H H'; move: H H'; case: x; case: y => //=
+          | [ H : #|?x| <> 0, H' : #|?y| = #|?x| |- _ ]
+            => lazymatch goal with _ : #|y| <> 0 |- _ => fail | _ => idtac end;
+               assert (#|y| <> 0) by now clear -H H'; move: H H'; case: x; case: y => //=
+          | [ H : context[?x + ?y] |- context[?y + ?x] ] => progress rewrite -> (@Nat.add_comm x y) in *
+          | [ H : context[?y + ?x], H' : context[?x + ?y] |- _ ] => progress rewrite -> (@Nat.add_comm x y) in *
+          | [ H : 0 <> S _ -> _ |- _ ] => specialize (H ltac:(congruence))
+          | [ H : sigT _ |- _ ] => destruct H
+          | [ H : ex _ |- _ ] => destruct H
+          | [ H : _ /\ _ |- _ ] => destruct H
+          | [ H : _ × _ |- _ ] => destruct H
+          | [ |- context[?x + ?y - ?x] ] => replace (x + y - x) with y by lia
+          | [ H : context[?x + ?y - ?x] |- _ ] => replace (x + y - x) with y in H by lia
+          | [ H : _ + _ |- _ ] => destruct H
+          | [ H : sumbool _ _ |- _ ] => destruct H
+          | [ H : _ \/ _ |- _ ] => destruct H
+          | [ |- _ /\ _ ] => split
+          | [ |- _ × _ ] => split
+          | [ H : context[if ?x <? ?y then _ else _] |- _ ]
+            => destruct (@Nat.ltb_spec0 x y)
+          | [ |- context[if ?x <? ?y then _ else _] ]
+            => destruct (@Nat.ltb_spec0 x y)
+          | [ H : (?x < ?y /\ ?P) \/ (?x >= ?y /\ ?Q) |- _ ]
+            => assert ({x < y /\ P} + {x >= y /\ Q})
+              by (clear -H; destruct (lt_dec x y); [ left | right ]; destruct H => //; lia);
+               clear H
+          | [ |- is_true false ] => exfalso
+          | [ |- true = false ] => exfalso
+          | [ |- false = true ] => exfalso
+          | [ |- Some _ = Some _ ] => apply f_equal
+          end
+        | progress intros ].
+Local Ltac simplify_nth_error_logic := repeat first [ simplify_nth_error_step | simplify_nth_error_logic_step ].
+
+Local Ltac handle_final_arith_step :=
+  first [ match goal with
+          | [ |- False ]
+            => exactly_once (idtac; multimatch goal with H : _ -> False |- _ => apply H; clear H end)
+          | [ H : ?Q (?P ?n ?x) |- ?Q (?P ?n' ?x') ]
+            => cut (P n x = P n' x');
+               [ move => <- //
+               | now repeat (lia || f_equal) ]
+          | [ H : ?P ?n ?x |- ?P ?n' ?x' ]
+            => cut (P n x = P n' x');
+               [ move => <- //
+               | now repeat (lia || f_equal) ]
+          | [ H : ?P ?n ?x ?y |- ?P ?n' ?x' ?y' ]
+            => cut (P n x y = P n' x' y');
+               [ move => <- //
+               | now repeat (lia || f_equal) ]
+          end ].
+Local Ltac handle_final_arith := repeat handle_final_arith_step.
+
+Lemma Forall_cons_iff A P x xs
+  : @Forall A P (x :: xs) <-> (P x /\ @Forall A P xs).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma Forall_iff_nth_error A P l
+  : @Forall A P l <-> (forall i d, nth_error l i = Some d -> P d).
+Proof.
+  rewrite Forall_nth.
+  split => H i d; specialize (H i); [ specialize (H d) | ].
+  all: move: (@nth_error_Some A l i) H.
+  all: rewrite nth_nth_error.
+  all: case: nth_error; eauto; intros *.
+  all: move => <- H' //.
+  all: inversion 1; subst; apply H'; congruence.
+Qed.
+
+Ltac Forall_to_nth_error_step :=
+  match goal with
+  | [ H : Forall _ _ |- _ ] => pose_rename H (proj1 (@Forall_iff_nth_error _ _ _) H)
+  | [ H : Forall _ _ -> False |- _ ] => pose_rename H (fun pf => H (proj2 (@Forall_iff_nth_error _ _ _) pf))
+  | [ |- Forall _ _ ] => apply Forall_iff_nth_error
+  | [ H : context[~Forall _ _] |- _ ] => unfold not in H
+  end.
+
+Ltac In_to_nth_error_step :=
+  match goal with
+  | [ H : In _ _ |- _ ] => pose_rename H (proj1 (@In_iff_nth_error _ _ _) H)
+  | [ H : In _ _ -> False |- _ ] => pose_rename H (fun pf => H (proj2 (@In_iff_nth_error _ _ _) pf))
+  | [ |- In _ _ ] => apply In_iff_nth_error
+  | [ H : context[In] |- _ ] => setoid_rewrite In_iff_nth_error in H
+  | [ H : context[~In _ _] |- _ ] => unfold not in H
+  | [ H : forall x, In x _ -> _ |- _ ]
+    => specialize (fun n x pf => H x (@nth_error_In _ _ n x pf))
+  end.
+
+Lemma All_cons_iff A P x xs
+  : @All A P (x :: xs) <~> (P x × @All A P xs).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All_iff_nth_error A (P : A -> Type) l
+  : All P l <~> (forall i x, nth_error l i = Some x -> P x).
+Proof.
+  split; induction l as [|?? IH].
+  all: first [ inversion 1; subst | intro H; constructor; revert H ];
+    intros; simplify_nth_error_logic.
+Qed.
+
+Ltac All_to_nth_error_step :=
+  match goal with
+  | [ H : All _ _ |- _ ] => pose_rename H (fst (@All_iff_nth_error _ _ _) H)
+  | [ H : All _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All_iff_nth_error _ _ _) pf))
+  | [ |- All _ _ ] => apply All_iff_nth_error
+  end.
+
+Lemma Alli_cons_iff A P k x xs
+  : @Alli A P k (x :: xs) <~> (P k x × @Alli A P (S k) xs).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma Alli_iff_nth_error A (P : nat -> A -> Type) k l
+  : Alli P k l <~> (forall i x, nth_error l i = Some x -> P (k + i) x).
+Proof.
+  split; revert k; induction l as [|?? IH]; intro k; try specialize (IH (S k)).
+  all: first [ inversion 1; subst | intro H; constructor; revert H ];
+    intros; simplify_nth_error_logic; try (apply IH; clear IH; intros);
+    now (rewrite Nat.add_0_r + rewrite -Nat.add_succ_comm + rewrite Nat.add_succ_comm + rewrite -> ?Nat.add_0_r in * ); tea.
+Qed.
+
+Ltac Alli_to_nth_error_step :=
+  match goal with
+  | [ H : Alli _ _ _ |- _ ] => pose_rename H (fst (@Alli_iff_nth_error _ _ _ _) H)
+  | [ H : Alli _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@Alli_iff_nth_error _ _ _ _) pf))
+  | [ |- Alli _ _ _ ] => apply Alli_iff_nth_error
+  end.
+
+Lemma Forall2_cons_iff A B P x xs y ys
+  : @Forall2 A B P (x :: xs) (y :: ys) <-> (P x y /\ @Forall2 A B P xs ys).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma Forall2_iff_nth_error A B L1 L2 (P : A -> B -> Prop) :
+  Forall2 P L1 L2
+  <-> (#|L1| = #|L2|
+        /\
+          (forall n x1 x2, nth_error L1 n = Some x1
+                           -> nth_error L2 n = Some x2
+                           -> P x1 x2)).
+Proof.
+  revert L2; induction L1 as [|?? IH], L2 as [|? L2];
+    try (rewrite Forall2_cons_iff IH; clear IH).
+  all: cbn; split; try now inversion 1.
+  all: simplify_nth_error_logic.
+Qed.
+
+Ltac Forall2_to_nth_error_step :=
+  match goal with
+  | [ H : Forall2 _ _ _ |- _ ] => pose_rename H (proj1 (@Forall2_iff_nth_error _ _ _ _ _) H)
+  | [ H : Forall2 _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (proj2 (@Forall2_iff_nth_error _ _ _ _ _) pf))
+  | [ |- Forall2 _ _ _ ] => apply Forall2_iff_nth_error
+  | [ H : context[~Forall2 _ _ _] |- _ ] => unfold not in H
+  end.
+
+Lemma All2_cons_iff A B P x xs y ys
+  : @All2 A B P (x :: xs) (y :: ys) <~> (P x y × @All2 A B P xs ys).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All2_iff_nth_error A B L1 L2 (P : A -> B -> Type) :
+  All2 P L1 L2
+    <~> (#|L1| = #|L2|
+          ×
+            (forall n x1 x2, nth_error L1 n = Some x1
+                             -> nth_error L2 n = Some x2
+                             -> P x1 x2)).
+Proof.
+  revert L2; induction L1 as [|?? IH], L2 as [|? L2];
+    try specialize (IH L2) as [? ?];
+    try (etransitivity; [ now eapply All2_cons_iff | ]).
+  all: cbn; split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac All2_to_nth_error_step :=
+  match goal with
+  | [ H : All2 _ _ _ |- _ ] => pose_rename H (fst (@All2_iff_nth_error _ _ _ _ _) H)
+  | [ H : All2 _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All2_iff_nth_error _ _ _ _ _) pf))
+  | [ |- All2 _ _ _ ] => apply All2_iff_nth_error
+  end.
+
+Lemma All2i_cons_iff A B P k x xs y ys
+  : @All2i A B P k (x :: xs) (y :: ys) <~> (P k x y × @All2i A B P (S k) xs ys).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All2i_iff_nth_error A B L1 L2 P k :
+  @All2i A B P k L1 L2
+    <~> (#|L1| = #|L2|
+          ×
+            (forall n x1 x2, nth_error L1 n = Some x1
+                             -> nth_error L2 n = Some x2
+                             -> P (k + n) x1 x2)).
+Proof.
+  revert L2 k; induction L1 as [|?? IH], L2 as [|? L2]; intro k;
+    try specialize (IH L2 (S k));
+    (tryif (etransitivity; [ now eapply All2i_cons_iff | ])
+      then (etransitivity;
+            [ split; [ intros [H0 H1]; eapply pair; [ exact H0 | apply IH in H1; exact H1 ] .. ] | ]; clear IH)
+      else idtac).
+  all: split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto.
+  all: try now (rewrite Nat.add_0_r + rewrite -Nat.add_succ_comm + rewrite Nat.add_succ_comm + rewrite -> ?Nat.add_0_r in * ); tea.
+Qed.
+
+Ltac All2i_to_nth_error_step :=
+  match goal with
+  | [ H : All2i _ _ _ _ |- _ ] => pose_rename H (fst (@All2i_iff_nth_error _ _ _ _ _ _) H)
+  | [ H : All2i _ _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All2i_iff_nth_error _ _ _ _ _ _) pf))
+  | [ |- All2i _ _ _ _ ] => apply All2i_iff_nth_error
+  end.
+
+Lemma All3_cons_iff A B C P x xs y ys z zs
+  : @All3 A B C P (x :: xs) (y :: ys) (z :: zs) <~> (P x y z × @All3 A B C P xs ys zs).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All3_iff_nth_error A B C L1 L2 L3 (P : A -> B -> C -> Type) :
+  All3 P L1 L2 L3
+    <~> (#|L1| = #|L2|
+          × #|L1| = #|L3|
+          ×
+            (forall n x1 x2 x3, nth_error L1 n = Some x1
+                                -> nth_error L2 n = Some x2
+                                -> nth_error L3 n = Some x3
+                                -> P x1 x2 x3)).
+Proof.
+  revert L2 L3; induction L1 as [|?? IH], L2 as [|? L2], L3 as [|? L3];
+    try specialize (IH L2 L3) as [? ?];
+    try (etransitivity; [ now eapply All3_cons_iff | ]).
+  all: cbn; split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac All3_to_nth_error_step :=
+  match goal with
+  | [ H : All3 _ _ _ _ |- _ ] => pose_rename H (fst (@All3_iff_nth_error _ _ _ _ _ _ _) H)
+  | [ H : All3 _ _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All3_iff_nth_error _ _ _ _ _ _ _) pf))
+  | [ |- All3 _ _ _ _ ] => apply All3_iff_nth_error
+  end.
+
+Lemma forallb_Forall {A} (p : A -> bool) l
+  : Forall p l <-> is_true (forallb p l).
+Proof.
+  split.
+  induction 1; rewrite /= // H IHForall //.
+  induction l; rewrite /= //. rewrite andb_and.
+  intros [pa pl].
+  constructor; auto.
+Qed.
+
+Lemma forallbP {A} (P : A -> Prop) (p : A -> bool) l :
+  (forall x, reflect (P x) (p x)) ->
+  reflect (Forall P l) (forallb p l).
+Proof.
+  intros Hp.
+  apply iff_reflect; change (forallb p l = true) with (forallb p l : Prop); split.
+  - induction 1; rewrite /= // IHForall // andb_true_r.
+    now destruct (Hp x).
+  - induction l; rewrite /= //. rewrite andb_and.
+    intros [pa pl].
+    constructor; auto. now destruct (Hp a).
+Qed.
+
+Ltac forallb_to_nth_error_step :=
+  match goal with
+  | [ H : is_true (forallb _ _) |- _ ] => apply forallb_Forall in H
+  | [ |- is_true (forallb _ _) ] => apply forallb_Forall
+  | [ H : forallb _ _ = true |- _ ] => apply forallb_Forall in H
+  | [ |- forallb _ _ = true ] => apply forallb_Forall
+  | [ |- context[@forallb ?A ?p ?l] ]
+    => destruct (@forallbP A _ p l (fun _ => ssrbool.idP))
+  | [ H : context[@forallb ?A ?p ?l] |- _ ]
+    => destruct (@forallbP A _ p l (fun _ => ssrbool.idP))
+  end.
+
+Lemma allbiP {A} (P : nat -> A -> Type) (p : nat -> A -> bool) n l :
+  (forall i x, reflectT (P i x) (p i x)) ->
+  reflectT (Alli P n l) (alli p n l).
+Proof.
+  intros Hp.
+  apply equiv_reflectT.
+  - induction 1; rewrite /= // IHX // andb_true_r.
+    now destruct (Hp n hd).
+  - induction l in n |- *; rewrite /= //.
+    move/andb_and => [pa pl].
+    constructor; auto. now destruct (Hp n a).
+Qed.
+
+Lemma alli_Alli {A} (p : nat -> A -> bool) n l :
+  alli p n l <~> Alli p n l.
+Proof.
+  destruct (allbiP p p n l).
+  - intros. destruct (p i x); now constructor.
+  - split; eauto.
+  - split; eauto. by [].
+Qed.
+
+Ltac alli_to_nth_error_step :=
+  match goal with
+  | [ H : is_true (alli _ _ _) |- _ ] => apply alli_Alli in H
+  | [ |- is_true (alli _ _ _) ] => apply alli_Alli
+  | [ |- context[@alli ?A ?p ?k ?l] ]
+    => destruct (@allbiP A _ p k l (fun _ _ => reflectT_pred _))
+  | [ H : context[@alli ?A ?p ?k ?l] |- _ ]
+    => destruct (@allbiP A _ p k l (fun _ _ => reflectT_pred _))
+  end.
+
 Lemma alli_ext {A} (p q : nat -> A -> bool) n (l : list A) :
   (forall i, p i =1 q i) ->
   alli p n l = alli q n l.
@@ -177,45 +995,225 @@ Proof.
   now apply alli_ext.
 Qed.
 
+Lemma forallb2_All2 {A B : Type} {p : A -> B -> bool}
+      {l : list A} {l' : list B}:
+  is_true (forallb2 p l l') -> All2 (fun x y => is_true (p x y)) l l'.
+Proof.
+  induction l in l' |- *; destruct l'; simpl; intros; try congruence.
+  - constructor.
+  - constructor. revert H; rewrite andb_and; intros [px pl]. auto.
+    apply IHl. revert H; rewrite andb_and; intros [px pl]. auto.
+Qed.
+
+Lemma All2_forallb2 {A B : Type} {p : A -> B -> bool}
+      {l : list A} {l' : list B} :
+  All2 (fun x y => is_true (p x y)) l l' -> is_true (forallb2 p l l').
+Proof.
+  induction 1; simpl; intros; try congruence.
+  rewrite andb_and. intuition auto.
+Qed.
+
+Lemma All2P {A B : Type} {p : A -> B -> bool} {l l'} :
+  reflectT (All2 p l l') (forallb2 p l l').
+Proof.
+  apply equiv_reflectT. apply All2_forallb2. apply forallb2_All2.
+Qed.
+
+Ltac forallb2_to_nth_error_step :=
+  match goal with
+  | [ H : is_true (forallb2 _ _ _) |- _ ] => apply forallb2_All2 in H
+  | [ |- is_true (forallb2 _ _ _) ] => apply All2_forallb2
+  | [ |- context[@forallb2 ?A ?B ?p ?l ?l'] ]
+    => destruct (@All2P A B p l l')
+  | [ H : context[@forallb2 ?A ?B ?p ?l ?l'] |- _ ]
+    => destruct (@All2P A B p l l')
+  end.
+
+Lemma OnOne2_cons_iff A P x xs y ys
+  : @OnOne2 A P (x :: xs) (y :: ys) <~> ((xs = ys × P x y) + ((x = y) × @OnOne2 A P xs ys)).
+Proof. split; inversion 1; subst; now intuition subst; constructor. Qed.
+
+Lemma OnOne2_iff_nth_error A L1 L2 (P : A -> A -> Type) :
+  OnOne2 P L1 L2
+    <~> ({ n : nat &
+                 { x1 : A & { x2 : A & nth_error L1 n = Some x1 × nth_error L2 n = Some x2 × P x1 x2 } }
+                   × #|L1| = #|L2|
+           × (forall n' x1 x2, nth_error L1 n' = Some x1
+                                     -> nth_error L2 n' = Some x2
+                                     -> n' <> n
+                                     -> x1 = x2) }).
+Proof.
+  revert L2; induction L1 as [|?? IH], L2 as [|? L2];
+    try specialize (IH L2);
+    tryif (etransitivity; [ now eapply OnOne2_cons_iff | ])
+    then (etransitivity;
+          [ split; [ intros [H|[H0 H1]]; [ eapply inl; exact H | eapply inr, pair; [ exact H0 | apply IH in H1; exact H1 ] ] .. ]
+          | ]; clear IH)
+    else idtac.
+  all: split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto; try lia.
+  all: try now (exists 0 + eexists (S _)); repeat esplit; tea; simplify_nth_error_logic; eauto.
+  all: try now right; repeat esplit; tea; simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac OnOne2_to_nth_error_step :=
+  match goal with
+  | [ H : OnOne2 _ _ _ |- _ ] => pose_rename H (fst (@OnOne2_iff_nth_error _ _ _ _) H)
+  | [ H : OnOne2 _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@OnOne2_iff_nth_error _ _ _ _) pf))
+  | [ |- OnOne2 _ _ _ ] => apply OnOne2_iff_nth_error
+  end.
+
+Lemma OnOne2i_cons_iff A P x xs y ys k
+  : @OnOne2i A P k (x :: xs) (y :: ys) <~> ((xs = ys × P k x y) + ((x = y) × @OnOne2i A P (S k) xs ys)).
+Proof. split; inversion 1; subst; now intuition subst; constructor. Qed.
+
+Lemma OnOne2i_iff_nth_error A L1 L2 P k :
+  @OnOne2i A P k L1 L2
+    <~> ({ n : nat &
+                 { x1 : A & { x2 : A & nth_error L1 n = Some x1 × nth_error L2 n = Some x2 × P (k + n) x1 x2 } }
+                   × #|L1| = #|L2|
+           × (forall n' x1 x2, nth_error L1 n' = Some x1
+                                     -> nth_error L2 n' = Some x2
+                                     -> n' <> n
+                                     -> x1 = x2) }).
+Proof.
+  revert L2 k; induction L1 as [|?? IH], L2 as [|? L2]; intro k;
+    try specialize (IH L2 (S k));
+    tryif (etransitivity; [ now eapply OnOne2i_cons_iff | ])
+    then (etransitivity;
+          [ split; [ intros [H|[H0 H1]]; [ eapply inl; exact H | eapply inr, pair; [ exact H0 | apply IH in H1; exact H1 ] ] .. ]
+          | ]; clear IH)
+    else idtac.
+  all: split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto; try lia.
+  all: try now (eexists 0 + eexists (S _) + constructor); repeat esplit; tea; (rewrite Nat.add_0_r + rewrite -Nat.add_succ_comm + rewrite Nat.add_succ_comm + rewrite -> Nat.add_0_r in * + idtac); tea; simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac OnOne2i_to_nth_error_step :=
+  match goal with
+  | [ H : OnOne2i _ _ _ _ |- _ ] => pose_rename H (fst (@OnOne2i_iff_nth_error _ _ _ _ _) H)
+  | [ H : OnOne2i _ _ _ _ |- _ ] => pose_rename H (fun pf => H (snd (@OnOne2i_iff_nth_error _ _ _ _ _) pf))
+  | [ |- OnOne2i _ _ _ _ ] => apply OnOne2i_iff_nth_error
+  end.
+
+Lemma OnOne2All_cons_iff A B P b bs x xs y ys
+  : @OnOne2All A B P (b :: bs) (x :: xs) (y :: ys) <~> ((xs = ys × #|bs| = #|xs| × P b x y) + ((x = y) × @OnOne2All A B P bs xs ys)).
+Proof. split; inversion 1; subst; now intuition subst; constructor. Qed.
+
+Lemma OnOne2All_iff_nth_error A B bs L1 L2 (P : B -> A -> A -> Type) :
+  @OnOne2All A B P bs L1 L2
+    <~> ({ n : nat &
+                 { b : B & { x1 : A & { x2 : A & nth_error L1 n = Some x1 × nth_error L2 n = Some x2 × nth_error bs n = Some b × P b x1 x2 } } }
+                   × #|L1| = #|L2|
+           × #|bs| = #|L1|
+           × (forall n' x1 x2, nth_error L1 n' = Some x1
+                               -> nth_error L2 n' = Some x2
+                               -> n' <> n
+                               -> x1 = x2) }).
+Proof.
+  revert L2 bs; induction L1 as [|?? IH], L2 as [|? L2], bs as [|? bs];
+    try specialize (IH L2 bs);
+    tryif (etransitivity; [ now eapply OnOne2All_cons_iff | ])
+    then (etransitivity;
+          [ split; [ intros [H|[H0 H1]]; [ eapply inl; exact H | eapply inr, pair; [ exact H0 | apply IH in H1; exact H1 ] ] .. ]
+          | ]; clear IH)
+    else idtac.
+  all: split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto; try lia.
+  all: try now (exists 0 + eexists (S _)); repeat esplit; tea; simplify_nth_error_logic; eauto.
+  all: try now right; repeat esplit; tea; simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac OnOne2All_to_nth_error_step :=
+  match goal with
+  | [ H : OnOne2All _ _ _ _ |- _ ] => pose_rename H (fst (@OnOne2All_iff_nth_error _ _ _ _ _ _) H)
+  | [ H : OnOne2All _ _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@OnOne2All_iff_nth_error _ _ _ _ _ _) pf))
+
+  | [ |- OnOne2All _ _ _ _ ] => apply OnOne2All_iff_nth_error
+  end.
+
+Lemma All_fold_cons_iff A P x xs
+  : @All_fold A P (x :: xs) <~> (P xs x × @All_fold A P xs).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All_fold_iff_nth_error A P l
+  : @All_fold A P l <~> (forall i x, nth_error l i = Some x -> P (skipn (S i) l) x).
+Proof.
+  split; induction l as [|?? IH]; cbn [skipn].
+  all: first [ inversion 1; subst | intro H; constructor; revert H ].
+  all: simplify_nth_error_logic.
+  all: rewrite ?skipn_0; eauto.
+Qed.
+
+Ltac All_fold_to_nth_error_step :=
+  match goal with
+  | [ H : All_fold _ _ |- _ ] => pose_rename H (fst (@All_fold_iff_nth_error _ _ _) H)
+  | [ H : All_fold _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All_fold_iff_nth_error _ _ _) pf))
+  | [ |- All_fold _ _ ] => apply All_fold_iff_nth_error
+  end.
+
+Lemma All2_fold_cons_iff A P x xs y ys
+  : @All2_fold A P (x :: xs) (y :: ys) <~> (P xs ys x y × @All2_fold A P xs ys).
+Proof. split; inversion 1; constructor; subst => //. Qed.
+
+Lemma All2_fold_iff_nth_error A L1 L2 P :
+  @All2_fold A P L1 L2
+    <~> (#|L1| = #|L2|
+          ×
+            (forall n x1 x2, nth_error L1 n = Some x1
+                             -> nth_error L2 n = Some x2
+                             -> P (skipn (S n) L1) (skipn (S n) L2) x1 x2)).
+Proof.
+  revert L2; induction L1 as [|?? IH], L2 as [|? L2];
+    try specialize (IH L2);
+    tryif (etransitivity; [ now eapply All2_fold_cons_iff | ])
+    then (etransitivity;
+          [ split; [ intros [H0 H1]; eapply pair; [ exact H0 | apply IH in H1; exact H1 ] .. ]
+          | ]; clear IH)
+    else idtac.
+  all: cbn; split; try now inversion 1.
+  all: simplify_nth_error_logic; eauto.
+Qed.
+
+Ltac All2_fold_to_nth_error_step :=
+  match goal with
+  | [ H : All2_fold _ _ _ |- _ ] => pose_rename H (fst (@All2_fold_iff_nth_error _ _ _ _) H)
+  | [ H : All2_fold _ _ _ -> False |- _ ] => pose_rename H (fun pf => H (snd (@All2_fold_iff_nth_error _ _ _ _) pf))
+  | [ |- All2_fold _ _ _ ] => apply All2_fold_iff_nth_error
+  end.
+
+Ltac all_to_nth_error_step :=
+  first [ Forall_to_nth_error_step
+        | In_to_nth_error_step
+        | All_to_nth_error_step
+        | Alli_to_nth_error_step
+        | Forall2_to_nth_error_step
+        | All2_to_nth_error_step
+        | All2i_to_nth_error_step
+        | All3_to_nth_error_step
+        | forallb_to_nth_error_step
+        | alli_to_nth_error_step
+        | forallb2_to_nth_error_step
+        | OnOne2_to_nth_error_step
+        | OnOne2i_to_nth_error_step
+        | OnOne2All_to_nth_error_step
+        | All_fold_to_nth_error_step
+        | All2_fold_to_nth_error_step ].
+
+Ltac all_to_nth_error := repeat all_to_nth_error_step.
+
+Ltac all_via_nth_error_step := first [ all_to_nth_error_step | simplify_nth_error_step | simplify_nth_error_logic_step ].
+Ltac all_via_nth_error := repeat all_via_nth_error_step.
+
 Lemma alli_impl {A} (p q : nat -> A -> bool) n (l : list A) :
   (forall i x, p i x -> q i x) ->
   alli p n l -> alli q n l.
-Proof.
-  intros hpq. induction l in n |- *; simpl; auto.
-  move/andb_and => [pna a'].
-  rewrite (hpq _ _ pna).
-  now apply IHl.
-Qed.
-
-Lemma allbiP {A} (P : nat -> A -> Type) (p : nat -> A -> bool) n l :
-  (forall i x, reflectT (P i x) (p i x)) ->
-  reflectT (Alli P n l) (alli p n l).
-Proof.
-  intros Hp.
-  apply equiv_reflectT.
-  - induction 1; rewrite /= // IHX // andb_true_r.
-    now destruct (Hp n hd).
-  - induction l in n |- *; rewrite /= //. constructor.
-    move/andb_and => [pa pl].
-    constructor; auto. now destruct (Hp n a).
-Qed.
-
-Lemma alli_Alli {A} (p : nat -> A -> bool) n l :
-  alli p n l <~> Alli p n l.
-Proof.
-  destruct (allbiP p p n l).
-  - intros. destruct (p i x); now constructor.
-  - split; eauto.
-  - split; eauto. by [].
-Qed.
+Proof. all_via_nth_error; eauto 7. Qed.
 
 Lemma alli_shiftn {A} n k p (l : list A) :
   alli p (n + k) l = alli (fun i => p (n + i)) k l.
 Proof.
-  induction l in n, k, p |- *; simpl; auto. f_equal.
-  rewrite (IHl (S n) k p) (IHl 1 k _).
-  apply alli_ext => x.
-  now rewrite Nat.add_succ_r.
+  repeat (all_via_nth_error; handle_final_arith).
 Qed.
 
 Section alli.
@@ -251,18 +1249,6 @@ Proof.
   revert n; induction l => n; simpl; auto.
   now rewrite IHl.
 Qed.
-
-Section Forallb2.
-  Context {A B} (f : A -> B -> bool).
-
-  Fixpoint forallb2 l l' :=
-    match l, l' with
-    | hd :: tl, hd' :: tl' => f hd hd' && forallb2 tl tl'
-    | [], [] => true
-    | _, _ => false
-    end.
-
-End Forallb2.
 
 Lemma forallb2_refl :
   forall A (R : A -> A -> bool),
@@ -300,29 +1286,6 @@ Lemma forall_map_id_spec {A} {l} {f : A -> A} :
   Forall (fun x => f x = x) l <-> map f l = l.
 Proof.
   rewrite -{3}(map_id l). apply forall_map_spec.
-Qed.
-
-Lemma forallb_Forall {A} (p : A -> bool) l
-  : Forall p l <-> is_true (forallb p l).
-Proof.
-  split.
-  induction 1; rewrite /= // H IHForall //.
-  induction l; rewrite /= //. rewrite andb_and.
-  intros [pa pl].
-  constructor; auto.
-Qed.
-
-Lemma forallbP {A} (P : A -> Prop) (p : A -> bool) l :
-  (forall x, reflect (P x) (p x)) ->
-  reflect (Forall P l) (forallb p l).
-Proof.
-  intros Hp.
-  apply iff_reflect; change (forallb p l = true) with (forallb p l : Prop); split.
-  - induction 1; rewrite /= // IHForall // andb_true_r.
-    now destruct (Hp x).
-  - induction l; rewrite /= //. rewrite andb_and.
-    intros [pa pl].
-    constructor; auto. now destruct (Hp a).
 Qed.
 
 Lemma forallb_ext {A} (p q : A -> bool) : p =1 q -> forallb p =1 forallb q.
@@ -403,30 +1366,6 @@ Proof.
   destruct n; simpl.
   - constructor; auto.
   - constructor; auto.
-Qed.
-
-Lemma forallb2_All2 {A B : Type} {p : A -> B -> bool}
-      {l : list A} {l' : list B}:
-  is_true (forallb2 p l l') -> All2 (fun x y => is_true (p x y)) l l'.
-Proof.
-  induction l in l' |- *; destruct l'; simpl; intros; try congruence.
-  - constructor.
-  - constructor. revert H; rewrite andb_and; intros [px pl]. auto.
-    apply IHl. revert H; rewrite andb_and; intros [px pl]. auto.
-Qed.
-
-Lemma All2_forallb2 {A B : Type} {p : A -> B -> bool}
-      {l : list A} {l' : list B} :
-  All2 (fun x y => is_true (p x y)) l l' -> is_true (forallb2 p l l').
-Proof.
-  induction 1; simpl; intros; try congruence.
-  rewrite andb_and. intuition auto.
-Qed.
-
-Lemma All2P {A B : Type} {p : A -> B -> bool} {l l'} :
-  reflectT (All2 p l l') (forallb2 p l l').
-Proof.
-  apply equiv_reflectT. apply All2_forallb2. apply forallb2_All2.
 Qed.
 
 Lemma All2_refl {A} {P : A -> A -> Type} l :
@@ -910,11 +1849,6 @@ Proof.
   induction 1; constructor; try inversion X0; intuition auto.
 Qed.
 
-Inductive OnOne2 {A : Type} (P : A -> A -> Type) : list A -> list A -> Type :=
-| OnOne2_hd hd hd' tl : P hd hd' -> OnOne2 P (hd :: tl) (hd' :: tl)
-| OnOne2_tl hd tl tl' : OnOne2 P tl tl' -> OnOne2 P (hd :: tl) (hd :: tl').
-Derive Signature NoConfusion for OnOne2.
-
 Lemma OnOne2_All_mix_left {A} {P : A -> A -> Type} {Q : A -> Type} {l l'} :
   All Q l -> OnOne2 P l l' -> OnOne2 (fun x y => (P x y * Q x)%type) l l'.
 Proof.
@@ -1121,11 +2055,6 @@ Proof.
   constructor; auto.
 Qed.
 
-Inductive OnOne2i {A : Type} (P : nat -> A -> A -> Type) : nat -> list A -> list A -> Type :=
-| OnOne2i_hd i hd hd' tl : P i hd hd' -> OnOne2i P i (hd :: tl) (hd' :: tl)
-| OnOne2i_tl i hd tl tl' : OnOne2i P (S i) tl tl' -> OnOne2i P i (hd :: tl) (hd :: tl').
-Derive Signature NoConfusion for OnOne2i.
-
 Lemma OnOne2i_All_mix_left {A} {P : nat -> A -> A -> Type} {Q : A -> Type} {i l l'} :
   All Q l -> OnOne2i P i l l' -> OnOne2i (fun i x y => (P i x y * Q x)%type) i l l'.
 Proof.
@@ -1294,11 +2223,6 @@ Proof.
     intros [= ->]. exists t'; intuition auto.
     rewrite Nat.add_succ_r; apply IHX.
 Qed.
-
-Inductive OnOne2All {A B : Type} (P : B -> A -> A -> Type) : list B -> list A -> list A -> Type :=
-| OnOne2All_hd b bs hd hd' tl : P b hd hd' -> #|bs| = #|tl| -> OnOne2All P (b :: bs) (hd :: tl) (hd' :: tl)
-| OnOne2All_tl b bs hd tl tl' : OnOne2All P bs tl tl' -> OnOne2All P (b :: bs) (hd :: tl) (hd :: tl').
-Derive Signature NoConfusion for OnOne2All.
 
 Lemma OnOne2All_All_mix_left {A B} {P : B -> A -> A -> Type} {Q : A -> Type} {i l l'} :
   All Q l -> OnOne2All P i l l' -> OnOne2All (fun i x y => (P i x y * Q x)%type) i l l'.
@@ -1728,47 +2652,9 @@ Proof.
 Qed.
 
 
-Definition size := nat.
-
 (* Lemma Alli_mapi {A B} (P : nat -> B -> Type) (f : nat -> A -> B) (l : list A) n : *)
 (*   Alli (fun n x => P n (f n x)) n l -> Alli P n (mapi f l). *)
 (* Proof. induction 1; constructor; auto. Qed. *)
-
-Section All_size.
-  Context {A} (P : A -> Type) (fn : forall x1, P x1 -> size).
-  Fixpoint all_size {l1 : list A} (f : All P l1) : size :=
-  match f with
-  | All_nil => 0
-  | All_cons px pl => fn _ px + all_size pl
-  end.
-End All_size.
-
-Section Alli_size.
-  Context {A} (P : nat -> A -> Type) (fn : forall n x1, P n x1 -> size).
-  Fixpoint alli_size {l1 : list A} {n} (f : Alli P n l1) : size :=
-  match f with
-  | Alli_nil => 0
-  | Alli_cons px pl => fn _ _ px + alli_size pl
-  end.
-End Alli_size.
-
-Section All2_size.
-  Context {A B} (P : A -> B -> Type) (fn : forall x1 x2, P x1 x2 -> size).
-  Fixpoint all2_size {l1 l2} (f : All2 P l1 l2) : size :=
-  match f with
-  | All2_nil => 0
-  | All2_cons rxy rll' => fn _ _ rxy + all2_size rll'
-  end.
-End All2_size.
-
-Section All2i_size.
-  Context {A B} (P : nat -> A -> B -> Type) (fn : forall i x1 x2, P i x1 x2 -> size).
-  Fixpoint all2i_size {n l1 l2} (f : All2i P n l1 l2) : size :=
-  match f with
-  | All2i_nil => 0
-  | All2i_cons rxy rll' => fn _ _ _ rxy + all2i_size rll'
-  end.
-End All2i_size.
 
 Lemma All2i_impl {A B R R' n l l'} :
     @All2i A B R n l l' ->
@@ -2933,7 +3819,7 @@ Section All2i_len.
     All2i_len R l l' -> All2i R 0 (List.rev l) (List.rev l').
   Proof.
     induction 1. simpl. constructor.
-    simpl. apply All2i_app => //. simpl. rewrite List.rev_length. constructor; auto. constructor.
+    simpl. apply All2i_app => //. simpl. rewrite List.rev_length. constructor; auto.
   Qed.
 
   Lemma All2i_rev_ctx_gen {A B} (R : nat -> A -> B -> Type) (n : nat) (l : list A) (l' : list B) :
@@ -3201,14 +4087,12 @@ Proof.
     split; auto.
     cbn; rewrite Nat.add_0_r.
     split; eauto.
-    constructor.
   - depelim a.
     apply IHys in a as (?&?&->&?&?).
     eexists (_ :: _), _.
     split; [reflexivity|].
     cbn; rewrite Nat.add_succ_r.
     split; eauto.
-    constructor; auto.
 Qed.
 
 Lemma All2i_length {X Y} (R : nat -> X -> Y -> Type) n xs ys :
@@ -3255,21 +4139,6 @@ Proof.
   induction 1 in l'' |- *; intros H; depelim H; constructor; eauto.
 Qed.
 
-Inductive All_fold {A} (P : list A -> A -> Type) : list A -> Type :=
-  | All_fold_nil : All_fold P nil
-  | All_fold_cons {d Γ} : All_fold P Γ -> P Γ d -> All_fold P (d :: Γ).
-
-Derive Signature NoConfusionHom for All_fold.
-Inductive All2_fold {A} (P : list A -> list A -> A -> A -> Type)
-            : list A -> list A -> Type :=
-| All2_fold_nil : All2_fold P nil nil
-| All2_fold_cons {d d' Γ Γ'} : All2_fold P Γ Γ' -> P Γ Γ' d d' -> All2_fold P (d :: Γ) (d' :: Γ').
-
-Derive Signature NoConfusion for All2_fold.
-
-Definition All_over {A B} (P : list B -> list B -> A -> A -> Type) (Γ Γ' : list B) :=
-  fun Δ Δ' => P (Δ ++ Γ) (Δ' ++ Γ').
-
 Lemma All2_fold_from_nth_error A L1 L2 P :
   #|L1| = #|L2| ->
                 (forall n x1 x2, n < #|L1| -> nth_error L1 n = Some x1
@@ -3310,7 +4179,7 @@ Lemma All_fold_app_inv {A} {P} (Γ Δ : list A) :
   All_fold P (Γ ++ Δ) ->
   All_fold P Δ × All_fold (fun Γ => P (Γ ++ Δ)) Γ.
 Proof.
-  induction Γ in Δ |- *; split; auto. constructor.
+  induction Γ in Δ |- *; split; auto.
   depelim X. specialize (IHΓ Δ). intuition auto.
   depelim X. constructor; auto. specialize (IHΓ Δ); intuition auto.
 Qed.
@@ -3384,7 +4253,7 @@ Section Alli_All_fold.
       + constructor.
       + eapply All_fold_app; simpl.
         2:constructor; simpl; auto.
-        2:constructor. 2:now rewrite Nat.add_0_r.
+        2:now rewrite Nat.add_0_r.
         eapply All_fold_impl; tea.
         simpl; intros.
         cbn. rewrite app_length /= Nat.add_1_r Nat.add_succ_r //.
@@ -3461,7 +4330,7 @@ Section All2_fold.
     intros H.
     induction Δ in H, Δ', Γ, Γ' |- *;
     destruct Δ'; try discriminate.
-    intuition auto. constructor.
+    intuition auto.
     intros H'. simpl in H.
     specialize (IHΔ Γ Γ' Δ' ltac:(lia)).
     depelim H'; specialize (IHΔ H'); intuition auto;
@@ -3476,7 +4345,7 @@ Section All2_fold.
     intros H.
     induction Δ in H, Δ', Γ, Γ' |- *;
     destruct Δ'; try discriminate.
-    intuition auto. constructor.
+    intuition auto.
     intros H'; generalize (All2_fold_length H'). simpl. len. lia.
     intros H'; generalize (All2_fold_length H'). simpl. len. lia.
     intros H'. simpl in H.
