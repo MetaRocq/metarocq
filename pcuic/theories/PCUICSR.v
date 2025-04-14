@@ -1864,7 +1864,7 @@ Proof.
       now rewrite (declared_minductive_ind_npars isdecl). }
 
     rewrite simpl_lift; try lia.
-    rewrite subst_subst_lift // !lengths //; try lia.
+    rewrite subst_subst_lift // !(context_assumptions_subst_context, subst_context_length, lengths) //; try lia.
     rewrite map_app /= !map_app. eapply ws_cumul_pb_eq_le.
     have wfparsargs : wf_local Σ
       (subst_instance u (ind_params mdecl),,,
