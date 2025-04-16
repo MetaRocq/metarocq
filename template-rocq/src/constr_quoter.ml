@@ -282,7 +282,7 @@ struct
     pairl tLevelSet tConstraintSet levels' const'
 
   let quote_univ_context uctx =
-    let qarr, uarr = (UVars.UContext.names uctx) in
+    let { UVars.quals = qarr; UVars.univs = uarr} = (UVars.UContext.names uctx) in
     let () = if not (CArray.is_empty qarr) then
         CErrors.user_err Pp.(str "Quoting sort polymorphic ucontext not yet supported.")
     in
@@ -301,7 +301,7 @@ struct
       constr_mkApp (cSome, [| listvar; var' |]) *)
 
  let quote_abstract_univ_context uctx =
-    let qarr, uarr = (UVars.AbstractContext.names uctx) in
+    let { UVars.quals = qarr; UVars.univs = uarr} = (UVars.AbstractContext.names uctx) in
     let () = if not (CArray.is_empty qarr) then
         CErrors.user_err Pp.(str "Quoting sort polymorphic abstract universe context not yet supported.")
     in
@@ -323,7 +323,7 @@ struct
   let quote_inductive_universes uctx =
     match uctx with
     | Entries.Monomorphic_entry ->
-      let f inst = assert (UVars.Instance.is_empty inst); [||], [||] in
+      let f inst = assert (UVars.Instance.is_empty inst); UVars.empty_bound_names in
       let ctx = quote_univ_context (UVars.UContext.of_context_set f Sorts.QVar.Set.empty Univ.ContextSet.empty) in
       constr_mkApp (cMonomorphic_entry, [| ctx |])
     | Entries.Polymorphic_entry uctx ->

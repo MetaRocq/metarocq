@@ -187,7 +187,7 @@ struct
     | Invariant -> Universes0.Variance.Invariant
 
   let quote_univ_context (uctx : UVars.UContext.t) : quoted_univ_context =
-    let qarr, uarr = (UVars.UContext.names uctx) in
+    let { UVars.quals = qarr; UVars.univs = uarr} = (UVars.UContext.names uctx) in
     let () = if not (CArray.is_empty qarr) then
         CErrors.user_err Pp.(str "Quoting sort polymorphic ucontext not yet supported.")
     in
@@ -202,7 +202,7 @@ struct
     (Universes0.LevelSetProp.of_list levels, quote_univ_constraints constraints)
 
   let quote_abstract_univ_context uctx : quoted_abstract_univ_context =
-    let qnames, unames = UVars.AbstractContext.names uctx in
+    let {UVars.quals = qnames; UVars.univs = unames} = UVars.AbstractContext.names uctx in
     let () = if not (CArray.is_empty qnames) then
         CErrors.user_err Pp.(str "Quoting sort polymorphic abstract universe context not yet supported.")
     in

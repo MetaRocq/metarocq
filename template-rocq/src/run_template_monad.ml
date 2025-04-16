@@ -161,7 +161,7 @@ let denote_ucontext env evm trm (* of type UContext.t *) : _ * UVars.UContext.t 
   let evm, vars = map_evm unquote_level evm l in
   let evm, c = unquote_constraints env evm c in
   let inst = Instance.of_array ([||], Array.of_list vars) in
-  evm, (UVars.UContext.make ([||], names) (inst, c))
+  evm, (UVars.UContext.make { UVars.quals = [||]; UVars.univs = names} (inst, c))
 
 let denote_aucontext env evm trm (* of type AbstractContext.t *) : _ * UVars.AbstractContext.t =
   let i, c = unquote_pair trm in
@@ -169,7 +169,7 @@ let denote_aucontext env evm trm (* of type AbstractContext.t *) : _ * UVars.Abs
   let vars = List.mapi (fun i l -> Level.var i) l in
   let vars = Instance.of_array ([||], Array.of_list vars) in
   let evm, c = unquote_constraints env evm c in
-  evm, snd (abstract_universes (UContext.make ([||], CArray.map_of_list unquote_name l) (vars, c)))
+  evm, snd (abstract_universes (UContext.make { UVars.quals = [||]; UVars.univs = CArray.map_of_list unquote_name l} (vars, c)))
 
 let denote_variance trm (* of type Variance *) : Variance.t =
   if constr_equall trm cIrrelevant then Variance.Irrelevant
@@ -285,7 +285,7 @@ let unquote_mutual_inductive_entry env evm trm (* of type mutual_inductive_entry
            if template then
              let mk_anon_names u =
                let qs, us = UVars.Instance.to_array u in
-               Array.make (Array.length qs) Anonymous, Array.make (Array.length us) Anonymous
+               { UVars.quals = Array.make (Array.length qs) Anonymous; UVars.univs = Array.make (Array.length us) Anonymous}
              in
              let uctx = UVars.UContext.of_context_set mk_anon_names Sorts.QVar.Set.empty ctx in
              let default_univs = UVars.UContext.instance uctx in

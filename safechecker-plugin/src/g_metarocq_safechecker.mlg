@@ -55,7 +55,7 @@ let retypecheck_term_dependencies ~opaque_access env gr =
   let typecheck env c = ignore (Typeops.infer env c) in
   let typecheck_constant c =
     let auctx = Environ.constant_context env c in
-    let qnames, unames as names = UVars.AbstractContext.names auctx in
+    let {UVars.quals = qnames; UVars.univs = unames} as names = UVars.AbstractContext.names auctx in
     let dp = Names.DirPath.make [Names.Id.of_string "MetaRocq"; Names.Id.of_string "Retypecheck"] in
     let fake_quality i _ =
       Sorts.Quality.QVar (Sorts.QVar.make_unif "" i)
