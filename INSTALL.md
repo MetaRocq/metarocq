@@ -128,3 +128,11 @@ For faster development one can use:
 
 - `make quick` is a synonymous for `make vos` with the addition of a global `Unset Universe Checking` option, i.e.
 universes are not checked anywhere.
+
+### Develop with Vs Code
+
+There is a workspace file directly available with the project.
+To use it:
+1. Run `opam switch link name_switch`
+2. Open vscode with `code .vscode/metarocq.code-workspace`
+
