@@ -326,8 +326,8 @@ let declare_inductive (env: Environ.env) (evm: Evd.evar_map) (infer_univs : bool
   let ind_kn = DeclareInd.declare_mutual_inductive_with_eliminations mind names [] in
   if primitive_expected
   then begin
-    let open Record.Internal in
-    let dflt_pf = { pf_coercion = false; pf_instance = false; pf_priority = None; pf_locality = OptDefault; pf_canonical = false; pf_reversible = false} in
+    let open Record.Data in
+    let dflt_pf = { pf_coercion = None; pf_instance = None; pf_canonical = false} in
     let decl_projs i oie =
       let ind = (ind_kn, i) in
       let inhabitant_id = List.hd oie.mind_entry_consnames in
