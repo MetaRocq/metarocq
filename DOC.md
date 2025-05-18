@@ -2,7 +2,7 @@
 
 ## Branches and compatibility
 
-**tl;dr** You should do your PRs against [coq-8.20](https://github.com/MetaRocq/metarocq/tree/coq-8.20).
+**tl;dr** You should do your PRs against [9.0](https://github.com/MetaRocq/metarocq/tree/9.0).
 
 Rocq's kernel API is not stable yet, and changes there are reflected in MetaRocq's reified structures,
 so we do not ensure any compatibility from version to version. There is one branch for each Rocq version.
@@ -10,7 +10,7 @@ so we do not ensure any compatibility from version to version. There is one bran
 The *main branch* or *current branch* is the one which appers when you go on
 [https://github.com/MetaRocq/metarocq](https://github.com/MetaRocq/metarocq).
 Currently (unless you are reading the README of an outdated branch),
-it is the [coq-8.20](https://github.com/MetaRocq/metarocq/tree/coq-8.20).
+it is the [9.0](https://github.com/MetaRocq/metarocq/tree/9.0).
 You should use it both for usage of MetaRocq and development of MetaRocq.
 
 The [main](https://github.com/MetaRocq/metarocq/tree/main) branch is following Rocq's master
@@ -85,7 +85,7 @@ a fresh level when `MetaRocq Strict Unquote Universe Mode` is off.
 
 ## Dependency graph between files
 
-Generated on 2022/07/01, sources [there](https://github.com/MetaRocq/metarocq/tree/coq-8.20/dependency-graph).
+Generated on 2022/07/01, sources [there](https://github.com/MetaRocq/metarocq/tree/9.0/dependency-graph).
 
 <center>
 <img src="https://raw.githubusercontent.com/MetaRocq/metarocq.github.io/master/assets/depgraph-2022-07-01.png"
@@ -100,6 +100,6 @@ The file `README.md` in https://github.com/MetaRocq/metarocq.github.io is suppos
 `README.md` in [https://github.com/MetaRocq/metarocq/](https://github.com/MetaRocq/metarocq/).
 
 That's why we can't use relative links and have to use absolute ones.
-E.g. [INSTALL.md](https://github.com/MetaRocq/metarocq/tree/coq-8.20/INSTALL.md) and not [INSTALL.md](INSTALL.md).
+E.g. [INSTALL.md](https://github.com/MetaRocq/metarocq/tree/9.0/INSTALL.md) and not [INSTALL.md](INSTALL.md).
 
 Thus, when switching to a new default branch, we have to search and replace the old branch with the new one.
