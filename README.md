@@ -59,7 +59,7 @@ See [DOC.md](https://github.com/MetaRocq/metarocq/blob/-/DOC.md)
 At the center of this project is the Template-Rocq quoting library for
 Rocq. The project currently has a single repository extending
 Template-Rocq with additional features. Each extension is in a dedicated folder.
-The [dependency graph](https://raw.githubusercontent.com/MetaRocq/metarocq.github.io/main/assets/depgraph-2022-07-01.png)
+The [dependency graph](https://raw.githubusercontent.com/MetaRocq/metarocq/refs/heads/9.0/dependency-graph/depgraph-2022-07-01.svg)
 might be useful to navigate the project.
 Statistics: ~300kLoC of Rocq, ~30kLoC of OCaml.
 
