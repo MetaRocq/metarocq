@@ -367,15 +367,15 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
 
   Definition lift_typing_conj (P Q : context -> _) := lift_typing1 (Prop_local_conj P Q).
 
-  Lemma lift_wf_term_it_impl {P Q} {tm tm' : option term} {t t' : term} {u u' r r'} :
-    forall tu: lift_wf_term P (Judge tm t u r),
-    match tm', tm with None, _ => unit | Some tm', Some tm => P tm -> Q tm' | _, _ => False end ->
-    (P t -> Q t') ->
-    lift_wf_term Q (Judge tm' t' u' r').
+  Lemma lift_wf_term_it_impl {P Q} {j j'} :
+    forall tu: lift_wf_term P j,
+    match j_term j', j_term j with None, _ => unit | Some tm', Some tm => P tm -> Q tm' | _, _ => False end ->
+    (P (j_typ j) -> Q (j_typ j')) ->
+    lift_wf_term Q j'.
   Proof.
     intros (Htm & Hs) HPQc HPQs.
     split; auto.
-    destruct tm, tm' => //=. now apply HPQc.
+    destruct (j_term j), (j_term j') => //=. now apply HPQc.
   Qed.
 
   Lemma lift_wf_term_f_impl P Q tm t u u' r r' :
