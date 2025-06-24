@@ -716,14 +716,106 @@ Definition fold_termM {M} `{Monad M} {Acc} (f : Acc -> term -> M Acc) (acc : Acc
 
 
 (** * Traversal functions with a context*)
+
+
+
+  Definition fix_decls (l : mfixpoint term) :=
+    let fix aux acc ds :=
+        match ds with
+        | nil => acc
+        | d :: ds => aux (vass d.(dname) d.(dtype) :: acc) ds
+        end
+    in aux [] l.
+
+Section Lookups.
+  Context (Σ : global_env).
+
+  Definition polymorphic_constraints u :=
+    match u with
+    | Monomorphic_ctx => ConstraintSet.empty
+    | Polymorphic_ctx ctx => (AUContext.repr ctx).2.2
+    end.
+
+  Definition lookup_constant_type cst u :=
+    match lookup_env Σ cst with
+    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
+        Some (subst_instance u ty)
+    |  _ => None
+    end.
+
+  Definition lookup_constant_type_cstrs cst u :=
+    match lookup_env Σ cst with
+    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
+        let cstrs := polymorphic_constraints uctx in
+        Some (subst_instance u ty, subst_instance_cstrs u cstrs)
+      |  _ => None
+    end.
+
+  Definition lookup_ind_decl ind i :=
+    match lookup_env Σ ind with
+    | Some (InductiveDecl mdecl) =>
+      match nth_error mdecl.(ind_bodies) i with
+      | Some body => Some (mdecl, body)
+      | None => None
+      end
+    | _ => None
+    end.
+
+  Definition lookup_ind_type ind i (u : list Level.t) :=
+    match lookup_ind_decl ind i with
+    |None => None
+    |Some res =>
+       Some (subst_instance u (snd res).(ind_type))
+    end.
+
+  Definition lookup_ind_type_cstrs ind i (u : list Level.t) :=
+    match lookup_ind_decl ind i with
+    |None => None
+    |Some res =>
+    let '(mib, body) := res in
+    let uctx := mib.(ind_universes) in
+    let cstrs := polymorphic_constraints uctx in
+    Some (subst_instance u body.(ind_type), subst_instance_cstrs u cstrs)
+    end.
+
+  Definition lookup_constructor_decl ind i k :=
+    match lookup_ind_decl ind i with
+    |None => None
+    |Some res =>
+       let '(mib, body) := res in
+       match nth_error body.(ind_ctors) k with
+       | Some cdecl => Some (mib, cdecl)
+       | None => None
+       end
+    end.
+
+  Definition lookup_constructor_type ind i k u :=
+    match lookup_constructor_decl ind i k with
+    |None => None
+    |Some res =>
+    let '(mib, cdecl) := res in
+    Some (subst0 (inds ind u mib.(ind_bodies)) (subst_instance u cdecl.(cstr_type)))
+    end.
+
+  Definition lookup_constructor_type_cstrs ind i k u :=
+    match lookup_constructor_decl ind i k with
+    |None => None
+    |Some res =>
+    let '(mib, cdecl) := res in
+    let cstrs := polymorphic_constraints mib.(ind_universes) in
+    Some (subst0 (inds ind u mib.(ind_bodies)) (subst_instance u cdecl.(cstr_type)),
+        subst_instance_cstrs u cstrs)
+    end.
+End Lookups.
+
 Definition rebuild_case_predicate_ctx_with_context (Σ : global_env) ind (p : predicate term) : context :=
   match lookup_ind_decl Σ (inductive_mind ind) (inductive_ind ind) with
-  | TypeError _ => []
-  | Checked (mib, oib) => case_predicate_context ind mib oib p
+  | None => []
+  | Some (mib, oib) => case_predicate_context ind mib oib p
   end.
 
 Definition map_context_with_context (f : context -> term -> term) (c : context) Γ : context :=
-  fold_left (fun acc decl => map_decl (f (Γ ,,, acc)) decl :: acc) (List.rev c) [].
+fold_left (fun acc decl => map_decl (f (Γ ,,, acc)) decl :: acc) (List.rev c) [].
 
 Definition map_predicate_with_context (Σ : global_env) (f : context -> term -> term) Γ ind (p : predicate term) :=
   let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
@@ -735,8 +827,8 @@ Definition map_predicate_with_context (Σ : global_env) (f : context -> term -> 
 
 Definition rebuild_case_branch_ctx_with_context Σ ind i p br :=
   match lookup_constructor_decl Σ (inductive_mind ind) (inductive_ind ind) i with
-  | TypeError _ => []
-  | Checked (mib, cdecl) => case_branch_context ind mib cdecl p br
+  | None => []
+  | Some (mib, cdecl) => case_branch_context ind mib cdecl p br
   end.
 
 Definition map_case_branch_with_context Σ ind i (f : context -> term -> term) Γ p br :=

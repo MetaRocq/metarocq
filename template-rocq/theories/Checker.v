@@ -50,6 +50,8 @@ Inductive type_error :=
 | NotEnoughFuel (n : nat)
 | NotSupported (s : string).
 
+
+
 Definition string_of_type_error (e : type_error) : string :=
   match e with
   | UnboundRel n => "Unboound rel " ^ string_of_nat n
@@ -106,27 +108,23 @@ Section Lookups.
     end.
 
   Definition lookup_constant_type cst u :=
-    match lookup_env Σ cst with
-    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
-      ret (subst_instance u ty)
+    match lookup_constant_type Σ cst u with
+    | Some res =>
+        ret res
     |  _ => raise (UndeclaredConstant cst)
     end.
 
   Definition lookup_constant_type_cstrs cst u :=
-    match lookup_env Σ cst with
-    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
-      let cstrs := polymorphic_constraints uctx in
-      ret (subst_instance u ty, subst_instance_cstrs u cstrs)
-      |  _ => raise (UndeclaredConstant cst)
+    match lookup_constant_type_cstrs Σ cst u with
+    | Some res =>
+        ret res
+    |  _ => raise (UndeclaredConstant cst)
     end.
 
   Definition lookup_ind_decl ind i :=
-    match lookup_env Σ ind with
-    | Some (InductiveDecl mdecl) =>
-      match nth_error mdecl.(ind_bodies) i with
-      | Some body => ret (mdecl, body)
-      | None => raise (UndeclaredInductive (mkInd ind i))
-      end
+    match lookup_ind_decl Σ ind i with
+    | Some res =>
+        ret res
     | _ => raise (UndeclaredInductive (mkInd ind i))
     end.
 
@@ -262,21 +260,13 @@ Section Reduce.
     res <- reduce_stack Γ n c [] ;;
     ret (zip res).
 
-  Definition fix_decls (l : mfixpoint term) :=
-    let fix aux acc ds :=
-        match ds with
-        | nil => acc
-        | d :: ds => aux (vass d.(dname) d.(dtype) :: acc) ds
-        end
-    in aux [] l.
-
   Fixpoint reduce_opt Γ n c :=
     match n with
     | 0 => None
     | S n =>
       match reduce_stack_term Γ n c with
       | Some c' =>
-        Some (map_constr_with_binders
+          Some (map_term_with_context Σ
                 (fun Γ t => match reduce_opt Γ n t with
                             | Some t => t
                             | None => t end) Γ c')
@@ -717,7 +707,7 @@ Section Typecheck.
       (** TODO check branches *)
       let '(ind, u, args) := indargs in
       if eq_inductive ind ci.(ci_ind) then
-        let pctx := rebuild_case_predicate_ctx Σ ind p in
+        let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
         let ptm := it_mkLambda_or_LetIn pctx p.(preturn) in
         ret (tApp ptm (List.skipn ci.(ci_npar) args ++ [c]))
       else
