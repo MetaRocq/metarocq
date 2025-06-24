@@ -285,7 +285,7 @@ Section Reduce.
     {| pparams := map (f Γ) p.(pparams);
        puinst := p.(puinst);
        pcontext := p.(pcontext);
-       preturn := f Γparams (preturn p) |}.
+       preturn := f (Γparams  ++ Γ) (preturn p) |}.
 
   Definition rebuild_case_branch_ctx ind i p br :=
     match lookup_constructor_decl Σ (inductive_mind ind) (inductive_ind ind) i with
@@ -296,12 +296,14 @@ Section Reduce.
   Definition map_case_branch_with_binders ind i (f : context -> term -> term) Γ p br :=
     let ctx := rebuild_case_branch_ctx ind i p br in
     map_branch (f (Γ ,,, ctx)) br.
-
+  
   Definition map_constr_with_binders (f : context -> term -> term) Γ (t : term) : term :=
     match t with
     | tRel i => t
     | tEvar ev args => tEvar ev (List.map (f Γ) args)
-    | tLambda na T M => tLambda na (f Γ T) (f Γ M)
+    | tLambda na T M =>
+        let T' := f Γ T in
+        tLambda na T' (f (Γ,, vass na T') M)
     | tApp u v => tApp (f Γ u) (List.map (f Γ) v)
     | tProd na A B =>
       let A' := f Γ A in
