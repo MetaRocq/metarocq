@@ -713,3 +713,64 @@ Definition fold_term {Acc} (f : Acc -> term -> Acc) (acc : Acc) (t : term) : Acc
 (** Monadic variant of [fold_term]. *)
 Definition fold_termM {M} `{Monad M} {Acc} (f : Acc -> term -> M Acc) (acc : Acc) (t : term) : M Acc :=
   @fold_term_with_bindersM M _ Acc unit tt (fun _ _ => ret tt) (fun _ => f) acc t.
+
+
+(** * Traversal functions with a context*)
+Definition rebuild_case_predicate_ctx_with_context (Σ : global_env) ind (p : predicate term) : context :=
+  match lookup_ind_decl Σ (inductive_mind ind) (inductive_ind ind) with
+  | TypeError _ => []
+  | Checked (mib, oib) => case_predicate_context ind mib oib p
+  end.
+
+Definition map_context_with_context (f : context -> term -> term) (c : context) Γ : context :=
+  fold_left (fun acc decl => map_decl (f (Γ ,,, acc)) decl :: acc) (List.rev c) [].
+
+Definition map_predicate_with_context (Σ : global_env) (f : context -> term -> term) Γ ind (p : predicate term) :=
+  let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
+  let Γparams := map_context_with_context f pctx Γ in
+  {| pparams := map (f Γ) p.(pparams);
+    puinst := p.(puinst);
+    pcontext := p.(pcontext);
+    preturn := f (Γparams  ++ Γ) (preturn p) |}.
+
+Definition rebuild_case_branch_ctx_with_context Σ ind i p br :=
+  match lookup_constructor_decl Σ (inductive_mind ind) (inductive_ind ind) i with
+  | TypeError _ => []
+  | Checked (mib, cdecl) => case_branch_context ind mib cdecl p br
+  end.
+
+Definition map_case_branch_with_context Σ ind i (f : context -> term -> term) Γ p br :=
+  let ctx := rebuild_case_branch_ctx_with_context Σ ind i p br in
+  map_branch (f (Γ ,,, ctx)) br.
+
+Definition map_term_with_context Σ (f : context -> term -> term) Γ (t : term) : term :=
+  match t with
+  | tRel i => t
+  | tEvar ev args => tEvar ev (List.map (f Γ) args)
+  | tLambda na T M =>
+      let T' := f Γ T in
+      tLambda na T' (f (Γ,, vass na T') M)
+  | tApp u v => tApp (f Γ u) (List.map (f Γ) v)
+  | tProd na A B =>
+      let A' := f Γ A in
+      tProd na A' (f (Γ ,, vass na A') B)
+  | tCast c kind t => tCast (f Γ c) kind (f Γ t)
+  | tLetIn na b t c =>
+      let b' := f Γ b in
+      let t' := f Γ t in
+      tLetIn na b' t' (f (Γ ,, vdef na b' t') c)
+  | tCase ci p c brs =>
+      let p' := map_predicate_with_context Σ f Γ ci.(ci_ind) p in
+      let brs' := mapi (fun i x => map_case_branch_with_context Σ ci.(ci_ind) i f Γ p' x) brs in
+      tCase ci p' (f Γ c) brs'
+  | tProj p c => tProj p (f Γ c)
+  | tFix mfix idx =>
+      let Γ' := fix_decls mfix ++ Γ in
+      let mfix' := List.map (map_def (f Γ) (f Γ')) mfix in
+      tFix mfix' idx
+  | tCoFix mfix k =>
+      let Γ' := fix_decls mfix ++ Γ in
+      let mfix' := List.map (map_def (f Γ) (f Γ')) mfix in
+      tCoFix mfix' k
+  | x => x
+  end.
