@@ -535,8 +535,9 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
     then not_in_tactic "tmMkInductive"
     else
       let infer_univs = unquote_bool (reduce_all env evm b) in
-      let evm = declare_inductive env evm infer_univs mind in
+      let _evm = declare_inductive env evm infer_univs mind in
       let env = Global.env () in
+      let evm = Evd.from_env env in
       k ~st env evm (Lazy.force unit_tt)
   | TmUnquote t ->
     begin
@@ -569,7 +570,7 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
        (* Typecheck. *)
        let evm = Typing.check env evm (EConstr.of_constr t') (EConstr.of_constr typ) in
        (* Solve evars. *)
-       let evm = Typeclasses.resolve_typeclasses env evm in 
+       let evm = Typeclasses.resolve_typeclasses env evm in
        let t' = Evarutil.nf_evars_universes evm t' in
        k ~st env evm t'
   | TmFreshName name ->
