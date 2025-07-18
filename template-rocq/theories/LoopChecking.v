@@ -1,8 +1,9 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect ssrbool.
+From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
+
 From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
 Set Equations Transparent.
@@ -65,8 +66,12 @@ Module Type LevelExprSet_fun (Level : LevelOrderedType) (LevelExpr : LevelExprIt
   Include SWithLeibniz with Module E := LevelExpr.
 
   Record nonEmptyLevelExprSet
-    := { t_set : t ;
+    := { t_set :> t ;
           t_ne  : is_empty t_set = false }.
+
+  (* Parameter map : (LevelExpr.t -> LevelExpr.t) -> nonEmptyLevelExprSet -> nonEmptyLevelExprSet. *)
+
+  (* Parameter map_spec : forall e f u, In e (map f u) <-> exists e0, In e0 u /\ e = (f e0). *)
 
 End LevelExprSet_fun.
 
@@ -76,7 +81,7 @@ Module Type LoopCheckingItf (Level : LevelOrderedType)
   (LevelExprSet : LevelExprSet_fun Level LevelExpr)
   (LevelMap : FMapOTInterface Level).
 
-  Definition model := LevelMap.t nat.
+  Definition model := LevelMap.t Z.
   Definition valuation := LevelMap.t nat.
 
   Definition clause : Type := LevelExprSet.nonEmptyLevelExprSet × LevelExpr.t.
@@ -115,6 +120,8 @@ Module Type LoopCheckingItf (Level : LevelOrderedType)
   Definition infer_result V cls := result V LevelSet.empty cls (init_model cls).
 
   Parameter infer : forall (cls : clauses), infer_result (clauses_levels cls) cls.
+
+  Parameter print_result : forall {V cls}, infer_result V cls -> string.
 
 End LoopCheckingItf.
 
@@ -592,13 +599,10 @@ Proof.
   now rewrite LevelSet.union_spec LevelSet.singleton_spec.
 Qed.
 
-Definition model := LevelMap.t nat.
+Definition model := LevelMap.t Z.
 
-Definition level_value (m : model) (level : Level.t) : nat :=
-  match LevelMap.find level m with
-  | Some val => val
-  | None => 0
-  end.
+Definition level_value (m : model) (level : Level.t) : option Z :=
+  LevelMap.find level m.
 
 Definition levelexpr_value (m : model) (atom : LevelExpr.t) :=
   level_value m (levelexpr_level atom).
@@ -607,16 +611,29 @@ Extraction Inline levelexpr_value.
 
 Definition min_atom_value (m : model) (atom : LevelExpr.t) :=
   let '(l, k) := atom in
-  (Z.of_nat (level_value m l) - Z.of_nat k)%Z.
+  match level_value m l with
+  | None => None
+  | Some val => Some (val - Z.of_nat k)%Z
+  end.
 
-Definition min_premise (m : model) (l : nonEmptyLevelExprSet) : Z :=
+Definition option_map2 {A} (f : A -> A -> A) (o o' : option A) : option A :=
+  match o, o' with
+  | Some x, Some y => Some (f x y)
+  | None, Some _
+  | Some _, None
+  | None, None => None
+  end.
+
+Definition min_premise (m : model) (l : nonEmptyLevelExprSet) : option Z :=
   let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
-  fold_left (fun min atom => Z.min (min_atom_value m atom) min) tl (min_atom_value m hd).
+  fold_left (fun min atom => option_map2 Z.min (min_atom_value m atom) min) tl (min_atom_value m hd).
+
+Open Scope Z_scope.
 
 Definition satisfiable_atom (m : model) (atom : Level.t * nat) : bool :=
   let '(l, k) := atom in
   match LevelMap.find l m with
-  | Some val => k <=? val
+  | Some val => Z.of_nat k <=? val
   | None => false
   end.
 
@@ -625,12 +642,20 @@ Definition satisfiable_premise (m : model) (l : nonEmptyLevelExprSet) :=
 
 (* Definition valid_clause (m : model) (cl : clause) := *)
   (* implb (satisfiable_premise m (premise cl)) (satisfiable_atom m (concl cl)). *)
+Definition level_value_above m l k :=
+  match level_value m l with
+  | Some val => k <=? val
+  | None => false
+  end.
 
 Definition valid_clause (m : model) (cl : clause) :=
   let k0 := min_premise m (premise cl) in
-  if (k0 <? 0)%Z then true
-  else let (l, k) := concl cl in
-    k + Z.to_nat k0 <=? level_value m l.
+  match k0 with
+  | None => true
+  | Some k0 =>
+    let (l, k) := concl cl in
+    level_value_above m l (Z.of_nat k + k0)
+  end.
 
 Definition is_model (cls : clauses) (m : model) : bool :=
   Clauses.for_all (valid_clause m) cls.
@@ -645,20 +670,18 @@ Definition update_model (m : model) l v : model := LevelMap.add l v m.
 Definition update_value (wm : LevelSet.t × model) (cl : clause) : update_result :=
   let (w, m) := wm in
   let k0 := min_premise m (premise cl) in
-  (* cl holds vacuously as the premise doesn't hold *)
-  if (k0 <? 0)%Z then VacuouslyTrue
-  else
-    (* The premise does hold *)
+  match k0 with
+  | None => VacuouslyTrue
+  | Some k0 =>
     let (l, k) := concl cl in
     (* Does the conclusion also hold?
-       We optimize a bit here, rather than adding k0 in a second stage,
-       we do it already while checking the clause. In the paper, a second
-       pass computes this.
+        We optimize a bit here, rather than adding k0 in a second stage,
+        we do it already while checking the clause. In the paper, a second
+        pass computes this.
       *)
-    if k + Z.to_nat k0 <=? level_value m l then Holds
-    else
-      (* The conclusion doesn't hold, we need to set it higher *)
-      DoesntHold (LevelSet.add l w, update_model m l (k + Z.to_nat k0)).
+    if level_value_above m l (Z.of_nat k + k0) then Holds
+    else DoesntHold (LevelSet.add l w, update_model m l (Z.of_nat k + k0))
+  end.
 
 Definition check_clause_model cl '(modified, wm) :=
   match update_value wm cl with
@@ -688,14 +711,15 @@ Proof.
   intros b w' v'. destruct a.
   destruct p as [].
   unfold update_value.
-  destruct Z.ltb. intros [= -> -> ->] => //.
-  now eapply IH.
   destruct x as [prem [l k]]; cbn.
-  destruct Nat.leb. intros [= -> -> ->] => //. now eapply IH.
-  intros [= <- <- <-]. intros x inx.
-  eapply LevelSet.add_spec.
-  specialize (IH _ _ _ eq_refl).
-  now right.
+  destruct min_premise as [k0|] eqn:hk0.
+  2:apply IH.
+  destruct level_value_above.
+  - intros [= -> -> ->] => //. now eapply IH.
+  - intros [= <- <- <-]. intros x inx.
+    eapply LevelSet.add_spec.
+    specialize (IH _ _ _ eq_refl).
+    now right.
 Qed.
 
 Lemma check_model_subset {cls w v} :
@@ -781,8 +805,8 @@ Definition in_clauses_conclusions (cls : clauses) (x : Level.t): Prop :=
   exists cl, Clauses.In cl cls /\ (level cl.2) = x.
 
 Definition v_minus_w_bound (W : LevelSet.t) (m : model) :=
-  LevelMap.fold (fun w v acc => Nat.max v acc)
-    (LevelMapFact.filter (fun l _ => ~~ LevelSet.mem l W) m) 0.
+  LevelMap.fold (fun w v acc => Z.max v acc)
+    (LevelMapFact.filter (fun l _ => ~~ LevelSet.mem l W) m) 0%Z.
 
 Definition levelexpr_k : LevelExpr.t -> nat := snd.
 Coercion levelexpr_k : LevelExpr.t >-> nat.
@@ -798,7 +822,7 @@ Definition gain (cl : clause) : Z :=
   Z.of_nat (levelexpr_k (concl cl)) - Z.of_nat (premise_min (premise cl)).
 
 Definition max_gain (cls : clauses) :=
-  Clauses.fold (fun cl acc => Nat.max (Z.to_nat (gain cl)) acc) cls 0.
+  Clauses.fold (fun cl acc => Nat.max (Z.to_nat (gain cl)) acc) cls 0%nat.
 
 Definition model_same_domain (m m' : model) :=
   forall l, LevelMap.In l m <-> LevelMap.In l m'.
@@ -856,6 +880,24 @@ Proof. intros eq heq % LevelSet.equal_spec. congruence. Qed.
 Lemma levelset_union_same U : LevelSet.union U U =_lset U.
 Proof. lsets. Qed.
 
+Class Commutative {A} (f : A -> A -> A) := comm : forall x y, f x y = f y x.
+Instance option_map_2_comm {A} f : @Commutative A f -> @Commutative (option A) (option_map2 f).
+Proof.
+  intros com [x|] [y|] => //=. now rewrite comm.
+Qed.
+
+Instance Zmin_comm : Commutative Z.min := Z.min_comm.
+Instance Zmax_comm : Commutative Z.max := Z.max_comm.
+
+Class Associative {A} (f : A -> A -> A) := assoc : forall x y z, f x (f y z) = f (f x y) z.
+Instance option_map_2_assoc {A} f : @Associative A f -> @Associative (option A) (option_map2 f).
+Proof.
+  intros assoc [x|] [y|] [z|]; cbn => //. now rewrite assoc.
+Qed.
+
+Instance Zmin_assoc : Associative Z.min := Z.min_assoc.
+Instance Zmax_assoc : Associative Z.max := Z.max_assoc.
+
 Lemma fold_left_comm {A B} (f : B -> A -> B) (l : list A) (x : A) (acc : B) :
   (forall x y z, f (f z x) y = f (f z y) x) ->
   fold_left f l (f acc x) = f (fold_left f l acc) x.
@@ -865,16 +907,27 @@ Proof.
   rewrite -IHl. f_equal. now rewrite H.
 Qed.
 
-Lemma fold_left_le (f g : nat -> LevelSet.elt -> nat) l :
-  (forall acc acc' x, In x l -> acc <= acc' -> f acc x <= g acc' x) ->
-  forall acc acc', acc <= acc' ->
-  fold_left f l acc <= fold_left g l acc'.
+Lemma fold_left_min_opt_comm {A} (f : A -> A -> A) l x acc :
+  Associative f -> Commutative f ->
+  fold_left (option_map2 f) l (option_map2 f acc x) = option_map2 f (fold_left (option_map2 f) l acc) x.
+Proof.
+  intros ass c. rewrite fold_left_comm => //.
+  intros. rewrite -(assoc (f := option_map2 f)).
+  rewrite -(assoc (f := option_map2 f) z y x0).
+  f_equal. apply comm.
+Qed.
+
+Lemma fold_left_le {A} {le} (f g : A -> LevelSet.elt -> A) l :
+  (forall acc acc'  x, In x l -> le acc acc' -> le (f acc x) (g acc' x)) ->
+  forall acc acc', le acc acc' ->
+  le (fold_left f l acc) (fold_left g l acc').
 Proof.
   intros hfg.
   induction l => //. cbn. intros.
   apply IHl. intros. apply hfg => //. now right. apply hfg => //. now left.
 Qed.
 
+Local Open Scope nat_scope.
 Lemma fold_left_ne_lt (f g : nat -> LevelSet.elt -> nat) l acc :
   (forall (x y : LevelSet.elt) z, f (f z x) y = f (f z y) x) ->
   (forall (x y : LevelSet.elt) z, g (g z x) y = g (g z y) x) ->
@@ -904,6 +957,7 @@ Proof.
     * intros acc1 acc' x hin. apply (H2 acc1 acc' x). now right.
     * exists min. split => //.
 Qed.
+Close Scope nat_scope.
 
 Infix "↓" := clauses_with_concl (at level 70). (* \downarrow *)
 Infix "⇂" := restrict_clauses (at level 70). (* \downharpoonright *)
@@ -945,9 +999,11 @@ Lemma update_value_valid {W m cl} :
   end.
 Proof.
   unfold update_value, valid_clause.
-  destruct Z.ltb => //.
   destruct cl as [prem [l k]]; cbn.
-  destruct Nat.leb => //.
+  destruct min_premise => //.
+  unfold level_value_above.
+  destruct level_value => //.
+  destruct Z.leb => //.
 Qed.
 
 Lemma valid_update_value {W m cl} :
@@ -958,9 +1014,11 @@ Lemma valid_update_value {W m cl} :
   end.
 Proof.
   unfold update_value, valid_clause.
-  destruct Z.ltb => //.
   destruct cl as [prem [l k]]; cbn.
-  destruct Nat.leb => //.
+  destruct min_premise => //.
+  unfold level_value_above.
+  destruct level_value => //.
+  destruct Z.leb => //.
 Qed.
 
 Lemma check_model_aux_false {cls acc acc'} : check_model_aux cls acc = (false, acc') -> acc = acc'.
@@ -1031,7 +1089,7 @@ Proof.
     move/orP: H1 => [->|] //. move/H0. intros ->. now rewrite orb_true_r.
 Qed.
 #[local] Instance model_le_refl : Reflexive model_le.
-Proof. intros x l k map. exists k; split => //. Qed.
+Proof. intros x l k map. exists k; split => //. lia. Qed.
 
 #[local] Instance model_le_trans : Transitive model_le.
 Proof. intros m m' m'' mm' m'm'' l k map.
@@ -1039,7 +1097,27 @@ Proof. intros m m' m'' mm' m'm'' l k map.
   apply m'm'' in map as [k'' [map ?]]. exists k''. split => //. lia.
 Qed.
 
-Lemma update_model_monotone m l k : level_value m l <= k -> m ⩽ update_model m l k.
+Inductive opt_le {A} (le : relation A) : relation (option A) :=
+| opt_le_some x y : le x y -> opt_le le (Some x) (Some y)
+| opt_le_none_some x : opt_le le None x.
+Derive Signature for opt_le.
+
+Instance opt_le_refl {A} (le : relation A) : Reflexive le -> Reflexive (opt_le le).
+Proof.
+  intros hre x; induction x; constructor; reflexivity.
+Qed.
+
+Instance opt_le_trans {A} (le : relation A) : Transitive le -> Transitive (opt_le le).
+Proof.
+  intros hre x; induction x; destruct y as [y|]; intros z H H'; depelim H; depelim H'; constructor.
+  now transitivity y.
+Qed.
+
+Definition value_le : relation (option Z) := opt_le Z.le.
+
+Infix "≤" := value_le (at level 50).
+
+Lemma update_model_monotone m l k : level_value m l ≤ Some k -> m ⩽ update_model m l k.
 Proof.
   intros hl.
   intros l' k' maps.
@@ -1050,7 +1128,16 @@ Proof.
     rewrite (LevelMap.find_1 maps).
     intros hle.
     split => //. eapply LevelMap.add_1. eapply LevelMap.OT.eq_refl.
-  - exists k'. split => //. apply LevelMap.add_2 => //.
+    now depelim hle.
+  - exists k'. split => //. apply LevelMap.add_2 => //. lia.
+Qed.
+
+Lemma update_model_not_above m l k : level_value_above m l k = false -> m ⩽ update_model m l k.
+Proof.
+  unfold level_value_above.
+  intros hlev.
+  apply update_model_monotone.
+  destruct level_value as [v|] eqn:hv; constructor; lia.
 Qed.
 
 Lemma check_clause_model_inv {cl modified w m b wm'} :
@@ -1064,12 +1151,11 @@ Proof.
   * intros [= <- <-].
     move: upd.
     unfold update_value.
-    case: Z.ltb_spec => //.
     destruct cl as [prem [l k]] => /=.
-    intros hprem.
-    case: Nat.leb_spec => // hlt.
+    destruct min_premise as [k0|] eqn:hmin => //.
+    destruct level_value_above eqn:hval => //.
     intros [= <-]. cbn.
-    eapply update_model_monotone. lia.
+    now eapply update_model_not_above.
 Qed.
 
 Lemma check_clause_model_intact {cl modified w m wm'} :
@@ -1093,10 +1179,11 @@ Proof.
   * intros [= <-].
     move: upd.
     unfold update_value, valid_clause.
-    case: Z.ltb_spec => //.
+    destruct min_premise as [k0|] eqn:hmin => //.
     destruct cl as [prem [l k]] => /=.
-    intros hprem.
-    case: Nat.leb_spec => // hlt.
+    unfold level_value_above.
+    destruct level_value as [val|] eqn:hval => //.
+    case: Z.leb_spec => //.
 Qed.
 
 Lemma check_model_aux_model_le {cls acc acc' b} :
@@ -1113,7 +1200,7 @@ Proof.
 Qed.
 
 Lemma level_value_update_model m l k :
-  level_value (update_model m l k) l = k.
+  level_value (update_model m l k) l = Some k.
 Proof.
   unfold level_value, update_model.
   cbn -[LevelMap.find LevelMap.add].
@@ -1157,17 +1244,18 @@ Proof.
   intros cl cl' eqcl x y ->. unfold is_model. now rewrite eqcl.
 Qed.
 
-Lemma model_le_values {m m' : model} x : m ⩽ m' -> level_value m x <= level_value m' x.
+Lemma model_le_values {m m' : model} x : m ⩽ m' -> level_value m x ≤ level_value m' x.
 Proof.
   intros lem. specialize (lem x).
   unfold level_value.
-  destruct LevelMap.find eqn:hl => //. 2:lia.
-  apply LevelMap.find_2 in hl. specialize (lem _ hl) as [k' [mapsto leq]].
-  now rewrite (LevelMap.find_1 mapsto).
+  destruct LevelMap.find eqn:hl => //.
+  - apply LevelMap.find_2 in hl. specialize (lem _ hl) as [k' [mapsto leq]].
+    rewrite (LevelMap.find_1 mapsto). now constructor.
+  - destruct (LevelMap.find x m'); constructor.
 Qed.
 
 Lemma level_value_MapsTo {k e} {m : model} :
-  LevelMap.MapsTo k e m -> level_value m k = e.
+  LevelMap.MapsTo k e m -> level_value m k = Some e.
 Proof.
   unfold level_value.
   move=> mapto; rewrite (LevelMap.find_1 mapto) //.
@@ -1177,7 +1265,7 @@ Infix "⊂_clset" := Clauses.Subset (at level 70).
 
 Lemma max_gain_in cl cls :
   Clauses.In cl cls ->
-  Z.to_nat (gain cl) <= max_gain cls.
+  (Z.to_nat (gain cl) <= max_gain cls)%nat.
 Proof.
   intros hin.
   unfold max_gain. revert cl hin.
@@ -1191,7 +1279,7 @@ Qed.
 
 Definition max_gain_subset (cls cls' : Clauses.t) :
   cls ⊂_clset cls' ->
-  max_gain cls <= max_gain cls'.
+  (max_gain cls <= max_gain cls')%nat.
 Proof.
   unfold max_gain at 1.
   revert cls'.
@@ -1248,9 +1336,9 @@ Proof.
   - now apply out.
 Qed.
 
-Definition max_premise_value (m : model) (l : nonEmptyLevelExprSet) : nat :=
+Definition max_premise_value (m : model) (l : nonEmptyLevelExprSet) : option Z :=
   let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
-  fold_left (fun min atom => Nat.max (levelexpr_value m atom) min) tl (levelexpr_value m hd).
+  fold_left (fun min atom => option_map2 Z.max (levelexpr_value m atom) min) tl (levelexpr_value m hd).
 
 Definition non_W_atoms W (l : LevelExprSet.t) :=
   LevelExprSet.filter (fun lk => ~~ LevelSet.mem lk.1 W) l.
@@ -1334,6 +1422,8 @@ Proof.
   rewrite -LevelSet.mem_spec in H1 |- *. destruct LevelSet.mem; intuition auto.
 Qed.
 
+Local Open Scope Z_scope.
+
 Section MoreNonEmpty.
 
   Import LevelExprSet.
@@ -1345,9 +1435,27 @@ Section MoreNonEmpty.
     now move/InA_In_eq/LevelExprSetFact.elements_2.
   Qed.
 
+  Notation min_opt := (option_map2 Z.min).
+  Lemma Zmin_opt_left x y : min_opt x y ≤ x.
+  Proof.
+    destruct x as [x|], y as [y|]; constructor. lia.
+  Qed.
+
+  Lemma Zmin_opt_right x y : min_opt x y ≤ y.
+  Proof.
+    destruct x as [x|], y as [y|]; constructor. lia.
+  Qed.
+
+  Lemma min_opt_spec x y z : min_opt x y = z -> (z = y \/ z = x).
+  Proof.
+    destruct x as [x|], y as [y|], z as [z|]; cbn; intuition auto.
+    - noconf H. pose proof (Zmin_irreducible x y). destruct H; intuition (f_equal; auto).
+    - noconf H.
+  Qed.
+
   Lemma min_premise_spec_aux (m : model) s k :
     min_premise m s = k ->
-    (forall x, LevelExprSet.In x s -> (k <= min_atom_value m x)%Z) /\
+    (forall x, LevelExprSet.In x s -> (k ≤ min_atom_value m x)%Z) /\
     (exists x, LevelExprSet.In x s /\ k = min_atom_value m x).
   Proof.
     unfold min_premise.
@@ -1360,20 +1468,27 @@ Section MoreNonEmpty.
       split. intros x [->|] => //. reflexivity.
       now exists t0; split => //.
     - destruct IHl as [ha hex].
-      split; intros.
-      eapply (in_elt_inv x a [t0]) in H as [<-|inih].
-      cbn. rewrite fold_left_comm. lia. lia.
+      split.
+      * intros x hin.
+        eapply (in_elt_inv x a [t0]) in hin as [<-|inih].
+        { cbn. rewrite fold_left_comm.
+          { intros x' y z. rewrite assoc. now rewrite (comm (min_atom_value m y)) -assoc. }
+          apply Zmin_opt_left. }
       specialize (ha _ inih).
-      cbn. rewrite fold_left_comm. lia. lia.
-      destruct hex as [minval [inmin ih]].
-      cbn. rewrite fold_left_comm. lia.
-      destruct (Z.leb_spec (min_atom_value m a) (min_atom_value m minval)).
-      exists a. split; [intuition|]. lia. exists minval.
-      cbn in inmin; split; [intuition auto|]. lia.
+      cbn. rewrite fold_left_comm.
+      { intros x' y z. rewrite assoc. now rewrite (comm (min_atom_value m y)) -assoc. }
+      etransitivity; [apply Zmin_opt_right|assumption].
+      * destruct hex as [minval [inmin ih]].
+        cbn. rewrite fold_left_comm.
+        { intros x' y z. rewrite assoc. now rewrite (comm (min_atom_value m y)) -assoc. }
+        rewrite ih.
+        destruct (min_opt_spec (min_atom_value m a) (min_atom_value m minval) _ eq_refl).
+        { rewrite H. exists minval. cbn in inmin. split; [intuition|reflexivity]. }
+        { rewrite H. exists a. cbn in inmin. split; [intuition|reflexivity]. }
   Qed.
 
   Lemma min_premise_spec (m : model) (s : nonEmptyLevelExprSet) :
-    (forall x, LevelExprSet.In x s -> (min_premise m s <= min_atom_value m x)%Z) /\
+    (forall x, LevelExprSet.In x s -> min_premise m s ≤ min_atom_value m x) /\
     (exists x, LevelExprSet.In x s /\ min_premise m s = min_atom_value m x).
   Proof.
     now apply min_premise_spec_aux.
@@ -1381,18 +1496,18 @@ Section MoreNonEmpty.
 
   Lemma min_premise_subset (m : model) (s s' : nonEmptyLevelExprSet) :
     LevelExprSet.Subset s s' ->
-    (min_premise m s' <= min_premise m s)%Z.
+    min_premise m s' ≤ min_premise m s.
   Proof.
     intros sub.
     have [has [mins [ins eqs]]] := min_premise_spec m s.
     have [has' [mins' [ins' eqs']]] := min_premise_spec m s'.
     specialize (sub _ ins). specialize (has' _ sub).
-    lia.
+    now rewrite eqs.
   Qed.
 
   Lemma premise_min_spec_aux s k :
     premise_min s = k ->
-    (forall x, LevelExprSet.In x s -> (k <= x)) /\
+    (forall x, LevelExprSet.In x s -> (k <= x)%nat) /\
     (exists x, LevelExprSet.In x s /\ k = x).
   Proof.
     unfold premise_min.
@@ -1419,7 +1534,7 @@ Section MoreNonEmpty.
   Qed.
 
   Lemma premise_min_spec (s : nonEmptyLevelExprSet) :
-    (forall x, LevelExprSet.In x s -> premise_min s <= x) /\
+    (forall x, LevelExprSet.In x s -> premise_min s <= x)%nat /\
     (exists x, LevelExprSet.In x s /\ premise_min s = x).
   Proof.
     now apply premise_min_spec_aux.
@@ -1427,7 +1542,7 @@ Section MoreNonEmpty.
 
   Lemma premise_min_subset (s s' : nonEmptyLevelExprSet) :
     LevelExprSet.Subset s s' ->
-    premise_min s' <= premise_min s.
+    (premise_min s' <= premise_min s)%nat.
   Proof.
     intros sub.
     have [has [mins [ins eqs]]] := premise_min_spec s.
@@ -1436,51 +1551,82 @@ Section MoreNonEmpty.
     lia.
   Qed.
 
+  Lemma fold_comm_assoc x y z : option_map2 Z.max x (option_map2 Z.max y z) =
+    option_map2 Z.max y (option_map2 Z.max x z).
+  Proof.
+    now rewrite (assoc (f := option_map2 Z.max)) (comm (f := option_map2 Z.max) x y) -assoc.
+  Qed.
+  Notation max_opt := (option_map2 Z.max).
+
+  Lemma max_opt_spec x y z : max_opt x y = Some z -> exists x' y', x = Some x' /\ y = Some y' /\ z = Z.max x' y'.
+  Proof.
+    destruct x as [x|], y as [y|]; cbn; intuition eauto; try noconf H.
+    exists x, y. auto.
+  Qed.
+
+  (* Lemma Zmax_opt_left x y : x ≤ max_opt x y. *)
+  (* Proof. *)
+    (* destruct x as [x|], y as [y|]; try constructor. lia. *)
+  (* Qed. *)
+(*
+  Lemma Zmax_opt_right x y : min_opt x y ≤ y.
+  Proof.
+    destruct x as [x|], y as [y|]; constructor. lia.
+  Qed. *)
+
+
   Lemma max_premise_value_spec_aux (m : model) s k :
-    max_premise_value m s = k ->
-    (forall x, LevelExprSet.In x s -> levelexpr_value m x <= k) /\
-    (exists x, LevelExprSet.In x s /\ k = levelexpr_value m x).
+    max_premise_value m s = Some k ->
+    (forall x, LevelExprSet.In x s -> exists k', levelexpr_value m x = Some k' /\ Some k' ≤ Some k) /\
+    (exists x, LevelExprSet.In x s /\ Some k = levelexpr_value m x).
   Proof.
     unfold max_premise_value.
     move: (to_nonempty_list_spec s).
     destruct (to_nonempty_list s). intros heq.
     setoid_rewrite In_elements. rewrite -heq. clear s heq.
-    intros <-.
-    induction l.
+    induction l in k |- *.
     - cbn.
-      split. intros x [->|] => //.
+      intros eq.
+      split. intros x [->|] => //. exists k. split => //. reflexivity.
       now exists t0; split => //.
-    - destruct IHl as [ha hex].
+    - cbn. rewrite fold_left_comm. intros; apply fold_comm_assoc.
+      intros heq. apply max_opt_spec in heq as [y' [z' [eqa [eqf ->]]]].
+      specialize (IHl _ eqf). destruct IHl as [ha hex].
       split; intros.
       eapply (in_elt_inv x a [t0]) in H as [<-|inih].
-      cbn. rewrite fold_left_comm. lia. lia.
-      specialize (ha _ inih).
-      cbn. rewrite fold_left_comm. lia. lia.
+      { exists y'; intuition eauto. constructor; lia. }
+      { specialize (ha _ inih) as [k' []]. exists k'; intuition eauto. constructor. depelim H0; lia. }
       destruct hex as [maxval [inmax ih]].
-      cbn. rewrite fold_left_comm. lia.
-      destruct (Nat.leb_spec (levelexpr_value m maxval) (levelexpr_value m a)).
-      exists a. split; [intuition|]. lia. exists maxval.
-      cbn in inmax; split; [intuition auto|]. lia.
+      cbn.
+      destruct (Z.leb_spec z' y').
+      exists a. split; [intuition|]. rewrite eqa. f_equal. lia.
+      exists maxval. cbn in inmax; split; [intuition auto|]. rewrite -ih. f_equal; lia.
   Qed.
 
-  Lemma max_premise_value_spec (m : model) (s : nonEmptyLevelExprSet) :
-    (forall x, LevelExprSet.In x s -> levelexpr_value m x <= max_premise_value m s) /\
-    (exists x, LevelExprSet.In x s /\ max_premise_value m s = levelexpr_value m x).
+  Lemma max_premise_value_spec (m : model) (s : nonEmptyLevelExprSet) k :
+    max_premise_value m s = Some k ->
+    (forall x, LevelExprSet.In x s -> exists k', levelexpr_value m x = Some k' /\ Some k' ≤ Some k) /\
+    (exists x, LevelExprSet.In x s /\ Some k = levelexpr_value m x).
   Proof.
-    now apply max_premise_value_spec_aux.
+    apply (max_premise_value_spec_aux m s).
   Qed.
 End MoreNonEmpty.
 
-Lemma min_premise_pos_spec {m prem} :
-  (0 <= min_premise m prem)%Z ->
-  forall x, LevelExprSet.In x prem -> levelexpr_k x <= levelexpr_value m x.
+Lemma min_premise_pos_spec {m prem k} :
+  min_premise m prem = Some k ->
+  forall x, LevelExprSet.In x prem -> Some (Z.of_nat (levelexpr_k x) + k)%Z ≤ levelexpr_value m x.
 Proof.
   pose proof (min_premise_spec m prem) as [amin [exmin [inminpre eqminpre]]].
   intros hprem x hin.
   specialize (amin _ hin).
   unfold min_atom_value in amin.
-  destruct x as [l k]; cbn in *. unfold levelexpr_value; cbn.
-  lia.
+  destruct x as [l k']; cbn in *. unfold levelexpr_value; cbn.
+  destruct (level_value m l) eqn:he.
+  - depelim amin.
+    rewrite H0 in hprem. depelim hprem. constructor. lia.
+    constructor.
+    rewrite H in hprem; depelim hprem.
+  - depelim amin. rewrite H in hprem. depelim hprem.
 Qed.
 
 Definition equal_model (m m' : model) := LevelMap.Equal m m'.
@@ -1507,7 +1653,7 @@ Proof.
 Qed.
 
 Lemma v_minus_w_bound_spec W m :
-  forall x, ~ LevelSet.In x W -> level_value m x <= v_minus_w_bound W m.
+  forall x, ~ LevelSet.In x W -> level_value m x ≤ Some (v_minus_w_bound W m).
 Proof.
   intros x him.
   unfold v_minus_w_bound.
@@ -1521,7 +1667,7 @@ Proof.
       rewrite (LevelMap.find_1 H) //.
       destruct (LevelMap.find _ m) eqn:hl' => //.
       eapply LevelMap.find_2 in hl'.
-      assert (LevelMap.MapsTo x n fm).
+      assert (LevelMap.MapsTo x z fm).
       eapply LevelMapFact.filter_iff. tc.
       split => //. now rewrite [_ = true]not_mem.
       now rewrite (LevelMap.find_1 H)  in hl. }
@@ -1530,13 +1676,14 @@ Proof.
   - intros m' em. unfold level_value.
     destruct LevelMap.find eqn:hl => //.
     eapply LevelMap.find_2 in hl.
-    now apply em in hl.
+    now apply em in hl. constructor.
   - intros k e a m' m'' map nin hadd.
     red in hadd.
     unfold level_value. cbn.
     rewrite hadd LevelMapFact.F.add_o.
-    destruct LevelMap.OT.eq_dec. do 2 red in e0. subst x. lia.
-    destruct LevelMap.find; lia.
+    destruct LevelMap.OT.eq_dec. do 2 red in e0. subst x.
+    intros hf. constructor. lia.
+    destruct LevelMap.find => hf; depelim hf; constructor; lia.
 Qed.
 
 Lemma clauses_levels_restrict_clauses cls W :
@@ -1598,7 +1745,7 @@ Definition check_model_invariants cls w m w' m' (modified : bool) :=
           let cll := (levelexpr_level (concl cl)) in
           [/\ Clauses.In cl cls, ~~ valid_clause m cl,
           LevelSet.In cll w' &
-          level_value m cll < level_value m' cll] &
+          opt_le Z.lt (level_value m cll) (level_value m' cll)] &
         model_extension w' m m']
   else (w, m) = (w', m').
 
@@ -1628,9 +1775,10 @@ Proof.
   now setoid_rewrite <-eqcls.
 Qed.
 
-Lemma min_atom_value_levelexpr_value m l : Z.to_nat (min_atom_value m l) <= levelexpr_value m l - l.
+Lemma min_atom_value_levelexpr_value m l a lv : min_atom_value m l = Some a -> levelexpr_value m l = Some lv -> (a <= (lv - Z.of_nat l))%Z.
 Proof.
-  destruct l as [l k]; cbn. unfold levelexpr_value. cbn. lia.
+  destruct l as [l k]; cbn. unfold levelexpr_value. cbn. destruct level_value => //.
+  intros [= <-] [= <-]. lia.
 Qed.
 
 Lemma clauses_conclusions_add cl cls :
@@ -1667,6 +1815,19 @@ Proof.
   intros heq. red in heq; subst l'. apply hin. now left.
 Qed.
 
+Lemma opt_lt_le_trans x y z :
+  opt_le Z.lt x y ->
+  opt_le Z.le y z ->
+  opt_le Z.lt x z.
+Proof.
+  intros [] H'; depelim H'; constructor. lia.
+Qed.
+
+Lemma level_value_not_above_spec m l k : level_value_above m l k = false -> opt_le Z.lt (level_value m l) (Some k).
+Proof.
+  unfold level_value_above; destruct level_value => // hlt; constructor. lia.
+Qed.
+
 Lemma check_clause_model_modify' {cl cls w m w' m' w'' m'' modified modified'} :
   check_model_invariants cls w m w' m' modified ->
   declared_model_level m (clause_conclusion cl) ->
@@ -1693,10 +1854,9 @@ Proof.
   * intros [= <- ->].
     move: upd.
     unfold update_value.
-    case: Z.ltb_spec => //.
+    destruct min_premise as [hmin|] eqn:eqmin => //.
     destruct cl as [prem [l k]] => /=.
-    intros hprem.
-    case: Nat.leb_spec => // hlt.
+    destruct level_value_above eqn:hval => //.
     intros [= <- <-].
     destruct modified; noconf inv.
     { destruct inv.
@@ -1707,13 +1867,14 @@ Proof.
         intuition eauto. cbn. apply H0 in H4. lsets.
       + setoid_rewrite Clauses.add_spec; setoid_rewrite LevelSet.add_spec.
         destruct H1 as [cl []]; exists cl; split => //. eauto. eauto.
-        eapply Nat.lt_le_trans; tea.
+        destruct (level_value m (concl cl)) as [vconcl|] eqn:hconcl; [|constructor].
+        eapply opt_lt_le_trans; tea.
         eapply model_le_values.
-        now eapply update_model_monotone.
+        now eapply update_model_not_above.
       + transitivity m'.
         { eapply model_extension_weaken; tea. lsets. }
         split.
-        { now eapply update_model_monotone. }
+        { now eapply update_model_not_above. }
         { eapply update_model_same_domain.
           eapply H2, declcl. }
         { eapply update_model_outside. } }
@@ -1725,12 +1886,10 @@ Proof.
       + setoid_rewrite Clauses.add_spec; setoid_rewrite LevelSet.add_spec.
         exists (prem, (l, k)).
         split; tea; eauto.
-        - unfold valid_clause. cbn.
-          case: Z.ltb_spec => //. cbn. lia. intros _.
-          rewrite -Nat.ltb_antisym. apply Nat.ltb_lt; lia.
-        - cbn. now rewrite level_value_update_model.
+        - unfold valid_clause. cbn. now rewrite eqmin hval /=.
+        - cbn. rewrite level_value_update_model. now apply level_value_not_above_spec.
       + split.
-        { now eapply update_model_monotone. }
+        { now eapply update_model_not_above. }
         { eapply update_model_same_domain.
           eapply declcl. }
         { eapply update_model_outside. } }
@@ -1830,71 +1989,116 @@ Proof.
   now eapply check_model_aux_model_le in caux.
 Qed.
 
+Definition level_value_default m l :=
+  match level_value m l with Some x => x | None => 0 end%Z.
+
 Definition measure_w W cls m w :=
-    let bound := v_minus_w_bound W m in
-    let maxgain := max_gain (cls_diff cls W) in
-    (Z.of_nat bound + Z.of_nat maxgain - Z.of_nat (level_value m w))%Z.
+  let bound := v_minus_w_bound W m in
+  let maxgain := max_gain (cls_diff cls W) in
+  (bound + Z.of_nat maxgain - level_value_default m w)%Z.
+
+Lemma min_premise_max_premise m prem k :
+  min_premise m prem = Some k ->
+  exists k', max_premise_value m prem = Some k'.
+Proof.
+  unfold min_premise, max_premise_value.
+  destruct to_nonempty_list.
+  assert (forall l k, fold_left
+  (fun (min : option Z) (atom : LevelExpr.t) =>
+   option_map2 Z.min (let '(l0, k0) := atom in match level_value m l0 with
+                                               | Some val => Some (val - Z.of_nat k0)%Z
+                                               | None => None
+                                               end) min)
+  l None =
+    Some k -> False).
+  { clear. induction l; cbn => //. cbn in *.
+    destruct a, level_value; cbn; auto. }
+  assert
+    (forall x y, fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.min (min_atom_value m atom) min) l (Some x) = Some k ->
+exists k' : Z,
+  fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.max (levelexpr_value m atom) min) l (Some y) = Some k').
+  { induction l; cbn.
+    - intros x y [= <-]. now eexists.
+    - intros x y.
+      unfold min_atom_value, levelexpr_value, levelexpr_level. destruct a; cbn.
+      destruct level_value => //=. eapply IHl. cbn. intros H'. exfalso.
+      eapply H; eauto. }
+  - unfold min_atom_value, levelexpr_value, levelexpr_level. destruct t; cbn.
+    destruct level_value => //=. apply H0.
+    intros; exfalso. now eapply H.
+Qed.
 
 Lemma invalid_clause_measure W cls cl m :
+  model_of W m ->
   ~~ valid_clause m cl ->
   Clauses.In cl (cls_diff cls W) ->
   (0 < measure_w W cls m (concl cl))%Z.
 Proof.
-  unfold valid_clause.
-  case: Z.ltb_spec => // hprem.
+  intros hwv. unfold valid_clause.
+  (* case: Z.ltb_spec => // hprem. *)
   destruct cl as [prem [l k]]; cbn.
-  case: Nat.leb_spec => // hlt. intros _ hin.
+  destruct min_premise eqn:hmin => //.
+  move/negbTE/level_value_not_above_spec => hlt hin.
   have hne := (non_W_atoms_ne _ _ _ hin).
   cbn. unfold measure_w. unfold gain.
   set (clsdiff := Clauses.diff _ _).
   set (bound := v_minus_w_bound W m).
-  enough (Z.of_nat (level_value m l) < Z.of_nat bound + Z.of_nat (max_gain clsdiff))%Z. lia.
+  enough (level_value_default m l < bound + Z.of_nat (max_gain clsdiff))%Z. lia.
   set (prem' := non_W_atoms W prem).
   set (preml := {| t_set := prem'; t_ne := hne |}).
-  assert (Z.to_nat (gain (preml, (l, k))) <= max_gain clsdiff).
+  assert (Z.to_nat (gain (preml, (l, k))) <= max_gain clsdiff)%nat.
   { transitivity (Z.to_nat (gain (prem, (l, k)))). 2:now apply max_gain_in.
     unfold gain. cbn.
     pose proof (premise_min_subset preml prem).
     rewrite !Z2Nat.inj_sub //; try lia. rewrite !Nat2Z.id.
     forward H. eapply non_W_atoms_subset. lia. }
-  eapply Z.lt_le_trans with (Z.of_nat bound + Z.of_nat (Z.to_nat (gain (preml, (l, k)))))%Z; try lia.
-  rewrite -Nat2Z.inj_add.
+  eapply Z.lt_le_trans with (bound + Z.of_nat (Z.to_nat (gain (preml, (l, k)))))%Z; try lia.
   unfold gain; cbn.
-  enough (level_value m l < v_minus_w_bound W m + (k - premise_min preml)). lia.
-  enough (k + Z.to_nat (min_premise m prem) <= v_minus_w_bound W m + (k - premise_min preml)). lia.
-  assert (min_premise m prem <= min_premise m preml)%Z.
+  enough (level_value_default m l < v_minus_w_bound W m + Z.of_nat (k - premise_min preml))%Z. lia.
+  unfold level_value_default. destruct (level_value m l) as [vl|] eqn:hl; revgoals.
+  { apply LevelMapFact.F.not_find_in_iff in hl. elim hl. apply hwv.
+    eapply Clauses.diff_spec in hin as [hin _].
+    now apply in_clauses_with_concl in hin as [hin _]. }
+  depelim hlt.
+  enough (Z.of_nat k + z <= v_minus_w_bound W m + Z.of_nat (k - premise_min preml))%Z. lia.
+  assert (min_premise m prem ≤ min_premise m preml)%Z.
   { eapply min_premise_subset. eapply non_W_atoms_subset. }
-  transitivity (k + Z.to_nat (min_premise m preml)). lia.
+  rewrite hmin in H1. depelim H1.
+  transitivity (Z.of_nat k + y)%Z. lia.
   pose proof (min_premise_spec m preml) as [amin [exmin [inminpre eqminpre]]].
-  pose proof (max_premise_value_spec m preml) as [amax [exmax [inmaxpre eqmaxpre]]].
+  have [maxpreml eqmax] := min_premise_max_premise m preml _ H2.
+  pose proof (max_premise_value_spec m preml _ eqmax) as [amax [exmax [inmaxpre eqmaxpre]]].
   pose proof (premise_min_spec preml) as [apmin [expmin [inpminpre eqpminpre]]].
-  assert (premise_min prem <= premise_min preml).
+  assert (premise_min prem <= premise_min preml)%nat.
   { eapply premise_min_subset. eapply non_W_atoms_subset. }
-  transitivity (v_minus_w_bound W m + (k - premise_min preml)). 2:lia.
-  assert (Z.to_nat (min_premise m preml) <= max_premise_value m preml - premise_min preml).
-  { rewrite eqpminpre eqmaxpre eqminpre.
-    pose proof (min_atom_value_levelexpr_value m exmin). etransitivity; tea.
-    specialize (amax _ inminpre). rewrite eqmaxpre in amax.
-    assert (expmin <= exmin). specialize (apmin _ inminpre). lia.
+  (* transitivity (v_minus_w_bound W m + (k - premise_min preml)). 2:lia. *)
+  assert (y <= maxpreml - Z.of_nat (premise_min preml))%Z.
+  { rewrite eqpminpre. rewrite H2 in eqminpre; symmetry in eqminpre.
+   (* eqmaxpre eqminpre. *)
+    pose proof (min_atom_value_levelexpr_value m exmin).
+    specialize (amax _ inminpre) as amax'. rewrite eqmaxpre in amax'.
+    destruct amax' as [vexmin [eqexmin ltexmin]].
+    assert (expmin <= exmin)%nat. specialize (apmin _ inminpre). lia.
+    specialize (H4 _ _ eqminpre eqexmin). depelim ltexmin. etransitivity; tea.
+    rewrite -eqmaxpre in H6. noconf H6.
     unfold level_expr_elt in *. lia. }
-  transitivity (k + (max_premise_value m preml - premise_min preml)). lia.
-  assert (premise_min preml <= max_premise_value m preml).
+  transitivity (Z.of_nat k + (maxpreml - Z.of_nat (premise_min preml)))%Z. lia.
+  (* assert (Z.of_nat (premise_min preml) <= maxpreml)%Z.
   { rewrite eqmaxpre.
     move/min_premise_pos_spec: hprem => hprem.
     transitivity exmax. apply apmin => //. eapply hprem.
-    now apply (non_W_atoms_subset W prem). }
-  assert (k + (max_premise_value m preml - premise_min preml) =
-    (max_premise_value m preml + k - premise_min preml)) as ->. lia.
-  enough (max_premise_value m preml <= v_minus_w_bound W m). lia.
-  { rewrite eqmaxpre.
-    apply v_minus_w_bound_spec.
-    intros hin'.
+    now apply (non_W_atoms_subset W prem). } *)
+  assert (Z.of_nat k + (maxpreml - Z.of_nat (premise_min preml)) =
+    (maxpreml + Z.of_nat k - Z.of_nat (premise_min preml)))%Z as ->. lia.
+  enough (maxpreml <= v_minus_w_bound W m)%Z. lia.
+  { have vm := v_minus_w_bound_spec W m exmax. unfold levelexpr_value in eqmaxpre.
+    rewrite -eqmaxpre in vm.
     have [hlevels _] := (@levels_exprs_non_W_atoms W prem (levelexpr_level exmax)).
     rewrite levelexprset_levels_spec in hlevels.
     forward hlevels.
     exists exmax.2. now destruct exmax.
     rewrite LevelSet.diff_spec in hlevels.
-    now destruct hlevels. }
+    destruct hlevels as [_ nw]. specialize (vm nw). now depelim vm. }
 Qed.
 
 Definition levelset_m_eq : LevelSet.t × model -> LevelSet.t × model -> Prop :=
@@ -1946,19 +2150,27 @@ Proof.
   now rewrite hm.
 Qed.
 
+#[local] Instance level_value_above_proper : Proper (LevelMap.Equal ==> eq ==> eq ==> eq) level_value_above.
+Proof.
+  intros m m' hm ? ? -> ? ? ->.
+  unfold level_value_above.
+  now rewrite hm.
+Qed.
+
 #[local] Instance check_clause_model_proper : Proper (eq ==> modified_levelset_m_eq ==> modified_levelset_m_eq) check_clause_model.
 Proof.
   intros x y eq [? []] [? []] []; cbn in *; subst.
   unfold levelset_m_eq in H0. destruct H0; cbn in *; subst.
   replace (min_premise m (premise y)) with (min_premise m0 (premise y)).
   2: now rewrite H0.
-  destruct Z.ltb => //.
+  destruct min_premise.
   destruct concl => //.
-  replace (level_value m t1) with (level_value m0 t1).
+  replace (level_value_above m t1 (Z.of_nat n + z)) with (level_value_above m0 t1 (Z.of_nat n + z)).
   2:now rewrite H0.
-  destruct Nat.leb => //.
+  destruct level_value_above => //.
   red. cbn. split => //.
   red. cbn; split => //. now rewrite H. now rewrite H0.
+  red. cbn. split => //.
 Qed.
 
 Module ClausesOrd := OrdProperties Clauses.
@@ -2021,8 +2233,55 @@ Extraction Inline model_model.
 
 Definition valid_model := valid_model_def.
 
+Inductive entails (cls : clauses) : clause -> Prop :=
+| clause_in (prems : nonEmptyLevelExprSet) (cl : LevelExpr.t) : LevelExprSet.In cl prems -> entails cls (prems, cl)
+| clause_cut prems' concl' prems concl :
+  Clauses.In (prems', concl') cls ->
+  entails cls (add concl' prems, concl) ->
+  LevelExprSet.Subset prems' prems ->
+  entails cls (prems, concl).
+
+(* Definition succ_expr '((l, k) : LevelExpr.t) := (l, k + 1).
+Definition succ_prems s := map (fun '(l, k) => (l, k + 1)) s.
+Definition succ_clause '((prems, concl) : clause) := (succ_prems prems, succ_expr concl).
+Lemma succ_clause_inj x y : succ_clause x = succ_clause y -> x = y.
+Proof. Admitted.
+Definition succ_clauses cls := ClausesProp.of_list (List.map (fun cl => succ_clause cl) (ClausesProp.to_list cls)).
+Import SetoidList.
+Lemma succ_clauses_spec cl cls : Clauses.In cl cls <-> Clauses.In (succ_clause cl) (succ_clauses cls).
+Proof.
+  unfold succ_clauses.
+  rewrite ClausesProp.of_list_1 InA_In_eq in_map_iff.
+  firstorder eauto.
+  - exists cl; split => //. unfold ClausesProp.to_list. now eapply Clauses_In_elements.
+  - eapply Clauses_In_elements in H0. apply succ_clause_inj in H. now subst.
+Qed.
+
+Lemma entails_plus cls c : entails cls c -> entails (succ_clauses cls) (succ_clause c).
+Proof.
+  induction 1.
+  - constructor. apply map_spec. exists cl. split => //.
+  - eapply clause_cut with (succ_prems prems') (succ_expr concl').
+    + now rewrite -(succ_clauses_spec (prems', concl')).
+    + admit.
+    + admit.
+Admitted.
+
+Definition to_clauses (prems : nonEmptyLevelExprSet) (concl : nonEmptyLevelExprSet) : clauses :=
+  LevelExprSet.fold (fun lk cls => Clauses.add (prems, lk) cls) concl Clauses.empty.
+
+Definition is_loop (cls : clauses) (t : nonEmptyLevelExprSet) :=
+  let cls' := to_clauses t (succ_prems t) in
+  Clauses.For_all (fun cl' => entails cls cl') cls'.
+ *)
+(* Definition is_looping (w : LevelSet.t) n (cls : clauses) :=
+  let preml := LevelSet.elements w in
+  let prem := List.map (fun e => (e, n)) preml in
+  is_loop cls prem. *)
+
 Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
   | Loop
+   (* (w : LevelSet.t) (n : nat) (islooping : loop_on w n cls) *)
   | Model (w : LevelSet.t) (m : valid_model V m cls) (prf : U ⊂_lset w /\ w ⊂_lset V).
 Arguments Loop {V U cls m}.
 Arguments Model {V U cls m}.
@@ -2065,7 +2324,7 @@ Qed. *)
 
 Notation "#| V |" := (LevelSet.cardinal V).
 
-Notation loop_measure V W := (#|V|, #|V| - #|W|).
+Notation loop_measure V W := (#|V|, #|V| - #|W|)%nat.
 
 Definition lexprod_rel := lexprod lt lt.
 
@@ -2080,21 +2339,28 @@ Section InnerLoop.
     (prf : [/\ clauses_conclusions cls ⊂_lset V', U' ⊂_lset V' & model_of V' m]),
     lexprod_rel (loop_measure V' U') (loop_measure V U) -> result V' U' cls m).
 
-  Definition sum_W W (f : LevelSet.elt -> nat) :=
-    LevelSet.fold (fun w acc => acc + f w) W 0.
+  Definition sum_W W (f : LevelSet.elt -> nat) : nat :=
+    LevelSet.fold (fun w acc => acc + f w)%nat W 0%nat.
 
   Definition measure (W : LevelSet.t) (cls : clauses) (m : model) : nat :=
     sum_W W (fun w => Z.to_nat (measure_w W cls m w)).
 
+  Lemma maps_to_value_default {x k m} : LevelMap.MapsTo x k m -> level_value m x = Some k.
+  Proof.
+    intros h; apply LevelMap.find_1 in h.
+    now rewrite /level_value h.
+  Qed.
+
   Lemma measure_model W cls m :
+    model_of W m ->
     let clsdiff := cls_diff cls W in
-    measure W cls m = 0 -> is_model clsdiff m.
+    measure W cls m = 0%nat -> is_model clsdiff m.
   Proof using.
     clear loop V U.
     unfold measure, sum_W, measure_w, is_model.
     set (clsdiff := Clauses.diff _ _).
-    intros hm.
-    assert (LevelSet.For_all (fun w => v_minus_w_bound W m + max_gain clsdiff <= level_value m w) W).
+    intros hv hm.
+    assert (LevelSet.For_all (fun w => Some (v_minus_w_bound W m + Z.of_nat (max_gain clsdiff)) ≤ level_value m w)%Z W).
     { move: hm.
       generalize (v_minus_w_bound W m) => vbound.
       eapply LevelSetProp.fold_rec.
@@ -2102,92 +2368,140 @@ Section InnerLoop.
       intros x a s' s'' inw nins' hadd ih heq.
       forward ih by lia.
       intros l hin.
+      specialize (hv _ inw) as [k lv]. rewrite /level_value_default (maps_to_value_default lv) in heq.
       apply hadd in hin as [].
-      * subst x. lia.
+      * subst x. rewrite (maps_to_value_default lv). constructor. lia.
       * now apply ih. }
     clear hm.
     eapply ClausesFact.for_all_iff. tc.
     intros cl hl.
     unfold valid_clause.
-    case: Z.ltb_spec => // hk0.
-    destruct cl as [prem [l k]] => /=.
-    eapply Nat.leb_le. cbn in hk0.
+    destruct min_premise as [k0|] eqn:hk0 => //.
+    destruct cl as [prem [l k]] => /=. cbn in hk0.
     rewrite /clsdiff in hl.
     destruct (proj1 (Clauses.diff_spec _ _ _) hl) as [hlcls hl'].
     eapply in_clauses_with_concl in hlcls as [lW incls].
     specialize (H _ lW). cbn -[clsdiff] in H. cbn in lW.
-    etransitivity; tea.
+    specialize (hv _ lW) as [vl hvl]. rewrite /level_value_above (maps_to_value_default hvl).
+    rewrite (maps_to_value_default hvl) in H; depelim H.
+    (* etransitivity; tea. *)
     set (prem' := non_W_atoms W prem).
     assert (ne : LevelExprSet.is_empty prem' = false).
     { now eapply (non_W_atoms_ne W (prem, (l, k)) cls). }
     set (preml := {| t_set := prem'; t_ne := ne |}).
-    assert (min_premise m prem <= min_premise m preml)%Z.
+    assert (min_premise m prem ≤ min_premise m preml).
     { eapply min_premise_subset. eapply non_W_atoms_subset. }
     (* min_i (f(x_i)-k_i) <= max_i(f(x_i)) - min(k_i) *)
     pose proof (min_premise_spec m preml) as [amin [exmin [inminpre eqminpre]]].
-    pose proof (max_premise_value_spec m preml) as [amax [exmax [inmaxpre eqmaxpre]]].
+    rewrite hk0 in H0. depelim H0. rename y into minpreml.
+    pose proof (min_premise_max_premise _ _ _ H1) as [maxpreml eqmaxp].
+    pose proof (max_premise_value_spec m preml _ eqmaxp) as [amax [exmax [inmaxpre eqmaxpre]]].
+    rewrite -eqmaxp in eqmaxpre.
     pose proof (premise_min_spec preml) as [apmin [expmin [inpminpre eqpminpre]]].
-    assert (Z.to_nat (min_premise m preml) <=
-      (max_premise_value m preml) - premise_min preml).
-    { rewrite eqpminpre eqmaxpre eqminpre.
-      pose proof (min_atom_value_levelexpr_value m exmin). etransitivity; tea.
-      specialize (amax _ inminpre). rewrite eqmaxpre in amax.
-      assert (expmin <= exmin). specialize (apmin _ inminpre). lia.
+    assert (min_premise m preml ≤ Some (maxpreml - Z.of_nat (premise_min preml)))%Z.
+    { rewrite eqminpre in H1.
+      specialize (amax _ inminpre). destruct amax as [k' [lk' hk']].
+      depelim hk'.
+      pose proof (min_atom_value_levelexpr_value m exmin _ _ H2 lk').
+      rewrite eqminpre H2. constructor. etransitivity; tea.
+      rewrite eqmaxpre in eqmaxp.
+      assert (expmin <= exmin)%nat. specialize (apmin _ inminpre). lia.
       unfold level_expr_elt in *. lia. }
-    transitivity (k + (max_premise_value m preml - premise_min preml)). lia.
-    assert (Z.to_nat (gain (preml, (l, k))) <= max_gain clsdiff).
+    apply Z.leb_le. rewrite H1 in H2. depelim H2.
+    transitivity (Z.of_nat k + (maxpreml - Z.of_nat (premise_min preml)))%Z. lia.
+    assert (Z.to_nat (gain (preml, (l, k))) <= max_gain clsdiff)%nat.
     { transitivity (Z.to_nat (gain (prem, (l, k)))). 2:now apply max_gain_in.
       unfold gain. cbn.
       pose proof (premise_min_subset preml prem).
       rewrite !Z2Nat.inj_sub //; try lia. rewrite !Nat2Z.id.
-      forward H2. eapply non_W_atoms_subset. lia. }
-    transitivity (v_minus_w_bound W m + Z.to_nat (gain (preml, (l, k)))).
+      forward H3. eapply non_W_atoms_subset. lia. }
+    transitivity (v_minus_w_bound W m + (gain (preml, (l, k))))%Z.
     2:lia.
     unfold gain. cbn -[max_premise_value premise_min].
-    assert (premise_min preml <= max_premise_value m preml).
-    { rewrite eqmaxpre.
+    (* assert (Z.of_nat (premise_min preml) <= maxpreml)%Z.
+    {
+      (* rewrite eqmaxpre. *)
       move/min_premise_pos_spec: hk0 => hprem.
-      transitivity exmax. apply apmin => //. eapply hprem.
-      now apply (non_W_atoms_subset W prem). }
-    assert (k + (max_premise_value m preml - premise_min preml) =
-      (max_premise_value m preml + k - premise_min preml)) as ->. lia.
-    rewrite Z2Nat.inj_sub. lia.
-    rewrite !Nat2Z.id.
-    assert (max_premise_value m preml <= v_minus_w_bound W m).
-    { rewrite eqmaxpre.
-      apply v_minus_w_bound_spec.
-      intros hin.
+      transitivity (Z.of_nat (levelexpr_k exmax)).
+      specialize (apmin _ inmaxpre). now apply inj_le.
+      rewrite eqmaxp in eqmaxpre. unfold levelexpr_value in eqmaxpre.
+      unfold levelexpr_k.
+      specialize (amax _ inmaxpre) as [k' [eqk' k'max]].
+      eapply hprem.
+      now apply (non_W_atoms_subset W prem). } *)
+    assert (Z.of_nat k + (maxpreml - Z.of_nat (premise_min preml)) =
+      (maxpreml + Z.of_nat k - Z.of_nat (premise_min preml)))%Z as ->. lia.
+    (* rewrite Z2Nat.inj_sub. lia. *)
+    (* rewrite !Nat2Z.id. *)
+    assert (maxpreml <= v_minus_w_bound W m)%Z.
+    { pose proof (v_minus_w_bound_spec W m exmax).
       have [hlevels _] := (@levels_exprs_non_W_atoms W prem (levelexpr_level exmax)).
       rewrite levelexprset_levels_spec in hlevels.
       forward hlevels.
       exists exmax.2. now destruct exmax.
       rewrite LevelSet.diff_spec in hlevels.
-      now destruct hlevels. }
+      destruct hlevels.
+      forward H4 by auto.
+      rewrite eqmaxp in eqmaxpre. unfold levelexpr_value in eqmaxpre. rewrite -eqmaxpre in H4.
+      now depelim H4.
+      }
     lia.
   Qed.
 
+  Lemma level_value_default_def {m x v} : level_value m x = Some v -> level_value_default m x = v.
+  Proof. unfold level_value_default. now intros ->. Qed.
+
+  Lemma w_values_ext m m' W :
+    m ⩽ m' -> model_of W m -> model_of W m'.
+  Proof.
+    intros ext hf x hin.
+    specialize (hf x hin) as [k hl].
+    specialize (ext _ _ hl) as [? []].
+    now exists x0.
+  Qed.
+
+  Lemma level_values_in_W m m' W x :
+    model_of W m ->
+    m ⩽ m' ->
+    LevelSet.In x W -> level_value m x ≤ level_value m' x ->
+    exists k k', level_value m x = Some k /\ level_value m' x = Some k' /\ (k <= k')%Z.
+  Proof.
+    intros hwv ext hin hleq.
+    specialize (hwv _ hin) as x'. destruct x' as [k hl]. rewrite (maps_to_value_default hl) in hleq.
+    eapply w_values_ext in hwv; tea.
+    specialize (hwv _ hin) as [k' hl'].
+    rewrite (maps_to_value_default hl') in hleq. depelim hleq.
+    do 2 eexists. intuition eauto.
+    now rewrite (maps_to_value_default hl).
+    now rewrite (maps_to_value_default hl').
+  Qed.
+
   Lemma measure_le {W cls m m'} :
+    model_of W m ->
     model_map_outside W m m' ->
     m ⩽ m' ->
-    (measure W cls m' <= measure W cls m).
+    (measure W cls m' <= measure W cls m)%nat.
   Proof.
-    intros hout hle.
+    intros hwv hout hle.
     unfold measure, measure_w, sum_W.
     rewrite (v_minus_w_bound_irrel _ _ hout).
     rewrite !LevelSet.fold_spec. unfold flip.
     eapply fold_left_le; unfold flip. 2:lia.
     - intros. rewrite LevelSet_In_elements in H.
       have lexx' := (model_le_values x hle).
-      lia.
+      eapply level_values_in_W in lexx' as [k [k' [hk [hk' leq]]]]; tea.
+      erewrite !level_value_default_def; tea. lia.
   Qed.
 
   Lemma measure_lt {W cls m m'} :
+    model_of W m ->
     model_map_outside W m m' ->
     m ⩽ m' ->
-    (exists l, [/\ LevelSet.In l W, (0 < measure_w W cls m l)%Z & level_value m l < level_value m' l]) ->
-    (measure W cls m' < measure W cls m).
+    (exists l, [/\ LevelSet.In l W, (0 < measure_w W cls m l)%Z &
+     opt_le Z.lt (level_value m l) (level_value m' l)])%Z ->
+    (measure W cls m' < measure W cls m)%nat.
   Proof.
-    intros hout hle.
+    intros hwv hout hle.
     unfold measure, measure_w, sum_W.
     rewrite (v_minus_w_bound_irrel _ _ hout).
     intros hlt.
@@ -2198,14 +2512,18 @@ Section InnerLoop.
     - destruct hlt as [l [hin _]]. intros he. rewrite -LevelSetProp.elements_Empty in he. lsets.
     - intros. rewrite LevelSet_In_elements in H.
       have lexx' := (model_le_values x hle).
-      lia.
+      eapply level_values_in_W in lexx' as [k [k' [hk [hk' leq]]]]; tea.
+      erewrite !level_value_default_def; tea. lia.
     - intros. rewrite LevelSet_In_elements in H.
       have lexx' := (model_le_values x hle).
-      lia.
+      eapply level_values_in_W in lexx' as [k [k' [hk [hk' leq]]]]; tea.
+      erewrite !level_value_default_def; tea. lia.
     - destruct hlt as [l [hinl hbound hlev]].
       exists l. rewrite LevelSet_In_elements. split => //.
       intros acc acc' accle.
-      eapply Nat.add_le_lt_mono => //. lia.
+      eapply Nat.add_le_lt_mono => //.
+      depelim hlev. rewrite /level_value_default ?H0 ?H1 in hbound |- *.
+      lia. apply LevelMapFact.F.not_find_in_iff in H. now apply hwv in hinl.
   Qed.
 
   Lemma is_model_equal {cls cls' m} : Clauses.Equal cls cls' -> is_model cls m -> is_model cls' m.
@@ -2241,12 +2559,12 @@ Section InnerLoop.
   Lemma measure_Z_lt x y :
     (x < y)%Z ->
     (0 < y)%Z ->
-    Z.to_nat x < Z.to_nat y.
+    (Z.to_nat x < Z.to_nat y)%nat.
   Proof. intros. lia. Qed.
 
   Lemma sum_pos W f :
-    (0 < sum_W W f) ->
-    exists w, LevelSet.In w W /\ (0 < f w).
+    (0 < sum_W W f)%nat ->
+    exists w, LevelSet.In w W /\ (0 < f w)%nat.
   Proof.
     unfold sum_W.
     eapply LevelSetProp.fold_rec => //.
@@ -2258,7 +2576,7 @@ Section InnerLoop.
   Qed.
 
   Lemma measure_pos {W cls m} :
-    (0 < measure W cls m) ->
+    (0 < measure W cls m)%nat ->
     exists l, LevelSet.In l W /\ (0 < measure_w W cls m l)%Z.
   Proof.
     unfold measure.
@@ -2282,7 +2600,7 @@ Section InnerLoop.
       exists cl : clause,
         let cll := levelexpr_level (concl cl) in
         [/\ Clauses.In cl cls, ~~ valid_clause m cl, LevelSet.In cll w'
-          & level_value m cll < level_value m' cll]
+          & (opt_le Z.lt (level_value m cll) (level_value m' cll))%Z]
       & model_extension w' m m'].
   Proof.
     cbn; intros mof cm.
@@ -2378,15 +2696,16 @@ Section InnerLoop.
         pose proof (clauses_conclusions_diff_left cls W (cls ⇂ W)).
         destruct hm as [cll [hind nvalid inwconcl hl]].
         eapply Nat.lt_le_trans.
-        2:{ eapply measure_le; eapply mr. }
+        2:{ eapply measure_le; eauto; eapply mr. }
         eapply measure_lt.
+        { eapply mr. }
         { eapply model_map_outside_weaken. eapply hext. lsets. }
         { apply hext. }
         eapply invalid_clause_measure in nvalid; tea.
         exists (levelexpr_level (concl cll)).
         split => //.
         eapply clauses_conclusions_diff_left; tea.
-        eapply clauses_conclusions_spec. exists cll; split => //. exact hind.
+        eapply clauses_conclusions_spec. exists cll; split => //. exact hind. apply mr.
       - apply mr'.
       (* - apply clauses_conclusions_clauses_with_concl. *)
       - apply mr'.
@@ -2426,6 +2745,7 @@ Section InnerLoop.
 
 End InnerLoop.
 
+Local Open Scope nat_scope.
 Lemma diff_cardinal_inter V W : #|LevelSet.diff V W| = #|V| - #|LevelSet.inter V W|.
 Proof.
   pose proof (LevelSetProp.diff_inter_cardinal V W). lia.
@@ -2602,7 +2922,7 @@ Definition zero_model levels :=
 Definition add_max l k m :=
   match LevelMap.find l m with
   | Some k' =>
-    if k' <? k then LevelMap.add l k m
+    if (k' <? k)%Z then LevelMap.add l k m
     else m
   | None => LevelMap.add l k m
   end.
@@ -2616,12 +2936,12 @@ Proof.
 Qed.
 
 Lemma In_add_max l l' k acc :
-  LevelMap.In (elt:=nat) l (add_max l' k acc) <->
+  LevelMap.In (elt:=Z) l (add_max l' k acc) <->
   (l = l' \/ LevelMap.In l acc).
 Proof.
   unfold add_max.
   destruct LevelMap.find eqn:hl.
-  case: Nat.ltb_spec.
+  case: Z.ltb_spec.
   - rewrite LevelMapFact.F.add_in_iff /Level.eq.
     firstorder eauto.
   - intros. intuition auto. subst.
@@ -2630,9 +2950,9 @@ Proof.
 Qed.
 
 Lemma In_fold_add_max k n a :
-  LevelMap.In (elt:=nat) k
+  LevelMap.In (elt:=Z) k
   (LevelExprSet.fold
-      (fun '(l, k0) (acc : LevelMap.t nat) => add_max l k0 acc) n a) <->
+      (fun '(l, k0) (acc : LevelMap.t Z) => add_max l (Z.of_nat k0) acc) n a) <->
   (LevelSet.In k (levels n)) \/ LevelMap.In k a.
 Proof.
   eapply LevelExprSetProp.fold_rec.
@@ -2654,7 +2974,7 @@ Proof.
 Qed.
 
 
-(* To handle the constraint checking decision problem,
+(* To handle the constraint inference problem,
   we must start with a model where all atoms [l + k]
   appearing in premises are true. Otherwise the
   [l := 0] model is minimal for [l+1-> l+2].
@@ -2664,10 +2984,10 @@ Qed.
 
   *)
 
-Definition min_model_map (m : LevelMap.t nat) cls : LevelMap.t nat :=
+Definition min_model_map (m : LevelMap.t Z) cls : LevelMap.t Z :=
   Clauses.fold (fun '(cl, concl) acc =>
     LevelExprSet.fold (fun '(l, k) acc =>
-      add_max l k acc) cl (add_max (levelexpr_level concl) 0 acc)) cls m.
+      add_max l (Z.of_nat k) acc) cl (add_max (levelexpr_level concl) 0%Z acc)) cls m.
 
 Lemma min_model_map_levels m cls k :
   LevelMap.In k (min_model_map m cls) <->
@@ -2721,17 +3041,28 @@ Equations? infer (cls : clauses) : infer_result (clauses_levels cls) cls :=
 Proof.
   - now eapply clauses_conclusions_levels.
   - lsets.
-  - now eapply init_model_levels.
+  - red. now eapply init_model_levels.
 Qed.
 
+Local Open Scope Z_scope.
+Lemma max_min max min k : min <= 0 -> max >= 0 -> k <= max -> k >= min -> (max - k - min) >= 0.
+Proof. lia. Qed.
+
 Definition valuation_of_model (m : model) : LevelMap.t nat :=
-  let max := LevelMap.fold (fun l k acc => Nat.max k acc) m 0 in
-  LevelMap.fold (fun l k acc => LevelMap.add l (max - k) acc) m (LevelMap.empty _).
+  let '(min, max) := LevelMap.fold (fun l k '(min, max) => (Z.min min k, Z.max k max)) m (0, 0)%Z in
+  LevelMap.fold (fun l k acc => LevelMap.add l (Z.to_nat (max - k - min)) acc) m (LevelMap.empty _).
+Close Scope Z_scope.
+
+Local Open Scope string_scope2.
+
+Definition print_level_Z_map (m : LevelMap.t Z) :=
+  let list := LevelMap.elements m in
+  print_list (fun '(l, w) => Level.to_string l ^ " -> " ^ string_of_Z w) nl list.
 
 Definition print_result {V cls} (m : infer_result V cls) :=
-  match m with
+  match m return string with
   | Loop => "looping"
-  | Model w m _ => "satisfiable with model: " ^ print_level_nat_map m.(model_model) ^ nl ^ " W = " ^
+  | Model w m _ => "satisfiable with model: " ^ print_level_Z_map m.(model_model) ^ nl ^ " W = " ^
     print_lset w
     ^ nl ^ "valuation: " ^ print_level_nat_map (valuation_of_model m.(model_model))
   end.
@@ -2800,7 +3131,7 @@ Definition enforce_clause {V init cls} (m : valid_model V init cls) cl : option 
 
 Inductive constraint_type := UnivEq | UnivLe.
 
-Notation constraint := (nonEmptyLevelExprSet * constraint_type * nonEmptyLevelExprSet).
+Notation constraint := (nonEmptyLevelExprSet * constraint_type * nonEmptyLevelExprSet)%type.
 
 Definition enforce_constraint (cstr : constraint) (cls : clauses) : clauses :=
   let '(l, d, r) := cstr in
