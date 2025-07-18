@@ -1,5 +1,5 @@
-Require Import Template.Extraction.
-From MetaCoq.LoopChecking Require Import LoopCheckingPlugin.
+From MetaRocq.Template Require Import Extraction.
+From MetaRocq.LoopChecking Require Import LoopCheckingPlugin.
 
 Extract Constant BinInt.Z.of_nat => "(fun x -> x)".
 Extract Constant BinInt.Z.to_nat => "(fun x -> x)".

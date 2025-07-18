@@ -7,4 +7,5 @@ CAMLFLAGS+=-w -34 # Unused type
 CAMLFLAGS+=-w -60 # Unused module
 CAMLFLAGS+=-w -8 # Non-exhaustive pattern-matchings (BEWARE, just for extracted code)
 CAMLFLAGS+=-bin-annot # For merlin
-CAMLFLAGS+=-open Metacoq_template_plugin
+CAMLFLAGS+=-open Metarocq_template_plugin
+CAMLPKGS+=-package rocq-metarocq-template-ocaml.plugin

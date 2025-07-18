@@ -1,0 +1,10 @@
+
+package "plugin" (
+  directory = "."
+  requires = "coq-core.plugins.ltac rocq-metarocq-template-ocaml.plugin"
+  archive(byte) = "metarocq_loop_checking_plugin.cma"
+  archive(native) = "metarocq_loop_checking_plugin.cmxa"
+  plugin(byte) = "metarocq_loop_checking_plugin.cma"
+  plugin(native) = "metarocq_loop_checking_plugin.cmxs"
+)
+directory = "."

@@ -1,2 +1,2 @@
-From MetaCoq.Template Require ExtractableLoader.
-Declare ML Module "metacoq_loop_checking_plugin".
+From MetaRocq.Template Require ExtractableLoader.
+Declare ML Module "rocq-metarocq-loop-checking.plugin".

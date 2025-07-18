@@ -1,22 +1,22 @@
-all: coq plugin
+all: rocq plugin
 
-coq: Makefile.coq
-	$(MAKE) -f Makefile.coq
+rocq: Makefile.rocq
+	$(MAKE) -f Makefile.rocq
 	cd gen-src && ./to-lower.sh
 
-Makefile.coq: _CoqProject
-	coq_makefile -f _CoqProject -o Makefile.coq
+Makefile.rocq: _RocqProject
+	rocq makefile -f _RocqProject -o Makefile.rocq
 
 Makefile.plugin: _PluginProject
-	coq_makefile -f _PluginProject -o Makefile.plugin
+	rocq makefile -f _PluginProject -o Makefile.plugin
 
-plugin: Makefile.plugin coq
+plugin: Makefile.plugin rocq
 	$(MAKE) -f Makefile.plugin
 
 .PHONY: plugin
 
-clean: Makefile.coq Makefile.plugin
-	$(MAKE) -f Makefile.coq clean
+clean: Makefile.rocq Makefile.plugin
+	$(MAKE) -f Makefile.rocq clean
 	$(MAKE) -f Makefile.plugin clean
 
 .merlin:

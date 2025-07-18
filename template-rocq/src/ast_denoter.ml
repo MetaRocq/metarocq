@@ -215,7 +215,7 @@ struct
     Caml_nat.iter_nat Univ.Universe.super u (snd trm)
 
   let unquote_universe evm (trm : Universes0.Universe.t) =
-    let u = Universes0.t_set trm in
+    let u = Universes0.LevelExprSet.t_set trm in
     let ux_list = Universes0.LevelExprSet.elements u in
     let l = List.map unquote_level_expr ux_list in
     let u = List.fold_left Univ.Universe.sup (List.hd l) (List.tl l) in

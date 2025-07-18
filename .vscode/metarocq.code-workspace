@@ -8,6 +8,7 @@
 
 	// A list of arguments to send to coqtop. Use seperate elements instead of spaces to seperate each argument, especially when a flag expects another trailing argument, e.g. `["-I","./bin"]` instead of `["-I ./bin"]`
 	"coqtop.args": [
+
 		// "-bt", // get backtraces from Rocq on errors
 		"-R", "utils/theories", "MetaRocq.Utils",
 		"-R", "common/theories", "MetaRocq.Common",
@@ -32,6 +33,8 @@
 		"-R", "test-suite/plugin-demo/theories", "MetaRocq.ExtractedPluginDemo",
 		"-I", "test-suite/plugin-demo",
 		"-I", "test-suite/plugin-demo/src",
+		"-R", "test-suite/loop-checking/theories", "MetaRocq.LoopChecking",
+		"-I", "test-suite/loop-checking/src",
 		"-R", "examples", "MetaRocq.Examples",
 	    ],
 		"vscoq.args": [

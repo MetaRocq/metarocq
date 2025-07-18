@@ -267,7 +267,7 @@ Proof.
     * now replace l0 with l2 by now apply lt_level_irrel.
 Qed.
 
-From Coq Require Import ProofIrrelevance.
+From Stdlib Require Import ProofIrrelevance.
 
 Lemma lt_universe_irrel {x y : Universe.t} (l l' : LevelExprSet.lt x y) : l = l'.
 Proof.

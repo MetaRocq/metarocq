@@ -3,9 +3,9 @@ open Stdarg
 open LoopCheckingPlugin
 }
 
-DECLARE PLUGIN "metacoq_loop_checking_plugin"
+DECLARE PLUGIN "rocq-metarocq-loop-checking.plugin"
 
 VERNAC COMMAND EXTEND Check_universes CLASSIFIED AS QUERY STATE program
-   | [ "MetaCoq" "Check" "Universes" ] ->
+   | [ "MetaRocq" "Check" "Universes" ] ->
      { Run_extractable.run_vernac check_universes }
 END

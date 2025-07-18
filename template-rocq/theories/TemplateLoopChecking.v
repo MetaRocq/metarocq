@@ -77,10 +77,10 @@ Module LevelNatMapNotation.
 End LevelNatMapNotation.
 Import LevelNatMapNotation.
 Arguments LevelMap.Bst {elt} this%levelnat {is_bst}.
-
+(*
 Definition valuation_of_model (m : model) : LevelMap.t nat :=
-  let max := LevelMap.fold (fun l k acc => Nat.max k acc) m 0 in
-  LevelMap.fold (fun l k acc => LevelMap.add l (max - k) acc) m (LevelMap.empty _).
+  let max := LevelMap.fold (fun l k acc => Nat.max k acc) m 0%Z in
+  LevelMap.fold (fun l k acc => LevelMap.add l (max - k)%nat acc) m (LevelMap.empty _).
 
 Definition print_level_nat_map (m : LevelMap.t nat) :=
   let list := LevelMap.elements m in
@@ -98,4 +98,4 @@ Definition print_result {V cls} (m : infer_result V cls) :=
   | Model w m _ => "satisfiable with model: " ^ print_level_nat_map (model_model m) ^ nl ^ " W = " ^
     print_lset w
     ^ nl ^ "valuation: " ^ print_level_nat_map (valuation_of_model (model_model m))
-  end.
+  end. *)
