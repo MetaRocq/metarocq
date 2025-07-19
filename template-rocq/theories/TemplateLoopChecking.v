@@ -99,3 +99,44 @@ Definition print_result {V cls} (m : infer_result V cls) :=
     print_lset w
     ^ nl ^ "valuation: " ^ print_level_nat_map (valuation_of_model (model_model m))
   end. *)
+
+From MetaRocq.Template Require Import All Core.
+Definition time : forall {A} {B : A -> Type}, string -> (forall x : A, B x) -> forall x : A, B x :=
+  fun A B s f x => f x.
+
+Global Instance TemplateMonad_Monad@{t u} : Monad@{t u} TemplateMonad@{t u} :=
+  {| ret := @tmReturn ; bind := @tmBind |}.
+Import MRMonadNotation.
+Local Open Scope monad_scope.
+Open Scope bs_scope.
+Import TemplateLoopChecking.UnivLoopChecking.
+
+Universes u v.
+#[universes(polymorphic)]
+Definition check_le@{u v} : unit := tt.
+
+Definition test : TemplateMonad unit :=
+  tmQuoteUniverses >>= fun ctx =>
+  let clauses := time "building clauses" enforce_level_constraints (snd ctx) in
+  tmMsg (print_clauses clauses) ;;
+  (* tmMsg (string_of_nat (LevelSet.cardinal (fst ctx)));; *)
+   (* ++ " universes and " ++ string_of_nat (ConstraintSet.cardinal (snd ctx)) ++ " constraints") ;; *)
+  tmMsg "done".
+
+  (* let result := time "loop-checking" TemplateLoopChecking.UnivLoopChecking.infer clauses in *)
+  (* tmMsg (TemplateLoopChecking.UnivLoopChecking.print_result result). *)
+From MetaRocq.Template Require Import Pretty.
+
+Definition env_from_context (c : ContextSet.t) : global_env_ext :=
+  (empty_ext {| universes := c; declarations := []; retroknowledge := Retroknowledge.empty |}).
+
+MetaRocq Run (ctx <- tmQuoteUniverses ;;
+  t <- tmQuote (Type@{u}) ;;
+  tmMsg (print_term (env_from_context ctx) [] true t)).
+
+Definition make_level (n : ident) : Level.t := Level.level n.
+
+Definition check_constraint (cls : clauses) c :=
+
+
+
