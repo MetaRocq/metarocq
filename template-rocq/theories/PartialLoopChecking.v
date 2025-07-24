@@ -760,6 +760,11 @@ Proof.
   firstorder auto.
 Qed.
 
+Lemma restrict_clauses_subset (cls : clauses) (concls : LevelSet.t) : Clauses.Subset (restrict_clauses cls concls) cls.
+Proof.
+  intros x; rewrite in_restrict_clauses; now intros [].
+Qed.
+
 Definition clauses_with_concl (cls : clauses) (concl : LevelSet.t) :=
   Clauses.filter (fun '(prem, concla) => LevelSet.mem (level concla) concl) cls.
 
@@ -1752,6 +1757,11 @@ Qed.
 Definition total_model_of V (m : model) :=
   forall k, LevelSet.In k V -> exists x, LevelMap.MapsTo k (Some x) m.
 
+(** The values of levels in U result from consequences of existing constraints *)
+Definition is_update U cls m :=
+  forall l, LevelSet.In l U -> exists prems k v, Clauses.In (prems, (l, k)) cls /\
+    min_premise m prems = Some v /\ level_value_above m l (Z.of_nat k + v).
+
 Definition check_model_invariants cls w m w' m' (modified : bool) :=
   if modified then
     [/\ w ⊂_lset w',
@@ -2300,20 +2310,48 @@ Extraction Inline model_model.
 
 Definition valid_model := valid_model_def.
 
-Inductive entails (cls : clauses) : clause -> Prop :=
-| clause_in (prems : nonEmptyLevelExprSet) (cl : LevelExpr.t) : LevelExprSet.In cl prems -> entails cls (prems, cl)
-| clause_cut prems' concl' prems concl :
-  Clauses.In (prems', concl') cls ->
-  entails cls (add concl' prems, concl) ->
-  LevelExprSet.Subset prems' prems ->
-  entails cls (prems, concl).
 
-Definition succ_expr '((l, k) : LevelExpr.t) := (l, k + 1)%nat.
-Definition succ_prems s := map succ_expr s.
-Definition succ_clause '((prems, concl) : clause) := (succ_prems prems, succ_expr concl).
+Definition add_expr n '((l, k) : LevelExpr.t) := (l, k + n)%nat.
+
+Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (n + n') lk.
+Proof. destruct lk; unfold add_expr. f_equal; lia. Qed.
+Definition add_prems n s := map (add_expr n) s.
+
+Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
+Proof.
+  apply eq_univ'.
+  intros lk.
+  rewrite !map_spec. setoid_rewrite map_spec.
+  firstorder eauto. subst. firstorder.
+Qed.
+
+Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (n + n') lk.
+Proof. destruct lk; unfold add_prems.
+  rewrite map_map. apply eq_univ'.
+  intros x; rewrite /= !map_spec. cbn in *.
+  firstorder eauto. subst. exists x0.
+  firstorder eauto. now rewrite add_expr_add_expr.
+  subst. exists x0.
+  firstorder eauto. now rewrite add_expr_add_expr.
+Qed.
+
+Definition add_clause n '((prems, concl) : clause) := (add_prems n prems, add_expr n concl).
+
+Lemma add_clause_add_clause n n' cl : add_clause n (add_clause n' cl) = add_clause (n + n') cl.
+Proof.
+  destruct cl.
+  unfold add_clause.
+  now rewrite add_prems_add_prems add_expr_add_expr.
+Qed.
+
+Notation succ_expr := (add_expr 1).
+Notation succ_prems := (add_prems 1).
+Notation succ_clause := (add_clause 1).
+
 Lemma succ_clause_inj x y : succ_clause x = succ_clause y -> x = y.
 Proof. Admitted.
-Definition succ_clauses cls := ClausesProp.of_list (List.map (fun cl => succ_clause cl) (ClausesProp.to_list cls)).
+Definition add_clauses n cls := ClausesProp.of_list (List.map (fun cl => add_clause n cl) (ClausesProp.to_list cls)).
+Notation succ_clauses := (add_clauses 1).
 Import SetoidList.
 Lemma succ_clauses_spec cl cls : Clauses.In cl cls <-> Clauses.In (succ_clause cl) (succ_clauses cls).
 Proof.
@@ -2324,15 +2362,58 @@ Proof.
   - eapply Clauses_In_elements in H0. apply succ_clause_inj in H. now subst.
 Qed.
 
+Inductive in_pred_closure cls : clause -> Prop :=
+| incls cl n : Clauses.In cl cls -> in_pred_closure cls (add_clause n cl)
+| predcl x k : in_pred_closure cls (singleton (x, k + 1)%nat, (x, k)).
+Derive Signature for in_pred_closure.
+
+Inductive entails (cls : clauses) : clause -> Prop :=
+| clause_in (prems : nonEmptyLevelExprSet) (cl : LevelExpr.t) : LevelExprSet.In cl prems -> entails cls (prems, cl)
+| clause_cut prems' concl' prems concl :
+  in_pred_closure cls (prems', concl') ->
+  entails cls (add concl' prems, concl) ->
+  LevelExprSet.Subset prems' prems ->
+  entails cls (prems, concl).
+
+Lemma entails_equal cls (prems prems' : nonEmptyLevelExprSet) concl :
+  LevelExprSet.Equal prems prems' ->
+  entails cls (prems, concl) -> entails cls (prems', concl).
+Proof.
+  intros he en.
+  replace prems' with prems => //.
+  now apply eq_univ'.
+Qed.
+
 Lemma entails_plus cls c : entails cls c -> entails (succ_clauses cls) (succ_clause c).
 Proof.
   induction 1.
   - constructor. apply map_spec. exists cl. split => //.
   - eapply clause_cut with (succ_prems prems') (succ_expr concl').
-    + now rewrite -(succ_clauses_spec (prems', concl')).
-    + admit.
-    + admit.
-Admitted.
+    + depelim H.
+      * have -> : (succ_prems prems', succ_expr concl') = add_clause n (succ_clause cl).
+        { destruct cl as [prems'' concl'']. cbn in H0. noconf H0.
+          rewrite add_prems_add_prems add_expr_add_expr add_clause_add_clause.
+          now rewrite Nat.add_1_r. }
+        constructor. now rewrite -succ_clauses_spec.
+      * have eq : (succ_prems (singleton (x, (k + 1)%nat))) = (singleton (x, k + 1 + 1)%nat).
+        { apply eq_univ'. unfold succ_prems.
+          intros le. rewrite map_spec LevelExprSet.singleton_spec.
+          split.
+          { intros [? [hin ->]].
+            rewrite LevelExprSet.singleton_spec in hin. red in hin; subst x0.
+            reflexivity. }
+          { unfold LevelExprSet.E.eq. intros ->.
+            exists (x, k + 1)%nat. split.
+            now rewrite LevelExprSet.singleton_spec. reflexivity. } }
+        rewrite eq. constructor 2.
+    + unfold succ_clause in IHentails.
+      eapply entails_equal; tea.
+      intros x. rewrite /succ_prems. rewrite map_spec add_spec.
+      setoid_rewrite add_spec. rewrite map_spec.
+      firstorder eauto. subst. now left.
+    + intros x. rewrite /succ_prems !map_spec.
+      intros [e [hin ->]]. exists e. firstorder.
+Qed.
 
 Definition to_clauses (prems : nonEmptyLevelExprSet) (concl : nonEmptyLevelExprSet) : clauses :=
   LevelExprSet.fold (fun lk cls => Clauses.add (prems, lk) cls) concl Clauses.empty.
@@ -2346,9 +2427,44 @@ Definition is_loop (cls : clauses) (t : nonEmptyLevelExprSet) :=
   let prem := List.map (fun e => (e, n)) preml in
   is_loop cls prem. *)
 
+Definition levelexprset_of_levels (ls : LevelSet.t) : LevelExprSet.t :=
+  LevelSet.fold (fun x => LevelExprSet.add (x, 0%nat)) ls LevelExprSet.empty.
+
+Lemma levelexprset_of_levels_spec (ls : LevelSet.t) l :
+  LevelExprSet.In (l, 0%nat) (levelexprset_of_levels ls) <-> LevelSet.In l ls.
+Proof.
+  rewrite /levelexprset_of_levels.
+  eapply LevelSetProp.fold_rec.
+  - intros s' he. rewrite LevelExprSetFact.empty_iff. firstorder.
+  - intros x a s' s'' hin hnin hadd ih.
+    rewrite LevelExprSet.add_spec; unfold LevelExprSet.E.eq.
+    firstorder eauto. noconf H1. firstorder.
+    apply hadd in H1. firstorder. subst. now left.
+Qed.
+
+#[program]
+Definition of_level_set (ls : LevelSet.t) (hne : ~ LevelSet.Empty ls) : nonEmptyLevelExprSet :=
+  {| t_set := levelexprset_of_levels ls |}.
+Next Obligation.
+  apply not_Empty_is_empty => he. apply hne.
+  intros l nin. specialize (he (l,0%nat)). apply he.
+  now rewrite levelexprset_of_levels_spec.
+Qed.
+
+Definition entails_clauses cls cl :=
+  Clauses.For_all (entails cls) cl.
+
+Definition loop_on_univ cls prems := entails_clauses cls (to_clauses prems (succ_prems prems)).
+
+Definition loop_on W (hne : ~ LevelSet.Empty W) cls :=
+  loop_on_univ cls (of_level_set W hne).
+
+Lemma loop_on_subset {W hne cls cls'} : Clauses.Subset cls cls' -> loop_on W hne cls -> loop_on W hne cls'.
+Proof.
+Admitted.
+
 Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
-  | Loop
-   (* (w : LevelSet.t) (n : nat) (islooping : loop_on w n cls) *)
+  | Loop (w : LevelSet.t) (hne : ~ LevelSet.Empty w) (islooping : loop_on w hne cls)
   | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w /\ w ⊂_lset V).
 Arguments Loop {V U cls m}.
 Arguments Model {V U cls m}.
@@ -2356,8 +2472,8 @@ Arguments lexprod {A B}.
 
 Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   match r with
-  | Loop => None
   | Model w m sub => Some m.(model_model)
+  | Loop w hne isloop => None
   end.
 
 Definition extends_model {W U cls m m'} :
@@ -2366,10 +2482,11 @@ Definition extends_model {W U cls m m'} :
   model_map_outside W m' m ->
   result W U cls m -> result W U cls m'.
 Proof.
-  intros leq ldom lout []. exact Loop.
-  econstructor 2; tea.
-  destruct m0. econstructor; tea.
-  - now transitivity m.
+  intros leq ldom lout [].
+  - eapply Loop; tea.
+  - econstructor 2; tea.
+    destruct m0. econstructor; tea.
+    now transitivity m.
 Qed.
 
 (* #[tactic="idtac"]
@@ -2403,7 +2520,7 @@ Defined.
 Section InnerLoop.
   Context (V : LevelSet.t) (U : LevelSet.t)
     (loop : forall (V' U' : LevelSet.t) (cls : clauses) (m : model)
-    (prf : [/\ clauses_conclusions cls ⊂_lset V', U' ⊂_lset V', model_of V' m & total_model_of U' m]),
+    (prf : [/\ clauses_conclusions cls ⊂_lset V', U' ⊂_lset V', model_of V' m, total_model_of U' m & is_update U' cls m ]),
     lexprod_rel (loop_measure V' U') (loop_measure V U) -> result V' U' cls m).
 
   Definition sum_W W (f : LevelSet.elt -> nat) : nat :=
@@ -2746,14 +2863,14 @@ Section InnerLoop.
       by wf (measure W cls m) lt :=
       inner_loop_partition m mW with loop W LevelSet.empty premconclW m _ _ := {
         (* premconclW = cls ⇂ W , conclW = (Clauses.diff (cls ↓ W) (cls ⇂ W)) *)
-        | Loop => Loop
+        | Loop W ne isl => Loop W ne (loop_on_subset _ isl)
         (* We have a model for (cls ⇂ W), we try to extend it to a model of (csl ↓ W).
           By invariant Wr ⊂ W *)
         | Model Wr mr hsub with inspect (check_model conclW (Wr, model_model mr)) := {
           | exist None eqm => Model W {| model_model := model_model mr |} _
           | exist (Some (Wconcl, mconcl)) eqm with inner_loop_partition mconcl _ := {
             (* Here Wconcl ⊂ Wr by invariant *)
-              | Loop => Loop
+              | Loop W ne isl => Loop W ne isl
               | Model Wr' mr' hsub' => Model Wr' {| model_model := model_model mr' |} hsub' }
               (* Here Wr' ⊂ W by invariant *)
         (* We check if the new model [mr] for (cls ⇂ W) extends to a model of (cls ↓ W). *)
@@ -2771,7 +2888,9 @@ Section InnerLoop.
       all:try rewrite eqconcl in eqm.
       - split => //. rewrite eqprem. apply clauses_conclusions_restrict_clauses. lsets. exact mW.
         intros k. now rewrite LevelSetFact.empty_iff.
+        now intros l; rewrite LevelSetFact.empty_iff.
       - left. now eapply strict_subset_cardinal.
+      - destruct prf. transitivity (cls ⇂ W) => //. now rewrite H3. eapply restrict_clauses_subset.
       - eapply (check_model_spec_diff mr) in eqm as [eqw hm hext] => //.
         eapply total_model_of_ext. 2:tea. pose proof (model_extends mr).
         eapply total_model_of_ext; tea.
@@ -2901,38 +3020,47 @@ Qed.
 
 #[tactic="idtac"]
 Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (m : model)
-  (prf : [/\ clauses_conclusions cls ⊂_lset V, U ⊂_lset V, model_of V m & total_model_of U m]) : result V U cls m
+  (prf : [/\ clauses_conclusions cls ⊂_lset V, U ⊂_lset V, model_of V m, total_model_of U m & is_update U cls m]) : result V U cls m
   by wf (loop_measure V U) lexprod_rel :=
   loop V U cls m prf with inspect (check_model cls (U, m)) :=
     | exist None eqm => Model U {| model_model := m |} _
     | exist (Some (W, m')) eqm with inspect (LevelSet.equal W V) := {
-      | exist true eq := Loop
+      | exist true eq := Loop W _ _
       (* Loop on cls ↓ W, with |W| < |V| *)
       | exist false neq with inner_loop V U loop W (cls ↓ W) m' _ :=
-        { | Loop := Loop
+        { | Loop W' ne isloop := Loop W' ne (loop_on_subset _ isloop)
           | Model Wc mwc hsub'
           (* We get a model for (cls ↓ W), we check if it extends to all clauses.
               By invariant |Wc| cannot be larger than |W|. *)
             with inspect (check_model cls (Wc, mwc.(model_model))) :=
           { | exist None eqm' => Model Wc {| model_model := mwc.(model_model) |} _
             | exist (Some (Wcls, mcls)) eqm' with inspect (LevelSet.equal Wcls V) := {
-              | exist true _ := Loop
+              | exist true _ := Loop Wcls _ _
               | exist false neq' with loop V Wcls cls mcls _ := {
                 (* Here Wcls < V, we've found a model for all of the clauses with conclusion
                   in W, which can now be fixed. We concentrate on the clauses whose
                   conclusion is different. Clearly |W| < |V|, but |Wcls| is not
                   necessarily < |V| *)
-                  | Loop := Loop
+                  | Loop W' ne isloop := Loop W' ne isloop
                   | Model Wvw mcls' hsub'' := Model Wvw {| model_model := model_model mcls' |} _ } } }
           }
       }
     .
 Proof.
-  all:clear loop.
+  all:cbn; clear loop.
   all:try solve [intuition auto].
   all:try eapply levelset_neq in neq.
   all:have cls_sub := clauses_conclusions_levels cls.
   all:destruct prf as [clsV UV mof].
+  - apply (check_model_spec_V mof clsV) in eqm as [UW WU hcl ext] => //;
+    destruct hcl as [? []]. now intros he; apply he in H4.
+  - set (neW := ssr_have _ _); clearbody neW.
+    do 2 red. eapply LevelSet.equal_spec in eq.
+    apply (check_model_spec_V mof clsV) in eqm as [UW WU hcl ext] => //.
+    destruct hcl as [cl [incl vcl conclinW hle]].
+    red in H.
+
+
   - apply (check_model_spec_V mof clsV) in eqm as [UW WU hcl ext] => //.
     split => //. split => //. lsets.
     destruct hcl as [l [hl _]]. intros he. lsets.
@@ -3897,7 +4025,7 @@ Proof.
   eapply LevelMap.find_2 in hfind.
   apply H0 in hfind as [k' [hmk' neq]]. depelim neq. rename y into conclval_m'.
   eapply LevelMap.find_1 in hmk'. rewrite hmk'. eapply Z.leb_le. transitivity conclval_v => //.
-  destruct (Z.leb_spec z 0). lia.
+  destruct (Z.leb_spec z 0).
   (* If min_premise m' z > 0 in the final model, it means prems -> prems + 1,
     i.e. there is a loop, which is impossible.
     We start with min_premise undef_model prems = Some 0 by definition.
