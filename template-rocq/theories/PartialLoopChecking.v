@@ -2727,27 +2727,27 @@ Definition entails_clauses cls cl :=
 
 Definition loop_on_univ cls prems := entails_clauses cls (to_clauses prems (succ_prems prems)).
 
-Definition loop_on W (hne : ~ LevelSet.Empty W) cls :=
-  cls ⊢a of_level_set W (max_clause_premise cls) hne → of_level_set W (max_clause_premise cls + 1) hne.
+Definition loop_on W (hne : ~ LevelSet.Empty W) n cls :=
+  cls ⊢a of_level_set W n hne → of_level_set W (n + 1) hne.
 
-Lemma loop_on_proper W W' hne' cls : W =_lset W' -> exists hne, loop_on W hne cls -> loop_on W' hne' cls.
+Lemma loop_on_proper W W' n hne' cls : W =_lset W' -> exists hne, loop_on W hne n cls -> loop_on W' hne' n cls.
 Proof.
   intros eq; rewrite /loop_on /loop_on_univ.
   assert (hne : ~ LevelSet.Empty W). now rewrite eq.
   exists hne.
-  assert (of_level_set W (max_clause_premise cls) hne = of_level_set W' (max_clause_premise cls) hne') as ->.
+  assert (of_level_set W n hne = of_level_set W' n hne') as ->.
   apply eq_univ'. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
-  assert (of_level_set W (max_clause_premise cls + 1) hne = of_level_set W' (max_clause_premise cls + 1) hne') as ->.
+  assert (of_level_set W (n + 1) hne = of_level_set W' (n + 1) hne') as ->.
   apply eq_univ'. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
   by [].
 Qed.
 
-Lemma loop_on_subset {W hne cls cls'} : Clauses.Subset cls cls' -> loop_on W hne cls -> loop_on W hne cls'.
+Lemma loop_on_subset {W hne n cls cls'} : Clauses.Subset cls cls' -> loop_on W hne n cls -> loop_on W hne n cls'.
 Proof.
 Admitted.
 
 Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
-  | Loop (w : LevelSet.t) (hne : ~ LevelSet.Empty w) (islooping : loop_on w hne cls)
+  | Loop (w : LevelSet.t) (hne : ~ LevelSet.Empty w) n (islooping : loop_on w hne n cls)
   | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w).
 Arguments Loop {V U cls m}.
 Arguments Model {V U cls m}.
@@ -2756,7 +2756,7 @@ Arguments lexprod {A B}.
 Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   match r with
   | Model w m _ => Some m.(model_model)
-  | Loop w hne isloop => None
+  | Loop w hne _ isloop => None
   end.
 
 Notation "#| V |" := (LevelSet.cardinal V).
@@ -3739,14 +3739,14 @@ Section InnerLoop.
       by wf (measure W cls m) lt :=
       inner_loop_partition m upd with loop W LevelSet.empty premconclW m m _ _ := {
         (* premconclW = cls ⇂ W , conclW = (Clauses.diff (cls ↓ W) (cls ⇂ W)) *)
-        | Loop W ne isl => Loop W ne (loop_on_subset _ isl)
+        | Loop W ne n isl => Loop W ne n (loop_on_subset _ isl)
         (* We have a model for (cls ⇂ W), we try to extend it to a model of (csl ↓ W).
           By invariant Wr ⊂ W *)
         | Model Wr mr empWr with inspect (check_model conclW (Wr, model_model mr)) := {
           | exist None eqm => Model Wr {| model_model := model_model mr |} _
           | exist (Some (Wconcl, mconcl)) eqm with inner_loop_partition mconcl _ := {
             (* Here Wr ⊂ Wconcl by invariant *)
-              | Loop W ne isl => Loop W ne isl
+              | Loop W ne n isl => Loop W ne n isl
               | Model Wr' mr' UWconcl => Model (LevelSet.union Wconcl Wr') {| model_model := model_model mr' |} _ }
               (* Here Wr' ⊂ W by invariant *)
         (* We check if the new model [mr] for (cls ⇂ W) extends to a model of (cls ↓ W). *)
@@ -4935,18 +4935,18 @@ Lemma strictly_updates_entails_loop2 cls V (hne : ~ LevelSet.Empty V) mzero m :
   let bound := v_minus_w_bound V m in
   let maxgain := max_gain cls in
   let n := Z.to_nat bound + maxgain in
-  max_premise_model cls clauses_levels mzero ->
   V =_lset clauses_levels cls ->
   total_model_of V mzero ->
   strictly_updates cls V mzero m ->
   entails_all cls (of_level_set V n hne) (of_level_set V (n + 1) hne).
 Proof.
-  intros bound maxgain n maxp vincl tot su.
+  intros bound maxgain n vincl tot su.
   have nemzero : ~ LevelMap.Empty mzero.
   { have := not_empty_exists V hne => [[l]].
     now move/tot => [v hm] /(_ _ _ hm). }
   have nem := strictly_updates_non_empty_map su.
   eapply strictly_updates_strenghten in su.
+  eapply strictly_updates_entails in su.
   set (m' := new_model mzero V (Some (Z.of_nat n))).
   have [m'' su'] : exists m'', strictly_updates (cls ⇂ V) V m' m''.
   admit.
@@ -4958,7 +4958,7 @@ Proof.
 
   (* have sue := strictly_updates_entails nem' nem'' _ su'. *)
   (* forward sue. admit. apply sue in su'. (cls ⇂ V). in su'; tea *)
-Abort.
+Admitted.
 
 
 Lemma model_max_max_premise_map cls : Z.to_nat (model_max (max_premise_map cls)) = max_clause_premise cls.
@@ -5162,23 +5162,23 @@ Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (minit m : mod
   loop V U cls minit m prf with inspect (check_model cls (U, m)) :=
     | exist None eqm => Model U {| model_model := m |} _
     | exist (Some (W, m')) eqm with inspect (LevelSet.equal W V) := {
-      | exist true eq := Loop W (check_model_ne eqm) _
+      | exist true eq := Loop W (check_model_ne eqm) (Z.to_nat (v_minus_w_bound W m') + max_gain cls)  _
       (* Loop on cls ↓ W, with |W| < |V| *)
       | exist false neq with inner_loop V U minit loop W (cls ↓ W) m' _ :=
-        { | Loop W' ne isloop := Loop W' ne (loop_on_subset _ isloop)
+        { | Loop W' ne n isloop := Loop W' ne n (loop_on_subset _ isloop)
           | Model Wc mwc _
           (* We get a model for (cls ↓ W), we check if it extends to all clauses.
               By invariant |Wc| cannot be larger than |W|. *)
             with inspect (check_model cls (Wc, mwc.(model_model))) :=
           { | exist None eqm' => Model (LevelSet.union W Wc) {| model_model := mwc.(model_model) |} _
             | exist (Some (Wcls, mcls)) eqm' with inspect (LevelSet.equal Wcls V) := {
-              | exist true _ := Loop Wcls (check_model_ne eqm') _
+              | exist true _ := Loop Wcls (check_model_ne eqm') (Z.to_nat (v_minus_w_bound Wcls mcls) + max_gain cls) _
               | exist false neq' with loop V (LevelSet.union W Wcls) cls minit mcls _ := {
                 (* Here Wcls < V, we've found a model for all of the clauses with conclusion
                   in W, which can now be fixed. We concentrate on the clauses whose
                   conclusion is different. Clearly |W| < |V|, but |Wcls| is not
                   necessarily < |V| *)
-                  | Loop W' ne isloop := Loop W' ne isloop
+                  | Loop W' ne n isloop := Loop W' ne n isloop
                   | Model Wvw mcls' hsub := Model Wvw {| model_model := model_model mcls' |} _ } } }
           }
       }
@@ -5193,10 +5193,10 @@ Proof.
     set (prf := check_model_ne eqm); clearbody prf.
     eapply check_model_is_update_of in eqm; tea. rewrite eq in eqm.
     destruct eqm as [eqm incl]. rewrite union_idem in eqm.
+    set (n := Z.to_nat _ + _).
     (* eapply entails_all_clauses_subset; tea.
     eapply entails_of_level_set_strenghten with (max_clause_premise cls). admit. *)
-    eapply strictly_updates_entails_loop with minit m'.
-    + apply todo.
+    eapply strictly_updates_entails_loop2.
     + rewrite eq. intros x. eapply strictly_updates_incl in eqm.
       split. 2:apply clsV.
       now move/eqm/clauses_conclusions_levels.
