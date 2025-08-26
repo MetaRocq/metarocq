@@ -4955,29 +4955,12 @@ Proof.
   have mp := strictly_updates_model_lt su'.
   forward mp. admit.
   eapply entails_all_clauses_subset.
-  eapply (strictly_updates_entails nemzero nem) in su'; tea.
+  have nem' : ~ LevelMap.Empty m'. admit.
+  have nem'' : ~ LevelMap.Empty m''. admit.
 
-
-  unshelve erewrite of_level_map_of_level_set in su; tea.
-  move/entails_all_trans: su; apply.
-  2:{ now apply max_premise_model_above. }
-   (* right. have me := (max_premise_model_exists cls). eapply max_premise_model_unique in maxp; tea. } *)
-  apply: entails_succ => l k.
-  rewrite levelexprset_of_levels_spec => [[hin ->]].
-  rw of_level_map_spec.
-  move: (mp l) => [] /(_ hin).
-  move: (tot _ hin) => [x hm].
-  move/(_ _ hm) => [k' [hm' lt]].
-  intros _.
-  exists (Z.to_nat k').
-  unfold max_premise_model in maxp.
-  move: (proj1 maxp l) => hl.
-  forward hl. apply vincl, hin.
-  eapply LevelMapFact.F.MapsTo_fun in hm; tea. noconf hm.
-  rewrite Z2Nat.id. lia.
-  split => //. lia.
-Qed.
-
+  (* have sue := strictly_updates_entails nem' nem'' _ su'. *)
+  (* forward sue. admit. apply sue in su'. (cls ⇂ V). in su'; tea *)
+Abort.
 
 
 Lemma model_max_max_premise_map cls : Z.to_nat (model_max (max_premise_map cls)) = max_clause_premise cls.
@@ -5219,7 +5202,7 @@ Proof.
     eapply entails_all_clauses_subset; tea.
     eapply entails_of_level_set_strenghten with (max_clause_premise cls). admit.
     eapply strictly_updates_entails_loop_relax' with minit m'.
-    + destruct abovemax. left. admit.
+    + admit.
     + rewrite eq. intros x. eapply strictly_updates_incl in eqm.
       split. 2:apply clsV.
       now move/eqm/clauses_conclusions_levels.
@@ -5252,11 +5235,12 @@ Proof.
     rewrite hun in tr. symmetry in e.
     have [neV hl] := loop_on_proper _ _ ne ocls e. apply hl.
     have vm := model_ok mwc.
-    eapply strictly_updates_entails_loop with minit mcls; tea.
+    apply todo.
+    (* eapply strictly_updates_entails_loop with minit mcls; tea.
     + apply todo. (* minit is a max premise model *)
-    + split. 2:apply clsV. intros hinV.
+    + split. 2:exact clsV. intros hinV.
       eapply strictly_updates_incl in tr. apply tr in hinV.
-      now apply clauses_conclusions_levels.
+      now apply clauses_conclusions_levels. *)
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     have hu := model_updates mwc.
     eapply strictly_updates_is_update_of in hu; tea.
