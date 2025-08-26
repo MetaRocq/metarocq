@@ -2746,14 +2746,14 @@ Lemma loop_on_subset {W hne cls cls'} : Clauses.Subset cls cls' -> loop_on W hne
 Proof.
 Admitted.
 
-Inductive result (V U : LevelSet.t) (ocls cls : clauses) (m : model) :=
-  | Loop (w : LevelSet.t) (hne : ~ LevelSet.Empty w) (islooping : loop_on w hne ocls)
+Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
+  | Loop (w : LevelSet.t) (hne : ~ LevelSet.Empty w) (islooping : loop_on w hne cls)
   | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w).
-Arguments Loop {V U ocls cls m}.
-Arguments Model {V U ocls cls m}.
+Arguments Loop {V U cls m}.
+Arguments Model {V U cls m}.
 Arguments lexprod {A B}.
 
-Definition option_of_result {V U m ocls cls} (r : result V U m ocls cls) : option model :=
+Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   match r with
   | Model w m _ => Some m.(model_model)
   | Loop w hne isloop => None
@@ -3721,23 +3721,21 @@ Section InnerLoop.
     - lia.
   Qed.
 
-  Context (V : LevelSet.t) (U : LevelSet.t) (ocls : clauses)
-    (init_model : model) (maxp : above_max_premise_model ocls init_model)
+  Context (V : LevelSet.t) (U : LevelSet.t) (init_model : model)
     (loop : forall (V' U' : LevelSet.t) (cls' : clauses) (minit m : model)
-    (prf : [/\ clauses_levels cls' ⊂_lset V', total_model_of V' minit,
-      cls' ⊂_clset ocls, above_max_premise_model ocls minit & is_update_of cls' U' minit m]),
-    lexprod_rel (loop_measure V' U') (loop_measure V U) -> result V' U' ocls cls' minit).
+    (prf : [/\ clauses_levels cls' ⊂_lset V', total_model_of V' minit &
+      is_update_of cls' U' minit m]),
+    lexprod_rel (loop_measure V' U') (loop_measure V U) -> result V' U' cls' minit).
 
   Section innerloop_partition.
     Context (W : LevelSet.t) (cls : clauses).
     Context (premconclW conclW : clauses).
     Context (prf : [/\ strict_subset W V, ~ LevelSet.Empty W, U ⊂_lset W, clauses_conclusions cls ⊂_lset W,
-      cls ⊂_clset ocls,
       Clauses.Equal premconclW (cls ⇂ W) & Clauses.Equal conclW (Clauses.diff (cls ↓ W) (cls ⇂ W))]).
 
     #[tactic="idtac"]
     Equations? inner_loop_partition (m : model) (upd : strictly_updates cls W init_model m) :
-      result W LevelSet.empty ocls cls m
+      result W LevelSet.empty cls m
       by wf (measure W cls m) lt :=
       inner_loop_partition m upd with loop W LevelSet.empty premconclW m m _ _ := {
         (* premconclW = cls ⇂ W , conclW = (Clauses.diff (cls ↓ W) (cls ⇂ W)) *)
@@ -3761,17 +3759,17 @@ Section InnerLoop.
       all:cbn [model_model]; clear loop inner_loop_partition.
       all:try apply LevelSet.subset_spec in hsub.
       all:auto.
-      all:try destruct prf as [WV neW UW clsW oincl eqprem eqconcl].
+      all:try destruct prf as [WV neW UW clsW eqprem eqconcl].
       all:try solve [intuition auto].
       all:try rewrite eqconcl in eqm.
       - split => //.
         * rewrite eqprem. apply clauses_levels_restrict_clauses.
         * eapply (strictly_updates_total_model upd).
-        * rewrite eqprem. transitivity cls => //. apply restrict_clauses_subset.
-        * eapply strictly_updates_weaken in upd; tea. eapply above_max_premise_model_trans in maxp; tea.
+        (* * rewrite eqprem. transitivity cls => //. apply restrict_clauses_subset. *)
+        (* * eapply strictly_updates_weaken in upd; tea. eapply above_max_premise_model_trans in maxp; tea. *)
         * eapply is_update_of_empty.
       - left. now eapply strict_subset_cardinal.
-      (* - rewrite eqprem. eapply restrict_clauses_subset. *)
+      - rewrite eqprem. eapply restrict_clauses_subset.
       (* - destruct prf. transitivity (cls ⇂ W) => //. now rewrite H3. eapply restrict_clauses_subset. *)
       - have mu := model_updates mr.
         eapply strictly_updates_is_update_of in upd; tea.
@@ -3827,12 +3825,12 @@ Section InnerLoop.
     *)
   #[tactic="idtac"]
   Equations? inner_loop (W : LevelSet.t) (cls : clauses) (m : model)
-    (prf : [/\ strict_subset W V, ~ LevelSet.Empty W, U ⊂_lset W, cls ⊂_clset ocls, clauses_conclusions cls ⊂_lset W &
-      strictly_updates cls W init_model m]) : result W LevelSet.empty ocls cls m :=
+    (prf : [/\ strict_subset W V, ~ LevelSet.Empty W, U ⊂_lset W, clauses_conclusions cls ⊂_lset W &
+      strictly_updates cls W init_model m]) : result W LevelSet.empty cls m :=
     inner_loop W cls m prf with inspect (Clauses.partition (premise_restricted_to W) cls) :=
       | exist (premconclW, conclW) eqp => inner_loop_partition W cls premconclW conclW _ m _.
   Proof.
-    - destruct prf as [subWV neW UW oclsi clsW mW].
+    - destruct prf as [subWV neW UW clsW mW].
       eapply (clauses_partition_spec clsW) in eqp as [eqprem eqconcl].
       split => //. now rewrite -(clauses_conclusions_eq _ _ clsW).
     - apply prf.
@@ -5157,20 +5155,16 @@ Proof.
   now have -> : k - k' + (k' + 1) = k + 1 by lia.
 Qed.
 
-
-Section Loop.
-  Context (ocls : clauses).
 #[tactic="idtac"]
 Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (minit m : model)
-  (prf : [/\ clauses_levels cls ⊂_lset V, total_model_of V minit, cls ⊂_clset ocls,
-    above_max_premise_model ocls minit & is_update_of cls U minit m]) : result V U ocls cls minit
+  (prf : [/\ clauses_levels cls ⊂_lset V, total_model_of V minit & is_update_of cls U minit m]) : result V U cls minit
   by wf (loop_measure V U) lexprod_rel :=
   loop V U cls minit m prf with inspect (check_model cls (U, m)) :=
     | exist None eqm => Model U {| model_model := m |} _
     | exist (Some (W, m')) eqm with inspect (LevelSet.equal W V) := {
       | exist true eq := Loop W (check_model_ne eqm) _
       (* Loop on cls ↓ W, with |W| < |V| *)
-      | exist false neq with inner_loop V U ocls minit _ loop W (cls ↓ W) m' _ :=
+      | exist false neq with inner_loop V U minit loop W (cls ↓ W) m' _ :=
         { | Loop W' ne isloop := Loop W' ne (loop_on_subset _ isloop)
           | Model Wc mwc _
           (* We get a model for (cls ↓ W), we check if it extends to all clauses.
@@ -5194,21 +5188,20 @@ Proof.
   all:try solve [intuition auto].
   all:try eapply levelset_neq in neq.
   all:have cls_sub := clauses_conclusions_levels cls.
-  all:destruct prf as [clsV mof inclocls abovemax isupd].
+  all:destruct prf as [clsV mof isupd].
   - red. eapply LevelSet.equal_spec in eq.
     set (prf := check_model_ne eqm); clearbody prf.
     eapply check_model_is_update_of in eqm; tea. rewrite eq in eqm.
     destruct eqm as [eqm incl]. rewrite union_idem in eqm.
-    eapply entails_all_clauses_subset; tea.
-    eapply entails_of_level_set_strenghten with (max_clause_premise cls). admit.
-    eapply strictly_updates_entails_loop_relax' with minit m'.
-    + admit.
+    (* eapply entails_all_clauses_subset; tea.
+    eapply entails_of_level_set_strenghten with (max_clause_premise cls). admit. *)
+    eapply strictly_updates_entails_loop with minit m'.
+    + apply todo.
     + rewrite eq. intros x. eapply strictly_updates_incl in eqm.
       split. 2:apply clsV.
       now move/eqm/clauses_conclusions_levels.
     + now rewrite eq.
     + now rewrite eq.
-  - exact abovemax.
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     have hi := strictly_updates_incl eqm.
     rewrite union_idem in hi, eqm.
@@ -5216,14 +5209,14 @@ Proof.
     split => //.
     * split => //. lsets.
     * now eapply strictly_updates_non_empty.
-    * transitivity cls => //. apply clauses_with_concl_subset.
+    (* * transitivity cls => //. apply clauses_with_concl_subset. *)
     * apply clauses_conclusions_clauses_with_concl.
     * eapply strictly_updates_strenghten. exact eqm.
     (* * eapply above_max_premise_model_strengthen; tea. 2: eapply clauses_with_concl_subset.
       eapply clauses_levels_mon.
     * now eapply strictly_updates_strenghten. *)
-  - reflexivity.
-  (* - now intros ?; rewrite in_clauses_with_concl. *)
+
+  - now intros ?; rewrite in_clauses_with_concl.
   - set (ne := check_model_ne eqm'). clearbody ne.
     have hu := model_updates mwc.
     eapply check_model_is_update_of in eqm' as [eqm' incl']; tea.
@@ -5233,14 +5226,13 @@ Proof.
     have tr := update_trans _ eqm eqm'. eapply LevelSet.equal_spec in e. rewrite e in tr.
     assert (hun : LevelSet.union W V =_lset V). eapply strictly_updates_incl in eqm. lsets.
     rewrite hun in tr. symmetry in e.
-    have [neV hl] := loop_on_proper _ _ ne ocls e. apply hl.
+    have [neV hl] := loop_on_proper _ _ ne cls e. apply hl.
     have vm := model_ok mwc.
-    apply todo.
-    (* eapply strictly_updates_entails_loop with minit mcls; tea.
+    eapply strictly_updates_entails_loop with minit mcls; tea.
     + apply todo. (* minit is a max premise model *)
-    + split. 2:exact clsV. intros hinV.
+    + split. 2:apply clsV. intros hinV.
       eapply strictly_updates_incl in tr. apply tr in hinV.
-      now apply clauses_conclusions_levels. *)
+      now apply clauses_conclusions_levels.
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     have hu := model_updates mwc.
     eapply strictly_updates_is_update_of in hu; tea.
@@ -5274,8 +5266,8 @@ Proof.
       assert (~ LevelSet.In (levelexpr_level (concl cl)) W).
       { intros hin. rewrite in_clauses_with_concl in H. intuition auto. }
       exists (concl cl). split => //. }
+    rewrite -!diff_cardinal //. clear -w_incl clsV incl wcls_incl. have hincl := clauses_conclusions_levels cls. lsets. lsets.
     assert (Wcls ⊂_lset V). lsets.
-    rewrite -!diff_cardinal //. clear -w_incl clsV incl H0. have hincl := clauses_conclusions_levels cls. lsets. lsets.
     eapply strict_subset_cardinal.
     eapply (strict_subset_leq_right _ (LevelSet.diff V W)). 2:lsets.
     apply strict_subset_diff_incl => //.
