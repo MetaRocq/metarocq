@@ -5801,6 +5801,83 @@ Qed.
 
 Transparent lexprod_rel_wf.
 
+Lemma add_prems_0 u : add_prems 0 u = u.
+Proof.
+  rewrite /add_prems.
+  apply eq_univ'.
+  intros x. rewrite map_spec.
+  split.
+  - intros[e [hin ->]]. unfold add_expr. now destruct e; rewrite Nat.add_0_r.
+  - intros inu; exists x. split => //. destruct x. now rewrite /add_expr Nat.add_0_r.
+Qed.
+
+Lemma entails_all_tauto cls u : cls ⊢a u → u.
+Proof.
+  intros x hin. now constructor.
+Qed.
+
+Lemma loop_any_successor cls u n :
+  cls ⊢a u → succ_prems u ->
+  cls ⊢a u → add_prems (S n) u.
+Proof.
+  induction n.
+  - auto.
+  - intros ass.
+    specialize (IHn ass).
+    have sh := entails_all_shift 1 IHn.
+    eapply entails_all_trans. tea.
+    now rewrite add_prems_add_prems in sh.
+Qed.
+
+Lemma loop_any cls u n :
+  cls ⊢a u → succ_prems u ->
+  cls ⊢a u → add_prems n u.
+Proof.
+  destruct n.
+  - rewrite add_prems_0. intros _. apply entails_all_tauto.
+  - apply loop_any_successor.
+Qed.
+
+Lemma univ_non_empty (u : univ) : ~ LevelSet.Empty (levels u).
+Proof. intros he. have := t_ne u. move/not_Empty_is_empty.
+  intros he'. apply he'. intros [l k] hin. red in he. specialize (he l). apply he.
+  rewrite levelexprset_levels_spec. now exists k.
+Qed.
+
+Lemma loop_max cls (u : univ) :
+  cls ⊢a of_level_set (levels u) (premise_max u) (univ_non_empty u) → u.
+Proof.
+  intros [l k] hin.
+  apply (entails_pred_closure_n (n := premise_max u - k)).
+  constructor.
+  rewrite levelexprset_of_levels_spec. split.
+  - apply levelexprset_levels_spec. now exists k.
+  - have [min _] := premise_max_spec u.
+    apply min in hin. cbn in hin. lia.
+Qed.
+
+Lemma loop_any_max cls u n :
+  cls ⊢a u → add_prems n u ->
+  cls ⊢a of_level_set (levels u) (premise_max u) (univ_non_empty u) → add_prems n u.
+Proof.
+  intros hl. eapply entails_all_trans; tea. now eapply loop_max.
+Qed.
+
+Lemma loop_any_max_all cls u :
+  cls ⊢a u → succ_prems u ->
+  cls ⊢a of_level_set (levels u) (premise_max u) (univ_non_empty u) →
+    of_level_set (levels u) (premise_max u + 1) (univ_non_empty u).
+Proof.
+  intros hl. eapply entails_all_trans; tea.
+  eapply (loop_any_max _ _ (premise_max u + 1)). now eapply loop_any.
+  intros [l k].
+  rewrite levelexprset_of_levels_spec => [] [].
+  rewrite levelexprset_levels_spec => [] [k' hin] ->.
+  eapply (entails_pred_closure_n (n := k')).
+  constructor. rewrite In_add_prems.
+  exists (l, k'). split => //. rewrite /add_expr. lia_f_equal.
+Qed.
+
 (* To handle the constraint inference problem,
   we must start with a model where all atoms [l + k]
   appearing in premises are true. Otherwise the
