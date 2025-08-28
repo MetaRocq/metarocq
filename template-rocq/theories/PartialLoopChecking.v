@@ -375,13 +375,15 @@ Module NonEmptySetFacts.
     now rewrite (uip_bool _ _ u2 v2).
   Qed.
 
-  Lemma eq_univ' (u v : nonEmptyLevelExprSet) :
-    LevelExprSet.Equal u v -> u = v.
+  Lemma eq_univ_equal (u v : nonEmptyLevelExprSet) :
+    LevelExprSet.Equal u v <-> u = v.
   Proof.
-    intro H. now apply eq_univ, LevelExprSet.eq_leibniz.
+    split.
+    - intro H. now apply eq_univ, LevelExprSet.eq_leibniz.
+    - intros ->; reflexivity.
   Qed.
 
-  Lemma eq_univ'' (u v : nonEmptyLevelExprSet) :
+  Lemma eq_univ_elements (u v : nonEmptyLevelExprSet) :
     LevelExprSet.elements u = LevelExprSet.elements v -> u = v.
   Proof.
     intro H. apply eq_univ.
@@ -395,7 +397,7 @@ Module NonEmptySetFacts.
   Proof.
     split.
     - intros.
-      apply eq_univ'. now apply LevelExprSet.equal_spec.
+      apply eq_univ_equal. now apply LevelExprSet.equal_spec.
     - intros ->. now apply LevelExprSet.equal_spec.
   Qed.
 
@@ -437,7 +439,7 @@ Module NonEmptySetFacts.
 
   Lemma add_comm {le le' e} : add le (add le' e) = add le' (add le e).
   Proof.
-    apply eq_univ'. intros x.
+    apply eq_univ_equal. intros x.
     rewrite !LevelExprSet.add_spec. firstorder.
   Qed.
 
@@ -462,21 +464,21 @@ Module NonEmptySetFacts.
 
   Lemma univ_union_add_singleton u le : univ_union u (singleton le) = add le u.
   Proof.
-    apply eq_univ'.
+    apply eq_univ_equal.
     intros x. rewrite univ_union_spec LevelExprSet.singleton_spec add_spec.
     intuition auto.
   Qed.
 
   Lemma univ_union_comm {u u'} : univ_union u u' = univ_union u' u.
   Proof.
-    apply eq_univ'.
+    apply eq_univ_equal.
     intros x. rewrite !univ_union_spec.
     intuition auto.
   Qed.
 
   Lemma univ_union_add_distr {le u u'} : univ_union (add le u) u' = add le (univ_union u u').
   Proof.
-    apply eq_univ'.
+    apply eq_univ_equal.
     intros x. rewrite !univ_union_spec !add_spec !univ_union_spec.
     intuition auto.
   Qed.
@@ -916,9 +918,36 @@ Proof.
   now rewrite hm.
 Qed.
 
+Lemma eqlistA_eq {A} (l l' : list A) : eqlistA Logic.eq l l' -> l = l'.
+Proof.
+  induction 1.
+  - reflexivity.
+  - now f_equal.
+Qed.
+
+Instance clauses_elements_proper : Proper (Clauses.Equal ==> eq) Clauses.elements.
+Proof.
+  intros cl cl' eq.
+  have sl := Clauses.elements_spec2 cl.
+  (* have nl := Clauses.elements_spec2w cl. *)
+  have sl' := Clauses.elements_spec2 cl'.
+  (* have nl' := Clauses.elements_spec2w cl'. *)
+  have heq := @SortA_equivlistA_eqlistA _ Logic.eq _ Clause.lt_.
+  do 3 forward heq by tc.
+  specialize (heq _ _ sl sl').
+  forward heq.
+  red. intros x.
+  rewrite -! ClausesProp.Dec.F.elements_iff. apply eq.
+  now apply eqlistA_eq.
+Qed.
+
 #[local] Instance check_model_aux_proper : Proper (Clauses.Equal ==> eq ==> eq) check_model_aux.
 Proof.
-Admitted.
+  intros ? ? eq ? ? ->.
+  rewrite /check_model_aux.
+  rewrite !ClausesProp.fold_spec_right.
+  now rewrite eq.
+Qed.
 
 #[local] Instance check_model_proper : Proper (Clauses.Equal ==> eq ==> eq) check_model.
 Proof.
@@ -2001,13 +2030,6 @@ Proof.
   - depelim amin. rewrite H in hprem. depelim hprem.
 Qed.
 
-Lemma min_premise_pos_spec_inv {m} {prem: nonEmptyLevelExprSet} :
-  (forall x, LevelExprSet.In x prem -> exists k, levelexpr_value m x = Some k) ->
-  exists k, min_premise m prem = Some k.
-Proof.
-  intros hprem.
-Admitted.
-
 Lemma v_minus_w_bound_spec W m :
   forall x, ~ LevelSet.In x W -> level_value m x ≤ Some (v_minus_w_bound W m).
 Proof.
@@ -2273,19 +2295,6 @@ Proof.
   firstorder eauto.
 Qed.
 
-(* Lemma min_premise_some_pres {m m' prems k} : m ⩽ m' -> min_premise m prems = Some k -> exists k', min_premise m' prems = Some k'.
-Proof.
-  intros ext minp.
-  apply (@min_premise_pos_spec_inv m' prems).
-  intros x hin.
-  pose proof (min_premise_spec m prems) as [le eq]. specialize (le x hin).
-  rewrite minp in le. depelim le.
-  move: H0; rewrite /min_atom_value /levelexpr_value /level_value. destruct x as [l k'].
-  destruct LevelMap.find eqn:hfind => //. intros [= <-].
-  eapply LevelMap.find_2 in hfind. eapply ext in hfind as [? [map2 hsome]].
-  eapply LevelMap.find_1 in map2. rewrite map2. depelim hsome. now exists n.
-Qed. *)
-
 Lemma min_premise_spec' {m prems z} : min_premise m prems = Some z ->
   (forall l k, LevelExprSet.In (l, k) prems ->
   exists v, level_value m l = Some v /\ z <= (Z.of_nat v - Z.of_nat k))%Z.
@@ -2310,13 +2319,13 @@ Proof.
     destruct (LevelExprSet.is_empty s) eqn:hem in |- .
     eapply LevelExprSetFact.is_empty_2 in hem.
       assert (singleton x = {| t_set := s'; t_ne := hne |}) as <- => //.
-      unfold singleton. apply eq_univ'. cbn.
+      unfold singleton. apply eq_univ_equal. cbn.
       intros a. specialize (hadd a). rewrite hadd.
       rewrite LevelExprSet.singleton_spec. firstorder. subst. reflexivity.
       specialize (IH hem).
       specialize (ha x _ IH).
       assert (LevelExprSet.Equal (add x {| t_set := s; t_ne := hem|}) {| t_set := s'; t_ne := hne |}).
-      2:{ apply eq_univ' in H. now rewrite -H. }
+      2:{ apply eq_univ_equal in H. now rewrite -H. }
       intros x'. specialize (hadd x'). rewrite LevelExprSet.add_spec.
       cbn. firstorder. subst x'. now left.
 Qed.
@@ -2611,15 +2620,37 @@ Qed.
 
 Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
 Proof.
-  apply eq_univ'.
+  apply eq_univ_equal.
   intros lk.
   rewrite !map_spec. setoid_rewrite map_spec.
   firstorder eauto. subst. firstorder.
 Qed.
 
+Lemma add_expr_inj {n e e'} : add_expr n e = add_expr n e' -> e = e'.
+Proof.
+  destruct e, e'; cbn; intros [=].
+  have eq: n0 = n1 by lia.
+  now subst n0.
+Qed.
+
+Lemma add_prems_inj n prems prems' : add_prems n prems = add_prems n prems' -> prems = prems'.
+Proof.
+  rewrite /add_prems => /eq_univ_equal hm.
+  apply eq_univ_equal.
+  intros [l k]. specialize (hm (l, k + n)%nat).
+  rewrite !map_spec in hm. destruct hm as [hl hr].
+  split; intros hin.
+  - forward hl. exists (l, k); split => //.
+    destruct hl as [[] [hin' eq]].
+    apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
+  - forward hr. exists (l, k); split => //.
+    destruct hr as [[] [hin' eq]].
+    apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
+Qed.
+
 Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (n + n') lk.
 Proof. destruct lk; unfold add_prems.
-  rewrite map_map. apply eq_univ'.
+  rewrite map_map. apply eq_univ_equal.
   intros x; rewrite /= !map_spec. cbn in *.
   firstorder eauto. subst. exists x0.
   firstorder eauto. now rewrite add_expr_add_expr.
@@ -2640,8 +2671,11 @@ Notation succ_expr := (add_expr 1).
 Notation succ_prems := (add_prems 1).
 Notation succ_clause := (add_clause 1).
 
-Lemma succ_clause_inj x y : succ_clause x = succ_clause y -> x = y.
-Proof. Admitted.
+Lemma add_clause_inj {n x y} : add_clause n x = add_clause n y -> x = y.
+Proof.
+  destruct x as [prems concl], y as [prems' concl'].
+  now move=> [=] /add_prems_inj -> /add_expr_inj ->.
+Qed.
 Definition add_clauses n cls := ClausesProp.of_list (List.map (fun cl => add_clause n cl) (ClausesProp.to_list cls)).
 Notation succ_clauses := (add_clauses 1).
 Import SetoidList.
@@ -2651,7 +2685,7 @@ Proof.
   rewrite ClausesProp.of_list_1 InA_In_eq in_map_iff.
   firstorder eauto.
   - exists cl; split => //. unfold ClausesProp.to_list. now eapply Clauses_In_elements.
-  - eapply Clauses_In_elements in H0. apply succ_clause_inj in H. now subst.
+  - eapply Clauses_In_elements in H0. apply add_clause_inj in H. now subst.
 Qed.
 
 Variant in_pred_closure cls : clause -> Prop :=
@@ -2677,7 +2711,7 @@ Lemma in_pred_closure_equal cls (prems prems' : nonEmptyLevelExprSet) concl :
   LevelExprSet.Equal prems prems' ->
   in_pred_closure cls (prems, concl) -> in_pred_closure cls (prems', concl).
 Proof.
-  intros eq. apply NonEmptySetFacts.eq_univ' in eq. now subst prems.
+  intros eq. apply NonEmptySetFacts.eq_univ_equal in eq. now subst prems.
 Qed.
 
 Lemma entails_equal cls (prems prems' : nonEmptyLevelExprSet) concl :
@@ -2686,7 +2720,7 @@ Lemma entails_equal cls (prems prems' : nonEmptyLevelExprSet) concl :
 Proof.
   intros he en.
   replace prems' with prems => //.
-  now apply eq_univ'.
+  now apply eq_univ_equal.
 Qed.
 
 Lemma entails_plus cls c : entails cls c -> entails (succ_clauses cls) (succ_clause c).
@@ -2701,7 +2735,7 @@ Proof.
           now rewrite Nat.add_1_r. }
         constructor. now rewrite -succ_clauses_spec.
       * have eq : (succ_prems (singleton (x, (k + 1)%nat))) = (singleton (x, k + 1 + 1)%nat).
-        { apply eq_univ'. unfold succ_prems.
+        { apply eq_univ_equal. unfold succ_prems.
           intros le. rewrite map_spec LevelExprSet.singleton_spec.
           split.
           { intros [? [hin ->]].
@@ -2751,7 +2785,7 @@ Proof.
   destruct cl as [prems [concl k]]; cbn.
   f_equal. 2:now rewrite Nat.add_0_r.
   unfold add_prems.
-  eapply eq_univ'. intros [l k'].
+  eapply eq_univ_equal. intros [l k'].
   rewrite NonEmptySetFacts.map_spec.
   unfold add_expr. firstorder. destruct x. noconf H0.
   now rewrite Nat.add_0_r.
@@ -2790,7 +2824,7 @@ Qed.
 Lemma add_clause_singleton n le concl k : add_clause n (singleton le, (concl, k)) = (singleton (add_expr n le), (concl, k + n)).
 Proof.
   rewrite /add_clause //=. f_equal.
-  apply eq_univ'. intros le'. rewrite In_add_prems.
+  apply eq_univ_equal. intros le'. rewrite In_add_prems.
   rewrite_strat (topdown LevelExprSet.singleton_spec).
   unfold LevelExprSet.E.eq. firstorder. subst. reflexivity.
 Qed.
@@ -2947,7 +2981,7 @@ Proof.
       { red in H0; subst concl0. now constructor. }
       { now constructor. }
     * have eq : prems = add concl0 prems.
-      { eapply eq_univ'. intros x; rewrite LevelExprSet.add_spec. firstorder. now red in H2; subst. }
+      { eapply eq_univ_equal. intros x; rewrite LevelExprSet.add_spec. firstorder. now red in H2; subst. }
       rewrite -eq in H1.
       eapply (clause_cut _ prems' _ prems). tea. 2:tea.
       now rewrite -eq in he.
@@ -3142,9 +3176,9 @@ Proof.
   assert (hne : ~ LevelSet.Empty W). now rewrite eq.
   exists hne.
   assert (of_level_set W n hne = of_level_set W' n hne') as ->.
-  apply eq_univ'. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
+  apply eq_univ_equal. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
   assert (of_level_set W (n + 1) hne = of_level_set W' (n + 1) hne') as ->.
-  apply eq_univ'. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
+  apply eq_univ_equal. unfold of_level_set; cbn. intros []. rewrite !levelexprset_of_levels_spec. now rewrite eq.
   by [].
 Qed. *)
 
@@ -3528,7 +3562,6 @@ Definition max_premise_model cls sel m :=
   LevelMap.MapsTo l (max_clause_premise cls) m) /\
   (forall l k, LevelMap.MapsTo l k m -> LevelSet.In l (sel cls) /\ k = max_clause_premise cls).
 
-
 Definition max_premise_map cls : model :=
   let max := max_clause_premise cls in
   let ls := clauses_levels cls in
@@ -3603,16 +3636,6 @@ Proof.
   * subst m. eapply infers_atom_mapsto. destruct hm.
     specialize (H l hl). eexists; split. exact H. lia.
 Qed.
-
-(* Lemma max_premise_model_above cls sel sel' m :
-  (sel' cls ⊂_lset sel cls) ->
-  max_premise_model cls sel m ->
-  above_max_premise_model cls m.
-Proof.
-  move=> incl mp l hl; move: (proj1 mp l (incl _ hl)); rewrite /infers_atom.
-  move/level_value_MapsTo => ->. reflexivity.
-Qed. *)
-
 
 Lemma clauses_with_concl_union cls W W' :
   Clauses.Equal (clauses_with_concl cls (LevelSet.union W W'))
@@ -4760,14 +4783,23 @@ Proof. lia. Qed.
 Definition model_min m :=
   LevelMap.fold (fun l k acc => Nat.min acc k) m 0%nat.
 
-(* Lemma model_min_spec m : forall l k, LevelMap.MapsTo l k m -> (Some (model_min m) ≤ k). *)
-(* Proof. Admitted. *)
-
 Definition model_max m :=
   LevelMap.fold (fun l k acc => Nat.max acc k) m 0%nat.
 
 Lemma model_max_spec m : forall l k, LevelMap.MapsTo l k m -> (k <= model_max m)%nat.
-Proof. Admitted.
+Proof.
+  intros l k hm.
+  rewrite /model_max.
+  move: hm; eapply LevelMapFact.fold_rec.
+  - move=> m0 he hm. now apply he in hm.
+  - intros k' e a m' m'' hm nin hadd hle hm''.
+    specialize (hadd l).
+    eapply levelmap_find_eq_inv in hadd. eapply hadd in hm''.
+    rewrite LevelMapFact.F.add_mapsto_iff in hm''.
+    move: hm''=> [] [h h'].
+    * subst k. lia.
+    * move/hle: h'. lia.
+Qed.
 
 Definition valuation_of_model (m : model) : LevelMap.t nat :=
   let max := model_max m in
@@ -4776,9 +4808,21 @@ Close Scope Z_scope.
 
 Lemma valuation_of_model_spec m :
   forall l k, LevelMap.MapsTo l k m ->
-    let v := (model_max m - k )%nat in
+    let v := (model_max m - k)%nat in
     LevelMap.MapsTo l v (valuation_of_model m).
-Proof. Admitted.
+Proof.
+  intros l k hm v.
+  unfold valuation_of_model. subst v.
+  move: hm. generalize (model_max m) => n.
+  eapply LevelMapFact.fold_rec.
+  - intros v he hm.
+    now eapply he in hm.
+  - intros.
+    specialize (H1 l). eapply levelmap_find_eq_inv in H1. eapply H1 in hm.
+    rewrite LevelMapFact.F.add_mapsto_iff in hm. destruct hm as [[-> ->]|[neq hm]].
+    * eapply LevelMapFact.F.add_mapsto_iff. now left.
+    * eapply LevelMapFact.F.add_mapsto_iff. right. split => //. now apply H2.
+Qed.
 
 Lemma strictly_updates_valid_model {W W' m m' cls} :
   is_model (cls ↓ W) m ->
@@ -4866,7 +4910,7 @@ Lemma of_level_set_union_spec {ls ls' n hne} hne' hne'' :
   of_level_set (ls ∪ ls') n hne =
   univ_union (of_level_set ls n hne') (of_level_set ls' n hne'').
 Proof.
-  apply eq_univ'.
+  apply eq_univ_equal.
   intros [l k]. rewrite /of_level_set //= !levelexprset_of_levels_spec LevelExprSet.union_spec.
   rewrite !levelexprset_of_levels_spec LevelSet.union_spec. clear. firstorder.
 Qed.
@@ -5089,30 +5133,6 @@ Proof.
   rewrite H1 in minsleq. depelim minsleq. lia.
 Qed.
 
-Definition model_above cls m := forall l,
-  LevelSet.In l (clauses_levels cls) ->
-  exists k', LevelMap.MapsTo l k' m /\ max_clause_premise cls <= k'.
-
-Lemma model_above_infers {cls m} :
-  model_above cls m ->
-  (forall l, LevelSet.In l (clauses_levels cls) -> infers_atom m l (max_clause_premise cls)).
-Proof.
-Admitted.
-
-Lemma model_above_update {cls V' m m'} :
-  model_above cls m ->
-  strictly_updates cls V' m m' ->
-  model_above cls m'.
-Proof.
-  move=> above /strictly_updates_ext.
-  move=> le l /above => [] [] k' [] hm hle.
-  apply le in hm as [k'' [hin' le']].
-  exists k''. split => //. now transitivity k'.
-Qed.
-
-Lemma max_premise_model_above cls m : max_premise_model cls clauses_levels m -> model_above cls m.
-Admitted.
-
 Lemma strictly_updates_entails {cls V mzero m} (hne : ~ LevelMap.Empty mzero) (hne' : ~ LevelMap.Empty m) :
   strictly_updates cls V mzero m ->
   entails_all cls (of_level_map mzero hne) (of_level_map m hne').
@@ -5160,7 +5180,7 @@ Lemma of_level_map_of_level_set cls sel V m hne hne' :
   V =_lset sel cls ->
   of_level_map m hne = of_level_set V (max_clause_premise cls) hne'.
 Proof.
-  move=> mp hv. apply: eq_univ' => [[l k]].
+  move=> mp hv. apply: eq_univ_equal => [[l k]].
   rewrite of_level_map_spec levelexprset_of_levels_spec.
   split. red in mp.
   move/(proj2 mp l) => [hin eq]. split. 2:lia. lsets.
@@ -5195,20 +5215,6 @@ Proof.
   eapply infers_atom_of_level_map.
 Qed.
 
-(*
-Lemma of_level_set_entails_of_level_map cls sel V m hne hne' :
-  above_max_premise_model cls sel m ->
-  V ⊂_lset sel cls ->
-  cls ⊢a of_level_set V (max_clause_premise cls) hne' → of_level_map m hne.
-Proof.
-  move=> mp hv.
-  intros [l k].
-  rewrite of_level_map_spec. levelexprset_of_levels_spec.
-  intros [hin ->].
-  move: (mp l (hv _ hin)).
-  eapply infers_atom_of_level_map.
-Qed. *)
-
 (* The criterion for loops:
   when a set of updates manages to strictly update all the levels it started with,
   then we can deduce a looping constraint `x, ..., z -> x + 1, ... z + 1`.
@@ -5217,10 +5223,6 @@ Qed. *)
   so that it can be used for checking and not only inferrence.
 
   *)
-
-Lemma max_premise_model_unique cls m : max_premise_model cls clauses_levels m -> m = max_premise_map cls.
-Proof.
-Admitted.
 
 Lemma strictly_updates_entails_loop cls V (hne : ~ LevelSet.Empty V) mzero m :
   max_premise_model cls clauses_levels mzero ->
@@ -5279,151 +5281,6 @@ Proof.
     apply max_premise_model_exists.
 Qed.
 
-(*
-Lemma strictly_updates_restrict cls V m m' :
-  strictly_updates cls V m m' ->
-  (forall cl, Clauses.In cl (cls_diff cls V) -> valid_clause m cl) ->
-  strictly_updates (cls ⇂ V) V m m'.
-Proof.
-  induction 1.
-  - intros hcl. constructor; auto.
-    move: {hcl} (hcl cl).
-    rewrite Clauses.diff_spec in_clauses_with_concl in_restrict_clauses.
-    destruct cl as [prems [concl k]]; cbn.
-    move=> h. split => //. eapply in_singleton.
-    forward h.
-    { split. split => //. apply in_singleton.
-    intros [insing hle incl'].
-    assert (~ LevelSet.Empty (levels prems)). admit.
-    have eqc : (forall l, LevelSet.In l (levels prems) -> l = concl).
-    { move=> l /hle. now rewrite LevelSet.singleton_spec. }
-    move: H0; rewrite /valid_clause //=.
-    intros [v [hmin hlt la eqm]].
-    destruct min_premise eqn:hm => //.
-    have [minple [minprem [inprems eqm]]] := min_premise_spec m prems.
-
-
-    assert (LevelSet.Equal (levels prems) (LevelSet.singleton concl)). split => //. lsets.
-    rewrite LevelSet.singleton_spec => ->. destruct (LevelSet.choose (levels prems)) eqn:hc.
-    apply LevelSet.choose_spec1 in hc. apply hle in hc. apply LevelSet.singleton_spec in hc; red in hc; subst.
-
-*)
-
-
-Definition new_model m V newk : model :=
-  LevelMap.fold (fun l k acc =>
-    let k' := if LevelSet.mem l V then newk else k in
-    LevelMap.add l k' acc) m (LevelMap.empty _).
-
-Lemma new_model_spec m V newk l k :
-  LevelMap.MapsTo l k (new_model m V newk) ->
-  (exists k', LevelMap.MapsTo l k' m /\
-    if LevelSet.mem l V then k = newk else k = k').
-Proof. Admitted.
-
-Definition domain (l : LevelMap.t (option Z)) : LevelSet.t :=
-  LevelSetProp.of_list (List.map fst (LevelMap.elements l)).
-
-(* Lemma level_value_new_model {m V newk l} :
-  model_of V m ->
-  level_value (new_model m V newk) l =
-  if LevelSet.mem l V then newk else level_value m l.
-Admitted. *)
-
-(* Lemma strictly_updates_entails_loop2 cls V (hne : ~ LevelSet.Empty V) mzero m :
-  let bound := v_minus_w_bound V m in
-  let maxgain := max_gain cls in
-  let n := Z.to_nat bound + maxgain in
-  (* V =_lset clauses_levels cls -> *)
-  model_of V mzero ->
-  strictly_updates cls V mzero m ->
-  entails_all cls (of_level_set V n hne) (of_level_set V (n + 1) hne).
-Proof.
-  intros bound maxgain n tot su.
-  have nemzero : ~ LevelMap.Empty mzero.
-  { have := not_empty_exists V hne => [[l]].
-    now move/tot => [v hm] /(_ _ _ hm). }
-  have nem := strictly_updates_non_empty_map su.
-  (* eapply strictly_updates_strenghten in su. *)
-  (* unshelve eapply strictly_updates_entails in su; tea. *)
-  set (m' := new_model m V (Some (Z.of_nat n))).
-  set (d := LevelSet.diff (domain mzero) V).
-  have vm : is_model (cls ↓ d) m'.
-  { eapply Clauses.for_all_spec. tc. intros cl hin.
-    unfold valid_clause. destruct min_premise eqn:hmin => //.
-    destruct cl as [prems [concl k]]. cbn in *.
-    elim: Z.ltb_spec => // ge //=. unfold level_value_above.
-    destruct level_value eqn:hl => //. eapply level_value_MapsTo' in hl.
-    apply new_model_spec in hl as [k' [hm cond]].
-    destruct LevelSet.mem eqn:hmem. noconf cond. admit. subst k'.
-    have [minple minpeq] := min_premise_spec m' prems.
-    destruct minpeq as [[minpl minpk] [inminp mineq]].
-    destruct (inLevelSet V minpl).
-    3:{ admit. }
-    (* clause has its minimal premise in V which might have been updated in m.
-        In m' its value is hence n *)
-    unfold min_atom_value in mineq.
-    rewrite level_value_new_model in mineq => //. now eapply strictly_updates_total_model.
-    rewrite (LevelSetFact.mem_1 H) in mineq.
-    rewrite hmin in mineq. noconf mineq.
-
-
-    }
-
-
-  have [m'' su'] : exists m'', strictly_updates (cls ⇂ V) V m' m''.
-  admit.
-  have mp := strictly_updates_model_lt su'.
-  forward mp. admit.
-  eapply entails_all_clauses_subset.
-  have nem' : ~ LevelMap.Empty m'. admit.
-  have nem'' : ~ LevelMap.Empty m''. admit.
-
-  (* have sue := strictly_updates_entails nem' nem'' _ su'. *)
-  (* forward sue. admit. apply sue in su'. (cls ⇂ V). in su'; tea *)
-Admitted. *)
-
-
-Lemma model_max_max_premise_map cls : (model_max (max_premise_map cls)) = max_clause_premise cls.
-Proof.
-Admitted.
-
-Lemma strictly_updates_entails_loop_max cls V (hne : ~ LevelSet.Empty V) m :
-  V =_lset clauses_levels cls ->
-  strictly_updates cls V (max_premise_map cls) m ->
-  entails_all cls (of_level_set V ((model_max (max_premise_map cls))) hne)
-    (of_level_set V ((model_max (max_premise_map cls)) + 1) hne).
-Proof.
-  intros.
-  rewrite !model_max_max_premise_map.
-  eapply strictly_updates_entails_loop; tea.
-  eapply max_premise_model_exists.
-  apply todo.
-Qed.
-
-#[program]
-Definition of_level_map_n (m : LevelMap.t nat) V n (hne : ~ LevelMap.Empty m) : nonEmptyLevelExprSet :=
-  {| t_set := LevelMap.fold (fun l k acc =>
-    if LevelSet.mem l V then LevelExprSet.add (l, n + k) acc else
-    LevelExprSet.add (l, k) acc) m LevelExprSet.empty |}.
-Next Obligation. Admitted.
-
-Lemma of_level_map_n_spec m V hne :
-  forall l n k, LevelExprSet.In (l, k) (of_level_map_n m V n hne) ->
-    (exists k', LevelMap.MapsTo l k' m /\
-      (LevelSet.In l V -> k = n + k') /\
-      (~ LevelSet.In l V -> k = k')).
-Proof.
-Admitted.
-
-Lemma of_level_map_n_spec_inv m V hne :
-  forall l n k, LevelMap.MapsTo l k m ->
-    exists k', LevelExprSet.In (l, k') (of_level_map_n m V n hne) /\
-      (LevelSet.In l V -> k' = n + k) /\
-      (~ LevelSet.In l V -> k' = k).
-Proof.
-Admitted.
-
 Lemma entails_any_one V cls m nem m' nem' :
   model_of V m ->
   cls ⊢a of_level_map m nem → of_level_map m' nem' ->
@@ -5439,73 +5296,29 @@ Proof.
   apply infers_atom_of_level_map. red. rewrite (level_value_MapsTo hm''). constructor. lia.
 Qed.
 
-Lemma of_level_map_of_level_map_n m V ne :
-  of_level_map m ne = of_level_map_n m V 0 ne.
+
+Lemma only_model_of_model_of {V m} : only_model_of V m -> model_of V m.
 Proof.
-  apply eq_univ'.
-  intros [l k].
-  rewrite of_level_map_spec.
-  firstorder.
-  - unshelve eapply (of_level_map_n_spec_inv _ V ne _ 0) in H.
-    destruct H as [k' [hin [inv ninv]]].
-    destruct (inLevelSet V l) as [hvin|hnin].
-    specialize (inv hvin). cbn in inv. now subst k'.
-    specialize (ninv hnin). cbn in ninv. now subst.
-  - eapply of_level_map_n_spec in H as [k' [hm [hin hnin]]].
-    destruct (inLevelSet V l) as [hvin|hvnin].
-    now rewrite (hin hvin).
-    now rewrite (hnin hvnin).
+  intros om l. move/om. intros [k hm]; now exists k.
 Qed.
 
-Lemma of_level_map_n_only_model m V n ne :
-  only_model_of V m ->
-  of_level_map_n m V n ne = add_prems n (of_level_map m ne).
-Proof.
-  intros om.
-  apply eq_univ'.
-  intros [l k].
-  rewrite In_add_prems.
-  split.
-  - move/of_level_map_n_spec => [k' [hm [hin hnin]]].
-    destruct (inLevelSet V l) as [hvin|hvnin].
-    * rewrite (hin hvin). exists (l, k').
-      rewrite of_level_map_spec. split => //. rewrite /add_expr. lia_f_equal.
-    * elim hvnin. apply om. now exists k'.
-  - intros [[? ?] [hin heq]]. unfold add_expr in heq; noconf heq.
-    unshelve eapply of_level_map_spec in hin.
-    have inv : LevelSet.In l V.
-    { apply om. now exists n0. }
-    eapply (of_level_map_n_spec_inv _ V ne _ n) in hin as [k' [hin [hinv hninv]]].
-    specialize (hinv inv). subst k'. now rewrite Nat.add_comm.
-Qed.
+Coercion only_model_of_model_of : only_model_of >-> model_of.
 
 Lemma entails_any V cls m nem m' nem' :
-  model_of V m ->
+  only_model_of V m ->
   cls ⊢a of_level_map m nem → of_level_map m' nem' ->
   model_rel_partial Nat.lt V m m' ->
-  cls ⊢a of_level_map m nem → of_level_map_n m V 1 nem.
+  cls ⊢a of_level_map m nem → succ_prems (of_level_map m nem).
 Proof.
   intros tot cla mp [l k].
-  move/of_level_map_n_spec.
-  intros [k' [hm [hin hnin]]].
-  destruct (LevelSetDecide.MSetDecideAuxiliary.dec_In l V).
-  rewrite (hin H).
-  rewrite -[1 + _]Nat.add_1_r.
-  eapply entails_any_one; tea.
-  rewrite (hnin H).
-  constructor. now rewrite of_level_map_spec.
+  rewrite In_add_prems => [] [[l' k']] [] /of_level_map_spec hm [=] -> ->.
+  eapply entails_any_one; tea. exact tot. apply tot. now exists k'.
 Qed.
 
-(* Lemma entails_any V cls m nem m' nem' :
-  model_of V m ->
-  model_rel_partial Z.lt V m m' ->
-  cls ⊢a of_level_map_n m V 1 nem → of_level_map_n m V 2 nem.
-Proof. *)
-
 Lemma strictly_updates_entails_on_V cls V mzero hne m :
-  model_of V mzero ->
+  only_model_of V mzero ->
   strictly_updates cls V mzero m ->
-  entails_all (cls ↓ V) (of_level_map mzero hne) (of_level_map_n mzero V 1 hne).
+  entails_all (cls ↓ V) (of_level_map mzero hne) (succ_prems (of_level_map mzero hne)).
 Proof.
   move=> tot su.
   have mp := strictly_updates_model_lt su tot.
@@ -5515,87 +5328,17 @@ Proof.
   eapply entails_any in su; tea.
 Qed.
 
-(* Lemma entails_concls cls V n m hne hne' :
-  model_of V m ->
-  entails_all cls (of_level_map_n m V n hne) (of_level_set V n hne').
-Proof.
-  move=> tot [l k].
-  rewrite levelexprset_of_levels_spec => [] [] hin ->.
-  specialize (tot _ hin) as [k' hm].
-  move/of_level_map_n_spec_inv in hm.
-  specialize (hm V hne n) as [k'' [hm [hin' hnin]]].
-  specialize (hin' hin). subst k''. cbn in *.
-  exists
-  depind ent.
-  - move: H.
-    rewrite of_level_map_n_spec => [] [k' [mt [hin hnin]]].
-    destruct (inLevelSet V l) as [H|H].
-    * now left.
-    * right. apply hnin in H. now subst k'.
-  - specialize (IHent _ _ _ en l).
-
-  intros [] *)
-
-(*
-Lemma strictly_updates_entails_loop_relax cls V mzero hne m :
-  let bound := v_minus_w_bound V m in
-  let maxgain := max_gain cls in
-  let n := Z.to_nat bound + maxgain in
-  model_of V mzero ->
-  strictly_updates cls V mzero m ->
-  entails_all cls (of_level_map_n mzero V n hne) (of_level_map_n mzero V (n + 1) hne).
-Proof.
-  move=> bound maxgain n tot su.
-  have mp := strictly_updates_model_lt su tot.
-  have nem := strictly_updates_non_empty_map su.
-  eapply (strictly_updates_entails hne nem) in su; tea.
-  eapply entails_any in su; tea.
-  eapply (entails_all_shift n) in su.
-  rewrite -of_level_map_of_level_map_n.
-Qed.
-*)
-(* Lemma of_level_map_n_split m V n hne : of_level_map_n m V n hne = of_level_set V n hne'  *)
-
-(*
-Lemma strictly_updates_entails_loop_relax' ocls cls V (hne : ~ LevelSet.Empty V) mzero m :
-  above_max_premise_model ocls mzero ->
-  cls ⊂_clset ocls ->
-  V =_lset clauses_levels cls ->
-  model_of V mzero ->
-  strictly_updates cls V mzero m ->
-  entails_all cls (of_level_set V (max_clause_premise cls) hne)
-    (of_level_set V (max_clause_premise cls + 1) hne).
-Proof.
-  move=> habove hincl hv tot su.
-  eapply strictly_updates_entails_loop_relax; tea. *)
-
-
-
-
 Lemma add_prems_add {n lk prems} : add_prems n (add lk prems) = add (add_expr n lk) (add_prems n prems).
 Proof.
-  apply eq_univ'. intros x.
+  apply eq_univ_equal. intros x.
   rewrite In_add_prems LevelExprSet.add_spec In_add_prems /LevelExprSet.E.eq; rw LevelExprSet.add_spec.
   firstorder. subst. red in H; subst x0. now left.
 Qed.
-(*
-Lemma above_max_premise_model_strengthen {cls cls' m} :
-  cls ⊂_clset cls' ->
-  above_max_premise_model cls m ->
-  above_max_premise_model cls' m.
-Proof.
-  intros hincl [[V' su]|eq].
-  left. 2:{ subst. red. } exists V'.
-  eapply strictly_updates_weaken; tea. red in ha.
-  move/(hmon _ _ hincl)/(ha l) => ha'.
-  eapply infer_atom_downward; tea.
-  apply max_clause_premise_mon in hincl. lia.
-Qed. *)
 
 Lemma add_prems_of_level_set k W k' prf :
   add_prems k (of_level_set W k' prf) = of_level_set W (k + k') prf.
 Proof.
-  apply eq_univ' => [] [l n].
+  apply eq_univ_equal => [] [l n].
   rewrite In_add_prems /of_level_set //= levelexprset_of_levels_spec.
   split.
   - move=> [] [l' n']. rewrite levelexprset_of_levels_spec => [] [[inw eq] eq'].
@@ -5606,7 +5349,7 @@ Qed.
 
 Lemma of_level_set_singleton l k hne : of_level_set (LevelSet.singleton l) k hne = singleton (l, k).
 Proof.
-  apply: eq_univ'. move=> [l' k'].
+  apply: eq_univ_equal. move=> [l' k'].
   rewrite /of_level_set //= levelexprset_of_levels_spec !LevelExprSet.singleton_spec LevelSet.singleton_spec /LevelSet.E.eq /LevelExprSet.E.eq.
   firstorder subst => //. now noconf H. now noconf H.
 Qed.
@@ -5656,13 +5399,6 @@ Proof.
   now eapply strictly_updates_non_empty_map in su.
 Qed.
 
-Lemma only_model_of_model_of {V m} : only_model_of V m -> model_of V m.
-Proof.
-  intros om l. move/om. intros [k hm]; now exists k.
-Qed.
-
-Coercion only_model_of_model_of : only_model_of >-> model_of.
-
 #[tactic="idtac"]
 Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (minit m : model)
   (prf : [/\ clauses_levels cls ⊂_lset V, only_model_of V minit & is_update_of cls U minit m]) : result V U cls minit
@@ -5702,8 +5438,7 @@ Proof.
     eapply check_model_is_update_of in eqm; tea. rewrite eq in eqm.
     destruct eqm as [eqm incl]. rewrite union_idem in eqm.
     unshelve eapply strictly_updates_entails_on_V in eqm; tea.
-    rewrite of_level_map_n_only_model in eqm => //.
-    eapply entails_all_clauses_subset; tea. apply clauses_with_concl_subset. exact mof.
+    eapply entails_all_clauses_subset; tea. apply clauses_with_concl_subset.
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     have hi := strictly_updates_incl eqm.
     rewrite union_idem in hi, eqm.
@@ -5727,7 +5462,6 @@ Proof.
     eapply check_model_is_update_of in eqm' as [eqm' incl']; tea.
     rewrite ClausesProp.union_sym union_with_concl in eqm'.
     eapply (strictly_updates_entails_on_V _ _ _ ne) in eqm'. red.
-    rewrite of_level_map_n_only_model in eqm'. eapply LevelSet.equal_spec in e. now rewrite e.
     eapply entails_all_clauses_subset; tea.
     eapply clauses_with_concl_subset. apply LevelSet.equal_spec in e. rewrite e. exact om.
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
@@ -5804,7 +5538,7 @@ Transparent lexprod_rel_wf.
 Lemma add_prems_0 u : add_prems 0 u = u.
 Proof.
   rewrite /add_prems.
-  apply eq_univ'.
+  apply eq_univ_equal.
   intros x. rewrite map_spec.
   split.
   - intros[e [hin ->]]. unfold add_expr. now destruct e; rewrite Nat.add_0_r.
@@ -5900,7 +5634,6 @@ Definition min_model_map (m : model) cls : model :=
     LevelExprSet.fold (fun '(l, k) acc =>
       add_max l k acc) cl (add_max (levelexpr_level concl) 0 acc)) cls m.
 
-
 Lemma In_add_max l l' k acc :
   LevelMap.In (elt:=nat) l (add_max l' k acc) <->
   (l = l' \/ LevelMap.In l acc).
@@ -5946,61 +5679,6 @@ Proof.
     right. intuition eauto.
 Qed.
 
-Definition opt_max (x y : option nat) : option nat :=
-  match x, y with
-  | Some x, Some y => Some (Nat.max x y)
-  | None, Some x => Some x
-  | Some x, None => Some x
-  | None, None => None
-  end.
-
-Definition find_max (ls : LevelExprSet.t) (l : Level.t) :=
-  LevelExprSet.fold (fun '(l', k) acc => if eqb l l' then opt_max (Some k) acc else acc) ls None.
-
-Inductive find_max_spec ls l : option nat -> Prop :=
-| find_max_ex m : LevelExprSet.In (l, m) ls -> (forall k, LevelExprSet.In (l, k) ls -> k <= m) -> find_max_spec ls l (Some m)
-| find_max_absent : ~ (exists k, LevelExprSet.In (l, k) ls) -> find_max_spec ls l None.
-
-Lemma find_max_correct ls l : find_max_spec ls l (find_max ls l).
-Proof.
-  unfold find_max.
-  apply: (LevelExprSetProp.fold_rec (P := fun ls a => find_max_spec ls l a)).
-  - intros s' ise; constructor. intros [k hin]. now apply ise in hin.
-  - intros x a s' s'' hin hnotin hadd hspec.
-    destruct x as [l' k].
-    destruct (eqb_spec l l'); subst.
-    * depelim hspec.
-      { constructor. destruct (Nat.max_spec k m) as [[hle hm]|[hle hm]].
-        + rewrite hm. apply hadd; right; apply H.
-        + rewrite hm. apply hadd; left; reflexivity.
-        + intros k' hin'. apply hadd in hin' as [].
-          { noconf H1. lia. }
-          { specialize (H0 _ H1). lia. } }
-      { constructor. apply hadd; now left.
-        intros k0 hin'. apply hadd in hin' as [].
-        { noconf H0; reflexivity. }
-        { elim H. now exists k0. } }
-    * depelim hspec; constructor; eauto.
-      + apply hadd; now right.
-      + intros k' hin'. apply hadd in hin' as [].
-        { noconf H2. congruence. }
-        now apply H0 in H2.
-      + intros [k0 hk0]. apply hadd in hk0 as [].
-        { noconf H1; congruence. }
-        apply H. now exists k0.
-Qed.
-
-Definition update_max acc l k0 :=
-  option_map2 Nat.max (level_value acc l) (Some k0).
-
-(* Lemma update_max_spec acc l k : update_max acc l k0 = *)
-
-Definition maximal_pre (l : Level.t) (n : nat) les :=
-  forall n', In (l, n') les -> n' <= n.
-
-Definition maximal_map (l : Level.t) (n : nat) m :=
-  forall n', LevelMap.MapsTo l (Some n') m -> (n' <= Z.of_nat n)%Z.
-
 Lemma In_fold_add_max k n a :
   LevelMap.In (elt:=nat) k
   (LevelExprSet.fold
@@ -6024,7 +5702,6 @@ Proof.
       intros [[k'' []]|]. noconf H3. now left.
       right. now left; exists k''. right; right. apply H3.
 Qed.
-
 
 Lemma MapsTo_fold_add_max l n a :
   let map := LevelExprSet.fold (fun '(l, k0) acc => add_max l k0 acc) n a in
@@ -6130,23 +5807,29 @@ Qed.
 Definition maximal_prem l n cls :=
   Clauses.For_all (fun cl => forall n', LevelExprSet.In (l, n') (premise cl) -> n' <= n) cls.
 
+(* Definition max_clause_premise_of l (cls : clauses) :=
+  Clauses.fold (fun cl acc => Nat.max (premise_max (premise cl)) acc) cls 0%nat. *)
+
+(* Definition enabled_premises_map cls : model :=
+  let max := max_clause_premise cls in
+  let ls := clauses_levels cls in
+  LevelSet.fold (fun l acc => LevelMap.add l max acc) ls (LevelMap.empty _). *)
+
 Lemma min_model_mapsto_gen m cls :
   forall l, LevelSet.In l (clauses_levels cls) ->
   exists k, LevelMap.MapsTo l k (min_model_map m cls) /\
   (exists cl, Clauses.In cl cls /\
    exists n, k = n /\ LevelExprSet.In (l,n) (premise cl) /\
-   (* (forall cl', Clauses.In cl cls -> forall l k, LevelExprSet.In (l, k) (premise cl') -> k <= n) *)
+
    maximal_prem l n cls) \/ LevelMap.MapsTo l k m.
 Proof.
   rewrite /min_model_map.
+  intros l.
   eapply ClausesProp.fold_rec.
-  - intros s' he. intuition auto. admit.
-  - intros x a s' s'' inx ninx hadd ih.
-    destruct x as [prem cl].
-    intros.
-  Admitted.
-(*
-    pose proof (MapsTo_fold_add_max l prem (add_max cl 0 a)) as [hf hneq].
+  - intros. admit.
+  - intros x a s' s'' hin hnin hadd ih hin''.
+    destruct x as [prem concl].
+    pose proof (MapsTo_fold_add_max l prem (add_max concl 0 a)) as [hf hneq].
     apply hf in H. clear hf.
     destruct H as [[kl [inkl leq]]|].
     { destruct leq as [eq [leqprems leqacc]]; noconf eq.
@@ -6214,25 +5897,6 @@ Proof.
   - intros k. now rewrite -init_model_levels.
   - apply is_update_of_empty.
 Qed.
-
-(* Lemma valuation_of_model_pos l k model : LevelMap.MapsTo l (Z.to_nat k) (valuation_of_model model) -> (k >= 0)%Z.
-Proof.
-  unfold valuation_of_model.
-  revert l k.
-  eapply LevelMapFact.fold_rec.
-  - intros. now rewrite LevelMapFact.F.empty_mapsto_iff in H0.
-  - intros l0 k0 e m' m'' me nk hadd hind l k.
-    rewrite LevelMapFact.F.add_mapsto_iff.
-    intros [].
-    * destruct H. red in H; subst.
-      destruct k0.
-      { have hmax := (model_max_spec model l (Some z) me). depelim hmax.
-        have hmin := (model_min_spec model l (Some z) me). depelim hmin.
-        assert (0 <= model_max model)%Z. admit.
-        assert (model_min model <= 0)%Z. admit.
-        assert (model_max model - option_get 0%Z (Some z) - model_min model = k)%Z. admit.
-        cbn in H4.
-        lia. *)
 
 Local Open Scope string_scope2.
 
@@ -6416,7 +6080,15 @@ Definition correct_model (cls : clauses) (m : model) :=
 Definition infer_correctness cls := forall m, infer_model cls = Some m -> correct_model cls m.
 
 Lemma enabled_clauses_ext m m' cls : m ⩽ m' -> enabled_clauses m cls -> enabled_clauses m' cls.
-Proof. Admitted.
+Proof.
+  intros hext.
+  rewrite /enabled_clauses.
+  intros ha cl; move/ha.
+  unfold enabled_clause.
+  intros [minp [heq hge]].
+  have hp := min_premise_pres (premise cl) hext.
+  rewrite heq in hp. depelim hp. exists y. split => //; lia.
+Qed.
 
 Lemma interp_prems_ge v (prems : nonEmptyLevelExprSet) :
   forall prem, LevelExprSet.In prem prems ->
@@ -6438,6 +6110,7 @@ Proof.
     * specialize (IHl H). lia.
 Qed.
 
+(** Enabled and valid clauses are satisfied by valuation *)
 Lemma valid_clause_model model cl :
   enabled_clause model cl ->
   valid_clause model cl ->
@@ -6483,15 +6156,12 @@ Lemma infer_correct cls : infer_correctness cls.
 Proof.
   intros m.
   funelim (infer_model cls) => //.
-  intros [= <-]. clear Heq Heqcall. destruct vm as [model ofV isupd clsconcl ism]; cbn in *.
+  intros [= <-].
+  set (obl := infer_model_obligation_1 cls). clearbody obl.
+  clear Heq Heqcall.
+  have mincl := model_incl vm.
+  destruct vm as [model ofV isupd clsconcl ism]; cbn in *.
   set (V := clauses_levels cls) in *.
-  assert (model_of V model).
-  { intros l inl. eapply is_update_of_ext in isupd as mext. red in mext.
-    (* eapply clauses_levels_spec in inl as [cl [hcl hin]]. *)
-    unfold init_model in mext.
-    have [kmin [hm incl]] := min_model_mapsto cls l inl.
-    eapply mext in hm as [kmodel [mapmodel hmodel]].
-    now exists kmodel. }
   unfold correct_model.
   have encl : enabled_clauses model cls.
   { eapply enabled_clauses_ext. apply is_update_of_ext in isupd. exact isupd.
