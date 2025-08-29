@@ -533,3 +533,62 @@ Proof.
       apply hadd in H0 as []; subst.
       now left. right. now left.
 Qed.
+
+
+
+Section Completeness.
+  Reserved Notation "x ≡ y" (at level 90).
+  Record semilattice :=
+    { carrier :> Type;
+      eq : carrier -> carrier -> Prop where "x ≡ y" := (eq x y);
+      succ : carrier -> carrier;
+      join : carrier -> carrier -> carrier;
+      join_assoc x y z : join x (join y z) ≡ join (join x y) z;
+      join_comm x y : join x y ≡ join y x;
+      join_idem x : join x x ≡ x;
+      join_sub x : join x (succ x) ≡ succ x;
+      succ_join : forall x y, succ (join x y) ≡ join (succ x) (succ y);
+    }.
+
+  Notation "x ≡ y" := (eq _ x y).
+
+  Section Derived.
+    Context (s : semilattice).
+    Definition le (x y : s) := join s x y ≡ y.
+
+    Fixpoint add (x : s) n : s :=
+      match n with
+      | 0 => x
+      | S n => succ _ (add x n)
+      end.
+
+  End Derived.
+
+  Definition term (V : Type) : Type := list (V * nat).
+  Definition relation (V : Type) := term V -> term V -> Prop.
+
+  Record presented (V : Type) := {
+    terms : term V -> Prop;
+    relations : relation V }.
+
+  Definition valid (V : Type) (C : presented V) (t u : term V) := relations _ C t u.
+
+  Section Terms.
+    Context (V : Type) (pres : presented V).
+    Definition succV (t : term V) := map (fun '(x, n) => (x, S n)) t.
+    Definition maxV (t u : term V) := t ++ u.
+
+    Definition presents : semilattice.
+    Proof.
+      unshelve refine {| carrier := term V; eq := relations _ pres; succ := succV; join := maxV |}.
+      all:apply (todo "laws").
+    Defined.
+
+    (* Definition interp_exp (vn : V * nat) : presents := let '(v, n) := vn in add presents v n. *)
+    Definition interp_term (t : term V) :=
+      let '(hd, tl) := t in
+      List.fold_left (fun x n => join _ n (interp_exp x)) tl (interp_exp hd).
+
+    Lemma all_terms (x : s) : exists t : term,
+
+
