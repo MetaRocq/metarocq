@@ -6493,6 +6493,15 @@ Proof.
   cbn. now rewrite premises_of_level_set_empty.
 Qed.
 
+Lemma entails_all_succ_clauses cls prems concl :
+  succ_clauses cls ⊢a succ_prems prems → succ_prems concl ->
+  cls ⊢a prems → concl.
+Proof.
+  intros ha l hin. specialize (ha (succ_expr l)). forward ha.
+  eapply In_add_prems. exists l. split => //. cbn in ha.
+  now eapply succ_clauses_equiv_weak in ha.
+Qed.
+
 Definition entails_equiv cls u u' :=
   cls ⊢a u → u' /\ cls ⊢a u' → u.
 
@@ -6632,5 +6641,83 @@ Proof.
   specialize (se tr).
   eapply clauses_sem_entails in se ; tea.
 Qed.
+
+Definition invalid_entailment cls cl :=
+  ~ entails cls cl.
+  (* forall V, clauses_sem V cls -> clause_sem V cl -> False. *)
+
+Lemma entails_su cls cl : entails cls cl ->
+  forall m, is_model cls m -> enabled_clause m cl -> valid_clause m cl.
+Proof.
+  induction 1.
+  - intros m ism.
+    unfold enabled_clause, valid_clause.
+    intros [z [eqmin hge]]. rewrite eqmin. cbn.
+    destruct concl0 as [concl k].
+    have hge' := hge.
+    apply Z.leb_le in hge'. rewrite Z.leb_antisym in hge'.
+    move/negbTE: hge' => -> //=.
+    unfold level_value_above.
+    destruct level_value eqn:hl. cbn in eqmin.
+    eapply min_premise_spec_aux in eqmin as [hle [x [hin heq]]].
+    specialize (hle _ H). depelim hle. rewrite hl in H1. noconf H1.
+    eapply Nat.leb_le. lia.
+    eapply min_premise_spec_aux in eqmin as [hle [x [hin heq]]].
+    specialize (hle _ H). depelim hle. rewrite hl in H1. congruence.
+  - intros.
+    specialize (IHentails m H2).
+
+
+Lemma check_entails_false {cls cl} :
+  check cls cl = false -> invalid_entailment cls cl.
+Proof.
+  funelim (check cls cl) => //.
+  - intros _; clear Heq Heqcall. red in islooping. red.
+    eapply (entails_all_shift 1) in islooping.
+    eapply entails_all_succ_clauses in islooping.
+    eapply clauses_sem_entails_all in islooping; tea.
+    rewrite interp_add_prems in islooping. lia. admit.
+  - set (V := clause_levels (succ_clause cl) ∪ clauses_levels cls) in *.
+    destruct cl as [prems [concl k]]; unfold LoopChecking.concl, snd in *.
+    destruct LevelMap.find as [conclval_v|] eqn:hfind => //.
+    2:{ apply (todo "impossible, concl is in the model"). }
+    (* Found a value *)
+    unfold valid_clause, level_value_above.
+    move/leb_complete_conv => hgt. intro.
+    intros val ext.
+    have vmupd := model_updates v.
+    have vmok := model_ok v.
+    set (pm := premises_model_map _ _) in *.
+    have nepm : ~ LevelMap.Empty pm.
+    { apply premises_model_map_ne.
+      have zm := proj2 (@zero_model_spec concl V 0).
+      forward zm. split => //. subst V.
+      eapply LevelSet.union_spec. left. apply clause_levels_spec.
+      now right. intros he. now move/he: zm. }
+    have nev : ~ LevelMap.Empty (model_model v).
+      by apply (is_update_of_non_empty nepm vmupd).
+    move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
+    set (cl := (prems, (concl, k))) in V.
+    have of_lset := of_level_map_premises_model_map (succ_clauses cls) (succ_clause cl) V nepm.
+    have tr := entails_all_trans of_lset ent.
+    eapply (entails_all_satisfies (l := concl) (k := conclval_v)) in tr.
+    2:{ red. rewrite /level_value hfind. now constructor. }
+    have he : ~ cls ⊢ prems → (concl, k).
+    { intros he. eapply clauses_sem_entails in he; tea.
+      cbn in he. admit.    }
+    destruct conclval_v. admit.
+    have se := (succ_clauses_equiv cls V (premise cl) (concl, conclval_v)).
+    cbn in se, tr. rewrite Nat.add_1_r in se.
+    specialize (se tr).
+    eapply clauses_sem_entails in se ; tea. cbn in se. cbn.
+Qe
+  intros _. red in islooping. clear Heqcall Heq.
+  - admit.
+  - destruct cl as [prems [concl k]]; cbn.
+    destruct LevelMap.find eqn:heq.
+    destruct n. clear Heqcall. intros _.
+    red. intros val semcls. cbn.
+
+  }
 
 End LoopChecking.
