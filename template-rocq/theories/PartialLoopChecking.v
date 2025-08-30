@@ -6739,6 +6739,141 @@ Proof.
     rewrite H0 -hm' hmin. f_equal. lia.
 Qed.
 
+Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
+  fold_left (fun acc l => f (g l) acc) l acc =
+  fold_left (fun acc l => f l acc) (map g l) acc.
+Proof.
+  induction l in acc |- *; cbn; auto.
+Qed.
+
+Lemma fold_left_max_acc {n l} : (forall x, In x l -> x = n) -> n = fold_left (option_map2 Z.min) l n.
+Proof.
+  induction l in n |- *.
+  - now cbn.
+  - cbn. intros he. transitivity (option_map2 Z.min n a). 2:apply IHl.
+    specialize (he a). forward he. now left. subst. destruct n => //= //. lia_f_equal.
+    intros. have h := (he x). forward h by now right.
+    have h' := (he a). forward h' by now left. subst.
+    destruct n => //=; lia_f_equal.
+Qed.
+
+Lemma option_map2_comm x y : option_map2 Z.min x y = option_map2 Z.min y x.
+Proof.
+  destruct x, y; cbn; lia_f_equal.
+Qed.
+
+Lemma option_map2_assoc x y z :
+  option_map2 Z.min x (option_map2 Z.min y z) =
+  option_map2 Z.min (option_map2 Z.min x y) z.
+Proof.
+  destruct x, y, z; cbn; lia_f_equal.
+Qed.
+
+Local Notation fn := (fold_left (option_map2 Z.min)).
+
+Lemma fold_left_impl n l :
+  (forall x, In x (n :: l) -> fn l n ≤Z x) /\
+  (exists x, In x (n :: l) /\ fn l n = x).
+Proof.
+  induction l in n |- *.
+  - cbn. split; intros.
+    destruct H => //. subst. reflexivity.
+    exists n. split => //. now left.
+  - cbn. split; intros.
+    { destruct (IHl n) as [hle [min [hin heq]]].
+    rewrite fold_left_comm.
+    { now intros; rewrite -option_map2_assoc (option_map2_comm x0 y) option_map2_assoc. }
+    repeat destruct H; subst.
+    * specialize (hle n). forward hle. now left.
+      transitivity (fn l n); auto. eapply Zmin_opt_left.
+    * eapply Zmin_opt_right.
+    * transitivity (fn l n); auto. apply Zmin_opt_left.
+      apply hle. now right. }
+    * specialize (IHl (option_map2 Z.min n a)).
+      destruct IHl as [hle [min [hin heq]]]. subst min. eexists. split; trea.
+      destruct hin.
+      rewrite -H.
+      destruct n, a; cbn; firstorder.
+      destruct (Z.min_spec z z0) as [[? heq]|[? heq]].
+      rewrite -{1}heq. now left. right; left. f_equal. lia.
+      now right.
+Qed.
+
+Lemma fold_left_impl_eq n n' l l' :
+  (forall x, In x (n :: l) <-> In x (n' :: l' )) ->
+  fn l n = fn l' n'.
+Proof.
+  intros heq.
+  destruct (fold_left_impl n l) as [hle [minl [hin heq']]].
+  destruct (fold_left_impl n' l') as [hle' [minl' [hin' heq'']]].
+  rewrite heq' heq''.
+  specialize (hle minl'). forward hle. now apply heq.
+  specialize (hle' minl). forward hle'. now apply heq.
+  rewrite heq'' in hle'. rewrite heq' in hle. depelim hle'. depelim hle. f_equal; lia.
+  now depelim hle.
+Qed.
+
+Lemma fold_left_comm_f {A} (f : A -> A -> A) n l :
+  (forall x y, f x y = f y x) ->
+  fold_left f l n = fold_left (flip f) l n.
+Proof.
+  induction l in n |- *; cbn; auto.
+  intros hf. rewrite IHl //.
+  unfold flip. now rewrite hf.
+Qed.
+
+Lemma min_premise_add {m le prems} : min_premise m (add le prems) =
+  option_map2 Z.min (min_atom_value m le) (min_premise m prems).
+Proof.
+  rewrite {1}/min_premise.
+  have hs' := to_nonempty_list_spec (add le prems).
+  destruct to_nonempty_list.
+  have eqf : (fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.min (min_atom_value m atom) min) l (min_atom_value m t)) =
+    (option_map2 Z.min (min_atom_value m le) (min_premise m prems)).
+  2:{ now rewrite eqf. }
+  rewrite -(to_nonempty_list_spec' (add le prems)) in hs'. noconf hs'.
+  rewrite fold_left_map. rewrite fold_left_comm_f. intros [] []; cbn; auto. lia_f_equal. unfold flip.
+  have l := fold_left_impl_eq (min_atom_value m (to_nonempty_list (add le prems)).1) (min_atom_value m le)
+    (map (min_atom_value m) (to_nonempty_list (add le prems)).2) (map (min_atom_value m) (LevelExprSet.elements prems)).
+  rewrite l.
+  intros x.
+  { rewrite -!map_cons to_nonempty_list_spec' !in_map_iff.
+    split.
+    - move=> [] lk [] <-.
+      rewrite -InA_In_eq.
+      move/LevelExprSet.elements_spec1.
+      rewrite LevelExprSet.add_spec.
+      intros [->|inp].
+      * exists le. split => //. now left.
+      * exists lk. split => //. right. now apply InA_In_eq, LevelExprSet.elements_spec1.
+    - intros [x' [<- hin]].
+      exists x'. split => //. rewrite -InA_In_eq.
+      eapply LevelExprSet.elements_spec1. rewrite LevelExprSet.add_spec.
+      apply InA_In_eq in hin. depelim hin. now left.
+      eapply LevelExprSet.elements_spec1 in hin. now right. }
+  rewrite option_map2_comm.
+  rewrite /min_premise.
+  destruct (to_nonempty_list prems) eqn:he.
+  rewrite fold_left_map.
+  rewrite (fold_left_comm_f _ _ (map _ l0)). intros. apply option_map2_comm.
+  rewrite -(fold_left_comm (option_map2 Z.min)).
+  { intros. now rewrite -option_map2_assoc (option_map2_comm x y) option_map2_assoc. }
+  rewrite -(to_nonempty_list_spec' prems) he; cbn.
+  now rewrite option_map2_comm.
+Qed.
+
+Lemma min_premise_elim m (P : univ -> option Z -> Prop):
+  (forall le, P (singleton le) (min_atom_value m le)) ->
+  (forall prems acc le, P prems acc -> ~ LevelExprSet.In le prems -> P (add le prems) (option_map2 Z.min (min_atom_value m le) acc)) ->
+  forall prems, P prems (min_premise m prems).
+Proof.
+  intros hs hadd.
+  eapply nonEmptyLevelExprSet_elim.
+  - intros le. rewrite /min_premise.
+    rewrite singleton_to_nonempty_list. cbn. apply hs.
+  - intros le prems hp. now rewrite min_premise_add.
+Qed.
+
 Lemma min_premise_add_down {m} {prems : univ} {l k} :
   LevelExprSet.In (l, k + 1) prems ->
   forall z, min_premise m prems = Some z ->
@@ -6762,138 +6897,22 @@ Proof.
     rewrite hm in hle. rewrite -hm' hmin in hle. depelim hle. lia.
 Qed.
 
-Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
-  fold_left (fun acc l => f (g l) acc) l acc =
-  fold_left (fun acc l => f l acc) (map g l) acc.
-Proof.
-  induction l in acc |- *; cbn; auto.
-Qed.
-
-Lemma fold_left_max_acc {n l} : (forall x, In x l -> x = n) -> n = fold_left (option_map2 Z.min) l n.
-Proof.
-  induction l in n |- *.
-  - now cbn.
-  - cbn. intros he. transitivity (option_map2 Z.min n a). 2:apply IHl.
-    specialize (he a). forward he. now left. subst. destruct n => //= //. lia_f_equal.
-    intros. have h := (he x). forward h by now right.
-    have h' := (he a). forward h' by now left. subst.
-    destruct n => //=; lia_f_equal.
-Qed.
-
-Lemma fold_left_impl n n' l l' :
-  (forall x, In x (n :: l) <-> In x (n' :: l')) ->
-  fold_left (option_map2 Z.min) l n = fold_left (option_map2 Z.min) l' n'.
-Proof.
-  intros.
-Admitted.
-
-Lemma fold_left_comm_f {A} (f : A -> A -> A) n l :
-  (forall x y, f x y = f y x) ->
-  fold_left f l n = fold_left (flip f) l n.
-Proof.
-  induction l in n |- *; cbn; auto.
-  intros hf. rewrite IHl //.
-  unfold flip. now rewrite hf.
-Qed.
-
-(*
-Lemma min_premise_fold_equiv {A} (f : A -> A -> A) x x' l l' :
-  equivlistA eq (x :: l) (x' :: l') ->
-  NoDup (x :: l) ->
-  NoDup (x' :: l') ->
-  transpose eq f ->
-  fold_left f l x =
-  fold_left f l' x'.
-Proof.
-  induction l in x', l' |- *.
-  - cbn. intros.
-    destruct (H x). destruct l' => //. cbn.
-    forward H3 by constructor; reflexivity.
-    now depelim H3. subst.
-    depelim H1.
-    destruct (H x). forward H6 by constructor; reflexivity.
-    depelim H6. subst. forward H4 by constructor; reflexivity.
-    forward H2 by constructor; reflexivity.
-     now depelim H.
-    destruct H as [H H']. forward H by constructor. reflexivity.
-    depelim H. subst. cbn. forward H'. constructor; reflexivity.
-    depelim H'. subst. *)
-
-
-Lemma option_map2_comm x y : option_map2 Z.min x y = option_map2 Z.min y x.
-Proof.
-  destruct x, y; cbn; lia_f_equal.
-Qed.
-
-Lemma option_map2_assoc x y z :
-  option_map2 Z.min x (option_map2 Z.min y z) =
-  option_map2 Z.min (option_map2 Z.min x y) z.
-Proof.
-  destruct x, y, z; cbn; lia_f_equal.
-Qed.
-
-Lemma min_premise_elim m (P : univ -> option Z -> Prop):
-  (forall le, P (singleton le) (min_atom_value m le)) ->
-  (forall prems acc le, P prems acc -> ~ LevelExprSet.In le prems -> P (add le prems) (option_map2 Z.min (min_atom_value m le) acc)) ->
-  forall prems, P prems (min_premise m prems).
-Proof.
-  intros hs hadd.
-  eapply nonEmptyLevelExprSet_elim.
-  - intros le. rewrite /min_premise.
-    rewrite singleton_to_nonempty_list. cbn. apply hs.
-  - intros le prems hp.
-    rewrite /min_premise.
-    have hs' := to_nonempty_list_spec (add le prems).
-    destruct to_nonempty_list.
-    have eqf : (fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.min (min_atom_value m atom) min) l (min_atom_value m t)) =
-      (option_map2 Z.min (min_atom_value m le) (min_premise m prems)).
-    2:{ rewrite eqf. now eapply hadd. }
-    rewrite -(to_nonempty_list_spec' (add le prems)) in hs'. noconf hs'.
-    rewrite fold_left_map. rewrite fold_left_comm_f. intros [] []; cbn; auto. lia_f_equal. unfold flip.
-    have l := fold_left_impl (min_atom_value m (to_nonempty_list (add le prems)).1) (min_atom_value m le)
-      (map (min_atom_value m) (to_nonempty_list (add le prems)).2) (map (min_atom_value m) (LevelExprSet.elements prems)).
-    rewrite l.
-    intros x.
-    { rewrite -!map_cons to_nonempty_list_spec' !in_map_iff.
-      split.
-      - move=> [] lk [] <-.
-        rewrite -InA_In_eq.
-        move/LevelExprSet.elements_spec1.
-        rewrite LevelExprSet.add_spec.
-        intros [->|inp].
-        * exists le. split => //. now left.
-        * exists lk. split => //. right. now apply InA_In_eq, LevelExprSet.elements_spec1.
-      - intros [x' [<- hin]].
-        exists x'. split => //. rewrite -InA_In_eq.
-        eapply LevelExprSet.elements_spec1. rewrite LevelExprSet.add_spec.
-        apply InA_In_eq in hin. depelim hin. now left.
-        eapply LevelExprSet.elements_spec1 in hin. now right. }
-    rewrite option_map2_comm.
-    rewrite /min_premise.
-    destruct (to_nonempty_list prems) eqn:he.
-    rewrite fold_left_map.
-    rewrite (fold_left_comm_f _ _ (map _ l0)). intros. apply option_map2_comm.
-    rewrite -(fold_left_comm (option_map2 Z.min)).
-    { intros. now rewrite -option_map2_assoc (option_map2_comm x y) option_map2_assoc. }
-    rewrite -(to_nonempty_list_spec' prems) he; cbn.
-    now rewrite option_map2_comm.
-Qed.
-
 Lemma add_prems_singleton n cl : add_prems n (singleton cl) = singleton (add_expr n cl).
 Proof.
-Admitted.
+  apply eq_univ_equal => [] [l k].
+  rewrite In_add_prems LevelExprSet.singleton_spec.
+  firstorder.
+  - destruct x; noconf H0.
+    eapply LevelExprSet.singleton_spec in H.
+    now red in H; noconf H.
+  - destruct cl. exists (t, n0). split => //.
+    red in H; noconf H. now apply LevelExprSet.singleton_spec.
+Qed.
 
 Lemma min_premise_singleton m u : min_premise m (singleton u) = min_atom_value m u.
 Proof.
   now rewrite /min_premise singleton_to_nonempty_list; cbn.
 Qed.
-
-Lemma min_premise_add m le u : min_premise m (add le u) =
-  option_map2 Z.min (min_atom_value m le) (min_premise m u).
-Proof.
-  symmetry.
-  rewrite /min_premise.
-Admitted.
 
 Lemma min_atom_value_add m e x n :
   min_atom_value m e = Some x ->
