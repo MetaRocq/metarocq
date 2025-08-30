@@ -2306,7 +2306,7 @@ Qed.
 
 Lemma nonEmptyLevelExprSet_elim {P : nonEmptyLevelExprSet -> Prop} :
   (forall le, P (singleton le)) ->
-  (forall le prems, P prems -> P (add le prems)) ->
+  (forall le prems, P prems -> ~ LevelExprSet.In le prems -> P (add le prems)) ->
   forall prems, P prems.
 Proof.
   intros hs ha.
@@ -2905,7 +2905,7 @@ Proof.
   - intros le. rewrite univ_union_comm univ_union_add_singleton.
     now apply entails_weak.
   - intros le prems ih.
-    rewrite univ_union_add_distr.
+    rewrite univ_union_add_distr. intros _.
     now eapply entails_weak.
 Qed.
 
@@ -3011,7 +3011,7 @@ Proof.
     cbn in H.
     eapply entails_add; tea.
     now rewrite -univ_union_add_singleton.
-  - intros le prems ih prem concl' hadd hadd'.
+  - intros le prems ih _ prem concl' hadd hadd'.
     rewrite univ_union_comm univ_union_add_distr -univ_union_comm -univ_union_add_distr in hadd'.
     eapply ih in hadd'. 2:{ apply entails_all_weak. apply entails_all_add in hadd as []. exact H0. }
     apply entails_all_add in hadd as [].
@@ -6646,27 +6646,348 @@ Definition invalid_entailment cls cl :=
   ~ entails cls cl.
   (* forall V, clauses_sem V cls -> clause_sem V cl -> False. *)
 
-Lemma entails_su cls cl : entails cls cl ->
-  forall m, is_model cls m -> enabled_clause m cl -> valid_clause m cl.
+Definition infers_univ (m : model) (u : univ) :=
+  exists z, min_premise m u = Some z /\ (0 <= z)%Z.
+
+Definition infers_expr (m : model) (le : LevelExpr.t) :=
+  let '(l, k) := le in infers_atom m l k.
+
+Lemma valid_clause_elim {m prems concl k} : valid_clause m (prems, (concl, k)) ->
+  forall z, min_premise m prems = Some z -> (0 <= z)%Z ->
+  Some (Z.to_nat z + k) ≤ level_value m concl.
+Proof.
+  rewrite /valid_clause => hcl z eqmin hge.
+  rewrite eqmin in hcl. cbn in *.
+  move: hcl; elim: Z.ltb_spec => //=.
+  * lia.
+  * move=> _. rewrite /level_value_above. destruct level_value eqn:hl => //.
+    move/Nat.leb_le. constructor. lia.
+Qed.
+
+Lemma valid_clause_intro {m prems concl k} :
+  (forall z,
+    min_premise m prems = Some z -> (0 <= z)%Z ->
+    Some (Z.to_nat z + k) ≤ level_value m concl) ->
+  valid_clause m (prems, (concl, k)).
+Proof.
+  rewrite /valid_clause //=.
+  destruct min_premise => //.
+  elim: Z.ltb_spec => //= hge.
+  intros hz.
+  specialize (hz _ eq_refl hge). depelim hz.
+  rewrite /level_value_above H0.
+  now apply Nat.leb_le.
+Qed.
+
+Lemma infers_expr_min_atom_value m le : infers_expr m le -> exists k, min_atom_value m le = Some k /\ (0 <= k)%Z.
+Proof.
+  destruct le as [l k]; rewrite /infers_expr //=.
+  rewrite /infers_atom. destruct level_value => // hle; depelim hle.
+  eexists; split; trea. lia.
+Qed.
+
+Lemma min_premise_add_infers m prems le :
+  infers_expr m le ->
+  forall z, min_premise m prems = Some z -> (0 <= z)%Z ->
+  exists z', min_premise m (add le prems) = Some z' /\
+    ((min_atom_value m le = Some z' /\ (0 <= z' <= z)%Z) \/ z' = z).
+Proof.
+  intros infe z hmin hpos.
+  have [hle [min' [hin hm]]] := min_premise_spec m (add le prems).
+  have [hle' [min'' [hin' hm']]] := min_premise_spec m prems.
+  move/LevelExprSet.add_spec: hin => [heq|hin].
+  - noconf heq.
+    eapply infers_expr_min_atom_value in infe as [z' [mineq hge]].
+    rewrite mineq in hm. exists z'; split => //.
+    specialize (hle min''). forward hle.
+    { rewrite LevelExprSet.add_spec. now right. }
+    rewrite hm -hm' hmin in hle. now depelim hle.
+  - exists z. split => //. 2:right; reflexivity. rewrite hm -hmin hm'.
+    move: (hle' _ hin). rewrite hmin. intros h; depelim h.
+    rewrite H0 in hm.
+    specialize (hle min''). forward hle. eapply LevelExprSet.add_spec. now right.
+    rewrite hm in hle. rewrite -hm' hmin in hle. depelim hle.
+    rewrite H0 -hm' hmin. f_equal. lia.
+Qed.
+
+Lemma min_premise_add_down {m} {prems : univ} {l k} :
+  LevelExprSet.In (l, k + 1) prems ->
+  forall z, min_premise m prems = Some z ->
+       min_premise m (add (l, k) prems) = Some z.
+Proof.
+  intros ine z hmin.
+  have [hle [min' [hin hm]]] := min_premise_spec m (add (l, k) prems).
+  have [hle' [min'' [hin' hm']]] := min_premise_spec m prems.
+  move/LevelExprSet.add_spec: hin => [heq|hin].
+  - noconf heq.
+    specialize (hle (l, k + 1)).
+    forward hle. eapply LevelExprSet.add_spec. now right.
+    rewrite hm in hle.
+    depelim hle. destruct level_value eqn:hl. noconf H0; noconf H1. lia. congruence.
+    destruct level_value eqn:hl' => //.
+    specialize (hle' _ ine). rewrite hmin in hle'; depelim hle'.
+    now rewrite hl' in H1.
+  - rewrite hm. specialize (hle' min' hin). rewrite hmin in hle'.
+    depelim hle'. rewrite H0. f_equal. rewrite H0 in hm.
+    specialize (hle min''). forward hle. eapply LevelExprSet.add_spec. now right.
+    rewrite hm in hle. rewrite -hm' hmin in hle. depelim hle. lia.
+Qed.
+
+Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
+  fold_left (fun acc l => f (g l) acc) l acc =
+  fold_left (fun acc l => f l acc) (map g l) acc.
+Proof.
+  induction l in acc |- *; cbn; auto.
+Qed.
+
+Lemma fold_left_max_acc {n l} : (forall x, In x l -> x = n) -> n = fold_left (option_map2 Z.min) l n.
+Proof.
+  induction l in n |- *.
+  - now cbn.
+  - cbn. intros he. transitivity (option_map2 Z.min n a). 2:apply IHl.
+    specialize (he a). forward he. now left. subst. destruct n => //= //. lia_f_equal.
+    intros. have h := (he x). forward h by now right.
+    have h' := (he a). forward h' by now left. subst.
+    destruct n => //=; lia_f_equal.
+Qed.
+
+Lemma fold_left_impl n n' l l' :
+  (forall x, In x (n :: l) <-> In x (n' :: l')) ->
+  fold_left (option_map2 Z.min) l n = fold_left (option_map2 Z.min) l' n'.
+Proof.
+  intros.
+Admitted.
+
+Lemma fold_left_comm_f {A} (f : A -> A -> A) n l :
+  (forall x y, f x y = f y x) ->
+  fold_left f l n = fold_left (flip f) l n.
+Proof.
+  induction l in n |- *; cbn; auto.
+  intros hf. rewrite IHl //.
+  unfold flip. now rewrite hf.
+Qed.
+
+(*
+Lemma min_premise_fold_equiv {A} (f : A -> A -> A) x x' l l' :
+  equivlistA eq (x :: l) (x' :: l') ->
+  NoDup (x :: l) ->
+  NoDup (x' :: l') ->
+  transpose eq f ->
+  fold_left f l x =
+  fold_left f l' x'.
+Proof.
+  induction l in x', l' |- *.
+  - cbn. intros.
+    destruct (H x). destruct l' => //. cbn.
+    forward H3 by constructor; reflexivity.
+    now depelim H3. subst.
+    depelim H1.
+    destruct (H x). forward H6 by constructor; reflexivity.
+    depelim H6. subst. forward H4 by constructor; reflexivity.
+    forward H2 by constructor; reflexivity.
+     now depelim H.
+    destruct H as [H H']. forward H by constructor. reflexivity.
+    depelim H. subst. cbn. forward H'. constructor; reflexivity.
+    depelim H'. subst. *)
+
+
+Lemma option_map2_comm x y : option_map2 Z.min x y = option_map2 Z.min y x.
+Proof.
+  destruct x, y; cbn; lia_f_equal.
+Qed.
+
+Lemma option_map2_assoc x y z :
+  option_map2 Z.min x (option_map2 Z.min y z) =
+  option_map2 Z.min (option_map2 Z.min x y) z.
+Proof.
+  destruct x, y, z; cbn; lia_f_equal.
+Qed.
+
+Lemma min_premise_elim m (P : univ -> option Z -> Prop):
+  (forall le, P (singleton le) (min_atom_value m le)) ->
+  (forall prems acc le, P prems acc -> ~ LevelExprSet.In le prems -> P (add le prems) (option_map2 Z.min (min_atom_value m le) acc)) ->
+  forall prems, P prems (min_premise m prems).
+Proof.
+  intros hs hadd.
+  eapply nonEmptyLevelExprSet_elim.
+  - intros le. rewrite /min_premise.
+    rewrite singleton_to_nonempty_list. cbn. apply hs.
+  - intros le prems hp.
+    rewrite /min_premise.
+    have hs' := to_nonempty_list_spec (add le prems).
+    destruct to_nonempty_list.
+    have eqf : (fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.min (min_atom_value m atom) min) l (min_atom_value m t)) =
+      (option_map2 Z.min (min_atom_value m le) (min_premise m prems)).
+    2:{ rewrite eqf. now eapply hadd. }
+    rewrite -(to_nonempty_list_spec' (add le prems)) in hs'. noconf hs'.
+    rewrite fold_left_map. rewrite fold_left_comm_f. intros [] []; cbn; auto. lia_f_equal. unfold flip.
+    have l := fold_left_impl (min_atom_value m (to_nonempty_list (add le prems)).1) (min_atom_value m le)
+      (map (min_atom_value m) (to_nonempty_list (add le prems)).2) (map (min_atom_value m) (LevelExprSet.elements prems)).
+    rewrite l.
+    intros x.
+    { rewrite -!map_cons to_nonempty_list_spec' !in_map_iff.
+      split.
+      - move=> [] lk [] <-.
+        rewrite -InA_In_eq.
+        move/LevelExprSet.elements_spec1.
+        rewrite LevelExprSet.add_spec.
+        intros [->|inp].
+        * exists le. split => //. now left.
+        * exists lk. split => //. right. now apply InA_In_eq, LevelExprSet.elements_spec1.
+      - intros [x' [<- hin]].
+        exists x'. split => //. rewrite -InA_In_eq.
+        eapply LevelExprSet.elements_spec1. rewrite LevelExprSet.add_spec.
+        apply InA_In_eq in hin. depelim hin. now left.
+        eapply LevelExprSet.elements_spec1 in hin. now right. }
+    rewrite option_map2_comm.
+    rewrite /min_premise.
+    destruct (to_nonempty_list prems) eqn:he.
+    rewrite fold_left_map.
+    rewrite (fold_left_comm_f _ _ (map _ l0)). intros. apply option_map2_comm.
+    rewrite -(fold_left_comm (option_map2 Z.min)).
+    { intros. now rewrite -option_map2_assoc (option_map2_comm x y) option_map2_assoc. }
+    rewrite -(to_nonempty_list_spec' prems) he; cbn.
+    now rewrite option_map2_comm.
+Qed.
+
+Lemma add_prems_singleton n cl : add_prems n (singleton cl) = singleton (add_expr n cl).
+Proof.
+Admitted.
+
+Lemma min_premise_singleton m u : min_premise m (singleton u) = min_atom_value m u.
+Proof.
+  now rewrite /min_premise singleton_to_nonempty_list; cbn.
+Qed.
+
+Lemma min_premise_add m le u : min_premise m (add le u) =
+  option_map2 Z.min (min_atom_value m le) (min_premise m u).
+Proof.
+  symmetry.
+  rewrite /min_premise.
+Admitted.
+
+Lemma min_atom_value_add m e x n :
+  min_atom_value m e = Some x ->
+  min_atom_value m (add_expr n e) = Some (x - Z.of_nat n)%Z.
+Proof.
+  rewrite /min_atom_value. destruct e. cbn.
+  destruct level_value => //. intros [= <-].
+  f_equal. lia.
+Qed.
+
+
+Lemma min_atom_value_add_inv m e x n :
+  min_atom_value m (add_expr n e) = Some x ->
+  min_atom_value m e = Some (x + Z.of_nat n)%Z.
+Proof.
+  rewrite /min_atom_value. destruct e. cbn.
+  destruct level_value => //. intros [= <-].
+  f_equal. lia.
+Qed.
+
+Lemma min_premise_add_prems {m n prems z} : min_premise m prems = Some z -> min_premise m (add_prems n prems) = Some (z - Z.of_nat n)%Z.
+Proof.
+  revert z.
+  eapply min_premise_elim.
+  - intros le hm.
+    destruct le as [concl k].
+    rewrite add_prems_singleton min_premise_singleton.
+    apply min_atom_value_add.
+  - intros prems' acc le ih nle z hm.
+    destruct acc; cbn in hm. 2:{ destruct (min_atom_value m le); cbn in hm; congruence. }
+    specialize (ih _ eq_refl).
+    rewrite add_prems_add min_premise_add.
+    destruct (min_atom_value m le) eqn:hm'; cbn in hm => //. noconf hm.
+    apply (min_atom_value_add _ _ _ n) in hm'.
+    rewrite ih hm'. cbn. f_equal. lia.
+Qed.
+
+Lemma min_premise_add_prems_inv {m n prems z} : min_premise m (add_prems n prems) = Some z ->
+  min_premise m prems = Some (z + Z.of_nat n)%Z.
+Proof.
+  revert z.
+  pattern prems.
+  set (P := (fun n0 hm =>
+  forall z : Z,
+    min_premise m (add_prems n n0) = Some z -> hm = Some (z + Z.of_nat n)%Z)).
+  apply (@min_premise_elim _ P); subst P; cbn.
+  - intros le z hm.
+    destruct le as [concl k].
+    rewrite add_prems_singleton min_premise_singleton in hm.
+    now apply min_atom_value_add_inv.
+  - intros prems' acc le ih nle z.
+    rewrite add_prems_add min_premise_add.
+    destruct (min_premise m (add_prems n prems')) eqn:he => //=.
+    * destruct (min_atom_value m (add_expr n le)) eqn:ha => //=.
+      intros [= <-].
+      eapply min_atom_value_add_inv in ha. rewrite ha.
+      specialize (ih _ eq_refl). subst acc. cbn. lia_f_equal.
+    *  destruct (min_atom_value m (add_expr n le)) eqn:ha => //=.
+Qed.
+
+Lemma level_value_above_leq {m l k} :
+  Some k ≤ level_value m l ->
+  level_value_above m l k.
+Proof.
+  intros h; rewrite /level_value_above.
+  depelim h. rewrite H0. apply Nat.leb_le. lia.
+Qed.
+
+Lemma valid_clause_shift m n cl :
+  valid_clause m cl -> valid_clause m (add_clause n cl).
+Proof.
+  destruct cl as [prems [concl k]].
+  move/valid_clause_elim => hv.
+  apply valid_clause_intro => z eqmin zpos.
+  eapply min_premise_add_prems_inv in eqmin.
+  specialize (hv _ eqmin). forward hv. lia.
+  etransitivity; tea. constructor; lia.
+Qed.
+
+Lemma entails_model_valid cls cl : entails cls cl ->
+  forall m, is_model cls m -> valid_clause m cl.
 Proof.
   induction 1.
   - intros m ism.
-    unfold enabled_clause, valid_clause.
-    intros [z [eqmin hge]]. rewrite eqmin. cbn.
     destruct concl0 as [concl k].
-    have hge' := hge.
-    apply Z.leb_le in hge'. rewrite Z.leb_antisym in hge'.
-    move/negbTE: hge' => -> //=.
-    unfold level_value_above.
-    destruct level_value eqn:hl. cbn in eqmin.
-    eapply min_premise_spec_aux in eqmin as [hle [x [hin heq]]].
-    specialize (hle _ H). depelim hle. rewrite hl in H1. noconf H1.
-    eapply Nat.leb_le. lia.
-    eapply min_premise_spec_aux in eqmin as [hle [x [hin heq]]].
-    specialize (hle _ H). depelim hle. rewrite hl in H1. congruence.
+    apply valid_clause_intro => z hmin hge.
+    eapply min_premise_spec_aux in hmin as [hle [x [hin heq]]].
+    specialize (hle _ H). depelim hle.
+    destruct level_value eqn:hl => //. noconf H1.
+    constructor. lia.
   - intros.
     specialize (IHentails m H2).
-
+    depelim H.
+    * destruct cl as [premsc conclc].
+      noconf H0.
+      eapply Clauses.for_all_spec in H3.
+      eapply H3 in H. 2:tc.
+      destruct concl0 as [concl k].
+      eapply valid_clause_intro => z eqmin hge.
+      have mins := min_premise_subset m (add_prems n premsc) prems H2.
+      rewrite eqmin in mins; depelim mins.
+      destruct conclc as [conclc k'].
+      have vshift : valid_clause m (add_prems n premsc, add_expr n (conclc, k')).
+      { now eapply (valid_clause_shift _ n) in H. }
+      have hv := valid_clause_elim vshift _ H4. forward hv by lia.
+      eapply (min_premise_add_infers _ _ (add_expr n (conclc, k'))) in eqmin as [minadd [eqminadd disj]]; tea.
+      2:{ rewrite /infers_expr /infers_atom. cbn. etransitivity; tea. constructor; lia. }
+      move/valid_clause_elim: IHentails => //=.
+      move/(_ _ eqminadd).
+      destruct disj as [[eqmnew le']| ->].
+      + cbn in eqmnew. depelim hv. rewrite H6 in eqmnew.
+        have : (0 <= minadd)%Z by (noconf eqmnew; lia).
+        move=> h /(_ h). noconf eqmnew. intros h'; depelim h'.
+        rewrite H8. constructor; lia.
+      + move/(_ hge). intros h; depelim h. rewrite H6; constructor; lia.
+    * destruct concl0 as [concl0 k'].
+      apply valid_clause_intro => z hmin hgt.
+      have mins := min_premise_subset m _ _ H1.
+      rewrite min_premise_singleton in mins.
+      specialize (H1 (x, k+1)); forward H1 by now apply LevelExprSet.singleton_spec.
+      have hadd := min_premise_add_down H1 _ hmin.
+      exact: valid_clause_elim IHentails _ hadd hgt.
+Qed.
 
 Lemma check_entails_false {cls cl} :
   check cls cl = false -> invalid_entailment cls cl.
@@ -6675,6 +6996,7 @@ Proof.
   - intros _; clear Heq Heqcall. red in islooping. red.
     eapply (entails_all_shift 1) in islooping.
     eapply entails_all_succ_clauses in islooping.
+    intros he.
     eapply clauses_sem_entails_all in islooping; tea.
     rewrite interp_add_prems in islooping. lia. admit.
   - set (V := clause_levels (succ_clause cl) ∪ clauses_levels cls) in *.
@@ -6684,6 +7006,7 @@ Proof.
     (* Found a value *)
     unfold valid_clause, level_value_above.
     move/leb_complete_conv => hgt. intro.
+    eapply entails_model_valid in H. 2:apply v.
     intros val ext.
     have vmupd := model_updates v.
     have vmok := model_ok v.
