@@ -8,6 +8,7 @@ Numeral0
 Nat0
 Caml_nat
 ListDef
+ListDef0
 List0
 PeanoNat
 Specif
@@ -16,6 +17,7 @@ BinPosDef
 BinNums
 BinPos
 PosDef
+PosDef0
 BinNat
 NatDef
 BinInt
