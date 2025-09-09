@@ -116,6 +116,8 @@ gen-src/list0.ml
 gen-src/list0.mli
 gen-src/listDef.ml
 gen-src/listDef.mli
+gen-src/listDef0.ml
+gen-src/listDef0.mli
 gen-src/logic0.ml
 gen-src/logic0.mli
 gen-src/logic1.ml
@@ -186,6 +188,8 @@ gen-src/plugin_core.ml
 gen-src/plugin_core.mli
 gen-src/posDef.ml
 gen-src/posDef.mli
+gen-src/posDef0.ml
+gen-src/posDef0.mli
 gen-src/pretty.ml
 gen-src/pretty.mli
 gen-src/primFloat.ml
