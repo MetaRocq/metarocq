@@ -6729,12 +6729,12 @@ Qed.
 
 Definition valid_entailment cls cl := forall V, clauses_sem V cls -> clause_sem V cl.
 
-Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty (succ_clauses cls) (premises_model (clauses_levels cls) cl).2 :=
+Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) cl).2 :=
   let V := clauses_levels cls in
-  loop (premises_model V cl).1 LevelSet.empty (succ_clauses cls) (premises_model V cl).2 (premises_model V cl).2 _.
+  loop (premises_model V cl).1 LevelSet.empty cls (premises_model V cl).2 (premises_model V cl).2 _.
 Next Obligation.
   split => //.
-  - rewrite clauses_levels_add. lsets.
+  - lsets.
   - intros l. rewrite LevelSet.union_spec.
     rewrite -/(LevelMap.In l (premises_model (clauses_levels cls) cl).2).
     rewrite in_premises_model. intuition auto.
@@ -7134,14 +7134,27 @@ Proof.
   - constructor. intros h; depelim h.
 Qed.
 
-Equations check (cls : clauses) (cl : clause) : check_result (succ_clauses cls) :=
-  check cls cl with loop_check cls (succ_clause cl) :=
+Lemma valid_model_find {V W cl cls} :
+  forall v : valid_model (clause_levels cl ∪ V) W (premises_model_map (zero_model (clause_levels cl ∪ V)) (Clauses.singleton cl)) cls,
+  ~ LevelMap.find (concl cl).1 (model_model v) = None.
+Proof.
+  intros v hfind.
+  destruct cl as [prems [concl k]]; unfold LoopChecking.concl, snd in *; cbn in *.
+  have vmupd := model_of_V v.
+  set (pm := premises_model_map _ _) in *.
+  move/LevelMapFact.F.not_find_in_iff: hfind; apply.
+  apply vmupd. rewrite LevelSet.union_spec; left.
+  rewrite clause_levels_spec. now right.
+Qed.
+
+Equations check (cls : clauses) (cl : clause) : check_result cls :=
+  check cls cl with loop_check cls cl :=
     | Loop v isl => IsLooping v isl
-    | Model W v _ with LevelMap.find (concl cl).1 v.(model_model) := {
-      | Some val with check_atom_value (Z.succ (concl cl).2) val :=
+    | Model W v _ with inspect (LevelMap.find (concl cl).1 v.(model_model)) := {
+      | exist (Some val) he with check_atom_value (concl cl).2 val :=
         { | true => Valid
           | false => Invalid }
-      | None => Invalid (* Impossible actually *)
+      | exist None he with valid_model_find v he := {}
     }.
 
 (* If a clause checks, then it should be valid in any extension of the model *)
@@ -7149,9 +7162,9 @@ Lemma check_entails {cls cl} :
   check cls cl = Valid -> valid_entailment cls cl.
 Proof.
   destruct cl as [prems [concl k]].
-  funelim (check cls _) => //.
-  set (V := clause_levels (succ_clause _) ∪ clauses_levels cls) in *.
-  clear Heqcall => _. cbn [concl fst snd] in *.
+  funelim (check cls _) => // _.
+  set (V := clause_levels _ ∪ clauses_levels cls) in *.
+  clear Heqcall H. cbn [concl fst snd] in *. clear Heq0.
   unfold valid_entailment, valid_clause, level_value_above.
   move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
   intros valuation ext.
@@ -7160,20 +7173,17 @@ Proof.
   set (pm := premises_model_map _ _) in *.
   have nepm : defined_map pm.
   { apply premises_model_map_defined.
-    set (cl := succ_clause _) in *.
+    set (cl := (prems, _)) in *.
     move/(_ cl). rewrite Clauses.singleton_spec. congruence. }
   have nev : defined_map (model_model v).
     by apply (is_update_of_defined_map nepm vmupd).
   move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
   set (cl := (prems, (concl0, k))) in V.
-  have of_lset := of_level_map_premises_model_map (succ_clauses cls) (succ_clause cl) V nepm.
+  have of_lset := of_level_map_premises_model_map cls cl V nepm.
   have tr := entails_all_trans of_lset ent.
-  eapply (entails_all_satisfies (l := concl0) (k := Z.succ k)) in tr.
-  2:{ red. rewrite /level_value Heq0. now constructor. }
-  have se := (succ_clauses_equiv cls (premise cl) (concl0, k)).
-  cbn in se, tr. rewrite Z.add_1_r in se.
-  specialize (se tr).
-  eapply clauses_sem_entails in se ; tea.
+  eapply (entails_all_satisfies (l := concl0) (k := k)) in tr.
+  2:{ red. rewrite /level_value he. now constructor. }
+  eapply clauses_sem_entails in tr ; tea.
 Qed.
 
 Definition invalid_entailment cls cl :=
@@ -7529,9 +7539,6 @@ Lemma check_entails_looping {cls cl v isl} :
   check cls cl = IsLooping v isl -> cls ⊢a v → succ_prems v.
 Proof.
   funelim (check cls cl) => //.
-  intros [=]; subst v0. clear isl0 Heqcall.
-  red in isl. clear Heq; move: isl.
-  now move/(entails_all_shift 1)/entails_all_succ_clauses.
 Qed.
 
 Lemma enabled_clause_ext {m m' cl} :
@@ -7547,59 +7554,43 @@ Lemma check_entails_false {cls cl} :
   check cls cl = Invalid -> ~ entails cls cl.
 Proof.
   funelim (check cls cl) => //.
-  - (* Found no value for the conclusion: impossible *)
-    clear Heq0 Heqcall prf => _ _.
-    set (V := clause_levels (succ_clause cl) ∪ clauses_levels cls) in *.
-    destruct cl as [prems [concl k]]; unfold LoopChecking.concl, snd in *.
-    have vmupd := model_of_V v.
-    set (pm := premises_model_map _ _) in *.
-    cbn in Heq.
-    move/LevelMapFact.F.not_find_in_iff: Heq; apply.
-    apply vmupd. rewrite LevelSet.union_spec; left.
-    rewrite clause_levels_spec. now right.
-  - (* Found a value *)
-    set (V := clause_levels (succ_clause cl) ∪ clauses_levels cls) in *.
-    destruct cl as [prems [concl k]]; unfold LoopChecking.concl, snd in *.
-    rename val into conclval_v => _. clear Heq1 Heqcall prf.
-    unfold valid_clause, level_value_above.
-    move: (check_atom_value_spec (Z.succ k) conclval_v). rewrite Heq.
-    intros r; depelim r. rename H into nent. intros H.
-    have vmupd := model_updates v.
-    have vmok := model_ok v.
-    set (pm := premises_model_map _ _) in *.
-    have nepm : defined_map pm.
-    { apply premises_model_map_defined.
-      set (cl := succ_clause _) in *.
-      move/(_ cl). rewrite Clauses.singleton_spec. congruence. }
-    have nev : defined_map (model_model v).
+  set (V := clause_levels cl ∪ clauses_levels cls) in *.
+  destruct cl as [prems [concl k]]; unfold LoopChecking.concl, snd in *.
+  rename val into conclval_v => _. clear H Heq0 Heqcall prf. cbn in he.
+  move: (check_atom_value_spec k conclval_v). rewrite Heq.
+  intros r; depelim r. rename H into nent. intros H.
+  have vmupd := model_updates v.
+  have vmok := model_ok v.
+  set (pm := premises_model_map _ _) in *.
+  set (cl := (prems, _)) in V.
+  have nepm : defined_map pm.
+  { apply premises_model_map_defined.
+    move/(_ cl). rewrite Clauses.singleton_spec /cl. congruence. }
+  have nev : defined_map (model_model v).
     by apply (is_update_of_defined_map nepm vmupd).
-    move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
-    set (cl := (prems, (concl, k))) in V.
-    move/entails_plus: H.
-    move/entails_model_valid/(_ _ vmok).
-    have en : enabled_clause (model_model v) (succ_clause (prems, (concl, k))).
-    { apply (@enabled_clause_ext pm).
-      exact: is_update_of_ext (model_updates v).
-      red; cbn.
-      have hcl : Clauses.In (succ_clause cl) (Clauses.singleton (succ_clause cl)).
-      { now eapply Clauses.singleton_spec. }
-      have hs:= @premises_model_map_min_premise_inv V _ _ hcl. firstorder. }
-    destruct en as [z minp].
-    move/valid_clause_elim/(_ z minp).
-    cbn in minp.
-    rewrite /level_value Heq0 => h; depelim h. apply nent.
-    constructor.
-    have posz : 0 <= z.
-    { have hsu := model_updates v.
-      eapply is_update_of_ext in hsu.
-      have hs := min_premise_pres (succ_prems prems) hsu.
-      rewrite minp in hs.
-      set (scl := succ_clause _) in *.
-      have hmin := @premises_model_map_min_premise_inv V (Clauses.singleton scl) scl.
-      forward hmin. now apply Clauses.singleton_spec.
-      destruct hmin as [minp' [hmineq hpos]].
-      rewrite hmineq in hs. depelim hs. lia. }
-    lia.
+  move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
+  move/entails_model_valid/(_ _ vmok): H.
+  have [z minp] : enabled_clause (model_model v) cl.
+  { apply (@enabled_clause_ext pm).
+    exact: is_update_of_ext (model_updates v).
+    red; cbn.
+    have hcl : Clauses.In cl (Clauses.singleton cl).
+    { now eapply Clauses.singleton_spec. }
+    have hs:= @premises_model_map_min_premise_inv V _ _ hcl. firstorder. }
+  move/valid_clause_elim/(_ z minp).
+  cbn in minp.
+  rewrite /level_value he => h; depelim h. apply nent.
+  constructor.
+  have posz : 0 <= z.
+  { have hsu := model_updates v.
+    eapply is_update_of_ext in hsu.
+    have hs := min_premise_pres prems hsu.
+    rewrite minp in hs.
+    have hmin := @premises_model_map_min_premise_inv V (Clauses.singleton cl) cl.
+    forward hmin. now apply Clauses.singleton_spec.
+    destruct hmin as [minp' [hmineq hpos]].
+    rewrite hmineq in hs. depelim hs. lia. }
+  lia.
 Qed.
 
 End LoopChecking.
