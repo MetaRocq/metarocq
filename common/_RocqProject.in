@@ -14,3 +14,8 @@ theories/EnvironmentTyping.v
 theories/EnvironmentReflect.v
 theories/EnvMap.v
 theories/Transform.v
+
+theories/LoopChecking/Common.v
+theories/LoopChecking/Interfaces.v
+theories/LoopChecking/HornClauses.v
+theories/LoopChecking/PartialLoopChecking.v
