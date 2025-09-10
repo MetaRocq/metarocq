@@ -141,7 +141,6 @@ Proof.
     * intros acc1 acc' x hin. apply (H2 acc1 acc' x). now right.
     * exists min. split => //.
 Qed.
-Close Scope nat_scope.
 
 Notation min_opt := (option_map2 Z.min).
 
@@ -153,6 +152,36 @@ Lemma opt_lt_le_trans x y z :
   opt_le Z.lt x z.
 Proof.
   intros [] H'; depelim H'; constructor. lia.
+Qed.
+
+Lemma opt_le_lt_trans {x y z} : opt_le Z.le x y -> opt_le Z.lt y z -> opt_le Z.lt x z.
+Proof.
+  destruct 1; intros H'; depelim H'; constructor. lia.
+Qed.
+
+
+Definition max_opt_of {A} (max : A -> A -> A) (x : option A) (y : option A) : option A :=
+  match x, y with
+  | Some x, Some y => Some (max x y)
+  | Some x, None => Some x
+  | _, _ => y
+  end.
+
+Lemma max_opt_of_l {A} {f : A -> A -> A} l : max_opt_of f l None = l.
+Proof.
+  destruct l => //.
+Qed.
+
+Lemma max_opt_of_r {A} {f : A -> A -> A} l : max_opt_of f None l = l.
+Proof.
+  destruct l => //.
+Qed.
+
+Lemma pair_inj {A B} (x x' : A) (y y' : B) P :
+  (x = x' -> y = y' -> P) ->
+  ((x, y) = (x', y') -> P).
+Proof.
+  now intros h [=].
 Qed.
 
 Lemma Zmin_opt_left x y : min_opt x y ≤ x.

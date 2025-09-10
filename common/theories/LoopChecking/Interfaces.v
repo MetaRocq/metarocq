@@ -163,6 +163,33 @@ Proof.
     eapply LevelSetFact.is_empty_2 in he. contradiction.
 Qed.
 
+Lemma in_singleton l : LevelSet.In l (LevelSet.singleton l).
+Proof. lsets. Qed.
+
+Lemma not_in_union_inv l ls ls' :
+  ~ LevelSet.In l (LevelSet.union ls ls') ->
+  ~ LevelSet.In l ls /\ ~ LevelSet.In l ls'.
+Proof.
+  rewrite LevelSet.union_spec. firstorder.
+Qed.
+
+Infix "=m" := LevelMap.Equal (at level 50).
+
+Lemma levelmap_add_spec {A} (m m' : LevelMap.t A) {k v}:
+  LevelMapFact.Add k v m m' ->
+  m' =m LevelMap.add k v m.
+Proof.
+  trivial.
+Qed.
+
+Lemma not_empty_exists V : ~ LevelSet.Empty V -> exists l, LevelSet.In l V.
+Proof.
+  intros ne.
+  destruct (LevelSet.choose V) eqn:ch. exists e.
+  now eapply LevelSet.choose_spec1 in ch.
+  now apply LevelSet.choose_spec2 in ch.
+Qed.
+
 Module NonEmptySetFacts.
   #[program] Definition singleton (e : LevelExpr.t) : nonEmptyLevelExprSet
     := {| t_set := LevelExprSet.singleton e |}.
@@ -497,6 +524,12 @@ Proof.
   rewrite levelexprset_levels_spec_aux. intuition auto. lsets.
 Qed.
 
+Lemma univ_non_empty (u : nonEmptyLevelExprSet) : ~ LevelSet.Empty (levels u).
+Proof. intros he. have := t_ne u. move/not_Empty_is_empty.
+  intros he'. apply he'. intros [l k] hin. red in he. specialize (he l). apply he.
+  rewrite levelexprset_levels_spec. now exists k.
+Qed.
+
 Lemma levels_exprs_non_W_atoms {W prem} :
   LevelSet.Equal (levels (non_W_atoms W prem)) (LevelSet.diff (levels prem) W).
 Proof.
@@ -560,4 +593,75 @@ Proof.
       cbn. firstorder. subst x'. now left.
 Qed.
 
+Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
+Proof.
+  apply eq_univ_equal.
+  intros lk.
+  rewrite !map_spec. setoid_rewrite map_spec.
+  firstorder eauto. subst. firstorder.
+Qed.
+
+Definition strict_subset (s s' : LevelSet.t) :=
+  LevelSet.Subset s s' /\ ~ LevelSet.Equal s s'.
+
+Lemma strict_subset_incl (x y z : LevelSet.t) : LevelSet.Subset x y -> strict_subset y z -> strict_subset x z.
+Proof.
+  intros hs []. split => //. lsets.
+  intros heq. apply H0. lsets.
+Qed.
+
+Lemma strict_subset_cardinal s s' : strict_subset s s' -> LevelSet.cardinal s < LevelSet.cardinal s'.
+Proof.
+  intros [].
+  assert (LevelSet.cardinal s <> LevelSet.cardinal s').
+  { intros heq. apply H0.
+    intros x. split; intros. now apply H.
+    destruct (LevelSet.mem x s) eqn:hin.
+    eapply LevelSet.mem_spec in hin.
+    auto. eapply LevelSetProp.FM.not_mem_iff in hin.
+    exfalso.
+    eapply LevelSetProp.subset_cardinal_lt in hin; tea.
+    lia. }
+  enough (LevelSet.cardinal s <= LevelSet.cardinal s') by lia.
+  now eapply LevelSetProp.subset_cardinal.
+Qed.
+
+Lemma strict_subset_leq_right U V W :
+  strict_subset U V -> V ⊂_lset W -> strict_subset U W.
+Proof.
+  intros [] le. split. lsets. intros eq. rewrite -eq in le.
+  apply H0. lsets.
+Qed.
+
+Lemma strict_subset_leq_left U V W :
+  U ⊂_lset V -> strict_subset V W -> strict_subset U W.
+Proof.
+  intros le []. split. lsets. intros eq. rewrite eq in le.
+  apply H0. lsets.
+Qed.
+
+Lemma strict_subset_diff_incl V W W' :
+  strict_subset W' W ->
+  W ⊂_lset V ->
+  W' ⊂_lset V ->
+  strict_subset (LevelSet.diff V W) (LevelSet.diff V W').
+Proof.
+  intros [] lew lew'.
+  split. lsets.
+  intros eq.
+  apply H0. lsets.
+Qed.
+
+Notation "#| V |" := (LevelSet.cardinal V).
+
+Lemma diff_cardinal_inter V W : #|LevelSet.diff V W| = #|V| - #|LevelSet.inter V W|.
+Proof.
+  pose proof (LevelSetProp.diff_inter_cardinal V W). lia.
+Qed.
+
+Lemma diff_cardinal V W : W ⊂_lset V -> #|LevelSet.diff V W| = #|V| - #|W|.
+Proof.
+  intros hsub.
+  rewrite diff_cardinal_inter LevelSetProp.inter_sym LevelSetProp.inter_subset_equal //.
+Qed.
 End FromLevelSets.

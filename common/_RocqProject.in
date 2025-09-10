@@ -20,3 +20,4 @@ theories/LoopChecking/Interfaces.v
 theories/LoopChecking/HornClauses.v
 theories/LoopChecking/Model.v
 theories/LoopChecking/PartialLoopChecking.v
+theories/LoopChecking/Deciders.v
