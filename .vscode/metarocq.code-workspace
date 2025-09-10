@@ -113,5 +113,8 @@
 	"coqtop.binPath": "_opam/bin",
 	"coqtop.coqtopExe": "coqtop",
 	"coqtop.coqidetopExe": "coqidetop",
+	"cSpell.enabledFileTypes": {
+		"coq": false
+	},
   }
 }

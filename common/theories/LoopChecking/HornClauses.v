@@ -15,8 +15,8 @@ Ltac rw_in l H := rewrite_strat (topdown l) in H.
 Module Clauses (LS : LevelSets).
   Module Export FLS := FromLevelSets LS.
 
-  Notation univ := nonEmptyLevelExprSet.
-  Definition clause : Type := univ × LevelExpr.t.
+  Notation premises := nonEmptyLevelExprSet.
+  Definition clause : Type := premises × LevelExpr.t.
 
   Module Clause.
 
@@ -85,6 +85,7 @@ Module Clauses (LS : LevelSets).
   Module ClausesProp := WPropertiesOn Clause Clauses.
   Module ClausesDecide := WDecide (Clauses).
   Ltac clsets := ClausesDecide.fsetdec.
+  Infix "⊂_clset" := Clauses.Subset (at level 70).
 
   Definition clauses := Clauses.t.
 
@@ -216,4 +217,278 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Definition clause_conclusion cl := level (concl cl).
+  Definition clauses_conclusions (cls : clauses) : LevelSet.t :=
+    Clauses.fold (fun cl acc => LevelSet.add (level (concl cl)) acc) cls LevelSet.empty.
+
+  #[export] Instance Clauses_For_All_proper : Proper (eq ==> Clauses.Equal ==> iff) Clauses.For_all.
+  Proof.
+    intros x y -> cl cl' eqcl.
+    unfold Clauses.For_all. now setoid_rewrite eqcl.
+  Qed.
+
+  #[export] Instance Clauses_for_all_proper : Proper (eq ==> Clauses.Equal ==> eq) Clauses.for_all.
+  Proof.
+    intros x y -> cl cl' eqcl.
+    apply iff_is_true_eq_bool.
+    rewrite /is_true -!ClausesFact.for_all_iff. now rewrite eqcl.
+  Qed.
+
+  Lemma clauses_conclusions_spec a cls :
+    LevelSet.In a (clauses_conclusions cls) <->
+    exists cl, Clauses.In cl cls /\ level (concl cl) = a.
+  Proof.
+    unfold clauses_conclusions.
+    eapply ClausesProp.fold_rec; clear.
+    - move=> s' he /=. rewrite LevelSetFact.empty_iff.
+      firstorder auto.
+    - move=> cl ls cls' cls'' hin hnin hadd ih.
+      rewrite LevelSet.add_spec. firstorder eauto.
+      specialize (H0 x). cbn in H0.
+      apply hadd in H1. firstorder eauto.
+      subst. left. now destruct x.
+  Qed.
+
+  Definition premise_restricted_to W cl :=
+    LevelSet.subset (levels (premise cl)) W.
+
+  Definition clause_restricted_to W cl :=
+    LevelSet.subset (levels (premise cl)) W &&
+    LevelSet.mem (level (concl cl)) W.
+
+  Definition restrict_clauses (cls : clauses) (W : LevelSet.t) :=
+    Clauses.filter (clause_restricted_to W) cls.
+  Infix "⇂" := restrict_clauses (at level 70). (* \downharpoonright *)
+
+  Definition clauses_with_concl (cls : clauses) (concl : LevelSet.t) :=
+    Clauses.filter (fun '(prem, concla) => LevelSet.mem (level concla) concl) cls.
+  Infix "↓" := clauses_with_concl (at level 70). (* \downarrow *)
+
+  Notation cls_diff cls W := (Clauses.diff (cls ↓ W) (cls ⇂ W)) (only parsing).
+
+  Lemma in_restrict_clauses (cls : clauses) (concls : LevelSet.t) cl :
+    Clauses.In cl (restrict_clauses cls concls) <->
+    [/\ LevelSet.In (level (concl cl)) concls,
+      LevelSet.Subset (levels (premise cl)) concls &
+      Clauses.In cl cls].
+  Proof.
+    unfold restrict_clauses.
+    rewrite Clauses.filter_spec.
+    destruct cl. cbn.
+    rewrite andb_true_iff LevelSet.subset_spec LevelSet.mem_spec.
+    firstorder auto.
+  Qed.
+
+  Lemma restrict_clauses_subset (cls : clauses) (concls : LevelSet.t) : Clauses.Subset (restrict_clauses cls concls) cls.
+  Proof.
+    intros x; rewrite in_restrict_clauses; now intros [].
+  Qed.
+
+  Lemma in_clauses_with_concl (cls : clauses) (concls : LevelSet.t) cl :
+    Clauses.In cl (clauses_with_concl cls concls) <->
+    LevelSet.In (level (concl cl)) concls /\ Clauses.In cl cls.
+  Proof.
+    unfold clauses_with_concl.
+    rewrite Clauses.filter_spec.
+    destruct cl. rewrite LevelSet.mem_spec. cbn. firstorder eauto.
+  Qed.
+
+  Lemma clauses_conclusions_clauses_with_concl cls concl :
+    LevelSet.Subset (clauses_conclusions (clauses_with_concl cls concl)) concl.
+  Proof.
+    intros x [cl []] % clauses_conclusions_spec.
+    eapply in_clauses_with_concl in H as [].
+    now rewrite H0 in H.
+  Qed.
+
+  Lemma clauses_conclusions_restrict_clauses cls W :
+    LevelSet.Subset (clauses_conclusions (restrict_clauses cls W)) W.
+  Proof.
+    intros x [cl []] % clauses_conclusions_spec.
+    eapply in_restrict_clauses in H as [].
+    now rewrite H0 in H.
+  Qed.
+
+  Definition in_clauses_conclusions (cls : clauses) (x : Level.t): Prop :=
+    exists cl, Clauses.In cl cls /\ (level cl.2) = x.
+
+  Definition premise_min (l : premises) : Z :=
+    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    fold_left (B:=LevelExpr.t) (fun min atom => Z.min atom.2 min) tl (hd.2).
+
+  Definition premise_max (l : premises) : Z :=
+    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    fold_left (B:=LevelExpr.t) (fun min atom => Z.max atom.2 min) tl (hd.2).
+
+  Definition max_clause_premise (cls : clauses) :=
+    Clauses.fold (fun cl acc => Z.max (premise_max (premise cl)) acc) cls 0%Z.
+
+  Definition gain (cl : clause) : Z :=
+    (concl cl).2 - (premise_min (premise cl)).
+
+  Definition max_gain (cls : clauses) :=
+    Clauses.fold (fun cl acc => Nat.max (Z.to_nat (gain cl)) acc) cls 0%nat.
+
+
+  Lemma clauses_conclusions_diff cls s :
+    clauses_conclusions (Clauses.diff cls (clauses_with_concl cls s)) ⊂_lset
+    LevelSet.diff (clauses_conclusions cls) s.
+  Proof.
+    intros a. rewrite LevelSet.diff_spec !clauses_conclusions_spec.
+    firstorder eauto.
+    exists x; split => //.
+    now rewrite Clauses.diff_spec in H.
+    intros ha.
+    rewrite Clauses.diff_spec in H; destruct H as [].
+    apply H1.
+    rewrite in_clauses_with_concl. split => //.
+    now rewrite H0.
+  Qed.
+
+  Lemma clauses_conclusions_diff_left cls W cls' :
+    clauses_conclusions (Clauses.diff (cls ↓ W) cls') ⊂_lset W.
+  Proof.
+    intros l.
+    rewrite clauses_conclusions_spec.
+    move=> [] cl. rewrite Clauses.diff_spec => [] [] [].
+    move/in_clauses_with_concl => [] hin ? ? eq.
+    now rewrite eq in hin.
+  Qed.
+
+  Lemma clauses_conclusions_diff_restrict cls W cls' :
+    clauses_conclusions (Clauses.diff (cls ⇂ W) cls') ⊂_lset W.
+  Proof.
+    intros l.
+    rewrite clauses_conclusions_spec.
+    move=> [] cl. rewrite Clauses.diff_spec => [] [] [].
+    move/in_restrict_clauses => [] hin ? ? ? eq.
+    now rewrite eq in hin.
+  Qed.
+
+  Lemma clauses_empty_eq {s} : Clauses.Empty s -> Clauses.Equal s Clauses.empty.
+  Proof. clsets. Qed.
+
+  Lemma clauses_for_all_neg {p s}:
+    ~~ Clauses.for_all p s <-> ~ Clauses.For_all p s.
+  Proof.
+    intuition auto.
+    rewrite ClausesFact.for_all_iff in H0. red in H. now rewrite H0 in H.
+    revert H. apply contra_notN.
+    rewrite ClausesFact.for_all_iff //.
+  Qed.
+
+  Lemma clauses_for_all_exists {p s}:
+    ~~ Clauses.for_all p s <-> Clauses.exists_ (fun x => ~~ p x) s.
+  Proof.
+    rewrite ClausesFact.for_all_b ClausesFact.exists_b.
+    induction (Clauses.elements s).
+    - cbn; auto. reflexivity.
+    - cbn. rewrite negb_and. intuition auto.
+      move/orP: H1 => [->|] //. move/H. intros ->. now rewrite orb_true_r.
+      move/orP: H1 => [->|] //. move/H0. intros ->. now rewrite orb_true_r.
+  Qed.
+
+  Lemma max_gain_in cl cls :
+    Clauses.In cl cls ->
+    (Z.to_nat (gain cl) <= max_gain cls)%nat.
+  Proof.
+    intros hin.
+    unfold max_gain. revert cl hin.
+    eapply ClausesProp.fold_rec.
+    - intros s' ise hin. firstorder eauto.
+    - intros x a s' s'' xs nxs' hadd IH cl' hin'.
+      eapply hadd in hin' as [].
+      * subst x. lia.
+      * specialize (IH _ H). lia.
+  Qed.
+
+  Definition max_gain_subset (cls cls' : Clauses.t) :
+    cls ⊂_clset cls' ->
+    (max_gain cls <= max_gain cls')%nat.
+  Proof.
+    unfold max_gain at 1.
+    revert cls'.
+    eapply ClausesProp.fold_rec.
+    - intros s' ise sub. lia.
+    - intros x a s' s'' xs nxs' hadd IH cls'' hs.
+      specialize (IH cls''). forward IH. transitivity s'' => //.
+      intros ??. now apply hadd.
+      assert (incls'' : Clauses.In x cls'').
+      { now apply hs, hadd. }
+      apply max_gain_in in incls''. lia.
+  Qed.
+
+  Lemma max_clause_premise_spec cl cls :
+    Clauses.In cl cls ->
+    (premise_max (premise cl) <= max_clause_premise cls)%Z.
+  Proof.
+    intros hin.
+    unfold max_clause_premise. revert cl hin.
+    eapply ClausesProp.fold_rec.
+    - intros s' ise hin. firstorder eauto.
+    - intros x a s' s'' xs nxs' hadd IH cl' hin'.
+      eapply hadd in hin' as [].
+      * subst x. lia.
+      * specialize (IH _ H). lia.
+  Qed.
+
+  Lemma non_W_atoms_ne W cl cls :
+    Clauses.In cl (cls_diff cls W) ->
+    LevelExprSet.is_empty (non_W_atoms W (premise cl)) = false.
+  Proof.
+    intros x.
+    apply Clauses.diff_spec in x as [clw clr].
+    eapply in_clauses_with_concl in clw as [clw incls].
+    apply/negbTE.
+    apply/(contra_notN _ clr).
+    intros he. rewrite in_restrict_clauses. split => //.
+    epose proof (@levels_exprs_non_W_atoms W (premise cl)).
+    eapply LevelExprSetFact.is_empty_2 in he.
+    intros x hin. eapply levelexprset_empty_levels in he. rewrite H in he.
+    specialize (he x). rewrite LevelSet.diff_spec in he. intuition auto.
+    rewrite -LevelSet.mem_spec in H1 |- *. destruct LevelSet.mem; intuition auto.
+  Qed.
+
+  Lemma clauses_levels_restrict_clauses cls W :
+    clauses_levels (cls ⇂ W) ⊂_lset W.
+  Proof.
+    intros x [cl []] % clauses_levels_spec.
+    eapply in_restrict_clauses in H as [hconc hprem incl].
+    eapply clause_levels_spec in H0 as []. apply hprem, H. now subst x.
+  Qed.
+
+  Lemma clauses_conclusions_levels cls :
+    clauses_conclusions cls ⊂_lset clauses_levels cls.
+  Proof.
+    intros x.
+    rewrite clauses_conclusions_spec clauses_levels_spec.
+    setoid_rewrite clause_levels_spec.
+    firstorder auto.
+  Qed.
+
+  #[export] Instance clauses_conclusions_proper : Proper (Clauses.Equal ==> LevelSet.Equal) clauses_conclusions.
+  Proof.
+    intros cls cls' eq x.
+    rewrite !clauses_conclusions_spec. now setoid_rewrite eq.
+  Qed.
+
+  Lemma clauses_conclusions_add cl cls :
+    clauses_conclusions (Clauses.add cl cls) =_lset
+    (LevelSet.singleton (level (concl cl)) ∪
+      clauses_conclusions cls).
+  Proof.
+    intros x.
+    rewrite LevelSet.union_spec !clauses_conclusions_spec.
+    setoid_rewrite Clauses.add_spec; setoid_rewrite LevelSet.singleton_spec.
+    firstorder eauto. subst. now left.
+  Qed.
+
+  Lemma clauses_conclusions_subset {cls cls'} :
+    Clauses.Subset cls cls' ->
+    clauses_conclusions cls ⊂_lset clauses_conclusions cls'.
+  Proof.
+    intros hsub x. rewrite !clauses_conclusions_spec.
+    intuition eauto. destruct H as [cl []]; exists cl; split; try clsets; auto.
+  Qed.
+
+
 End Clauses.

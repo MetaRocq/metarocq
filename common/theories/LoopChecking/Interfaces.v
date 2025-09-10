@@ -428,6 +428,136 @@ Module NonEmptySetFacts.
 End NonEmptySetFacts.
 Export NonEmptySetFacts.
 
+Lemma diff_eq U V : LevelSet.diff V U =_lset V <-> LevelSet.inter V U =_lset LevelSet.empty.
+Proof. split. lsets. lsets. Qed.
 
+Lemma levelset_neq U V : LevelSet.equal U V = false -> ~ LevelSet.Equal U V.
+Proof. intros eq heq % LevelSet.equal_spec. congruence. Qed.
+
+Lemma levelset_union_same U : LevelSet.union U U =_lset U.
+Proof. lsets. Qed.
+
+
+Lemma LevelSet_In_elements l s :
+  In l (LevelSet.elements s) <-> LevelSet.In l s.
+Proof.
+  rewrite LevelSetFact.elements_iff.
+  now rewrite InA_In_eq.
+Qed.
+
+Lemma In_elements {x} {s : LevelExprSet.t} : LevelExprSet.In x s <-> List.In x (LevelExprSet.elements s).
+Proof.
+  split. now move/LevelExprSetFact.elements_1/InA_In_eq.
+  now move/InA_In_eq/LevelExprSetFact.elements_2.
+Qed.
+
+Lemma not_mem l s : ~~ LevelSet.mem l s <-> ~ LevelSet.In l s.
+Proof.
+  split. apply contraNnot. apply LevelSet.mem_spec.
+  eapply contra_notN; tea. now move/LevelSet.mem_spec.
+Qed.
+
+Definition non_W_atoms W (l : LevelExprSet.t) :=
+  LevelExprSet.filter (fun lk => ~~ LevelSet.mem lk.1 W) l.
+
+Lemma non_W_atoms_spec W l : forall x, LevelExprSet.In x (non_W_atoms W l) <-> LevelExprSet.In x l /\ ~ LevelSet.In x.1 W.
+Proof.
+  intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec -not_mem.
+Qed.
+
+Lemma non_W_atoms_subset W l : non_W_atoms W l ⊂_leset l.
+Proof. intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec. Qed.
+
+Lemma levelexprset_levels_spec_aux l (e : LevelExprSet.t) acc :
+  LevelSet.In l (LevelExprSet.fold (fun le : LevelExprSet.elt => LevelSet.add (level le)) e acc) <->
+  (exists k, LevelExprSet.In (l, k) e) \/ LevelSet.In l acc.
+Proof.
+  eapply LevelExprSetProp.fold_rec.
+  - intros.
+    intuition auto. destruct H1 as [k hin]. lesets.
+  - intros x a s' s'' hin nin hadd ih.
+    rewrite LevelSet.add_spec.
+    split.
+    * intros [->|].
+      left. exists x.2. red in H. subst.
+      apply hadd. cbn. left. now destruct x.
+      apply ih in H.
+      intuition auto.
+      left. destruct H0 as [k Hk]. exists k. apply hadd. now right.
+    * intros [[k ins'']|inacc].
+      eapply hadd in ins''. destruct ins''; subst.
+      + now left.
+      + right. apply ih. now left; exists k.
+      + right. intuition auto.
+Qed.
+
+Lemma levelexprset_levels_spec l (e : LevelExprSet.t) :
+  LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
+Proof.
+  rewrite levelexprset_levels_spec_aux. intuition auto. lsets.
+Qed.
+
+Lemma levels_exprs_non_W_atoms {W prem} :
+  LevelSet.Equal (levels (non_W_atoms W prem)) (LevelSet.diff (levels prem) W).
+Proof.
+  intros e. unfold non_W_atoms.
+  rewrite levelexprset_levels_spec LevelSet.diff_spec levelexprset_levels_spec.
+  firstorder eauto.
+  rewrite LevelExprSet.filter_spec in H. now exists x.
+  rewrite LevelExprSet.filter_spec in H. destruct H.
+  rewrite LevelSetFact.not_mem_iff.
+  destruct LevelSet.mem => //.
+  exists x.
+  rewrite LevelExprSet.filter_spec. split => //.
+  rewrite LevelSetFact.not_mem_iff in H0. now rewrite H0.
+Qed.
+
+Lemma levelexprset_empty_levels x : LevelExprSet.Empty x <-> LevelSet.Empty (levels x).
+Proof.
+  split.
+  - intros he.
+    intros l hin.
+    eapply levelexprset_levels_spec in hin as [k hin]. lesets.
+  - intros emp l hin. eapply emp. eapply (levelexprset_levels_spec l.1). exists l.2.
+    now destruct l.
+Qed.
+
+Lemma nEmpty_exists ls : ~ (LevelSet.Empty ls) -> exists l, LevelSet.In l ls.
+Proof.
+  intros ne.
+  destruct (LevelSet.choose ls) eqn:isempty. exists e.
+  now apply LevelSet.choose_spec1 in isempty.
+  now apply LevelSet.choose_spec2 in isempty.
+Qed.
+
+Lemma inLevelSet (ls : LevelSet.t) l : LevelSet.In l ls \/ ~ (LevelSet.In l ls).
+Proof.
+  lsets.
+Qed.
+
+Lemma premises_elim {P : nonEmptyLevelExprSet -> Prop} :
+  (forall le, P (singleton le)) ->
+  (forall le prems, P prems -> ~ LevelExprSet.In le prems -> P (add le prems)) ->
+  forall prems, P prems.
+Proof.
+  intros hs ha.
+  intros [].
+  revert t_set0 t_ne0.
+  apply: LevelExprSetProp.set_induction; eauto.
+  - move=> s /LevelExprSetFact.is_empty_1 he ne; exfalso => //. congruence.
+  - intros s s' IH x nin hadd hne.
+    destruct (LevelExprSet.is_empty s) eqn:hem in |- .
+    eapply LevelExprSetFact.is_empty_2 in hem.
+      assert (singleton x = {| t_set := s'; t_ne := hne |}) as <- => //.
+      unfold singleton. apply eq_univ_equal. cbn.
+      intros a. specialize (hadd a). rewrite hadd.
+      rewrite LevelExprSet.singleton_spec. firstorder. subst. reflexivity.
+      specialize (IH hem).
+      specialize (ha x _ IH).
+      assert (LevelExprSet.Equal (add x {| t_set := s; t_ne := hem|}) {| t_set := s'; t_ne := hne |}).
+      2:{ apply eq_univ_equal in H. now rewrite -H. }
+      intros x'. specialize (hadd x'). rewrite LevelExprSet.add_spec.
+      cbn. firstorder. subst x'. now left.
+Qed.
 
 End FromLevelSets.
