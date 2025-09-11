@@ -1296,7 +1296,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma min_atom_value_levelexpr_value m l a lv : min_atom_value m l = Some a -> levelexpr_value m l = Some lv ->
-    (a <= lv - l.2).
+    (a = lv - l.2).
   Proof.
     destruct l as [l k]; cbn. unfold levelexpr_value. cbn. destruct level_value => //.
     intros [= <-] [= <-]. lia.

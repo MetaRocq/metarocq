@@ -1,4 +1,152 @@
 (* Distributed under the terms of the MIT license. *)
+(**
+
+  This module defines the main loop-checking algorithm on a partial model in 𝐙.
+  This algorithm is based on two nested well-founded recursive functions with separate measures.
+
+  The main arguments developed here concern the termination of the algorithms, defining
+  the two measures and showing the termination lemmas. It relies on the theory developped in
+  Model.v about the properties of the [check_model]. The functions are dependently-typed:
+  we know by construction that they return either a loop or a valid model.
+  This is necessary to avoid fuel, as the termination argument relies on semantic arguments
+  on the shapes of the model and clauses involved.
+
+  To allow for incremental update of models, the notion of valid model of a set of clauses [cls]
+  returned by the algorithm is parameterized by an initial model [m].
+  - The [V] parameter represents the levels in the model, defined or undefined.
+  - The clauses must have conclusions in [V].
+  - The valid model ([model_model]) returned by the algorithm always results from a
+    (possibly empty) sequence of strict updates from the initial model.
+  - It is provably a model of the clauses ([model_ok]).
+
+  The algorithm works by first checking if the model [m] validates all clauses, or
+  requires a sequence of updates to validate some of the clauses. We track the updated
+  values in a set [U], initially [U ⊂ V].
+
+  - If it is a model we return it.
+  - Otherwise we have a set [W] with [U ⊂ W] of levels that required updates to validate some of the clauses.
+
+    + If [W = V], then actually all levels required a strict update from [m] to [m']:
+      as we have an entailment [cls ⊢ m → m'] and all atoms in [m'] are strictly greater than [m],
+      we can turn it into an entailment [cls ⊢ of_level_map m → of_level_map m + 1], resulting in a loop.
+      Note that [m] must have at least one defined element here, otherwise no strict update could have
+      happened (all clauses would be vacuously true).
+    + Otherwise, [#|W| < #|V|].
+      We then launch the inner loop on the set of clauses [cls ↓ W] (i.e. clauses with conclusions in W only),
+      which will call loop-checking again on the smaller set [W].
+      This returns either a loop which we return directly or a model of [cls ↓ W].
+      In case we have a model of [cls ↓ W], we check if the new model validates the rest of the clauses
+      (i.e. [cls \ cls ↓ W]). As our [check_model] function can accumulate a sequence of updates,
+      we actually relaunch it on the whole set of clauses to gather more potential updates.
+
+      + Again, if we have a model we return it, and need to check again for a loop.
+      + Otherwise some strict updates were necessary and the new working set [W'] is such that
+        [#|W'| < #|V|].
+        At least one of those updates must be on a level [l] not in W, so we are entitled to do
+        a recursive call to loop checking, as the cardinal of the set [U ∪ {l}] increased strictly
+        without equating [V], so [#|V| - #|U ∪ {l}] < #|V| - #|U|].
+
+  The inner loop takes V, W, cls ↓ W and the current model [m].
+  This model [m] is a defined model for all of W as their values were strictly updated.
+  It then works as follows:
+  - We start by partitionning the clauses (cls ↓ W) depending on the fact that all premises are in W or not.
+    We get a set (cls ⇂ W) of clauses restricted to W and the rest.
+    We launch the loop checking algorithm on the restricted clauses and the restriction of the
+    model to W: this satisfies the preconditions of the main loop as all the levels in the clauses
+    we give are in W and the model only gives potential values to levels in W.
+    It returns either a loop that we return or a model [m'] of (cls ⇂ W).
+    We then update the initial model [m] with [m'], returning to a model of all of V.
+    By invariant, we have that [m'] is an extension of [m] on W and does not have values for l ∉ W,
+    in which case we keep the values from [m].
+    We now test if this new model [m ∪ m'] is a model of the rest of the clauses with conclusions in W.
+    If it is we return it. Otherwise, a sequence of strict updates was necessary on some set W' ⊂ W.
+    We are entitled to do a recursive call to the inner loop again. The justification here relies
+    on the fact that the levels in W can only be strictly updated a finite number of times by the clauses
+    in (cls ↓ W \ cls ⇂ W). Intuitively, this is because the levels in [V - W] stay unchanged during the
+    inner loop as we focus on [cls ↓ W]. We can hence give a bound on the maximal values the
+    levels in [W] can reach. The bound is the maximal value [max {v | l := v ∈ m, l ∉ W}] + the maximal
+    gain of the clauses in (cls ↓ W \ cls ⇂ W), which corresponds to the maximal amount by which a
+    conclusion (in W) can be increased by those clauses due to levels in V - W, seen as a natural number.
+    For a given level l ∈ W, we define the measure of l to be: [bound - m[l]] (remember m[l]
+    is necessarily defined). The measure of a level hence decreases strictly when the model
+    gets a strict update of l. If a clause in (cls ↓ W \ cls ⇂ W) is invalid, then
+    the measure of its conclusion is necessarily strictly positive.
+
+    ** Gain
+
+    The gain of a clause [prems -> concl + k] is defined as [Z.to_nat (k - min_premise prems)].
+    For example, the gain of downward closure clauses like [l + 1 -> l] is [Z.to_nat (0 + -1) = 0]:
+    they cannot incur an update.
+
+    The gain of clauses that might lift the value of a level upward like
+    [l + 1 -> l' + 2] is [Z.to_nat (2 - 1) = 1]: they can incur an update by 1.
+
+    The gain of clauses with negative premises can also incur lifts, e.g:
+    [gain(l - 1 -> k) = Z.to_nat (0 - (-1)) = 1]: they also incur an update by 1.
+
+    Crucially, the gain of clauses is invariant by shifting upwards *or downwards*, i.e.
+    gain (l + k -> l' + k') = gain (l + k + z -> l' + k' + z) (k, k', z ∈ Ƶ)
+
+    If the bounds were ever reached for all levels in l, then the clauses would be valid,
+    contradicting the fact that [m ∪ m'] is not a model of (cls ↓ W \ cls ⇂ W)
+    (see lemma [measure_model], which is actually not necessary for the proof).
+
+    The reasonning for invalid clauses to force a positive measure for their conclusion is really
+    subtle. It goes as follows: if the clause [prems = premsW, premsNW -> concl + k] (concl, premwW ∈ W, premsnW ∉ W) is invalid,
+    then its minimal premise min { m[l] - k) | (l, k) ∈ prems} must be equal to [Some z] and we must have that the
+    conclusion does not hold, so m[concl] < k + z (i). By definition of the maximal gain,
+    gain(premsNW -> concl + k) <= max_gain. Note that we focus on the premises not mentionning W here.
+    We can strenthen the inequality we need to show to:
+
+    m[concl] < max { m[l] | l ∈ V / W } + (k - premise_min premsNW) (in 𝐙)
+
+    by transitivity with (i) it suffices to show:
+    k + z <= max { m[l] | l ∈ V / W } + (k - premise_min premsNW)
+
+    by cancellation we get to
+
+    min {m[l] - k | (l, k) ∈ prems} <= max { m[l] | l ∈ V / W } - premise_min premsNW
+
+    we can again strengthen to consider only premises not mentioning W.
+
+    min {m[l] - k | (l, k) ∈ premsNW} <= max { m[l] | l ∈ V / W } - premise_min premsNW
+
+    which is equivalent to
+
+    min {m[l] - k | (l, k) ∈ premsNW} <= max { m[l] | l ∈ V / W } - min {k | (l, k) ∈ premsNW}
+
+    We have the lemma that:
+
+    min {m[l] - k | (l, k) ∈ premsNW} <= max {m[l] | (l, k) ∈ premsNW} - min {k | (l, k) ∈ premsNW}
+
+    I.e. instead of looking at the minimal premise value, we take the maximum of the levels minus
+    the minimum of the increments. To see why this holds:
+    Assume (minl, mink) is such that min {m[l] - k | (l, k) ∈ premsNW} = m[minl] - mink.
+    We have both min {k | (l, k) ∈ premsNW} <= mink and m[minl] <= max {m[l] | (l, k) ∈ premsNW},
+    so the inequality holds.
+
+    We can hence strengthen again by looking at the maximal value of a level in the premises:
+
+    max {m[l] | (l, k) ∈ premsNW} - min {k | (l, k) ∈ premsNW} <= max { m[l] | l ∈ V / W } - min {k | (l, k) ∈ premsNW}
+
+    This simplifies now to
+
+    max {m[l] | (l, k) ∈ premsNW} <= max { m[l] | l ∈ V / W }
+
+    As the (l, k) range over atoms not mentionniong W, this is provable.
+
+    Coming back to the inner_loop measure: the measure is defined by taking the sum of the bounds
+    of all levels in W. So at the recursive call, it suffices to show that for at least
+    one level in W, this sum strictly decreased. This is the case because we found an invalid
+    clause in (cls ↓ W \ cls ⇂ W) that required an update, and hence for its conclusion, the
+    term in the sum decreased, the other terms just need to be shown to decrease largely, which
+    easily follows from the fact that the new model [m ∪ m'] is an extension of the previous one hence
+    has greater or equal values.
+
+    This completes the termination proofs.
+
+*)
+
 From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
@@ -17,6 +165,39 @@ Module LoopCheckingImpl (LS : LevelSets).
 Module Export Model := Models(LS).
 
 Local Open Scope Z_scope.
+
+Record valid_model_def (V W : LevelSet.t) (m : model) (cls : clauses) :=
+  { model_model : model;
+    model_of_V :> model_of V model_model;
+    model_updates : is_update_of cls W m model_model;
+    model_clauses_conclusions : clauses_conclusions cls ⊂_lset V;
+    model_ok :> is_model cls model_model;
+ }.
+Arguments model_model {V W m cls}.
+Arguments model_of_V {V W m cls}.
+Arguments model_updates {V W m cls}.
+Arguments model_clauses_conclusions {V W m cls}.
+Arguments model_ok {V W m cls}.
+Extraction Inline model_model.
+
+Definition valid_model := valid_model_def.
+
+Definition loop_on_univ cls u := cls ⊢a u → succ_prems u.
+
+Lemma loop_on_subset {cls cls' u} : Clauses.Subset cls cls' -> loop_on_univ cls u -> loop_on_univ cls' u.
+Proof.
+  intros sub; rewrite /loop_on_univ => hyp.
+  now eapply entails_all_clauses_subset.
+Qed.
+
+Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
+  | Loop (v : premises) (islooping : loop_on_univ cls v)
+  | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w).
+Arguments Loop {V U cls m}.
+Arguments Model {V U cls m}.
+Arguments lexprod {A B}.
+
+
 
 Definition v_minus_w_bound (W : LevelSet.t) (m : model) :=
   LevelMap.fold (fun w v acc => Z.max (option_get 0 v) acc)
@@ -144,11 +325,11 @@ Proof.
   { eapply premise_min_subset. eapply non_W_atoms_subset. }
   assert (y <= maxpreml - (premise_min preml))%Z.
   { rewrite eqpminpre. rewrite H2 in eqminpre; symmetry in eqminpre.
-    pose proof (min_atom_value_levelexpr_value m exmin).
+    pose proof (min_atom_value_levelexpr_value m exmin). rewrite /levelexpr_value in H4.
     specialize (amax _ inminpre) as amax'. rewrite eqmaxpre in amax'.
     destruct amax' as [vexmin [eqexmin ltexmin]].
     assert (expmin.2 <= exmin.2). specialize (apmin _ inminpre). lia.
-    specialize (H4 _ _ eqminpre eqexmin). depelim ltexmin. etransitivity; tea.
+    specialize (H4 _ _ eqminpre eqexmin). rewrite H4. depelim ltexmin.
     rewrite -eqmaxpre in H6. noconf H6.
     lia. }
   transitivity (k + (maxpreml - (premise_min preml)))%Z. lia.
@@ -164,37 +345,6 @@ Proof.
     rewrite LevelSet.diff_spec in hlevels.
     destruct hlevels as [_ nw]. specialize (vm nw). depelim vm. lia. }
 Qed.
-
-Record valid_model_def (V W : LevelSet.t) (m : model) (cls : clauses) :=
-  { model_model : model;
-    model_of_V :> model_of V model_model;
-    model_updates : is_update_of cls W m model_model;
-    model_clauses_conclusions : clauses_conclusions cls ⊂_lset V;
-    model_ok :> is_model cls model_model;
- }.
-Arguments model_model {V W m cls}.
-Arguments model_of_V {V W m cls}.
-Arguments model_updates {V W m cls}.
-Arguments model_clauses_conclusions {V W m cls}.
-Arguments model_ok {V W m cls}.
-Extraction Inline model_model.
-
-Definition valid_model := valid_model_def.
-
-Definition loop_on_univ cls u := cls ⊢a u → succ_prems u.
-
-Lemma loop_on_subset {cls cls' u} : Clauses.Subset cls cls' -> loop_on_univ cls u -> loop_on_univ cls' u.
-Proof.
-  intros sub; rewrite /loop_on_univ => hyp.
-  now eapply entails_all_clauses_subset.
-Qed.
-
-Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
-  | Loop (v : premises) (islooping : loop_on_univ cls v)
-  | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w).
-Arguments Loop {V U cls m}.
-Arguments Model {V U cls m}.
-Arguments lexprod {A B}.
 
 Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   match r with
@@ -288,7 +438,7 @@ Section InnerLoop.
       specialize (amax _ inminpre). destruct amax as [k' [lk' hk']].
       depelim hk'.
       pose proof (min_atom_value_levelexpr_value m exmin _ _ H2 lk').
-      rewrite eqminpre H2. constructor. etransitivity; tea.
+      rewrite eqminpre H2. constructor. rewrite H3.
       rewrite eqmaxpre in eqmaxp.
       assert (expmin.2 <= exmin.2). specialize (apmin _ inminpre). lia.
       lia. }
