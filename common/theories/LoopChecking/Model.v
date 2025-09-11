@@ -1,4 +1,60 @@
 (* Distributed under the terms of the MIT license. *)
+(* This module defines the notion of model as a partial function from levels to Z.
+
+  [is_model cls m] states that all clauses [cls] are valid in [m].
+
+  An atom [l + k] is satisfied in a model [m] when the value of [l] in [m] is defined to [v : Z] and
+  [k ≤ v]. If the value is undefined the atom does not hold.
+
+  A clause [prems -> concl + k] is valid in [m]:
+  - if the atom [concl + (k + kprem)] is satisfied where [kprem] is the minimal value of
+    its (non-empty) premises.
+  - otherwise, if the premises contain an undefined atom (the clause is not "enabled"),
+    its minimal value is undefined and the premise vacuously holds.
+
+  We develops the theory of [check_model m cls], the function that checks a model [m]
+  w.r.t. a set of clauses [cls] and potentially updates some values to make the clauses hold.
+  The main invariant is that, if [check_model] modifies some values, then we have a sequence of
+  strict updates ([strictly_updates]) from the initial model to the modified one. If [check_model] does not modify any
+  value, then [m] is already a model of [cls]. Note that some clauses in [cls] might not be
+  activated/enabled by the model [m] (they hence hold vacuously).
+
+  We also show the relation of a model to entailment:
+  - If an entailment [cls ⊢ prems → concl] holds then any valid model [m] of the clauses [cls]
+    satisfies [prems → concl], i.e [ is_model cls m -> valid_clause m (prems, concl) ].
+  - Conversely, if we have a sequence of strict updates from model [m] to model [m'] under clauses
+    [cls] then we have an entailment: [ cls ⊢ of_model_map m → of_level_map m' ], where
+    [of_level_map] turns assignments [m -> Some v] to atoms [m + v] and [m -> None] are discarded.
+  - From any model we can build a valuation (in 𝐍) by shifting it upwards and inverting it
+    so that the "lowest" level is mapped to 0 ([valuation_of_model])
+  - If a clause is valid and enabled (its premises are all defined),
+    the interpretation of the clause (in 𝐍) using the derived valuation is provable.
+  - If an entailment [cls ⊢ prems → concl] holds then any valuation [v] that satisfies the clauses
+    [cls] also satisfies [prems → concl], i.e [ forall v, ⟦ cls ⟧_v -> ⟦ prems ⟧_v >= ⟦ concl ⟧_v ] (in 𝐍).
+
+  The algorithm in [PartialLoopChecking] will either build a model of the clauses by a sequence
+  of strict updates from which we can build a valuation that satisfies the clauses or it will detect
+  a loop, i.e. a situation where [cls ⊢ a → a + 1] for some (non-empty) set of atoms [a] (i.e. a contradiction when seen
+  through the valuations).
+
+  Alltogether, by choosing appropriate initial models (defined in [Models.v]), this allows to decide
+  satisfiability and validity.
+
+  For satisfiabiliy [cls, prems → concl + k|=] we try to find a model of [cls /\ prems → concl + k]
+  starting from an initial model m that enables the premises of all the clauses [cls] and [prems]:
+  atoms [l + k] are defined such that m[l] >= k, so that the minimal premise value of all
+  clauses is actually defined and [>= 0].
+
+  For validity [cls |= prems → concl + k] we try to find a model of [cls] starting
+  from an initial model m that enables *only* the premises [prems]:
+  atoms [l + k] in [prems] are defined such that m[l] >= k. We then check if, in
+  the (minimal) model that is inferred from the clauses [cls], the atom [concl + k] is satisfied.
+  If so, the clause is valid: any possible valid valuation [v] of the clauses implies that
+  [ ⟦ prems ⟧_v >= ⟦ concl ⟧_v ]. It implies that in any extension of the clauses [cls], the
+  clause will remain valid.
+
+*)
+
 From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
