@@ -1,4 +1,81 @@
 (* Distributed under the terms of the MIT license. *)
+(**
+
+  * Horn clause
+
+  This module defines our Horn clauses (atoms -> atom), where atoms is non-empty.
+  An atom is a variable (in Level.t) + an increment (in 𝐙).
+
+  We define a number of operations on non-empty sets of atoms, allowing to compute
+  their set operations like addition or union, based on an custom eliminator
+  for non-empty sets.
+
+  We also define operations for finding the maximal or minimal increment of a set of atoms
+  and finding the (optional) maximal premise of a specific level [l] in a set of atoms.
+
+  * Horn clauses
+
+  We define the notion of "gain" of a clause and maximal gain of a set of clauses which are
+  used to prove termination of the algorithms in [PartialLoopChecking] as well.
+
+  We also define set-theoretic operations on clauses that are restricted to have conclusions
+  or conclusions and premises in a particular set of levels, that is used in the algorithm.
+  The partitioning of a clause set into those with a particular conclusion is defined here.
+
+  There is also a (now unused) operation to build a set of atoms out of a set of levels,
+  giving them all the same increment. This is only useful for the case of a model in 𝐍.
+
+  * Entailment
+
+  We also define the entailment relation for our Horn clauses.
+  This is a simple inductive definiton with two rules:
+
+  - a ∈ prems -> cls ⊢ prems → a
+
+  Axiom rule.
+
+  - in_pred_closure cls (prems' → concl')  cls ⊢ add concl' prems → concl  prems' ⊂ prems
+    --------------------------------------------------------------------------------------
+    cls ⊢ prems → concl
+
+  This "cut" rule allows to add an inferred conclusion [concl'] to the set of premises.
+
+  The auxilliary notion [in_pred_closure] has two (non-inductive) rules:
+
+    (prems → concl) ∈ cls.    z : 𝐙
+    -------------------------------------------
+    in_pred_closure cls (prems + z → concl + z)
+
+  This rule closes the set of clauses under shifting upwards or downwards
+  (this models [max u >= max v <-> max u + z >= max v + z]).
+
+    l : Level.t     z : 𝐙
+    -------------------------------
+    in_pred_closure cls (l + 1 → l)
+
+  This rule ensures that atom satisfiability is closed downwards: modeling (x + 1 >= x)
+
+  Altogether, this models the injectivity of [+].
+
+  We define [cls ⊢a atoms → atoms'] as the conjunction of [cls ⊢ atoms → a] for all [a ∈ atoms'].
+  All the notions lift to entailment of a set of atoms rather than just one atom.
+
+  * Entailment properties
+
+  We show that entailment has various metatheoretical properties:
+
+  - It is closed under shifting: [cls ⊢ prems → concl <-> cls + n ⊢ prems + n → concl + n].
+
+  - It validates weakening: [cls ⊢ prems → concl -> cls ⊢ prems', prems → concl].
+
+  - It is reflexive: [cls ⊢ u → u]
+
+  - It is transitive: [cls ⊢a prems → concl -> cls ⊢a concl -> concl' -> cls ⊢a prems → concl'],
+    i.e. it validates a general cut rule.
+
+*)
+
+
 From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.

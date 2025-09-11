@@ -25,10 +25,15 @@
   - Conversely, if we have a sequence of strict updates from model [m] to model [m'] under clauses
     [cls] then we have an entailment: [ cls ⊢ of_model_map m → of_level_map m' ], where
     [of_level_map] turns assignments [m -> Some v] to atoms [m + v] and [m -> None] are discarded.
+    The maps must be defined for at least one level, which follows from the fact we have
+    a strict update.
+
   - From any model we can build a valuation (in 𝐍) by shifting it upwards and inverting it
     so that the "lowest" level is mapped to 0 ([valuation_of_model])
+
   - If a clause is valid and enabled (its premises are all defined),
     the interpretation of the clause (in 𝐍) using the derived valuation is provable.
+
   - If an entailment [cls ⊢ prems → concl] holds then any valuation [v] that satisfies the clauses
     [cls] also satisfies [prems → concl], i.e [ forall v, ⟦ cls ⟧_v -> ⟦ prems ⟧_v >= ⟦ concl ⟧_v ] (in 𝐍).
 
