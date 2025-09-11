@@ -1,5 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
@@ -11,6 +11,7 @@ Set Equations Transparent.
 Ltac rw l := rewrite_strat (topdown l).
 Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
+Notation fwd := (ltac:(move=> /(_ _)/Wrap[])).
 
 (* TODO move *)
 Arguments exist {A P}.
