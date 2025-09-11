@@ -434,25 +434,27 @@ Module Models (LS : LevelSets).
           destruct hext as [l' []]; exists l'; split => //. constructor. }
   Qed.
 
-  Lemma min_model_map_acc l cls m :
+  Lemma min_model_map_acc cls m :
     let map := min_model_map m cls in
-    (forall k, LevelMap.MapsTo l k map -> max_of_map l k m) /\
+    (forall l k, LevelMap.MapsTo l k map -> max_of_map l k m) /\
     m ⩽ map.
   Proof.
     cbn. rewrite /min_model_map.
     eapply ClausesProp.fold_rec.
     2:{ intros. destruct H2 as [hf hin].
-      have [hm hnin] := min_model_clause_spec l x a.
       split.
-      intros k.
+      intros l k.
+      have [hm hnin] := min_model_clause_spec l x a.
       move/hm. rewrite /is_max_of_clause_model. intros [[ism' ism] hasm].
       destruct hasm; eauto. intros kl'. move/hin => [k' [hmk' lek']].
       red in ism. specialize (ism _ hmk'). now transitivity k'.
       transitivity a => //.
-      intros l' k ha. specialize (hnin l' k (or_introl ha)).
+      intros l k ha.
+      have [hm hnin] := min_model_clause_spec l x a.
+      specialize (hnin l k (or_introl ha)).
       exact hnin. }
     split; [|reflexivity].
-    intros k hin k' hin'.
+    intros l k hin k' hin'.
     eapply LevelMapFact.F.MapsTo_fun in hin; tea. subst; reflexivity.
   Qed.
 
@@ -468,9 +470,9 @@ Module Models (LS : LevelSets).
     subst; reflexivity.
   Qed.
 
-  Lemma min_model_map_spec l cls m :
+  Lemma min_model_map_spec cls m :
     let map := min_model_map m cls in
-    (forall k, LevelMap.MapsTo l k map ->
+    (forall l k, LevelMap.MapsTo l k map ->
     [/\ (exists cl, Clauses.In cl cls /\ is_in_clause l k cl) \/ LevelMap.MapsTo l k m,
       (forall cl, Clauses.In cl cls -> max_of_premises l k (premise cl)) & max_of_map l k m]) /\
       (forall cl, Clauses.In cl cls -> forall l, LevelSet.In l (clause_levels cl) -> LevelMap.In l map) /\
@@ -478,7 +480,7 @@ Module Models (LS : LevelSets).
   Proof.
     cbn.
     rewrite /min_model_map.
-    have hgen : forall cls m, (forall k, LevelMap.MapsTo l k (Clauses.fold min_model_clause cls m) ->
+    have hgen : forall cls m, (forall l k, LevelMap.MapsTo l k (Clauses.fold min_model_clause cls m) ->
       [/\ (exists cl : Clauses.elt, Clauses.In cl cls /\ is_in_clause l k cl) \/
       LevelMap.MapsTo l k m,
         forall cl : Clauses.elt, Clauses.In cl cls -> max_of_premises l k (premise cl)
@@ -486,7 +488,7 @@ Module Models (LS : LevelSets).
       (forall cl, Clauses.In cl cls -> forall l, LevelSet.In l (clause_levels cl) -> LevelMap.In l (Clauses.fold min_model_clause cls m)) /\
       m ⩽ Clauses.fold min_model_clause cls m.
     2:{ specialize (hgen cls m). destruct hgen as [hgen [hcls H]]; split; eauto.
-        intros k hm. specialize (hgen k hm) as [] => //.
+        intros l k hm. specialize (hgen l k hm) as [] => //.
         split => //. eapply max_of_map_ext; tea. }
     clear.
     intros cls m.
@@ -514,13 +516,13 @@ Module Models (LS : LevelSets).
           have := min_model_clause_spec l' x a. cbn.
           move=> [] _ /(_ l' k' (or_introl ina)).
           clear. firstorder. }
-      intros k.
+      intros l k.
       have := min_model_clause_spec l x a. cbn.
       intros [hm hm'] hmk. destruct (hm _ hmk).
       split => //.
       { destruct H0; eauto.
       { left; exists x. split => //. apply hadd. now left. }
-      { specialize (ih _ H0) as []. destruct H1; eauto. left.
+      { specialize (ih _ _ H0) as []. destruct H1; eauto. left.
         move: H1 => [] w []; exists w; split; eauto. apply hadd. now right. } }
       { move=> cl /hadd => [] [<-|hin'].
         { now move: H => []. }
@@ -530,7 +532,7 @@ Module Models (LS : LevelSets).
           forward ihcls.
           { eapply clause_levels_spec. left. eapply levelexprset_levels_spec. now exists k'. }
           destruct ihcls as [ka ihcls].
-          specialize (ih _ ihcls) as [ihm ihcls' maxm].
+          specialize (ih _ _ ihcls) as [ihm ihcls' maxm].
           specialize (ihcls' _ hin' _ h).
           transitivity ka => //.
           destruct H as [mp mmap].
@@ -545,9 +547,9 @@ Module Models (LS : LevelSets).
     intros incl om l.
     split.
     - move=> /om => [] [k inm].
-      have [hmap [hcls hext]] := min_model_map_spec l cls m.
+      have [hmap [hcls hext]] := min_model_map_spec cls m.
       specialize (hext l k inm). firstorder.
-    - have [hmap [hcls hext]] := min_model_map_spec l cls m.
+    - have [hmap [hcls hext]] := min_model_map_spec cls m.
       move=> [] x /hmap => [] [excl allcl maxm].
       red in maxm.
       destruct excl as [[cl [incls incl']]|inm].

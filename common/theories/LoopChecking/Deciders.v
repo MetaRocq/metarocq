@@ -1,5 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
@@ -252,6 +252,24 @@ Proof.
   funelim (check cls cl) => //.
 Qed.
 
+Arguments symmetry {A R Symmetric} {x y}.
+
+Lemma check_looping {cls cl v isl} :
+  check cls cl = IsLooping v isl -> ~ (exists V, clauses_sem V cls).
+Proof.
+  move/check_entails_looping/clauses_sem_entails_all => h [] V /h.
+  rewrite interp_add_prems. lia.
+Qed.
+
+Lemma check_valid_looping {cls cl v isl m} :
+  enabled_clauses m cls ->
+  is_model cls m ->
+  check cls cl = IsLooping v isl -> False.
+Proof.
+  move=> en /(valid_clauses_model _ _ en) csem /check_looping; apply.
+  now eexists.
+Qed.
+
 Theorem check_invalid {cls cl} :
   check cls cl = Invalid -> ~ entails cls cl.
 Proof.
@@ -320,7 +338,7 @@ Proof.
   repeat split.
   - lsets.
   - lsets.
-  - have ms := min_model_map_spec k cls' (model_model m).
+  - have ms := min_model_map_spec cls' (model_model m).
     set (map := min_model_map _ _) in *.
     destruct ms as [hm [hcls hext]].
     rewrite LevelSet.union_spec => [] [].
@@ -329,7 +347,7 @@ Proof.
       now move: hcls => /(_ _ hin _ ink).
     * move/(model_of_V m k).
       move=> [] x /hext. firstorder.
-  - have ms := min_model_map_spec k cls' (model_model m).
+  - have ms := min_model_map_spec cls' (model_model m).
     set (map := min_model_map _ _) in *.
     destruct ms as [hm [hcls hext]].
     rewrite LevelSet.union_spec.
@@ -344,9 +362,38 @@ Proof.
       forward ho by now exists v. now right.
 Qed.
 
+Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le (levels prems).
+Proof.
+  destruct le. intros hin.
+  apply levelexprset_levels_spec. now exists z.
+Qed.
+
+Lemma min_model_map_enabled m cls cls' :
+  enabled_clauses m cls ->
+  enabled_clauses (min_model_map m cls') (Clauses.union cls cls').
+Proof.
+  intros en cl.
+  rewrite Clauses.union_spec => -[].
+  - move/en; rewrite /enabled_clause => -[z hmin].
+    have := @min_premise_pres m (min_model_map m cls') (premise cl) => /fwd.
+    apply min_model_map_acc.
+    rewrite hmin => h; depelim h. now exists y.
+  - intros hin; rewrite /enabled_clause.
+    have [hm [incl hext]] := min_model_map_spec cls' m.
+    have [hle [minp [inp ->]]] := min_premise_spec (min_model_map m cls') (premise cl).
+    move: (incl _ hin). move/(_ minp) => /fwd.
+    { apply clause_levels_spec. left. now apply in_levels. }
+    move=> [k hmap].
+    specialize (hm minp k hmap) as [_ hm _].
+    destruct minp.
+    move: hm => /(_ _ hin)/(_ _ inp). intros le; depelim le.
+    exists (y - z). now rewrite /min_atom_value (level_value_MapsTo hmap).
+Qed.
+
 Module CorrectModel.
   Record t {V cls} :=
   { the_model : model;
+    enabled_model : enabled_clauses the_model cls;
     only_model_of_V : only_model_of V the_model;
     model_updates : LevelSet.t;
     clauses_declared : clauses_levels cls ⊂_lset V;
@@ -355,11 +402,12 @@ Module CorrectModel.
 
   #[local] Obligation Tactic := program_simpl.
   Equations? infer_extension_correct {V W init cls} (m : valid_model V W init cls)
+    (enabled : enabled_clauses init cls)
     (hincl : only_model_of V init)
     (hs : clauses_levels cls ⊂_lset V)
     (cls' : clauses)
     (hs' : clauses_levels cls' ⊂_lset V) : (t V (Clauses.union cls cls')) + premises :=
-  infer_extension_correct m hincl hs cls' hs' with infer_extension m hincl hs cls' :=
+  infer_extension_correct m enabled hincl hs cls' hs' with infer_extension m hincl hs cls' :=
     | Loop u _ => inr u
     | Model w m' _ =>
       inl {|
@@ -368,6 +416,10 @@ Module CorrectModel.
         model_updates := w; clauses_declared := _;
         model_valid := {| model_model := m'.(model_model) |} |}.
   Proof.
+    - eapply min_model_map_enabled.
+      eapply enabled_clauses_ext.
+      have mupd := I.model_updates m. eapply is_update_of_ext in mupd. exact mupd.
+      exact enabled.
     - have := valid_model_only_model _ _ _ _ m hincl.
       now apply only_model_of_min_model_map.
     - intros x; rewrite clauses_levels_spec; rw Clauses.union_spec.
@@ -385,8 +437,9 @@ Module CorrectModel.
   Equations? infer_extension_valid {V cls} (m : t V cls) cls' : option (t V (Clauses.union cls cls') + premises) :=
   infer_extension_valid m cls' with inspect (LevelSet.subset (clauses_levels cls') V) :=
     | exist false heq => None
-    | exist true heq := Some (infer_extension_correct (model_valid m) _ _ cls' _).
+    | exist true heq := Some (infer_extension_correct (model_valid m) _ _ _ cls' _).
   Proof.
+    - apply enabled_model.
     - apply only_model_of_V.
     - now apply m.
     - now apply LevelSet.subset_spec in heq.
@@ -408,6 +461,7 @@ Module Abstract.
     refine {| the_model := LevelMap.empty _;
       only_model_of_V := _;
       model_updates := LevelSet.empty; |}.
+    - red. intros cl hin; clsets.
     - intros l. split. lsets.
       intros [x hm]. now eapply LevelMapFact.F.empty_mapsto_iff in hm.
     - now intros l; rewrite clauses_levels_spec.
@@ -428,6 +482,12 @@ Module Abstract.
     refine {| the_model := LevelMap.add l None m.(model).(the_model);
       only_model_of_V := _;
       model_updates := m.(model).(model_updates); |}.
+    - eapply enabled_clauses_ext. 2:apply m.(model).(enabled_model).
+      intros l' k hm. exists k. split => //. 2:reflexivity.
+      rewrite LevelMapFact.F.add_mapsto_iff. right. split => //.
+      intros ->. apply LevelSetProp.FM.not_mem_iff in hneq. apply hneq.
+      have hv := only_model_of_V m.(model). apply hv.
+      now exists k.
     - intros k. rewrite LevelSet.add_spec /LevelSet.E.eq.
       rw LevelMapFact.F.add_mapsto_iff.
       have hyp := m.(model).(only_model_of_V) k.
@@ -437,7 +497,7 @@ Module Abstract.
         apply LevelSetFact.not_mem_iff in hneq. contradiction.
     - have hyp := m.(model).(clauses_declared). lsets.
     - destruct m as [levels clauses vm]; cbn in *.
-      destruct vm as [init omofV W incl vm].
+      destruct vm as [init en omofV W incl vm].
       destruct vm as [M mofV mupd mcls mok]. cbn in *.
       refine {| model_model := LevelMap.add l None M |}.
       * intros k. rewrite LevelSet.add_spec LevelMapFact.F.add_in_iff. firstorder. now left.

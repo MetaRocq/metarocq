@@ -300,8 +300,9 @@ Proof.
   assert (Z.to_nat (gain (preml, (l, k))) <= max_gain clsdiff)%nat.
   { transitivity (Z.to_nat (gain (prem, (l, k)))). 2:now apply max_gain_in.
     unfold gain. cbn.
-    pose proof (premise_min_subset preml prem).
-    forward H. eapply non_W_atoms_subset. lia. }
+    have := premise_min_subset preml prem => /fwd.
+    { eapply non_W_atoms_subset. }
+    lia. }
   eapply Z.lt_le_trans with (bound + Z.of_nat (Z.to_nat (gain (preml, (l, k)))))%Z; try lia.
   unfold gain; cbn.
   enough ((level_value_default m l) < (v_minus_w_bound W m) + (k - premise_min preml))%Z. lia.
@@ -323,12 +324,12 @@ Proof.
   { eapply premise_min_subset. eapply non_W_atoms_subset. }
   assert (y <= maxpreml - (premise_min preml))%Z.
   { rewrite eqpminpre. rewrite H2 in eqminpre; symmetry in eqminpre.
-    pose proof (min_atom_value_levelexpr_value m exmin). rewrite /levelexpr_value in H4.
+    move: (min_atom_value_levelexpr_value m exmin). rewrite /levelexpr_value.
     specialize (amax _ inminpre) as amax'. rewrite eqmaxpre in amax'.
     destruct amax' as [vexmin [eqexmin ltexmin]].
-    assert (expmin.2 <= exmin.2). specialize (apmin _ inminpre). lia.
-    specialize (H4 _ _ eqminpre eqexmin). rewrite H4. depelim ltexmin.
-    rewrite -eqmaxpre in H6. noconf H6.
+    have hle : expmin.2 <= exmin.2 by move: (apmin _ inminpre); lia.
+    move/(_ _ _ eqminpre eqexmin) => ->. depelim ltexmin.
+    rewrite -eqmaxpre in H5. noconf H5.
     lia. }
   transitivity (k + (maxpreml - (premise_min preml)))%Z. lia.
   assert (k + (maxpreml - (premise_min preml)) =
@@ -336,12 +337,11 @@ Proof.
   enough (maxpreml <= (v_minus_w_bound W m))%Z. lia.
   { have vm := v_minus_w_bound_spec W m exmax. unfold levelexpr_value in eqmaxpre.
     rewrite -eqmaxpre in vm.
-    have [hlevels _] := (@levels_exprs_non_W_atoms W prem (level exmax)).
-    rewrite levelexprset_levels_spec in hlevels.
-    forward hlevels.
-    exists exmax.2. now destruct exmax.
-    rewrite LevelSet.diff_spec in hlevels.
-    destruct hlevels as [_ nw]. specialize (vm nw). depelim vm. lia. }
+    have := (@levels_exprs_non_W_atoms W prem (level exmax)).
+    rewrite levelexprset_levels_spec => -[] /fwd.
+    { exists exmax.2. now destruct exmax. }
+    rewrite LevelSet.diff_spec => [] [_ nw] _.
+    specialize (vm nw). depelim vm. lia. }
 Qed.
 
 Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
@@ -385,10 +385,8 @@ Proof.
   rewrite /sum_W.
   eapply LevelSetProp.fold_rec.
   - intros x hin. firstorder eauto.
-  - intros x a s' s'' inw nins' hadd ih heq.
-    forward ih by lia.
-    intros hin.
-    apply hadd in hin as []; subst. lia.
+  - move=> x a s' s'' inw nins' hadd + afx.
+    move/fwd; [lia|] => ih /hadd[] eq. now move: afx; rewrite eq.
     now apply ih.
 Qed.
 

@@ -60,7 +60,7 @@
 
 *)
 
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
@@ -1602,9 +1602,8 @@ Module Model (LS : LevelSets).
     strictly_updates cls W m m' ->
     model_of W m'.
   Proof.
-    move/strictly_updates_model_of_gen/(_ LevelSet.empty).
-    intros H. forward H. apply model_of_empty.
-    rewrite LevelSetProp.empty_union_1 in H => //. lsets.
+    move/strictly_updates_model_of_gen/(_ LevelSet.empty)/(_ (model_of_empty _)).
+    rewrite LevelSetProp.empty_union_1 //. lsets.
   Qed.
 
   Lemma strictly_updates_only_model_gen cls W m m' :
@@ -1617,11 +1616,11 @@ Module Model (LS : LevelSets).
       destruct cl as [prems [concl cl]].
       destruct H0 as [minv [hmin ? heq]]. setoid_rewrite heq.
       setoid_rewrite LevelMapFact.F.add_mapsto_iff. cbn.
-      destruct (Level.eq_dec concl x).
-      { subst. rewrite LevelSet.union_spec LevelSet.singleton_spec.
+      case: (Level.eq_dec concl x).
+      { move=> ->. rewrite LevelSet.union_spec LevelSet.singleton_spec.
         firstorder; exists (Some (cl + minv)); left; split => //. }
       { rewrite LevelSet.union_spec LevelSet.singleton_spec /LevelSet.E.eq.
-        firstorder. subst x. congruence. }
+        firstorder. congruence. }
     - intros W' tot.
       eapply IHstrictly_updates1 in tot. eapply IHstrictly_updates2 in tot.
       eapply only_model_of_eq; tea. intros x; lsets.
@@ -2045,11 +2044,9 @@ Lemma is_update_of_empty cls m :
         * left. split => //. intros []. congruence.
           destruct H2 as [yrest hin]. eapply restrict_model_spec in hin as []. contradiction.
     - intros mtot mof -> hm. specialize (IHstrictly_updates1 mtot mof eq_refl hm).
-      specialize (IHstrictly_updates2 (model_update mtot m')).
       have model_of : model_of W (model_update mtot m').
         by apply model_of_model_update.
-      specialize (IHstrictly_updates2 model_of eq_refl).
-      forward IHstrictly_updates2.
+      move: (IHstrictly_updates2 (model_update mtot m') model_of eq_refl) => /fwd h.
       { rewrite hm in H. eapply strictly_updates_from_restrict in H; tea.
         2:eapply clauses_conclusions_restrict_clauses.
         now rewrite restrict_model_update. }
@@ -2057,7 +2054,7 @@ Lemma is_update_of_empty cls m :
       have eqm : (model_update (model_update mtot m') m'') =m model_update mtot m''.
       { eapply model_update_trans. eapply strictly_updates_ext in H0.
         intros l [k hin]. apply H0 in hin as [k' []]. now exists k'. }
-      now rewrite eqm in IHstrictly_updates2.
+      now rewrite eqm in h.
   Qed.
 
   Lemma strictly_updates_restrict_model cls W W' m' :
@@ -3043,6 +3040,17 @@ Lemma is_update_of_empty cls m :
     assert (0 <= model_max model)%Z by apply model_max_spec2.
     assert (model_min model <= 0)%Z by apply model_min_spec2.
     lia.
+  Qed.
+
+  Lemma valid_clauses_model model cls :
+    enabled_clauses model cls ->
+    is_model cls model ->
+    clauses_sem (valuation_of_model model) cls.
+  Proof.
+    move=> en ism cl hin.
+    apply valid_clause_model.
+    now apply en.
+    now move/Clauses.for_all_spec: ism; apply.
   Qed.
 
   Lemma init_model_enabled cls : enabled_clauses (max_clause_premises cls) cls.
