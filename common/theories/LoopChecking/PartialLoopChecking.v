@@ -7,14 +7,17 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
 
-From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model.
+From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models.
 
 Set Equations Transparent.
 
 Module LoopCheckingImpl (LS : LevelSets).
-  Module Export Model := Model(LS).
+(* This module is actually independent of the Models, it only needs the
+  lemmas in Model.v, but we do this to share the LevelSets representation. *)
+Module Export Model := Models(LS).
 
-  Local Open Scope Z_scope.
+Local Open Scope Z_scope.
+
 Definition v_minus_w_bound (W : LevelSet.t) (m : model) :=
   LevelMap.fold (fun w v acc => Z.max (option_get 0 v) acc)
     (LevelMapFact.filter (fun l _ => ~~ LevelSet.mem l W) m) 0%Z.

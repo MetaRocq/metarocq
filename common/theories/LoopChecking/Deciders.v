@@ -7,7 +7,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
 
-From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model PartialLoopChecking.
+From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking.
 
 Set Equations Transparent.
 
@@ -52,7 +52,6 @@ Module Deciders (LS : LevelSets).
 
 Module Import I := LoopCheckingImpl LS.
 Import LS.
-
 Local Open Scope Z_scope.
 
 Definition init_model cls := max_clause_premises cls.
