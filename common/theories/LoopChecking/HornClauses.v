@@ -1012,6 +1012,11 @@ Module Clauses (LS : LevelSets).
   Notation " cls ⊢ prems → concl " := (entails cls (prems, concl)) (at level 20).
   Notation " cls ⊢a prems → concl " := (entails_all cls prems concl) (at level 20).
 
+  Definition entails_equiv cls u u' :=
+    cls ⊢a u → u' /\ cls ⊢a u' → u.
+
+  Notation "cls '⊢a' u ↔ u'" := (entails_equiv cls u u') (at level 20).
+
   Lemma in_pred_closure_equal cls (prems prems' : premises) concl :
     LevelExprSet.Equal prems prems' ->
     in_pred_closure cls (prems, concl) -> in_pred_closure cls (prems', concl).
@@ -1546,11 +1551,5 @@ Module Clauses (LS : LevelSets).
     eapply In_add_prems. exists l. split => //. cbn in ha.
     now eapply succ_clauses_equiv in ha.
   Qed.
-
-  Definition entails_equiv cls u u' :=
-    cls ⊢a u → u' /\ cls ⊢a u' → u.
-
-  Notation "cls '⊢a' u ↔ u'" := (entails_equiv cls u u') (at level 90).
-
 
 End Clauses.

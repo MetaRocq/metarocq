@@ -75,38 +75,44 @@ End LevelExprSet_fun.
 
 Module Type LevelSets.
   (* Signature of levels: decidable, ordered type *)
-  Declare Module Import Level : LevelOrderedType.
-  Declare Module Import LevelSet : LevelSet_fun Level.
-  Declare Module Import LevelExpr : LevelExprItf Level.
-  Declare Module Import LevelExprSet : LevelExprSet_fun Level LevelExpr.
-  Declare Module Import LevelMap : FMapOTInterface Level.
+  Declare Module Level : LevelOrderedType.
+  Declare Module LevelSet : LevelSet_fun Level.
+  Declare Module LevelExpr : LevelExprItf Level.
+  Declare Module LevelExprSet : LevelExprSet_fun Level LevelExpr.
+  Declare Module LevelMap : FMapOTInterface Level.
 End LevelSets.
 
 
 Module FromLevelSets (LS : LevelSets).
-  Export LS.
+Export LS.
 
-  Definition level (e : LevelExpr.t) : Level.t := fst e.
-  Coercion level : LevelExpr.t >-> Level.t.
-  Extraction Inline level.
+Definition level (e : LevelExpr.t) : Level.t := fst e.
+Coercion level : LevelExpr.t >-> Level.t.
+Extraction Inline level.
 
-  Definition levels (e : LevelExprSet.t) :=
-  LevelExprSet.fold (fun le => LevelSet.add (level le)) e LevelSet.empty.
-  Export LevelExprSet (nonEmptyLevelExprSet, t_set, t_ne).
+Definition levels (e : LevelExprSet.t) :=
+LevelExprSet.fold (fun le => LevelSet.add (level le)) e LevelSet.empty.
+Export LevelExprSet (nonEmptyLevelExprSet, t_set, t_ne).
 
-  Existing Instance Level.reflect_eq.
+Existing Instance Level.reflect_eq.
 
-  Module LevelSetFact := WFactsOn Level LevelSet.
-  Module LevelSetProp := WPropertiesOn Level LevelSet.
-  Module LevelSetDecide := LevelSetProp.Dec.
-  Module LevelMapFact := FMapFacts.WProperties_fun LevelMap.OT LevelMap.
+Module LevelSetFact := WFactsOn Level LevelSet.
+Module LevelSetProp := WPropertiesOn Level LevelSet.
+Module LevelSetDecide := LevelSetProp.Dec.
+Module LevelMapFact := FMapFacts.WProperties_fun LevelMap.OT LevelMap.
 
-  Ltac lsets := LevelSetDecide.fsetdec.
-  Notation "(=_lset)" := LevelSet.Equal (at level 0).
-  Infix "=_lset" := LevelSet.Equal (at level 30).
-  Infix "⊂_lset" := LevelSet.Subset (at level 70).
-  Infix "∪" := LevelSet.union (at level 70).
+Declare Scope levels_scope.
 
+Ltac lsets := LevelSetDecide.fsetdec.
+Notation "(=_lset)" := LevelSet.Equal (at level 0) : levels_scope.
+Infix "=_lset" := LevelSet.Equal (at level 30) : levels_scope.
+Infix "⊂_lset" := LevelSet.Subset (at level 70) : levels_scope.
+Infix "⊂_leset" := LevelExprSet.Subset (at level 70) : levels_scope.
+Infix "∪" := LevelSet.union (at level 70) : levels_scope.
+Infix "=m" := LevelMap.Equal (at level 50) : levels_scope.
+Notation "#| V |" := (LevelSet.cardinal V) : levels_scope.
+
+Open Scope levels_scope.
 
 Definition print_level_nat_map (m : LevelMap.t nat) :=
   let list := LevelMap.elements m in
@@ -151,7 +157,6 @@ Qed.
 Coercion t_set : nonEmptyLevelExprSet >-> LevelExprSet.t.
 Module LevelExprSetDecide := WDecide (LevelExprSet).
 Ltac lesets := LevelExprSetDecide.fsetdec.
-Infix "⊂_leset" := LevelExprSet.Subset (at level 70).
 
 Lemma levelset_not_Empty_is_empty s :
   LevelSet.is_empty s = false <-> ~ LevelSet.Empty s.
@@ -172,8 +177,6 @@ Lemma not_in_union_inv l ls ls' :
 Proof.
   rewrite LevelSet.union_spec. firstorder.
 Qed.
-
-Infix "=m" := LevelMap.Equal (at level 50).
 
 Lemma levelmap_add_spec {A} (m m' : LevelMap.t A) {k v}:
   LevelMapFact.Add k v m m' ->
@@ -652,8 +655,6 @@ Proof.
   apply H0. lsets.
 Qed.
 
-Notation "#| V |" := (LevelSet.cardinal V).
-
 Lemma diff_cardinal_inter V W : #|LevelSet.diff V W| = #|V| - #|LevelSet.inter V W|.
 Proof.
   pose proof (LevelSetProp.diff_inter_cardinal V W). lia.
@@ -664,4 +665,5 @@ Proof.
   intros hsub.
   rewrite diff_cardinal_inter LevelSetProp.inter_sym LevelSetProp.inter_subset_equal //.
 Qed.
+
 End FromLevelSets.

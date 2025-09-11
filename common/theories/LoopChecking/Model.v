@@ -1082,7 +1082,7 @@ Module Model (LS : LevelSets).
     lia.
   Qed.
 
-  Import LevelExprSet.
+  Import -(notations) LevelExprSet.
   Import NonEmptySetFacts.
 
   Definition max_premise_value (m : model) (l : premises) : option Z :=
@@ -2686,7 +2686,7 @@ Lemma is_update_of_empty cls m :
     cls ⊢a of_level_map m nem → succ_prems (of_level_map m nem).
   Proof.
     intros tot cla mp [l k].
-    rewrite In_add_prems => [] [[l' k']] [] /of_level_map_spec hm [= ] -> ->.
+    rewrite In_add_prems => [] [[l' k']] [] /of_level_map_spec hm [=] -> ->.
     eapply entails_any_one; tea. exact tot. apply tot. now exists (Some k').
   Qed.
 
@@ -3044,7 +3044,7 @@ Lemma is_update_of_empty cls m :
         intros [ina|ins''].
         { specialize (H2 hnin (or_introl ina)). eapply is_higher_le; tea. }
         { destruct ins'' as [x [ins'' ->]].
-          apply H1 in ins'' as [[= ]|ins'].
+          apply H1 in ins'' as [[=]|ins'].
           * subst. apply is_higher_add.
           * apply is_higher_le, H2. right. eexists; eauto. } }
         { destruct H2 as [_ [_ H2]].
@@ -3060,13 +3060,13 @@ Lemma is_update_of_empty cls m :
         have [[leacc eqms]|[len eqms]] := max_opt_of_spec hk.
         { depelim leacc. specialize (hin _ (level_value_MapsTo' H3)) as [[kl [inkl [= <-] les' lea]]|].
           { left. exists y. split => //. apply H1; now right. congruence. intros.
-            apply H1 in H4 as [[= ]|ins']. 2:now apply les'. subst kl'. lia. }
+            apply H1 in H4 as [[=]|ins']. 2:now apply les'. subst kl'. lia. }
           { destruct H4. right. split. now rewrite -H3 -eqms in H4. intros.
-            apply H1 in H6 as [[= ]|ins']; subst; trea. rewrite H3; cbn; constructor; lia_f_equal.
+            apply H1 in H6 as [[=]|ins']; subst; trea. rewrite H3; cbn; constructor; lia_f_equal.
             rewrite H3; cbn; constructor. apply H5 in ins'. depelim ins'. lia. } }
         { left. exists k'. split => //.
           * apply H1. now left.
-          * move=> kl' /H1 [[= ]|ins']. lia. depelim len. transitivity x; tea. specialize (hin _ (level_value_MapsTo' H3)) as
+          * move=> kl' /H1 [[=]|ins']. lia. depelim len. transitivity x; tea. specialize (hin _ (level_value_MapsTo' H3)) as
           [[kl [inkl [= <-] les' lea]]|[]].
             { now eapply les'. }
             { specialize (H5 _ ins'). depelim H5. lia. }
@@ -3085,8 +3085,8 @@ Lemma is_update_of_empty cls m :
               forward hnin. now left. destruct hnin as [? [hm ?]]. elim hnin'. now exists x. }
       * destruct H2. eapply H2 in hm as [[kl []]|[hm hkl']] => //.
         { left. exists kl. split => //. apply H1. now right. intros kl' h. subst k.
-          apply H6. apply H1 in h. destruct h as [[= ]|?] => //. subst. congruence. }
-        { right. split => //. intros kl' hin. apply H1 in hin as [[= ]|?] => //; subst; try congruence. eauto. }
+          apply H6. apply H1 in h. destruct h as [[=]|?] => //. subst. congruence. }
+        { right. split => //. intros kl' hin. apply H1 in hin as [[=]|?] => //; subst; try congruence. eauto. }
   Qed.
 
   Lemma min_model_clause_spec l cl a :
