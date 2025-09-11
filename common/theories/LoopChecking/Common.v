@@ -167,6 +167,17 @@ Definition max_opt_of {A} (max : A -> A -> A) (x : option A) (y : option A) : op
   | _, _ => y
   end.
 
+Lemma max_opt_of_spec {x y k'} : max_opt_of Z.max x y = k' ->
+  (x ≤ y /\ k' = y) \/ (y ≤ x /\ k' = x).
+Proof.
+  destruct x, y; cbn; firstorder subst.
+  - destruct (Z.max_spec z z0) as [[]|[]];
+    [left|right]; split; try constructor; lia_f_equal.
+  - right. split; constructor.
+  - left. split; constructor.
+  - left; split; constructor.
+Qed.
+
 Lemma max_opt_of_l {A} {f : A -> A -> A} l : max_opt_of f l None = l.
 Proof.
   destruct l => //.
@@ -175,6 +186,16 @@ Qed.
 Lemma max_opt_of_r {A} {f : A -> A -> A} l : max_opt_of f None l = l.
 Proof.
   destruct l => //.
+Qed.
+
+Lemma max_opt_of_le_l z z' : z ≤ max_opt_of Z.max z z'.
+Proof.
+  destruct z, z'; cbn; constructor; lia.
+Qed.
+
+Lemma max_opt_of_le_r z z' : z' ≤ max_opt_of Z.max z z'.
+Proof.
+  destruct z, z'; cbn; constructor; lia.
 Qed.
 
 Lemma pair_inj {A B} (x x' : A) (y y' : B) P :
@@ -213,6 +234,158 @@ Proof.
   now rewrite (assoc (f := option_map2 Z.max)) (comm (f := option_map2 Z.max) x y) -assoc.
 Qed.
 
+Local Open Scope Z_scope.
+Lemma fold_right_max_in {a l} n : In a l -> a <= fold_right Z.max n l.
+Proof.
+  induction l.
+  - now cbn.
+  - intros [eq|inl]. subst a0. cbn. lia.
+    cbn. specialize (IHl inl). lia.
+Qed.
+
+Lemma fold_right_max_acc {n l} : n <= fold_right Z.max n l.
+Proof.
+  induction l.
+  - now cbn.
+  - cbn. lia.
+Qed.
+
+Lemma fold_right_impl n l l' :
+  (forall x, In x l -> In x l') -> fold_right Z.max n l <= fold_right Z.max n l'.
+Proof.
+  induction l in l' |- *.
+  - cbn. destruct l'; cbn. lia.
+    intros. have := @fold_right_max_acc n l'. lia.
+  - cbn; intros h.
+    have inal' := (h a (or_introl eq_refl)).
+    have := fold_right_max_in n inal'.
+    specialize (IHl l').
+    forward IHl.
+    intros. apply h. now right.
+    lia.
+Qed.
+
+Lemma fold_right_max_spec n l :
+  let fn := fold_right Z.max in
+  (forall x, In x (n :: l) -> x <= fn n l) /\
+  (exists x, In x (n :: l) /\ fn n l = x).
+Proof.
+  induction l; cbn.
+  - split. intros x [] => //. now subst.
+    exists n. firstorder.
+  - cbn in IHl. destruct IHl as [h h'].
+    split.
+    intros x [|[]]; subst.
+    * specialize (h x). forward h by auto. lia.
+    * lia.
+    * specialize (h x). forward h by auto. lia.
+    * destruct h' as [x []]. exists (Z.max a x). rewrite -{4}H0. split => //.
+      destruct H; subst.
+      destruct (Z.max_spec a x) as [[]|[]]; firstorder; subst.
+      destruct (Z.max_spec a (fold_right Z.max n l)) as [[]|[]]; firstorder; subst. rewrite H1.
+      auto.
+Qed.
+
+Lemma fold_right_equivlist_all n n' l l' :
+  equivlistA eq (n :: l) (n' :: l') -> fold_right Z.max n l = fold_right Z.max n' l'.
+Proof.
+  intros eq.
+  have [hla [maxl [inmaxl eqmaxl]]] := fold_right_max_spec n l.
+  have [hra [maxr [inmaxr eqmaxr]]] := fold_right_max_spec n' l'.
+  rewrite eqmaxl eqmaxr.
+  red in eq; setoid_rewrite InA_In_eq in eq.
+  apply (eq _) in inmaxl. apply hra in inmaxl.
+  apply eq in inmaxr. apply hla in inmaxr. lia.
+Qed.
+
+Lemma fold_right_comm acc l : l <> [] -> fold_right Z.max acc l = Z.max acc (fold_right Z.max (List.hd acc l) (List.tl l)).
+Proof.
+  induction l in acc |- *.
+  - intros; congruence.
+  - intros _. cbn. destruct l; cbn. lia.
+    cbn in IHl. rewrite (IHl acc). congruence.
+    rewrite (IHl a). congruence. lia.
+Qed.
+
+Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
+  fold_left (fun acc l => f (g l) acc) l acc =
+  fold_left (fun acc l => f l acc) (List.map g l) acc.
+Proof.
+  induction l in acc |- *; cbn; auto.
+Qed.
+
+Lemma option_map2_comm x y : option_map2 Z.min x y = option_map2 Z.min y x.
+Proof.
+  destruct x, y; cbn; lia_f_equal.
+Qed.
+
+Lemma option_map2_assoc x y z :
+  option_map2 Z.min x (option_map2 Z.min y z) =
+  option_map2 Z.min (option_map2 Z.min x y) z.
+Proof.
+  destruct x, y, z; cbn; lia_f_equal.
+Qed.
+
+Local Notation fn := (fold_left (option_map2 Z.min)).
+
+Lemma fold_left_impl n l :
+  (forall x, In x (n :: l) -> fn l n ≤ x) /\
+  (exists x, In x (n :: l) /\ fn l n = x).
+Proof.
+  induction l in n |- *.
+  - cbn. split; intros.
+    destruct H => //. subst. reflexivity.
+    exists n. split => //. now left.
+  - cbn. split; intros.
+    { destruct (IHl n) as [hle [min [hin heq]]].
+    rewrite fold_left_comm.
+    { now intros; rewrite -option_map2_assoc (option_map2_comm x0 y) option_map2_assoc. }
+    repeat destruct H; subst.
+    * specialize (hle n). forward hle. now left.
+      transitivity (fn l n); auto. eapply Zmin_opt_left.
+    * eapply Zmin_opt_right.
+    * transitivity (fn l n); auto. apply Zmin_opt_left.
+      apply hle. now right. }
+    * specialize (IHl (option_map2 Z.min n a)).
+      destruct IHl as [hle [min [hin heq]]]. subst min. eexists. split; trea.
+      destruct hin.
+      rewrite -H.
+      destruct n, a; cbn; firstorder.
+      destruct (Z.min_spec z z0) as [[? heq]|[? heq]].
+      rewrite -{1}heq. now left. right; left. f_equal. lia.
+      now right.
+Qed.
+
+Lemma fold_left_impl_eq n n' l l' :
+  (forall x, In x (n :: l) <-> In x (n' :: l' )) ->
+  fn l n = fn l' n'.
+Proof.
+  intros heq.
+  destruct (fold_left_impl n l) as [hle [minl [hin heq']]].
+  destruct (fold_left_impl n' l') as [hle' [minl' [hin' heq'']]].
+  rewrite heq' heq''.
+  specialize (hle minl'). forward hle. now apply heq.
+  specialize (hle' minl). forward hle'. now apply heq.
+  rewrite heq'' in hle'. rewrite heq' in hle. depelim hle'. depelim hle. f_equal; lia.
+  now depelim hle.
+Qed.
+
+Lemma fold_left_comm_f {A} (f : A -> A -> A) n l :
+  (forall x y, f x y = f y x) ->
+  fold_left f l n = fold_left (flip f) l n.
+Proof.
+  induction l in n |- *; cbn; auto.
+  intros hf. rewrite IHl //.
+  unfold flip. now rewrite hf.
+Qed.
+
+Lemma nleq_optZ k k' : ~ k ≤ Some k' -> exists z, k = Some z /\ k' < z.
+Proof.
+  destruct k.
+  - exists z. split => //. eapply Znot_ge_lt => hl; apply H. constructor. lia.
+  - elim. constructor.
+Qed.
+
 Notation max_opt := (option_map2 Z.max).
 
 Lemma max_opt_spec x y z : max_opt x y = Some z -> exists x' y', x = Some x' /\ y = Some y' /\ z = Z.max x' y'.
@@ -235,4 +408,10 @@ Qed.
 Proof.
   repeat intro. split; intros []; split; intuition auto.
 Qed.
+
+#[export, refine] Instance ge_refl : Reflexive Z.ge := _.
+Proof. red. lia. Qed.
+
+#[export, refine] Instance ge_trans : Transitive Z.ge := _.
+Proof. red. lia. Qed.
 
