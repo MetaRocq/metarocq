@@ -3,8 +3,8 @@
 -I .
 
 # Generic loop checking algorithm
-theories/LoopChecking.v
-theories/TemplateLoopChecking.v
+# theories/LoopChecking.v
+# theories/TemplateLoopChecking.v
 
 # Basic Ast files
 theories/Ast.v

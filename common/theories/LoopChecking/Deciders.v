@@ -392,12 +392,12 @@ Qed.
 
 Module CorrectModel.
   Record t {V cls} :=
-  { the_model : model;
-    enabled_model : enabled_clauses the_model cls;
-    only_model_of_V : only_model_of V the_model;
+  { initial_model : model;
+    enabled_model : enabled_clauses initial_model cls;
+    only_model_of_V : only_model_of V initial_model;
     model_updates : LevelSet.t;
     clauses_declared : clauses_levels cls ⊂_lset V;
-    model_valid : valid_model V model_updates the_model cls }.
+    model_valid : valid_model V model_updates initial_model cls }.
   Arguments t : clear implicits.
 
   #[local] Obligation Tactic := program_simpl.
@@ -411,7 +411,7 @@ Module CorrectModel.
     | Loop u _ => inr u
     | Model w m' _ =>
       inl {|
-        the_model := min_model_map m.(model_model) cls';
+        initial_model := min_model_map m.(model_model) cls';
         only_model_of_V := _;
         model_updates := w; clauses_declared := _;
         model_valid := {| model_model := m'.(model_model) |} |}.
@@ -458,7 +458,7 @@ Module Abstract.
        clauses := Clauses.empty;
        model := _ |}.
   Next Obligation.
-    refine {| the_model := LevelMap.empty _;
+    refine {| initial_model := LevelMap.empty _;
       only_model_of_V := _;
       model_updates := LevelSet.empty; |}.
     - red. intros cl hin; clsets.
@@ -474,12 +474,76 @@ Module Abstract.
         intros x hin. now apply Clauses.empty_spec in hin.
   Qed.
 
+  Lemma levelmap_add_comm {A} l o l' o' (m : LevelMap.t A) : l <> l' ->
+    LevelMap.add l o (LevelMap.add l' o' m) =m
+    LevelMap.add l' o' (LevelMap.add l o m).
+  Proof.
+    intros neq.
+    apply LevelMapFact.F.Equal_mapsto_iff => k' o''.
+    rewrite !LevelMapFact.F.add_mapsto_iff /Level.eq.
+    firstorder; subst. right. split => //. auto.
+    left; firstorder.
+    right; firstorder.
+  Qed.
+
+  Lemma strictly_updates_add clauses W m m' l :
+    ~ LevelSet.In l (clauses_levels clauses) ->
+    strictly_updates clauses W m m' ->
+    strictly_updates clauses W (LevelMap.add l None m) (LevelMap.add l None m').
+  Proof.
+    intros hnin; elim; clear -hnin.
+    - move=> m [prems [concl k]] m' hin [] v [] hmin habov hm'.
+      constructor => //. exists v. split => //.
+      * erewrite min_premise_preserved; tea.
+        intros.
+        have neq : x <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (concl, k)).
+          split => //. apply clause_levels_spec. now left. }
+        rewrite /level_value.
+        rewrite LevelMapFact.F.add_neq_o; auto.
+      * have neq : concl <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+          split => //. apply clause_levels_spec. now right. }
+        rewrite /level_value_above /level_value LevelMapFact.F.add_neq_o; auto.
+      * have neq : concl <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+          split => //. apply clause_levels_spec. now right. }
+        now rewrite levelmap_add_comm // hm'.
+    - move=>> su ihsu su' ihsu'.
+      econstructor; tea.
+  Qed.
+
+  Lemma is_model_add clauses l m :
+    ~ LevelSet.In l (clauses_levels clauses) ->
+    is_model clauses m ->
+    is_model clauses (LevelMap.add l None m).
+  Proof.
+    move=> hnin ism.
+    eapply Clauses.for_all_spec; tc => cl hin'.
+    move/Clauses.for_all_spec: ism => /(_ _ hin').
+    destruct cl as [prems [concl k]].
+    move/valid_clause_elim => he.
+    apply valid_clause_intro => z.
+    erewrite (@min_premise_preserved _ m); tea.
+    - move/he.
+      have neq : concl <> l.
+      { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+        split => //. apply clause_levels_spec. now right. }
+      rewrite /level_value LevelMapFact.F.add_neq_o; auto.
+    - intros x hin.
+      have neq : x <> l.
+      { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (concl, k)).
+        split => //. apply clause_levels_spec. now left. }
+      rewrite /level_value.
+      rewrite LevelMapFact.F.add_neq_o; auto.
+  Qed.
+
   Equations? declare_level (m : t) (l : Level.t) : option t :=
   declare_level m l with inspect (LevelSet.mem l m.(levels)) :=
     | exist true _ => None
     | exist false hneq => Some {| levels := LevelSet.add l m.(levels); clauses := m.(clauses) |}.
   Proof.
-    refine {| the_model := LevelMap.add l None m.(model).(the_model);
+    refine {| initial_model := LevelMap.add l None m.(model).(initial_model);
       only_model_of_V := _;
       model_updates := m.(model).(model_updates); |}.
     - eapply enabled_clauses_ext. 2:apply m.(model).(enabled_model).
@@ -505,9 +569,14 @@ Module Abstract.
         rewrite /is_update_of.
         destruct (LevelSet.is_empty) eqn:hw.
         now intros ->.
-        { apply (todo "strict update weakening"). }
+        { eapply levelset_not_Empty_is_empty in hw.
+          apply LevelSetFact.not_mem_iff in hneq.
+          apply strictly_updates_add.
+          now move/incl. }
       * lsets.
-      * apply (todo "cannot activate more clauses").
+      * apply LevelSetFact.not_mem_iff in hneq.
+        apply is_model_add; tea.
+        now move/incl.
   Qed.
 
   Equations enforce_clauses (m : t) (cls : Clauses.t) : option (t + premises) :=
@@ -528,9 +597,9 @@ Module LoopChecking (LS : LevelSets).
   Notation univ := LS.LevelExprSet.nonEmptyLevelExprSet.
 
   Inductive constraint_type := UnivEq | UnivLe.
-  Notation constraint := (univ * constraint_type * univ).
+  Definition constraint := (univ * constraint_type * univ).
 
-  Definition enforce_constraint (cstr : constraint) (cls : Clauses.t) : Clauses.t :=
+  Local Definition enforce_constraint (cstr : constraint) (cls : Clauses.t) : Clauses.t :=
     let '(l, d, r) := cstr in
     match d with
     | UnivLe =>
@@ -562,6 +631,6 @@ Module LoopChecking (LS : LevelSets).
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
-  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.the_model).
+  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.initial_model).
 
 End LoopChecking.

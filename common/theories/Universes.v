@@ -158,6 +158,12 @@ Module Level.
 
   Definition eq_dec : forall (l1 l2 : t), {l1 = l2}+{l1 <> l2} := Classes.eq_dec.
 
+  #[refine] Instance reflect_eq : ReflectEq t :=
+    { ReflectEq.eqb := eqb }.
+  Proof.
+    intros x y. apply reflect_reflectProp, eqb_spec.
+  Qed.
+
 End Level.
 
 Module LevelSet := MSetAVL.Make Level.
@@ -342,9 +348,6 @@ Module LevelExprSet.
   Record nonEmptyLevelExprSet
     := { t_set : LevelExprSet.t ;
          t_ne  : LevelExprSet.is_empty t_set = false }.
-
-
-
 End LevelExprSet.
 
 Module LevelExprSetFact := WFactsOn LevelExpr LevelExprSet.
@@ -2963,14 +2966,17 @@ Definition print_constraint_type d :=
   | ConstraintType.Eq => "="
   end.
 
+Definition print_level_constraint '(l1, d, l2) :=
+  string_of_level l1 ^ " " ^
+  print_constraint_type d ^ " " ^ string_of_level l2.
+
 Definition print_level_constraint_set t :=
-  print_list (fun '(l1, d, l2) =>
-    string_of_level l1 ^ " " ^
-    print_constraint_type d ^ " " ^ string_of_level l2)
+  print_list print_level_constraint
     " /\ " (ConstraintSet.elements t).
 
+Definition print_univ_constraint '(l1, d, l2) :=
+  string_of_universe (l1 : Universe.t) ^ " " ^
+  print_constraint_type d ^ " " ^ string_of_universe (l2 : Universe.t).
+
 Definition print_univ_constraint_set t :=
-  print_list (fun '(l1, d, l2) =>
-    string_of_universe (l1 : Universe.t) ^ " " ^
-    print_constraint_type d ^ " " ^ string_of_universe (l2 : Universe.t))
-    " /\ " (UnivConstraintSet.elements t).
+  print_list print_univ_constraint " /\ " (UnivConstraintSet.elements t).

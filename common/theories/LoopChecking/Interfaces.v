@@ -41,14 +41,15 @@ End FMapOrderedType_from_UsualOrderedType.
 
 Module Type LevelOrderedType.
   Include UsualOrderedType.
+  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
+End LevelOrderedType.
+
+Module Type LevelOrderedTypeWithReflect.
+  Include LevelOrderedType.
 
   Parameter reflect_eq : ReflectEq t.
-  #[local] Existing Instance reflect_eq.
-  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
-
   Parameter to_string : t -> string.
-
-End LevelOrderedType.
+End LevelOrderedTypeWithReflect.
 
 Module Type FMapOTInterface (E : UsualOrderedType).
   Module OT := FMapOrderedType_from_UsualOrderedType E.
@@ -75,13 +76,12 @@ End LevelExprSet_fun.
 
 Module Type LevelSets.
   (* Signature of levels: decidable, ordered type *)
-  Declare Module Level : LevelOrderedType.
+  Declare Module Level : LevelOrderedTypeWithReflect.
   Declare Module LevelSet : LevelSet_fun Level.
   Declare Module LevelExpr : LevelExprItf Level.
   Declare Module LevelExprSet : LevelExprSet_fun Level LevelExpr.
   Declare Module LevelMap : FMapOTInterface Level.
 End LevelSets.
-
 
 Module FromLevelSets (LS : LevelSets).
 Export LS.

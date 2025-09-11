@@ -17,6 +17,14 @@ Notation fwd := (ltac:(move=> /(_ _)/Wrap[])).
 Arguments exist {A P}.
 Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
 
+#[program] Global Instance reflect_eq_Z : ReflectEq Z := {
+    eqb := Z.eqb
+  }.
+Next Obligation.
+  destruct (Z.eqb_spec x y); constructor => //.
+Qed.
+
+
 Definition option_map2 {A} (f : A -> A -> A) (o o' : option A) : option A :=
   match o, o' with
   | Some x, Some y => Some (f x y)

@@ -1,6 +1,6 @@
 From Equations Require Import Equations.
 From Coq Require Import ExtrOcamlBasic ExtrOcamlNatInt ExtrOcamlZInt.
-From MetaCoq.Template Require Import LoopChecking.
+From MetaRocq.Common.LoopChecking Require Import Common Interfaces Deciders.
 
 Extract Constant BinInt.Z.of_nat => "(fun x -> x)".
 Extract Constant BinInt.Z.to_nat => "(fun x -> x)".

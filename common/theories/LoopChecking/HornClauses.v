@@ -142,13 +142,6 @@ Module Clauses (LS : LevelSets).
     destruct (LevelExpr.compare_spec t0 t1); repeat constructor; tas. now subst.
   Qed.
 
-  #[program] Global Instance reflect_eq_Z : ReflectEq Z := {
-    eqb := Z.eqb
-  }.
-  Next Obligation.
-    destruct (Z.eqb_spec x y); constructor => //.
-  Qed.
-
   Global Instance reflect_t : ReflectEq t := reflect_prod _ _ .
 
   Definition eq_dec : forall (l1 l2 : t), {l1 = l2} + {l1 <> l2} := Classes.eq_dec.
