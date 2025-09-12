@@ -42,7 +42,7 @@
   a loop, i.e. a situation where [cls ⊢ a → a + 1] for some (non-empty) set of atoms [a] (i.e. a contradiction when seen
   through the valuations).
 
-  Alltogether, by choosing appropriate initial models (defined in [Models.v]), this allows to decide
+  Altogether, by choosing appropriate initial models (defined in [Models.v]), this allows to decide
   satisfiability and validity.
 
   For satisfiabiliy [cls, prems → concl + k|=] we try to find a model of [cls /\ prems → concl + k]
@@ -1094,6 +1094,36 @@ Module Model (LS : LevelSets).
     (exists x, LevelExprSet.In x s /\ premise_min s = x.2).
   Proof.
     now apply premise_min_spec_aux.
+  Qed.
+
+
+  Definition to_positive (s : premises) : premises :=
+    let z := premise_min s in
+    add_prems (- z) s.
+
+  Lemma to_positive_spec (s : premises) : forall l k, LevelExprSet.In (l, k) s <-> LevelExprSet.In (l, k - premise_min s) (to_positive s).
+  Proof.
+    intros l k; rewrite /to_positive.
+    rewrite In_add_prems. split.
+    - move=> hin; exists (l, k). split => //.
+    - move=> [] [l' k'] [] hin heq. noconf heq.
+      now have -> : k = k' by lia.
+  Qed.
+
+  Lemma to_positive_spec_2 (s : premises) : forall l k, LevelExprSet.In (l, k) (to_positive s) <-> LevelExprSet.In (l, k + premise_min s) s.
+  Proof.
+    intros l k; rewrite /to_positive.
+    rewrite In_add_prems. split.
+    - move=> [] [l' k'] [] hin heq. noconf heq.
+      now have <- : k' = k' + - premise_min s + premise_min s by lia.
+    - move=> hin; exists (l, k + premise_min s). split => //.
+      cbn. lia_f_equal.
+  Qed.
+
+  Lemma to_positive_pos (s : premises) : forall l k, LevelExprSet.In (l, k) (to_positive s) -> k >= 0.
+  Proof.
+    move=> l k /to_positive_spec_2.
+    move: (premise_min_spec s) => [] + hex hs; move /(_ _ hs). cbn. lia.
   Qed.
 
   Lemma premise_max_spec_aux s k :

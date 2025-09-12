@@ -565,8 +565,7 @@ Module Abstract.
       destruct vm as [M mofV mupd mcls mok]. cbn in *.
       refine {| model_model := LevelMap.add l None M |}.
       * intros k. rewrite LevelSet.add_spec LevelMapFact.F.add_in_iff. firstorder. now left.
-      * move: mupd.
-        rewrite /is_update_of.
+      * move: mupd; rewrite /is_update_of.
         destruct (LevelSet.is_empty) eqn:hw.
         now intros ->.
         { eapply levelset_not_Empty_is_empty in hw.
@@ -599,19 +598,46 @@ Module LoopChecking (LS : LevelSets).
   Inductive constraint_type := UnivEq | UnivLe.
   Definition constraint := (univ * constraint_type * univ).
 
-  Local Definition enforce_constraint (cstr : constraint) (cls : Clauses.t) : Clauses.t :=
+  Definition clauses_of_le l r :=
+    LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (LevelExprSet.t_set l) Clauses.empty.
+
+  Lemma clauses_of_le_spec l r :
+    forall cl, Clauses.In cl (clauses_of_le l r) <->
+      LevelExprSet.Exists (fun lk => cl = (r, lk)) l.
+  Proof.
+    intros cl; rewrite /clauses_of_le.
+    eapply LevelExprSetProp.fold_rec.
+    - move=> s' he; split. clsets.
+      move=> [] x []; lesets.
+    - move=> x a s' s'' hin hnin hadd ih.
+      rewrite Clauses.add_spec. split.
+      * move=> [->|]. firstorder.
+        rewrite ih. firstorder.
+      * move=> [] x' [] /hadd[<-|]; auto.
+        rewrite ih. right; firstorder.
+  Qed.
+
+  Local Definition to_clauses (cstr : constraint) : Clauses.t :=
     let '(l, d, r) := cstr in
     match d with
-    | UnivLe =>
-      LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (LevelExprSet.t_set l) cls
-    | UnivEq =>
-      let cls :=
-        LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (LevelExprSet.t_set l) cls
-      in
-      let cls' :=
-        LevelExprSet.fold (fun rk acc => Clauses.add (l, rk) acc) (LevelExprSet.t_set r) cls
-      in cls'
+    | UnivLe => clauses_of_le l r
+    | UnivEq => Clauses.union (clauses_of_le l r) (clauses_of_le r l)
     end.
+
+  Lemma to_clauses_spec l d r :
+    forall cl, Clauses.In cl (to_clauses (l, d, r)) <->
+    match d with
+    | UnivLe => LevelExprSet.Exists (fun lk => cl = (r, lk)) l
+    | UnivEq => LevelExprSet.Exists (fun lk => cl = (r, lk)) l \/ LevelExprSet.Exists (fun rk => cl = (l, rk)) r
+    end.
+  Proof.
+    intros cl. destruct d => //=.
+    - rewrite Clauses.union_spec.
+      have := clauses_of_le_spec l r cl.
+      have := clauses_of_le_spec r l cl.
+      firstorder.
+    - apply clauses_of_le_spec.
+  Qed.
 
   Definition init_model := Impl.Abstract.init_model.
 
@@ -621,13 +647,13 @@ Module LoopChecking (LS : LevelSets).
   (* Returns either a model or a looping universe, i.e. such that u >= u + 1 is implied
      by the constraint *)
   Definition enforce c (m : model) : option (model + univ) :=
-    Impl.Abstract.enforce_clauses m (enforce_constraint c Clauses.empty).
+    Impl.Abstract.enforce_clauses m (to_clauses c).
 
-  (* Returns true is the clause is valid in the model and all its possible consistent extensions.
+  (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply
      is not valid. *)
   Definition check m c :=
-    Impl.check_clauses m.(Impl.Abstract.clauses) (enforce_constraint c Clauses.empty).
+    Impl.check_clauses m.(Impl.Abstract.clauses) (to_clauses c).
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
