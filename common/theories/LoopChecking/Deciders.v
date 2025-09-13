@@ -15,7 +15,7 @@ Module Type LoopCheckingItf (LS : LevelSets).
 
   (* Type of consistent models of a set of universe constraints *)
   Parameter model : Type.
-  Notation univ := LS.LevelExprSet.nonEmptyLevelExprSet.
+  Parameter univ : Type.
 
   Inductive constraint_type := UnivEq | UnivLe.
   Notation constraint := (univ * constraint_type * univ).
@@ -104,7 +104,7 @@ Definition to_string_expr (e : LevelExpr.t) : string :=
   let '(l, n) := e in Level.to_string l ^ (if n is Z0 then "" else "+" ^ string_of_Z n).
 
 Definition print_premise (l : premises) : string :=
-  let (e, exprs) := NonEmptySetFacts.to_nonempty_list l in
+  let (e, exprs) := to_nonempty_list l in
   to_string_expr e ^
   match exprs with
   | [] => ""
@@ -354,16 +354,16 @@ Proof.
       red in inclv. eapply clauses_levels_spec.
       exists cl. split => //. eapply clause_levels_spec.
       destruct inclv as [[? []]|].
-      + left. eapply levelexprset_levels_spec. now eexists.
+      + left. eapply levels_spec. now eexists.
       + right. intuition.
     * have [_ ho] := valid_model_only_model _ _ _ _ m hincl k.
       forward ho by now exists v. now right.
 Qed.
 
-Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le (levels prems).
+Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
 Proof.
   destruct le. intros hin.
-  apply levelexprset_levels_spec. now exists z.
+  apply levels_spec. now exists z.
 Qed.
 
 Lemma min_model_map_enabled m cls cls' :
@@ -379,10 +379,10 @@ Proof.
   - intros hin; rewrite /enabled_clause.
     have [hm [incl hext]] := min_model_map_spec cls' m.
     have [hle [minp [inp ->]]] := min_premise_spec (min_model_map m cls') (premise cl).
-    move: (incl _ hin). move/(_ minp) => /fwd.
+    move: (incl _ hin). move/(_ minp.1) => /fwd.
     { apply clause_levels_spec. left. now apply in_levels. }
     move=> [k hmap].
-    specialize (hm minp k hmap) as [_ hm _].
+    specialize (hm minp.1 k hmap) as [_ hm _].
     destruct minp.
     move: hm => /(_ _ hin)/(_ _ inp). intros le; depelim le.
     exists (y - z). now rewrite /min_atom_value (level_value_MapsTo hmap).
@@ -710,13 +710,13 @@ Module LoopChecking (LS : LevelSets).
   Definition levels := levels.
   Definition clauses := clauses.
 
-  Notation univ := LS.LevelExprSet.nonEmptyLevelExprSet.
+  Notation univ := NES.t.
 
   Inductive constraint_type := UnivEq | UnivLe.
   Definition constraint := (univ * constraint_type * univ).
 
   Definition clauses_of_le l r :=
-    LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (LevelExprSet.t_set l) Clauses.empty.
+    LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (NES.t_set l) Clauses.empty.
 
   Lemma clauses_of_le_spec l r :
     forall cl, Clauses.In cl (clauses_of_le l r) <->

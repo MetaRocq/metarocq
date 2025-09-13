@@ -203,7 +203,7 @@ Defined.
 
 Definition eqb_ConstraintType x y :=
   match x, y with
-  | ConstraintType.Le n, ConstraintType.Le m => Z.eqb n m
+  | ConstraintType.Le, ConstraintType.Le => true
   | ConstraintType.Eq, ConstraintType.Eq => true
   | _, _ => false
   end.
@@ -212,8 +212,6 @@ Definition eqb_ConstraintType x y :=
 Proof.
   refine {| eqb := eqb_ConstraintType |}.
   destruct x, y; simpl; try constructor; try congruence.
-  destruct (Z.eqb_spec z z0); constructor. now subst.
-  cong.
 Defined.
 
 #[global, program] Instance Z_as_int : ReflectEq Int.Z_as_Int.t :=
@@ -225,7 +223,6 @@ Qed.
 Scheme level_lt_ind_dep := Induction for Level.lt_ Sort Prop.
 Scheme level_expr_lt_ind_dep := Induction for LevelExpr.lt_ Sort Prop.
 Scheme constraint_type_lt_ind_dep := Induction for ConstraintType.lt_ Sort Prop.
-Scheme level_constraint_lt_ind_dep := Induction for LevelConstraint.lt_ Sort Prop.
 Scheme constraint_lt_ind_dep := Induction for UnivConstraint.lt_ Sort Prop.
 Derive Signature for UnivConstraint.lt_.
 Derive Signature for le.
@@ -286,7 +283,6 @@ Qed. *)
 Lemma constraint_type_lt_level_irrel {x y} (l l' : ConstraintType.lt_ x y) : l = l'.
 Proof.
   induction l using constraint_type_lt_ind_dep; depelim l'; auto.
-  f_equal. apply uip.
 Qed.
 
 From Stdlib Require Import RelationClasses.
@@ -306,23 +302,6 @@ Proof.
     now elim (irreflexivity l).
     now elim (irreflexivity l).
     now rewrite (lt_universe_irrel l l4).
-Qed.
-
-Lemma levelconstraint_lt_irrel (x y : LevelConstraint.t) (l l' : LevelConstraint.lt_ x y) : l = l'.
-Proof.
-  revert l'. induction l using level_constraint_lt_ind_dep.
-  - intros l'. depelim l'.
-    now rewrite (lt_level_irrel l l4).
-    now elim (irreflexivity (R:=ConstraintType.lt) l4).
-    now elim (irreflexivity l4).
-  - intros l'; depelim l'.
-    now elim (irreflexivity (R:=ConstraintType.lt) l).
-    now rewrite (constraint_type_lt_level_irrel l l4).
-    now elim (irreflexivity l4).
-  - intros l'; depelim l'.
-    now elim (irreflexivity l).
-    now elim (irreflexivity l).
-    now rewrite (lt_level_irrel l l4).
 Qed.
 
 Module LevelSetsUIP.
@@ -418,16 +397,16 @@ Module ConstraintSetsUIP.
     - depelim o'. f_equal; auto.
       clear -l0 l2. red in l0, l2.
       extensionality y. extensionality inl.
-      apply levelconstraint_lt_irrel.
+      apply constraint_lt_irrel.
       extensionality y. extensionality inl.
-      apply levelconstraint_lt_irrel.
+      apply constraint_lt_irrel.
   Qed.
 
   #[global,program] Instance reflect_ConstraintSet : ReflectEq UnivConstraintSet.t :=
    {| eqb := eqb_ConstraintSet |}.
   Next Obligation.
     intros [thisx okx] [thisy oky].
-    unfold eqb_UnivConstraintSet. cbn.
+    unfold eqb_ConstraintSet. cbn.
     cbn -[eqb].
     destruct (eqb_spec thisx thisy); subst; constructor.
     - f_equal. apply ok_irrel.

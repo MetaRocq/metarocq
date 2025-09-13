@@ -78,6 +78,8 @@ Set Equations Transparent.
 
 Module Model (LS : LevelSets).
   Module Export Clauses := Clauses(LS).
+  Export NES.
+  Import Init.Logic (eq).
 
   Definition model := LevelMap.t (option Z).
   Definition equal_model (m m' : model) := LevelMap.Equal m m'.
@@ -157,7 +159,7 @@ Module Model (LS : LevelSets).
     end.
 
   Definition min_premise (m : model) (l : premises) : option Z :=
-    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    let (hd, tl) := to_nonempty_list l in
     fold_left (fun min atom => option_map2 Z.min (min_atom_value m atom) min) tl (min_atom_value m hd).
 
   Definition satisfiable_atom (m : model) (atom : Level.t * Z) : bool :=
@@ -250,7 +252,7 @@ Module Model (LS : LevelSets).
     if LevelSet.is_empty upd then minit =m m
     else strictly_updates cls upd minit m.
 
-  #[export] Instance level_value_proper : Proper (equal_model ==> eq ==> eq) level_value.
+  #[export] Instance level_value_proper : Proper (equal_model ==> Logic.eq ==> Logic.eq) level_value.
   Proof.
     intros x y eqm l ? <-. unfold level_value.
     unfold equal_model in eqm.
@@ -264,14 +266,14 @@ Module Model (LS : LevelSets).
       now rewrite hl.
   Qed.
 
-  #[export] Instance min_atom_value_proper : Proper (LevelMap.Equal ==> eq ==> eq) min_atom_value.
+  #[export] Instance min_atom_value_proper : Proper (LevelMap.Equal ==> Logic.eq ==> Logic.eq) min_atom_value.
   Proof.
     intros m m' eqm ? ? ->. unfold min_atom_value.
     destruct y => //.
     now rewrite eqm.
   Qed.
 
-  #[export] Instance min_premise_proper : Proper (LevelMap.Equal ==> eq ==> eq) min_premise.
+  #[export] Instance min_premise_proper : Proper (LevelMap.Equal ==> Logic.eq ==> Logic.eq) min_premise.
   Proof.
     intros m m' eq ? ? ->.
     unfold min_premise.
@@ -279,7 +281,7 @@ Module Model (LS : LevelSets).
     now setoid_rewrite eq.
   Qed.
 
-  #[export] Instance level_value_above_proper : Proper (LevelMap.Equal ==> eq ==> eq ==> eq) level_value_above.
+  #[export] Instance level_value_above_proper : Proper (LevelMap.Equal ==> Logic.eq ==> Logic.eq ==> Logic.eq) level_value_above.
   Proof.
     intros m m' hm ? ? -> ? ? ->.
     unfold level_value_above.
@@ -330,7 +332,7 @@ Module Model (LS : LevelSets).
     now for compatible predicates *)
   Lemma strictly_updates_elim :
     forall (cls : Clauses.t) (P : LevelSet.t -> model -> model -> Prop)
-    (HP : Proper (LevelSet.Equal ==> eq ==> eq ==> iff) P),
+    (HP : Proper (LevelSet.Equal ==> Logic.eq ==> Logic.eq ==> iff) P),
     (forall m cl m', Clauses.In cl cls ->
       strict_update m cl m' -> P (LevelSet.singleton (clause_conclusion cl)) m m') ->
     (forall (ls ls' : LevelSet.t) (m m' m'' : model),
@@ -457,7 +459,7 @@ Module Model (LS : LevelSets).
     - intros [] => //=.
     - intros [] [] [] => //=. cbn in *. split; now symmetry.
     - intros [] [] [] [] [] => //=; cbn in *. split.
-      now transitivity t1. now transitivity t2.
+      now transitivity t2. now transitivity t3.
   Qed.
 
   Definition eqwm_list (x y : list Level.t * LevelMap.t (option Z)) :=
@@ -469,7 +471,7 @@ Module Model (LS : LevelSets).
     - intros [] => //=.
     - intros [] [] [] => //=. cbn in *. split; now symmetry.
     - intros [] [] [] [] [] => //=; cbn in *. split.
-      now transitivity l0. now transitivity t0.
+      now transitivity l0. now transitivity t1.
   Qed.
 
   Lemma update_value_valid {m cl} :
@@ -597,7 +599,7 @@ Module Model (LS : LevelSets).
     intros [prems [concl k]] ? <- [] [] eq.
     set (cl := (prems, (concl, k))) in *.
     cbn. destruct eq as [eql eqm]. cbn in *. subst l0.
-    have equpd := update_value_proper t t0 eqm cl cl eq_refl.
+    have equpd := update_value_proper t0 t1 eqm cl cl eq_refl.
     depelim equpd. rewrite H H0. split => //.
     rewrite H0 H1. split => //.
   Qed.
@@ -649,7 +651,7 @@ Module Model (LS : LevelSets).
     destruct l => //. forward H0. auto with datatypes.
     intros [= <- <-]. destruct H0 as [pref [heq su]].
     rewrite app_nil_r in heq. subst pref.
-    exists (LevelSetProp.of_list (t :: l)). split => //.
+    exists (LevelSetProp.of_list (t0 :: l)). split => //.
     intros ?. cbn. lsets.
   Qed.
 
@@ -1095,7 +1097,7 @@ Module Model (LS : LevelSets).
     forall prems, P prems (min_premise m prems).
   Proof.
     intros hs hadd.
-    eapply premises_elim.
+    eapply elim.
     - intros le. rewrite /min_premise.
       rewrite singleton_to_nonempty_list. cbn. apply hs.
     - intros le prems hp. now rewrite min_premise_add.
@@ -1302,10 +1304,9 @@ Module Model (LS : LevelSets).
   Qed.
 
   Import -(notations) LevelExprSet.
-  Import NonEmptySetFacts.
 
   Definition max_premise_value (m : model) (l : premises) : option Z :=
-    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    let (hd, tl) := to_nonempty_list l in
     fold_left (fun min atom => option_map2 Z.max (levelexpr_value m atom) min) tl (levelexpr_value m hd).
 
   Lemma max_premise_value_spec_aux (m : model) s k :
@@ -1483,7 +1484,7 @@ Module Model (LS : LevelSets).
     levels.
   Proof.
     intros s s' eq l.
-    rewrite !levelexprset_levels_spec.
+    rewrite !levels_spec.
     firstorder eauto.
   Qed.
 
@@ -2070,7 +2071,7 @@ Lemma is_update_of_empty cls m :
     intros hcl.
     unfold min_premise.
     funelim (to_nonempty_list prems). bang. clear H.
-    rw_in levelexprset_levels_spec hcl.
+    rw_in levels_spec hcl.
     have -> : min_atom_value m e = min_atom_value m' e.
     { destruct e as [k l'].
       rewrite /min_atom_value. rewrite -hcl //.
@@ -2097,7 +2098,7 @@ Lemma is_update_of_empty cls m :
   Proof.
     intros hin.
     rewrite (@min_premise_preserved _ m) //.
-    move=> x. rewrite levelexprset_levels_spec => [] [k] /hin inW.
+    move=> x. rewrite levels_spec => [] [k] /hin inW.
     apply levelmap_level_value_eq => k'.
     rewrite restrict_model_spec. firstorder.
   Qed.
@@ -2192,7 +2193,7 @@ Lemma is_update_of_empty cls m :
       exists v. split => //.
       eapply min_premise_restrict with W => //.
       { intros l k' hp. move/in_restrict_clauses: incl => [] //= _ hsub _. apply hsub.
-        rewrite levelexprset_levels_spec. now exists k'. }
+        rewrite levels_spec. now exists k'. }
       move: above.
       rewrite /level_value_above /level_value.
       elim: find_spec => //.
@@ -2748,14 +2749,14 @@ Lemma is_update_of_empty cls m :
   Qed.
 
   Definition premise_values (prems : premises) m :=
-    NonEmptySetFacts.map (fun '(l, k) => (l, option_get 0 (level_value m l))) prems.
+    map (fun '(l, k) => (l, option_get 0 (level_value m l))) prems.
 
   Lemma premise_values_spec prems m :
     forall l k, LevelExprSet.In (l, k) (premise_values prems m) <->
       (exists k', LevelExprSet.In (l, k') prems /\ k = option_get 0 (level_value m l)).
   Proof.
     rewrite /premise_values.
-    intros l k. rewrite NonEmptySetFacts.map_spec.
+    intros l k. rewrite map_spec.
     firstorder. destruct x. noconf H0.
     exists z. split => //. exists(l, x); split => //. now rewrite -H0.
   Qed.
@@ -2974,7 +2975,7 @@ Lemma is_update_of_empty cls m :
     Qed.
 
     Lemma interp_prems_singleton V e :
-      interp_prems V (singleton e) = interp_expr V e.
+      interp_prems V (NES.singleton e) = interp_expr V e.
     Proof.
       rewrite /interp_prems.
       now rewrite singleton_to_nonempty_list /=.
@@ -3053,10 +3054,10 @@ Lemma is_update_of_empty cls m :
       eexists; split; trea. now apply eq in b0.
   Qed.
 
-  Lemma equivlistA_add le u : let l := to_nonempty_list (add le u) in
+  Lemma equivlistA_add le u : let l := to_nonempty_list (NES.add le u) in
     equivlistA eq (l.1 :: l.2) (le :: LevelExprSet.elements u).
   Proof.
-    have he := to_nonempty_list_spec (add le u).
+    have he := to_nonempty_list_spec (NES.add le u).
     destruct to_nonempty_list. cbn.
     intros x. rewrite he.
     rewrite !LevelExprSet.elements_spec1.
@@ -3068,7 +3069,7 @@ Lemma is_update_of_empty cls m :
   Qed.
 
   Lemma interp_prems_add V le (u : premises) :
-    interp_prems V (add le u) = Z.max (interp_expr V le) (interp_prems V u).
+    interp_prems V (NES.add le u) = Z.max (interp_expr V le) (interp_prems V u).
   Proof.
     rewrite 2!interp_prems_elements.
     erewrite fold_right_interp. 2:apply equivlistA_add.
@@ -3080,12 +3081,12 @@ Lemma is_update_of_empty cls m :
   Qed.
 
   Lemma interp_prems_elim (P : premises -> Z -> Prop) V :
-    (forall le, P (singleton le) (interp_expr V le)) ->
-    (forall le u k, P u k -> ~ LevelExprSet.In le u -> P (add le u) (Z.max (interp_expr V le) k)) ->
+    (forall le, P (NES.singleton le) (interp_expr V le)) ->
+    (forall le u k, P u k -> ~ LevelExprSet.In le u -> P (NES.add le u) (Z.max (interp_expr V le) k)) ->
     forall u, P u (interp_prems V u).
   Proof.
     intros hs hadd.
-    eapply premises_elim.
+    eapply elim.
     - intros le. rewrite interp_prems_singleton. apply hs.
     - intros le prems ih hnin.
       rewrite interp_prems_add. now apply hadd.
@@ -3213,9 +3214,9 @@ Lemma is_update_of_empty cls m :
     unfold enabled_clauses.
     intros x hin. unfold enabled_clause.
     pose proof (@min_premise_spec (max_clause_premises cls) (premise x)) as [premmin [prem [premin premeq]]].
-    have inV : LevelSet.In prem (clauses_levels cls).
+    have inV : LevelSet.In (level prem) (clauses_levels cls).
     { rewrite clauses_levels_spec. exists x; split => //. rewrite /clause_levels.
-      eapply LevelSet.union_spec; left. rewrite levelexprset_levels_spec. exists prem.2.
+      eapply LevelSet.union_spec; left. rewrite levels_spec. exists prem.2.
       destruct prem. exact premin. }
     rewrite premeq. unfold min_atom_value.
     destruct prem as [l k].

@@ -689,13 +689,13 @@ Module Environment (T : Term).
   #[global] Instance strictly_extends_decls_extends_strictly_on_decls Σ Σ' : strictly_extends_decls Σ Σ' -> extends_strictly_on_decls Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_decls_extends Σ Σ' : extends_decls Σ Σ' -> extends Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_strictly_on_decls_extends Σ Σ' : extends_strictly_on_decls Σ Σ' -> extends Σ Σ'.

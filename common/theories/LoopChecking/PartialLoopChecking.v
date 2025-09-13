@@ -284,7 +284,7 @@ Lemma invalid_clause_measure W cls cl m :
   defined_model_of W m ->
   ~~ valid_clause m cl ->
   Clauses.In cl (cls_diff cls W) ->
-  (0 < measure_w W cls m (concl cl))%Z.
+  (0 < measure_w W cls m (concl cl).1)%Z.
 Proof.
   intros hwv. unfold valid_clause.
   destruct cl as [prem [l k]]; cbn.
@@ -335,10 +335,10 @@ Proof.
   assert (k + (maxpreml - (premise_min preml)) =
     (maxpreml + k - (premise_min preml)))%Z as ->. lia.
   enough (maxpreml <= (v_minus_w_bound W m))%Z. lia.
-  { have vm := v_minus_w_bound_spec W m exmax. unfold levelexpr_value in eqmaxpre.
+  { have vm := v_minus_w_bound_spec W m exmax.1. unfold levelexpr_value in eqmaxpre.
     rewrite -eqmaxpre in vm.
     have := (@levels_exprs_non_W_atoms W prem (level exmax)).
-    rewrite levelexprset_levels_spec => -[] /fwd.
+    rewrite levels_spec => -[] /fwd.
     { exists exmax.2. now destruct exmax. }
     rewrite LevelSet.diff_spec => [] [_ nw] _.
     specialize (vm nw). depelim vm. lia. }
@@ -404,9 +404,9 @@ Proof using.
   destruct (valid_clause) eqn:vc => //.
   eapply invalid_clause_measure in dnf; tea.
   2:{ rewrite vc //. }
-  enough (measure_w W cls m (concl cl) = 0). lia.
+  enough (measure_w W cls m (concl cl).1 = 0). lia.
   rewrite /measure in hm.
-  move/(sum_W_0 (concl cl)): hm => /fwd; [|lia].
+  move/(sum_W_0 (concl cl).1): hm => /fwd; [|lia].
   apply Clauses.diff_spec in hcl as [clw clr].
   now eapply in_clauses_with_concl in clw as [clw incls].
 Qed.
@@ -723,9 +723,9 @@ Proof.
   all:try eapply levelset_neq in neq.
   all:have cls_sub := clauses_conclusions_levels cls.
   all:destruct prf as [clsV mof isupd].
-  - red. eapply LevelSet.equal_spec in eq.
+  - red. eapply LevelSet.equal_spec in eq0.
     set (prf := check_model_defined_init_map _ _); clearbody prf.
-    eapply check_model_is_update_of in eqm; tea. rewrite eq in eqm.
+    eapply check_model_is_update_of in eqm; tea. rewrite eq0 in eqm.
     destruct eqm as [eqm incl]. rewrite union_idem in eqm.
     unshelve eapply strictly_updates_entails_on_V in eqm; tea.
     eapply entails_all_clauses_subset; tea. apply clauses_with_concl_subset.
@@ -785,7 +785,7 @@ Proof.
       eapply is_model_invalid_clause in H; tea.
       assert (~ LevelSet.In (level (concl cl)) W).
       { intros hin. rewrite in_clauses_with_concl in H. intuition auto. }
-      exists (concl cl). split => //. }
+      exists (concl cl).1. split => //. }
     rewrite -!diff_cardinal //. clear -w_incl clsV incl wcls_incl. have hincl := clauses_conclusions_levels cls. lsets. lsets.
     assert (Wcls ⊂_lset V). lsets.
     eapply strict_subset_cardinal.

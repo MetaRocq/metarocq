@@ -255,9 +255,10 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
 
   Definition eq_univ (u v : t) : u = v :> LevelExprSet.t -> u = v := eq_exprsets u v.
 
-  Lemma equal_exprsets (u v : t) : LevelExprSet.Equal u v -> u = v.
+  Lemma equal_exprsets (u v : t) : LevelExprSet.Equal u v <-> u = v.
   Proof.
-    intro H. now apply eq_univ, LevelExprSet.eq_leibniz.
+    split; intro H. now apply eq_univ, LevelExprSet.eq_leibniz.
+    now subst.
   Qed.
 
   #[deprecated(note = "use equal_exprsets instead")]
@@ -328,7 +329,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
 
   Lemma add_comm {le le' e} : add le (add le' e) = add le' (add le e).
   Proof.
-    apply eq_univ_equal. intros x.
+    apply equal_exprsets. intros x.
     rewrite !LevelExprSet.add_spec. firstorder.
   Qed.
 
@@ -353,21 +354,21 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
 
   Lemma univ_union_add_singleton u le : univ_union u (singleton le) = add le u.
   Proof.
-    apply eq_univ_equal.
+    apply equal_exprsets.
     intros x. rewrite univ_union_spec LevelExprSet.singleton_spec add_spec.
     intuition auto.
   Qed.
 
   Lemma univ_union_comm {u u'} : univ_union u u' = univ_union u' u.
   Proof.
-    apply eq_univ_equal.
+    apply equal_exprsets.
     intros x. rewrite !univ_union_spec.
     intuition auto.
   Qed.
 
   Lemma univ_union_add_distr {le u u'} : univ_union (add le u) u' = add le (univ_union u u').
   Proof.
-    apply eq_univ_equal.
+    apply equal_exprsets.
     intros x. rewrite !univ_union_spec !add_spec !univ_union_spec.
     intuition auto.
   Qed.

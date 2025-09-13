@@ -91,8 +91,11 @@ Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
 Module Clauses (LS : LevelSets).
   Module Export FLS := FromLevelSets LS.
+  Import NES (t_set, t_ne, level, levels, singleton, add, add_spec,
+    map, map_spec, add_list, add_list_spec, equal_exprsets).
+  Coercion t_set : NES.t >-> LevelExprSet.t.
 
-  Notation premises := nonEmptyLevelExprSet.
+  Notation premises := NES.t.
   Definition clause : Type := premises × LevelExpr.t.
 
   Module Clause.
@@ -135,9 +138,9 @@ Module Clauses (LS : LevelSets).
   Definition compare_spec :
     forall x y : t, CompareSpec (x = y) (lt x y) (lt y x) (compare x y).
   Proof.
-    intros [? ?] [? ?]; cbn; repeat constructor.
+    intros [n t0] [n0 t1]; cbn; repeat constructor.
     destruct (LevelExprSet.compare_spec n n0); repeat constructor; tas.
-    eapply LevelExprSet.eq_leibniz in H. apply NonEmptySetFacts.eq_univ in H.
+    eapply LevelExprSet.eq_leibniz in H. apply NES.eq_univ in H.
     subst. cbn in *.
     destruct (LevelExpr.compare_spec t0 t1); repeat constructor; tas. now subst.
   Qed.
@@ -360,11 +363,11 @@ Module Clauses (LS : LevelSets).
     exists cl, Clauses.In cl cls /\ (level cl.2) = x.
 
   Definition premise_min (l : premises) : Z :=
-    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    let (hd, tl) := NES.to_nonempty_list l in
     fold_left (B:=LevelExpr.t) (fun min atom => Z.min atom.2 min) tl (hd.2).
 
   Definition premise_max (l : premises) : Z :=
-    let (hd, tl) := NonEmptySetFacts.to_nonempty_list l in
+    let (hd, tl) := NES.to_nonempty_list l in
     fold_left (B:=LevelExpr.t) (fun min atom => Z.max atom.2 min) tl (hd.2).
 
   Definition max_clause_premise (cls : clauses) :=
@@ -713,23 +716,23 @@ Module Clauses (LS : LevelSets).
   Definition of_level_set (ls : LevelSet.t) n (hne : ~ LevelSet.Empty ls) : premises :=
     {| t_set := levelexprset_of_levels ls n |}.
   Next Obligation.
-    apply not_Empty_is_empty => he. apply hne.
+    apply NES.not_Empty_is_empty => he. apply hne.
     intros l nin. specialize (he (l,n)). apply he.
     now rewrite levelexprset_of_levels_spec.
   Qed.
 
   Lemma of_level_set_union_spec {ls ls' n hne} hne' hne'' :
     of_level_set (ls ∪ ls') n hne =
-    univ_union (of_level_set ls n hne') (of_level_set ls' n hne'').
+    NES.univ_union (of_level_set ls n hne') (of_level_set ls' n hne'').
   Proof.
-    apply eq_univ_equal.
+    apply NES.equal_exprsets.
     intros [l k]. rewrite /of_level_set //= !levelexprset_of_levels_spec LevelExprSet.union_spec.
     rewrite !levelexprset_of_levels_spec LevelSet.union_spec. clear. firstorder.
   Qed.
 
   Lemma of_level_set_singleton l k hne : of_level_set (LevelSet.singleton l) k hne = singleton (l, k).
   Proof.
-    apply eq_univ_equal. move=> [l' k'].
+    apply NES.equal_exprsets. move=> [l' k'].
     rewrite /of_level_set //= levelexprset_of_levels_spec !LevelExprSet.singleton_spec LevelSet.singleton_spec /LevelSet.E.eq /LevelExprSet.E.eq.
     firstorder subst => //. now noconf H. now noconf H.
   Qed.
@@ -764,9 +767,9 @@ Module Clauses (LS : LevelSets).
       intros hs''. destruct x.
       apply hadd in hs'' as [].
       * noconf H. cbn. move/max_premise_of_spec.
-        intros h; etransitivity; tea. destruct (max_premise_of l n), a; cbn; constructor; lia.
+        intros h; etransitivity; tea. destruct (max_premise_of l t), a; cbn; constructor; lia.
       * intros h; specialize (hle H h). depelim hle. cbn.
-        destruct (max_premise_of l n); cbn; constructor; lia.
+        destruct (max_premise_of l t); cbn; constructor; lia.
   Qed.
 
   Definition max_clause_premises cls :=
@@ -808,7 +811,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (n + n') lk.
   Proof. destruct lk; unfold add_expr. f_equal; lia. Qed.
-  Definition add_prems n s := map (add_expr n) s.
+  Definition add_prems n s := NES.map (add_expr n) s.
 
   Lemma In_add_prems k (prems : premises):
     forall le, LevelExprSet.In le (add_prems k prems) <->
@@ -827,8 +830,8 @@ Module Clauses (LS : LevelSets).
 
   Lemma add_prems_inj n prems prems' : add_prems n prems = add_prems n prems' -> prems = prems'.
   Proof.
-    rewrite /add_prems => /eq_univ_equal hm.
-    apply eq_univ_equal.
+    rewrite /add_prems => /NES.equal_exprsets hm.
+    apply NES.equal_exprsets.
     intros [l k]. specialize (hm (l, k + n)).
     rewrite !map_spec in hm. destruct hm as [hl hr].
     split; intros hin.
@@ -853,7 +856,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (n + n') lk.
   Proof. destruct lk; unfold add_prems.
-    rewrite map_map. apply eq_univ_equal.
+    rewrite NES.map_map. apply NES.equal_exprsets.
     intros x. rewrite !map_spec. cbn in *.
     firstorder eauto. subst. exists x0.
     firstorder eauto. now rewrite add_expr_add_expr.
@@ -863,7 +866,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma add_prems_add {n lk prems} : add_prems n (add lk prems) = add (add_expr n lk) (add_prems n prems).
   Proof.
-    apply eq_univ_equal. intros x.
+    apply NES.equal_exprsets. intros x.
     rewrite In_add_prems LevelExprSet.add_spec In_add_prems /LevelExprSet.E.eq; rw LevelExprSet.add_spec.
     firstorder. subst. red in H; subst x0. now left.
   Qed.
@@ -871,7 +874,7 @@ Module Clauses (LS : LevelSets).
   Lemma add_prems_0 u : add_prems 0 u = u.
   Proof.
     rewrite /add_prems.
-    apply eq_univ_equal.
+    apply NES.equal_exprsets.
     intros x. rewrite map_spec.
     split.
     - intros[e [hin ->]]. unfold add_expr. now destruct e; rewrite Z.add_0_r.
@@ -881,7 +884,7 @@ Module Clauses (LS : LevelSets).
   Lemma add_prems_of_level_set k W k' prf :
     add_prems k (of_level_set W k' prf) = of_level_set W (k + k') prf.
   Proof.
-    apply eq_univ_equal => [] [l n].
+    apply NES.equal_exprsets => [] [l n].
     rewrite In_add_prems /of_level_set //= levelexprset_of_levels_spec.
     split.
     - move=> [] [l' n']. rewrite levelexprset_of_levels_spec => [] [[inw eq] eq'].
@@ -940,21 +943,21 @@ Module Clauses (LS : LevelSets).
       rewrite clause_levels_spec. cbn. destruct cl; cbn.
       intros h. apply clauses_levels_spec. exists cl'; split => //.
       move: h; case.
-      move/levelexprset_levels_spec => [k].
+      move/NES.levels_spec => [k].
       destruct cl'; cbn in * => /In_add_prems => [] [] x [].
       destruct x => hin [=] ->. intros ->.
-      apply clause_levels_spec. left. apply levelexprset_levels_spec. now exists z.
-      intros ->. apply clause_levels_spec; right. destruct cl' => //=. destruct t0 => //.
+      apply clause_levels_spec. left. apply NES.levels_spec. now exists z.
+      intros ->. apply clause_levels_spec; right. destruct cl' => //=. destruct t2 => //.
     - move/clauses_levels_spec => [] cl [] hin /clause_levels_spec [].
-      * move=> /levelexprset_levels_spec => [] [k hin']; exists (add_clause n cl); split => //.
+      * move=> /NES.levels_spec => [] [k hin']; exists (add_clause n cl); split => //.
         now apply add_clauses_spec.
         apply clause_levels_spec. left.
-        apply levelexprset_levels_spec. exists (k + n).
+        apply NES.levels_spec. exists (k + n).
         destruct cl; cbn. apply In_add_prems. exists (l, k).
         split => //.
       * intros ->. exists (add_clause n cl); split => //. now apply add_clauses_spec.
         apply clause_levels_spec. right.
-        destruct cl; cbn. destruct t => //.
+        destruct cl; cbn. destruct t0 => //.
   Qed.
 
   Lemma add_clause_0 cl : add_clause 0 cl = cl.
@@ -962,8 +965,8 @@ Module Clauses (LS : LevelSets).
     destruct cl as [prems [concl k]]; cbn.
     f_equal. 2:now rewrite Z.add_0_r.
     unfold add_prems.
-    eapply eq_univ_equal. intros [l k'].
-    rewrite NonEmptySetFacts.map_spec.
+    eapply NES.equal_exprsets. intros [l k'].
+    rewrite NES.map_spec.
     unfold add_expr. split.
     - intros [[] [hin heq]]. noconf heq. now rewrite Z.add_0_r.
     - exists (l, k'); split => //. now rewrite Z.add_0_r.
@@ -972,14 +975,14 @@ Module Clauses (LS : LevelSets).
   Lemma add_clause_singleton n le concl k : add_clause n (singleton le, (concl, k)) = (singleton (add_expr n le), (concl, k + n)).
   Proof.
     rewrite /add_clause //=. f_equal.
-    apply eq_univ_equal. intros le'. rewrite In_add_prems.
+    apply NES.equal_exprsets. intros le'. rewrite In_add_prems.
     rewrite_strat (topdown LevelExprSet.singleton_spec).
     unfold LevelExprSet.E.eq. firstorder. subst. reflexivity.
   Qed.
 
   Lemma add_prems_singleton n cl : add_prems n (singleton cl) = singleton (add_expr n cl).
   Proof.
-    apply eq_univ_equal => [] [l k].
+    apply NES.equal_exprsets => [] [l k].
     rewrite In_add_prems LevelExprSet.singleton_spec.
     firstorder.
     - destruct x; noconf H0.
@@ -1059,7 +1062,7 @@ Module Clauses (LS : LevelSets).
     destruct hex. destruct H as [l' [hin heq]]. subst mp.
     - eexists; split => //.
     - destruct H as [nein ->]. elim nein.
-      now eapply levelexprset_levels_spec in hexi.
+      now eapply NES.levels_spec in hexi.
   Qed.
 
   Variant in_pred_closure cls : clause -> Prop :=
@@ -1091,7 +1094,7 @@ Module Clauses (LS : LevelSets).
     LevelExprSet.Equal prems prems' ->
     in_pred_closure cls (prems, concl) -> in_pred_closure cls (prems', concl).
   Proof.
-    intros eq. apply NonEmptySetFacts.eq_univ_equal in eq. now subst prems.
+    intros eq. apply NES.equal_exprsets in eq. now subst prems.
   Qed.
 
   Lemma entails_equal cls (prems prems' : premises) concl :
@@ -1100,7 +1103,7 @@ Module Clauses (LS : LevelSets).
   Proof.
     intros he en.
     replace prems' with prems => //.
-    now apply eq_univ_equal.
+    now apply NES.equal_exprsets.
   Qed.
 
   Lemma entails_plus cls c : entails cls c -> entails (succ_clauses cls) (succ_clause c).
@@ -1115,7 +1118,7 @@ Module Clauses (LS : LevelSets).
             now rewrite Z.add_1_r Z.add_1_l. }
           constructor. now rewrite -add_clauses_spec.
         * have eq : (succ_prems (singleton (x, (k + 1)))) = (singleton (x, k + 1 + 1)).
-          { apply eq_univ_equal. unfold succ_prems.
+          { apply NES.equal_exprsets. unfold succ_prems.
             intros le. rewrite map_spec LevelExprSet.singleton_spec.
             split.
             { intros [? [hin ->]].
@@ -1127,8 +1130,8 @@ Module Clauses (LS : LevelSets).
           rewrite eq. constructor 2.
       + unfold succ_clause in IHentails.
         eapply entails_equal; tea.
-        intros x. rewrite /succ_prems. rewrite map_spec add_spec.
-        setoid_rewrite add_spec. rewrite map_spec.
+        intros x. rewrite /succ_prems. rewrite NES.map_spec NES.add_spec.
+        setoid_rewrite NES.add_spec. rewrite map_spec.
         firstorder eauto. subst. now left.
       + intros x. rewrite /succ_prems !map_spec.
         intros [e [hin ->]]. exists e. firstorder.
@@ -1212,9 +1215,9 @@ Module Clauses (LS : LevelSets).
     now rewrite /premises_of_level_set LevelSetProp.fold_empty.
   Qed.
 
-  Lemma in_succ_add_premises {V u x k} : LevelExprSet.In (x, Z.of_nat (k + 1)) (add_list (premises_of_level_set V) u) -> LevelExprSet.In (x, Z.of_nat (k + 1)) u.
+  Lemma in_succ_add_premises {V u x k} : LevelExprSet.In (x, Z.of_nat (k + 1)) (NES.add_list (premises_of_level_set V) u) -> LevelExprSet.In (x, Z.of_nat (k + 1)) u.
   Proof.
-    rewrite add_list_spec. intros [hn|hn] => //.
+    rewrite NES.add_list_spec. intros [hn|hn] => //.
     eapply premises_of_level_set_spec in hn as []. lia.
   Qed.
 
@@ -1272,17 +1275,18 @@ Module Clauses (LS : LevelSets).
     intros H. depind H.
     - constructor. apply LevelExprSet.add_spec. now right.
     - eapply (clause_cut _ _ concl'); tea.
-      rewrite add_comm. apply IHentails.
+      rewrite NES.add_comm. apply IHentails.
       intros x; rewrite LevelExprSet.add_spec. firstorder.
   Qed.
 
+  Import NES (univ_union, univ_union_add_distr, univ_union_add_distr, univ_union_comm, univ_union_add_singleton).
   Lemma entails_weak_union {cls prem concl concl'} :
     entails cls (prem, concl) ->
-    entails cls (univ_union concl' prem, concl).
+    entails cls (NES.univ_union concl' prem, concl).
   Proof.
     intros hyp.
     move: concl'.
-    apply: premises_elim.
+    apply: NES.elim.
     - intros le. rewrite univ_union_comm univ_union_add_singleton.
       now apply entails_weak.
     - intros le prems ih.
@@ -1360,13 +1364,13 @@ Module Clauses (LS : LevelSets).
         { red in H0; subst concl0. now constructor. }
         { now constructor. }
       * have eq : prems = add concl0 prems.
-        { eapply eq_univ_equal. intros x; rewrite LevelExprSet.add_spec. firstorder. now red in H2; subst. }
+        { eapply NES.equal_exprsets. intros x; rewrite LevelExprSet.add_spec. firstorder. now red in H2; subst. }
         rewrite -eq in H1.
         eapply (clause_cut _ prems' _ prems). tea. 2:tea.
         now rewrite -eq in he.
     - intros he.
       eapply clause_cut. tea. eapply IHentails.
-      rewrite add_comm. now eapply entails_weak.
+      rewrite NES.add_comm. now eapply entails_weak.
       exact H1.
   Qed.
 
@@ -1376,7 +1380,7 @@ Module Clauses (LS : LevelSets).
     entails cls (prems, concl).
   Proof.
     revert prems' prems concl.
-    apply: premises_elim.
+    apply: NES.elim.
     - intros. specialize (H le). forward H by now apply LevelExprSet.singleton_spec.
       cbn in H.
       eapply entails_add; tea.
@@ -1452,7 +1456,7 @@ Module Clauses (LS : LevelSets).
   Proof.
     intros l r.
     rewrite /entails_all.
-    intros x. rewrite univ_union_spec. intros []. now apply l. now apply r.
+    intros x. rewrite NES.univ_union_spec. intros []. now apply l. now apply r.
   Qed.
 
   Lemma entails_all_union {cls prems concl prems' concl'} :

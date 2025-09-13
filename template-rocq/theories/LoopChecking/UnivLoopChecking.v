@@ -83,12 +83,14 @@ End LevelExprZ.
 Module LevelExprZSet.
   Include MSetList.MakeWithLeibniz LevelExprZ.
 
-  Definition levels (e : t) :=
-    fold (fun le => LevelSet.add (fst le)) e LevelSet.empty.
-
-  Record nonEmptyLevelExprSet
-    := { t_set : t ;
-         t_ne  : is_empty t_set = false }.
+  Lemma reflect_eq : ReflectEq t.
+  Proof.
+    refine {| eqb := equal |}.
+    intros x y. have := (equal_spec x y).
+    destruct equal => //; constructor.
+    now apply eq_leibniz, H.
+    intros ->. destruct H. now forward H0 by reflexivity.
+  Qed.
 End LevelExprZSet.
 Module LevelExprZSetFacts := WFactsOn LevelExprZ LevelExprZSet.
 Module LevelExprZSetProp := MSetProperties.OrdProperties LevelExprZSet.
@@ -130,19 +132,6 @@ Proof.
     + intros hin'. move: (ih hin') => []; split => //. apply hadd; now right.
 Qed.
 
-Program Definition to_atoms (u : Universe.t) : LevelExprZSet.nonEmptyLevelExprSet :=
-  {| LevelExprZSet.t_set := to_levelexprzset u |}.
-Next Obligation.
-  destruct u. cbn.
-  destruct (LevelExprZSet.is_empty _) eqn:he => //.
-  apply LevelExprZSet.is_empty_spec in he.
-  assert (LevelExprSet.is_empty t_set).
-  apply LevelExprSet.is_empty_spec. intros x hin.
-  destruct x. eapply (he (t, Z.of_nat n)).
-  now apply to_levelexprzset_spec_1.
-  congruence.
-Qed.
-
 Definition from_levelexprzset (u : LS.LevelExprSet.t) : LevelExprSet.t :=
   LS.LevelExprSet.fold (fun '(l, k) => LevelExprSet.add (l, Z.to_nat k)) u LevelExprSet.empty.
 
@@ -173,43 +162,41 @@ Proof.
       apply hadd. now right.
 Qed.
 
-Program Definition from_atoms (u : LS.LevelExprSet.nonEmptyLevelExprSet) : Universe.t :=
-  {| LevelExprSet.t_set := from_levelexprzset (LS.LevelExprSet.t_set u) |}.
-Next Obligation.
-  destruct u. cbn.
-  destruct (LevelExprSet.is_empty _) eqn:he => //.
-  apply LevelExprSet.is_empty_spec in he.
-  assert (LevelExprZSet.is_empty t_set).
-  apply LevelExprZSet.is_empty_spec. intros x hin.
-  destruct x. eapply (he (t, Z.to_nat z)).
-  now apply from_levelexprzset_spec.
-  congruence.
-Qed.
-
 Module UnivLoopChecking.
   Module LoopCheck := LoopChecking LS.
+  Import LoopCheck.Impl.I.
+  Program Definition to_atoms (u : Universe.t) : NES.t :=
+    {| NES.t_set := to_levelexprzset u |}.
+  Next Obligation.
+    destruct u. cbn.
+    destruct (LevelExprZSet.is_empty _) eqn:he => //.
+    apply LevelExprZSet.is_empty_spec in he.
+    assert (Universes.LevelExprSet.is_empty t_set0).
+    apply Universes.LevelExprSet.is_empty_spec. intros x hin.
+    destruct x. eapply (he (t0, Z.of_nat n)).
+    now apply to_levelexprzset_spec_1.
+    congruence.
+  Qed.
+
+  Program Definition from_atoms (u : NES.t) : Universe.t :=
+    {| Universe.t_set := from_levelexprzset (NES.t_set u) |}.
+  Next Obligation.
+    apply Universe.NES.not_Empty_is_empty => he.
+    eapply (NES.not_Empty_is_empty u). apply t_ne.
+    intros [] hin.
+    apply from_levelexprzset_spec in hin. now apply he in hin.
+  Qed.
+
+  Definition to_cstr d := match d with
+    | ConstraintType.Eq => LoopCheck.UnivEq
+    | ConstraintType.Le => LoopCheck.UnivLe
+    end.
 
   Definition to_constraint (x : UnivConstraint.t) : LoopCheck.constraint :=
     let '(l, d, r) := x in
-    let '(l, d, r) := match d with
-    | ConstraintType.Eq => (l, LoopCheck.UnivEq, r)
-    | ConstraintType.Le k =>
-      if (k <? 0)%Z then (l, LoopCheck.UnivLe, Universe.add (Z.to_nat (- k)) r)
-      else (Universe.add (Z.to_nat k) l, LoopCheck.UnivLe, r)
-    end
-    in (to_atoms l, d, to_atoms r).
+    (to_atoms l, to_cstr d, to_atoms r).
 
   Module Clauses := LoopCheck.Impl.I.Model.Model.Clauses.Clauses.
-
-  Definition level_constraint_to_constraint (x : LevelConstraint.t) : LoopCheck.constraint :=
-    let '(l, d, r) := x in
-    let '(l, d, r) := match d with
-    | ConstraintType.Eq => (Universe.make' l, LoopCheck.UnivEq, Universe.make' r)
-    | ConstraintType.Le k =>
-      if (k <? 0)%Z then (Universe.make' l, LoopCheck.UnivLe, Universe.make (r, Z.to_nat (-k)))
-      else (Universe.make (l, Z.to_nat k), LoopCheck.UnivLe, Universe.make' r)
-    end
-    in (to_atoms l, d, to_atoms r).
 
   Record univ_model := {
     model : LoopCheck.model;
@@ -245,14 +232,14 @@ Module UnivLoopChecking.
   Qed.
 
   Lemma levels_in_to_atoms l u :
-    LevelSet.In l (levels (to_atoms u)) <-> Universes.LevelSet.In l (Universes.LevelExprSet.levels u).
+    LevelSet.In l (levels (to_atoms u)) <-> Universes.LevelSet.In l (Universe.levels u).
   Proof.
-    rewrite levelexprset_levels_spec.
+    rewrite levels_spec.
     rewrite /in_to_atoms.
     split.
     - move=> [] k. move/to_levelexprzset_spec_2 => [] hin _.
-      apply univ_levels_spec. now eexists.
-    - rewrite univ_levels_spec => -[] k hin.
+      apply Universe.levels_spec. now eexists.
+    - rewrite Universe.levels_spec => -[] k hin.
       exists (Z.of_nat k). now rewrite (in_to_atoms (l, k)).
   Qed.
 
@@ -279,12 +266,12 @@ Module UnivLoopChecking.
     rewrite Nat2Z.id //.
   Qed.
 
-  Definition choose_prems (u : premises) : LevelExpr.t := (NonEmptySetFacts.to_nonempty_list u).1.
+  Definition choose_prems (u : premises) : LevelExpr.t := (to_nonempty_list u).1.
   Lemma choose_prems_spec u : LevelExprSet.In (choose_prems u) u.
   Proof.
     rewrite /choose_prems.
-    have hs := NonEmptySetFacts.to_nonempty_list_spec u.
-    destruct NonEmptySetFacts.to_nonempty_list. cbn.
+    have hs := to_nonempty_list_spec u.
+    destruct to_nonempty_list. cbn.
     rewrite -LevelExprSet.elements_spec1 InA_In_eq -hs.
     now constructor.
   Qed.
@@ -375,12 +362,12 @@ Module UnivLoopChecking.
       | exist (Some (inr loop)) eq => Some (inr loop).
   Proof.
     - move=> c'.
-      move/LoopCheck.enforce_clauses: eq.
+      move/LoopCheck.enforce_clauses: eq0.
       rewrite /LoopCheck.clauses => ->. rewrite UnivConstraintSet.add_spec => -[].
       * move=> ->. clsets.
       * move=> hin.
         move: (repr_constraints m c' hin) => h. clsets.
-    - move/LoopCheck.enforce_clauses: eq.
+    - move/LoopCheck.enforce_clauses: eq0.
       rewrite /LoopCheck.clauses => -> c'.
       rewrite UnivLoopChecking.Clauses.union_spec => -[].
       * move/(repr_constraints_inv m c') => [] c2 [].
@@ -401,25 +388,25 @@ Module UnivLoopChecking.
       destruct hex as [le [inl ->]]. cbn in *. destruct hin; auto. subst.
       left. now apply LoopCheck.Impl.in_levels.
     - move=> [] hin.
-      * eapply levelexprset_levels_spec in hin as [k hin].
+      * eapply levels_spec in hin as [k hin].
         exists (r, (lev, k)). split => //. exists (lev, k). split => //.
         apply clause_levels_spec. now right.
-      * eapply levelexprset_levels_spec in hin as [k hin].
+      * eapply levels_spec in hin as [k hin].
         exists (r, choose_prems l). split => //. exists (choose_prems l). split => //.
         apply choose_prems_spec.
         apply clause_levels_spec. left.
-        apply levelexprset_levels_spec. now exists k.
+        apply levels_spec. now exists k.
   Qed.
 
-  Lemma univ_in_add n u : Universes.LevelSet.Equal
-    (Universes.LevelExprSet.levels (Universe.add n u))
-    (Universes.LevelExprSet.levels u).
+  (* Lemma univ_in_add n u : Universes.LevelSet.Equal
+    (Universe.levels (Universe.add_prems n u))
+    (Universe.levels u).
   Proof.
-    intros l. rewrite !univ_levels_spec.
-    rewrite /Universe.add. rw Universes.NonEmptySetFacts.map_spec.
-    firstorder. destruct x0; noconf H0; cbn. now exists n0.
+    intros l. rewrite !Universe.levels_spec.
+    rw Universe.add_spec.
+    firstorder. subst n. destruct n; noconf H; cbn. now exists n0.
     exists (n + x), (l, x). split => //.
-  Qed.
+  Qed. *)
 
   Lemma clauses_levels_union cls cls' : clauses_levels (Clauses.union cls cls') =_lset
     LevelSet.union (clauses_levels cls) (clauses_levels cls').
@@ -432,8 +419,7 @@ Module UnivLoopChecking.
 
   Definition univ_constraint_levels (c : UnivConstraint.t) :=
     let '(l, d, r) := c in
-    LevelSet.union (Universes.LevelExprSet.levels l)
-      (Universes.LevelExprSet.levels r).
+    LevelSet.union (Universe.levels l) (Universe.levels r).
 
   Lemma declared_univ_cstr_levels_spec ls c :
     declared_univ_cstr_levels ls c <->
@@ -458,11 +444,7 @@ Module UnivLoopChecking.
   Proof.
     intros l; destruct c as [[l' d] r]; cbn.
     rewrite /constraint_levels. rewrite !LevelSet.union_spec. cbn.
-    destruct d.
-    destruct Z.ltb.
-    - rewrite !levels_in_to_atoms. rewrite univ_in_add. firstorder.
-    - rewrite !levels_in_to_atoms. rewrite univ_in_add. firstorder.
-    - rewrite !levels_in_to_atoms. firstorder.
+    rewrite !levels_in_to_atoms. firstorder.
   Qed.
 
   Lemma in_to_clauses_levels c :
@@ -527,7 +509,7 @@ Module UnivLoopChecking.
     funelim (enforce m c) => //=.
     move=> [=] <-; cbn. rewrite /levels //=.
     split.
-    - clear H Heqcall. now move/LoopCheck.enforce_levels: eq.
+    - clear H Heqcall. now move/LoopCheck.enforce_levels: eq0.
     - clear H Heqcall. reflexivity.
   Qed.
 
