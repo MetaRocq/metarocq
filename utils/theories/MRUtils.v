@@ -171,17 +171,6 @@ Ltac invs H := inversion H; subst; clear H.
 Ltac generalize_eq x t :=
   set (x := t) in *; cut (x = t); [|reflexivity]; clearbody x.
 
-
-Lemma iff_forall {A} B C (H : forall x : A, B x <-> C x)
-  : (forall x, B x) <-> (forall x, C x).
-  firstorder.
-Defined.
-
-Lemma iff_ex {A} B C (H : forall x : A, B x <-> C x)
-  : (ex B) <-> (ex C).
-  firstorder.
-Defined.
-
 Lemma if_true_false (b : bool) : (if b then true else false) = b.
   destruct b; reflexivity.
 Qed.
@@ -192,11 +181,6 @@ Proof.
   destruct b, b'; cbnr; intros [H1 H2];
     try specialize (H1 eq_refl); try specialize (H2 eq_refl);
       discriminate.
-Qed.
-
-Lemma uip_bool (b1 b2 : bool) (p q : b1 = b2) : p = q.
-Proof.
-  destruct q. apply Eqdep_dec.UIP_refl_bool.
 Qed.
 
 Axiom todo : string -> forall {A}, A.

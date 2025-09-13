@@ -1,7 +1,7 @@
 -R theories MetaRocq.Common
 
 theories/Primitive.v
-theories/uGraph.v
+# theories/uGraph.v
 theories/config.v
 theories/Kernames.v
 theories/Universes.v

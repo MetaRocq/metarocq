@@ -156,7 +156,7 @@ Inductive type_error :=
 | NotAnInductive (t : term)
 | NotAnArity (t : term)
 | IllFormedFix (m : mfixpoint term) (i : nat)
-| UnsatisfiedConstraints (c : ConstraintSet.t)
+| UnsatisfiedConstraints (c : UnivConstraintSet.t)
 | Msg (s : string).
 Derive NoConfusion for type_error.
 

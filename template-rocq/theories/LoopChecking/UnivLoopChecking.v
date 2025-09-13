@@ -244,23 +244,6 @@ Module UnivLoopChecking.
     - now move/to_levelexprzset_spec_1.
   Qed.
 
-  Lemma univ_levels_spec l u :
-    Universes.LevelSet.In l (Universes.LevelExprSet.levels u) <->
-    exists k, Universes.LevelExprSet.In (l, k) u.
-  Proof.
-    rewrite /Universes.LevelExprSet.levels.
-    eapply Universes.LevelExprSetProp.fold_rec.
-    - move=> s' he; split. lsets.
-      move=> [k hin]. firstorder.
-    - move=> x a s' s'' hin hnin hadd.
-      rewrite Universes.LevelSet.add_spec.
-      split.
-      rewrite H. firstorder.
-      subst l. exists x.2. apply hadd. left. now destruct x.
-      intros [k' hin']. apply hadd in hin' as []; subst.
-      now left. now right; firstorder.
-  Qed.
-
   Lemma levels_in_to_atoms l u :
     LevelSet.In l (levels (to_atoms u)) <-> Universes.LevelSet.In l (Universes.LevelExprSet.levels u).
   Proof.
@@ -294,16 +277,6 @@ Module UnivLoopChecking.
     move/to_levelexprzset_spec_1: hin => hin.
     exists (l, Z.of_nat k). split => //=.
     rewrite Nat2Z.id //.
-  Qed.
-
-  Definition choose (u : Universe.t) : Universes.LevelExpr.t := (Universes.NonEmptySetFacts.to_nonempty_list u).1.
-  Lemma choose_spec u : Universes.LevelExprSet.In (choose u) u.
-  Proof.
-    rewrite /choose.
-    have hs := Universes.NonEmptySetFacts.to_nonempty_list_spec u.
-    destruct Universes.NonEmptySetFacts.to_nonempty_list. cbn.
-    rewrite -Universes.LevelExprSet.elements_spec1 InA_In_eq -hs.
-    now constructor.
   Qed.
 
   Definition choose_prems (u : premises) : LevelExpr.t := (NonEmptySetFacts.to_nonempty_list u).1.
@@ -561,8 +534,8 @@ Module UnivLoopChecking.
   Lemma model_satisfies m :
     exists V, satisfies
 
-  (* Definition enforce_level_constraints (m : univ_model) (l : ConstraintSet.t) :=
-    ConstraintSet.fold (fun c m =>
+  (* Definition enforce_level_constraints (m : univ_model) (l : UnivConstraintSet.t) :=
+    UnivConstraintSet.fold (fun c m =>
       match m with
       | inl m =>
         let c := (level_constraint_to_constraint c) in

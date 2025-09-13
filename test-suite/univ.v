@@ -174,8 +174,8 @@ Module toto.
   (*               tProd nAnon (tSort ((Level.lvar 0, false) :: nil)%list) (tRel 1), *)
   (*               1) :: nil; *)
   (*  ind_projs := nil |}] (UContext.make (Level.lvar 0 :: Level.lvar 1 :: nil)%list *)
-  (*    (ConstraintSet.add (make_univ_constraint (Level.lvar 0) Lt (Level.lvar 1)) *)
-  (*       ConstraintSet.empty)))) ;; *)
+  (*    (UnivConstraintSet.add (make_univ_constraint (Level.lvar 0) Lt (Level.lvar 1)) *)
+  (*       UnivConstraintSet.empty)))) ;; *)
 
 End toto.
 

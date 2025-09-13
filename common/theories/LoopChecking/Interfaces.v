@@ -39,40 +39,10 @@ Module FMapOrderedType_from_UsualOrderedType (O : UsualOrderedType).
   Definition eq_dec : forall x y : O.t, {eq x y} + {~ eq x y} := eq_dec.
 End FMapOrderedType_from_UsualOrderedType.
 
-Module Type LevelOrderedType.
-  Include UsualOrderedType.
-  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
-End LevelOrderedType.
-
-Module Type LevelOrderedTypeWithReflect.
-  Include LevelOrderedType.
-
-  Parameter reflect_eq : ReflectEq t.
-  Parameter to_string : t -> string.
-End LevelOrderedTypeWithReflect.
-
 Module Type FMapOTInterface (E : UsualOrderedType).
   Module OT := FMapOrderedType_from_UsualOrderedType E.
   Include FMapInterface.Sfun OT.
 End FMapOTInterface.
-
-Module Type LevelSet_fun (Level : UsualOrderedType).
-  Include S with Module E := Level.
-End LevelSet_fun.
-
-Module Type LevelExprItf (Level : LevelOrderedType).
-  Include UsualOrderedType with Definition t := (Level.t * Z)%type.
-  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
-End LevelExprItf.
-
-Module Type LevelExprSet_fun (Level : LevelOrderedType) (LevelExpr : LevelExprItf Level).
-  Include SWithLeibniz with Module E := LevelExpr.
-
-  Record nonEmptyLevelExprSet
-    := { t_set :> t ;
-          t_ne  : is_empty t_set = false }.
-
-End LevelExprSet_fun.
 
 Module Type LevelSets.
   (* Signature of levels: decidable, ordered type *)
@@ -307,26 +277,6 @@ Module NonEmptySetFacts.
     apply or_iff_compat_l. apply in_rev.
   Qed.
 
-  Program Definition map (f : LevelExpr.t -> LevelExpr.t) (u : nonEmptyLevelExprSet) : nonEmptyLevelExprSet :=
-    {| t_set := LevelExprSetProp.of_list (List.map f (LevelExprSet.elements u)) |}.
-  Next Obligation.
-    have hs := to_nonempty_list_spec u.
-    destruct (to_nonempty_list u). rewrite -hs. cbn.
-    apply not_Empty_is_empty => he. apply (he (f t)).
-    lesets.
-  Qed.
-
-  Lemma map_spec f u e :
-    LevelExprSet.In e (map f u) <-> exists e0, LevelExprSet.In e0 u /\ e = (f e0).
-  Proof.
-    unfold map; cbn.
-    rewrite LevelExprSetProp.of_list_1 InA_In_eq in_map_iff.
-    split.
-    - intros [x [<- hin]]. exists x. split => //.
-      rewrite -InA_In_eq in hin. now apply LevelExprSet.elements_spec1 in hin.
-    - intros [x [hin ->]]. exists x. split => //.
-      rewrite -InA_In_eq. now apply LevelExprSet.elements_spec1.
-  Qed.
 
   Program Definition non_empty_union (u v : nonEmptyLevelExprSet) : nonEmptyLevelExprSet :=
     {| t_set := LevelExprSet.union u v |}.
@@ -498,41 +448,6 @@ Qed.
 Lemma non_W_atoms_subset W l : non_W_atoms W l ⊂_leset l.
 Proof. intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec. Qed.
 
-Lemma levelexprset_levels_spec_aux l (e : LevelExprSet.t) acc :
-  LevelSet.In l (LevelExprSet.fold (fun le : LevelExprSet.elt => LevelSet.add (level le)) e acc) <->
-  (exists k, LevelExprSet.In (l, k) e) \/ LevelSet.In l acc.
-Proof.
-  eapply LevelExprSetProp.fold_rec.
-  - intros.
-    intuition auto. destruct H1 as [k hin]. lesets.
-  - intros x a s' s'' hin nin hadd ih.
-    rewrite LevelSet.add_spec.
-    split.
-    * intros [->|].
-      left. exists x.2. red in H. subst.
-      apply hadd. cbn. left. now destruct x.
-      apply ih in H.
-      intuition auto.
-      left. destruct H0 as [k Hk]. exists k. apply hadd. now right.
-    * intros [[k ins'']|inacc].
-      eapply hadd in ins''. destruct ins''; subst.
-      + now left.
-      + right. apply ih. now left; exists k.
-      + right. intuition auto.
-Qed.
-
-Lemma levelexprset_levels_spec l (e : LevelExprSet.t) :
-  LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
-Proof.
-  rewrite levelexprset_levels_spec_aux. intuition auto. lsets.
-Qed.
-
-Lemma univ_non_empty (u : nonEmptyLevelExprSet) : ~ LevelSet.Empty (levels u).
-Proof. intros he. have := t_ne u. move/not_Empty_is_empty.
-  intros he'. apply he'. intros [l k] hin. red in he. specialize (he l). apply he.
-  rewrite levelexprset_levels_spec. now exists k.
-Qed.
-
 Lemma levels_exprs_non_W_atoms {W prem} :
   LevelSet.Equal (levels (non_W_atoms W prem)) (LevelSet.diff (levels prem) W).
 Proof.
@@ -569,39 +484,6 @@ Qed.
 Lemma inLevelSet (ls : LevelSet.t) l : LevelSet.In l ls \/ ~ (LevelSet.In l ls).
 Proof.
   lsets.
-Qed.
-
-Lemma premises_elim {P : nonEmptyLevelExprSet -> Prop} :
-  (forall le, P (singleton le)) ->
-  (forall le prems, P prems -> ~ LevelExprSet.In le prems -> P (add le prems)) ->
-  forall prems, P prems.
-Proof.
-  intros hs ha.
-  intros [].
-  revert t_set0 t_ne0.
-  apply: LevelExprSetProp.set_induction; eauto.
-  - move=> s /LevelExprSetFact.is_empty_1 he ne; exfalso => //. congruence.
-  - intros s s' IH x nin hadd hne.
-    destruct (LevelExprSet.is_empty s) eqn:hem in |- .
-    eapply LevelExprSetFact.is_empty_2 in hem.
-      assert (singleton x = {| t_set := s'; t_ne := hne |}) as <- => //.
-      unfold singleton. apply eq_univ_equal. cbn.
-      intros a. specialize (hadd a). rewrite hadd.
-      rewrite LevelExprSet.singleton_spec. firstorder. subst. reflexivity.
-      specialize (IH hem).
-      specialize (ha x _ IH).
-      assert (LevelExprSet.Equal (add x {| t_set := s; t_ne := hem|}) {| t_set := s'; t_ne := hne |}).
-      2:{ apply eq_univ_equal in H. now rewrite -H. }
-      intros x'. specialize (hadd x'). rewrite LevelExprSet.add_spec.
-      cbn. firstorder. subst x'. now left.
-Qed.
-
-Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
-Proof.
-  apply eq_univ_equal.
-  intros lk.
-  rewrite !map_spec. setoid_rewrite map_spec.
-  firstorder eauto. subst. firstorder.
 Qed.
 
 Definition strict_subset (s s' : LevelSet.t) :=

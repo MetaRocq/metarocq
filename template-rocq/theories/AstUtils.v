@@ -732,7 +732,7 @@ Section Lookups.
 
   Definition polymorphic_constraints u :=
     match u with
-    | Monomorphic_ctx => ConstraintSet.empty
+    | Monomorphic_ctx => UnivConstraintSet.empty
     | Polymorphic_ctx ctx => (AUContext.repr ctx).2.2
     end.
 

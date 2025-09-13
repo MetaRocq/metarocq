@@ -38,7 +38,7 @@ Class abstract_env_struct {cf:checker_flags} (abstract_env_impl abstract_env_ext
   abstract_env_level_mem : abstract_env_ext_impl -> Level.t -> bool;
   abstract_env_leqb_level_n : abstract_env_ext_impl -> Z -> Level.t -> Level.t -> bool;
   abstract_env_guard : abstract_env_ext_impl -> FixCoFix -> context -> mfixpoint term -> bool;
-  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * GoodConstraintSet.t -> bool ;
+  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * GoodUnivConstraintSet.t -> bool ;
 
 }.
 
@@ -57,7 +57,7 @@ Definition abstract_env_compare_sort {cf:checker_flags} {abstract_env_impl abstr
     check_cmpb_sort_gen (abstract_env_leqb_level_n X).
 
 Definition abstract_env_check_constraints {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
-  (X:abstract_env_ext_impl) : ConstraintSet.t -> bool :=
+  (X:abstract_env_ext_impl) : UnivConstraintSet.t -> bool :=
     check_constraints_gen (abstract_env_leqb_level_n X).
 
 Definition abstract_env_ext_wf_universeb {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
@@ -110,7 +110,7 @@ Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_i
     LevelSet.In l (global_ext_levels Σ) <-> abstract_env_level_mem X l;
   abstract_env_is_consistent_correct X Σ uctx udecl :
     abstract_env_rel X Σ ->
-    ConstraintSet.For_all (declared_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
+    UnivConstraintSet.For_all (declared_univ_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
     gc_of_uctx udecl = Some uctx ->
     consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X uctx ;
 
@@ -166,7 +166,7 @@ From Stdlib Require Import MSetFacts.
 
 From Stdlib Require Import Morphisms.
 
-Global Instance consistent_proper : Proper (CS.Equal ==> iff) consistent.
+Global Instance consistent_proper : Proper (UCS.Equal ==> iff) consistent.
 Proof.
   intros c c' eq. rewrite /consistent.
   now setoid_rewrite eq.
@@ -200,7 +200,7 @@ Proof.
 Defined.
 
 Program Definition abstract_env_empty {cf:checker_flags} {X_type : abstract_env_impl} : X_type.π1
-  := abstract_env_init (LS.singleton Level.lzero , CS.empty) Retroknowledge.empty _.
+  := abstract_env_init (LS.singleton Level.lzero , UCS.empty) Retroknowledge.empty _.
 Next Obligation.
   repeat split.
   - intros x Hx; cbn in *. inversion Hx.
@@ -211,7 +211,7 @@ Next Obligation.
 Defined.
 
 Definition abstract_env_is_consistent_empty {cf:checker_flags} {X_type : abstract_env_impl}
-  : VSet.t * GoodConstraintSet.t -> bool :=
+  : VSet.t * GoodUnivConstraintSet.t -> bool :=
   fun uctx => abstract_env_is_consistent (@abstract_env_empty cf X_type) uctx.
 
 Lemma abstract_env_compare_universe_correct {cf:checker_flags} {X_type : abstract_env_impl}
@@ -322,12 +322,12 @@ Qed.
 
 Lemma wf_consistent_extension_on_consistent {cf:checker_flags} {Σ} udecl :
   wf Σ -> consistent_extension_on (global_uctx Σ) udecl ->
-  consistent (ConstraintSet.union udecl (global_constraints Σ)).
+  consistent (UnivConstraintSet.union udecl (global_constraints Σ)).
 Proof.
   intros s Hext. pose proof (wf_consistent _ s).
   destruct H as [val Hval].
   destruct (Hext val Hval) as [val' [Hval' Hval'']]. exists val'.
-  intros [[l ct] l'] [Hl|Hl]%CS.union_spec; eauto.
+  intros [[l ct] l'] [Hl|Hl]%UCS.union_spec; eauto.
   destruct (Hval _ Hl); cbn; econstructor.
   - erewrite <- (Hval'' l0). erewrite <- (Hval'' l'0) => //.
     + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).

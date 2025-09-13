@@ -1,0 +1,478 @@
+From Corelib Require Program.Tactics.
+From Equations Require Import Equations.
+Set Equations Transparent.
+From Corelib Require Import ssreflect ssrfun ssrbool.
+From Stdlib Require Import SetoidList Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
+From MetaRocq.Utils Require Import MRPrelude ReflectEq MRString MRList.
+
+Module Type OrderedTypeWithLeibniz.
+  Include UsualOrderedType.
+  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
+End OrderedTypeWithLeibniz.
+
+Module Type OrderedTypeWithLeibnizWithReflect.
+  Include OrderedTypeWithLeibniz.
+
+  Parameter reflect_eq : ReflectEq t.
+  Parameter to_string : t -> string.
+End OrderedTypeWithLeibnizWithReflect.
+
+Module Type Quantity.
+  Include OrderedTypeWithLeibniz.
+  Parameter zero : t.
+  Parameter add : t -> t -> t.
+End Quantity.
+
+Module Type LevelExprT (Level : OrderedTypeWithLeibniz) (Q : Quantity).
+  Include UsualOrderedType with Definition t := (Level.t * Q.t)%type.
+  Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
+End LevelExprT.
+
+Module Type LevelSet_fun (Level : UsualOrderedType).
+  Include S with Module E := Level.
+End LevelSet_fun.
+
+Module Type LevelExprSet_fun (Level : OrderedTypeWithLeibniz) (Q : Quantity)
+  (LevelExpr : LevelExprT Level Q).
+  Include SWithLeibniz with Module E := LevelExpr.
+
+  Parameter reflect_eq : ReflectEq t.
+End LevelExprSet_fun.
+
+Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
+  (LevelSet : LevelSet_fun Level)
+  (LevelExpr : LevelExprT Level Q)
+  (LevelExprSet : LevelExprSet_fun Level Q LevelExpr).
+  Module LevelExprSetFact := WFactsOn LevelExpr LevelExprSet.
+  Module LevelExprSetOrdProp := MSetProperties.OrdProperties LevelExprSet.
+  Module LevelExprSetProp := LevelExprSetOrdProp.P.
+  Module UCS := LevelExprSet.
+
+  Module LevelSetOrdProp := MSetProperties.OrdProperties LevelSet.
+  Module LevelSetProp := LevelSetOrdProp.P.
+  Module LevelSetDecide := LevelSetProp.Dec.
+  Ltac lsets := LevelSetDecide.fsetdec.
+
+  Module LevelExprSetDecide := LevelExprSetProp.Dec.
+  (* Module LevelExprSetExtraOrdProp := MSets.ExtraOrdProperties LevelExprSet LevelExprSetOrdProp. *)
+  Module LevelExprSetExtraDecide := MSetDecide.Decide LevelExprSet.
+  Ltac lesets := LevelExprSetDecide.fsetdec.
+
+  Import LevelExprSet.
+
+  Definition level : LevelExpr.t -> Level.t := fst.
+
+  Definition levels (e : t) :=
+    fold (fun le => LevelSet.add (level le)) e LevelSet.empty.
+
+  Lemma In_elements {x} {s : LevelExprSet.t} : LevelExprSet.In x s <-> List.In x (LevelExprSet.elements s).
+  Proof.
+    split. now move/LevelExprSetFact.elements_1/InA_In_eq.
+    now move/InA_In_eq/LevelExprSetFact.elements_2.
+  Qed.
+
+  Record t := { t_set :> LevelExprSet.t ; t_ne : is_empty t_set = false }.
+
+  Existing Instance LevelExprSet.reflect_eq.
+
+  (* We use uip on the is_empty condition *)
+  #[export, program] Instance reflect_eq : ReflectEq t :=
+    { eqb x y := eqb x.(t_set) y.(t_set) }.
+  Next Obligation.
+    destruct (eqb_spec (t_set x) (t_set y)); constructor.
+    destruct x, y; cbn in *. subst.
+    now rewrite (uip t_ne0 t_ne1).
+    intros e; subst x; apply H.
+    reflexivity.
+  Qed.
+
+  Lemma nis_empty s : is_empty s = false <-> ~ LevelExprSet.Empty s.
+  Proof.
+    destruct is_empty eqn:he; split => //.
+    - apply LevelExprSet.is_empty_spec in he. contradiction.
+    - intros _ he'. now eapply LevelExprSet.is_empty_spec in he'.
+  Qed.
+
+  Lemma nis_empty_exists s : is_empty s = false <-> exists le, LevelExprSet.In le s.
+  Proof.
+    rewrite nis_empty. split; firstorder.
+    destruct (choose s) eqn:hc.
+    - exists e. now apply choose_spec1 in hc.
+    - apply choose_spec2 in hc. contradiction.
+  Qed.
+
+  Program Definition singleton (e : LevelExpr.t) : t
+    := {| t_set := LevelExprSet.singleton e |}.
+  Next Obligation.
+  Proof.
+    apply nis_empty => he. eapply (he e). lesets.
+  Qed.
+
+  Lemma not_Empty_is_empty s :
+    ~ LevelExprSet.Empty s <-> LevelExprSet.is_empty s = false.
+  Proof. now rewrite nis_empty. Qed.
+
+  Program Definition add (e : LevelExpr.t) (u : t) : t
+    := {| t_set := LevelExprSet.add e u |}.
+  Next Obligation.
+    apply not_Empty_is_empty; intro H.
+    eapply H. eapply LevelExprSet.add_spec.
+    left; reflexivity.
+  Qed.
+
+  Lemma add_spec e u e' :
+    In e' (add e u) <-> e' = e \/ In e' u.
+  Proof.
+    apply LevelExprSet.add_spec.
+  Qed.
+
+  Definition add_list : list LevelExpr.t -> t -> t
+    := List.fold_left (fun u e => add e u).
+
+  Lemma add_list_spec l u e :
+    LevelExprSet.In e (add_list l u) <-> List.In e l \/ LevelExprSet.In e u.
+  Proof.
+    unfold add_list. rewrite <- fold_left_rev_right.
+    etransitivity. 2:{ eapply or_iff_compat_r. etransitivity.
+                       2: apply @InA_In_eq with (A:=LevelExpr.t).
+                       eapply InA_rev. }
+    induction (List.rev l); cbn.
+    - split. intuition. intros [H|H]; tas. depelim H.
+    - split.
+      + intro H. apply add_spec in H. destruct H as [H|H].
+        * left. now constructor.
+        * apply IHl0 in H. destruct H as [H|H]; [left|now right].
+          now constructor 2.
+      + intros [H|H]. inv H.
+        * apply add_spec; now left.
+        * apply add_spec; right. apply IHl0. now left.
+        * apply add_spec; right. apply IHl0. now right.
+  Qed.
+
+  Lemma elements_not_empty {u : t} : LevelExprSet.elements u <> [].
+  Proof.
+    rewrite -LevelExprSetProp.elements_Empty.
+    move/LevelExprSetFact.is_empty_1.
+    destruct u as [u1 u2]; cbn in *. congruence.
+  Qed.
+
+  Equations to_nonempty_list (u : t) : LevelExpr.t * list LevelExpr.t :=
+  | u with inspect (LevelExprSet.elements u) := {
+    | exist [] eqel => False_rect _ (elements_not_empty eqel)
+    | exist (e :: l) _ => (e, l) }.
+
+  Lemma singleton_to_nonempty_list e : to_nonempty_list (singleton e) = (e, []).
+  Proof.
+    funelim (to_nonempty_list (singleton e)). Tactics.bang.
+    clear H.
+    pose proof (LevelExprSet.singleton_spec e1 e).
+    rewrite LevelExprSetFact.elements_iff in H.
+    rewrite InA_In_eq in H. rewrite e0 in H.
+    destruct H. forward H. now left. noconf H. f_equal.
+    pose proof (LevelExprSet.cardinal_spec (LevelExprSet.singleton e1)). rewrite e0 in H. cbn in H.
+    rewrite LevelExprSetProp.singleton_cardinal in H.
+    destruct l => //.
+  Qed.
+
+  Lemma to_nonempty_list_spec u :
+    let '(e, u') := to_nonempty_list u in
+    e :: u' = LevelExprSet.elements u.
+  Proof.
+    funelim (to_nonempty_list u). Tactics.bang. now rewrite e0.
+  Qed.
+
+  Lemma to_nonempty_list_spec' u :
+    (to_nonempty_list u).1 :: (to_nonempty_list u).2 = elements u.
+  Proof.
+    pose proof (to_nonempty_list_spec u).
+    now destruct (to_nonempty_list u).
+  Qed.
+
+  Lemma In_to_nonempty_list (u : t) (e : LevelExpr.t) :
+    In e u
+    <-> e = (to_nonempty_list u).1 \/ List.In e (to_nonempty_list u).2.
+  Proof.
+    etransitivity. symmetry. apply LevelExprSet.elements_spec1.
+    pose proof (to_nonempty_list_spec' u) as H.
+    destruct (to_nonempty_list u) as [e' l]; cbn in *.
+    rewrite <- H; clear. etransitivity. apply InA_cons.
+    eapply or_iff_compat_l. apply InA_In_eq.
+  Qed.
+
+  Lemma In_to_nonempty_list_rev (u : t) (e : LevelExpr.t) :
+    In e u <-> e = (to_nonempty_list u).1 \/ List.In e (List.rev (to_nonempty_list u).2).
+  Proof.
+    etransitivity. eapply In_to_nonempty_list.
+    apply or_iff_compat_l. apply in_rev.
+  Qed.
+
+  Definition map_levelexprset f u :=
+    LevelExprSetProp.of_list (List.map f (LevelExprSet.elements u)).
+
+  Program Definition map (f : LevelExpr.t -> LevelExpr.t) (u : t) : t :=
+    {| t_set := map_levelexprset f u |}.
+  Next Obligation.
+    rewrite /map_levelexprset.
+    have hs := to_nonempty_list_spec u.
+    destruct (to_nonempty_list u). rewrite -hs. cbn.
+    apply not_Empty_is_empty => he. apply (he (f t0)).
+    lesets.
+  Qed.
+
+  Lemma map_levelexprset_spec f u e :
+    LevelExprSet.In e (map_levelexprset f u) <-> exists e0, LevelExprSet.In e0 u /\ e = (f e0).
+  Proof.
+    unfold map; cbn.
+    rewrite LevelExprSetProp.of_list_1 InA_In_eq in_map_iff.
+    split.
+    - intros [x [<- hin]]. exists x. split => //.
+      rewrite -InA_In_eq in hin. now apply LevelExprSet.elements_spec1 in hin.
+    - intros [x [hin ->]]. exists x. split => //.
+      rewrite -InA_In_eq. now apply LevelExprSet.elements_spec1.
+  Qed.
+
+  Lemma map_spec f u e :
+    LevelExprSet.In e (map f u) <-> exists e0, LevelExprSet.In e0 u /\ e = (f e0).
+  Proof. apply map_levelexprset_spec. Qed.
+
+  Program Definition non_empty_union (u v : t) : t :=
+    {| t_set := LevelExprSet.union u v |}.
+  Next Obligation.
+    apply not_Empty_is_empty; intro H.
+    assert (HH: LevelExprSet.Empty u). {
+      intros x Hx. apply (H x).
+      eapply LevelExprSet.union_spec. now left. }
+    apply LevelExprSetFact.is_empty_1 in HH.
+    rewrite t_ne in HH; discriminate.
+  Qed.
+
+  Lemma eq_exprsets (u v : t) :
+    u = v :> LevelExprSet.t -> u = v.
+  Proof.
+    destruct u as [u1 u2], v as [v1 v2]; cbn. intros X; destruct X.
+    now rewrite (uip_bool _ _ u2 v2).
+  Qed.
+
+  Definition eq_univ (u v : t) : u = v :> LevelExprSet.t -> u = v := eq_exprsets u v.
+
+  Lemma equal_exprsets (u v : t) : LevelExprSet.Equal u v -> u = v.
+  Proof.
+    intro H. now apply eq_univ, LevelExprSet.eq_leibniz.
+  Qed.
+
+  #[deprecated(note = "use equal_exprsets instead")]
+  Notation eq_univ_equal := equal_exprsets.
+
+  #[deprecated(note = "use equal_exprsets instead")]
+  Notation eq_univ' := equal_exprsets.
+
+  Lemma equal_elements (u v : t) :
+    LevelExprSet.elements u = LevelExprSet.elements v -> u = v.
+  Proof.
+    intro H. apply eq_univ.
+    destruct u as [u1 u2], v as [v1 v2]; cbn in *; clear u2 v2.
+    eapply LevelExprSet.eq_leibniz. red.
+    intros x. rewrite -!LevelExprSet.elements_spec1 H //.
+  Qed.
+
+  #[deprecated(note = "use equal_elements instead")]
+  Notation eq_univ_elements := equal_elements.
+
+  #[deprecated(note = "use equal_elements instead")]
+  Definition eq_univ'' := equal_elements.
+
+  Lemma univ_expr_eqb_true_iff (u v : t) :
+    LevelExprSet.equal u v <-> u = v.
+  Proof.
+    split.
+    - intros.
+      apply equal_exprsets. now apply LevelExprSet.equal_spec.
+    - intros ->. now apply LevelExprSet.equal_spec.
+  Qed.
+
+  Lemma univ_expr_eqb_comm (u v : t) :
+    LevelExprSet.equal u v <-> LevelExprSet.equal v u.
+  Proof.
+    transitivity (u = v). 2: transitivity (v = u).
+    - apply univ_expr_eqb_true_iff.
+    - split; apply eq_sym.
+    - split; apply univ_expr_eqb_true_iff.
+  Qed.
+
+
+  Lemma for_all_false f u :
+    for_all f u = false -> exists_ (negb ∘ f) u.
+  Proof.
+    intro H. rewrite LevelExprSetFact.exists_b.
+    rewrite LevelExprSetFact.for_all_b in H.
+    all: try now intros x y [].
+    induction (LevelExprSet.elements u); cbn in *; [discriminate|].
+    apply andb_false_iff in H; apply orb_true_iff; destruct H as [H|H].
+    left; now rewrite H.
+    right; now rewrite IHl.
+  Qed.
+
+  Lemma For_all_exprs (P : LevelExpr.t -> Prop) (u : t)
+    : For_all P u
+      <-> P (to_nonempty_list u).1 /\ Forall P (to_nonempty_list u).2.
+  Proof.
+    etransitivity.
+    - eapply iff_forall; intro e. eapply imp_iff_compat_r.
+      apply In_to_nonempty_list.
+    - cbn; split.
+      + intro H. split. apply H. now left.
+        apply Forall_forall. intros x H0.  apply H; now right.
+      + intros [H1 H2] e [He|He]. subst e; tas.
+        eapply Forall_forall in H2; tea.
+  Qed.
+
+  Lemma add_comm {le le' e} : add le (add le' e) = add le' (add le e).
+  Proof.
+    apply eq_univ_equal. intros x.
+    rewrite !LevelExprSet.add_spec. firstorder.
+  Qed.
+
+  #[program]
+  Definition univ_union (prems prems' : t) : t :=
+    {| t_set := LevelExprSet.union prems prems' |}.
+  Next Obligation.
+    destruct prems, prems'; cbn.
+    destruct (LevelExprSet.is_empty (LevelExprSet.union _ _)) eqn:ise => //.
+    eapply LevelExprSetFact.is_empty_2 in ise.
+    eapply not_Empty_is_empty in t_ne0, t_ne1.
+    destruct t_ne0. lesets.
+  Qed.
+
+  Lemma univ_union_spec u u' l :
+    LevelExprSet.In l (univ_union u u') <->
+    LevelExprSet.In l u \/ LevelExprSet.In l u'.
+  Proof.
+    destruct u, u'; unfold univ_union; cbn.
+    apply LevelExprSet.union_spec.
+  Qed.
+
+  Lemma univ_union_add_singleton u le : univ_union u (singleton le) = add le u.
+  Proof.
+    apply eq_univ_equal.
+    intros x. rewrite univ_union_spec LevelExprSet.singleton_spec add_spec.
+    intuition auto.
+  Qed.
+
+  Lemma univ_union_comm {u u'} : univ_union u u' = univ_union u' u.
+  Proof.
+    apply eq_univ_equal.
+    intros x. rewrite !univ_union_spec.
+    intuition auto.
+  Qed.
+
+  Lemma univ_union_add_distr {le u u'} : univ_union (add le u) u' = add le (univ_union u u').
+  Proof.
+    apply eq_univ_equal.
+    intros x. rewrite !univ_union_spec !add_spec !univ_union_spec.
+    intuition auto.
+  Qed.
+
+
+  Lemma levels_spec_aux l (e : LevelExprSet.t) acc :
+    LevelSet.In l (LevelExprSet.fold (fun le : LevelExprSet.elt => LevelSet.add (level le)) e acc) <->
+    (exists k, LevelExprSet.In (l, k) e) \/ LevelSet.In l acc.
+  Proof.
+    eapply LevelExprSetProp.fold_rec.
+    - intros.
+      intuition auto. destruct H1 as [k hin]. lesets.
+    - intros x a s' s'' hin nin hadd ih.
+      rewrite LevelSet.add_spec.
+      split.
+      * intros [->|].
+        left. exists x.2. red in H. subst.
+        apply hadd. cbn. left. now destruct x.
+        apply ih in H.
+        intuition auto.
+        left. destruct H0 as [k Hk]. exists k. apply hadd. now right.
+      * intros [[k ins'']|inacc].
+        eapply hadd in ins''. destruct ins''; subst.
+        + now left.
+        + right. apply ih. now left; exists k.
+        + right. intuition auto.
+  Qed.
+
+  Lemma levels_spec l (e : LevelExprSet.t) :
+    LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
+  Proof.
+    rewrite levels_spec_aux. intuition auto. lsets.
+  Qed.
+
+  #[export] Instance proper_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)
+    levels.
+  Proof.
+    intros s s' eq l.
+    rewrite !levels_spec.
+    firstorder eauto.
+  Qed.
+
+  Definition choose (u : t) : LevelExpr.t := (to_nonempty_list u).1.
+
+  Lemma choose_spec u : In (choose u) u.
+  Proof.
+    rewrite /choose.
+    have hs := to_nonempty_list_spec u.
+    destruct to_nonempty_list. cbn.
+    rewrite -elements_spec1 InA_In_eq -hs.
+    now constructor.
+  Qed.
+
+  Definition eq x y := eq (t_set x) (t_set y).
+
+  #[export] Instance proper_choose : Proper (eq ==> Logic.eq) choose.
+  Proof.
+    intros x y e.
+    rewrite /choose.
+    have he := to_nonempty_list_spec x.
+    have he' := to_nonempty_list_spec y.
+    do 2 destruct to_nonempty_list. cbn. red in e.
+    apply LevelExprSet.eq_leibniz in e. now subst.
+  Qed.
+
+  Lemma univ_non_empty (u : t) : ~ LevelSet.Empty (levels u).
+  Proof.
+    intros he.
+    apply (he (choose u).1).
+    rewrite levels_spec. exists (choose u).2.
+    destruct (choose u) eqn:e; cbn. rewrite -e.
+    apply choose_spec.
+  Qed.
+
+  Lemma elim {P : t -> Type} :
+    (forall le, P (singleton le)) ->
+    (forall le x, P x -> ~ LevelExprSet.In le x -> P (add le x)) ->
+    forall x, P x.
+  Proof.
+    intros hs ha.
+    intros [].
+    revert t_set0 t_ne0.
+    apply: LevelExprSetProp.set_induction; eauto.
+    - move=> s /LevelExprSetFact.is_empty_1 he ne; exfalso => //. congruence.
+    - intros s s' IH x nin hadd hne.
+      destruct (LevelExprSet.is_empty s) eqn:hem in |- .
+      eapply LevelExprSetFact.is_empty_2 in hem.
+        assert (singleton x = {| t_set := s'; t_ne := hne |}) as <- => //.
+        unfold singleton. apply equal_exprsets. cbn.
+        intros a. specialize (hadd a). rewrite hadd.
+        rewrite LevelExprSet.singleton_spec. firstorder. subst. reflexivity.
+        specialize (IH hem).
+        specialize (ha x _ IH).
+        assert (LevelExprSet.Equal (add x {| t_set := s; t_ne := hem|}) {| t_set := s'; t_ne := hne |}).
+        2:{ apply equal_exprsets in H. now rewrite -H. }
+        intros x'. specialize (hadd x'). rewrite LevelExprSet.add_spec.
+        cbn. firstorder. subst x'. now left.
+  Qed.
+
+  Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
+  Proof.
+    apply equal_exprsets.
+    intros lk.
+    rewrite !map_spec. setoid_rewrite map_spec.
+    firstorder eauto. subst. firstorder.
+  Qed.
+
+End NonEmptyLevelExprSet.

@@ -504,10 +504,10 @@ Inductive red Σ Γ M : term -> Type :=
   We hence implement first an equality which considers casts and do a stripping
   phase of casts before checking equality. *)
 
-Definition eq_term_nocast `{checker_flags} (Σ : global_env) (φ : ConstraintSet.t) (t u : term) :=
+Definition eq_term_nocast `{checker_flags} (Σ : global_env) (φ : UnivConstraintSet.t) (t u : term) :=
   eq_term Σ φ (strip_casts t) (strip_casts u).
 
-Definition leq_term_nocast `{checker_flags} (Σ : global_env) (φ : ConstraintSet.t) (t u : term) :=
+Definition leq_term_nocast `{checker_flags} (Σ : global_env) (φ : UnivConstraintSet.t) (t u : term) :=
   leq_term Σ φ (strip_casts t) (strip_casts u).
 
 Reserved Notation " Σ ;;; Γ |- t : T " (at level 50, Γ, t, T at next level).

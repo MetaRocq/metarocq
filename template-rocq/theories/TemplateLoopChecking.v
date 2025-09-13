@@ -64,7 +64,7 @@ Definition test : TemplateMonad unit :=
   tmMsg (print_result m') ;;
   (* tmMsg (print_clauses clauses) ;; *)
   (* tmMsg (string_of_nat (LevelSet.cardinal (fst ctx)));; *)
-   (* ++ " universes and " ++ string_of_nat (ConstraintSet.cardinal (snd ctx)) ++ " constraints") ;; *)
+   (* ++ " universes and " ++ string_of_nat (UnivConstraintSet.cardinal (snd ctx)) ++ " constraints") ;; *)
   tmMsg "done".
 
 (* MetaRocq Run test. *)

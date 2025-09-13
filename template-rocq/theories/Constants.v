@@ -134,10 +134,10 @@ Register MetaRocq.Common.Universes.universes_decl as metarocq.ast.universes_decl
 Register MetaRocq.Common.Universes.Monomorphic_ctx as metarocq.ast.Monomorphic_ctx.
 Register MetaRocq.Common.Universes.Polymorphic_ctx as metarocq.ast.Polymorphic_ctx.
 
-Register MetaRocq.Common.Universes.ConstraintSet.t_ as metarocq.ast.ConstraintSet.t_.
-Register MetaRocq.Common.Universes.ConstraintSet.empty as metarocq.ast.ConstraintSet.empty.
-Register MetaRocq.Common.Universes.ConstraintSet.add as metarocq.ast.ConstraintSet.add.
-Register MetaRocq.Common.Universes.ConstraintSet.elements as metarocq.ast.ConstraintSet.elements.
+Register MetaRocq.Common.Universes.UnivConstraintSet.t_ as metarocq.ast.UnivConstraintSet.t_.
+Register MetaRocq.Common.Universes.UnivConstraintSet.empty as metarocq.ast.UnivConstraintSet.empty.
+Register MetaRocq.Common.Universes.UnivConstraintSet.add as metarocq.ast.UnivConstraintSet.add.
+Register MetaRocq.Common.Universes.UnivConstraintSet.elements as metarocq.ast.UnivConstraintSet.elements.
 
 Register MetaRocq.Common.Universes.UContext.t as metarocq.ast.UContext.t.
 Register MetaRocq.Common.Universes.UContext.make as metarocq.ast.UContext.make.

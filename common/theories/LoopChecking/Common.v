@@ -11,14 +11,6 @@ Set Equations Transparent.
 Ltac rw l := rewrite_strat (topdown l).
 Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
-Notation fwd := (ltac:(move=> /(_ _)/Wrap[])).
-
-(* TODO move *)
-Arguments exist {A P}.
-Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
-
-Arguments symmetry {A R Symmetric} {x y}.
-
 #[program] Global Instance reflect_eq_Z : ReflectEq Z := {
     eqb := Z.eqb
   }.

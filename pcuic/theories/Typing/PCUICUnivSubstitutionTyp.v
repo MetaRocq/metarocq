@@ -210,7 +210,7 @@ Qed.
 Hint Resolve subst_instance_cstrs_two
      satisfies_equal_sets satisfies_subsets : univ_subst.
 Hint Resolve monomorphic_global_constraint monomorphic_global_constraint_ext : univ_subst.
-Hint Unfold CS.For_all : univ_subst.
+Hint Unfold UCS.For_all : univ_subst.
 Hint Resolve consistent_ext_trans : univ_subst.
 Hint Resolve consistent_instance_valid_constraints : univ_subst.
 Hint Rewrite subst_instance_extended_subst : substu.

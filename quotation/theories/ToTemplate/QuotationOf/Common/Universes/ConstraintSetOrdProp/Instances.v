@@ -6,7 +6,7 @@ Import List.ListNotations.
 Local Open Scope list_scope.
 
 Module qConstraintSetOrdProp <: QuotationOfOrdProperties ConstraintSet ConstraintSetOrdProp.
-  Module qME <: QuotationOfOrderedTypeFacts ConstraintSet.E ConstraintSetOrdProp.ME.
+  Module qME <: QuotationOfOrderedTypeFacts UnivConstraintSet.E ConstraintSetOrdProp.ME.
     MetaRocq Run (tmMakeQuotationOfModule everything None "ConstraintSetOrdProp.ME").
   End qME.
   Module qML. (* OrderedTypeLists(M.E). *)

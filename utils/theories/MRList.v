@@ -4,6 +4,8 @@ From MetaRocq.Utils Require Import MRPrelude MRRelations.
 
 Set Equations Transparent.
 
+Derive Signature for InA.
+
 Export ListNotations.
 
 Arguments firstn : simpl nomatch.
@@ -78,7 +80,7 @@ Proof.
 Qed.
 
 Lemma nth_error_safe_nth {A} n (l : list A) (isdecl : n < Datatypes.length l) :
-  nth_error l n = Some (safe_nth l (exist _ n isdecl)).
+  nth_error l n = Some (safe_nth l (exist n isdecl)).
 Proof.
   revert n isdecl; induction l; intros.
   - inversion isdecl.

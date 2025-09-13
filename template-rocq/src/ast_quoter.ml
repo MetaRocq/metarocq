@@ -29,7 +29,7 @@ struct
   type quoted_sort_family = Universes0.allowed_eliminations
   type quoted_constraint_type = Universes0.ConstraintType.t
   type quoted_univ_constraint = Universes0.LevelConstraint.t
-  type quoted_univ_constraints = Universes0.ConstraintSet.t
+  type quoted_univ_constraints = Universes0.UnivConstraintSet.t
   type quoted_univ_level = Universes0.Level.t
   type quoted_univ_instance = Universes0.Instance.t
   type quoted_univ_context = Universes0.UContext.t
@@ -177,7 +177,7 @@ struct
 
   let quote_univ_constraints (c : Univ.Constraints.t) : quoted_univ_constraints =
     let l = constraints_ (Univ.Constraints.elements c) in
-    Universes0.ConstraintSet.(List.fold_right add l empty)
+    Universes0.UnivConstraintSet.(List.fold_right add l empty)
 
   let quote_variance (v : UVars.Variance.t) =
     match v with

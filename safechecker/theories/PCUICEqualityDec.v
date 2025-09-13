@@ -865,7 +865,7 @@ Section EqualityDecGen.
 
   Let HG := (graph_of_wf_ext hΣ).π2.
 
-  Let uctx' : VSet.t × GoodConstraintSet.t.
+  Let uctx' : VSet.t × GoodUnivConstraintSet.t.
     fold G uctx in HG. clearbody G HG. cbn in *.
     unfold is_graph_of_uctx, gc_of_uctx in HG.
     destruct (gc_of_constraints uctx.2) as [ctrs|].

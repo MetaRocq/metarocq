@@ -1469,7 +1469,7 @@ Proof.
 Qed.
 
 From Stdlib Require Import Morphisms.
-Global Instance proper_pair_levels_gcs : Proper ((=_lset) ==> GoodConstraintSet.Equal ==> (=_gcs)) (@pair LevelSet.t GoodConstraintSet.t).
+Global Instance proper_pair_levels_gcs : Proper ((=_lset) ==> GoodUnivConstraintSet.Equal ==> (=_gcs)) (@pair LevelSet.t GoodUnivConstraintSet.t).
 Proof.
   intros l l' eq gcs gcs' eq'.
   split; cbn; auto.

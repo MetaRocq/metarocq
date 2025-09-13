@@ -372,49 +372,49 @@ Proof.
 Qed.
 
 Lemma In_subst_instance_cstrs u c ctrs :
-  CS.In c (subst_instance_cstrs u ctrs)
-  <-> exists c', c = subst_instance_cstr u c' /\ CS.In c' ctrs.
+  UCS.In c (subst_instance_cstrs u ctrs)
+  <-> exists c', c = subst_instance_cstr u c' /\ UCS.In c' ctrs.
 Proof.
   unfold subst_instance_cstrs.
-  rewrite CS.fold_spec.
-  transitivity (CS.In c CS.empty \/
+  rewrite UCS.fold_spec.
+  transitivity (UCS.In c UCS.empty \/
                 exists c', c = subst_instance_cstr u c'
-                      /\ In c' (CS.elements ctrs)).
-  - generalize (CS.elements ctrs), CS.empty.
+                      /\ In c' (UCS.elements ctrs)).
+  - generalize (UCS.elements ctrs), UCS.empty.
     induction l; cbn.
     + pcuicfo. now destruct H0 as [? ?].
     + intros t. etransitivity. 1: eapply IHl.
       split; intros [HH|HH].
-      * destruct a as [[l1 a] l2]. apply CS.add_spec in HH.
+      * destruct a as [[l1 a] l2]. apply UCS.add_spec in HH.
         destruct HH as [HH|HH]. 2: now left.
         right; eexists. split; [|left; reflexivity]. assumption.
       * destruct HH as [c' ?]. right; exists c'; intuition.
-      * left. destruct a as [[l1 a] l2]. apply CS.add_spec.
+      * left. destruct a as [[l1 a] l2]. apply UCS.add_spec.
         now right.
       * destruct HH as [c' [HH1 [?|?]]]; subst.
         -- left. destruct c' as [[l1 c'] l2];
-           apply CS.add_spec; now left.
+           apply UCS.add_spec; now left.
         -- right. exists c'. intuition.
   - rewrite ConstraintSetFact.empty_iff.
     transitivity (exists c', c = subst_instance_cstr u c'
-                        /\ In c' (CS.elements ctrs)).
+                        /\ In c' (UCS.elements ctrs)).
     1: intuition.
     apply iff_ex; intro. apply and_iff_compat_l. symmetry.
-    etransitivity. 1: symmetry; apply CS.elements_spec1.
+    etransitivity. 1: symmetry; apply UCS.elements_spec1.
     etransitivity. 1: eapply SetoidList.InA_alt.
     split; intro; eauto.
     now destruct H as [? [[] ?]].
 Qed.
 
 Lemma In_subst_instance_cstrs' u c ctrs :
-  CS.In c ctrs ->
-  CS.In (subst_instance_cstr u c) (subst_instance_cstrs u ctrs).
+  UCS.In c ctrs ->
+  UCS.In (subst_instance_cstr u c) (subst_instance_cstrs u ctrs).
 Proof.
   intro H. apply In_subst_instance_cstrs. now eexists.
 Qed.
 
 Lemma subst_instance_cstrs_two u1 u2 ctrs :
-  CS.Equal
+  UCS.Equal
     (subst_instance_cstrs u1 (subst_instance_cstrs u2 ctrs))
     (subst_instance_cstrs (subst_instance u1 u2) ctrs).
 Proof.
@@ -500,13 +500,13 @@ Proof.
 Qed.
 
 Global Instance satisfies_equal_sets v :
-  Morphisms.Proper (Morphisms.respectful CS.Equal iff) (satisfies v).
+  Morphisms.Proper (Morphisms.respectful UCS.Equal iff) (satisfies v).
 Proof.
   intros φ1 φ2 H; split; intros HH c Hc; now apply HH, H.
 Qed.
 
 Global Instance satisfies_subsets v :
-  Morphisms.Proper (Morphisms.respectful CS.Subset (fun A B : Prop => B -> A))
+  Morphisms.Proper (Morphisms.respectful UCS.Subset (fun A B : Prop => B -> A))
                    (satisfies v).
 Proof.
   intros φ1 φ2 H H2 c Hc; now apply H2, H.
@@ -559,7 +559,7 @@ Lemma not_var_global_ext_levels {cf : checker_flags} Σ (hΣ : wf_ext_wk (Σ, Mo
 Proof. apply hΣ. Qed.
 
 Lemma levels_global_constraint {cf : checker_flags} Σ (hΣ : wf Σ) c :
-  CS.In c (global_constraints Σ)
+  UCS.In c (global_constraints Σ)
   -> LS.In c.1.1 (global_levels Σ)
     /\ LS.In c.2 (global_levels Σ).
 Proof.
@@ -569,11 +569,11 @@ Proof.
 Qed.
 
 Lemma levels_global_ext_constraint {cf : checker_flags} Σ φ (hΣ : wf_ext_wk (Σ, φ)) c :
-  CS.In c (global_ext_constraints (Σ, φ))
+  UCS.In c (global_ext_constraints (Σ, φ))
   -> LS.In c.1.1 (global_ext_levels (Σ, φ))
     /\ LS.In c.2 (global_ext_levels (Σ, φ)).
 Proof.
-  intro H. apply CS.union_spec in H; simpl in H.
+  intro H. apply UCS.union_spec in H; simpl in H.
   destruct hΣ as [hΣ Hφ], H as [Hc|H]; simpl in *.
   - red in Hφ. unfold global_ext_levels. simpl.
     destruct c as [[l1 c] l2]; exact (Hφ _ Hc).
@@ -585,7 +585,7 @@ Definition is_monomorphic_cstr (c : LevelConstraint.t)
   := negb (Level.is_var c.1.1) && negb (Level.is_var c.2).
 
 Lemma monomorphic_global_constraint {cf : checker_flags} Σ (hΣ : wf Σ) c :
-  CS.In c (global_constraints Σ)
+  UCS.In c (global_constraints Σ)
   -> is_monomorphic_cstr c.
 Proof.
   intros H. apply levels_global_constraint in H; tas.
@@ -596,7 +596,7 @@ Qed.
 
 Lemma monomorphic_global_constraint_ext {cf : checker_flags} Σ
       (hΣ : wf_ext_wk (Σ, Monomorphic_ctx)) c :
-  CS.In c (global_ext_constraints (Σ, Monomorphic_ctx))
+  UCS.In c (global_ext_constraints (Σ, Monomorphic_ctx))
   -> is_monomorphic_cstr c.
 Proof.
   intros H. apply levels_global_ext_constraint in H; tas.
@@ -617,8 +617,8 @@ Proof.
 Qed.
 
 Lemma equal_subst_instance_cstrs_mono u cstrs :
-  CS.For_all is_monomorphic_cstr cstrs ->
-  CS.Equal (subst_instance_cstrs u cstrs) cstrs.
+  UCS.For_all is_monomorphic_cstr cstrs ->
+  UCS.Equal (subst_instance_cstrs u cstrs) cstrs.
 Proof.
   intros HH c. etransitivity.
   - eapply In_subst_instance_cstrs.
@@ -628,25 +628,25 @@ Proof.
 Qed.
 
 Lemma subst_instance_cstrs_union u φ φ' :
-  CS.Equal (subst_instance_cstrs u (CS.union φ φ'))
-           (CS.union (subst_instance_cstrs u φ) (subst_instance_cstrs u φ')).
+  UCS.Equal (subst_instance_cstrs u (UCS.union φ φ'))
+           (UCS.union (subst_instance_cstrs u φ) (subst_instance_cstrs u φ')).
 Proof.
   intro c; split; intro Hc.
   - apply In_subst_instance_cstrs in Hc.
     destruct Hc as [c' [eq Hc]]; subst.
-    apply CS.union_spec in Hc. apply CS.union_spec.
+    apply UCS.union_spec in Hc. apply UCS.union_spec.
     destruct Hc; [left|right]; now apply In_subst_instance_cstrs'.
   - apply In_subst_instance_cstrs.
-    apply CS.union_spec in Hc.
+    apply UCS.union_spec in Hc.
     destruct Hc as [Hc|Hc]; apply In_subst_instance_cstrs in Hc;
-      destruct Hc as [c'[eq Hc]]; exists c'; aa; apply CS.union_spec;
+      destruct Hc as [c'[eq Hc]]; exists c'; aa; apply UCS.union_spec;
         [left|right]; aa.
 Qed.
 
-#[global] Hint Unfold CS.For_all : univ_subst.
+#[global] Hint Unfold UCS.For_all : univ_subst.
 
 Definition sub_context_set (φ φ' : ContextSet.t)
-  := LS.Subset φ.1 φ'.1 /\ CS.Subset φ.2 φ'.2.
+  := LS.Subset φ.1 φ'.1 /\ UCS.Subset φ.2 φ'.2.
 
 Definition global_ext_context_set Σ : ContextSet.t
   := (global_ext_levels Σ, global_ext_constraints Σ).
@@ -759,7 +759,7 @@ Qed.
 
 #[global] Hint Resolve consistent_instance_valid_constraints : univ_subst.
 
-Class SubstUnivPreserved {cf : checker_flags} {A} `{UnivSubst A} (R : ConstraintSet.t -> crelation A)
+Class SubstUnivPreserved {cf : checker_flags} {A} `{UnivSubst A} (R : UnivConstraintSet.t -> crelation A)
   := Build_SubstUnivPreserved :
        forall φ φ' (u : Instance.t),
          valid_constraints φ' (subst_instance_cstrs u φ) ->
@@ -1827,8 +1827,8 @@ Section SubstIdentity.
       * left; apply IHn; lia.
     - now rewrite mapi_length.
     - simpl. rewrite (mapi_unfold Level.lvar).
-      assert(CS.Equal (subst_instance_cstrs (unfold #|univs| Level.lvar) cst) cst).
-      { unfold CS.Equal; intros a.
+      assert(UCS.Equal (subst_instance_cstrs (unfold #|univs| Level.lvar) cst) cst).
+      { unfold UCS.Equal; intros a.
         unfold subst_instance_cstrs.
         red in wf_glob_ext.
         destruct wf_glob_ext as [_ wfext].
@@ -1853,7 +1853,7 @@ Section SubstIdentity.
           eapply subst_instance_level_abs in inl; auto.
           eapply subst_instance_level_abs in inr; auto.
           rewrite inl inr.
-          rewrite !CS.add_spec.
+          rewrite !UCS.add_spec.
           intuition auto. }
       unfold valid_constraints. destruct check_univs; auto.
       unfold valid_constraints0. simpl.

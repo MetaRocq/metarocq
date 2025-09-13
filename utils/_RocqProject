@@ -34,6 +34,8 @@ theories/monad_utils.v
 theories/Show.v
 theories/utils.v
 
+theories/NonEmptyLevelExprSet.v
+
 # extra tactics
 theories/MRTactics/DestructHead.v
 theories/MRTactics/DestructHyps.v

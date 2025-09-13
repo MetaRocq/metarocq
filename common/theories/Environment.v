@@ -900,7 +900,7 @@ Module Environment (T : Term).
     tProd {| binder_name := nAnon; binder_relevance := rel_of_Type |}
       dom (lift 1 0 codom).
 
-  Definition array_uctx := ([nAnon], ConstraintSet.empty).
+  Definition array_uctx := ([nAnon], UnivConstraintSet.empty).
 
   Definition primitive_invariants (p : prim_tag) (cdecl : constant_body) :=
     match p with

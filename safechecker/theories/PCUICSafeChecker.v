@@ -52,10 +52,10 @@ Qed.
 
 
 Definition cs_equal (x y : ContextSet.t) : Prop :=
-  LevelSet.Equal x.1 y.1 /\ ConstraintSet.Equal x.2 y.2.
+  LevelSet.Equal x.1 y.1 /\ UnivConstraintSet.Equal x.2 y.2.
 
 Definition gcs_equal x y : Prop :=
-  LevelSet.Equal x.1 y.1 /\ GoodConstraintSet.Equal x.2 y.2.
+  LevelSet.Equal x.1 y.1 /\ GoodUnivConstraintSet.Equal x.2 y.2.
   Require Import Relation_Definitions.
 
   Definition R_opt {A} (R : relation A) : relation (option A) :=
@@ -65,7 +65,7 @@ Definition gcs_equal x y : Prop :=
       | _, _ => False
     end.
 
-  Global Instance gc_of_constraints_proper {cf} : Proper (ConstraintSet.Equal ==> R_opt GoodConstraintSet.Equal) gc_of_constraints.
+  Global Instance gc_of_constraints_proper {cf} : Proper (UnivConstraintSet.Equal ==> R_opt GoodUnivConstraintSet.Equal) gc_of_constraints.
   Proof.
     intros c c' eqc; cbn.
     destruct (gc_of_constraintsP c);
@@ -202,7 +202,7 @@ Section OnUdecl.
     intros wfctx wfext.
     unfold variance_universes. destruct ctx as [|[inst cstrs]] => //.
     intros [= eq].
-    set (vcstrs := ConstraintSet.union _ _) in *.
+    set (vcstrs := UnivConstraintSet.union _ _) in *.
     subst univs. simpl.
     subst u u'. autorewrite with len.
     repeat (split; auto).
@@ -221,8 +221,8 @@ Section OnUdecl.
       intro. red in vsat.
       specialize (vsat x). intros hin. apply vsat.
       unfold global_ext_constraints. simpl.
-      rewrite ConstraintSet.union_spec; left.
-      rewrite /vcstrs !ConstraintSet.union_spec.
+      rewrite UnivConstraintSet.union_spec; left.
+      rewrite /vcstrs !UnivConstraintSet.union_spec.
       left. right.
       rewrite In_lift_constraints.
       rewrite -> In_subst_instance_cstrs in hin.
@@ -250,8 +250,8 @@ Section OnUdecl.
       intro. red in vsat.
       specialize (vsat x). intros hin. apply vsat.
       unfold global_ext_constraints. simpl.
-      rewrite ConstraintSet.union_spec; left.
-      rewrite /vcstrs !ConstraintSet.union_spec.
+      rewrite UnivConstraintSet.union_spec; left.
+      rewrite /vcstrs !UnivConstraintSet.union_spec.
       left. left.
       rewrite -> In_subst_instance_cstrs in hin.
       destruct hin as [c' [eqx inc']]. clear vsat.
@@ -338,7 +338,7 @@ Section CheckEnv.
     let levels := levels_of_udecl udecl in
     check_eq_true_lazy (LevelSet.for_all (fun l => Level.is_var l) levels)
        (fun _ => (abstract_env_empty_ext X, IllFormedDecl id (Msg ("non fresh level in " ^ print_lset levels))));;
-    check_eq_true_lazy (ConstraintSet.for_all (fun '(l1, _, l2) => abstract_env_level_mem' (abstract_env_empty_ext X) levels l1 && abstract_env_level_mem' (abstract_env_empty_ext X) levels l2) (constraints_of_udecl udecl))
+    check_eq_true_lazy (UnivConstraintSet.for_all (fun '(l1, _, l2) => abstract_env_level_mem' (abstract_env_empty_ext X) levels l1 && abstract_env_level_mem' (abstract_env_empty_ext X) levels l2) (constraints_of_udecl udecl))
        (fun _ => (abstract_env_empty_ext X, IllFormedDecl id (Msg ("non declared level in " ^ print_lset levels ^
                                     " |= " ^ print_constraint_set (constraints_of_udecl udecl)))));;
     match gc_of_uctx (uctx_of_udecl udecl) as X' return (X' = _ -> EnvCheck X_env_ext_type _) with
@@ -354,11 +354,11 @@ Section CheckEnv.
     rewrite <- Huctx.
     split; auto.
     intros Σ wfΣ.
-    assert (HH: ConstraintSet.For_all
-                  (declared_cstr_levels (LS.union (levels_of_udecl udecl) (global_levels Σ)))
+    assert (HH: UnivConstraintSet.For_all
+                  (declared_univ_cstr_levels (LS.union (levels_of_udecl udecl) (global_levels Σ)))
                   (constraints_of_udecl udecl)).
     {
-      clear -H0 wfΣ. apply ConstraintSet.for_all_spec in H0.
+      clear -H0 wfΣ. apply UnivConstraintSet.for_all_spec in H0.
       2: now intros x y [].
       intros [[l ct] l'] Hl. specialize (H0 _ Hl). simpl in H0.
       apply andb_true_iff in H0. destruct H0 as [H H0].
@@ -1401,7 +1401,7 @@ Section CheckEnv.
   Proof using Type.
     split; simpl.
     intros x hin. now eapply LS.empty_spec in hin.
-    intros x hin. now eapply CS.empty_spec in hin.
+    intros x hin. now eapply UCS.empty_spec in hin.
   Qed.
 
   Lemma cumul_ctx_rel_close' Σ Γ Δ Δ' :
@@ -2283,7 +2283,7 @@ End monad_Alli_nth_forall.
        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Set not in the global levels " ^ print_lset levels))));;
     check_eq_true_lazy (LevelSet.for_all (fun l => negb (Level.is_var l)) levels)
        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("variable level in the global levels " ^ print_lset levels))));;
-    check_eq_true_lazy (ConstraintSet.for_all (fun c => LevelSet.mem c.1.1 levels && LevelSet.mem c.2 levels) (ContextSet.constraints univs))
+    check_eq_true_lazy (UnivConstraintSet.for_all (fun c => LevelSet.mem c.1.1 levels && LevelSet.mem c.2 levels) (ContextSet.constraints univs))
        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("non declared level in " ^ print_lset levels ^
                                     " |= " ^ print_constraint_set (ContextSet.constraints univs)))));;
     match gc_of_uctx univs as X' return (X' = _ -> EnvCheck X_env_ext_type _) with
@@ -2293,8 +2293,8 @@ End monad_Alli_nth_forall.
     ret (let Hunivs := _ in exist (abstract_env_init univs retro Hunivs) _) end eq_refl .
   Next Obligation.
     intros. have decll :
-          ConstraintSet.For_all (declared_cstr_levels (ContextSet.levels univs)) (ContextSet.constraints univs).
-    { clear -i1. apply ConstraintSet.for_all_spec in i1.
+          UnivConstraintSet.For_all (declared_univ_cstr_levels (ContextSet.levels univs)) (ContextSet.constraints univs).
+    { clear -i1. apply UnivConstraintSet.for_all_spec in i1.
       2: now intros x y [].
       intros [[l ct] l'] Hl. specialize (i1 _ Hl). simpl in i1.
       apply andb_true_iff in i1. destruct i1 as [H H1].
@@ -2302,7 +2302,7 @@ End monad_Alli_nth_forall.
       now split. }
       intros. split; eauto.
       { intros l Hl. specialize (decll l Hl). red. destruct l, p. now rewrite levels_global_levels_declared. }
-      split; eauto.  unfold declared_cstr_levels. cbn.
+      split; eauto.  unfold declared_univ_cstr_levels. cbn.
       repeat split => //.
     + clear - i i0. apply LevelSet.for_all_spec in i0.
       2: now intros x y [].
@@ -2313,7 +2313,7 @@ End monad_Alli_nth_forall.
       intros Σctrs HΣctrs.
       unfold abstract_env_is_consistent_empty in i2.
       pose proof (abs_init := abstract_env_init_correct (abstract_env_impl := X_env_type)
-      (LS.singleton Level.lzero, CS.empty) Retroknowledge.empty PCUICWfEnv.abstract_env_empty_obligation_1).
+      (LS.singleton Level.lzero, UCS.empty) Retroknowledge.empty PCUICWfEnv.abstract_env_empty_obligation_1).
       pose proof (abs_consist := abstract_env_is_consistent_correct (@abstract_env_empty cf X_impl) _ uctx univs abs_init); cbn in *.
       rewrite HΣctrs in abs_consist, Huctx.
       pose (abstract_env_wf _ abs_init). sq.

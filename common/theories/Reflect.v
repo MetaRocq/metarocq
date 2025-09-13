@@ -381,19 +381,19 @@ Module LevelSetsUIP.
 End LevelSetsUIP.
 
 Module ConstraintSetsUIP.
-  Import ConstraintSet.Raw.
+  Import UnivConstraintSet.Raw.
 
   Fixpoint cs_tree_eqb (x y : t) :=
     match x, y with
-    | ConstraintSet.Raw.Leaf, ConstraintSet.Raw.Leaf => true
-    | ConstraintSet.Raw.Node h l o r, ConstraintSet.Raw.Node h' l' o' r' =>
+    | UnivConstraintSet.Raw.Leaf, UnivConstraintSet.Raw.Leaf => true
+    | UnivConstraintSet.Raw.Node h l o r, UnivConstraintSet.Raw.Node h' l' o' r' =>
       eqb h h' && cs_tree_eqb l l' && eqb o o' && cs_tree_eqb r r'
     | _, _ => false
     end.
 
-  Scheme cs_tree_rect := Induction for ConstraintSet.Raw.tree Sort Type.
+  Scheme cs_tree_rect := Induction for UnivConstraintSet.Raw.tree Sort Type.
 
-  #[global,program] Instance cs_tree_reflect : ReflectEq ConstraintSet.Raw.t :=
+  #[global,program] Instance cs_tree_reflect : ReflectEq UnivConstraintSet.Raw.t :=
    {| eqb := cs_tree_eqb |}.
   Next Obligation.
     induction x using cs_tree_rect; destruct y; try constructor; auto; try congruence.
@@ -405,10 +405,10 @@ Module ConstraintSetsUIP.
   Qed.
 
   Definition eqb_ConstraintSet x y :=
-    eqb (ConstraintSet.this x) (ConstraintSet.this y).
+    eqb (UnivConstraintSet.this x) (UnivConstraintSet.this y).
 
-  Derive NoConfusion for ConstraintSet.Raw.tree.
-  Derive Signature for ConstraintSet.Raw.bst.
+  Derive NoConfusion for UnivConstraintSet.Raw.tree.
+  Derive Signature for UnivConstraintSet.Raw.bst.
 
   Lemma ok_irrel (x : t) (o o' : Ok x) : o = o'.
   Proof.
@@ -423,11 +423,11 @@ Module ConstraintSetsUIP.
       apply levelconstraint_lt_irrel.
   Qed.
 
-  #[global,program] Instance reflect_ConstraintSet : ReflectEq ConstraintSet.t :=
+  #[global,program] Instance reflect_ConstraintSet : ReflectEq UnivConstraintSet.t :=
    {| eqb := eqb_ConstraintSet |}.
   Next Obligation.
     intros [thisx okx] [thisy oky].
-    unfold eqb_ConstraintSet. cbn.
+    unfold eqb_UnivConstraintSet. cbn.
     cbn -[eqb].
     destruct (eqb_spec thisx thisy); subst; constructor.
     - f_equal. apply ok_irrel.

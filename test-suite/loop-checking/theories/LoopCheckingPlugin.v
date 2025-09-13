@@ -24,6 +24,6 @@ Global Instance TemplateMonad_Monad@{t u} : Monad@{t u} TM@{t} :=
 Definition check_universes : TM unit :=
   tmQuoteUniverses >>= fun ctx =>
   let clauses := time "building clauses" enforce_level_constraints (snd ctx) in
-  tmMsg (string_of_nat (LevelSet.cardinal (fst ctx)) ++ " universes and " ++ string_of_nat (ConstraintSet.cardinal (snd ctx)) ++ " constraints") ;;
+  tmMsg (string_of_nat (LevelSet.cardinal (fst ctx)) ++ " universes and " ++ string_of_nat (UnivConstraintSet.cardinal (snd ctx)) ++ " constraints") ;;
   let result := time "loop-checking" TemplateLoopChecking.UnivLoopChecking.infer clauses in
   tmMsg (TemplateLoopChecking.UnivLoopChecking.print_result result).

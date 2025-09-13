@@ -318,7 +318,7 @@ Next Obligation.
   assert (H1 : global_uctx_invariants (ContextSet.union udecl (global_uctx X))).
   { split => //.
     - apply LevelSet.union_spec; right ; now destruct H0.
-    - intros [[l ct] l'] [Hl|Hl]%CS.union_spec.
+    - intros [[l ct] l'] [Hl|Hl]%UCS.union_spec.
       + now specialize (Hudecl _ Hl).
       + destruct H0 as [_ H0]. specialize (H0 _ Hl).
         split; apply LevelSet.union_spec; right;
@@ -337,7 +337,7 @@ Next Obligation.
   1:{ pose proof (reference_impl_wf X); sq.
       apply: PCUICUnivSubstitutionConv.levels_global_constraint. }
   cbn.
-  change (CS.union _ _) with global_ext_uctx.2.
+  change (UCS.union _ _) with global_ext_uctx.2.
   apply: consistent_ext_on_full_ext=> //.
   apply: add_uctx_subgraph.
 Qed.

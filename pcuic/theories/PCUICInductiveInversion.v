@@ -1802,7 +1802,7 @@ Lemma variance_universes_insts {cf} {Σ mdecl l} :
     match ind_universes mdecl with
     | Monomorphic_ctx => False
     | Polymorphic_ctx (inst, cstrs) =>
-      let cstrs := ConstraintSet.union (ConstraintSet.union cstrs (lift_constraints #|i| cstrs)) (variance_cstrs l i i')
+      let cstrs := UnivConstraintSet.union (UnivConstraintSet.union cstrs (lift_constraints #|i| cstrs)) (variance_cstrs l i i')
       in v = Polymorphic_ctx (inst ++ inst, cstrs)
     end,
     consistent_instance_ext (Σ.1, v) (ind_universes mdecl) i,
@@ -1846,8 +1846,8 @@ Definition closedu_cstr k (cstr : (Level.t * ConstraintType.t * Level.t)) :=
   let '(l1, p, l2) := cstr in
   closedu_level k l1 && closedu_level k l2.
 
-Definition closedu_cstrs k (cstrs : CS.t) :=
-  CS.For_all (closedu_cstr k) cstrs.
+Definition closedu_cstrs k (cstrs : UCS.t) :=
+  UCS.For_all (closedu_cstr k) cstrs.
 
 Lemma LSet_in_poly_bounded l inst cstrs : LevelSet.In l (levels_of_udecl (Polymorphic_ctx (inst, cstrs))) ->
   closedu_level #|inst| l.
@@ -1901,7 +1901,7 @@ Qed.
 
 Lemma closedu_subst_instance_cstrs_app u u' cstrs :
   closedu_cstrs #|u| cstrs ->
-  CS.Equal (subst_instance_cstrs (u ++ u') cstrs) (subst_instance_cstrs u cstrs).
+  UCS.Equal (subst_instance_cstrs (u ++ u') cstrs) (subst_instance_cstrs u cstrs).
 Proof.
   intros clcstra.
   intros c.
@@ -1924,35 +1924,35 @@ Qed.
 
 
 Lemma In_lift_constraints u c ctrs :
-  CS.In c (lift_constraints u ctrs)
-  <-> exists c', c = lift_constraint u c' /\ CS.In c' ctrs.
+  UCS.In c (lift_constraints u ctrs)
+  <-> exists c', c = lift_constraint u c' /\ UCS.In c' ctrs.
 Proof.
   unfold lift_constraints.
-  rewrite CS.fold_spec.
-  transitivity (CS.In c CS.empty \/
+  rewrite UCS.fold_spec.
+  transitivity (UCS.In c UCS.empty \/
                 exists c', c = lift_constraint u c'
-                      /\ In c' (CS.elements ctrs)).
-  - generalize (CS.elements ctrs), CS.empty.
+                      /\ In c' (UCS.elements ctrs)).
+  - generalize (UCS.elements ctrs), UCS.empty.
     induction l; cbn.
     + firstorder.
     + intros t. etransitivity. 1: eapply IHl.
       split; intros [HH|HH].
-      * destruct a as [[l1 a] l2]. apply CS.add_spec in HH.
+      * destruct a as [[l1 a] l2]. apply UCS.add_spec in HH.
         destruct HH as [HH|HH]. 2: now left.
         right; eexists. split; [|left; reflexivity]. assumption.
       * destruct HH as [c' ?]. right; exists c'; intuition auto.
-      * left. destruct a as [[l1 a] l2]. apply CS.add_spec.
+      * left. destruct a as [[l1 a] l2]. apply UCS.add_spec.
         now right.
       * destruct HH as [c' [HH1 [?|?]]]; subst.
         -- left. destruct c' as [[l1 c'] l2];
-           apply CS.add_spec; now left.
+           apply UCS.add_spec; now left.
         -- right. exists c'. intuition.
   - rewrite ConstraintSetFact.empty_iff.
     transitivity (exists c', c = lift_constraint u c'
-                        /\ In c' (CS.elements ctrs)).
+                        /\ In c' (UCS.elements ctrs)).
     1: intuition.
     apply iff_ex; intro. apply and_iff_compat_l. symmetry.
-    etransitivity. 1: symmetry; eapply CS.elements_spec1.
+    etransitivity. 1: symmetry; eapply UCS.elements_spec1.
     etransitivity. 1: eapply SetoidList.InA_alt.
     split; intro; eauto.
     now destruct H as [? [[] ?]].
@@ -1961,7 +1961,7 @@ Qed.
 
 Lemma closedu_subst_instance_cstrs_lift u u' cstrs :
   closedu_cstrs #|u'| cstrs ->
-  CS.Equal (subst_instance_cstrs (u ++ u') (lift_constraints #|u| cstrs)) (subst_instance_cstrs u' cstrs).
+  UCS.Equal (subst_instance_cstrs (u ++ u') (lift_constraints #|u| cstrs)) (subst_instance_cstrs u' cstrs).
 Proof.
   intros clcstra.
   intros c.
@@ -1989,8 +1989,8 @@ Proof.
 Qed.
 
 Lemma subst_instance_cstrs_add u x c :
-  CS.Equal (subst_instance_cstrs u (ConstraintSet.add x c))
-    (ConstraintSet.add (subst_instance_cstr u x) (subst_instance_cstrs u c)).
+  UCS.Equal (subst_instance_cstrs u (UnivConstraintSet.add x c))
+    (UnivConstraintSet.add (subst_instance_cstr u x) (subst_instance_cstrs u c)).
 Proof.
   intros cc.
   rewrite ConstraintSetFact.add_iff.
@@ -2009,7 +2009,7 @@ Proof.
 Qed.
 
 Lemma subst_instance_variance_cstrs l u i i' :
-  CS.Equal (subst_instance_cstrs u (variance_cstrs l i i'))
+  UCS.Equal (subst_instance_cstrs u (variance_cstrs l i i'))
     (variance_cstrs l (subst_instance u i) (subst_instance u i')).
 Proof.
   induction l in u, i, i' |- *; simpl; auto;
@@ -2086,14 +2086,14 @@ Proof.
   len in len1.
   intuition auto.
   - rewrite -satisfies_subst_instance_ctr //.
-    assert(ConstraintSet.Equal (subst_instance_cstrs u' cstrs')
+    assert(UnivConstraintSet.Equal (subst_instance_cstrs u' cstrs')
         (subst_instance_cstrs (u' ++ u) cstrs')) as <-.
     { rewrite closedu_subst_instance_cstrs_app //.
       rewrite (consistent_instance_poly_length cu').
       eapply on_udecl_prop_poly_bounded; eauto. }
     eapply consistent_instance_valid in cu'; eauto.
   - rewrite -satisfies_subst_instance_ctr // -H0.
-    assert(ConstraintSet.Equal (subst_instance_cstrs u cstrs')
+    assert(UnivConstraintSet.Equal (subst_instance_cstrs u cstrs')
         (subst_instance_cstrs (u' ++ u) (lift_constraints #|u'| cstrs'))) as <-.
     { rewrite closedu_subst_instance_cstrs_lift //.
       rewrite H -H0 (consistent_instance_poly_length cu').

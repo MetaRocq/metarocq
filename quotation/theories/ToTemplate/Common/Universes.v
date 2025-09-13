@@ -18,7 +18,7 @@ Export (hints) QuoteLevelSet.
 Module QuoteLevelExprSet := MSets.QuoteMSetListWithLeibniz LevelExpr LevelExprSet LevelExprSetOrdProp LevelExprSetExtraOrdProp qLevelExpr qLevelExprSet qLevelExprSetOrdProp qLevelExprSetExtraOrdProp.
 Export (hints) QuoteLevelExprSet.
 Module QuoteConstraintSet := MSets.QuoteMSetAVL UnivConstraint ConstraintSet ConstraintSetOrdProp ConstraintSetExtraOrdProp ConstraintSetExtraDecide qUnivConstraint qConstraintSet qConstraintSetOrdProp qConstraintSetExtraOrdProp qConstraintSetExtraDecide.
-Export (hints) QuoteConstraintSet.
+Export (hints) QuoteUnivConstraintSet.
 
 Module QuoteUniverses1.
   Module Import Level.
@@ -103,7 +103,7 @@ Module QuoteUniverses2.
     #[export] Hint Unfold UnivConstraint.t : quotation.
     #[export] Typeclasses Transparent UnivConstraint.t.
     #[export] Instance quote_lt_ {x y} : ground_quotable (UnivConstraint.lt_ x y)
-    := ground_quotable_of_dec (@ConstraintSet.Raw.MX.lt_dec x y).
+    := ground_quotable_of_dec (@UnivConstraintSet.Raw.MX.lt_dec x y).
     #[export] Hint Unfold UnivConstraint.lt : quotation.
   End UnivConstraint.
   Export (hints) UnivConstraint.
@@ -123,7 +123,7 @@ Import StrongerInstances.
 
 #[export] Instance quote_allowed_eliminations : ground_quotable allowed_eliminations := ltac:(destruct 1; exact _).
 
-#[export] Instance quote_declared_cstr_levels {levels cstr} : ground_quotable (declared_cstr_levels levels cstr) := ltac:(cbv [declared_cstr_levels]; exact _).
+#[export] Instance quote_declared_cstr_levels {levels cstr} : ground_quotable (declared_univ_cstr_levels levels cstr) := ltac:(cbv [declared_univ_cstr_levels]; exact _).
 #[export] Instance quote_universes_decl : ground_quotable universes_decl := ltac:(destruct 1; exact _).
 #[export] Instance quote_satisfies0 {v s} {qv : quotation_of v} : ground_quotable (@satisfies0 v s)
   := ground_quotable_of_iff (iff_sym (@uGraph.gc_of_constraint_spec config.default_checker_flags v s)).

@@ -304,8 +304,8 @@ Proof.
 Qed.
 
 Lemma trans_constraintSet_in x Σ:
-  ConstraintSet.In x (S.global_ext_constraints Σ) ->
-  ConstraintSet.In x (T.global_ext_constraints (trans_global Σ)).
+  UnivConstraintSet.In x (S.global_ext_constraints Σ) ->
+  UnivConstraintSet.In x (T.global_ext_constraints (trans_global Σ)).
 Proof.
   rewrite trans_global_ext_constraints.
   trivial.

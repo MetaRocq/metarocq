@@ -1798,11 +1798,6 @@ Local Open Scope Z_scope.
 Section MoreNonEmpty.
 
   Import LevelExprSet.
-  Lemma In_elements {x} {s : LevelExprSet.t} : In x s <-> List.In x (elements s).
-  Proof.
-    split. now move/LevelExprSetFact.elements_1/InA_In_eq.
-    now move/InA_In_eq/LevelExprSetFact.elements_2.
-  Qed.
   Import NonEmptySetFacts.
 
   Notation min_opt := (option_map2 Z.min).
@@ -2285,14 +2280,6 @@ Proof.
   intros ? ? eqcl ? ? eqm ? ? eqs.
   unfold model_map_outside.
   setoid_rewrite eqcl. now setoid_rewrite eqm; setoid_rewrite eqs.
-Qed.
-
-#[local] Instance proper_levelexprset_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)
-  levels.
-Proof.
-  intros s s' eq l.
-  rewrite !levelexprset_levels_spec.
-  firstorder eauto.
 Qed.
 
 Lemma min_premise_spec' {m prems z} : min_premise m prems = Some z ->
