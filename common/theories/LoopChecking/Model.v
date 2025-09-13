@@ -19,6 +19,12 @@
   value, then [m] is already a model of [cls]. Note that some clauses in [cls] might not be
   activated/enabled by the model [m] (they hence hold vacuously).
 
+  Note that [strictly_updates] is indexed by clauses and a levelset which should not be compared
+  by Leibniz equality, we rather use a set(oid)-specific equality for them, hence [strictly_updates]
+  is defined by so-called "Fording" of the index. We provide an elimination principle and "smart"
+  constructors that can be nicer to work with: [strictly_updates_elim], [one_update] and [trans_update],
+  and show that [strictly_updates] is [Proper] for these notions of equality.
+
   We also show the relation of a model to entailment:
   - If an entailment [cls ⊢ prems → concl] holds then any valid model [m] of the clauses [cls]
     satisfies [prems → concl], i.e [ is_model cls m -> valid_clause m (prems, concl) ].
@@ -230,13 +236,15 @@ Module Model (LS : LevelSets).
     [/\ min_premise m prems = Some v, ~~ level_value_above m concl (k + v) &
     m' =m (LevelMap.add concl (Some (k + v)) m)].
 
-  Inductive strictly_updates cls : LevelSet.t -> model -> model -> Prop :=
+  Inductive strictly_updates cls (s : LevelSet.t) : model -> model -> Prop :=
   | update_one m cl m' : Clauses.In cl cls ->
-    strict_update m cl m' -> strictly_updates cls (LevelSet.singleton (clause_conclusion cl)) m m'
+    s =_lset (LevelSet.singleton (clause_conclusion cl)) ->
+    strict_update m cl m' -> strictly_updates cls s m m'
   | update_trans {ls ls' m m' m''} :
     strictly_updates cls ls m m' ->
     strictly_updates cls ls' m' m'' ->
-    strictly_updates cls (LevelSet.union ls ls') m m''.
+    s =_lset LevelSet.union ls ls' ->
+    strictly_updates cls s m m''.
 
   Definition is_update_of cls upd minit m :=
     if LevelSet.is_empty upd then minit =m m
@@ -281,22 +289,62 @@ Module Model (LS : LevelSets).
   Instance strictly_updates_proper : Proper (Clauses.Equal ==> LevelSet.Equal ==> LevelMap.Equal ==> LevelMap.Equal ==> iff) strictly_updates.
   Proof.
     intros ? ? H ? ? H' ? ? H'' ? ? H'''.
-    eapply LevelSet.eq_leibniz in H'. subst y0.
     split.
-    induction 1 in y, H, y1, H'', y2, H'''|- * ; [econstructor 1|econstructor 2]; eauto.
-    now rewrite <- H. move: H1; unfold strict_update. destruct cl as [premse []].
+    induction 1 in y0, H', y, H, y1, H'', y2, H'''|- *;
+    [econstructor 1|econstructor 2]; eauto.
+    now rewrite <- H. now rewrite -H'. move: H2; unfold strict_update.
+    destruct cl as [premse []].
     intros [v []]; exists v; split;
     try setoid_rewrite <- H;
     try setoid_rewrite <- H'';
     try setoid_rewrite <- H'''; firstorder.
-    eapply IHstrictly_updates1; firstorder. firstorder.
-    induction 1 in x, H, x1, H'', x2, H'''|- * ; [econstructor 1|econstructor 2]; eauto.
-    now rewrite H. move: H1; unfold strict_update. destruct cl as [premse []].
+    3:{ rewrite -H'. exact H0. }
+    eapply IHstrictly_updates1; try firstorder. eapply IHstrictly_updates2; tea. reflexivity. reflexivity.
+    induction 1 in x, H, x0, H', x1, H'', x2, H'''|- * ; [econstructor 1|econstructor 2]; eauto.
+    now rewrite H. now rewrite H' H1. move: H2; unfold strict_update. destruct cl as [premse []].
     intros [v []]; exists v; split;
     try setoid_rewrite H;
     try setoid_rewrite H'';
     try setoid_rewrite H'''; firstorder.
-    eapply IHstrictly_updates1; firstorder. firstorder.
+    3:{ now rewrite H' H0. }
+    eapply IHstrictly_updates1; try firstorder.
+    eapply IHstrictly_updates2; auto; reflexivity.
+  Qed.
+
+  Lemma trans_update {cls m ls ls' m' m''} :
+    strictly_updates cls ls m m' ->
+    strictly_updates cls ls' m' m'' ->
+    strictly_updates cls (ls ∪ ls') m m''.
+  Proof.
+    intros hin su; econstructor 2; trea.
+  Qed.
+
+  Lemma one_update {cls m cl m'} :
+    Clauses.In cl cls -> strict_update m cl m' ->
+    strictly_updates cls (LevelSet.singleton (clause_conclusion cl)) m m'.
+  Proof.
+    intros hin su; econstructor; trea.
+  Qed.
+
+  (* We have a more confortable elimination principle
+    now for compatible predicates *)
+  Lemma strictly_updates_elim :
+    forall (cls : Clauses.t) (P : LevelSet.t -> model -> model -> Prop)
+    (HP : Proper (LevelSet.Equal ==> eq ==> eq ==> iff) P),
+    (forall m cl m', Clauses.In cl cls ->
+      strict_update m cl m' -> P (LevelSet.singleton (clause_conclusion cl)) m m') ->
+    (forall (ls ls' : LevelSet.t) (m m' m'' : model),
+      strictly_updates cls ls m m' ->
+      P ls m m' ->
+      strictly_updates cls ls' m' m'' ->
+      P ls' m' m'' -> P (ls ∪ ls') m m'') ->
+      forall (s : LevelSet.t) (m m0 : model),
+      strictly_updates cls s m m0 -> P s m m0.
+  Proof.
+    intros cls P cP h0 h1.
+    induction 1.
+    - rewrite H0. now apply h0.
+    - rewrite H1. now eapply h1.
   Qed.
 
   Lemma strictly_updates_step cls w m m' m'' :
@@ -304,18 +352,15 @@ Module Model (LS : LevelSets).
     forall cl, Clauses.In cl cls -> strict_update m' cl m'' ->
     strictly_updates cls (LevelSet.add (clause_conclusion cl) w) m m''.
   Proof.
-    induction 1.
+    revert w m m'.
+    apply: strictly_updates_elim.
+    { solve_proper. }
     - intros.
-      replace (LevelSet.add (clause_conclusion cl0) (LevelSet.singleton (clause_conclusion cl)))
-        with (LevelSet.union (LevelSet.singleton (clause_conclusion cl)) (LevelSet.singleton (clause_conclusion cl0))).
-      eapply update_trans; eapply update_one; tea.
-      eapply LevelSet.eq_leibniz. red. lsets.
+      eapply update_trans; tea. 2:{ econstructor 1; tea. reflexivity. }
+      eapply update_one. 3:tea. auto. reflexivity. lsets.
     - intros.
-      specialize (IHstrictly_updates2 _ H1 H2).
-      replace (LevelSet.add (clause_conclusion cl) (LevelSet.union ls ls'))
-        with (LevelSet.union ls (LevelSet.add (clause_conclusion cl) ls')).
-      eapply update_trans; tea.
-      eapply LevelSet.eq_leibniz. red. lsets.
+      specialize (H2 _ H3 H4).
+      eapply update_trans; tea. lsets.
   Qed.
 
   Lemma strictly_updates_weaken cls w cls' :
@@ -323,7 +368,7 @@ Module Model (LS : LevelSets).
     forall m m', strictly_updates cls w m m' -> strictly_updates cls' w m m'.
   Proof.
     intros hcls m m'.
-    induction 1. constructor => //. now eapply hcls.
+    induction 1. econstructor => //. now eapply hcls.
     econstructor 2; tea.
   Qed.
 
@@ -339,14 +384,31 @@ Module Model (LS : LevelSets).
     - rewrite Clauses.add_spec. left; reflexivity.
   Qed.
 
+  #[export] Instance clauses_with_concl_proper : Proper (Clauses.Equal ==> LevelSet.Equal ==> Clauses.Equal) clauses_with_concl.
+  Proof.
+    intros ? ? H ? ? H' l.
+    rewrite !in_clauses_with_concl.
+    now rewrite H H'.
+  Qed.
+
+  #[export] Instance restrict_clauses_proper : Proper (Clauses.Equal ==> LevelSet.Equal ==> Clauses.Equal) restrict_clauses.
+  Proof.
+    intros ? ? H ? ? H' l.
+    rewrite !in_restrict_clauses.
+    now rewrite H H'.
+  Qed.
+
   Lemma strictly_updates_strenghten {cls W m m'} :
     strictly_updates cls W m m' ->
     strictly_updates (cls ↓ W) W m m'.
   Proof.
     induction 1.
-    - constructor. rewrite in_clauses_with_concl. split => //.
-      eapply LevelSet.singleton_spec; reflexivity. exact H0.
-    - rewrite clauses_with_concl_union. econstructor 2.
+    - setoid_rewrite H0 at 2. eapply one_update.
+      rewrite in_clauses_with_concl. split => //.
+      rewrite H0.
+      eapply LevelSet.singleton_spec; reflexivity. exact H1.
+    - setoid_rewrite H1. rewrite clauses_with_concl_union.
+      eapply trans_update.
       eapply strictly_updates_weaken; tea. intros x; clsets.
       eapply strictly_updates_weaken; tea. intros x; clsets.
   Qed.
@@ -386,24 +448,28 @@ Module Model (LS : LevelSets).
     now apply eqlistA_eq.
   Qed.
 
-  #[export] Instance check_model_aux_proper : Proper (Clauses.Equal ==> eq ==> eq) check_model_aux.
+  Definition eqwm (x y : LevelSet.t * LevelMap.t (option Z)) :=
+    LevelSet.Equal x.1 y.1 /\ LevelMap.Equal x.2 y.2.
+
+  Instance eqwm_equiv : Equivalence eqwm.
   Proof.
-    intros ? ? eq ? ? ->.
-    rewrite /check_model_aux.
-    rewrite !ClausesProp.fold_spec_right.
-    now rewrite eq.
+    unfold eqwm; split.
+    - intros [] => //=.
+    - intros [] [] [] => //=. cbn in *. split; now symmetry.
+    - intros [] [] [] [] [] => //=; cbn in *. split.
+      now transitivity t1. now transitivity t2.
   Qed.
 
-  #[export] Instance check_model_proper : Proper (Clauses.Equal ==> eq ==> eq) check_model.
+  Definition eqwm_list (x y : list Level.t * LevelMap.t (option Z)) :=
+    x.1 = y.1 /\ LevelMap.Equal x.2 y.2.
+
+  Instance eqwm_list_equiv : Equivalence eqwm_list.
   Proof.
-    intros cls cls' eq.
-    intros wm wm' ->.
-    unfold check_model.
-    destruct (check_model_aux cls _) eqn:eqc.
-    destruct (check_model_aux cls' _) eqn:eqc' => //.
-    pose proof (check_model_aux_proper cls cls' eq ([], wm'.2) _ eq_refl).
-    rewrite eqc eqc' in H. noconf H.
-    destruct l => //.
+    unfold eqwm; split.
+    - intros [] => //=.
+    - intros [] [] [] => //=. cbn in *. split; now symmetry.
+    - intros [] [] [] [] [] => //=; cbn in *. split.
+      now transitivity l0. now transitivity t0.
   Qed.
 
   Lemma update_value_valid {m cl} :
@@ -456,7 +522,7 @@ Module Model (LS : LevelSets).
       move: (@update_value_valid m cl). now rewrite upd.
     * intros [= <- <-]. split => //.
       + intros. eapply (f_equal (@List.length _)) in H. cbn in H; lia.
-      + intros _. split => //. constructor. clsets. unfold strict_update.
+      + intros _. split => //. apply one_update. clsets. unfold strict_update.
         move: upd. unfold update_value.
         destruct cl as [prems [concl k]]. cbn.
         destruct min_premise => //.
@@ -492,10 +558,11 @@ Module Model (LS : LevelSets).
         { subst w''. specialize (H eq_refl) as []. subst m''.
           destruct (eqb_spec w w'); subst; try congruence.
           specialize (H3 H) as []. subst w'. exists [clause_conclusion x]. split => //.
-          replace (LevelSetProp.of_list [clause_conclusion x]) with (LevelSet.singleton (clause_conclusion x)).
+          setoid_replace (LevelSetProp.of_list [clause_conclusion x]) with (LevelSet.singleton (clause_conclusion x)).
           eapply ClausesProp.Add_Equal in hadd. rewrite hadd. eapply strictly_updates_weaken; tea. clsets.
-          eapply LevelSet.eq_leibniz. red. intros ?. rewrite LevelSetProp.of_list_1. firstorder. constructor.
-          rewrite LevelSet.singleton_spec in H3. firstorder. depelim H3. subst. lsets. depelim H3. }
+          intros ?. rewrite LevelSetProp.of_list_1 InA_In_eq. firstorder. subst a.
+          now apply LevelSet.singleton_spec.
+          apply LevelSet.singleton_spec in H3. now constructor. }
         specialize (H0 H4).
         destruct (eqb_spec w'' w'); subst.
         { specialize (H2 eq_refl) as []; subst m''.
@@ -503,17 +570,78 @@ Module Model (LS : LevelSets).
           eapply strictly_updates_weaken; tea. intros ? ?. eapply hadd. clsets. }
         forward H3 by auto. destruct H3 as [->].
         destruct H0 as [pref [-> su]]. eexists (clause_conclusion x :: pref); split => //.
-        replace (LevelSetProp.of_list (clause_conclusion x :: pref)) with (LevelSet.union (LevelSetProp.of_list pref) (LevelSet.singleton (clause_conclusion x))).
+        setoid_replace (LevelSetProp.of_list (clause_conclusion x :: pref)) with (LevelSet.union (LevelSetProp.of_list pref) (LevelSet.singleton (clause_conclusion x))).
         eapply (strictly_updates_weaken _ _ s'') in su; tea; try firstorder.
         eapply (strictly_updates_weaken _ _ s'') in H3; tea; try firstorder.
         2:{ intros ?; rewrite Clauses.singleton_spec. intros ->. now apply hadd. }
-        exact: update_trans _ su H3.
-        apply LevelSet.eq_leibniz. intros ?. cbn. lsets.
+        exact: trans_update su H3.
+        intros ?. cbn. lsets.
+  Qed.
+
+  Inductive lift_option_rel {A} (R : relation A) : relation (option A) :=
+  | lift_none : lift_option_rel R None None
+  | lift_some x y : R x y -> lift_option_rel R (Some x) (Some y).
+  Derive Signature for lift_option_rel.
+  Instance update_value_proper : Proper (LevelMap.Equal ==> eq ==> lift_option_rel LevelMap.Equal) update_value.
+  Proof.
+    intros x y eqm [prems [concl k]] ? <- => //=.
+    rewrite /update_value.
+    setoid_rewrite eqm at 1. destruct min_premise => //=.
+    setoid_rewrite eqm at 1. destruct level_value_above => //=; constructor.
+    now rewrite eqm.
+    constructor.
+  Qed.
+
+  Instance check_clause_model_proper : Proper (eq ==> eqwm_list ==> eqwm_list) check_clause_model.
+  Proof.
+    intros [prems [concl k]] ? <- [] [] eq.
+    set (cl := (prems, (concl, k))) in *.
+    cbn. destruct eq as [eql eqm]. cbn in *. subst l0.
+    have equpd := update_value_proper t t0 eqm cl cl eq_refl.
+    depelim equpd. rewrite H H0. split => //.
+    rewrite H0 H1. split => //.
+  Qed.
+
+  #[export] Instance check_model_aux_proper : Proper (Clauses.Equal ==> eqwm_list ==> eqwm_list) check_model_aux.
+  Proof.
+    intros ? ? eq [] [] []; cbn in *. subst l0.
+    rewrite /check_model_aux.
+    rewrite !ClausesProp.fold_spec_right.
+    rewrite eq. induction (List.rev (Clauses.elements y)); cbn.
+    red; split => //=. rewrite IHl0. reflexivity.
+  Qed.
+
+  #[export] Instance check_model_aux_proper_strict : Proper (Clauses.Equal ==> eq ==> eq) check_model_aux.
+  Proof.
+    intros ? ? eq [] [] []; cbn in *.
+    rewrite /check_model_aux.
+    rewrite !ClausesProp.fold_spec_right. now rewrite eq.
+  Qed.
+
+  #[export] Instance check_model_proper : Proper (Clauses.Equal ==> eqwm ==> lift_option_rel eqwm) check_model.
+  Proof.
+    intros cls cls' eq.
+    intros wm wm' eqm.
+    unfold check_model.
+    have := (check_model_aux_proper cls cls' eq ([], wm.2) ([], wm'.2)) => /fwd.
+    split => //=. apply eqm.
+    move=> [].
+    destruct (check_model_aux cls _) eqn:eqc.
+    destruct (check_model_aux cls' _) eqn:eqc' => //= <-.
+    destruct l => //. constructor. destruct eqm. constructor.
+    split => //=. now rewrite H.
+  Qed.
+
+  #[export] Instance check_model_proper_strict : Proper (Clauses.Equal ==> eq ==> eq) check_model.
+  Proof.
+    intros cls cls' eq ? ? ->.
+    unfold check_model. now rewrite eq.
   Qed.
 
   Lemma check_model_spec {cls w m w' m'} :
     check_model cls (w, m) = Some (w', m') ->
-    exists w'', strictly_updates cls w'' m m' /\ w' = LevelSet.union w w''.
+    exists w'', strictly_updates cls w'' m m' /\
+      w' =_lset LevelSet.union w w''.
   Proof.
     unfold check_model.
     destruct check_model_aux eqn:cm.
@@ -522,7 +650,7 @@ Module Model (LS : LevelSets).
     intros [= <- <-]. destruct H0 as [pref [heq su]].
     rewrite app_nil_r in heq. subst pref.
     exists (LevelSetProp.of_list (t :: l)). split => //.
-    eapply LevelSet.eq_leibniz. intros ?. cbn. lsets.
+    intros ?. cbn. lsets.
   Qed.
 
 
@@ -537,11 +665,11 @@ Module Model (LS : LevelSets).
   Lemma strictly_updates_invalid cls w m m' : strictly_updates cls w m m' -> ~~ is_model cls m.
   Proof.
     induction 1.
-    - eapply strict_update_invalid in H0.
+    - eapply strict_update_invalid in H1.
       apply/negbT. unfold is_model.
       destruct Clauses.for_all eqn:fa => //.
       eapply Clauses.for_all_spec in fa; tc. eapply fa in H.
-      now rewrite H in H0.
+      now rewrite H in H1.
     - auto.
   Qed.
 
@@ -563,9 +691,9 @@ Module Model (LS : LevelSets).
     forall cls', strictly_updates cls' w init_model m ->
     strictly_updates (Clauses.union cls cls') w' init_model m' /\ w ⊂_lset w'.
   Proof.
-    move/check_model_spec => [w'' [su ->]].
-    intros cls' su'. split.
-    eapply update_trans; eapply strictly_updates_weaken; tea; clsets. lsets.
+    move/check_model_spec => [w'' [su eq]]. rw eq.
+    intros cls' su'. split. 2:lsets.
+    eapply trans_update; eapply strictly_updates_weaken; tea; clsets.
   Qed.
 
   Lemma strictly_updates_non_empty {cls W m m'} :
@@ -582,7 +710,7 @@ Module Model (LS : LevelSets).
     induction 1.
     - intros he. specialize (he (clause_conclusion cl)).
       destruct cl as [prems [concl k]].
-      destruct H0 as [? [? ? heq]].
+      destruct H1 as [? [? ? heq]].
       setoid_rewrite heq in he. eapply (he (Some (k + x))); cbn.
       rewrite LevelMapFact.F.add_mapsto_iff. firstorder.
     - intros he. now apply IHstrictly_updates2.
@@ -593,7 +721,7 @@ Module Model (LS : LevelSets).
   Proof.
     induction 1.
     - intros x. rewrite clauses_conclusions_spec. firstorder. exists cl.
-      eapply LevelSet.singleton_spec in H1; red in H1; subst. split => //.
+      move: H2. rewrite H0. move/LevelSet.singleton_spec => ->. split => //.
     - lsets.
   Qed.
 
@@ -618,7 +746,7 @@ Module Model (LS : LevelSets).
     induction 1.
     - exists (clause_conclusion cl).
       destruct cl as [prems [concl k]].
-      destruct H0 as [? [? ? heq]]. cbn.
+      destruct H1 as [? [? ? heq]]. cbn.
       setoid_rewrite heq. exists (k + x)%Z; cbn.
       rewrite LevelMapFact.F.add_mapsto_iff. firstorder.
     - assumption.
@@ -795,7 +923,7 @@ Module Model (LS : LevelSets).
   Lemma strictly_updates_ext cls w m m' : strictly_updates cls w m m' -> m ⩽ m'.
   Proof.
     induction 1.
-    now eapply strict_update_ext in H0.
+    now eapply strict_update_ext in H1.
     now transitivity m'.
   Qed.
 
@@ -1429,8 +1557,8 @@ Module Model (LS : LevelSets).
     strictly_updates cls w m m'.
   Proof.
     move/check_model_spec => [w' [su ->]].
-    replace (LevelSet.union LevelSet.empty w') with w' => //.
-    eapply LevelSet.eq_leibniz. intros x; lsets.
+    setoid_replace (LevelSet.union LevelSet.empty w') with w' => //.
+    intros x; lsets.
   Qed.
 
   Lemma check_model_is_model {W cls m} :
@@ -1516,7 +1644,7 @@ Module Model (LS : LevelSets).
     strictly_updates (Clauses.union cls cls') (LevelSet.union W W') m m''.
   Proof.
     intros su su'.
-    eapply update_trans; eapply strictly_updates_weaken; tea; clsets.
+    eapply trans_update; eapply strictly_updates_weaken; tea; clsets.
   Qed.
 
   Lemma check_model_is_update_of {cls cls' U W minit m m'} :
@@ -1528,8 +1656,10 @@ Module Model (LS : LevelSets).
     destruct LevelSet.is_empty eqn:he.
     - intros ->. eapply LevelSetFact.is_empty_2 in he.
       eapply LevelSetProp.empty_is_empty_1 in he.
-      eapply LevelSet.eq_leibniz in he. rewrite he.
-      move/check_model_updates_spec_empty. intros H; split => //. 2:lsets.
+      have := check_model_proper cls' cls' (reflexivity cls') (U, m) (LevelSet.empty, m) => /fwd /fwd.
+      split => //. intros h; depelim h. rewrite H => //.
+      rewrite H0. intros [= ->]. destruct y as [W' m'']. destruct H as [eq eq']; cbn in *.
+      move/check_model_updates_spec_empty: H1. rewrite eq -eq'. intros H; split => //. 2:lsets.
       eapply strictly_updates_weaken; tea. clsets.
     - intros hs. move/check_model_spec => [w'' [su ->]]. split; [|lsets].
       eapply strictly_updates_trans; tea.
@@ -1575,6 +1705,17 @@ Module Model (LS : LevelSets).
     now apply hu. now apply hv.
   Qed.
 
+  Instance model_of_proper : Proper (LevelSet.Equal ==> LevelMap.Equal ==> iff) model_of.
+  Proof.
+    intros ? ? H ? ? H'. unfold model_of. setoid_rewrite H.
+    now setoid_rewrite H'.
+  Qed.
+
+  Instance defined_model_of_proper : Proper (LevelSet.Equal ==> LevelMap.Equal ==> iff) defined_model_of.
+  Proof.
+    unfold defined_model_of; solve_proper.
+  Qed.
+
   Lemma defined_model_of_union {U V cls} :
     defined_model_of U cls ->
     defined_model_of V cls ->
@@ -1603,30 +1744,25 @@ Module Model (LS : LevelSets).
     strictly_updates cls W m m' ->
     forall W', model_of W' m -> model_of (LevelSet.union W' W) m'.
   Proof.
-    clear.
-    induction 1.
-    - intros W' tot x.
+    clear. move: W m m'.
+    apply: strictly_updates_elim.
+    { solve_proper. }
+    - intros m cl m' incl su W' tot x.
       destruct cl as [prems [concl cl]].
-      destruct H0 as [minv [hmin ? heq]]. setoid_rewrite heq.
+      destruct su as [minv [hmin ? heq]]. setoid_rewrite heq.
       setoid_rewrite LevelMapFact.F.add_in_iff. cbn.
       destruct (Level.eq_dec concl x).
       { now left. }
       { rewrite LevelSet.union_spec; intros [hin|hin].
         { eapply tot in hin as [wit mt]. right; exists wit. assumption. }
         { eapply LevelSet.singleton_spec in hin. red in hin; subst. congruence. } }
-    - intros W' tot.
-      eapply IHstrictly_updates1 in tot. eapply IHstrictly_updates2 in tot.
+    - intros ls ls' m m' m'' su ihsu su' ihsu' W' tot.
+      eapply ihsu in tot. eapply ihsu' in tot.
       eapply model_of_subset; tea. intros x; lsets.
   Qed.
 
   Lemma model_of_empty m : model_of LevelSet.empty m.
   Proof. intros x; now move/LevelSet.empty_spec. Qed.
-
-  Instance model_of_proper : Proper (LevelSet.Equal ==> LevelMap.Equal ==> iff) model_of.
-  Proof.
-    intros ? ? H ? ? H'. unfold model_of. setoid_rewrite H.
-    now setoid_rewrite H'.
-  Qed.
 
   Lemma strictly_updates_total_model {cls W m m'} :
     strictly_updates cls W m m' ->
@@ -1640,19 +1776,19 @@ Module Model (LS : LevelSets).
     strictly_updates cls W m m' ->
     forall W', only_model_of W' m -> only_model_of (LevelSet.union W' W) m'.
   Proof.
-    clear.
-    induction 1.
-    - intros W' tot x.
+    move: W m m'; apply: strictly_updates_elim.
+    { solve_proper. }
+    - intros m cl m' incl su W' tot x.
       destruct cl as [prems [concl cl]].
-      destruct H0 as [minv [hmin ? heq]]. setoid_rewrite heq.
+      destruct su as [minv [hmin ? heq]]. setoid_rewrite heq.
       setoid_rewrite LevelMapFact.F.add_mapsto_iff. cbn.
       case: (Level.eq_dec concl x).
       { move=> ->. rewrite LevelSet.union_spec LevelSet.singleton_spec.
         firstorder; exists (Some (cl + minv)); left; split => //. }
       { rewrite LevelSet.union_spec LevelSet.singleton_spec /LevelSet.E.eq.
         firstorder. congruence. }
-    - intros W' tot.
-      eapply IHstrictly_updates1 in tot. eapply IHstrictly_updates2 in tot.
+    - intros ls ls' m m' m'' su ihsu su' ihsu' W' tot.
+      eapply ihsu in tot. eapply ihsu' in tot.
       eapply only_model_of_eq; tea. intros x; lsets.
   Qed.
 
@@ -1685,15 +1821,15 @@ Module Model (LS : LevelSets).
     forall l k, LevelMap.MapsTo l k m' -> LevelSet.In l W \/ LevelMap.MapsTo l k m.
   Proof.
     induction 1.
-    + eapply strict_update_modify in H0 as [k eq].
-      intros l k'. rewrite LevelSet.singleton_spec.
+    + eapply strict_update_modify in H1 as [k eq].
+      intros l k'. rewrite H0. rewrite LevelSet.singleton_spec.
       rewrite eq.
       rewrite LevelMapFact.F.add_mapsto_iff.
       intros [[]|] => //. red in H0; subst.
-      left. lsets. now right.
-    + intros. eapply IHstrictly_updates2 in H1.
-      destruct H1. left; lsets.
-      eapply IHstrictly_updates1 in H1 as []. left; lsets.
+      now left. now right.
+    + intros. eapply IHstrictly_updates2 in H2 as [].
+      left; lsets.
+      eapply IHstrictly_updates1 in H2 as []. left; lsets.
       now right.
   Qed.
 
@@ -1702,16 +1838,16 @@ Module Model (LS : LevelSets).
     forall l k, LevelMap.MapsTo l k m -> LevelSet.In l W \/ LevelMap.MapsTo l k m'.
   Proof.
     induction 1.
-    + eapply strict_update_modify in H0 as [k eq].
-      intros l k'. rewrite LevelSet.singleton_spec.
+    + eapply strict_update_modify in H1 as [k eq].
+      intros l k'. rewrite H0 LevelSet.singleton_spec.
       rewrite eq.
       rewrite LevelMapFact.F.add_mapsto_iff.
       intros hm. unfold Level.eq.
       destruct (Level.eq_dec l (clause_conclusion cl)). subst. now left.
       right. right. auto.
-    + intros. eapply IHstrictly_updates1 in H1 as [].
+    + intros. eapply IHstrictly_updates1 in H2 as [].
       left; lsets.
-      eapply IHstrictly_updates2 in H1 as []. left; lsets.
+      eapply IHstrictly_updates2 in H2 as []. left; lsets.
       now right.
   Qed.
 
@@ -1759,36 +1895,38 @@ Module Model (LS : LevelSets).
     check_model_invariants cls w m w' m' true.
   Proof.
     intros mof tot.
-    move/check_model_spec => [w'' [su ->]].
+    move/check_model_spec => [w'' [su eq]].
     cbn. split.
     - lsets.
     - apply strictly_updates_incl in su. lsets.
-    - clear -su. induction su.
-      * exists cl. split => //. now eapply strict_update_invalid.
-      unfold clause_conclusion. lsets.
-      destruct cl as [prems [concl k]].
-      destruct H0 as [minp [hin hnabove habove]].
-      move: hnabove habove. rewrite /level_value_above.
-      cbn. destruct level_value eqn:hv => //; try constructor.
-      intros hle. intros ->. rewrite level_value_add. constructor.
-      move/negbTE: hle. lia.
-      * destruct IHsu1 as [cl []].
+    - clear -su eq.
+      move: w'' m m' su w' eq; apply: strictly_updates_elim.
+      { intros ? ? meq ? ? -> ? ? ->. rw meq. reflexivity. }
+      * move=> m cl m' incl su w' eq. exists cl. split => //. now eapply strict_update_invalid.
+        unfold clause_conclusion. rewrite eq. rewrite /clause_conclusion. lsets.
+        destruct cl as [prems [concl k]].
+        destruct su as [minp [hin hnabove habove]].
+        move: hnabove habove. rewrite /level_value_above.
+        cbn. destruct level_value eqn:hv => //; try constructor.
+        intros hle. intros ->. rewrite level_value_add. constructor.
+        move/negbTE: hle. lia.
+      * move=> ls ls' > su ihsu su' ihsu' w' eq. specialize (ihsu _ (reflexivity _)) as [cl []].
         exists cl. split => //. lsets.
-        apply strictly_updates_ext in su2.
+        apply strictly_updates_ext in su'.
         depelim H2; rewrite ?H3. 2:{ rewrite H2; constructor. }
-        eapply level_value_MapsTo', su2 in H4 as [k' [map le]].
+        eapply level_value_MapsTo', su' in H4 as [k' [map le]].
         eapply level_value_MapsTo in map. rewrite map. depelim le. constructor; lia.
     - constructor. now eapply strictly_updates_ext.
       clear -mof su.
       induction su.
-      * move: H0; unfold strict_update. destruct cl as [prems [concl k]].
+      * move: H1; unfold strict_update. destruct cl as [prems [concl k]].
         intros [v [hmi nabove eqm]]. intros l. rewrite eqm.
         rewrite LevelMapFact.F.add_in_iff. specialize (mof l).
         rewrite clauses_conclusions_spec in mof. firstorder.
       * specialize (IHsu1 mof). transitivity m' => //.
         apply IHsu2. intros l hin. specialize (mof _ hin). now apply IHsu1 in mof.
       * eapply model_map_outside_weaken. now eapply strictly_updates_outside. lsets.
-    - eapply strictly_updates_model_of_gen in su; tea.
+    - eapply strictly_updates_model_of_gen in su; tea. now rewrite eq.
   Qed.
 
   Definition infers_atom (m : model) (l : Level.t) (k : Z) := Some k ≤ level_value m l.
@@ -1853,7 +1991,7 @@ Lemma is_update_of_empty cls m :
     move=> su /is_update_of_case; intros [[empw eq]|su'].
     rewrite <- eq. eapply (strictly_updates_weaken cls). clsets.
     eapply strictly_updates_W_eq; tea. lsets.
-    eapply update_trans; tea; eapply strictly_updates_weaken; tea; clsets.
+    eapply trans_update; tea; eapply strictly_updates_weaken; tea; clsets.
   Qed.
 
   Definition restrict_model W (m : model) :=
@@ -2043,15 +2181,17 @@ Lemma is_update_of_empty cls m :
       mr =m (restrict_model W m) ->
       strictly_updates (cls ⇂ W) W' m (model_update m m').
   Proof.
-    intros cls' mr. induction 1.
-    - intros mi mofW -> hm.
-      constructor. auto.
+    intros cls' mr.
+    move: W' mr m'; apply: strictly_updates_elim.
+    { solve_proper. }
+    - move=> m cl m' incl su mi mofW eq hm. subst cls'.
+      apply one_update. auto.
       destruct cl as [prems [concl k]].
-      destruct H0 as [v [hmin above heq]].
+      destruct su as [v [hmin above heq]].
       rewrite hm in hmin, above.
       exists v. split => //.
       eapply min_premise_restrict with W => //.
-      { intros l k' hp. move/in_restrict_clauses: H => [] //= _ hsub _. apply hsub.
+      { intros l k' hp. move/in_restrict_clauses: incl => [] //= _ hsub _. apply hsub.
         rewrite levelexprset_levels_spec. now exists k'. }
       move: above.
       rewrite /level_value_above /level_value.
@@ -2061,9 +2201,9 @@ Lemma is_update_of_empty cls m :
         now rewrite (LevelMap.find_1 hkr).
       + move=> ncl _.
         elim: find_spec => // => k' inm.
-        apply in_restrict_clauses in H as [inconcl inprems incls]. cbn in *.
+        apply in_restrict_clauses in incl as [inconcl inprems incls]. cbn in *.
         elim ncl. exists k'. eapply restrict_model_spec. split => //.
-      + apply in_restrict_clauses in H as [inconcl inprems incls]. cbn in *.
+      + apply in_restrict_clauses in incl as [inconcl inprems incls]. cbn in *.
         rewrite heq. intro. apply levelmap_find_eq => k'.
         rewrite hm.
         rewrite model_update_spec !LevelMapFact.F.add_mapsto_iff restrict_model_spec.
@@ -2073,17 +2213,18 @@ Lemma is_update_of_empty cls m :
         * right. split. right => //. now exists k'.
         * left. split => //. intros []. congruence.
           destruct H2 as [yrest hin]. eapply restrict_model_spec in hin as []. contradiction.
-    - intros mtot mof -> hm. specialize (IHstrictly_updates1 mtot mof eq_refl hm).
+    - move=> ls ls' m m' m'' su ihsu su' ihsu' mtot mof eq hm. subst cls'.
+      specialize (ihsu mtot mof eq_refl hm).
       have model_of : model_of W (model_update mtot m').
         by apply model_of_model_update.
-      move: (IHstrictly_updates2 (model_update mtot m') model_of eq_refl) => /fwd h.
-      { rewrite hm in H. eapply strictly_updates_from_restrict in H; tea.
+      move: (ihsu' (model_update mtot m') model_of eq_refl) => /fwd h.
+      { rewrite hm in su. eapply strictly_updates_from_restrict in su; tea.
         2:eapply clauses_conclusions_restrict_clauses.
         now rewrite restrict_model_update. }
-      eapply update_trans; tea.
+      eapply trans_update; tea.
       have eqm : (model_update (model_update mtot m') m'') =m model_update mtot m''.
-      { eapply model_update_trans. eapply strictly_updates_ext in H0.
-        intros l [k hin]. apply H0 in hin as [k' []]. now exists k'. }
+      { eapply model_update_trans. eapply strictly_updates_ext in su'.
+        intros l [k hin]. apply su' in hin as [k' []]. now exists k'. }
       now rewrite eqm in h.
   Qed.
 
@@ -2107,7 +2248,7 @@ Lemma is_update_of_empty cls m :
       eapply strictly_updates_W_eq; tea. lsets.
     - eapply strictly_updates_restrict_model in su'.
       eapply strictly_updates_weaken in su'. 2:eapply restrict_clauses_subset.
-      eapply update_trans; tea; eapply strictly_updates_weaken; tea; clsets.
+      eapply trans_update; tea; eapply strictly_updates_weaken; tea; clsets.
       now apply strictly_updates_total_model in su.
   Qed.
 
@@ -2240,12 +2381,12 @@ Lemma is_update_of_empty cls m :
   Proof.
     induction 1.
     - cbn. destruct cl as [prems [concl k]]; cbn in H0.
-      destruct H0 as [hz [hmin habov heq]].
+      destruct H1 as [hz [hmin habov heq]]. rewrite H0.
       move=> l /LevelSet.singleton_spec => -> //=.
       setoid_rewrite heq. exists (k + hz)%Z.
       apply LevelMapFact.F.add_mapsto_iff.
       left; split => //.
-    - apply defined_model_of_union; auto.
+    - rewrite H1. apply defined_model_of_union; auto.
       eapply defined_model_of_ext. exact IHstrictly_updates1.
       now apply strictly_updates_ext in H0.
   Qed.
@@ -2383,12 +2524,15 @@ Lemma is_update_of_empty cls m :
     strictly_updates cls W' m m' ->
     exists l, LevelSet.In l W' /\ ~ LevelSet.In l W.
   Proof.
-    intros vm. induction 1.
-    - exists (clause_conclusion cl). split => //. lsets. intros hin.
-      eapply strict_update_invalid in H0.
+    intros vm su.
+    move: W' m m' su vm; apply: strictly_updates_elim.
+    { intros ? ? eq ? ? -> ? ? ->. now setoid_rewrite eq. }
+    - move=> m cl m' incl su vm. exists (clause_conclusion cl). split => //. lsets. intros hin.
+      eapply strict_update_invalid in su.
       eapply is_model_invalid_clause in vm; tea. apply vm.
       eapply in_clauses_with_concl. split => //.
-    - destruct (IHstrictly_updates1 vm). exists x.
+    - move=> ls ls' m m' m'' su ihsu su' ihsu' vm.
+      destruct (ihsu vm). exists x.
       rewrite LevelSet.union_spec. firstorder.
   Qed.
 
@@ -2399,7 +2543,7 @@ Lemma is_update_of_empty cls m :
     induction su.
     - intros mv l hin. apply mv in hin.
       destruct cl as [prems [concl k]].
-      destruct H0 as [minv [eqmin nabove eqm]]. rewrite eqm.
+      destruct H1 as [minv [eqmin nabove eqm]]. rewrite eqm.
       rewrite LevelMapFact.F.add_in_iff. now right.
     - eauto.
   Qed.
@@ -2412,9 +2556,9 @@ Lemma is_update_of_empty cls m :
   Qed.
 
   Lemma check_model_update_of {cls U m W m'} : check_model cls (U, m) = Some (W, m') ->
-    exists W', is_update_of cls W' m m' /\ W = LevelSet.union U W'.
+    exists W', is_update_of cls W' m m' /\ W =_lset LevelSet.union U W'.
   Proof.
-    move/check_model_spec => [w'' [su ->]]. exists w''. split => //.
+    move/check_model_spec => [w'' [su eq]]. rw eq. exists w''. split => //.
     now eapply is_update_of_strictly_updates.
   Qed.
 
@@ -2423,9 +2567,10 @@ Lemma is_update_of_empty cls m :
     (forall l k, LevelSet.In l V -> LevelMap.MapsTo l k minit ->
       exists k', LevelMap.MapsTo l (Some k') m /\ opt_le Z.lt k (Some k')).
   Proof.
-    induction 1.
-    - intros l k hin hm.
-      move: H0; rewrite /strict_update.
+    move: V minit m; apply: strictly_updates_elim.
+    { intros ? ? eq ? ? -> ? ? ->. now setoid_rewrite eq. }
+    - move=> m cl m' incl su l k hin hm.
+      move: su; rewrite /strict_update.
       destruct cl as [prems [concl gain]].
       move=> [] v [] minp hlt. cbn in hin. eapply LevelSet.singleton_spec in hin. red in hin; subst l.
       move/negbTE: hlt; rewrite /level_value_above.
@@ -2434,13 +2579,13 @@ Lemma is_update_of_empty cls m :
       destruct level_value eqn:hl => //.
       * rewrite (level_value_MapsTo hm) in hl. noconf hl. constructor. lia.
       * rewrite (level_value_MapsTo hm) in hl. noconf hl. constructor.
-    - intros l k; rewrite LevelSet.union_spec; move=> [] hin hm.
-      apply IHstrictly_updates1 in hm as [k' [hle hm']]; tea.
-      eapply strictly_updates_ext in H0. apply H0 in hle as [k'' [hm'' lek'']].
+    - move=> ls ls' m m' m'' su ihsu su' ihsu' l k; rewrite LevelSet.union_spec; move=> [] hin hm.
+      apply ihsu in hm as [k' [hle hm']]; tea.
+      eapply strictly_updates_ext in su'. apply su' in hle as [k'' [hm'' lek'']].
       depelim lek''.
       exists y. split => //. depelim hm'; constructor; lia.
-      eapply strictly_updates_ext in H. eapply H in hm as [k' [hm' lek']].
-      eapply IHstrictly_updates2 in hm' as [k'' [hm'' lek'']]; tea.
+      eapply strictly_updates_ext in su. eapply su in hm as [k' [hm' lek']].
+      eapply ihsu' in hm' as [k'' [hm'' lek'']]; tea.
       exists k''. split => //. depelim lek'; depelim lek''; constructor; lia.
   Qed.
 
@@ -2513,31 +2658,10 @@ Lemma is_update_of_empty cls m :
     model_of V m ->
     model_rel_partial Z.lt V m m'.
   Proof.
-    intros su; induction su.
-    - intros htot l. split; revgoals.
-      { intros nin k. destruct cl as [prems [concl conclk]]; cbn in *.
-        destruct H0 as [minp [hmin nabove hm']].
-        rewrite hm'. rewrite LevelMapFact.F.add_mapsto_iff.
-        assert (concl <> l). intros ->.
-        apply nin, in_singleton.
-        firstorder. }
-      intros inv k hin.
-      red in htot.
-      specialize (htot (clause_conclusion cl) (in_singleton _)) as [mconcl mt].
-      destruct cl as [prems [concl conclk]]; cbn in *.
-      destruct H0 as [minp [hmin nabove hm']].
-      eapply LevelSet.singleton_spec in inv; red in inv; subst l.
-      eapply LevelMapFact.F.MapsTo_fun in hin; tea. noconf hin.
-      exists (Some (conclk + minp))%Z. split => //.
-      rewrite hm'.
-      rewrite LevelMapFact.F.add_mapsto_iff. left. split => //.
-      move/negbTE: nabove; move/level_value_not_above_spec.
-      now rewrite (level_value_MapsTo mt).
-    - move/model_of_union_inv => [] totls totls'.
-      forward IHsu1 by auto.
-      forward IHsu2.
-      { eapply model_of_sext. exact totls. assumption. eassumption. }
-      now eapply model_rel_partial_trans.
+    move=> h mV l. split => //.
+    - move/strictly_updates_all: h => h; move=> inv k /h; move/(_ inv) => [k' []].
+      exists (Some k'); split => //.
+    - now eapply strictly_updates_outside.
   Qed.
 
   #[program]
@@ -2599,30 +2723,28 @@ Lemma is_update_of_empty cls m :
     - intros. rewrite H. firstorder. lesets.
   Qed.
 
-  Lemma strictly_updates_non_empty_init_map {cls W m m'} :
-    strictly_updates cls W m m' -> ~ LevelMap.Empty m.
-  Proof.
-    induction 1.
-    - destruct cl as [prems [concl k]].
-      destruct H0 as [? [? ? heq]].
-      eapply min_premise_spec_aux in H0 as [_ [[] [inprems heq']]].
-      unfold min_atom_value in heq'.
-      destruct level_value eqn:hl => //. apply level_value_MapsTo' in hl.
-      now intros e; apply e in hl.
-    - auto.
-  Qed.
-
   Lemma strictly_updates_defined_init_map {cls W m m'} :
     strictly_updates cls W m m' -> defined_map m.
   Proof.
     induction 1.
     - destruct cl as [prems [concl k]].
-      destruct H0 as [? [? ? heq]].
-      eapply min_premise_spec_aux in H0 as [_ [[] [inprems heq']]].
+      destruct H1 as [? [? ? heq]].
+      eapply min_premise_spec_aux in H1 as [_ [[] [inprems heq']]].
       unfold min_atom_value in heq'.
       destruct level_value eqn:hl => //. apply level_value_MapsTo' in hl.
       now exists t0, z0.
     - auto.
+  Qed.
+
+  Lemma defined_map_ne m : defined_map m -> ~ LevelMap.Empty m.
+  Proof.
+    move=> [] k [] v hm he. now eapply he.
+  Qed.
+
+  Lemma strictly_updates_non_empty_init_map {cls W m m'} :
+    strictly_updates cls W m m' -> ~ LevelMap.Empty m.
+  Proof.
+    now move/strictly_updates_defined_init_map/defined_map_ne.
   Qed.
 
   Definition premise_values (prems : premises) m :=
@@ -2691,9 +2813,12 @@ Lemma is_update_of_empty cls m :
     strictly_updates cls V mzero m ->
     entails_all cls (of_level_map mzero hne) (of_level_map m hne').
   Proof.
-    intros su; induction su.
+    move=> su; move: V mzero m su hne hne'.
+    apply: strictly_updates_elim; [|move=>m cl m' incl su|move=>ls ls' m m' m'' su ihsu su' ihsu'].
+    { intros ? ? eq. solve_proper. }
+    all:intros hne hne'.
     - destruct cl as [prems [concl k]].
-      destruct H0 as [minp [hmin nabove eqm']].
+      destruct su as [minp [hmin nabove eqm']].
       have [minsleq mineq] := min_premise_spec m prems.
       destruct mineq as [minprem [inprems eqminp]]. cbn.
       move: eqminp. rewrite /min_atom_value.
@@ -2706,16 +2831,16 @@ Lemma is_update_of_empty cls m :
       destruct hin as [[eq heq]|[neq hm]]. noconf heq.
       have hypss := of_level_map_spec m hne.
       set (hyps := of_level_map m hne) in *. clearbody hyps.
-      have entailscl : entails cls (prems, (concl, k)) by exact: entails_in H.
+      have entailscl : entails cls (prems, (concl, k)) by exact: entails_in incl.
       move/(entails_shift (z - mink)): entailscl. cbn. move => entailscl.
       eapply (entails_all_one (concl := add_prems (z - mink) prems)) => //.
       eapply level_value_MapsTo' in hminprem.
       rewrite -hypss in hminprem.
       eapply hyps_entails; tea. red in eq; subst. exact entailscl.
       constructor. now rewrite of_level_map_spec.
-    - have hnemid : defined_map m'. by exact: strictly_updates_defined_map su1.
-      specialize (IHsu1 hne hnemid).
-      specialize (IHsu2 hnemid hne').
+    - have hnemid : defined_map m'. by exact: strictly_updates_defined_map su.
+      specialize (ihsu hne hnemid).
+      specialize (ihsu' hnemid hne').
       eapply entails_all_trans; tea.
   Qed.
 

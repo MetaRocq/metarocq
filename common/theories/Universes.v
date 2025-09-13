@@ -860,27 +860,23 @@ Qed. *)
 
 
 Module ConstraintType.
-  Inductive t_ : Set := Le (z : Z) | Eq.
+  Inductive t_ : Set := Le | Eq.
   Derive NoConfusion EqDec for t_.
 
   Definition t := t_.
   Definition eq : t -> t -> Prop := eq.
   Definition eq_equiv : Equivalence eq := _.
 
-  Definition Le0 := Le 0.
-  Definition Lt := Le 1.
-
   Inductive lt_ : t -> t -> Prop :=
-  | LeLe n m : (n < m)%Z -> lt_ (Le n) (Le m)
-  | LeEq n : lt_ (Le n) Eq.
+  | LeEq : lt_ Le Eq.
   Derive Signature for lt_.
   Definition lt := lt_.
 
   Global Instance lt_strorder : StrictOrder lt.
   Proof.
     constructor.
-    - intros []; intro X; inversion X. lia.
-    - intros ? ? ? X Y; invs X; invs Y; constructor. lia.
+    - intros []; intro X; inversion X.
+    - intros ? ? ? X Y; invs X; invs Y; constructor.
   Qed.
 
   Global Instance lt_compat : Proper (eq ==> eq ==> iff) lt.
@@ -890,22 +886,20 @@ Module ConstraintType.
 
   Definition compare (x y : t) : comparison :=
     match x, y with
-    | Le n, Le m => Z.compare n m
-    | Le _, Eq => Datatypes.Lt
+    | Le, Le => Datatypes.Eq
+    | Le, Eq => Datatypes.Lt
     | Eq, Eq => Datatypes.Eq
     | Eq, _  => Datatypes.Gt
     end.
 
   Lemma compare_spec x y : CompareSpec (eq x y) (lt x y) (lt y x) (compare x y).
   Proof.
-    destruct x, y; repeat constructor. simpl.
-    destruct (Z.compare_spec z z0); simpl; constructor.
-    subst; constructor. now constructor. now constructor.
+    destruct x, y; repeat constructor.
   Qed.
 
   Lemma eq_dec x y : {eq x y} + {~ eq x y}.
   Proof.
-    unfold eq. decide equality. apply Z.eq_dec.
+    unfold eq. decide equality.
   Qed.
 End ConstraintType.
 
@@ -1297,14 +1291,14 @@ Delimit Scope univ_scope with u.
 Section Univ.
   Context {cf: checker_flags}.
 
-  Inductive satisfies0 (v : valuation) : LevelConstraint.t -> Prop :=
-  | satisfies0_Lt (l l' : Level.t) (z : Z) : (Z.of_nat (val v l) <= Z.of_nat (val v l') - z)%Z
-                         -> satisfies0 v (l, ConstraintType.Le z, l')
-  | satisfies0_Eq (l l' : Level.t) : val v l = val v l'
+  Inductive satisfies0 (v : valuation) : UnivConstraint.t -> Prop :=
+  | satisfies0_Lt (l l' : Universe.t) : (val v l <= val v l')%nat
+                         -> satisfies0 v (l, ConstraintType.Le, l')
+  | satisfies0_Eq (l l' : Universe.t) : val v l = val v l'
                          -> satisfies0 v (l, ConstraintType.Eq, l').
 
-  Definition satisfies v : ConstraintSet.t -> Prop :=
-    ConstraintSet.For_all (satisfies0 v).
+  Definition satisfies v : UnivConstraintSet.t -> Prop :=
+    UnivConstraintSet.For_all (satisfies0 v).
 
   Lemma satisfies_union v φ1 φ2 :
     satisfies v (CS.union φ1 φ2)

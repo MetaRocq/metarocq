@@ -595,12 +595,14 @@ Section InnerLoop.
       - have mu := model_updates mr.
         setoid_rewrite eqprem at 1 in mu.
         eapply strictly_updates_is_update_of_restrict in upd; tea.
-        apply check_model_spec in eqm as [Wconcl' [sumr ->]].
+        apply check_model_spec in eqm as [Wconcl' [sumr eqw]].
         have tr := strictly_updates_trans upd sumr.
         eapply strictly_updates_clauses_W; tea.
         { intros ?. now rewrite ClausesProp.union_sym union_diff_cls. }
         { have incl := model_incl mr. apply strictly_updates_incl in sumr.
-          have hdiff := clauses_conclusions_diff_left cls W (cls ⇂ W). lsets. }
+          have hdiff := clauses_conclusions_diff_left cls W (cls ⇂ W).
+          clear -clsW hdiff incl sumr.
+          lsets. }
       - have mW : model_of W m.
         { now eapply strictly_updates_model_of in upd. }
         have tmr : model_of W (model_model mr).

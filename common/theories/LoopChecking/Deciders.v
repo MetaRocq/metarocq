@@ -252,8 +252,6 @@ Proof.
   funelim (check cls cl) => //.
 Qed.
 
-Arguments symmetry {A R Symmetric} {x y}.
-
 Lemma check_looping {cls cl v isl} :
   check cls cl = IsLooping v isl -> ~ (exists V, clauses_sem V cls).
 Proof.
@@ -400,15 +398,23 @@ Module CorrectModel.
     model_valid : valid_model V model_updates initial_model cls }.
   Arguments t : clear implicits.
 
+  Record loop {cls} :=
+    { loop_univ : premises;
+      loop_on_univ : cls ⊢a loop_univ → succ_prems loop_univ;
+    }.
+  Arguments loop : clear implicits.
+
+  Definition result V cls := (t V cls + loop cls)%type.
+
   #[local] Obligation Tactic := program_simpl.
   Equations? infer_extension_correct {V W init cls} (m : valid_model V W init cls)
     (enabled : enabled_clauses init cls)
     (hincl : only_model_of V init)
     (hs : clauses_levels cls ⊂_lset V)
     (cls' : clauses)
-    (hs' : clauses_levels cls' ⊂_lset V) : (t V (Clauses.union cls cls')) + premises :=
+    (hs' : clauses_levels cls' ⊂_lset V) : result V (Clauses.union cls cls') :=
   infer_extension_correct m enabled hincl hs cls' hs' with infer_extension m hincl hs cls' :=
-    | Loop u _ => inr u
+    | Loop u isl => inr {| loop_univ := u; loop_on_univ := isl |}
     | Model w m' _ =>
       inl {|
         initial_model := min_model_map m.(model_model) cls';
@@ -434,16 +440,27 @@ Module CorrectModel.
     - apply m'.
   Qed.
 
-  Equations? infer_extension_valid {V cls} (m : t V cls) cls' : option (t V (Clauses.union cls cls') + premises) :=
+  Equations? infer_extension_valid {V cls} (m : t V cls) cls' : option (result V (Clauses.union cls cls')) :=
   infer_extension_valid m cls' with inspect (LevelSet.subset (clauses_levels cls') V) :=
     | exist false heq => None
-    | exist true heq := Some (infer_extension_correct (model_valid m) _ _ _ cls' _).
+    | exist true heq => Some (infer_extension_correct (model_valid m) _ _ _ cls' _).
   Proof.
     - apply enabled_model.
     - apply only_model_of_V.
     - now apply m.
     - now apply LevelSet.subset_spec in heq.
   Qed.
+
+  Lemma infer_extension_valid_None {V cls} (m : t V cls) cls' :
+    infer_extension_valid m cls' = None <-> ~ LevelSet.Subset (clauses_levels cls') V.
+  Proof.
+    funelim (infer_extension_valid m cls') => //=.
+    - split=> // eq. clear Heqcall H. exfalso.
+      apply LevelSet.subset_spec in heq. contradiction.
+    - split=> // _ hsub. clear H.
+      move/negP: heq => /LevelSet.subset_spec. contradiction.
+  Qed.
+
 End CorrectModel.
 
 Module Abstract.
@@ -474,6 +491,14 @@ Module Abstract.
         intros x hin. now apply Clauses.empty_spec in hin.
   Qed.
 
+  Lemma init_model_levels :
+    levels init_model = LevelSet.empty.
+  Proof. reflexivity. Qed.
+
+  Lemma init_model_clause :
+    clauses init_model = Clauses.empty.
+  Proof. reflexivity. Qed.
+
   Lemma levelmap_add_comm {A} l o l' o' (m : LevelMap.t A) : l <> l' ->
     LevelMap.add l o (LevelMap.add l' o' m) =m
     LevelMap.add l' o' (LevelMap.add l o m).
@@ -491,9 +516,12 @@ Module Abstract.
     strictly_updates clauses W m m' ->
     strictly_updates clauses W (LevelMap.add l None m) (LevelMap.add l None m').
   Proof.
-    intros hnin; elim; clear -hnin.
-    - move=> m [prems [concl k]] m' hin [] v [] hmin habov hm'.
-      constructor => //. exists v. split => //.
+    move=> hnin su; move: W m m' su;
+    apply: strictly_updates_elim; [|move=>m [prems [concl k]] m' incl su|move=>ls ls' m m' m'' su ihsu su' ihsu'].
+    { solve_proper. }
+    - move: su => [] v [] hmin habov hm'. cbn.
+      eapply update_one; tea => //.
+      exists v. split => //.
       * erewrite min_premise_preserved; tea.
         intros.
         have neq : x <> l.
@@ -509,8 +537,7 @@ Module Abstract.
         { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
           split => //. apply clause_levels_spec. now right. }
         now rewrite levelmap_add_comm // hm'.
-    - move=>> su ihsu su' ihsu'.
-      econstructor; tea.
+    - eapply trans_update; tea.
   Qed.
 
   Lemma is_model_add clauses l m :
@@ -578,11 +605,97 @@ Module Abstract.
         now move/incl.
   Qed.
 
-  Equations enforce_clauses (m : t) (cls : Clauses.t) : option (t + premises) :=
+  Lemma declare_level_clauses {m l m'} :
+    declare_level m l = Some m' -> clauses m = clauses m'.
+  Proof.
+    funelim (declare_level m l) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma declare_level_levels {m l m'} :
+    declare_level m l = Some m' -> ~ LevelSet.In l (levels m) /\ levels m' =_lset LevelSet.add l (levels m).
+  Proof.
+    funelim (declare_level m l) => //=.
+    intros [= <-]. split; cbn => //.
+    move/LevelSet.mem_spec. rewrite hneq => //.
+  Qed.
+
+  Lemma declare_level_None {m l} :
+    declare_level m l = None <-> LevelSet.In l (levels m).
+  Proof.
+    funelim (declare_level m l) => //=; clear H Heqcall.
+    - apply LevelSet.mem_spec in e. firstorder.
+    - split => //.
+      move/LevelSet.mem_spec. rewrite hneq => //.
+  Qed.
+
+  Equations enforce_clauses (m : t) (cls : Clauses.t) : option (t + loop (Clauses.union (clauses m) cls)) :=
   enforce_clauses m cls with infer_extension_valid m.(model) cls :=
     | None => None
     | Some (inl m') => Some (inl {| model := m' |})
     | Some (inr u) => Some (inr u).
+
+  Lemma enforce_clauses_None m cls :
+    enforce_clauses m cls = None <->
+    ~ LevelSet.Subset (clauses_levels cls) (levels m).
+  Proof.
+    simp enforce_clauses.
+    have:= @infer_extension_valid_None _ _ (model m) cls.
+    destruct infer_extension_valid as [[]|]; simp enforce_clauses; split => //.
+    1-2:move/H => //. intuition.
+  Qed.
+
+  Lemma enforce_clauses_not_None m cls :
+    enforce_clauses m cls <> None <-> LevelSet.Subset (clauses_levels cls) (levels m).
+  Proof.
+    unfold not. rewrite enforce_clauses_None.
+    destruct (LevelSet.subset (clauses_levels cls) (levels m)) eqn:he.
+    apply LevelSet.subset_spec in he. firstorder.
+    move/negP: he.
+    intros ne. red in ne.
+    split => //.
+    intros ne'. destruct ne'. intros hs.
+    apply LevelSet.subset_spec in hs. apply ne. now rewrite hs.
+  Qed.
+
+  Lemma enforce_clauses_levels m cls m' :
+    enforce_clauses m cls = Some (inl m') ->
+    levels m' = levels m.
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma enforce_clauses_clauses m cls m' :
+    enforce_clauses m cls = Some (inl m') ->
+    clauses m' = Clauses.union (clauses m) cls.
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma enforce_clauses_inconsistent m cls u :
+    enforce_clauses m cls = Some (inr u) ->
+    ~ exists V, clauses_sem V (Clauses.union (clauses m) cls).
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. clear -u. intros [V cs].
+    destruct u as [u loop].
+    eapply clauses_sem_entails_all in loop; tea.
+    now rewrite interp_add_prems in loop.
+  Qed.
+
+  Definition check_clauses m cls :=
+    check_clauses (clauses m) cls.
+
+  Lemma check_clauses_ok m cls :
+    check_clauses m cls -> forall V, clauses_sem V (clauses m) -> clauses_sem V cls.
+  Proof.
+    rewrite /check_clauses /Deciders.check_clauses.
+    move/Clauses.for_all_spec => ha V cs cl /ha.
+    destruct check eqn:ch => // _.
+    eapply check_entails in ch. now apply ch.
+  Qed.
 
 End Abstract.
 End Deciders.
@@ -590,8 +703,12 @@ End Deciders.
 Module LoopChecking (LS : LevelSets).
   Module Impl := Deciders(LS).
   Import Impl.I.
+  Import Impl.Abstract.
 
-  Definition model := Impl.Abstract.t.
+  Definition model := t.
+
+  Definition levels := levels.
+  Definition clauses := clauses.
 
   Notation univ := LS.LevelExprSet.nonEmptyLevelExprSet.
 
@@ -642,12 +759,56 @@ Module LoopChecking (LS : LevelSets).
   Definition init_model := Impl.Abstract.init_model.
 
   (* Returns None if already declared *)
-  Definition declare_level l m := Impl.Abstract.declare_level m l.
+  Definition declare_level := Impl.Abstract.declare_level.
+
+  Lemma declare_level_levels {m l m'} :
+    declare_level m l = Some m' -> ~ LevelSet.In l (levels m) /\ levels m' =_lset LevelSet.add l (levels m).
+  Proof. apply declare_level_levels. Qed.
+
+  Lemma declare_level_None {m l} :
+    declare_level m l = None <-> LevelSet.In l (levels m).
+  Proof. apply declare_level_None. Qed.
+
+  Lemma declare_level_clauses l m m' : declare_level m l = Some m' -> Impl.Abstract.clauses m = Impl.Abstract.clauses m'.
+  Proof. apply declare_level_clauses. Qed.
+
+  Definition loop m c := Impl.CorrectModel.loop (Clauses.union (clauses m) (to_clauses c)).
 
   (* Returns either a model or a looping universe, i.e. such that u >= u + 1 is implied
      by the constraint *)
-  Definition enforce c (m : model) : option (model + univ) :=
-    Impl.Abstract.enforce_clauses m (to_clauses c).
+  Definition enforce (m : model) c : option (model + loop m c) :=
+    enforce_clauses m (to_clauses c).
+
+  Lemma enforce_None {m cls} :
+    enforce m cls = None <-> ~ LevelSet.Subset (clauses_levels (to_clauses cls)) (levels m).
+  Proof.
+    apply enforce_clauses_None.
+  Qed.
+
+  Lemma enforce_not_None {m cls} :
+    enforce m cls <> None <-> LevelSet.Subset (clauses_levels (to_clauses cls)) (levels m).
+  Proof.
+    apply enforce_clauses_not_None.
+  Qed.
+
+  Lemma enforce_inconsistent {m cls u} :
+    enforce m cls = Some (inr u) ->
+    ~ exists V, clauses_sem V (Clauses.union (clauses m) (to_clauses cls)).
+  Proof.
+    apply enforce_clauses_inconsistent.
+  Qed.
+
+  Lemma enforce_clauses {m cls m'} :
+    enforce m cls = Some (inl m') ->
+    clauses m' = Clauses.union (clauses m) (to_clauses cls).
+  Proof.
+    apply enforce_clauses_clauses.
+  Qed.
+
+  Lemma enforce_levels m cls m' :
+    enforce m cls = Some (inl m') ->
+    levels m' = levels m.
+  Proof. apply enforce_clauses_levels. Qed.
 
   (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply
@@ -655,8 +816,21 @@ Module LoopChecking (LS : LevelSets).
   Definition check m c :=
     Impl.check_clauses m.(Impl.Abstract.clauses) (to_clauses c).
 
+  Lemma check_correct {m c} :
+    check m c -> forall V, clauses_sem V (clauses m) -> clauses_sem V (to_clauses c).
+  Proof. apply check_clauses_ok. Qed.
+
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
-  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.initial_model).
+  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model).
+
+  Definition model_valuation m : clauses_sem (valuation m) (clauses m).
+  Proof.
+    destruct m as [levels clauses []]; cbn.
+    apply valid_clauses_model; tea; cbn.
+    - eapply enabled_clauses_ext; tea.
+      exact: is_update_of_ext (model_updates model_valid).
+    - apply model_valid.
+  Qed.
 
 End LoopChecking.

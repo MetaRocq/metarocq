@@ -56,8 +56,8 @@ Module Type FMapOTInterface (E : UsualOrderedType).
   Include FMapInterface.Sfun OT.
 End FMapOTInterface.
 
-Module Type LevelSet_fun (Level : LevelOrderedType).
-  Include SWithLeibniz with Module E := Level.
+Module Type LevelSet_fun (Level : UsualOrderedType).
+  Include S with Module E := Level.
 End LevelSet_fun.
 
 Module Type LevelExprItf (Level : LevelOrderedType).
