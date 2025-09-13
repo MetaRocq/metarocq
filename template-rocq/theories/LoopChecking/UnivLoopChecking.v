@@ -513,31 +513,100 @@ Module UnivLoopChecking.
     - clear H Heqcall. reflexivity.
   Qed.
 
-  Lemma model_satisfies m :
-    exists V, satisfies
+  Definition to_valuation (v : LevelMap.t nat) : valuation :=
+    {| valuation_mono := fun s => Pos.of_nat (option_get 0 (LevelMap.find (Level.level s) v));
+       valuation_poly := fun i => option_get 0 (LevelMap.find (Level.lvar i) v)
+    |}.
 
-  (* Definition enforce_level_constraints (m : univ_model) (l : UnivConstraintSet.t) :=
-    UnivConstraintSet.fold (fun c m =>
-      match m with
-      | inl m =>
-        let c := (level_constraint_to_constraint c) in
-        match LoopCheck.enforce m c with
-        | None => (inr (c, None))
-        | Some (inl m) => (inl m)
-        | Some (inr u) => (inr (c, Some u))
-        end
-      | inr err => inr err
-      end) l (inl m). *)
+  Lemma clauses_sem_subset {v cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
+  Proof.
+    now move=> hall hsub cl /hsub.
+  Qed.
+
+  Lemma clauses_sem_clauses_of_le V l r :
+    clauses_sem V (LoopCheck.clauses_of_le l r) ->
+    (interp_prems V l <= interp_prems V r)%Z.
+  Proof.
+    rewrite /clauses_sem.
+    intros hl. red in hl.
+    setoid_rewrite LoopCheck.clauses_of_le_spec in hl.
+    move: l hl. apply: elim.
+    - move => le he.
+      rewrite interp_prems_singleton.
+      move: (he (r, le)) => /fwd.
+      exists le. split => //. now apply LevelExprSet.singleton_spec.
+      cbn. lia.
+    - intros le x ih hnin ih'.
+      rewrite interp_prems_add.
+      forward ih. intros x0 [x1 [hin ->]].
+      move: (ih' (r, x1)) => /fwd. exists x1. split => //. apply LevelExprSet.add_spec. now right.
+      auto.
+      move: (ih' (r, le)) => /fwd. exists le. split => //.  apply LevelExprSet.add_spec. now left.
+      cbn. lia.
+  Qed.
+
+  Lemma to_atoms_singleton l k  : to_atoms (Universe.singleton (l, k)) = singleton (l, Z.of_nat k).
+  Proof. Admitted.
+
+  Lemma to_atoms_add le u : to_atoms (Universe.add le u) = add (to_atom le) (to_atoms u).
+  Proof. Admitted.
+
+  Lemma interp_prem_to_atom v le : Z.to_nat (interp_expr v (to_atom le)) = val (to_valuation v) le.
+  Proof.
+    destruct le => //=. cbn.
+    destruct t0.
+    - (* lzero is forced to have value 0, has it should stay maximal *) todo "handle lzero".
+    - todo "handle monos".
+    - cbn. unfold interp_level. destruct LevelMap.find eqn:he => //=. lia.
+      lia.
+  Qed.
+
+  Lemma clauses_sem_union v cls cls' : clauses_sem v (Clauses.Clauses.union cls cls') <->
+    clauses_sem v cls /\ clauses_sem v cls'.
+  Proof.
+    unfold clauses_sem. split.
+    intros hf. split; eapply clauses_sem_subset; tea; clsets.
+    intros []. intros cl. rewrite Clauses.Clauses.union_spec.
+    specialize (H cl). specialize (H0 cl). intros []; auto.
+  Qed.
+
+  Lemma interp_prems_to_atoms v l : Z.to_nat (interp_prems v (to_atoms l)) = Universes.val (to_valuation v) l.
+  Proof.
+    move: l.
+    apply Universe.elim.
+    - intros [l k].
+      rewrite to_atoms_singleton interp_prems_singleton.
+      rewrite val_singleton.
+      now rewrite (interp_prem_to_atom v (l, k)).
+    - intros le x eq nin.
+      rewrite to_atoms_add interp_prems_add.
+      rewrite val_add.
+      rewrite -interp_prem_to_atom. lia.
+  Qed.
+
+  Lemma clauses_sem_val m l r :
+    clauses_sem (LoopCheck.valuation m) (LoopCheck.clauses_of_le (to_atoms l) (to_atoms r)) ->
+    Universes.val (to_valuation (LoopCheck.valuation m)) l <= Universes.val (to_valuation (LoopCheck.valuation m)) r.
+  Proof.
+    move/clauses_sem_clauses_of_le.
+    have he := interp_prems_to_atoms (LoopCheck.valuation m) l.
+    have he' := interp_prems_to_atoms (LoopCheck.valuation m) r. lia.
+  Qed.
+
+  Lemma model_satisfies m :
+    exists V, satisfies V (constraints m).
+  Proof.
+    destruct m as [m cstrs repr repr_inv]. cbn.
+    have val := LoopCheck.model_valuation m.
+    exists (to_valuation (LoopCheck.valuation m)).
+    move=> cstr /repr /(clauses_sem_subset val).
+    intros cls. destruct cstr as [[l []] r]; cbn.
+    constructor. cbn in cls. now apply clauses_sem_val.
+    constructor. cbn in cls.
+    rewrite clauses_sem_union in cls. destruct cls as [hl hr].
+    eapply Nat.le_antisymm; now apply clauses_sem_val.
+  Qed.
 
   Import LoopCheck.Impl.I.Model.Model.Clauses.FLS.
-
-  Definition of_constraint (c : LoopCheck.constraint) : UnivConstraint.t :=
-    let '(l, d, r) := c in
-    let d' := match d with
-      | LoopCheck.UnivLe => ConstraintType.Le 0
-      | LoopCheck.UnivEq => ConstraintType.Eq
-      end
-    in
-    (from_atoms l, d', from_atoms r).
 
 End UnivLoopChecking.
