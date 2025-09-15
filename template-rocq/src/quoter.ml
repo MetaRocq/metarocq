@@ -435,8 +435,9 @@ struct
               ([],acc) named_ctors
           in
           let projs, acc =
-            match mib.Declarations.mind_record with
-            | PrimRecord [|id, csts, relevance, ps|] ->  (* TODO handle mutual records *)
+            match mib.Declarations.mind_packets with
+            (* TODO handle mutual records *)
+            | [| { mind_record = PrimRecord (id, csts, relevance, ps) } |] ->
                 let ctxwolet = Vars.smash_rel_context mib.mind_params_ctxt in
                 let indty = Constr.mkApp (Constr.mkIndU ((t,0),inst),
                                         Context.Rel.instance Constr.mkRel 0 ctxwolet) in
