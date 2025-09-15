@@ -1422,34 +1422,6 @@ End ZUnivConstraint.
       rewrite Clauses.union_spec; intros []; [apply le|apply le']; assumption.
   Qed.
 
-  (* Lemma relations_of_clauses_of_constraints cstr (cstrs : ZUnivConstraintSet.t) (l r : premises) :
-    ZUnivConstraintSet.In cstr cstrs <->
-    In (relation_of_constraint cstr) (relations_of_clauses (of_z_constraints cstrs)).
-  Proof.
-    split.
-    - move=> hin.
-      set (cls := of_z_constraints cstrs).
-      have hs := @relations_of_clauses_spec_inv cls.
-      (* have hcut : forall cl, Clauses.In cl (of_z_constraints cstrs) -> *)
-      rewrite /of_z_constraints.
-
-
-  Lemma presentation_of_spec cstrs :
-    equivlistA Logic.eq (presentation_of cstrs).(C) (presentation_of_clauses (of_z_constraints cstrs)).(C).
-  Proof.
-    rewrite /presentation_of /presentation_of_clauses //=.
-    intros [prems concl]; rewrite !InA_In_eq.
-    rewrite relations_of_constraints_spec.
-    split.
-    - intros [c [hin heq]].
-      destruct c as [[l []] r]. cbn in heq; noconf heq.
-      move: cstrs l r hin.
-      have cls := @of_z_constraints_spec cstrs.
-
-      (l, r).
-      rewrite relations_of_clauses_spec. *)
-
-
   Lemma entails_L_split p (s t : premises) :
     (forall le, LevelExprSet.In le s -> p ⊢ℒ singleton le ≼ t) ->
     p ⊢ℒ s ≼ t.
@@ -1553,7 +1525,7 @@ End ZUnivConstraint.
   Qed.
 
   Lemma completeness cstrs s t :
-    entails_L (presentation_of cstrs) s t <->
+    presentation_of cstrs ⊢ℒ s ≈ t <->
     entails_z_cstr cstrs (s, ConstraintType.Eq, t).
   Proof.
     unfold entails_z_cstr.
