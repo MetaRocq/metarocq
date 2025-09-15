@@ -4,7 +4,7 @@ From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
 
-From MetaRocq.Common Require Universes.
+From MetaRocq.Common Require UnivConstraintType Universes.
 From Equations Require Import Equations.
 
 From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking.
@@ -17,8 +17,7 @@ Module Type LoopCheckingItf (LS : LevelSets).
   Parameter model : Type.
   Parameter univ : Type.
 
-  Inductive constraint_type := UnivEq | UnivLe.
-  Notation constraint := (univ * constraint_type * univ).
+  Notation constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
@@ -216,9 +215,9 @@ Definition check_clauses (cls : clauses) (cls' : clauses) : bool :=
   in
   Clauses.for_all check_one cls'.
 
-(* If a clause checks, then it should be valid in any extension of the model *)
+(* If a clause checks, then it is entailed (and will be valid in any extension of the model) *)
 Theorem check_entails {cls cl} :
-  check cls cl = Valid -> valid_entailment cls cl.
+  check cls cl = Valid -> entails cls cl.
 Proof.
   destruct cl as [prems [concl k]].
   funelim (check cls _) => // _.
@@ -226,7 +225,6 @@ Proof.
   clear Heqcall H. cbn [concl fst snd] in *. clear Heq0.
   unfold valid_entailment, valid_clause, level_value_above.
   move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
-  intros valuation ext.
   have vmupd := model_updates v.
   have vmok := model_ok v.
   set (pm := premises_model_map _ _) in *.
@@ -242,8 +240,7 @@ Proof.
   have tr := entails_all_trans of_lset ent.
   eapply (entails_all_satisfies (l := concl0) (k := k)) in tr.
   2:{ red. rewrite /level_value he. now constructor. }
-  eapply clauses_sem_entails in tr ; tea.
-  now apply tr.
+  exact tr.
 Qed.
 
 Lemma check_entails_looping {cls cl v isl} :
@@ -491,6 +488,11 @@ Module Abstract.
         intros x hin. now apply Clauses.empty_spec in hin.
   Qed.
 
+  Lemma clauses_levels_declared m : clauses_levels (clauses m) ⊂_lset levels m.
+  Proof.
+    exact m.(model).(CorrectModel.clauses_declared).
+  Qed.
+
   Lemma init_model_levels :
     levels init_model = LevelSet.empty.
   Proof. reflexivity. Qed.
@@ -688,13 +690,24 @@ Module Abstract.
   Definition check_clauses m cls :=
     check_clauses (clauses m) cls.
 
-  Lemma check_clauses_ok m cls :
-    check_clauses m cls -> forall V, clauses_sem V (clauses m) -> clauses_sem V cls.
+  Lemma check_clauses_spec m cls :
+    check_clauses m cls <-> entails_clauses (clauses m) cls.
   Proof.
-    rewrite /check_clauses /Deciders.check_clauses.
-    move/Clauses.for_all_spec => ha V cs cl /ha.
-    destruct check eqn:ch => // _.
-    eapply check_entails in ch. now apply ch.
+    split.
+    - rewrite /check_clauses /Deciders.check_clauses.
+      move/Clauses.for_all_spec => ha cl /ha.
+      destruct check eqn:ch => // _.
+      eapply check_entails in ch. now apply ch.
+    - intros hv.
+      rewrite /check_clauses /Deciders.check_clauses.
+      eapply Clauses.for_all_spec; tc => cl hin.
+      destruct check eqn:hc => //.
+      * exfalso; eapply check_valid_looping; tea.
+        2:eapply m.(model).(model_valid).(model_ok).
+        eapply enabled_clauses_ext, m.(model).(enabled_model).
+        eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)).
+      * move/check_invalid: hc => he.
+        exfalso. elim he. now apply hv.
   Qed.
 
 End Abstract.
@@ -710,50 +723,37 @@ Module LoopChecking (LS : LevelSets).
   Definition levels := levels.
   Definition clauses := clauses.
 
+  Lemma clauses_levels_declared m : clauses_levels (clauses m) ⊂_lset levels m.
+  Proof.
+    apply clauses_levels_declared.
+  Qed.
+
   Notation univ := NES.t.
 
-  Inductive constraint_type := UnivEq | UnivLe.
-  Definition constraint := (univ * constraint_type * univ).
+  Import UnivConstraintType.ConstraintType (t, Le, Eq).
 
-  Definition clauses_of_le l r :=
-    LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (NES.t_set l) Clauses.empty.
-
-  Lemma clauses_of_le_spec l r :
-    forall cl, Clauses.In cl (clauses_of_le l r) <->
-      LevelExprSet.Exists (fun lk => cl = (r, lk)) l.
-  Proof.
-    intros cl; rewrite /clauses_of_le.
-    eapply LevelExprSetProp.fold_rec.
-    - move=> s' he; split. clsets.
-      move=> [] x []; lesets.
-    - move=> x a s' s'' hin hnin hadd ih.
-      rewrite Clauses.add_spec. split.
-      * move=> [->|]. firstorder.
-        rewrite ih. firstorder.
-      * move=> [] x' [] /hadd[<-|]; auto.
-        rewrite ih. right; firstorder.
-  Qed.
+  Definition constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
 
   Local Definition to_clauses (cstr : constraint) : Clauses.t :=
     let '(l, d, r) := cstr in
     match d with
-    | UnivLe => clauses_of_le l r
-    | UnivEq => Clauses.union (clauses_of_le l r) (clauses_of_le r l)
+    | Le => clauses_of_le l r
+    | Eq => clauses_of_eq l r
     end.
 
   Lemma to_clauses_spec l d r :
     forall cl, Clauses.In cl (to_clauses (l, d, r)) <->
     match d with
-    | UnivLe => LevelExprSet.Exists (fun lk => cl = (r, lk)) l
-    | UnivEq => LevelExprSet.Exists (fun lk => cl = (r, lk)) l \/ LevelExprSet.Exists (fun rk => cl = (l, rk)) r
+    | Le => LevelExprSet.Exists (fun lk => cl = (r, lk)) l
+    | Eq => LevelExprSet.Exists (fun lk => cl = (r, lk)) l \/ LevelExprSet.Exists (fun rk => cl = (l, rk)) r
     end.
   Proof.
     intros cl. destruct d => //=.
-    - rewrite Clauses.union_spec.
+    - apply clauses_of_le_spec.
+    - rewrite /clauses_of_eq Clauses.union_spec.
       have := clauses_of_le_spec l r cl.
       have := clauses_of_le_spec r l cl.
       firstorder.
-    - apply clauses_of_le_spec.
   Qed.
 
   Definition init_model := Impl.Abstract.init_model.
@@ -816,9 +816,9 @@ Module LoopChecking (LS : LevelSets).
   Definition check m c :=
     Impl.check_clauses m.(Impl.Abstract.clauses) (to_clauses c).
 
-  Lemma check_correct {m c} :
-    check m c -> forall V, clauses_sem V (clauses m) -> clauses_sem V (to_clauses c).
-  Proof. apply check_clauses_ok. Qed.
+  Lemma check_spec {m c} :
+    check m c <-> entails_clauses (clauses m) (to_clauses c).
+  Proof. apply check_clauses_spec. Qed.
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)

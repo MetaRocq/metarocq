@@ -2,40 +2,15 @@
 From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet.
 
-From MetaRocq.Common Require Universes.
+From MetaRocq.Common Require Universes HornClauses.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
+End Completeness.
 
-Section Completeness.
-  Reserved Notation "x ≡ y" (at level 90).
-  Record semilattice :=
-    { carrier :> Type;
-      eq : carrier -> carrier -> Prop where "x ≡ y" := (eq x y);
-      succ : carrier -> carrier;
-      join : carrier -> carrier -> carrier;
-      join_assoc x y z : join x (join y z) ≡ join (join x y) z;
-      join_comm x y : join x y ≡ join y x;
-      join_idem x : join x x ≡ x;
-      join_sub x : join x (succ x) ≡ succ x;
-      succ_inj : forall x y, succ x ≡ succ y -> x ≡ y;
-      succ_join : forall x y, succ (join x y) ≡ join (succ x) (succ y);
-    }.
-
-  Notation "x ≡ y" := (eq _ x y).
-
-  Section Derived.
-    Context (s : semilattice).
-    Definition le (x y : s) := join s x y ≡ y.
-
-    Fixpoint add (x : s) n : s :=
-      match n with
-      | 0 => x
-      | S n => succ _ (add x n)
-      end.
-  End Derived.
+Section Presentation.
 
   Definition term (V : Type) : Type := list (V * nat).
   Definition relation (V : Type) := term V -> term V -> Prop.

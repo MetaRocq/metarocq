@@ -468,6 +468,14 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
         cbn. firstorder. subst x'. now left.
   Qed.
 
+  Lemma univ_union_assoc {s t u} : univ_union (univ_union s t) u =
+    univ_union s (univ_union t u).
+  Proof.
+    apply equal_exprsets.
+    intros x. rewrite !univ_union_spec.
+    intuition auto.
+  Qed.
+
   Lemma map_map f g x : map f (map g x) = map (f ∘ g) x.
   Proof.
     apply equal_exprsets.

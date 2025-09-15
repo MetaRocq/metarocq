@@ -1,6 +1,7 @@
 -R theories MetaRocq.Common
 
 theories/Primitive.v
+theories/UnivConstraintType.v
 # theories/uGraph.v
 theories/config.v
 theories/Kernames.v

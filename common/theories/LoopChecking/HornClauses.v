@@ -76,7 +76,7 @@
 *)
 
 
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
@@ -871,14 +871,19 @@ Module Clauses (LS : LevelSets).
     firstorder. subst. red in H; subst x0. now left.
   Qed.
 
+  Lemma add_expr_0 e : add_expr 0 e = e.
+  Proof.
+    destruct e => //=. lia_f_equal.
+  Qed.
+
   Lemma add_prems_0 u : add_prems 0 u = u.
   Proof.
     rewrite /add_prems.
     apply NES.equal_exprsets.
     intros x. rewrite map_spec.
     split.
-    - intros[e [hin ->]]. unfold add_expr. now destruct e; rewrite Z.add_0_r.
-    - intros inu; exists x. split => //. destruct x. now rewrite /add_expr Z.add_0_r.
+    - intros[e [hin ->]]. now rewrite add_expr_0.
+    - intros inu; exists x. split => //. now rewrite add_expr_0.
   Qed.
 
   Lemma add_prems_of_level_set k W k' prf :
@@ -1082,13 +1087,16 @@ Module Clauses (LS : LevelSets).
   Definition entails_all cls (prems concls : premises) :=
     LevelExprSet.For_all (fun le => entails cls (prems, le)) concls.
 
-  Notation " cls ⊢ prems → concl " := (entails cls (prems, concl)) (at level 20).
-  Notation " cls ⊢a prems → concl " := (entails_all cls prems concl) (at level 20).
+  Definition entails_clauses cls cls' :=
+    Clauses.For_all (entails cls) cls'.
+
+  Notation " cls ⊢ prems → concl " := (entails cls (prems, concl)) (at level 70).
+  Notation " cls ⊢a prems → concl " := (entails_all cls prems concl) (at level 70).
 
   Definition entails_equiv cls u u' :=
     cls ⊢a u → u' /\ cls ⊢a u' → u.
 
-  Notation "cls '⊢a' u ↔ u'" := (entails_equiv cls u u') (at level 20).
+  Notation "cls '⊢a' u ↔ u'" := (entails_equiv cls u u') (at level 70).
 
   Lemma in_pred_closure_equal cls (prems prems' : premises) concl :
     LevelExprSet.Equal prems prems' ->
@@ -1279,7 +1287,7 @@ Module Clauses (LS : LevelSets).
       intros x; rewrite LevelExprSet.add_spec. firstorder.
   Qed.
 
-  Import NES (univ_union, univ_union_add_distr, univ_union_add_distr, univ_union_comm, univ_union_add_singleton).
+  Import NES (univ_union, univ_union_add_distr, univ_union_add_distr, univ_union_assoc, univ_union_spec, univ_union_comm, univ_union_add_singleton).
   Lemma entails_weak_union {cls prem concl concl'} :
     entails cls (prem, concl) ->
     entails cls (NES.univ_union concl' prem, concl).
@@ -1292,6 +1300,14 @@ Module Clauses (LS : LevelSets).
     - intros le prems ih.
       rewrite univ_union_add_distr. intros _.
       now eapply entails_weak.
+  Qed.
+
+  Lemma add_prems_univ_union {n u u'} : add_prems n (univ_union u u') = univ_union (add_prems n u) (add_prems n u').
+  Proof.
+    apply equal_exprsets => l.
+    rewrite In_add_prems.
+    rw univ_union_spec.
+    rewrite !In_add_prems. firstorder.
   Qed.
 
   Lemma entails_all_weak {cls prem concl concl'} :
@@ -1450,36 +1466,45 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Lemma entails_all_concl_union {cls prems concl concl'} :
-    cls ⊢a prems → concl ->
-    cls ⊢a prems → concl' ->
-    cls ⊢a prems → univ_union concl concl'.
+    cls ⊢a prems → univ_union concl concl' <->
+    cls ⊢a prems → concl /\ cls ⊢a prems → concl'.
   Proof.
-    intros l r.
-    rewrite /entails_all.
-    intros x. rewrite NES.univ_union_spec. intros []. now apply l. now apply r.
+    split; revgoals.
+    - move=> [] l r.
+      rewrite /entails_all.
+      intros x. rewrite NES.univ_union_spec. intros []. now apply l. now apply r.
+    - intros hu; split;
+      move=> le hin; move: (hu le) => /fwd //;
+      now rewrite NES.univ_union_spec.
   Qed.
 
   Lemma entails_all_union {cls prems concl prems' concl'} :
-    cls ⊢a prems → concl ->
-    cls ⊢a prems' → concl' ->
+    cls ⊢a prems → concl -> cls ⊢a prems' → concl' ->
     cls ⊢a univ_union prems prems' → univ_union concl concl'.
   Proof.
-    intros l r.
-    apply entails_all_concl_union.
+    move=> l r.
+    rewrite entails_all_concl_union. split.
     rewrite univ_union_comm.
     now eapply entails_all_weak_union.
     now eapply entails_all_weak_union.
   Qed.
 
-
   Lemma entails_all_shift {cls : clauses} {prems concl : premises} (n : Z) :
-    cls ⊢a prems → concl ->
+    cls ⊢a prems → concl <->
     cls ⊢a add_prems n prems → add_prems n concl.
   Proof.
-    intros cla cl.
-    rewrite In_add_prems => [[le' [hin ->]]].
-    eapply (entails_shift (cl := (prems, le'))).
-    now apply cla in hin.
+    split.
+    - intros cla cl.
+      rewrite In_add_prems => [[le' [hin ->]]].
+      eapply (entails_shift (cl := (prems, le'))).
+      now apply cla in hin.
+    - intros cla cl incl.
+      move: (cla (add_expr n cl)) => /fwd.
+      rewrite In_add_prems. exists cl; split => //.
+      move/(entails_shift (- n)) => //=.
+      rewrite !add_prems_add_prems add_expr_add_expr.
+      have -> : (- n + n = 0) by lia.
+      now rewrite add_prems_0 //= add_expr_0.
   Qed.
 
   Lemma in_pred_closure_subset {cls cls' prems concl} :
@@ -1529,6 +1554,7 @@ Module Clauses (LS : LevelSets).
   Proof.
     intros x hin. now constructor.
   Qed.
+  Hint Resolve entails_all_tauto : entails.
 
   Lemma loop_any_successor cls u n :
     cls ⊢a u → succ_prems u ->
@@ -1538,11 +1564,11 @@ Module Clauses (LS : LevelSets).
     - auto.
     - intros ass.
       specialize (IHn ass).
-      have sh := entails_all_shift 1 IHn.
+      apply (entails_all_shift 1) in IHn.
       eapply entails_all_trans. tea.
-      rewrite add_prems_add_prems in sh.
+      rewrite add_prems_add_prems in IHn.
       have eq : 1 + Z.of_nat (S n) = Z.of_nat (S (S n)) by lia.
-      now rewrite eq in sh.
+      now rewrite eq in IHn.
   Qed.
 
   Lemma entails_pred_closure_neg {cls u concl k p} :
@@ -1625,5 +1651,323 @@ Module Clauses (LS : LevelSets).
     eapply In_add_prems. exists l. split => //. cbn in ha.
     now eapply succ_clauses_equiv in ha.
   Qed.
+
+  Lemma entails_all_succ {cls s} :
+    cls ⊢a succ_prems s → s.
+  Proof.
+    intros cl hin.
+    eapply Clauses.entails_succ; tea.
+    intros l k hin'. exists (k + 1). split => //; try lia.
+    eapply In_add_prems. exists (l, k); split => //.
+  Qed.
+
+  Lemma entails_all_add_n {cls s n} :
+    cls ⊢a add_prems (Z.of_nat n) s → s.
+  Proof.
+    induction n.
+    - rewrite //= add_prems_0. apply entails_all_tauto.
+    - have -> : (Z.of_nat (S n) = 1 + Z.of_nat n) by lia.
+      rewrite -add_prems_add_prems.
+      eapply entails_all_trans; tea.
+      apply entails_all_succ.
+  Qed.
+
+  Definition clauses_of_le l r :=
+    LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (NES.t_set l) Clauses.empty.
+
+  Lemma clauses_of_le_spec l r :
+    forall cl, Clauses.In cl (clauses_of_le l r) <->
+      LevelExprSet.Exists (fun lk => cl = (r, lk)) l.
+  Proof.
+    intros cl; rewrite /clauses_of_le.
+    eapply LevelExprSetProp.fold_rec.
+    - move=> s' he; split. clsets.
+      move=> [] x []; lesets.
+    - move=> x a s' s'' hin hnin hadd ih.
+      rewrite Clauses.add_spec. split.
+      * move=> [->|]. firstorder.
+        rewrite ih. firstorder.
+      * move=> [] x' [] /hadd[<-|]; auto.
+        rewrite ih. right; firstorder.
+  Qed.
+
+  Infix "∨" := univ_union (at level 58).
+  Notation succ x := (add_prems 1%Z x).
+
+  Definition clauses_of_eq (u v : NES.t) :=
+    Clauses.union (clauses_of_le u v) (clauses_of_le v u).
+
+  Notation " cls '⊢ℋ' cls' " := (entails_clauses cls cls') (at level 70). (* \mscrH *)
+  Notation " s ⋞ t " := (clauses_of_le s t) (at level 60). (* \curlyeqprec *)
+  Notation " s ≡ t " := (clauses_of_eq s t) (at level 60). (* \allequal *)
+
+  Definition le (t u : NES.t) := t ∨ u ≡ u.
+
+  Module Theory.
+
+    Lemma eq_antisym {cls s t} :
+      cls ⊢ℋ s ≡ t <-> cls ⊢ℋ s ⋞ t /\ cls ⊢ℋ t ⋞ s.
+    Proof.
+      rewrite /clauses_of_eq /entails_clauses.
+      split => [hf|[]].
+      - split; intros l; specialize (hf l);
+        now rewrite Clauses.union_spec in hf.
+      - intros hl hr l.
+        now rewrite Clauses.union_spec.
+    Qed.
+
+    Lemma to_entails_all {cls s t} :
+      cls ⊢ℋ s ⋞ t <-> cls ⊢a t → s.
+    Proof.
+      split.
+      - intros hs l hin. apply (hs (t, l)).
+        apply clauses_of_le_spec. now exists l.
+      - intros ha l. rewrite clauses_of_le_spec.
+        intros [lk [hin ->]]. now apply ha.
+    Qed.
+
+    Lemma to_entails_equiv {cls s t} :
+      cls ⊢ℋ s ≡ t <-> cls ⊢a t ↔ s.
+    Proof.
+      rewrite eq_antisym !to_entails_all.
+      firstorder.
+    Qed.
+
+    Lemma le_succ_congr {cls s t n} :
+      cls ⊢ℋ s ⋞ t -> cls ⊢ℋ add_prems n s ⋞ add_prems n t.
+    Proof.
+      rewrite !to_entails_all.
+      eapply entails_all_shift.
+    Qed.
+
+    Lemma le_succ_inj {cls n s t} :
+      cls ⊢ℋ add_prems n s ⋞ add_prems n t -> cls ⊢ℋ s ⋞ t.
+    Proof.
+      rewrite !to_entails_all.
+      eapply entails_all_shift.
+    Qed.
+
+    Lemma succ_inj {cls n s t} :
+      cls ⊢ℋ add_prems n s ≡ add_prems n t -> cls ⊢ℋ s ≡ t.
+    Proof.
+      move/eq_antisym => [] /le_succ_inj hst.
+      move/le_succ_inj => hts.
+      now apply eq_antisym.
+    Qed.
+
+    Lemma succ_congr {cls n s t} :
+      cls ⊢ℋ s ≡ t ->
+      cls ⊢ℋ add_prems n s ≡ add_prems n t.
+    Proof.
+      move/eq_antisym => [] hle hle'.
+      apply eq_antisym; split; now apply le_succ_congr.
+    Qed.
+
+    Lemma le_refl {cls s} :
+      cls ⊢ℋ s ⋞ s.
+    Proof.
+      rewrite !to_entails_all. now constructor.
+    Qed.
+    Hint Resolve le_refl : entails.
+
+    Lemma eq_refl {cls s} :
+      cls ⊢ℋ s ≡ s.
+    Proof.
+      apply eq_antisym; split; apply le_refl.
+    Qed.
+    Hint Resolve eq_refl : entails.
+
+    Lemma le_succ {cls s} : cls ⊢ℋ s ⋞ succ s.
+    Proof.
+      eapply to_entails_all, entails_all_succ.
+    Qed.
+    Hint Resolve le_succ : entails.
+
+    Lemma eq_sym {cls s t} :
+      cls ⊢ℋ s ≡ t -> cls ⊢ℋ t ≡ s.
+    Proof.
+      now move/eq_antisym => []; rewrite eq_antisym.
+    Qed.
+    Hint Immediate eq_sym : entails.
+
+    Lemma le_trans {cls s t u} :
+      cls ⊢ℋ s ⋞ t -> cls ⊢ℋ t ⋞ u -> cls ⊢ℋ s ⋞ u.
+    Proof.
+      move/to_entails_all => h /to_entails_all h'.
+      apply to_entails_all. now eapply entails_all_trans.
+    Qed.
+
+    Lemma eq_trans {cls s t u} :
+      cls ⊢ℋ s ≡ t -> cls ⊢ℋ t ≡ u -> cls ⊢ℋ s ≡ u.
+    Proof.
+      move/eq_antisym => []; rewrite eq_antisym.
+      move=> st ts [] tu ut.
+      apply eq_antisym; split; eauto using le_trans.
+    Qed.
+
+    Lemma join_le_left {cls s t u} :
+      cls ⊢ℋ s ∨ t ⋞ u <->
+      cls ⊢ℋ s ⋞ u /\ cls ⊢ℋ t ⋞ u.
+    Proof.
+      rewrite !to_entails_all.
+      now rewrite entails_all_concl_union.
+    Qed.
+
+    Lemma join_idem {cls s} : cls ⊢ℋ s ∨ s ≡ s.
+    Proof.
+      apply eq_antisym. split.
+      - apply join_le_left; split; auto with entails.
+      - apply to_entails_all. eapply entails_all_weak_union, entails_all_tauto.
+    Qed.
+
+    Lemma join_le_right {cls s t u} :
+      cls ⊢ℋ s ⋞ t -> cls ⊢ℋ s ⋞ u ->
+      cls ⊢ℋ s ⋞ t ∨ u.
+    Proof.
+      rewrite !to_entails_all => hl hr.
+      have he := entails_all_union hl hr.
+      eapply entails_all_trans; tea.
+      have /eq_antisym [_ hle] := @join_idem cls s.
+      now eapply to_entails_all.
+    Qed.
+
+    Lemma join_comm {cls s t} : cls ⊢ℋ s ∨ t ≡ t ∨ s.
+    Proof. rewrite univ_union_comm; auto with entails. Qed.
+
+    Lemma join_assoc {cls s t u} :
+      cls ⊢ℋ s ∨ t ∨ u ≡ s ∨ (t ∨ u).
+    Proof.
+      rewrite univ_union_assoc; auto with entails.
+    Qed.
+
+    Lemma join_left {cls s t} :
+      cls ⊢ℋ s ⋞ s ∨ t.
+    Proof.
+      eapply to_entails_all.
+      rewrite univ_union_comm;apply entails_all_weak_union;
+        auto with entails.
+    Qed.
+
+    Lemma join_right {cls s t} :
+      cls ⊢ℋ s ⋞ t ∨ s.
+    Proof.
+      eapply to_entails_all. apply entails_all_weak_union;
+        auto with entails.
+    Qed.
+
+    Lemma le_spec {cls s t} : cls ⊢ℋ s ⋞ t <-> cls ⊢ℋ le s t.
+    Proof.
+      rewrite /le; split.
+      - move=> hle. apply eq_antisym. split.
+        rewrite join_le_left; split; auto with entails.
+        apply join_right.
+      - move/eq_antisym=> [] hle hle'.
+        now rewrite join_le_left in hle.
+    Qed.
+
+    Lemma join_succ {cls s} :
+      cls ⊢ℋ s ∨ succ s ≡ succ s.
+    Proof.
+      apply eq_antisym; split.
+      - apply join_le_left; split; auto with entails.
+      - apply join_right.
+    Qed.
+
+    Lemma succ_join {cls s t} :
+      cls ⊢ℋ succ (s ∨ t) ≡ succ s ∨ succ t.
+    Proof.
+      rewrite add_prems_univ_union; auto with entails.
+    Qed.
+
+    Lemma join_congr_left {cls r s t} :
+      cls ⊢ℋ s ≡ t ->
+      cls ⊢ℋ s ∨ r ≡ t ∨ r.
+    Proof.
+      intros he.
+      apply eq_antisym; split.
+      - rewrite to_entails_all. eapply entails_all_union; auto with entails.
+        apply to_entails_all. now apply eq_antisym in he.
+      - rewrite to_entails_all. eapply entails_all_union; auto with entails.
+        apply to_entails_all. now apply eq_antisym in he.
+    Qed.
+
+    Lemma join_congr_right {cls r s t} :
+      cls ⊢ℋ s ≡ t ->
+      cls ⊢ℋ r ∨ s ≡ r ∨ t.
+    Proof.
+      intros heq.
+      rewrite univ_union_comm [r ∨ _]univ_union_comm.
+      now apply join_congr_left.
+    Qed.
+
+  End Theory.
+
+  Module Semilattice.
+    Reserved Notation "x ≌ y" (at level 90).
+    Record semilattice :=
+      { carrier :> Type;
+        eq : carrier -> carrier -> Prop where "x ≌ y" := (eq x y);
+        succ : carrier -> carrier;
+        join : carrier -> carrier -> carrier;
+        join_assoc x y z : join (join x y) z ≌ join x (join y z);
+        join_comm x y : join x y ≌ join y x;
+        join_idem x : join x x ≌ x;
+        join_sub x : join x (succ x) ≌ succ x;
+        succ_inj : forall x y, succ x ≌ succ y -> x ≌ y;
+        succ_join : forall x y, succ (join x y) ≌ join (succ x) (succ y);
+      }.
+
+    Notation "x ≌ y" := (eq _ x y).
+    Local Open Scope nat_scope.
+    Section Derived.
+      Context (s : semilattice).
+      Definition le (x y : s) := join s x y ≌ y.
+
+      Fixpoint add (x : s) n : s :=
+        match n with
+        | 0 => x
+        | S n => succ _ (add x n)
+        end.
+    End Derived.
+  End Semilattice.
+
+  Section prems_semi.
+    Obligation Tactic := idtac.
+    Import Semilattice (semilattice, carrier, eq, succ, join).
+    Context (cls : Clauses.t).
+
+    Equations? leset_sl : semilattice :=
+    leset_sl := {| carrier := NES.t;
+         eq x y := cls ⊢ℋ x ≡ y;
+         succ := add_prems 1;
+         join := univ_union |}.
+    Proof.
+      all: intros.
+      - cbn. apply Theory.join_assoc.
+      - apply Theory.join_comm.
+      - apply Theory.join_idem.
+      - apply Theory.join_succ.
+      - now eapply Theory.succ_inj.
+      - apply Theory.succ_join.
+    Defined.
+  End prems_semi.
+
+  Import Semilattice.
+  Section Morphism.
+    Context (s s' : semilattice).
+    Context (f : s -> s').
+    Class respects :=
+      { of_succ x : f (succ s x) = succ s' (f x);
+        of_join x y : f (join _ x y) = join _ (f x) (f y) }.
+
+    Lemma respects_assoc {r : respects} x y z : f (join s (join s x y) z) ≌ join s' (f x) (join s' (f y) (f z)).
+    Proof.
+      rewrite !of_join. apply join_assoc.
+    Qed.
+
+    Lemma respects_comm {r : respects} x y : f (join s x y) ≌ join s' (f y) (f x).
+    Proof. rewrite !of_join. apply join_comm. Qed.
+
+  End Morphism.
 
 End Clauses.

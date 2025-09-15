@@ -123,11 +123,11 @@ Module Model (LS : LevelSets).
     - constructor. constructor.
   Qed.
 
-  Inductive findSpec l m : option (option Z) -> Prop :=
+  Inductive findSpec {A} l m : option A -> Prop :=
     | inm k : LevelMap.MapsTo l k m -> findSpec l m (Some k)
     | ninm : ~ LevelMap.In l m -> findSpec l m None.
 
-  Lemma find_spec l m : findSpec l m (LevelMap.find l m).
+  Lemma find_spec {A} l (m : LevelMap.t A) : findSpec l m (LevelMap.find l m).
   Proof.
     destruct (LevelMap.find l m) eqn:heq; constructor.
     now apply LevelMap.find_2.
@@ -1949,7 +1949,8 @@ Module Model (LS : LevelSets).
   Proof.
     rewrite /infers_atom.
     intros infa le.
-    depelim infa. eapply level_value_MapsTo' in H0. eapply le in H0 as [k' [hm hle]].
+    depelim infa. eapply level_value_MapsTo' in H0.
+    eapply le0 in H0 as [k' [hm hle]].
     rewrite (level_value_MapsTo hm). depelim hle; constructor; lia.
   Qed.
 

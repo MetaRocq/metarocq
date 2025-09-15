@@ -2,7 +2,7 @@
 (* For primitive integers and floats  *)
 From Stdlib Require Numbers.Cyclic.Int63.Uint63 Floats.PrimFloat Floats.FloatAxioms.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import BasicAst Universes Kernames.
+From MetaRocq.Common Require Import BasicAst UnivConstraintType Universes Kernames.
 From Stdlib Require Import ssreflect.
 From Equations Require Import Equations.
 
