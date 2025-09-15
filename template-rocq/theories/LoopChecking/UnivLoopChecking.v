@@ -1524,7 +1524,7 @@ End ZUnivConstraint.
       rewrite /clauses_of_eq. clsets.
   Qed.
 
-  Lemma completeness cstrs s t :
+  Lemma completeness_eq cstrs s t :
     presentation_of cstrs ⊢ℒ s ≈ t <->
     entails_z_cstr cstrs (s, ConstraintType.Eq, t).
   Proof.
@@ -1547,6 +1547,18 @@ End ZUnivConstraint.
       * now eapply Theory.succ_inj.
       * eapply Theory.succ_join.
     - move/entails_clauses_pres; apply entails_L_clauses_of_eq.
+  Qed.
+
+  Lemma completeness_le cstrs s t :
+    presentation_of cstrs ⊢ℒ s ≼ t <->
+    entails_z_cstr cstrs (s, ConstraintType.Le, t).
+  Proof.
+    unfold entails_z_cstr.
+    split.
+    - move/completeness_eq. cbn.
+      intros h; red in h. cbn in h.
+      eapply Theory.le_spec. now rewrite /C.le.
+    - move/entails_clauses_pres. apply entails_L_clauses_le.
   Qed.
 
   Import LoopCheck.Impl.I.Model.Model.Clauses.FLS.
