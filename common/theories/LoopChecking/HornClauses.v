@@ -1691,7 +1691,7 @@ Module Clauses (LS : LevelSets).
         rewrite ih. right; firstorder.
   Qed.
 
-  Infix "∨" := univ_union (at level 58).
+  Infix "∨" := univ_union (at level 10).
   Notation succ x := (add_prems 1%Z x).
 
   Definition clauses_of_eq (u v : NES.t) :=
