@@ -33,6 +33,8 @@ theories/ReflectEq.v
 theories/monad_utils.v
 theories/Show.v
 theories/utils.v
+theories/MRClasses.v
+theories/SemiLattice.v
 
 theories/NonEmptyLevelExprSet.v
 

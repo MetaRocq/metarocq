@@ -1,6 +1,6 @@
 From Stdlib Require Import OrdersAlt Structures.OrdersEx MSetList MSetAVL MSetFacts MSetProperties MSetDecide FMapAVL.
 From Equations Require Import Equations.
-From MetaRocq.Utils Require Import utils MRMSets MRFSets NonEmptyLevelExprSet.
+From MetaRocq.Utils Require Import utils MRMSets MRFSets NonEmptyLevelExprSet MRClasses.
 From MetaRocq.Common Require Import BasicAst config UnivConstraintType.
 From Stdlib Require Import ssreflect.
 
@@ -383,6 +383,20 @@ Module Universe.
         - non empty *)
   Module Q <: Quantity.
     Include OrdersEx.Nat_as_OT.
+
+    #[program]
+    Instance comm_monoid : CommutativeMonoid 0%nat add.
+    Next Obligation.
+      apply add_assoc.
+    Qed.
+    Next Obligation.
+      apply add_comm.
+    Qed.
+    Instance add_inj n : Injective (add n).
+    Proof.
+      red. intros x y; lia.
+    Qed.
+
     Definition reflect_eq : ReflectEq t := _.
     Definition eq_leibniz x y : eq x y -> x = y := fun e => e.
   End Q.

@@ -1,6 +1,7 @@
 From Stdlib Require Import Nat ZArith Bool.
 
 From MetaRocq.Utils Require Export MRPrelude
+        MRClasses
         MRReflect
         All_Forall
         MRArith

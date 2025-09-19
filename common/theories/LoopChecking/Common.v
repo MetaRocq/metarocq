@@ -2,7 +2,7 @@
 From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils SemiLattice.
 
 From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
@@ -59,8 +59,6 @@ Proof.
   now transitivity y.
 Qed.
 
-
-Class Commutative {A} (f : A -> A -> A) := comm : forall x y, f x y = f y x.
 Instance option_map_2_comm {A} f : @Commutative A f -> @Commutative (option A) (option_map2 f).
 Proof.
   intros com [x|] [y|] => //=. now rewrite comm.
@@ -72,7 +70,6 @@ Instance Zmax_comm : Commutative Z.max := Z.max_comm.
 Instance nat_min_comm : Commutative Nat.min := Nat.min_comm.
 Instance nat_max_comm : Commutative Nat.max := Nat.max_comm.
 
-Class Associative {A} (f : A -> A -> A) := assoc : forall x y z, f x (f y z) = f (f x y) z.
 Instance option_map_2_assoc {A} f : @Associative A f -> @Associative (option A) (option_map2 f).
 Proof.
   intros assoc [x|] [y|] [z|]; cbn => //. now rewrite assoc.
@@ -237,78 +234,86 @@ Proof.
   now rewrite (assoc (f := option_map2 Z.max)) (comm (f := option_map2 Z.max) x y) -assoc.
 Qed.
 
-Local Open Scope Z_scope.
-Lemma fold_right_max_in {a l} n : In a l -> a <= fold_right Z.max n l.
-Proof.
-  induction l.
-  - now cbn.
-  - intros [eq|inl]. subst a0. cbn. lia.
-    cbn. specialize (IHl inl). lia.
-Qed.
+Section ForSemilattice.
+  Import Semilattice.
+  Context {A : Type} {SL : Semilattice A}.
+  Open Scope sl_scope.
 
-Lemma fold_right_max_acc {n l} : n <= fold_right Z.max n l.
-Proof.
-  induction l.
-  - now cbn.
-  - cbn. lia.
-Qed.
+  Lemma fold_right_max_in {a : A} {l : list A} n : In a l -> a ≤ (fold_right join n l).
+  Proof.
+    induction l.
+    - now cbn.
+    - intros [eq|inl]. subst a0. cbn. apply join_le_left.
+      cbn. specialize (IHl inl). etransitivity; tea. apply join_le_right.
+  Qed.
 
-Lemma fold_right_impl n l l' :
-  (forall x, In x l -> In x l') -> fold_right Z.max n l <= fold_right Z.max n l'.
-Proof.
-  induction l in l' |- *.
-  - cbn. destruct l'; cbn. lia.
-    intros. have := @fold_right_max_acc n l'. lia.
-  - cbn; intros h.
-    have inal' := (h a (or_introl eq_refl)).
-    have := fold_right_max_in n inal'.
-    specialize (IHl l').
-    forward IHl.
-    intros. apply h. now right.
-    lia.
-Qed.
+  Lemma fold_right_max_acc {n l} : n ≤ fold_right join n l.
+  Proof.
+    induction l.
+    - now cbn.
+    - cbn. etransitivity; tea. eapply join_le_right.
+  Qed.
 
-Lemma fold_right_max_spec n l :
-  let fn := fold_right Z.max in
-  (forall x, In x (n :: l) -> x <= fn n l) /\
-  (exists x, In x (n :: l) /\ fn n l = x).
-Proof.
-  induction l; cbn.
-  - split. intros x [] => //. now subst.
-    exists n. firstorder.
-  - cbn in IHl. destruct IHl as [h h'].
-    split.
-    intros x [|[]]; subst.
-    * specialize (h x). forward h by auto. lia.
-    * lia.
-    * specialize (h x). forward h by auto. lia.
-    * destruct h' as [x []]. exists (Z.max a x). rewrite -{4}H0. split => //.
-      destruct H; subst.
-      destruct (Z.max_spec a x) as [[]|[]]; firstorder; subst.
-      destruct (Z.max_spec a (fold_right Z.max n l)) as [[]|[]]; firstorder; subst. rewrite H1.
-      auto.
-Qed.
+  Lemma fold_right_impl n l l' :
+    (forall x, In x l -> In x l') -> fold_right join n l ≤ fold_right join n l'.
+  Proof.
+    induction l in l' |- *.
+    - cbn. destruct l'; cbn. reflexivity.
+      intros. have := @fold_right_max_acc n l'.
+      etransitivity; tea; eapply join_le_right.
+    - cbn; intros h.
+      have inal' := (h a (or_introl eq_refl)).
+      have := fold_right_max_in n inal'.
+      specialize (IHl l').
+      forward IHl.
+      intros. apply h. now right.
+      lia.
+  Qed.
 
-Lemma fold_right_equivlist_all n n' l l' :
-  equivlistA eq (n :: l) (n' :: l') -> fold_right Z.max n l = fold_right Z.max n' l'.
-Proof.
-  intros eq.
-  have [hla [maxl [inmaxl eqmaxl]]] := fold_right_max_spec n l.
-  have [hra [maxr [inmaxr eqmaxr]]] := fold_right_max_spec n' l'.
-  rewrite eqmaxl eqmaxr.
-  red in eq; setoid_rewrite InA_In_eq in eq.
-  apply (eq _) in inmaxl. apply hra in inmaxl.
-  apply eq in inmaxr. apply hla in inmaxr. lia.
-Qed.
+  Lemma fold_right_max_spec n l :
+    let fn := fold_right Z.max in
+    (forall x, In x (n :: l) -> x <= fn n l) /\
+    (exists x, In x (n :: l) /\ fn n l = x).
+  Proof.
+    induction l; cbn.
+    - split. intros x [] => //. now subst.
+      exists n. firstorder.
+    - cbn in IHl. destruct IHl as [h h'].
+      split.
+      intros x [|[]]; subst.
+      * specialize (h x). forward h by auto. lia.
+      * lia.
+      * specialize (h x). forward h by auto. lia.
+      * destruct h' as [x []]. exists (Z.max a x). rewrite -{4}H0. split => //.
+        destruct H; subst.
+        destruct (Z.max_spec a x) as [[]|[]]; firstorder; subst.
+        destruct (Z.max_spec a (fold_right Z.max n l)) as [[]|[]]; firstorder; subst. rewrite H1.
+        auto.
+  Qed.
 
-Lemma fold_right_comm acc l : l <> [] -> fold_right Z.max acc l = Z.max acc (fold_right Z.max (List.hd acc l) (List.tl l)).
-Proof.
-  induction l in acc |- *.
-  - intros; congruence.
-  - intros _. cbn. destruct l; cbn. lia.
-    cbn in IHl. rewrite (IHl acc). congruence.
-    rewrite (IHl a). congruence. lia.
-Qed.
+  Lemma fold_right_equivlist_all max n n' l l' :
+    equivlistA eq (n :: l) (n' :: l') -> fold_right Z.max n l = fold_right Z.max n' l'.
+  Proof.
+    intros eq.
+    have [hla [maxl [inmaxl eqmaxl]]] := fold_right_max_spec n l.
+    have [hra [maxr [inmaxr eqmaxr]]] := fold_right_max_spec n' l'.
+    rewrite eqmaxl eqmaxr.
+    red in eq; setoid_rewrite InA_In_eq in eq.
+    apply (eq _) in inmaxl. apply hra in inmaxl.
+    apply eq in inmaxr. apply hla in inmaxr. lia.
+  Qed.
+
+  Lemma fold_right_comm acc l : l <> [] -> fold_right Z.max acc l = Z.max acc (fold_right Z.max (List.hd acc l) (List.tl l)).
+  Proof.
+    induction l in acc |- *.
+    - intros; congruence.
+    - intros _. cbn. destruct l; cbn. lia.
+      cbn in IHl. rewrite (IHl acc). congruence.
+      rewrite (IHl a). congruence. lia.
+  Qed.
+
+
+End ForSemilattice.
 
 Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
   fold_left (fun acc l => f (g l) acc) l acc =

@@ -824,7 +824,7 @@ Module LoopChecking (LS : LevelSets).
     that make the enforced clauses valid. *)
   Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model).
 
-  Definition model_valuation m : clauses_sem (valuation m) (clauses m).
+  Definition model_valuation m : clauses_sem (to_val (valuation m)) (clauses m).
   Proof.
     destruct m as [levels clauses []]; cbn.
     apply valid_clauses_model; tea; cbn.

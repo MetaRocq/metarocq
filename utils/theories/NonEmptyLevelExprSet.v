@@ -3,7 +3,7 @@ From Equations Require Import Equations.
 Set Equations Transparent.
 From Corelib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import SetoidList Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import MRPrelude ReflectEq MRString MRList.
+From MetaRocq.Utils Require Import MRPrelude ReflectEq MRString MRList MRClasses.
 
 Module Type OrderedTypeWithLeibniz.
   Include UsualOrderedType.
@@ -21,6 +21,8 @@ Module Type Quantity.
   Include OrderedTypeWithLeibniz.
   Parameter zero : t.
   Parameter add : t -> t -> t.
+  Declare Instance comm_monoid : CommutativeMonoid zero add.
+  Declare Instance add_inj n : Injective (add n).
 End Quantity.
 
 Module Type LevelExprT (Level : OrderedTypeWithLeibniz) (Q : Quantity).
@@ -58,7 +60,9 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Module LevelExprSetExtraDecide := MSetDecide.Decide LevelExprSet.
   Ltac lesets := LevelExprSetDecide.fsetdec.
 
-  Import LevelExprSet.
+  Import -(notations) LevelExprSet.
+  Infix "⊂_leset" := LevelExprSet.Subset (at level 90).
+  Infix "=_leset" := LevelExprSet.Equal (at level 90).
 
   Definition level : LevelExpr.t -> Level.t := fst.
 
@@ -74,6 +78,8 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Record t := { t_set :> LevelExprSet.t ; t_ne : is_empty t_set = false }.
 
   Existing Instance LevelExprSet.reflect_eq.
+  Existing Instance Q.comm_monoid.
+  Existing Instance Q.add_inj.
 
   (* We use uip on the is_empty condition *)
   #[export, program] Instance reflect_eq : ReflectEq t :=
@@ -483,5 +489,87 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     rewrite !map_spec. setoid_rewrite map_spec.
     firstorder eauto. subst. firstorder.
   Qed.
+
+  Definition add_expr n '((l, k) : LevelExpr.t) := (l, Q.add n k).
+
+  Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (Q.add n n') lk.
+  Proof. destruct lk; unfold add_expr. f_equal. symmetry. now rewrite (MRClasses.assoc (f:=Q.add)). Qed.
+  Definition add_prems n s := map (add_expr n) s.
+
+  Lemma In_add_prems k (prems : t):
+    forall le, LevelExprSet.In le (add_prems k prems) <->
+      exists le', LevelExprSet.In le' prems /\ le = add_expr k le'.
+  Proof.
+    intros [l k'].
+    now rewrite /add_prems map_spec.
+  Qed.
+
+  Lemma add_expr_inj {n e e'} : add_expr n e = add_expr n e' -> e = e'.
+  Proof.
+    destruct e, e'; cbn; rewrite /add_expr.
+    move=> [=] ->.
+    now move/(inj (f:=Q.add n)) => ->.
+  Qed.
+
+  Lemma add_prems_inj n prems prems' : add_prems n prems = add_prems n prems' -> prems = prems'.
+  Proof.
+    rewrite /add_prems => /equal_exprsets hm.
+    apply equal_exprsets.
+    intros [l k]. specialize (hm (l, Q.add n k)).
+    rewrite !map_spec in hm. destruct hm as [hl hr].
+    split; intros hin.
+    - forward hl. exists (l, k); split => //.
+      destruct hl as [[] [hin' eq]].
+      apply (@add_expr_inj n (l, k)) in eq.
+       now noconf eq.
+    - forward hr. exists (l, k); split => //.
+      destruct hr as [[] [hin' eq]].
+      apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
+  Qed.
+
+  Lemma inj_add_prems_sub {n u u'} : add_prems n u ⊂_leset add_prems n u' -> u ⊂_leset u'.
+  Proof.
+    rewrite /add_prems.
+    intros hm [l k]. specialize (hm (l, Q.add n k)).
+    rewrite !map_spec in hm.
+    intros hin.
+    forward hm. exists (l, k); split => //.
+    destruct hm as [[] [hin' eq]].
+    apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
+  Qed.
+
+  Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (Q.add n n') lk.
+  Proof. destruct lk; unfold add_prems.
+    rewrite map_map. apply equal_exprsets.
+    intros x. rewrite !map_spec. cbn in *.
+    firstorder eauto. subst. exists x0.
+    firstorder eauto. now rewrite add_expr_add_expr.
+    subst. exists x0.
+    firstorder eauto. now rewrite add_expr_add_expr.
+  Qed.
+
+  Lemma add_prems_add {n lk prems} : add_prems n (add lk prems) = add (add_expr n lk) (add_prems n prems).
+  Proof.
+    apply equal_exprsets. intros x.
+    rewrite In_add_prems LevelExprSet.add_spec In_add_prems /LevelExprSet.E.eq;
+      setoid_rewrite LevelExprSet.add_spec.
+    firstorder. subst. red in H; subst x0. now left.
+  Qed.
+
+  Lemma add_expr_0 e : add_expr Q.zero e = e.
+  Proof.
+    destruct e => //=. now rewrite neutral.
+  Qed.
+
+  Lemma add_prems_0 u : add_prems Q.zero u = u.
+  Proof.
+    rewrite /add_prems.
+    apply equal_exprsets.
+    intros x. rewrite map_spec.
+    split.
+    - intros[e [hin ->]]. now rewrite add_expr_0.
+    - intros inu; exists x. split => //. now rewrite add_expr_0.
+  Qed.
+
 
 End NonEmptyLevelExprSet.

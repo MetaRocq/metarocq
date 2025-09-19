@@ -242,6 +242,8 @@ Module Model (LS : LevelSets).
   | update_one m cl m' : Clauses.In cl cls ->
     s =_lset (LevelSet.singleton (clause_conclusion cl)) ->
     strict_update m cl m' -> strictly_updates cls s m m'
+
+
   | update_trans {ls ls' m m' m''} :
     strictly_updates cls ls m m' ->
     strictly_updates cls ls' m' m'' ->
@@ -1235,7 +1237,7 @@ Module Model (LS : LevelSets).
   Proof.
     intros l k; rewrite /to_positive.
     rewrite In_add_prems. split.
-    - move=> hin; exists (l, k). split => //.
+    - move=> hin; exists (l, k). split => //. rewrite /add_expr; lia_f_equal.
     - move=> [] [l' k'] [] hin heq. noconf heq.
       now have -> : k = k' by lia.
   Qed.
@@ -1245,7 +1247,7 @@ Module Model (LS : LevelSets).
     intros l k; rewrite /to_positive.
     rewrite In_add_prems. split.
     - move=> [] [l' k'] [] hin heq. noconf heq.
-      now have <- : k' = k' + - premise_min s + premise_min s by lia.
+      now have <- : k' = - premise_min s + k' + premise_min s by lia.
     - move=> hin; exists (l, k + premise_min s). split => //.
       cbn. lia_f_equal.
   Qed.
@@ -2838,7 +2840,9 @@ Lemma is_update_of_empty cls m :
       eapply (entails_all_one (concl := add_prems (z - mink) prems)) => //.
       eapply level_value_MapsTo' in hminprem.
       rewrite -hypss in hminprem.
-      eapply hyps_entails; tea. red in eq; subst. exact entailscl.
+      eapply hyps_entails; tea. red in eq; subst.
+      have -> : (k + (z - mink) = z - mink + k)%Z by lia.
+      exact entailscl.
       constructor. now rewrite of_level_map_spec.
     - have hnemid : defined_map m'. by exact: strictly_updates_defined_map su.
       specialize (ihsu hne hnemid).
@@ -2901,7 +2905,8 @@ Lemma is_update_of_empty cls m :
     cls ⊢a of_level_map m nem → succ_prems (of_level_map m nem).
   Proof.
     intros tot cla mp [l k].
-    rewrite In_add_prems => [] [[l' k']] [] /of_level_map_spec hm [=] -> ->.
+    rewrite In_add_prems => [] [[l' k']] [] /of_level_map_spec hm.
+    rewrite /succ_expr => he. noconf he. rewrite Z.add_comm.
     eapply entails_any_one; tea. exact tot. apply tot. now exists (Some k').
   Qed.
 
@@ -2939,59 +2944,199 @@ Lemma is_update_of_empty cls m :
   Qed.
 
   Section Semantics.
-
+    Import Semilattice.
     Section Interpretation.
-      Context (V : LevelMap.t nat).
+      Context {A : Type} {s : Semilattice A}.
+      Context (V : Level.t -> A).
 
-      Definition interp_level l :=
-        match LevelMap.find l V with
-        | Some x => x
-        | None => 0%nat
-        end.
-
-      Definition interp_expr '(l, k) := (Z.of_nat (interp_level l) + k)%Z.
+      Definition interp_expr '(l, k) := (add k (V l))%Z.
       Definition interp_prems prems :=
         let '(hd, tl) := to_nonempty_list prems in
-        fold_right (fun lk acc => Z.max (interp_expr lk) acc) (interp_expr hd) tl.
+        fold_right (fun lk acc => join (interp_expr lk) acc) (interp_expr hd) tl.
 
       Definition clause_sem (cl : clause) : Prop :=
         let '(prems, concl) := cl in
-        (interp_prems prems >= interp_expr concl)%Z.
+        le (interp_prems prems) (interp_expr concl).
 
       Definition clauses_sem (cls : clauses) : Prop :=
         Clauses.For_all clause_sem cls.
     End Interpretation.
 
-    (* There exists a valuation making all clauses true in the natural numbers *)
-    Definition satisfiable (cls : clauses) :=
-      exists V, clauses_sem V cls.
+    Section OfSL.
+      Context {A} {SL : Semilattice A}.
+      Declare Scope sl_scope.
+      Infix "≤" := le : sl_scope.
+      Infix "≡" := eq : sl_scope.
+      Local Open Scope sl_scope.
 
-    (* Any valuation making all clauses valid in the natural numbers also satisfies the clause cl *)
-    Definition entails_sem (cls : clauses) (cl : clause) :=
-      forall V, clauses_sem V cls -> clause_sem V cl.
+      (* There exists a valuation making all clauses true in the natural numbers *)
+      Definition satisfiable (cls : clauses) :=
+        exists V, clauses_sem V cls.
 
-    Lemma interp_add_expr V n e : interp_expr V (add_expr n e) = n + interp_expr V e.
-    Proof.
-      destruct e as [l k]; cbn. lia.
-    Qed.
+      (* Any valuation making all clauses valid in the given semilattice also satisfies the clause cl *)
+      Definition entails_sem (cls : clauses) (cl : clause) :=
+        forall V, clauses_sem V cls -> clause_sem V cl.
 
-    Lemma interp_prems_singleton V e :
-      interp_prems V (NES.singleton e) = interp_expr V e.
-    Proof.
-      rewrite /interp_prems.
-      now rewrite singleton_to_nonempty_list /=.
-    Qed.
+      Lemma interp_add_expr V n e :
+        interp_expr V (add_expr n e) ≡ add n (interp_expr V e).
+      Proof.
+        destruct e as [l k]; cbn. now rewrite add_distr.
+      Qed.
 
+      Lemma interp_prems_singleton V e :
+        interp_prems V (NES.singleton e) = interp_expr V e.
+      Proof.
+        rewrite /interp_prems.
+        now rewrite singleton_to_nonempty_list /=.
+      Qed.
+
+      Lemma interp_prems_ge v (prems : premises) :
+        forall prem, LevelExprSet.In prem prems ->
+        interp_expr v prem ≤ interp_prems v prems.
+      Proof.
+        intros.
+        unfold interp_prems.
+        have he := to_nonempty_list_spec prems.
+        destruct to_nonempty_list.
+        pose proof to_nonempty_list_spec'.
+        rewrite In_elements in H. rewrite -he in H. clear H0 he. clear -H.
+        destruct H. subst p.
+        - induction l. cbn. auto.
+          cbn. red. eapply join_idem. cbn.
+          etransitivity; tea.
+          apply join_le_right.
+        - induction l in H |- *.
+          now cbn in H.
+          cbn in H. destruct H; subst; cbn.
+          * cbn. apply join_le_left.
+          * specialize (IHl H). etransitivity; tea. apply join_le_right.
+      Qed.
+
+      Lemma interp_prems_elements V u :
+        interp_prems V u = fold_right join (interp_expr V (to_nonempty_list u).1) (List.map (interp_expr V) (to_nonempty_list u).2).
+      Proof.
+        rewrite /interp_prems.
+        have he := to_nonempty_list_spec u.
+        destruct to_nonempty_list.
+        now rewrite Universes.fold_right_map.
+      Qed.
+
+      Lemma fold_right_interp {V : Level.t -> A} {x l x' l'} :
+        equivlistA Logic.eq (x :: l) (x' :: l') ->
+        fold_right join (interp_expr V x) (List.map (interp_expr V) l) = fold_right join (interp_expr V x') (List.map (interp_expr V) l').
+      Proof.
+        intros eq. apply fold_right_equivlist_all.
+        intros a. rewrite !InA_In_eq.
+        rewrite !(in_map_iff (interp_expr V) (_ :: _)).
+        setoid_rewrite <-InA_In_eq.
+        split.
+        - move=> [b [<- ]].
+          eexists; split; trea. now apply eq in b0.
+        - move=> [b [<- ]].
+          eexists; split; trea. now apply eq in b0.
+      Qed.
+
+      Lemma equivlistA_add le u : let l := to_nonempty_list (NES.add le u) in
+        equivlistA eq (l.1 :: l.2) (le :: LevelExprSet.elements u).
+      Proof.
+        have he := to_nonempty_list_spec (NES.add le u).
+        destruct to_nonempty_list. cbn.
+        intros x. rewrite he.
+        rewrite !LevelExprSet.elements_spec1.
+        split.
+        - move/LevelExprSet.add_spec => [->|hin].
+          now constructor. constructor 2. now apply LevelExprSet.elements_spec1.
+        - intros h; depelim h; subst. now apply LevelExprSet.add_spec; left.
+          apply LevelExprSet.add_spec. now apply LevelExprSet.elements_spec1 in h.
+      Qed.
+
+      Lemma interp_prems_add V le (u : premises) :
+        interp_prems V (NES.add le u) = Z.max (interp_expr V le) (interp_prems V u).
+      Proof.
+        rewrite 2!interp_prems_elements.
+        erewrite fold_right_interp. 2:apply equivlistA_add.
+        rewrite fold_right_comm.
+        { apply map_nil, elements_not_empty. }
+        f_equal. eapply fold_right_equivlist_all.
+        have he := to_nonempty_list_spec u.
+        destruct to_nonempty_list. rewrite -he //=.
+      Qed.
+
+      Lemma interp_prems_elim (P : premises -> Z -> Prop) V :
+        (forall le, P (NES.singleton le) (interp_expr V le)) ->
+        (forall le u k, P u k -> ~ LevelExprSet.In le u -> P (NES.add le u) (Z.max (interp_expr V le) k)) ->
+        forall u, P u (interp_prems V u).
+      Proof.
+        intros hs hadd.
+        eapply elim.
+        - intros le. rewrite interp_prems_singleton. apply hs.
+        - intros le prems ih hnin.
+          rewrite interp_prems_add. now apply hadd.
+      Qed.
+
+      Local Open Scope Z_scope.
+      Lemma interp_add_prems V n e : interp_prems V (add_prems n e) = n + interp_prems V e.
+      Proof.
+        revert e.
+        refine (interp_prems_elim (fun u z => interp_prems V (add_prems n u) = n + z) _ _ _).
+        - intros le.
+          rewrite add_prems_singleton interp_prems_singleton //=.
+          destruct le; cbn. lia.
+        - intros le u k heq hnin.
+          rewrite add_prems_add.
+          rewrite interp_prems_add heq interp_add_expr. lia.
+      Qed.
+
+
+      Lemma interp_prems_in {V le} {u : premises} : LevelExprSet.In le u -> interp_prems V u >= interp_expr V le.
+      Proof.
+        revert u.
+        refine (interp_prems_elim (fun u z => LevelExprSet.In le u -> z >= interp_expr V le) V _ _).
+        - intros le' u'.
+          apply LevelExprSet.singleton_spec in u'. red in u'; subst. lia.
+        - move=> le' u z hz hnin /LevelExprSet.add_spec [->|hin]. lia.
+          specialize (hz hin). lia.
+      Qed.
+
+      Lemma clauses_sem_subset {u u' : premises} : u ⊂_leset u' ->
+        forall V, interp_prems V u' >= interp_prems V u.
+      Proof.
+        intros hsub V.
+        revert u u' hsub.
+        refine (interp_prems_elim (fun u z => forall u' : premises, u ⊂_leset u' -> interp_prems V u' >= z) V _ _).
+        - intros le u' hsing.
+          specialize (hsing le). forward hsing by now apply LevelExprSet.singleton_spec.
+          now apply interp_prems_in.
+        - intros le u k ih hin u' sub.
+          have hle := sub le.
+          specialize (ih u').
+          forward ih. intros x hin'. apply sub. now apply LevelExprSet.add_spec; right.
+          forward hle by now apply LevelExprSet.add_spec; left.
+          have hi := interp_prems_in (V := V) hle. lia.
+      Qed.
+
+
+    End OfSL.
   End Semantics.
 
   Definition enabled_clause (m : model) (cl : clause) :=
-  exists z, min_premise m (premise cl) = Some z.
+    exists z, min_premise m (premise cl) = Some z.
 
   Definition enabled_clauses (m : model) (cls : clauses) :=
     Clauses.For_all (enabled_clause m) cls.
 
-  Definition correct_model (cls : clauses) (m : model) :=
-    enabled_clauses m cls /\ clauses_sem (valuation_of_model m) cls.
+
+  Import Semilattice.
+
+  Definition to_val (v : LevelMap.t nat) l :=
+    match LevelMap.find l v with
+    | Some n => n
+    | None => 0%nat
+    end.
+
+  (* Interprest in a nat semilattice only *)
+  Definition correct_model {SL : Semilattice nat} (cls : clauses) (m : model) :=
+    enabled_clauses m cls /\ clauses_sem (to_val (valuation_of_model m)) cls.
 
   Lemma enabled_clause_ext {m m' cl} :
     m ⩽ m' -> enabled_clause m cl -> enabled_clause m' cl.
@@ -3011,101 +3156,6 @@ Lemma is_update_of_empty cls m :
     now apply enabled_clause_ext.
   Qed.
 
-  Lemma interp_prems_ge v (prems : premises) :
-    forall prem, LevelExprSet.In prem prems ->
-    interp_expr v prem <= interp_prems v prems.
-  Proof.
-    intros.
-    unfold interp_prems.
-    have he := to_nonempty_list_spec prems.
-    destruct to_nonempty_list.
-    pose proof to_nonempty_list_spec'.
-    rewrite In_elements in H. rewrite -he in H. clear H0 he. clear -H.
-    destruct H. subst p.
-    - induction l. cbn. auto.
-      cbn. lia. cbn. lia.
-    - induction l in H |- *.
-      now cbn in H.
-      cbn in H. destruct H; subst; cbn.
-      * cbn. lia.
-      * specialize (IHl H). lia.
-  Qed.
-
-  Lemma interp_prems_elements V u :
-    interp_prems V u = fold_right Z.max (interp_expr V (to_nonempty_list u).1) (List.map (interp_expr V) (to_nonempty_list u).2).
-  Proof.
-    rewrite /interp_prems.
-    have he := to_nonempty_list_spec u.
-    destruct to_nonempty_list.
-    now rewrite Universes.fold_right_map.
-  Qed.
-
-  Lemma fold_right_interp {V x l x' l'} :
-    equivlistA eq (x :: l) (x' :: l') ->
-    fold_right Z.max (interp_expr V x) (List.map (interp_expr V) l) = fold_right Z.max (interp_expr V x') (List.map (interp_expr V) l').
-  Proof.
-    intros eq. apply fold_right_equivlist_all.
-    intros a. rewrite !InA_In_eq.
-    rewrite !(in_map_iff (interp_expr V) (_ :: _)).
-    setoid_rewrite <-InA_In_eq.
-    split.
-    - move=> [b [<- ]].
-      eexists; split; trea. now apply eq in b0.
-    - move=> [b [<- ]].
-      eexists; split; trea. now apply eq in b0.
-  Qed.
-
-  Lemma equivlistA_add le u : let l := to_nonempty_list (NES.add le u) in
-    equivlistA eq (l.1 :: l.2) (le :: LevelExprSet.elements u).
-  Proof.
-    have he := to_nonempty_list_spec (NES.add le u).
-    destruct to_nonempty_list. cbn.
-    intros x. rewrite he.
-    rewrite !LevelExprSet.elements_spec1.
-    split.
-    - move/LevelExprSet.add_spec => [->|hin].
-      now constructor. constructor 2. now apply LevelExprSet.elements_spec1.
-    - intros h; depelim h; subst. now apply LevelExprSet.add_spec; left.
-      apply LevelExprSet.add_spec. now apply LevelExprSet.elements_spec1 in h.
-  Qed.
-
-  Lemma interp_prems_add V le (u : premises) :
-    interp_prems V (NES.add le u) = Z.max (interp_expr V le) (interp_prems V u).
-  Proof.
-    rewrite 2!interp_prems_elements.
-    erewrite fold_right_interp. 2:apply equivlistA_add.
-    rewrite fold_right_comm.
-    { apply map_nil, elements_not_empty. }
-    f_equal. eapply fold_right_equivlist_all.
-    have he := to_nonempty_list_spec u.
-    destruct to_nonempty_list. rewrite -he //=.
-  Qed.
-
-  Lemma interp_prems_elim (P : premises -> Z -> Prop) V :
-    (forall le, P (NES.singleton le) (interp_expr V le)) ->
-    (forall le u k, P u k -> ~ LevelExprSet.In le u -> P (NES.add le u) (Z.max (interp_expr V le) k)) ->
-    forall u, P u (interp_prems V u).
-  Proof.
-    intros hs hadd.
-    eapply elim.
-    - intros le. rewrite interp_prems_singleton. apply hs.
-    - intros le prems ih hnin.
-      rewrite interp_prems_add. now apply hadd.
-  Qed.
-
-  Local Open Scope Z_scope.
-  Lemma interp_add_prems V n e : interp_prems V (add_prems n e) = n + interp_prems V e.
-  Proof.
-    revert e.
-    refine (interp_prems_elim (fun u z => interp_prems V (add_prems n u) = n + z) _ _ _).
-    - intros le.
-      rewrite add_prems_singleton interp_prems_singleton //=.
-      destruct le; cbn. lia.
-    - intros le u k heq hnin.
-      rewrite add_prems_add.
-      rewrite interp_prems_add heq interp_add_expr. lia.
-  Qed.
-
   Lemma in_pred_closure_entails cls cl :
     in_pred_closure cls cl ->
     (forall V, clauses_sem V cls -> clause_sem V cl).
@@ -3123,38 +3173,11 @@ Lemma is_update_of_empty cls m :
       cbn. lia.
   Qed.
 
-  Lemma interp_prems_in {V le} {u : premises} : LevelExprSet.In le u -> interp_prems V u >= interp_expr V le.
-  Proof.
-    revert u.
-    refine (interp_prems_elim (fun u z => LevelExprSet.In le u -> z >= interp_expr V le) V _ _).
-    - intros le' u'.
-      apply LevelExprSet.singleton_spec in u'. red in u'; subst. lia.
-    - move=> le' u z hz hnin /LevelExprSet.add_spec [->|hin]. lia.
-      specialize (hz hin). lia.
-  Qed.
-
-  Lemma clauses_sem_subset {u u' : premises} : u ⊂_leset u' ->
-    forall V, interp_prems V u' >= interp_prems V u.
-  Proof.
-    intros hsub V.
-    revert u u' hsub.
-    refine (interp_prems_elim (fun u z => forall u' : premises, u ⊂_leset u' -> interp_prems V u' >= z) V _ _).
-    - intros le u' hsing.
-      specialize (hsing le). forward hsing by now apply LevelExprSet.singleton_spec.
-      now apply interp_prems_in.
-    - intros le u k ih hin u' sub.
-      have hle := sub le.
-      specialize (ih u').
-      forward ih. intros x hin'. apply sub. now apply LevelExprSet.add_spec; right.
-      forward hle by now apply LevelExprSet.add_spec; left.
-      have hi := interp_prems_in (V := V) hle. lia.
-  Qed.
-
   (** Enabled and valid clauses are satisfied by valuation *)
   Lemma valid_clause_model model cl :
     enabled_clause model cl ->
     valid_clause model cl ->
-    clause_sem (valuation_of_model model) cl.
+    clause_sem (to_val (valuation_of_model model)) cl.
   Proof.
     unfold enabled_clause, valid_clause.
     destruct min_premise eqn:hmin => //= => //.
@@ -3163,13 +3186,13 @@ Lemma is_update_of_empty cls m :
     destruct cl as [prems [concl k]]; cbn.
     unfold level_value_above.
     destruct level_value eqn:hl => //.
-    unfold interp_level. unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
+    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
     move/Z.leb_le => hrel.
     eapply LevelMap.find_2 in hfind.
     have conclm := valuation_of_model_spec _ _ _ hfind.
     set (v := (model_max _ - _)) in *.
     cbn in conclm.
-    eapply LevelMap.find_1 in conclm. rewrite conclm.
+    eapply LevelMap.find_1 in conclm.
     subst v.
     pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
     rewrite hmin in premeq.
@@ -3183,8 +3206,7 @@ Lemma is_update_of_empty cls m :
     intros [= <-].
     eapply LevelMap.find_2 in findp.
     have premm := valuation_of_model_spec _ _ _ findp.
-    unfold interp_level.
-    eapply LevelMap.find_1 in premm. rewrite premm.
+    eapply LevelMap.find_1 in premm.
     assert (z1 - k' <= z0 - k). lia.
     have hm : z0 <= model_max model.
     { eapply model_max_spec in hfind; tea. now depelim hfind. }
@@ -3196,13 +3218,14 @@ Lemma is_update_of_empty cls m :
     { eapply model_min_spec; tea. }
     assert (0 <= model_max model)%Z by apply model_max_spec2.
     assert (model_min model <= 0)%Z by apply model_min_spec2.
+    rewrite /to_val premm conclm.
     lia.
   Qed.
 
   Lemma valid_clauses_model model cls :
     enabled_clauses model cls ->
     is_model cls model ->
-    clauses_sem (valuation_of_model model) cls.
+    clauses_sem (to_val (valuation_of_model model)) cls.
   Proof.
     move=> en ism cl hin.
     apply valid_clause_model.

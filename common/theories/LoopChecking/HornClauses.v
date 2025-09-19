@@ -91,7 +91,11 @@ Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
 Module Clauses (LS : LevelSets).
   Module Export FLS := FromLevelSets LS.
+  Import (notations) NES.
   Import NES (t_set, t_ne, level, levels, singleton, add, add_spec,
+    add_expr, add_prems, add_prems_0, add_prems_add_prems, add_prems_add, add_prems_inj,
+    inj_add_prems_sub,
+    add_expr_add_expr, add_expr_inj, In_add_prems, add_expr_0,
     map, map_spec, add_list, add_list_spec, equal_exprsets).
   Coercion t_set : NES.t >-> LevelExprSet.t.
 
@@ -807,95 +811,17 @@ Module Clauses (LS : LevelSets).
 
   Local Open Scope Z_scope.
 
-  Definition add_expr n '((l, k) : LevelExpr.t) := (l, k + n).
-
-  Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (n + n') lk.
-  Proof. destruct lk; unfold add_expr. f_equal; lia. Qed.
-  Definition add_prems n s := NES.map (add_expr n) s.
-
-  Lemma In_add_prems k (prems : premises):
-    forall le, LevelExprSet.In le (add_prems k prems) <->
-      exists le', LevelExprSet.In le' prems /\ le = add_expr k le'.
-  Proof.
-    intros [l k'].
-    now rewrite /add_prems map_spec.
-  Qed.
-
-  Lemma add_expr_inj {n e e'} : add_expr n e = add_expr n e' -> e = e'.
-  Proof.
-    destruct e, e'; cbn; intros [=].
-    have eq: z = z0 by lia.
-    now subst z0.
-  Qed.
-
-  Lemma add_prems_inj n prems prems' : add_prems n prems = add_prems n prems' -> prems = prems'.
-  Proof.
-    rewrite /add_prems => /NES.equal_exprsets hm.
-    apply NES.equal_exprsets.
-    intros [l k]. specialize (hm (l, k + n)).
-    rewrite !map_spec in hm. destruct hm as [hl hr].
-    split; intros hin.
-    - forward hl. exists (l, k); split => //.
-      destruct hl as [[] [hin' eq]].
-      apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
-    - forward hr. exists (l, k); split => //.
-      destruct hr as [[] [hin' eq]].
-      apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
-  Qed.
-
-  Lemma inj_add_prems_sub {n u u'} : add_prems n u ⊂_leset add_prems n u' -> u ⊂_leset u'.
-  Proof.
-    rewrite /add_prems.
-    intros hm [l k]. specialize (hm (l, k + n)).
-    rewrite !map_spec in hm.
-    intros hin.
-    forward hm. exists (l, k); split => //.
-    destruct hm as [[] [hin' eq]].
-    apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
-  Qed.
-
-  Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (n + n') lk.
-  Proof. destruct lk; unfold add_prems.
-    rewrite NES.map_map. apply NES.equal_exprsets.
-    intros x. rewrite !map_spec. cbn in *.
-    firstorder eauto. subst. exists x0.
-    firstorder eauto. now rewrite add_expr_add_expr.
-    subst. exists x0.
-    firstorder eauto. now rewrite add_expr_add_expr.
-  Qed.
-
-  Lemma add_prems_add {n lk prems} : add_prems n (add lk prems) = add (add_expr n lk) (add_prems n prems).
-  Proof.
-    apply NES.equal_exprsets. intros x.
-    rewrite In_add_prems LevelExprSet.add_spec In_add_prems /LevelExprSet.E.eq; rw LevelExprSet.add_spec.
-    firstorder. subst. red in H; subst x0. now left.
-  Qed.
-
-  Lemma add_expr_0 e : add_expr 0 e = e.
-  Proof.
-    destruct e => //=. lia_f_equal.
-  Qed.
-
-  Lemma add_prems_0 u : add_prems 0 u = u.
-  Proof.
-    rewrite /add_prems.
-    apply NES.equal_exprsets.
-    intros x. rewrite map_spec.
-    split.
-    - intros[e [hin ->]]. now rewrite add_expr_0.
-    - intros inu; exists x. split => //. now rewrite add_expr_0.
-  Qed.
 
   Lemma add_prems_of_level_set k W k' prf :
     add_prems k (of_level_set W k' prf) = of_level_set W (k + k') prf.
   Proof.
     apply NES.equal_exprsets => [] [l n].
-    rewrite In_add_prems /of_level_set //= levelexprset_of_levels_spec.
+    rewrite NES.In_add_prems /of_level_set //= levelexprset_of_levels_spec.
     split.
     - move=> [] [l' n']. rewrite levelexprset_of_levels_spec => [] [[inw eq] eq'].
-      subst n'. noconf eq'. split => //. lia.
+      subst n'. noconf eq'. split => //.
     - move=> [inW ->]. exists (l, k'). rewrite levelexprset_of_levels_spec.
-      split => //. cbn. f_equal; lia.
+      split => //.
   Qed.
 
   Definition add_clause n '((prems, concl) : clause) := (add_prems n prems, add_expr n concl).
@@ -959,7 +885,7 @@ Module Clauses (LS : LevelSets).
         apply clause_levels_spec. left.
         apply NES.levels_spec. exists (k + n).
         destruct cl; cbn. apply In_add_prems. exists (l, k).
-        split => //.
+        split => //. rewrite /add_expr. lia_f_equal.
       * intros ->. exists (add_clause n cl); split => //. now apply add_clauses_spec.
         apply clause_levels_spec. right.
         destruct cl; cbn. destruct t0 => //.
@@ -968,13 +894,7 @@ Module Clauses (LS : LevelSets).
   Lemma add_clause_0 cl : add_clause 0 cl = cl.
   Proof.
     destruct cl as [prems [concl k]]; cbn.
-    f_equal. 2:now rewrite Z.add_0_r.
-    unfold add_prems.
-    eapply NES.equal_exprsets. intros [l k'].
-    rewrite NES.map_spec.
-    unfold add_expr. split.
-    - intros [[] [hin heq]]. noconf heq. now rewrite Z.add_0_r.
-    - exists (l, k'); split => //. now rewrite Z.add_0_r.
+    now rewrite add_prems_0.
   Qed.
 
   Lemma add_clause_singleton n le concl k : add_clause n (singleton le, (concl, k)) = (singleton (add_expr n le), (concl, k + n)).
@@ -982,7 +902,8 @@ Module Clauses (LS : LevelSets).
     rewrite /add_clause //=. f_equal.
     apply NES.equal_exprsets. intros le'. rewrite In_add_prems.
     rewrite_strat (topdown LevelExprSet.singleton_spec).
-    unfold LevelExprSet.E.eq. firstorder. subst. reflexivity.
+    unfold LevelExprSet.E.eq. firstorder; subst; try lia_f_equal.
+    f_equal. lia.
   Qed.
 
   Lemma add_prems_singleton n cl : add_prems n (singleton cl) = singleton (add_expr n cl).
@@ -1078,6 +999,7 @@ Module Clauses (LS : LevelSets).
   Inductive entails (cls : clauses) : clause -> Prop :=
   | clause_in (prems : premises) (concl : LevelExpr.t) :
     LevelExprSet.In concl prems -> entails cls (prems, concl)
+
   | clause_cut prems' concl' prems concl :
     in_pred_closure cls (prems', concl') ->
     entails cls (add concl' prems, concl) ->
@@ -1131,11 +1053,11 @@ Module Clauses (LS : LevelSets).
             split.
             { intros [? [hin ->]].
               rewrite LevelExprSet.singleton_spec in hin. red in hin; subst x0.
-              reflexivity. }
+              red. rewrite /succ_expr. lia_f_equal. }
             { unfold LevelExprSet.E.eq. intros ->.
               exists (x, k + 1). split.
-              now rewrite LevelExprSet.singleton_spec. reflexivity. } }
-          rewrite eq. constructor 2.
+              now rewrite LevelExprSet.singleton_spec. rewrite /succ_expr. lia_f_equal. } }
+          rewrite eq /succ_expr. rewrite Z.add_comm !(Z.add_comm 1 k) (Z.add_comm 1). constructor.
       + unfold succ_clause in IHentails.
         eapply entails_equal; tea.
         intros x. rewrite /succ_prems. rewrite NES.map_spec NES.add_spec.
@@ -1144,7 +1066,6 @@ Module Clauses (LS : LevelSets).
       + intros x. rewrite /succ_prems !map_spec.
         intros [e [hin ->]]. exists e. firstorder.
   Qed.
-
 
   Derive Signature for entails.
 
@@ -1196,11 +1117,11 @@ Module Clauses (LS : LevelSets).
   Proof.
     destruct 1.
     - rewrite add_clause_add_clause. now constructor.
-    - cbn. eapply in_pred_closure_equal with (singleton (x, k + 1 + n)).
+    - cbn. eapply in_pred_closure_equal with (singleton (x, n + (k + 1))).
       { intros le. rewrite In_add_prems; rewrite_strat (topdown LevelExprSet.singleton_spec).
         intuition auto. exists (x, k + 1). split => //.
         now destruct H as [le' [-> ->]]. }
-      have -> : k + 1 + n = (k + n) + 1 by lia.
+      have -> : n + (k + 1) = (n + k) + 1 by lia.
       constructor.
   Qed.
 
@@ -1446,6 +1367,7 @@ Module Clauses (LS : LevelSets).
     - now rewrite Z.add_0_r.
     - intros en.
       have hs := entails_shift 1 en. rewrite add_clause_singleton /= in hs.
+      rewrite Z.add_comm in hs.
       apply IHn in hs.
       eapply entails_trans; tea.
       now have -> : k + 1 + Z.of_nat (S n) = k + 1 + 1 + Z.of_nat n by lia.
@@ -1592,6 +1514,7 @@ Module Clauses (LS : LevelSets).
       apply loop_any_successor.
     - intros _ [l k]. rewrite In_add_prems.
       intros [[] [hin heq]]. rewrite /add_expr in heq. noconf heq.
+      rewrite Z.add_comm.
       apply entails_pred_closure_neg.
       now constructor.
   Qed.
@@ -1657,7 +1580,7 @@ Module Clauses (LS : LevelSets).
   Proof.
     intros cl hin.
     eapply Clauses.entails_succ; tea.
-    intros l k hin'. exists (k + 1). split => //; try lia.
+    intros l k hin'. exists (1 + k). split => //; try lia.
     eapply In_add_prems. exists (l, k); split => //.
   Qed.
 
@@ -1691,7 +1614,7 @@ Module Clauses (LS : LevelSets).
         rewrite ih. right; firstorder.
   Qed.
 
-  Infix "∨" := univ_union (at level 10).
+  Infix "∨" := univ_union (at level 30).
   Notation succ x := (add_prems 1%Z x).
 
   Definition clauses_of_eq (u v : NES.t) :=
@@ -1873,8 +1796,8 @@ Module Clauses (LS : LevelSets).
       - apply join_right.
     Qed.
 
-    Lemma succ_join {cls s t} :
-      cls ⊢ℋ succ (s ∨ t) ≡ succ s ∨ succ t.
+    Lemma succ_join {cls n s t} :
+      cls ⊢ℋ add_prems n (s ∨ t) ≡ add_prems n s ∨ add_prems n t.
     Proof.
       rewrite add_prems_univ_union; auto with entails.
     Qed.
@@ -1902,49 +1825,27 @@ Module Clauses (LS : LevelSets).
 
   End Theory.
 
-  Module Semilattice.
-    Reserved Notation "x ≌ y" (at level 90).
-    Record semilattice :=
-      { carrier :> Type;
-        eq : carrier -> carrier -> Prop where "x ≌ y" := (eq x y);
-        succ : carrier -> carrier;
-        join : carrier -> carrier -> carrier;
-        join_assoc x y z : join (join x y) z ≌ join x (join y z);
-        join_comm x y : join x y ≌ join y x;
-        join_idem x : join x x ≌ x;
-        join_sub x : join x (succ x) ≌ succ x;
-        succ_inj : forall x y, succ x ≌ succ y -> x ≌ y;
-        succ_join : forall x y, succ (join x y) ≌ join (succ x) (succ y);
-      }.
-
-    Notation "x ≌ y" := (eq _ x y).
-    Local Open Scope nat_scope.
-    Section Derived.
-      Context (s : semilattice).
-      Definition le (x y : s) := join s x y ≌ y.
-
-      Fixpoint add (x : s) n : s :=
-        match n with
-        | 0 => x
-        | S n => succ _ (add x n)
-        end.
-    End Derived.
-  End Semilattice.
-
   Section prems_semi.
     Obligation Tactic := idtac.
-    Import Semilattice (semilattice, carrier, eq, succ, join).
+    Import Semilattice (Semilattice, eq, add, join).
     Context (cls : Clauses.t).
 
-    Equations? leset_sl : semilattice :=
-    leset_sl := {| carrier := NES.t;
+    Equations? horn_semi : Semilattice NES.t :=
+    horn_semi := {|
          eq x y := cls ⊢ℋ x ≡ y;
-         succ := add_prems 1;
+         add := add_prems;
          join := univ_union |}.
     Proof.
       all: intros.
+      - split; red.
+        * intros x. apply Theory.eq_refl.
+        * intros x y. apply Theory.eq_sym.
+        * intros x y z. apply Theory.eq_trans.
+      - rewrite add_prems_add_prems. apply Theory.eq_refl.
+      - now rewrite add_prems_0; apply Theory.eq_refl.
       - cbn. apply Theory.join_assoc.
       - apply Theory.join_comm.
+      - now apply Theory.join_congr_left.
       - apply Theory.join_idem.
       - apply Theory.join_succ.
       - now eapply Theory.succ_inj.
@@ -1954,18 +1855,20 @@ Module Clauses (LS : LevelSets).
 
   Import Semilattice.
   Section Morphism.
-    Context (s s' : semilattice).
-    Context (f : s -> s').
+    Context (A B : Type).
+    Context (s : Semilattice A).
+    Context (s' : Semilattice B).
+    Context (f : A -> B).
     Class respects :=
-      { of_succ x : f (succ s x) = succ s' (f x);
-        of_join x y : f (join _ x y) = join _ (f x) (f y) }.
+      { of_succ n (x : A) : f (add n x) = add n (f x);
+        of_join (x : A) (y : A) : f (join x y) = join (f x) (f y) }.
 
-    Lemma respects_assoc {r : respects} x y z : f (join s (join s x y) z) ≌ join s' (f x) (join s' (f y) (f z)).
+    Lemma respects_assoc {r : respects} x y z : f (join (join x y) z) ≡ join (f x) (join (f y) (f z)).
     Proof.
       rewrite !of_join. apply join_assoc.
     Qed.
 
-    Lemma respects_comm {r : respects} x y : f (join s x y) ≌ join s' (f y) (f x).
+    Lemma respects_comm {r : respects} x y : f (join x y) ≡ join (f y) (f x).
     Proof. rewrite !of_join. apply join_comm. Qed.
 
   End Morphism.

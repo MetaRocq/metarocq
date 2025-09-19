@@ -46,6 +46,13 @@ End FMapOTInterface.
 
 Module Q <: Quantity.
   Include OrdersEx.Z_as_OT.
+
+  Program Instance comm_monoid : CommutativeMonoid Z.zero Z.add.
+  Solve Obligations with red; tc; program_simpl; lia.
+
+  Program Instance add_inj z : Injective (Z.add z).
+  Next Obligation. lia. Qed.
+
   Definition reflect_eq : ReflectEq t := _.
   Definition eq_leibniz x y : eq x y -> x = y := fun e => e.
 End Q.
@@ -79,7 +86,6 @@ Ltac lsets := LevelSetDecide.fsetdec.
 Notation "(=_lset)" := LevelSet.Equal (at level 0) : levels_scope.
 Infix "=_lset" := LevelSet.Equal (at level 30) : levels_scope.
 Infix "⊂_lset" := LevelSet.Subset (at level 70) : levels_scope.
-Infix "⊂_leset" := LevelExprSet.Subset (at level 70) : levels_scope.
 Infix "∪" := LevelSet.union (at level 70) : levels_scope.
 Infix "=m" := LevelMap.Equal (at level 50) : levels_scope.
 Notation "#| V |" := (LevelSet.cardinal V) : levels_scope.
