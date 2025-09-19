@@ -11,13 +11,13 @@ Set Default Goal Selector "!".
 Implicit Types (cf : checker_flags).
 
 Lemma global_ext_constraints_app Σ Σ' φ
-  : ConstraintSet.Subset (universes Σ).2 (universes Σ').2 ->
-    ConstraintSet.Subset (global_ext_constraints (Σ, φ))
+  : UnivConstraintSet.Subset (universes Σ).2 (universes Σ').2 ->
+    UnivConstraintSet.Subset (global_ext_constraints (Σ, φ))
                          (global_ext_constraints (Σ', φ)).
 Proof.
   unfold global_ext_constraints; simpl.
-  intros sub ctr Hc. apply ConstraintSet.union_spec in Hc.
-  apply ConstraintSet.union_spec.
+  intros sub ctr Hc. apply UnivConstraintSet.union_spec in Hc.
+  apply UnivConstraintSet.union_spec.
   destruct Hc as [Hc|Hc]; [now left|right]. clear φ.
   unfold global_constraints in Hc.
   apply (sub _ Hc).
@@ -60,7 +60,7 @@ Proof.
 Qed.
 
 Lemma weakening_env_global_ext_constraints Σ Σ' φ (H : extends Σ Σ')
-  : ConstraintSet.Subset (global_ext_constraints (Σ, φ))
+  : UnivConstraintSet.Subset (global_ext_constraints (Σ, φ))
                          (global_ext_constraints (Σ', φ)).
 Proof.
   destruct H as [sub _].
@@ -216,11 +216,11 @@ Definition on_udecl_prop (Σ : global_env) (udecl : universes_decl)
   := let levels := levels_of_udecl udecl in
      let global_levels := global_levels Σ.(universes) in
      let all_levels := LevelSet.union levels global_levels in
-     ConstraintSet.For_all (declared_cstr_levels all_levels) (constraints_of_udecl udecl).
+     UnivConstraintSet.For_all (declared_univ_cstr_levels all_levels) (constraints_of_udecl udecl).
      (* /\ match udecl with
        | Monomorphic_ctx ctx => LevelSet.for_all (negb ∘ Level.is_var) ctx.1
                                /\ LevelSet.Subset ctx.1 global_levels
-                               /\ ConstraintSet.Subset ctx.2 (global_constraints Σ)
+                               /\ UnivConstraintSet.Subset ctx.2 (global_constraints Σ)
                                /\ satisfiable_udecl Σ.(universes) udecl
        | _ => True
        end. *)
@@ -234,9 +234,9 @@ Qed.
 
 Lemma declared_cstr_levels_sub l l' c :
   LevelSet.Subset l l' ->
-  declared_cstr_levels l c -> declared_cstr_levels l' c.
+  declared_univ_cstr_levels l c -> declared_univ_cstr_levels l' c.
 Proof.
-  intros sub; unfold declared_cstr_levels.
+  intros sub; unfold declared_univ_cstr_levels.
   destruct c as [[l1 eq] l2]. intuition auto.
 Qed.
 
@@ -398,18 +398,18 @@ Proof using P Pcmp cf.
         -- clear -eq. destruct d as [c|c]; cbn in *.
            all: destruct c; cbn in *; now rewrite eq.
       * simpl. replace (monomorphic_constraints_decl d) with ctx.2.
-        -- intros c Hc; apply ConstraintSet.union_spec; now left.
+        -- intros c Hc; apply UnivConstraintSet.union_spec; now left.
         -- clear -eq. destruct d as [c|c]; cbn in *.
            all: destruct c; cbn in *; now rewrite eq.
       * clear -eq H4. destruct H4 as [v Hv]. exists v.
       intros c Hc; apply (Hv c).
-      apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      2: apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      -- apply ConstraintSet.union_spec. simpl in *. left; now rewrite eq.
-      -- apply ConstraintSet.union_spec; left. simpl.
+      apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
+      2: apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
+      -- apply UnivConstraintSet.union_spec. simpl in *. left; now rewrite eq.
+      -- apply UnivConstraintSet.union_spec; left. simpl.
          destruct d as [[? ? []]|[? ? ? ? []]]; simpl in *; tas;
-           now apply ConstraintSet.empty_spec in Hc.
-      -- apply ConstraintSet.union_spec; now right.*)
+           now apply UnivConstraintSet.empty_spec in Hc.
+      -- apply UnivConstraintSet.union_spec; now right.*)
   - specialize (IHwfΣ HH). revert IHwfΣ o; clear.
     generalize (universes_decl_of_decl decl); intros d' HH Hd.
     unfold on_udecl_prop in *.
@@ -425,17 +425,17 @@ Proof using P Pcmp cf.
       * intros l Hl. apply H2 in Hl.
         apply LevelSet.union_spec; now right.
       * intros c Hc. apply H2 in Hc.
-        apply ConstraintSet.union_spec; now right.
+        apply UnivConstraintSet.union_spec; now right.
       * destruct Hd as [_ [_ [_ Hd]]]; cbn in Hd.
         destruct Hd as [v Hv]. exists v. intros c Hc; apply Hv; clear v Hv.
-          apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc]; simpl in *.
-          2: apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc];
+          apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc]; simpl in *.
+          2: apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc];
             simpl in *.
-          -- apply H2 in Hc. apply ConstraintSet.union_spec; now right.
+          -- apply H2 in Hc. apply UnivConstraintSet.union_spec; now right.
           -- clear -Hc. destruct d as [[? ? []]|[? ? ? ? []]]; cbn in *.
-             all: try (apply ConstraintSet.empty_spec in Hc; contradiction).
-             all: apply ConstraintSet.union_spec; now left.
-          -- apply ConstraintSet.union_spec; now right.*)
+             all: try (apply UnivConstraintSet.empty_spec in Hc; contradiction).
+             all: apply UnivConstraintSet.union_spec; now left.
+          -- apply UnivConstraintSet.union_spec; now right.*)
 Qed.
 
 

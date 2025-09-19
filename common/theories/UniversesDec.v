@@ -4,13 +4,13 @@ From MetaRocq.Common Require Import uGraph.
 From MetaRocq.Common Require Import Universes.
 Import wGraph.
 
-Definition levels_of_cs (cstr : ConstraintSet.t) : LevelSet.t
-  := ConstraintSet.fold (fun '(l1, _, l2) acc => LevelSet.add l1 (LevelSet.add l2 acc)) cstr (LevelSet.singleton Level.lzero).
+Definition levels_of_cs (cstr : UnivConstraintSet.t) : LevelSet.t
+  := UnivConstraintSet.fold (fun '(l1, _, l2) acc => LevelSet.add l1 (LevelSet.add l2 acc)) cstr (LevelSet.singleton Level.lzero).
 Lemma levels_of_cs_spec cstr (lvls := levels_of_cs cstr)
   : uGraph.global_uctx_invariants (lvls, cstr).
 Proof.
   subst lvls; cbv [levels_of_cs].
-  cbv [uGraph.global_uctx_invariants uGraph.uctx_invariants ConstraintSet.For_all declared_cstr_levels]; cbn [fst snd ContextSet.levels ContextSet.constraints].
+  cbv [uGraph.global_uctx_invariants uGraph.uctx_invariants UnivConstraintSet.For_all declared_univ_cstr_levels]; cbn [fst snd ContextSet.levels ContextSet.constraints].
   repeat first [ apply conj
                | progress intros
                | progress destruct ?
@@ -20,14 +20,14 @@ Proof.
                               left
                             | lazymatch y with context[LevelSet.In ?l (LevelSet.singleton ?l)] => idtac end;
                               right ]
-                 | [ H : ConstraintSet.In ?l ?c |- ?x \/ ?y ]
-                   => first [ lazymatch x with context[LevelSet.In _ (ConstraintSet.fold _ c _)] => idtac end;
+                 | [ H : UnivConstraintSet.In ?l ?c |- ?x \/ ?y ]
+                   => first [ lazymatch x with context[LevelSet.In _ (UnivConstraintSet.fold _ c _)] => idtac end;
                               left
-                            | lazymatch y with context[LevelSet.In _ (ConstraintSet.fold _ c _)] => idtac end;
+                            | lazymatch y with context[LevelSet.In _ (UnivConstraintSet.fold _ c _)] => idtac end;
                               right ]
                  end
                | rewrite !LevelSet.union_spec
-               | progress rewrite <- ?ConstraintSet.elements_spec1, ?InA_In_eq in *
+               | progress rewrite <- ?UnivConstraintSet.elements_spec1, ?InA_In_eq in *
                | rewrite ConstraintSetProp.fold_spec_right ].
   all: lazymatch goal with
        | [ |- LevelSet.In Level.lzero (List.fold_right ?f ?init ?ls) ]
@@ -58,7 +58,7 @@ Proof.
   destruct uGraph.is_consistent; [ left; apply H | right; intro H'; apply H in H' ]; auto.
 Defined.
 
-Definition levels_of_cs2 (cs1 cs2 : ConstraintSet.t) : LevelSet.t
+Definition levels_of_cs2 (cs1 cs2 : UnivConstraintSet.t) : LevelSet.t
   := LevelSet.union (levels_of_cs cs1) (levels_of_cs cs2).
 Lemma levels_of_cs2_spec cs1 cs2 (lvls := levels_of_cs2 cs1 cs2)
   : uGraph.global_uctx_invariants (lvls, cs1)
@@ -67,7 +67,7 @@ Proof.
   split; apply global_uctx_invariants_union_or; constructor; apply levels_of_cs_spec.
 Qed.
 
-Definition levels_of_cscs (cs : ContextSet.t) (cstr : ConstraintSet.t) : LevelSet.t
+Definition levels_of_cscs (cs : ContextSet.t) (cstr : UnivConstraintSet.t) : LevelSet.t
   := LevelSet.union (ContextSet.levels cs) (levels_of_cs2 cstr (ContextSet.constraints cs)).
 Lemma levels_of_cscs_spec cs cstr (lvls := levels_of_cscs cs cstr)
   : uGraph.global_uctx_invariants (lvls, ContextSet.constraints cs)
@@ -148,11 +148,11 @@ Definition ununiquify_level (total_sets : nat) (lvl : Level.t) : Level.t
      | Level.level x => Level.level (ununiquify_level_level x)
      | Level.lvar x => Level.lvar (ununiquify_level_var total_sets x)
      end.
-Definition uniquify_constraint (shared_levels : LevelSet.t) (shared_prefix : Byte.byte) (total_sets : nat) (prefix : Byte.byte) (offset : nat) (c : ConstraintSet.elt) : ConstraintSet.elt
+Definition uniquify_constraint (shared_levels : LevelSet.t) (shared_prefix : Byte.byte) (total_sets : nat) (prefix : Byte.byte) (offset : nat) (c : UnivConstraintSet.elt) : UnivConstraintSet.elt
   := let '((l1, c), l2) := c in
      let u := uniquify_level shared_levels shared_prefix total_sets prefix offset in
      ((u l1, c), u l2).
-Definition ununiquify_constraint (total_sets : nat) (c : ConstraintSet.elt) : ConstraintSet.elt
+Definition ununiquify_constraint (total_sets : nat) (c : UnivConstraintSet.elt) : UnivConstraintSet.elt
   := let '((l1, c), l2) := c in
      let u := ununiquify_level total_sets in
      ((u l1, c), u l2).
@@ -174,7 +174,7 @@ Definition uniquify_constraint_for lvls (side:bool) c
   := uniquify_constraint lvls "b"%byte 2 (if side then "l" else "r")%byte (if side then 0 else 1) c.
 Definition uniquify_valuation_for lvls (side:bool) v
   := uniquify_valuation lvls "b"%byte 2 (if side then "l" else "r")%byte (if side then 0 else 1) v.
-Definition declare_and_uniquify_levels : ContextSet.t * ConstraintSet.t -> ContextSet.t * ConstraintSet.t
+Definition declare_and_uniquify_levels : ContextSet.t * UnivConstraintSet.t -> ContextSet.t * UnivConstraintSet.t
   := fun '(cs, cstr)
      => let '(lvls, cs) := (ContextSet.levels cs, ContextSet.constraints cs) in
         let '(cs_all_lvls, cstr_all_lvls) := (levels_of_cs cs, levels_of_cs cstr) in
@@ -185,20 +185,20 @@ Definition declare_and_uniquify_levels : ContextSet.t * ConstraintSet.t -> Conte
                (fun l => LevelSet.add (uniquify_level_for lvls true l))
                lvls
                (LevelSet.singleton Level.lzero)),
-           ConstraintSet.fold
-             (fun c => ConstraintSet.add (uniquify_constraint_for lvls true c))
+           UnivConstraintSet.fold
+             (fun c => UnivConstraintSet.add (uniquify_constraint_for lvls true c))
              cs
-             ConstraintSet.empty),
-           ConstraintSet.fold
-             (fun c => ConstraintSet.add (uniquify_constraint_for lvls false c))
+             UnivConstraintSet.empty),
+           UnivConstraintSet.fold
+             (fun c => UnivConstraintSet.add (uniquify_constraint_for lvls false c))
              cstr
-             ConstraintSet.empty).
+             UnivConstraintSet.empty).
 
-Definition declare_and_uniquify_and_combine_levels : ContextSet.t * ConstraintSet.t -> ContextSet.t * ConstraintSet.t
+Definition declare_and_uniquify_and_combine_levels : ContextSet.t * UnivConstraintSet.t -> ContextSet.t * UnivConstraintSet.t
   := fun '(cs, cstr)
      => let cscstr := declare_and_uniquify_levels (cs, cstr) in
         let '(cs, cstr) := (cscstr.1, cscstr.2) in
-        (cs, ConstraintSet.union cstr (ContextSet.constraints cs)).
+        (cs, UnivConstraintSet.union cstr (ContextSet.constraints cs)).
 
 Definition combine_valuations (shared_prefix prefixl prefixr : Byte.byte) (total_sets : nat := 2) (vd vl vr : valuation) : valuation
   := let __ := reflectEq_Z in
@@ -226,16 +226,16 @@ Definition combine_valuations (shared_prefix prefixl prefixr : Byte.byte) (total
      |}.
 
 Lemma ConstraintSet_In_fold_add c cs1 cs2 f
-  : ConstraintSet.In c (ConstraintSet.fold (fun c => ConstraintSet.add (f c)) cs1 cs2)
-    <-> (ConstraintSet.Exists (fun c' => c = f c') cs1 \/ ConstraintSet.In c cs2).
+  : UnivConstraintSet.In c (UnivConstraintSet.fold (fun c => UnivConstraintSet.add (f c)) cs1 cs2)
+    <-> (UnivConstraintSet.Exists (fun c' => c = f c') cs1 \/ UnivConstraintSet.In c cs2).
 Proof.
-  cbv [ConstraintSet.Exists]; rewrite ConstraintSetProp.fold_spec_right.
+  cbv [UnivConstraintSet.Exists]; rewrite ConstraintSetProp.fold_spec_right.
   setoid_rewrite (ConstraintSetFact.elements_iff cs1).
   setoid_rewrite InA_In_eq.
-  setoid_rewrite (@List.in_rev _ (ConstraintSet.elements cs1)).
-  induction (List.rev (ConstraintSet.elements cs1)) as [|x xs IH]; cbn [List.In List.fold_right];
+  setoid_rewrite (@List.in_rev _ (UnivConstraintSet.elements cs1)).
+  induction (List.rev (UnivConstraintSet.elements cs1)) as [|x xs IH]; cbn [List.In List.fold_right];
     [ now firstorder idtac | ].
-  rewrite ConstraintSet.add_spec.
+  rewrite UnivConstraintSet.add_spec.
   repeat first [ progress destruct_head'_ex
                | progress destruct_head'_and
                | progress destruct_head'_or
@@ -282,26 +282,26 @@ Proof.
 Qed.
 
 Lemma ConstraintSet_In__declare_and_uniquify_and_combine_levels_1__0 cs cstr c
-  : ConstraintSet.In c (ContextSet.constraints cs)
-    -> ConstraintSet.In (uniquify_constraint_for (ContextSet.levels cs) true c) (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1).
+  : UnivConstraintSet.In c (ContextSet.constraints cs)
+    -> UnivConstraintSet.In (uniquify_constraint_for (ContextSet.levels cs) true c) (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1).
 Proof.
   cbv [declare_and_uniquify_levels declare_and_uniquify_and_combine_levels uniquify_constraint_for uniquify_constraint].
   repeat first [ progress subst
                | progress cbn [ContextSet.constraints fst snd]
-               | progress cbv [ConstraintSet.Exists]
+               | progress cbv [UnivConstraintSet.Exists]
                | destruct ?
                | rewrite ConstraintSet_In_fold_add
                | solve [ eauto ] ].
 Qed.
 
 Lemma ConstraintSet_In__declare_and_uniquify_and_combine_levels_1__1 cs cstr c
-  : ConstraintSet.In c (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1)
-    -> ConstraintSet.In (ununiquify_constraint 2 c) (ContextSet.constraints cs).
+  : UnivConstraintSet.In c (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1)
+    -> UnivConstraintSet.In (ununiquify_constraint 2 c) (ContextSet.constraints cs).
 Proof.
   cbv [declare_and_uniquify_levels declare_and_uniquify_and_combine_levels ununiquify_constraint uniquify_constraint_for uniquify_constraint].
   repeat first [ progress subst
                | progress cbn [ContextSet.constraints fst snd]
-               | progress cbv [ConstraintSet.Exists]
+               | progress cbv [UnivConstraintSet.Exists]
                | destruct ?
                | rewrite ConstraintSet_In_fold_add
                | rewrite ConstraintSetFact.empty_iff
@@ -318,27 +318,27 @@ Proof.
 Qed.
 
 Lemma ConstraintSet_In__declare_and_uniquify_and_combine_levels_2__0 cs cstr c
-  : ConstraintSet.In c cstr
-    -> ConstraintSet.In (uniquify_constraint_for (ContextSet.levels cs) false c) (declare_and_uniquify_and_combine_levels (cs, cstr)).2.
+  : UnivConstraintSet.In c cstr
+    -> UnivConstraintSet.In (uniquify_constraint_for (ContextSet.levels cs) false c) (declare_and_uniquify_and_combine_levels (cs, cstr)).2.
 Proof.
   cbv [declare_and_uniquify_levels declare_and_uniquify_and_combine_levels uniquify_constraint_for uniquify_constraint].
   repeat first [ progress subst
                | progress cbn [ContextSet.constraints fst snd]
-               | progress cbv [ConstraintSet.Exists]
+               | progress cbv [UnivConstraintSet.Exists]
                | destruct ?
                | rewrite ConstraintSet_In_fold_add
-               | rewrite ConstraintSet.union_spec
+               | rewrite UnivConstraintSet.union_spec
                | solve [ eauto ] ].
 Qed.
 
 Lemma ConstraintSet_In__declare_and_uniquify_levels_2__1 cs cstr c
-  : ConstraintSet.In c (declare_and_uniquify_levels (cs, cstr)).2
-    -> ConstraintSet.In (ununiquify_constraint 2 c) cstr.
+  : UnivConstraintSet.In c (declare_and_uniquify_levels (cs, cstr)).2
+    -> UnivConstraintSet.In (ununiquify_constraint 2 c) cstr.
 Proof.
   cbv [declare_and_uniquify_levels ununiquify_constraint uniquify_constraint_for uniquify_constraint].
   repeat first [ progress subst
                | progress cbn [ContextSet.constraints fst snd]
-               | progress cbv [ConstraintSet.Exists]
+               | progress cbv [UnivConstraintSet.Exists]
                | destruct ?
                | rewrite ConstraintSet_In_fold_add
                | rewrite ConstraintSetFact.empty_iff
@@ -381,7 +381,7 @@ Lemma satisfies_declare_and_uniquify_and_combine_levels_1_0 {cs cstr v}
   : satisfies v (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1)
     -> satisfies (uniquify_valuation_for (ContextSet.levels cs) true v) (ContextSet.constraints cs).
 Proof.
-  cbv [satisfies ConstraintSet.For_all uniquify_valuation_for].
+  cbv [satisfies UnivConstraintSet.For_all uniquify_valuation_for].
   intros H x Hi; specialize (H _ ltac:(eapply ConstraintSet_In__declare_and_uniquify_and_combine_levels_1__0, Hi)).
   destruct x as [[l []] r]; cbn in *;
     inversion H; clear H; subst; constructor.
@@ -392,7 +392,7 @@ Lemma satisfies_declare_and_uniquify_and_combine_levels_1_1 {cs cstr v}
   : satisfies v (ContextSet.constraints cs)
     -> satisfies (ununiquify_valuation 2 v) (ContextSet.constraints (declare_and_uniquify_and_combine_levels (cs, cstr)).1).
 Proof.
-  cbv [satisfies ConstraintSet.For_all ununiquify_valuation].
+  cbv [satisfies UnivConstraintSet.For_all ununiquify_valuation].
   intros H x Hi; specialize (H _ ltac:(eapply ConstraintSet_In__declare_and_uniquify_and_combine_levels_1__1, Hi)).
   destruct x as [[l []] r]; cbn in *;
     inversion H; clear H; subst; constructor.
@@ -403,7 +403,7 @@ Lemma satisfies_declare_and_uniquify_and_combine_levels_2_0 {cs cstr v}
   : satisfies v (declare_and_uniquify_and_combine_levels (cs, cstr)).2
     -> satisfies (uniquify_valuation_for (ContextSet.levels cs) false v) cstr.
 Proof.
-  cbv [satisfies ConstraintSet.For_all uniquify_valuation_for].
+  cbv [satisfies UnivConstraintSet.For_all uniquify_valuation_for].
   intros H x Hi; specialize (H _ ltac:(eapply ConstraintSet_In__declare_and_uniquify_and_combine_levels_2__0, Hi)).
   destruct x as [[l []] r]; cbn in *;
     inversion H; clear H; subst; constructor.
@@ -414,7 +414,7 @@ Lemma satisfies_declare_and_uniquify_levels_2_1 {cs cstr v}
   : satisfies v cstr
     -> satisfies (ununiquify_valuation 2 v) (declare_and_uniquify_levels (cs, cstr)).2.
 Proof.
-  cbv [satisfies ConstraintSet.For_all uniquify_valuation_for].
+  cbv [satisfies UnivConstraintSet.For_all uniquify_valuation_for].
   intros H x Hi; specialize (H _ ltac:(eapply ConstraintSet_In__declare_and_uniquify_levels_2__1, Hi)).
   destruct x as [[l []] r]; cbn in *;
     inversion H; clear H; subst; constructor.
@@ -434,15 +434,15 @@ Lemma satisfies_combine_valuations {cs cstr v v'}
     /\ LevelSet.For_all (fun l => val v l = val vc l) (ContextSet.levels cs').
 Proof.
   repeat match goal with H := _ |- _ => subst H end.
-  cbv [satisfies ConstraintSet.For_all LevelSet.For_all combine_valuations val Level.Evaluable ContextSet.constraints ContextSet.levels declare_and_uniquify_and_combine_levels declare_and_uniquify_levels] in *;
+  cbv [satisfies UnivConstraintSet.For_all LevelSet.For_all combine_valuations val Level.Evaluable ContextSet.constraints ContextSet.levels declare_and_uniquify_and_combine_levels declare_and_uniquify_levels] in *;
     cbn [fst snd valuation_poly valuation_mono] in *.
   revert Hv Hv' Hagree.
-  progress repeat setoid_rewrite ConstraintSet.union_spec.
+  progress repeat setoid_rewrite UnivConstraintSet.union_spec.
   progress repeat setoid_rewrite LevelSet_In_fold_add.
   progress repeat setoid_rewrite ConstraintSet_In_fold_add.
   progress repeat setoid_rewrite ConstraintSetFact.empty_iff.
   progress repeat setoid_rewrite LevelSet.singleton_spec.
-  cbv [LevelSet.Exists ConstraintSet.Exists uniquify_constraint_for uniquify_constraint uniquify_level_for uniquify_level].
+  cbv [LevelSet.Exists UnivConstraintSet.Exists uniquify_constraint_for uniquify_constraint uniquify_level_for uniquify_level].
   intros.
   split.
   2: intro x; specialize (Hagree (ununiquify_level 2 x)).
@@ -502,7 +502,7 @@ Proof.
   all: repeat match goal with
          | [ H : LevelSet.In _ _ |- _ ]
            => progress specialize_all_ways_under_binders_by exact H
-         | [ H : ConstraintSet.In _ _ |- _ ]
+         | [ H : UnivConstraintSet.In _ _ |- _ ]
            => progress specialize_all_ways_under_binders_by exact H
          end.
   all: repeat first [ progress subst
@@ -585,9 +585,9 @@ Proof.
   pose proof (levels_of_cs_spec (ContextSet.constraints cs)).
   pose proof (levels_of_cs_spec cstr).
   cbv [declare_and_uniquify_levels]; cbn [fst snd].
-  cbv [uGraph.global_uctx_invariants uGraph.uctx_invariants ConstraintSet.For_all declared_cstr_levels] in *; cbn [fst snd ContextSet.levels ContextSet.constraints] in *.
+  cbv [uGraph.global_uctx_invariants uGraph.uctx_invariants UnivConstraintSet.For_all declared_univ_cstr_levels] in *; cbn [fst snd ContextSet.levels ContextSet.constraints] in *.
   repeat first [ progress subst
-               | progress cbv [LevelSet.Exists ConstraintSet.Exists uniquify_constraint_for uniquify_constraint uniquify_level_for] in *
+               | progress cbv [LevelSet.Exists UnivConstraintSet.Exists uniquify_constraint_for uniquify_constraint uniquify_level_for] in *
                | rewrite !LevelSet_In_fold_add
                | rewrite !ConstraintSet_In_fold_add
                | rewrite !LevelSet.singleton_spec
@@ -598,7 +598,7 @@ Proof.
                | setoid_rewrite ConstraintSetFact.empty_iff
                | match goal with
                  | [ H : (_, _) = (_, _) |- _ ] => inv H
-                 | [ H : forall x : ConstraintSet.elt, _ |- _ ]
+                 | [ H : forall x : UnivConstraintSet.elt, _ |- _ ]
                    => specialize (fun a b c => H ((a, b), c))
                  end
                | solve [ eauto ]
@@ -645,7 +645,7 @@ Proof.
                     | progress subst
                     | exfalso; assumption
                     | progress rewrite ?@gc_of_constraint_iff in * by eassumption
-                    | progress cbv [ConstraintSet.Exists on_Some] in *
+                    | progress cbv [UnivConstraintSet.Exists on_Some] in *
                     | progress destruct ?
                     | solve [ eauto 6 ] ].
   all: [ > ].
@@ -657,7 +657,7 @@ Proof.
                     | progress subst
                     | exfalso; assumption
                     | progress rewrite ?@gc_of_constraint_iff in * by eassumption
-                    | progress cbv [ConstraintSet.Exists on_Some] in *
+                    | progress cbv [UnivConstraintSet.Exists on_Some] in *
                     | progress destruct ?
                     | solve [ eauto 6 ] ].
   eexists; split;

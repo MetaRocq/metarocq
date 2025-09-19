@@ -3,12 +3,12 @@ Definition fresh_levels global_levels levels :=
     LevelSet.For_all (fun l => ~ LevelSet.In l global_levels) levels.
 
   Definition declared_constraints_levels levels cstrs :=
-    ConstraintSet.For_all (declared_cstr_levels levels) cstrs.
+    UnivConstraintSet.For_all (declared_univ_cstr_levels levels) cstrs.
 
   Definition declared_constraints_levels_union levels cstrs cstrs' :
     declared_constraints_levels levels cstrs ->
     declared_constraints_levels levels cstrs' ->
-    declared_constraints_levels levels (ConstraintSet.union cstrs cstrs').
+    declared_constraints_levels levels (UnivConstraintSet.union cstrs cstrs').
   Proof.
     intros decl decl'.
     rewrite /declared_constraints_levels.
@@ -197,20 +197,20 @@ Definition fresh_levels global_levels levels :=
       + right. apply not_var_lift => //.
   Qed.
 
-  Definition levels_of_cstr (c : ConstraintSet.elt) :=
+  Definition levels_of_cstr (c : UnivConstraintSet.elt) :=
     let '(l, d, r) := c in
     LevelSet.add l (LevelSet.add r LevelSet.empty).
 
   Definition levels_of_cstrs cstrs :=
-    ConstraintSet.fold (fun c acc => LevelSet.union (levels_of_cstr c) acc) cstrs.
+    UnivConstraintSet.fold (fun c acc => LevelSet.union (levels_of_cstr c) acc) cstrs.
 
   Lemma levels_of_cstrs_acc l cstrs acc :
     LevelSet.In l acc \/ LevelSet.In l (levels_of_cstrs cstrs LevelSet.empty) <->
     LevelSet.In l (levels_of_cstrs cstrs acc).
   Proof.
     rewrite /levels_of_cstrs.
-    rewrite !ConstraintSet.fold_spec.
-    induction (ConstraintSet.elements cstrs) in acc |- * => /=.
+    rewrite !UnivConstraintSet.fold_spec.
+    induction (UnivConstraintSet.elements cstrs) in acc |- * => /=.
     split. intros []; auto. inversion H. firstorder.
     split.
     intros []. apply IHl0. left. now eapply LevelSetFact.union_3.
@@ -227,7 +227,7 @@ Definition fresh_levels global_levels levels :=
 
   Lemma levels_of_cstrs_spec l cstrs :
     LevelSet.In l (levels_of_cstrs cstrs LevelSet.empty) <->
-    exists d r, ConstraintSet.In (l, d, r) cstrs \/ ConstraintSet.In (r, d, l) cstrs.
+    exists d r, UnivConstraintSet.In (l, d, r) cstrs \/ UnivConstraintSet.In (r, d, l) cstrs.
   Proof.
     rewrite -levels_of_cstrs_acc.
     split.
@@ -278,15 +278,15 @@ Definition fresh_levels global_levels levels :=
   Qed.
 
   Lemma In_variance_cstrs l d r v i i' :
-    ConstraintSet.In (l, d, r) (variance_cstrs v i i') ->
+    UnivConstraintSet.In (l, d, r) (variance_cstrs v i i') ->
       (In l i \/ In l i') /\ (In r i \/ In r i').
   Proof.
     induction v in i, i' |- *; destruct i, i'; intros; try solve [inversion H].
     cbn in H.
     destruct a. apply IHv in H. cbn. firstorder auto.
-    eapply ConstraintSet.add_spec in H as []. noconf H. cbn; firstorder.
+    eapply UnivConstraintSet.add_spec in H as []. noconf H. cbn; firstorder.
     eapply IHv in H; firstorder.
-    eapply ConstraintSet.add_spec in H as []. noconf H. cbn; firstorder.
+    eapply UnivConstraintSet.add_spec in H as []. noconf H. cbn; firstorder.
     eapply IHv in H; firstorder.
   Qed.
 

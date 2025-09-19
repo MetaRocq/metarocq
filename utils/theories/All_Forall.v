@@ -1892,7 +1892,7 @@ Proof.
 Qed.
 
 Lemma All_safe_nth {A} {P : A -> Type} {Γ n} (isdecl : n < length Γ) : All P Γ ->
-   P (safe_nth Γ (exist _ n isdecl)).
+   P (safe_nth Γ (exist n isdecl)).
 Proof.
   induction 1 in n, isdecl |- *.
   exfalso. inversion isdecl.

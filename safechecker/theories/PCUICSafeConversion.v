@@ -6221,7 +6221,7 @@ match
       referenced_impl_env_ext :=
         ({|
            universes :=
-             (LevelSet.add Level.lzero LevelSet.empty, ConstraintSet.empty);
+             (LevelSet.add Level.lzero LevelSet.empty, UnivConstraintSet.empty);
            declarations := []
          |}, Monomorphic_ctx);
       referenced_impl_ext_wf := TODO "foo"

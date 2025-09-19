@@ -45,8 +45,8 @@ Inductive type_error :=
 | NotAProduct (t t' : term)
 | NotAnInductive (t : term)
 | IllFormedFix (m : mfixpoint term) (i : nat)
-| UnsatisfiedConstraints (c : ConstraintSet.t)
-| UnsatisfiableConstraints (c : ConstraintSet.t)
+| UnsatisfiedConstraints (c : UnivConstraintSet.t)
+| UnsatisfiableConstraints (c : UnivConstraintSet.t)
 | NotEnoughFuel (n : nat)
 | NotSupported (s : string).
 
@@ -103,7 +103,7 @@ Section Lookups.
 
   Definition polymorphic_constraints u :=
     match u with
-    | Monomorphic_ctx => ConstraintSet.empty
+    | Monomorphic_ctx => UnivConstraintSet.empty
     | Polymorphic_ctx ctx => (AUContext.repr ctx).2.2
     end.
 
@@ -822,7 +822,7 @@ Section Checker.
     end.
 
   Definition add_gc_constraints ctrs  (G : universes_graph) : universes_graph
-    := (G.1.1,  GoodConstraintSet.fold
+    := (G.1.1,  GoodUnivConstraintSet.fold
                   (fun ctr => wGraph.EdgeSet.add (edge_of_constraint ctr)) ctrs G.1.2,
         G.2).
 

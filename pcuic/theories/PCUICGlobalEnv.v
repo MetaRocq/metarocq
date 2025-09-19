@@ -136,7 +136,7 @@ Proof.
  - destruct Σ as [Σ φ]. destruct HΣ as [HΣ Hφ].
    destruct (wf_global_uctx_invariants _ HΣ) as [_ XX].
    unfold global_ext_uctx, global_ext_levels, global_ext_constraints.
-   simpl. intros [[l ct] l'] Hctr. simpl in *. apply ConstraintSet.union_spec in Hctr.
+   simpl. intros [[l ct] l'] Hctr. simpl in *. apply UnivConstraintSet.union_spec in Hctr.
    destruct Hctr as [Hctr|Hctr].
    + destruct Hφ as [_ [HH _]]. specialize (HH _ Hctr). cbn in HH.
      intuition auto using LevelSet_in_union_global.

@@ -1202,7 +1202,7 @@ Proof.
   rewrite -{3}H. now rewrite simpl_subst_k.
 Qed.
 
-Lemma subst_compare_term {cf:checker_flags} Σ (φ : ConstraintSet.t) pb (l : list term) (k : nat) (T U : term) :
+Lemma subst_compare_term {cf:checker_flags} Σ (φ : UnivConstraintSet.t) pb (l : list term) (k : nat) (T U : term) :
   compare_term Σ φ pb T U -> compare_term Σ φ pb (subst l k T) (subst l k U).
 Proof.
   destruct pb; simpl.

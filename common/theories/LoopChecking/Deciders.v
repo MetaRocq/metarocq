@@ -1,0 +1,836 @@
+(* Distributed under the terms of the MIT license. *)
+From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
+From Stdlib Require Import Program RelationClasses Morphisms.
+From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
+From MetaRocq.Utils Require Import utils.
+
+From MetaRocq.Common Require UnivConstraintType Universes.
+From Equations Require Import Equations.
+
+From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking.
+
+Set Equations Transparent.
+
+Module Type LoopCheckingItf (LS : LevelSets).
+
+  (* Type of consistent models of a set of universe constraints *)
+  Parameter model : Type.
+  Parameter univ : Type.
+
+  Notation constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
+
+  (* Returns the valuation of the model: a minimal assignement from levels to constraints
+    that make the enforced clauses valid. *)
+  Parameter valuation : model -> LS.LevelMap.t nat.
+
+  Parameter init_model : model.
+
+  (* Returns None if already declared *)
+  Parameter declare_level : LS.Level.t -> model -> option model.
+
+  (* If the constraints mention undeclared universes, returns None,
+     otherwise, returns either a model or a looping universe, i.e. such that u >= u + 1 is implied
+     by the constraint *)
+  Parameter enforce : constraint -> model -> option (model + univ).
+
+  (* Definition valid_constraint m c :=
+    let v := valuation m in
+    clause_sem v c.
+
+  Parameter enforce_spec : forall c m, enforce c m = Some (inl m') ->
+    valid_constraint m c. *)
+
+  (* Returns true is the clause is valid in the model and all its possible consistent extensions.
+     Returns false if the constraint results in an inconsistent set of constraints or it simply
+     is not valid. *)
+  Parameter check : model -> constraint -> bool.
+
+End LoopCheckingItf.
+
+Module Deciders (LS : LevelSets).
+
+Module Import I := LoopCheckingImpl LS.
+Import LS.
+Local Open Scope Z_scope.
+
+Definition init_model cls := max_clause_premises cls.
+
+Lemma init_model_levels cls k :
+  LevelMap.In k (init_model cls) <-> LevelSet.In k (clauses_levels cls).
+Proof.
+  split.
+  - now move => [] k' /max_clause_premises_spec.
+  - move/max_clause_premises_spec_inv. now eexists.
+Qed.
+
+Definition init_w (levels : LevelSet.t) : LevelSet.t := LevelSet.empty.
+
+(* We don't need predecessor clauses as they are trivially satisfied *)
+(* Definition add_predecessors (V : LevelSet.t) cls :=
+  LevelSet.fold (fun l acc =>
+    Clauses.add (NonEmptySetFacts.singleton (l, 1), (l, 0)) acc) V cls. *)
+
+Definition infer_result V cls := result V LevelSet.empty cls (init_model cls).
+
+Equations? infer (cls : clauses) : infer_result (clauses_levels cls) cls :=
+  infer cls := loop (clauses_levels cls) LevelSet.empty cls (init_model cls) (init_model cls) (And3 _ _ _).
+Proof.
+  - now rewrite -init_model_levels.
+  - apply is_update_of_empty.
+Qed.
+
+Local Open Scope string_scope2.
+
+Definition print_level_Z_map (m : LevelMap.t (option Z)) :=
+  let list := LevelMap.elements m in
+  print_list (fun '(l, w) => Level.to_string l ^ " -> " ^ string_of_option string_of_Z w) nl list.
+
+Definition print_result {V cls} (m : infer_result V cls) :=
+  match m return string with
+  | Loop _ _ => "looping on "
+  | Model w m _ => "satisfiable with model: " ^ print_level_Z_map m.(model_model) ^ nl ^ " W = " ^
+    print_lset w
+    ^ nl ^ "valuation: " ^ print_level_nat_map (valuation_of_model m.(model_model))
+  end.
+
+Definition valuation_of_result {V cls} (m : infer_result V cls) :=
+  match m with
+  | Loop _ _  => "looping"
+  | Model w m _ => print_level_nat_map (valuation_of_model m.(model_model))
+  end.
+
+Definition to_string_expr (e : LevelExpr.t) : string :=
+  let '(l, n) := e in Level.to_string l ^ (if n is Z0 then "" else "+" ^ string_of_Z n).
+
+Definition print_premise (l : premises) : string :=
+  let (e, exprs) := to_nonempty_list l in
+  to_string_expr e ^
+  match exprs with
+  | [] => ""
+  | _ => ", " ^ print_list to_string_expr ", " exprs
+  end.
+
+Definition print_clauses (cls : clauses) :=
+  let list := Clauses.elements cls in
+  print_list (fun '(l, r) =>
+    print_premise l ^ " → " ^ to_string_expr r) nl list.
+
+Definition valuation := LevelMap.t nat.
+
+Equations? infer_model (cls : clauses) : option model :=
+infer_model cls with loop (clauses_levels cls) LevelSet.empty cls (init_model cls) (init_model cls) _ :=
+  | Loop _ _ => None
+  | Model w vm heq => Some vm.(model_model).
+Proof.
+  split.
+  - reflexivity.
+  - apply infer_obligation_2.
+  - apply is_update_of_empty.
+Qed.
+
+Definition infer_correctness cls :=
+  match infer_model cls with
+  | Some m => correct_model cls m
+  | None => ~ exists v, clauses_sem v cls
+  end.
+
+Lemma infer_correct cls : infer_correctness cls.
+Proof.
+  unfold infer_correctness.
+  destruct infer_model as [m|] eqn:hi.
+  - (* Correct *) move: hi.
+    funelim (infer_model cls) => //.
+    intros [= <-].
+    set (obl := infer_model_obligation_1 cls). clearbody obl.
+    clear Heq Heqcall.
+    have mincl := model_incl vm.
+    destruct vm as [model ofV isupd clsconcl ism]; cbn in *.
+    set (V := clauses_levels cls) in *.
+    unfold correct_model.
+    have encl : enabled_clauses model cls.
+    { eapply enabled_clauses_ext. apply is_update_of_ext in isupd. exact isupd.
+      apply init_model_enabled. }
+    split => //.
+    unfold clauses_sem.
+    intros cl hin.
+    eapply valid_clause_model. now eapply encl in hin.
+    eapply Clauses.for_all_spec in ism; tc. now specialize (ism _ hin).
+  - intros [v clssem].
+    move: hi.
+    funelim (infer_model cls) => //. intros _.
+    red in islooping.
+    have sem := clauses_sem_entails_all islooping v0.
+    specialize (sem clssem).
+    rewrite interp_add_prems in sem. lia.
+Qed.
+
+Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) cl).2 :=
+  let V := clauses_levels cls in
+  loop (premises_model V cl).1 LevelSet.empty cls (premises_model V cl).2 (premises_model V cl).2 _.
+Next Obligation.
+  split => //.
+  - lsets.
+  - intros l. rewrite LevelSet.union_spec.
+    rewrite -/(LevelMap.In l (premises_model (clauses_levels cls) cl).2).
+    rewrite in_premises_model. intuition auto.
+  - apply is_update_of_empty.
+Qed.
+
+Variant check_result {cls} :=
+  | IsLooping (v : premises) (islooping : loop_on_univ cls v)
+  | Invalid
+  | Valid.
+Arguments check_result : clear implicits.
+
+Lemma valid_model_find {V W cl cls} :
+  forall v : valid_model (clause_levels cl ∪ V) W (premises_model_map (zero_model (clause_levels cl ∪ V)) (Clauses.singleton cl)) cls,
+  ~ LevelMap.find (concl cl).1 (model_model v) = None.
+Proof.
+  intros v hfind.
+  destruct cl as [prems [concl k]]; cbn in *.
+  have vmupd := model_of_V v.
+  set (pm := premises_model_map _ _) in *.
+  move/LevelMapFact.F.not_find_in_iff: hfind; apply.
+  apply vmupd. rewrite LevelSet.union_spec; left.
+  rewrite clause_levels_spec. now right.
+Qed.
+
+Equations check (cls : clauses) (cl : clause) : check_result cls :=
+  check cls cl with loop_check cls cl :=
+    | Loop v isl => IsLooping v isl
+    | Model W v _ with inspect (LevelMap.find (concl cl).1 v.(model_model)) := {
+      | exist (Some val) he with check_atom_value (Some (concl cl).2) val :=
+        { | true => Valid
+          | false => Invalid }
+      | exist None he with valid_model_find v he := {}
+    }.
+
+Definition check_clauses (cls : clauses) (cls' : clauses) : bool :=
+  let check_one cl :=
+    match check cls cl with
+    | IsLooping v isl => false
+    | Valid => true
+    | Invalid => false
+    end
+  in
+  Clauses.for_all check_one cls'.
+
+(* If a clause checks, then it is entailed (and will be valid in any extension of the model) *)
+Theorem check_entails {cls cl} :
+  check cls cl = Valid -> entails cls cl.
+Proof.
+  destruct cl as [prems [concl k]].
+  funelim (check cls _) => // _.
+  set (V := clause_levels _ ∪ clauses_levels cls) in *.
+  clear Heqcall H. cbn [concl fst snd] in *. clear Heq0.
+  unfold valid_entailment, valid_clause, level_value_above.
+  move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
+  have vmupd := model_updates v.
+  have vmok := model_ok v.
+  set (pm := premises_model_map _ _) in *.
+  have nepm : defined_map pm.
+  { apply premises_model_map_defined.
+    set (cl := (prems, _)) in *.
+    move/(_ cl). rewrite Clauses.singleton_spec. congruence. }
+  have nev : defined_map (model_model v).
+    by apply (is_update_of_defined_map nepm vmupd).
+  move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
+  set (cl := (prems, (concl0, k))) in V.
+  have of_lset := of_level_map_premises_model_map cls cl V nepm.
+  have tr := entails_all_trans of_lset ent.
+  eapply (entails_all_satisfies (l := concl0) (k := k)) in tr.
+  2:{ red. rewrite /level_value he. now constructor. }
+  exact tr.
+Qed.
+
+Lemma check_entails_looping {cls cl v isl} :
+  check cls cl = IsLooping v isl -> cls ⊢a v → succ_prems v.
+Proof.
+  funelim (check cls cl) => //.
+Qed.
+
+Lemma check_looping {cls cl v isl} :
+  check cls cl = IsLooping v isl -> ~ (exists V, clauses_sem V cls).
+Proof.
+  move/check_entails_looping/clauses_sem_entails_all => h [] V /h.
+  rewrite interp_add_prems. lia.
+Qed.
+
+Lemma check_valid_looping {cls cl v isl m} :
+  enabled_clauses m cls ->
+  is_model cls m ->
+  check cls cl = IsLooping v isl -> False.
+Proof.
+  move=> en /(valid_clauses_model _ _ en) csem /check_looping; apply.
+  now eexists.
+Qed.
+
+Theorem check_invalid {cls cl} :
+  check cls cl = Invalid -> ~ entails cls cl.
+Proof.
+  funelim (check cls cl) => //.
+  set (V := clause_levels cl ∪ clauses_levels cls) in *.
+  destruct cl as [prems [concl k]].
+  rename val into conclval_v => _. clear H Heq0 Heqcall prf. cbn in he.
+  move: (check_atom_value_spec (Some k) conclval_v). rewrite Heq.
+  intros r; depelim r. rename H into nent. intros H.
+  have vmupd := model_updates v.
+  have vmok := model_ok v.
+  set (pm := premises_model_map _ _) in *.
+  set (cl := (prems, _)) in V.
+  have nepm : defined_map pm.
+  { apply premises_model_map_defined.
+    move/(_ cl). rewrite Clauses.singleton_spec /cl. congruence. }
+  have nev : defined_map (model_model v).
+    by apply (is_update_of_defined_map nepm vmupd).
+  move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
+  move/entails_model_valid/(_ _ vmok): H.
+  have [z minp] : enabled_clause (model_model v) cl.
+  { apply (@enabled_clause_ext pm).
+    exact: is_update_of_ext (model_updates v).
+    red; cbn.
+    have hcl : Clauses.In cl (Clauses.singleton cl).
+    { now eapply Clauses.singleton_spec. }
+    have hs:= @premises_model_map_min_premise_inv V _ _ hcl. firstorder. }
+  move/valid_clause_elim/(_ z minp).
+  cbn in minp.
+  rewrite /level_value he => h; depelim h. apply nent.
+  constructor.
+  have posz : 0 <= z.
+  { have hsu := model_updates v.
+    eapply is_update_of_ext in hsu.
+    have hs := min_premise_pres prems hsu.
+    rewrite minp in hs.
+    have hmin := @premises_model_map_min_premise_inv V (Clauses.singleton cl) cl.
+    forward hmin. now apply Clauses.singleton_spec.
+    destruct hmin as [minp' [hmineq hpos]].
+    rewrite hmineq in hs. depelim hs. lia. }
+  lia.
+Qed.
+
+Equations? infer_model_extension (V : LevelSet.t) (m : model) (cls cls' : clauses)
+  (prf : clauses_levels cls ⊂_lset V /\ clauses_levels cls' ⊂_lset V /\ only_model_of V m) : result V LevelSet.empty (Clauses.union cls cls') m :=
+  | V, m, cls, cls', prf := loop V LevelSet.empty (Clauses.union cls cls') m m _.
+Proof.
+  split.
+  - intros x. rewrite clauses_levels_spec.
+    move=> [] cl. rewrite Clauses.union_spec.
+    intros [[] incls]. apply H. apply clauses_levels_spec. exists cl. split => //.
+    apply H0. apply clauses_levels_spec. exists cl; split => //.
+  - exact H1.
+  - eapply is_update_of_empty.
+Qed.
+
+
+Equations? infer_extension {V W init cls} (m : valid_model V W init cls)
+  (hincl : only_model_of V init)
+  (hs : clauses_levels cls ⊂_lset V)
+  (cls' : clauses) :
+  result (LevelSet.union (clauses_levels cls') V) LevelSet.empty (Clauses.union cls cls') (min_model_map m.(model_model) cls') :=
+  infer_extension m hincl hs cls' :=
+    infer_model_extension (LevelSet.union (clauses_levels cls') V) (min_model_map m.(model_model) cls') cls cls' _.
+Proof.
+  repeat split.
+  - lsets.
+  - lsets.
+  - have ms := min_model_map_spec cls' (model_model m).
+    set (map := min_model_map _ _) in *.
+    destruct ms as [hm [hcls hext]].
+    rewrite LevelSet.union_spec => [] [].
+    * move/clauses_levels_spec.
+      intros [cl [hin ink]].
+      now move: hcls => /(_ _ hin _ ink).
+    * move/(model_of_V m k).
+      move=> [] x /hext. firstorder.
+  - have ms := min_model_map_spec cls' (model_model m).
+    set (map := min_model_map _ _) in *.
+    destruct ms as [hm [hcls hext]].
+    rewrite LevelSet.union_spec.
+    move=> [] v /hm [] [[cl [incl inclv]]|hm'] ihcls mmap.
+    * left.
+      red in inclv. eapply clauses_levels_spec.
+      exists cl. split => //. eapply clause_levels_spec.
+      destruct inclv as [[? []]|].
+      + left. eapply levels_spec. now eexists.
+      + right. intuition.
+    * have [_ ho] := valid_model_only_model _ _ _ _ m hincl k.
+      forward ho by now exists v. now right.
+Qed.
+
+Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
+Proof.
+  destruct le. intros hin.
+  apply levels_spec. now exists z.
+Qed.
+
+Lemma min_model_map_enabled m cls cls' :
+  enabled_clauses m cls ->
+  enabled_clauses (min_model_map m cls') (Clauses.union cls cls').
+Proof.
+  intros en cl.
+  rewrite Clauses.union_spec => -[].
+  - move/en; rewrite /enabled_clause => -[z hmin].
+    have := @min_premise_pres m (min_model_map m cls') (premise cl) => /fwd.
+    apply min_model_map_acc.
+    rewrite hmin => h; depelim h. now exists y.
+  - intros hin; rewrite /enabled_clause.
+    have [hm [incl hext]] := min_model_map_spec cls' m.
+    have [hle [minp [inp ->]]] := min_premise_spec (min_model_map m cls') (premise cl).
+    move: (incl _ hin). move/(_ minp.1) => /fwd.
+    { apply clause_levels_spec. left. now apply in_levels. }
+    move=> [k hmap].
+    specialize (hm minp.1 k hmap) as [_ hm _].
+    destruct minp.
+    move: hm => /(_ _ hin)/(_ _ inp). intros le; depelim le.
+    exists (y - z). now rewrite /min_atom_value (level_value_MapsTo hmap).
+Qed.
+
+Module CorrectModel.
+  Record t {V cls} :=
+  { initial_model : model;
+    enabled_model : enabled_clauses initial_model cls;
+    only_model_of_V : only_model_of V initial_model;
+    model_updates : LevelSet.t;
+    clauses_declared : clauses_levels cls ⊂_lset V;
+    model_valid : valid_model V model_updates initial_model cls }.
+  Arguments t : clear implicits.
+
+  Record loop {cls} :=
+    { loop_univ : premises;
+      loop_on_univ : cls ⊢a loop_univ → succ_prems loop_univ;
+    }.
+  Arguments loop : clear implicits.
+
+  Definition result V cls := (t V cls + loop cls)%type.
+
+  #[local] Obligation Tactic := program_simpl.
+  Equations? infer_extension_correct {V W init cls} (m : valid_model V W init cls)
+    (enabled : enabled_clauses init cls)
+    (hincl : only_model_of V init)
+    (hs : clauses_levels cls ⊂_lset V)
+    (cls' : clauses)
+    (hs' : clauses_levels cls' ⊂_lset V) : result V (Clauses.union cls cls') :=
+  infer_extension_correct m enabled hincl hs cls' hs' with infer_extension m hincl hs cls' :=
+    | Loop u isl => inr {| loop_univ := u; loop_on_univ := isl |}
+    | Model w m' _ =>
+      inl {|
+        initial_model := min_model_map m.(model_model) cls';
+        only_model_of_V := _;
+        model_updates := w; clauses_declared := _;
+        model_valid := {| model_model := m'.(model_model) |} |}.
+  Proof.
+    - eapply min_model_map_enabled.
+      eapply enabled_clauses_ext.
+      have mupd := I.model_updates m. eapply is_update_of_ext in mupd. exact mupd.
+      exact enabled.
+    - have := valid_model_only_model _ _ _ _ m hincl.
+      now apply only_model_of_min_model_map.
+    - intros x; rewrite clauses_levels_spec; rw Clauses.union_spec.
+      intros [cl [[hin|hin] incl]]. apply hs. apply clauses_levels_spec. clear -hin incl; firstorder.
+      apply hs'. apply clauses_levels_spec. clear -hin incl; firstorder.
+    - have vm := model_of_V m'. eapply model_of_subset; tea. lsets.
+    - apply m'.
+    - intros ?; rewrite clauses_conclusions_spec.
+      intros [cl [H H']]. apply Clauses.union_spec in H as [H|H];
+        [apply hs|apply hs']; subst a; apply clauses_levels_spec; exists cl; split => //;
+        eapply clause_levels_spec; auto.
+    - apply m'.
+  Qed.
+
+  Equations? infer_extension_valid {V cls} (m : t V cls) cls' : option (result V (Clauses.union cls cls')) :=
+  infer_extension_valid m cls' with inspect (LevelSet.subset (clauses_levels cls') V) :=
+    | exist false heq => None
+    | exist true heq => Some (infer_extension_correct (model_valid m) _ _ _ cls' _).
+  Proof.
+    - apply enabled_model.
+    - apply only_model_of_V.
+    - now apply m.
+    - now apply LevelSet.subset_spec in heq.
+  Qed.
+
+  Lemma infer_extension_valid_None {V cls} (m : t V cls) cls' :
+    infer_extension_valid m cls' = None <-> ~ LevelSet.Subset (clauses_levels cls') V.
+  Proof.
+    funelim (infer_extension_valid m cls') => //=.
+    - split=> // eq. clear Heqcall H. exfalso.
+      apply LevelSet.subset_spec in heq. contradiction.
+    - split=> // _ hsub. clear H.
+      move/negP: heq => /LevelSet.subset_spec. contradiction.
+  Qed.
+
+End CorrectModel.
+
+Module Abstract.
+  Import CorrectModel.
+  Record t :=
+    { levels : LevelSet.t;
+      clauses : Clauses.t;
+      model : CorrectModel.t levels clauses }.
+
+  Program Definition init_model : t :=
+    {| levels := LevelSet.empty;
+       clauses := Clauses.empty;
+       model := _ |}.
+  Next Obligation.
+    refine {| initial_model := LevelMap.empty _;
+      only_model_of_V := _;
+      model_updates := LevelSet.empty; |}.
+    - red. intros cl hin; clsets.
+    - intros l. split. lsets.
+      intros [x hm]. now eapply LevelMapFact.F.empty_mapsto_iff in hm.
+    - now intros l; rewrite clauses_levels_spec.
+    - refine {| model_model := LevelMap.empty _ |}.
+      * red. lsets.
+      * red. rewrite (proj2 (LevelSet.is_empty_spec _)). lsets.
+        reflexivity.
+      * now intros l; rewrite clauses_conclusions_spec.
+      * rewrite /is_model. eapply Clauses.for_all_spec. tc.
+        intros x hin. now apply Clauses.empty_spec in hin.
+  Qed.
+
+  Lemma clauses_levels_declared m : clauses_levels (clauses m) ⊂_lset levels m.
+  Proof.
+    exact m.(model).(CorrectModel.clauses_declared).
+  Qed.
+
+  Lemma init_model_levels :
+    levels init_model = LevelSet.empty.
+  Proof. reflexivity. Qed.
+
+  Lemma init_model_clause :
+    clauses init_model = Clauses.empty.
+  Proof. reflexivity. Qed.
+
+  Lemma levelmap_add_comm {A} l o l' o' (m : LevelMap.t A) : l <> l' ->
+    LevelMap.add l o (LevelMap.add l' o' m) =m
+    LevelMap.add l' o' (LevelMap.add l o m).
+  Proof.
+    intros neq.
+    apply LevelMapFact.F.Equal_mapsto_iff => k' o''.
+    rewrite !LevelMapFact.F.add_mapsto_iff /Level.eq.
+    firstorder; subst. right. split => //. auto.
+    left; firstorder.
+    right; firstorder.
+  Qed.
+
+  Lemma strictly_updates_add clauses W m m' l :
+    ~ LevelSet.In l (clauses_levels clauses) ->
+    strictly_updates clauses W m m' ->
+    strictly_updates clauses W (LevelMap.add l None m) (LevelMap.add l None m').
+  Proof.
+    move=> hnin su; move: W m m' su;
+    apply: strictly_updates_elim; [|move=>m [prems [concl k]] m' incl su|move=>ls ls' m m' m'' su ihsu su' ihsu'].
+    { solve_proper. }
+    - move: su => [] v [] hmin habov hm'. cbn.
+      eapply update_one; tea => //.
+      exists v. split => //.
+      * erewrite min_premise_preserved; tea.
+        intros.
+        have neq : x <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (concl, k)).
+          split => //. apply clause_levels_spec. now left. }
+        rewrite /level_value.
+        rewrite LevelMapFact.F.add_neq_o; auto.
+      * have neq : concl <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+          split => //. apply clause_levels_spec. now right. }
+        rewrite /level_value_above /level_value LevelMapFact.F.add_neq_o; auto.
+      * have neq : concl <> l.
+        { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+          split => //. apply clause_levels_spec. now right. }
+        now rewrite levelmap_add_comm // hm'.
+    - eapply trans_update; tea.
+  Qed.
+
+  Lemma is_model_add clauses l m :
+    ~ LevelSet.In l (clauses_levels clauses) ->
+    is_model clauses m ->
+    is_model clauses (LevelMap.add l None m).
+  Proof.
+    move=> hnin ism.
+    eapply Clauses.for_all_spec; tc => cl hin'.
+    move/Clauses.for_all_spec: ism => /(_ _ hin').
+    destruct cl as [prems [concl k]].
+    move/valid_clause_elim => he.
+    apply valid_clause_intro => z.
+    erewrite (@min_premise_preserved _ m); tea.
+    - move/he.
+      have neq : concl <> l.
+      { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (l, k)).
+        split => //. apply clause_levels_spec. now right. }
+      rewrite /level_value LevelMapFact.F.add_neq_o; auto.
+    - intros x hin.
+      have neq : x <> l.
+      { intros ->. apply hnin. apply clauses_levels_spec. exists (prems, (concl, k)).
+        split => //. apply clause_levels_spec. now left. }
+      rewrite /level_value.
+      rewrite LevelMapFact.F.add_neq_o; auto.
+  Qed.
+
+  Equations? declare_level (m : t) (l : Level.t) : option t :=
+  declare_level m l with inspect (LevelSet.mem l m.(levels)) :=
+    | exist true _ => None
+    | exist false hneq => Some {| levels := LevelSet.add l m.(levels); clauses := m.(clauses) |}.
+  Proof.
+    refine {| initial_model := LevelMap.add l None m.(model).(initial_model);
+      only_model_of_V := _;
+      model_updates := m.(model).(model_updates); |}.
+    - eapply enabled_clauses_ext. 2:apply m.(model).(enabled_model).
+      intros l' k hm. exists k. split => //. 2:reflexivity.
+      rewrite LevelMapFact.F.add_mapsto_iff. right. split => //.
+      intros ->. apply LevelSetProp.FM.not_mem_iff in hneq. apply hneq.
+      have hv := only_model_of_V m.(model). apply hv.
+      now exists k.
+    - intros k. rewrite LevelSet.add_spec /LevelSet.E.eq.
+      rw LevelMapFact.F.add_mapsto_iff.
+      have hyp := m.(model).(only_model_of_V) k.
+      firstorder; subst. all:rewrite /Level.eq.
+      * now exists None.
+      * exists x. right; split => //. intros ->.
+        apply LevelSetFact.not_mem_iff in hneq. contradiction.
+    - have hyp := m.(model).(clauses_declared). lsets.
+    - destruct m as [levels clauses vm]; cbn in *.
+      destruct vm as [init en omofV W incl vm].
+      destruct vm as [M mofV mupd mcls mok]. cbn in *.
+      refine {| model_model := LevelMap.add l None M |}.
+      * intros k. rewrite LevelSet.add_spec LevelMapFact.F.add_in_iff. firstorder. now left.
+      * move: mupd; rewrite /is_update_of.
+        destruct (LevelSet.is_empty) eqn:hw.
+        now intros ->.
+        { eapply levelset_not_Empty_is_empty in hw.
+          apply LevelSetFact.not_mem_iff in hneq.
+          apply strictly_updates_add.
+          now move/incl. }
+      * lsets.
+      * apply LevelSetFact.not_mem_iff in hneq.
+        apply is_model_add; tea.
+        now move/incl.
+  Qed.
+
+  Lemma declare_level_clauses {m l m'} :
+    declare_level m l = Some m' -> clauses m = clauses m'.
+  Proof.
+    funelim (declare_level m l) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma declare_level_levels {m l m'} :
+    declare_level m l = Some m' -> ~ LevelSet.In l (levels m) /\ levels m' =_lset LevelSet.add l (levels m).
+  Proof.
+    funelim (declare_level m l) => //=.
+    intros [= <-]. split; cbn => //.
+    move/LevelSet.mem_spec. rewrite hneq => //.
+  Qed.
+
+  Lemma declare_level_None {m l} :
+    declare_level m l = None <-> LevelSet.In l (levels m).
+  Proof.
+    funelim (declare_level m l) => //=; clear H Heqcall.
+    - apply LevelSet.mem_spec in e. firstorder.
+    - split => //.
+      move/LevelSet.mem_spec. rewrite hneq => //.
+  Qed.
+
+  Equations enforce_clauses (m : t) (cls : Clauses.t) : option (t + loop (Clauses.union (clauses m) cls)) :=
+  enforce_clauses m cls with infer_extension_valid m.(model) cls :=
+    | None => None
+    | Some (inl m') => Some (inl {| model := m' |})
+    | Some (inr u) => Some (inr u).
+
+  Lemma enforce_clauses_None m cls :
+    enforce_clauses m cls = None <->
+    ~ LevelSet.Subset (clauses_levels cls) (levels m).
+  Proof.
+    simp enforce_clauses.
+    have:= @infer_extension_valid_None _ _ (model m) cls.
+    destruct infer_extension_valid as [[]|]; simp enforce_clauses; split => //.
+    1-2:move/H => //. intuition.
+  Qed.
+
+  Lemma enforce_clauses_not_None m cls :
+    enforce_clauses m cls <> None <-> LevelSet.Subset (clauses_levels cls) (levels m).
+  Proof.
+    unfold not. rewrite enforce_clauses_None.
+    destruct (LevelSet.subset (clauses_levels cls) (levels m)) eqn:he.
+    apply LevelSet.subset_spec in he. firstorder.
+    move/negP: he.
+    intros ne. red in ne.
+    split => //.
+    intros ne'. destruct ne'. intros hs.
+    apply LevelSet.subset_spec in hs. apply ne. now rewrite hs.
+  Qed.
+
+  Lemma enforce_clauses_levels m cls m' :
+    enforce_clauses m cls = Some (inl m') ->
+    levels m' = levels m.
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma enforce_clauses_clauses m cls m' :
+    enforce_clauses m cls = Some (inl m') ->
+    clauses m' = Clauses.union (clauses m) cls.
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. now cbn.
+  Qed.
+
+  Lemma enforce_clauses_inconsistent m cls u :
+    enforce_clauses m cls = Some (inr u) ->
+    ~ exists V, clauses_sem V (Clauses.union (clauses m) cls).
+  Proof.
+    funelim (enforce_clauses m cls) => //=.
+    intros [= <-]. clear -u. intros [V cs].
+    destruct u as [u loop].
+    eapply clauses_sem_entails_all in loop; tea.
+    now rewrite interp_add_prems in loop.
+  Qed.
+
+  Definition check_clauses m cls :=
+    check_clauses (clauses m) cls.
+
+  Lemma check_clauses_spec m cls :
+    check_clauses m cls <-> entails_clauses (clauses m) cls.
+  Proof.
+    split.
+    - rewrite /check_clauses /Deciders.check_clauses.
+      move/Clauses.for_all_spec => ha cl /ha.
+      destruct check eqn:ch => // _.
+      eapply check_entails in ch. now apply ch.
+    - intros hv.
+      rewrite /check_clauses /Deciders.check_clauses.
+      eapply Clauses.for_all_spec; tc => cl hin.
+      destruct check eqn:hc => //.
+      * exfalso; eapply check_valid_looping; tea.
+        2:eapply m.(model).(model_valid).(model_ok).
+        eapply enabled_clauses_ext, m.(model).(enabled_model).
+        eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)).
+      * move/check_invalid: hc => he.
+        exfalso. elim he. now apply hv.
+  Qed.
+
+End Abstract.
+End Deciders.
+
+Module LoopChecking (LS : LevelSets).
+  Module Impl := Deciders(LS).
+  Import Impl.I.
+  Import Impl.Abstract.
+
+  Definition model := t.
+
+  Definition levels := levels.
+  Definition clauses := clauses.
+
+  Lemma clauses_levels_declared m : clauses_levels (clauses m) ⊂_lset levels m.
+  Proof.
+    apply clauses_levels_declared.
+  Qed.
+
+  Notation univ := NES.t.
+
+  Import UnivConstraintType.ConstraintType (t, Le, Eq).
+
+  Definition constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
+
+  Local Definition to_clauses (cstr : constraint) : Clauses.t :=
+    let '(l, d, r) := cstr in
+    match d with
+    | Le => clauses_of_le l r
+    | Eq => clauses_of_eq l r
+    end.
+
+  Lemma to_clauses_spec l d r :
+    forall cl, Clauses.In cl (to_clauses (l, d, r)) <->
+    match d with
+    | Le => LevelExprSet.Exists (fun lk => cl = (r, lk)) l
+    | Eq => LevelExprSet.Exists (fun lk => cl = (r, lk)) l \/ LevelExprSet.Exists (fun rk => cl = (l, rk)) r
+    end.
+  Proof.
+    intros cl. destruct d => //=.
+    - apply clauses_of_le_spec.
+    - rewrite /clauses_of_eq Clauses.union_spec.
+      have := clauses_of_le_spec l r cl.
+      have := clauses_of_le_spec r l cl.
+      firstorder.
+  Qed.
+
+  Definition init_model := Impl.Abstract.init_model.
+
+  (* Returns None if already declared *)
+  Definition declare_level := Impl.Abstract.declare_level.
+
+  Lemma declare_level_levels {m l m'} :
+    declare_level m l = Some m' -> ~ LevelSet.In l (levels m) /\ levels m' =_lset LevelSet.add l (levels m).
+  Proof. apply declare_level_levels. Qed.
+
+  Lemma declare_level_None {m l} :
+    declare_level m l = None <-> LevelSet.In l (levels m).
+  Proof. apply declare_level_None. Qed.
+
+  Lemma declare_level_clauses l m m' : declare_level m l = Some m' -> Impl.Abstract.clauses m = Impl.Abstract.clauses m'.
+  Proof. apply declare_level_clauses. Qed.
+
+  Definition loop m c := Impl.CorrectModel.loop (Clauses.union (clauses m) (to_clauses c)).
+
+  (* Returns either a model or a looping universe, i.e. such that u >= u + 1 is implied
+     by the constraint *)
+  Definition enforce (m : model) c : option (model + loop m c) :=
+    enforce_clauses m (to_clauses c).
+
+  Lemma enforce_None {m cls} :
+    enforce m cls = None <-> ~ LevelSet.Subset (clauses_levels (to_clauses cls)) (levels m).
+  Proof.
+    apply enforce_clauses_None.
+  Qed.
+
+  Lemma enforce_not_None {m cls} :
+    enforce m cls <> None <-> LevelSet.Subset (clauses_levels (to_clauses cls)) (levels m).
+  Proof.
+    apply enforce_clauses_not_None.
+  Qed.
+
+  Lemma enforce_inconsistent {m cls u} :
+    enforce m cls = Some (inr u) ->
+    ~ exists V, clauses_sem V (Clauses.union (clauses m) (to_clauses cls)).
+  Proof.
+    apply enforce_clauses_inconsistent.
+  Qed.
+
+  Lemma enforce_clauses {m cls m'} :
+    enforce m cls = Some (inl m') ->
+    clauses m' = Clauses.union (clauses m) (to_clauses cls).
+  Proof.
+    apply enforce_clauses_clauses.
+  Qed.
+
+  Lemma enforce_levels m cls m' :
+    enforce m cls = Some (inl m') ->
+    levels m' = levels m.
+  Proof. apply enforce_clauses_levels. Qed.
+
+  (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
+     Returns false if the constraint results in an inconsistent set of constraints or it simply
+     is not valid. *)
+  Definition check m c :=
+    Impl.check_clauses m.(Impl.Abstract.clauses) (to_clauses c).
+
+  Lemma check_spec {m c} :
+    check m c <-> entails_clauses (clauses m) (to_clauses c).
+  Proof. apply check_clauses_spec. Qed.
+
+  (* Returns the valuation of the model: a minimal assignement from levels to constraints
+    that make the enforced clauses valid. *)
+  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model).
+
+  Definition model_valuation m : clauses_sem (to_val (valuation m)) (clauses m).
+  Proof.
+    destruct m as [levels clauses []]; cbn.
+    apply valid_clauses_model; tea; cbn.
+    - eapply enabled_clauses_ext; tea.
+      exact: is_update_of_ext (model_updates model_valid).
+    - apply model_valid.
+  Qed.
+
+End LoopChecking.

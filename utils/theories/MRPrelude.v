@@ -1,3 +1,4 @@
+From Corelib Require Import ssreflect ssrfun.
 From Stdlib Require Import Ascii String ZArith Lia Morphisms.
 From Equations Require Import Equations.
 Set Equations Transparent.
@@ -46,7 +47,7 @@ Infix "=2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 7
 Proof.
   intros f f' Hff' g g' Hgg'. split; intros.
   - intros x. now rewrite <- Hff', <- Hgg'.
-  - intros x. now rewrite Hff', Hgg'.
+  - intros x. now rewrite Hff' Hgg'.
 Qed.
 
 #[global] Instance id_proper_proxy {A} : ProperProxy (`=1`) (@id A).
@@ -132,3 +133,25 @@ Tactic Notation "relativize" open_constr(c) :=
 Record sigP {A : Prop} {B : A -> Prop} := existP { projP1 : A ; projP2 : B projP1 }.
 Arguments sigP {A} B.
 Arguments existP {A} B _ _.
+
+Notation fwd := (ltac:(move=> /(_ _)/Wrap[])).
+
+Arguments exist {A P}.
+Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
+
+Arguments symmetry {A R Symmetric} {x y}.
+
+Lemma uip_bool (b1 b2 : bool) (p q : b1 = b2) : p = q.
+Proof.
+  destruct q. apply Eqdep_dec.UIP_refl_bool.
+Qed.
+
+Lemma iff_forall {A} B C (H : forall x : A, B x <-> C x)
+  : (forall x, B x) <-> (forall x, C x).
+  firstorder.
+Defined.
+
+Lemma iff_ex {A} B C (H : forall x : A, B x <-> C x)
+  : (ex B) <-> (ex C).
+  firstorder.
+Defined.
