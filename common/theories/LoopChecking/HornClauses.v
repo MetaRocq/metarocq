@@ -79,7 +79,7 @@
 From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils SemiLattice.
 
 From MetaRocq.Common Require Universes.
 From MetaRocq.Common Require Import Common Interfaces.
@@ -1620,11 +1620,15 @@ Module Clauses (LS : LevelSets).
   Definition clauses_of_eq (u v : NES.t) :=
     Clauses.union (clauses_of_le u v) (clauses_of_le v u).
 
-  Notation " cls '⊢ℋ' cls' " := (entails_clauses cls cls') (at level 70). (* \mscrH *)
-  Notation " s ⋞ t " := (clauses_of_le s t) (at level 60). (* \curlyeqprec *)
-  Notation " s ≡ t " := (clauses_of_eq s t) (at level 60). (* \allequal *)
+  Declare Scope clauses_scope.
+  Delimit Scope clauses_scope with cls.
+  Bind Scope clauses_scope with Clauses.t.
 
-  Definition le (t u : NES.t) := t ∨ u ≡ u.
+  Notation " s ⋞ t " := (clauses_of_le s t) (at level 70) : clauses_scope. (* \curlyeqprec *)
+  Notation " s ≡ t " := (clauses_of_eq s t) (at level 70) : clauses_scope. (* \allequal *)
+  Notation " cls '⊢ℋ' cls' " := (entails_clauses cls cls') (at level 72). (* \mscrH *)
+
+  Definition le (t u : NES.t) : Clauses.t := t ∨ u ≡ u.
 
   Module Theory.
 
@@ -1827,10 +1831,11 @@ Module Clauses (LS : LevelSets).
 
   Section prems_semi.
     Obligation Tactic := idtac.
+    Import CommutativeMonoid.
     Import Semilattice (Semilattice, eq, add, join).
     Context (cls : Clauses.t).
 
-    Equations? horn_semi : Semilattice NES.t :=
+    Equations? horn_semi : Semilattice NES.t Z :=
     horn_semi := {|
          eq x y := cls ⊢ℋ x ≡ y;
          add := add_prems;
@@ -1842,6 +1847,7 @@ Module Clauses (LS : LevelSets).
         * intros x y. apply Theory.eq_sym.
         * intros x y z. apply Theory.eq_trans.
       - rewrite add_prems_add_prems. apply Theory.eq_refl.
+      - now apply Theory.succ_congr.
       - now rewrite add_prems_0; apply Theory.eq_refl.
       - cbn. apply Theory.join_assoc.
       - apply Theory.join_comm.
@@ -1855,9 +1861,9 @@ Module Clauses (LS : LevelSets).
 
   Import Semilattice.
   Section Morphism.
-    Context (A B : Type).
-    Context (s : Semilattice A).
-    Context (s' : Semilattice B).
+    Context (A B incr : Type).
+    Context `(s : Semilattice A incr).
+    Context `(s' : Semilattice B incr).
     Context (f : A -> B).
     Class respects :=
       { of_succ n (x : A) : f (add n x) = add n (f x);

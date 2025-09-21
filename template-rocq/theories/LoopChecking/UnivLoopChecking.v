@@ -5,7 +5,7 @@
 From Stdlib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils SemiLattice.
 From MetaRocq.Common Require Import UnivConstraintType Universes.
 From MetaRocq.Common.LoopChecking Require Import Common Interfaces Deciders.
 From Equations Require Import Equations.
@@ -640,9 +640,11 @@ End ZUnivConstraint.
     now move=> hall hsub cl /hsub.
   Qed.
 
-  Lemma clauses_sem_clauses_of_le V l r :
+  Import Semilattice.
+
+  Lemma clauses_sem_clauses_of_le (V : Level.t -> Z) l r :
     clauses_sem V (clauses_of_le l r) ->
-    (interp_prems V l <= interp_prems V r)%Z.
+    (interp_prems V l ≤ interp_prems V r)%sl.
   Proof.
     rewrite /clauses_sem.
     intros hl. red in hl.
@@ -659,7 +661,7 @@ End ZUnivConstraint.
       move: (ih' (r, x1)) => /fwd. exists x1. split => //. apply LevelExprSet.add_spec. now right.
       auto.
       move: (ih' (r, le)) => /fwd. exists le. split => //.  apply LevelExprSet.add_spec. now left.
-      cbn. lia.
+      cbn. cbn in ih. lia.
   Qed.
 
   Lemma to_atoms_singleton l k  : to_atoms (Universe.singleton (l, k)) = singleton (l, Z.of_nat k).
@@ -668,7 +670,7 @@ End ZUnivConstraint.
     rewrite /to_atoms //=.
   Qed.
 
-  Lemma to_atoms_add le u : to_atoms (Universe.add le u) = add (to_atom le) (to_atoms u).
+  Lemma to_atoms_add le u : to_atoms (Universe.add le u) = NES.add (to_atom le) (to_atoms u).
   Proof. apply NES.equal_exprsets => //=.
     move=> [l k].
     rewrite LevelExprSet.add_spec.
@@ -693,15 +695,6 @@ End ZUnivConstraint.
         rewrite Universes.LevelExprSet.add_spec. now right.
   Qed.
 
-  Lemma interp_prem_to_atom v le : interp_expr v (to_atom le) = Z.of_nat (val (to_valuation v) le).
-  Proof.
-    destruct le => //=. cbn.
-    destruct t0.
-    - (* lzero is forced to have value 0, has it should stay maximal *) todo "handle lzero".
-    - todo "handle monos".
-    - cbn. lia.
-  Qed.
-
   Lemma clauses_sem_union v cls cls' : clauses_sem v (Clauses.Clauses.union cls cls') <->
     clauses_sem v cls /\ clauses_sem v cls'.
   Proof.
@@ -711,7 +704,16 @@ End ZUnivConstraint.
     specialize (H cl). specialize (H0 cl). intros []; auto.
   Qed.
 
-  Lemma interp_prems_to_atoms v l : interp_prems v (to_atoms l) = Z.of_nat (Universes.val (to_valuation v) l).
+  Lemma interp_prem_to_atom v le : interp_expr (to_Z_val v) (to_atom le) = Z.of_nat (val (to_valuation v) le).
+  Proof.
+    destruct le => //=. cbn.
+    destruct t0.
+    - (* lzero is forced to have value 0, has it should stay maximal *) todo "handle lzero".
+    - todo "handle monos".
+    - cbn. unfold to_Z_val; cbn. lia.
+  Qed.
+
+  Lemma interp_prems_to_atoms v l : interp_prems (to_Z_val v) (to_atoms l) = Z.of_nat (Universes.val (to_valuation v) l).
   Proof.
     move: l.
     apply Universe.elim.
@@ -722,17 +724,18 @@ End ZUnivConstraint.
     - intros le x eq nin.
       rewrite to_atoms_add interp_prems_add.
       rewrite val_add.
-      rewrite interp_prem_to_atom. lia.
+      rewrite interp_prem_to_atom. cbn. lia.
   Qed.
 
   Lemma clauses_sem_val m l r :
-    clauses_sem (to_val (LoopCheck.valuation m)) (clauses_of_le (to_atoms l) (to_atoms r)) ->
+    clauses_sem (to_Z_val (to_val (LoopCheck.valuation m))) (clauses_of_le (to_atoms l) (to_atoms r)) ->
     Universes.val (to_valuation (to_val (LoopCheck.valuation m))) l <=
     Universes.val (to_valuation (to_val (LoopCheck.valuation m))) r.
   Proof.
     move/clauses_sem_clauses_of_le.
     have he := interp_prems_to_atoms (to_val (LoopCheck.valuation m)) l.
-    have he' := interp_prems_to_atoms (to_val (LoopCheck.valuation m)) r. lia.
+    have he' := interp_prems_to_atoms (to_val (LoopCheck.valuation m)) r.
+    cbn in *. lia.
   Qed.
 
   Lemma model_satisfies m :
@@ -777,11 +780,12 @@ End ZUnivConstraint.
 
   Lemma interp_level_of_valuation {V v l} :
     LevelSet.In l V ->
-    to_val (of_valuation V v) l = val v l.
+    to_Z_val (to_val (of_valuation V v)) l = Z.of_nat (val v l).
   Proof.
     move=> hin.
-    rewrite /to_val.
+    rewrite /to_Z_val /to_val.
     elim: find_spec => [k /of_valuation_spec []|] => //.
+    { intros ? ->. reflexivity. }
     elim. exists (val v l). rewrite [LevelMap.Raw.MapsTo _ _ _]of_valuation_spec.
     split => //.
   Qed.
@@ -803,26 +807,27 @@ End ZUnivConstraint.
     LevelSet.Subset (univ_constraint_levels (l, ConstraintType.Le, r)) V ->
     val v l <= val v r ->
     forall cl, LevelExprSet.Exists (fun lk : LevelExprSet.elt => cl = (to_atoms r, lk)) (to_levelexprzset l) ->
-    clause_sem (to_val (of_valuation V v)) cl.
+    clause_sem (to_Z_val (to_val (of_valuation V v))) cl.
   Proof.
     move=> hlev leq [prems concl].
     move=> [] [l'' k'] [] /to_levelexprzset_spec_2 [] inl' pos ->.
-    cbn. rewrite interp_prems_to_atoms //=.
+    cbn -[le]. rewrite interp_prems_to_atoms.
     rewrite to_of_valuation_univ.
     { intros ? hin; apply hlev. cbn. lsets. }
-    transitivity (Z.of_nat (val v l)). lia.
+    transitivity (Z.of_nat (val v l)).
     rewrite interp_level_of_valuation.
     { apply hlev; cbn.
       eapply LevelSet.union_spec; left. eapply Universe.levels_spec.
       now eexists. }
     have vle := val_In_le l v _ inl'. cbn in vle.
-    by u; lia.
+    cbn; u; lia.
+    cbn; u; lia.
   Qed.
 
   Lemma satisfies_clauses_sem v m V :
     LoopCheck.levels (model m) ⊂_lset V ->
     satisfies v (constraints m) ->
-    clauses_sem (to_val (of_valuation V v)) (LoopCheck.clauses (model m)).
+    clauses_sem (to_Z_val (to_val (of_valuation V v))) (LoopCheck.clauses (model m)).
   Proof.
     have repr := repr_constraints_inv m.
     have repr_inv := repr_constraints m.
@@ -854,20 +859,20 @@ End ZUnivConstraint.
 
   Lemma clauses_sem_satisfies {v V c} :
     univ_constraint_levels c ⊂_lset V ->
-    clauses_sem (to_val (of_valuation V v)) (LoopCheck.to_clauses (to_constraint c)) ->
+    clauses_sem (to_Z_val (to_val (of_valuation V v))) (LoopCheck.to_clauses (to_constraint c)) ->
     satisfies0 v c.
   Proof.
     intros hin hsem. destruct c as [[l []] r]; cbn in *.
     - constructor.
       move/clauses_sem_clauses_of_le: hsem.
       rewrite !interp_prems_to_atoms.
-      rewrite !to_of_valuation_univ. lsets. lsets. lia.
+      rewrite !to_of_valuation_univ. lsets. lsets. cbn; lia.
     - constructor.
       rewrite clauses_sem_union in hsem. destruct hsem as [hsem hsem'].
       move/clauses_sem_clauses_of_le: hsem.
       move/clauses_sem_clauses_of_le: hsem'.
       rewrite !interp_prems_to_atoms.
-      rewrite !to_of_valuation_univ. lsets. lsets. lia.
+      rewrite !to_of_valuation_univ. lsets. lsets. cbn; lia.
   Qed.
 
   Instance in_pred_closure_proper : Proper (Clauses.Equal ==> Logic.eq ==> impl) in_pred_closure.
@@ -957,50 +962,26 @@ End ZUnivConstraint.
       eapply (repr_constraints m); tea.
   Qed.
 
-  (* Section Nat_Semilattice.
-    Import Semilattice.
-    Equations? nat_semilattice : semilattice :=
-    nat_semilattice :=
-      {| carrier := nat;
-         eq := Logic.eq;
-         succ x := S x;
-         join x y := Nat.max x y |}.
-    Proof.
-      all:lia.
-    Qed.
-  End Nat_Semilattice. *)
-
-  Section Z_Semilattice.
-    Import Semilattice.
-    Equations? Z_semilattice : semilattice :=
-    Z_semilattice :=
-      {| carrier := Z;
-         eq := Logic.eq;
-         add := Z.add;
-         join x y := Z.max x y |}.
-    Proof.
-      all:lia.
-    Qed.
-  End Z_Semilattice.
-
-  Lemma interp_prems_union {v x y} : interp_prems v (x ∨ y) = Z.max (interp_prems v x) (interp_prems v y).
+  Lemma interp_prems_union {v : Level.t -> Z} {x y : premises} :
+    interp_prems v (univ_union x y) =
+    join (interp_prems v x) (interp_prems v y).
   Proof.
     move: x; apply NES.elim.
     - intros []. rewrite univ_union_comm univ_union_add_singleton.
       now rewrite interp_prems_add interp_prems_singleton.
     - intros le' x ih hnin.
-      rewrite univ_union_add_distr !interp_prems_add ih. lia.
+      rewrite univ_union_add_distr !interp_prems_add ih. cbn; lia.
   Qed.
 
-  Lemma val_respects cls v : respects (leset_sl cls) Z_semilattice (fun u => interp_prems v u).
+  Lemma val_respects cls v : @respects _ _ Z _ (horn_semi cls) _ Zsemilattice (fun u => interp_prems v u).
   Proof.
     split; cbn.
-    - intros n x. rewrite interp_add_prems. lia.
-    - intros x y. rewrite interp_prems_union. lia.
+    - intros n x. rewrite interp_add_prems; cbn. lia.
+    - intros x y. rewrite interp_prems_union; cbn. lia.
   Qed.
 
   Definition valid_entailments cls cls' :=
-    forall V, clauses_sem V cls -> clauses_sem V cls'.
+    forall A {SL : Semilattice A Z} V, clauses_sem V cls -> clauses_sem V cls'.
 
   Lemma entails_cstr_spec cstrs c :
     (exists V, clauses_sem V (of_z_constraints cstrs)) ->

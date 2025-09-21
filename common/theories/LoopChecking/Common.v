@@ -78,9 +78,54 @@ Qed.
 Instance nat_min_assoc : Associative Nat.min := Nat.min_assoc.
 Instance nat_max_assoc : Associative Nat.max := Nat.max_assoc.
 
-
 Instance Zmin_assoc : Associative Z.min := Z.min_assoc.
 Instance Zmax_assoc : Associative Z.max := Z.max_assoc.
+
+Instance Zadd_assoc : Associative Z.add := Z.add_assoc.
+Instance Zadd_comm : Commutative Z.add := Z.add_comm.
+
+Instance Nadd_assoc : Associative Nat.add := Nat.add_assoc.
+Instance Nadd_comm : Commutative Nat.add := Nat.add_comm.
+
+Import CommutativeMonoid.
+
+Instance Zadd_neutral : Neutral Z.add 0%Z.
+Proof. red. intros. lia. Qed.
+
+Instance Nadd_neutral : Neutral Nat.add 0%nat.
+Proof. red. intros. lia. Qed.
+
+Instance Zadd_comm_monoid : CommutativeMonoid 0%Z Z.add := {}.
+Instance Nadd_comm_monoid : CommutativeMonoid 0%nat Nat.add := {}.
+
+Instance Zadd_is_comm_monoid : IsCommMonoid Z :=
+  { zero := 0%Z;
+    one := 1%Z;
+    add := Z.add }.
+
+Instance Nadd_is_comm_monoid : IsCommMonoid nat :=
+  { zero := 0%nat;
+    one := 1%nat;
+    add := Nat.add }.
+
+
+Section ZSemiLattice.
+  Import Semilattice.
+
+  Program Definition Zsemilattice : Semilattice Z Z :=
+    {| add := Z.add;
+      join := Z.max; |}.
+  Solve Obligations with program_simpl; try lia.
+
+  Obligation Tactic := idtac.
+  Next Obligation.
+  Proof.
+    intros x; unfold one, Zadd_is_comm_monoid. lia.
+  Qed.
+
+End ZSemiLattice.
+
+#[export] Existing Instance Zsemilattice.
 
 Lemma fold_left_comm {A B} (f : B -> A -> B) (l : list A) (x : A) (acc : B) :
   (forall x y z, f (f z x) y = f (f z y) x) ->
@@ -236,7 +281,8 @@ Qed.
 
 Section ForSemilattice.
   Import Semilattice.
-  Context {A : Type} {SL : Semilattice A}.
+  Import CommutativeMonoid.
+  Context {A : Type} {V : Type} {CM : IsCommMonoid V} {SL : Semilattice A V}.
   Open Scope sl_scope.
 
   Lemma fold_right_max_in {a : A} {l : list A} n : In a l -> a ≤ (fold_right join n l).
@@ -267,51 +313,63 @@ Section ForSemilattice.
       specialize (IHl l').
       forward IHl.
       intros. apply h. now right.
-      lia.
+      intros hle; rewrite join_le_left_eq. now split.
   Qed.
 
   Lemma fold_right_max_spec n l :
-    let fn := fold_right Z.max in
-    (forall x, In x (n :: l) -> x <= fn n l) /\
-    (exists x, In x (n :: l) /\ fn n l = x).
+    let fn := fold_right join in
+    (forall x, In x (n :: l) -> x ≤ fn n l).
   Proof.
     induction l; cbn.
-    - split. intros x [] => //. now subst.
-      exists n. firstorder.
-    - cbn in IHl. destruct IHl as [h h'].
-      split.
+    - intros x [] => //. now subst.
+      (* exists n. firstorder. reflexivity. *)
+    - cbn in IHl.
       intros x [|[]]; subst.
-      * specialize (h x). forward h by auto. lia.
-      * lia.
-      * specialize (h x). forward h by auto. lia.
-      * destruct h' as [x []]. exists (Z.max a x). rewrite -{4}H0. split => //.
-        destruct H; subst.
-        destruct (Z.max_spec a x) as [[]|[]]; firstorder; subst.
-        destruct (Z.max_spec a (fold_right Z.max n l)) as [[]|[]]; firstorder; subst. rewrite H1.
-        auto.
+      * specialize (IHl x). forward IHl by auto.
+        now apply join_le_right_trans.
+      * apply join_le_left.
+      * specialize (IHl x). forward IHl by auto.
+        now apply join_le_right_trans.
   Qed.
 
-  Lemma fold_right_equivlist_all max n n' l l' :
-    equivlistA eq (n :: l) (n' :: l') -> fold_right Z.max n l = fold_right Z.max n' l'.
+  Lemma fold_right_equivlist_all_le n n' l l' :
+    equivlistA Logic.eq (n :: l) (n' :: l') -> fold_right join n l ≤ fold_right join n' l'.
   Proof.
     intros eq.
-    have [hla [maxl [inmaxl eqmaxl]]] := fold_right_max_spec n l.
-    have [hra [maxr [inmaxr eqmaxr]]] := fold_right_max_spec n' l'.
-    rewrite eqmaxl eqmaxr.
-    red in eq; setoid_rewrite InA_In_eq in eq.
-    apply (eq _) in inmaxl. apply hra in inmaxl.
-    apply eq in inmaxr. apply hla in inmaxr. lia.
+    have hla := fold_right_max_spec n l.
+    have hra := fold_right_max_spec n' l'.
+    red in eq.
+    setoid_rewrite InA_In_eq in eq.
+    cbn in hra. setoid_rewrite <- eq in hra. clear -hra.
+    move: hra; generalize (fold_right join n' l').
+    clear.
+    induction l.
+    - cbn. intros a heq. apply heq. now left.
+    - cbn. intros a' ih.
+      specialize (IHl a'). forward IHl.
+      { cbn; intros x []. subst. eapply ih. now left.
+        apply ih. auto. }
+      specialize (ih a). forward ih. { now right; left. }
+      eapply join_le_left_eq; now split.
   Qed.
 
-  Lemma fold_right_comm acc l : l <> [] -> fold_right Z.max acc l = Z.max acc (fold_right Z.max (List.hd acc l) (List.tl l)).
+  Lemma fold_right_equivlist_all n n' l l' :
+    equivlistA Logic.eq (n :: l) (n' :: l') -> fold_right join n l ≡ fold_right join n' l'.
+  Proof.
+    intros eq.
+    apply eq_antisym; split; eapply fold_right_equivlist_all_le; auto.
+    now symmetry.
+  Qed.
+
+  Lemma fold_right_comm acc l : l <> [] -> fold_right join acc l ≡ join acc (fold_right join (List.hd acc l) (List.tl l)).
   Proof.
     induction l in acc |- *.
     - intros; congruence.
-    - intros _. cbn. destruct l; cbn. lia.
+    - intros _. cbn. destruct l; cbn. apply join_comm.
       cbn in IHl. rewrite (IHl acc). congruence.
-      rewrite (IHl a). congruence. lia.
+      rewrite (IHl a). congruence.
+      now rewrite -!join_assoc (join_comm a).
   Qed.
-
 
 End ForSemilattice.
 
@@ -387,6 +445,7 @@ Proof.
   unfold flip. now rewrite hf.
 Qed.
 
+Local Open Scope Z_scope.
 Lemma nleq_optZ k k' : ~ k ≤ Some k' -> exists z, k = Some z /\ k' < z.
 Proof.
   destruct k.

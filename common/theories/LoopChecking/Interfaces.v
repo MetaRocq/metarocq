@@ -47,8 +47,7 @@ End FMapOTInterface.
 Module Q <: Quantity.
   Include OrdersEx.Z_as_OT.
 
-  Program Instance comm_monoid : CommutativeMonoid Z.zero Z.add.
-  Solve Obligations with red; tc; program_simpl; lia.
+  Instance comm_monoid : CommutativeMonoid Z.zero Z.add := _.
 
   Program Instance add_inj z : Injective (Z.add z).
   Next Obligation. lia. Qed.

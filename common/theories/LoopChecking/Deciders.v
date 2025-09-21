@@ -2,7 +2,7 @@
 From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils MRClasses SemiLattice.
 
 From MetaRocq.Common Require UnivConstraintType Universes.
 From Equations Require Import Equations.
@@ -134,6 +134,7 @@ Definition infer_correctness cls :=
   | None => ~ exists v, clauses_sem v cls
   end.
 
+Import Semilattice.
 Lemma infer_correct cls : infer_correctness cls.
 Proof.
   unfold infer_correctness.
@@ -160,8 +161,11 @@ Proof.
     funelim (infer_model cls) => //. intros _.
     red in islooping.
     have sem := clauses_sem_entails_all islooping v0.
-    specialize (sem clssem).
-    rewrite interp_add_prems in sem. lia.
+    specialize (sem clssem). red in sem.
+    rewrite interp_add_prems in sem.
+    cbn [add Zsemilattice] in sem.
+    cbn [join Zadd_is_comm_monoid Zsemilattice] in sem.
+    Opaque Z.add. cbn in sem. lia. Transparent Z.add.
 Qed.
 
 Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) cl).2 :=
@@ -253,7 +257,7 @@ Lemma check_looping {cls cl v isl} :
   check cls cl = IsLooping v isl -> ~ (exists V, clauses_sem V cls).
 Proof.
   move/check_entails_looping/clauses_sem_entails_all => h [] V /h.
-  rewrite interp_add_prems. lia.
+  rewrite interp_add_prems. cbn -[Z.add]. lia.
 Qed.
 
 Lemma check_valid_looping {cls cl v isl m} :
@@ -684,7 +688,8 @@ Module Abstract.
     intros [= <-]. clear -u. intros [V cs].
     destruct u as [u loop].
     eapply clauses_sem_entails_all in loop; tea.
-    now rewrite interp_add_prems in loop.
+    rewrite interp_add_prems in loop.
+    cbn -[Z.add] in loop. lia.
   Qed.
 
   Definition check_clauses m cls :=
@@ -824,7 +829,7 @@ Module LoopChecking (LS : LevelSets).
     that make the enforced clauses valid. *)
   Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model).
 
-  Definition model_valuation m : clauses_sem (to_val (valuation m)) (clauses m).
+  Definition model_valuation m : clauses_sem (to_Z_val (to_val (valuation m))) (clauses m).
   Proof.
     destruct m as [levels clauses []]; cbn.
     apply valid_clauses_model; tea; cbn.
