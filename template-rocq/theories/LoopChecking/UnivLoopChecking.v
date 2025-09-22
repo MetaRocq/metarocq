@@ -962,15 +962,16 @@ End ZUnivConstraint.
       eapply (repr_constraints m); tea.
   Qed.
 
-  Lemma interp_prems_union {v : Level.t -> Z} {x y : premises} :
-    interp_prems v (univ_union x y) =
+  Lemma interp_prems_union {S} {SL : Semilattice S Z} {v : Level.t -> S} {x y : premises} :
+    interp_prems v (x ∪ y) ≡
     join (interp_prems v x) (interp_prems v y).
   Proof.
     move: x; apply NES.elim.
-    - intros []. rewrite univ_union_comm univ_union_add_singleton.
+    - intros []. rewrite union_comm union_add_singleton.
       now rewrite interp_prems_add interp_prems_singleton.
     - intros le' x ih hnin.
-      rewrite univ_union_add_distr !interp_prems_add ih. cbn; lia.
+      rewrite union_add_distr !interp_prems_add ih. cbn.
+      now rewrite join_assoc.
   Qed.
 
   Lemma val_respects cls v : @respects _ _ Z _ (horn_semi cls) _ Zsemilattice (fun u => interp_prems v u).
@@ -997,35 +998,44 @@ End ZUnivConstraint.
   Import Semilattice.
 
   Definition rel := premises × premises.
+
+  Declare Scope rel_scope.
+  Delimit Scope rel_scope with rel.
+  Bind Scope rel_scope with rel.
+  Open Scope rel_scope.
+
   Definition rels := list rel.
 
   Record presentation :=
     { V : LevelSet.t;
       C : list (NES.t × NES.t); }.
 
-  Definition rel_eq (x y : premises) := (x, y).
-  Definition rel_le (x y : premises) := (x ∨ y, y).
+  Infix "∨" := NES.union (at level 30) : nes_scope.
+  Open Scope nes_scope.
 
-  Delimit Scope rel_scope with rel.
-  Infix "≡" := rel_eq (at level 60, no associativity) : rel_scope.
+  Definition rel_eq (x y : premises) : rel := (x, y).
+  Definition rel_le (x y : premises) : rel := ((x ∨ y)%nes, y).
+
+  Infix "≡" := rel_eq (at level 70, no associativity) : rel_scope.
   Infix "≤" := rel_le (at level 50, no associativity) : rel_scope.
 
-  Reserved Notation " p ⊢ℒ r " (at level 62, no associativity).
+  Reserved Notation " p ⊢ℒ r " (at level 72, no associativity).
 
   Inductive entails_L (p : rels) : NES.t × NES.t -> Prop :=
     | entails_c {l r} : List.In (l, r) p -> p ⊢ℒ l ≡ r
     | entails_refl {x} : p ⊢ℒ x ≡ x
     | entails_sym {x y} : p ⊢ℒ x ≡ y -> p ⊢ℒ y ≡ x
     | entails_trans {x y z} : p ⊢ℒ x ≡ y -> p ⊢ℒ y ≡ z -> p ⊢ℒ x ≡ z
-    | entails_succ_congr {x y n} : p ⊢ℒ x ≡ y -> p ⊢ℒ add_prems n x ≡ add_prems n y
+    | entails_add_congr {x y n} : p ⊢ℒ x ≡ y -> p ⊢ℒ add_prems n x ≡ add_prems n y
+    | entails_add_inj {n x y} : p ⊢ℒ (add_prems n x) ≡ (add_prems n y) -> p ⊢ℒ x ≡ y
     | entails_join_congr {x y r} : p ⊢ℒ x ≡ y -> p ⊢ℒ (x ∨ r) ≡ (y ∨ r)
     | entails_assoc {x y z} : p ⊢ℒ ((x ∨ y) ∨ z) ≡ (x ∨ (y ∨ z))
     | entails_idem {x} : p ⊢ℒ (x ∨ x) ≡ x
     | entails_comm {x y} : p ⊢ℒ (x ∨ y) ≡ (y ∨ x)
     | entails_sub {x} : p ⊢ℒ (x ∨ succ_prems x) ≡ (succ_prems x)
-    | entails_succ_inj {x y n} : p ⊢ℒ (add_prems n x) ≡ (add_prems n y) -> p ⊢ℒ x ≡ y
-    | entails_succ_join {x y} : p ⊢ℒ (succ_prems (x ∨ y)) ≡ (succ_prems x ∨ succ_prems y)
+    | entails_add_join {n x y} : p ⊢ℒ (add_prems n (x ∨ y)) ≡ (add_prems n x ∨ add_prems n y)
     where " p ⊢ℒ r " := (entails_L p r%_rel).
+  Derive Signature for entails_L.
 
   Lemma entails_join_congr_all {p} {x x' y y'} :
     p ⊢ℒ x ≡ x' -> p ⊢ℒ y ≡ y' -> p ⊢ℒ (x ∨ y) ≡ (x' ∨ y').
@@ -1033,7 +1043,7 @@ End ZUnivConstraint.
     intros he he'.
     eapply entails_trans with (x' ∨ y).
     now apply entails_join_congr.
-    rewrite (@univ_union_comm x' y) (@univ_union_comm x' y').
+    rewrite (@union_comm x' y) (@union_comm x' y').
     now apply entails_join_congr.
   Qed.
 
@@ -1048,7 +1058,7 @@ End ZUnivConstraint.
   Proof.
     intros he he'.
     eapply entails_trans with (x ∨ y) => //.
-    rewrite !(@univ_union_comm x).
+    rewrite !(@union_comm x).
     apply entails_join_congr => //. now eapply entails_sym.
   Qed.
 
@@ -1062,13 +1072,15 @@ End ZUnivConstraint.
     Definition univ_le (u u' : premises) :=
       forall l k, LevelExprSet.In (l, k) u -> exists k', LevelExprSet.In (l, k') u /\ (k <= k')%Z.
 
+    Definition univ_eq u u' :=
+      univ_le u u' /\ univ_le u' u.
+
+    Infix "≌" := univ_eq (at level 70, no associativity).
+
     Lemma univ_le_refl u u' : u = u' -> univ_le u u'.
     Proof.
       intros <- l k hin; exists k; split => //; lia.
     Qed.
-
-    Definition univ_eq u u' :=
-      univ_le u u' /\ univ_le u' u.
 
     Lemma univ_eq_refl u u' : u = u' -> univ_eq u u'.
     Proof.
@@ -1085,12 +1097,27 @@ End ZUnivConstraint.
       move=> [] le le' [] le0 le0'. split; auto.
     Qed.
 
-    Equations? pres_semilattice : semilattice :=
+    Lemma univ_add_le_inj {n u v} : univ_le (add_prems n u) (add_prems n v) -> univ_le u v.
+    Proof.
+      intros hle l k hin.
+      move: (hle l (n + k)%Z) => /fwd.
+      { apply In_add_prems. exists (l, k); split => //. }
+      move=> [] k' [] /In_add_prems [] [] l' k2 [] inu [=] -> -> hle'.
+      exists k2. split => //. lia.
+    Qed.
+
+    Lemma univ_add_inj {n u v} : univ_eq (add_prems n u) (add_prems n v) -> univ_eq u v.
+    Proof.
+      move=> [] le le'. split; eauto using univ_add_le_inj.
+    Qed.
+
+    (* To model subsumption correctly, we need a larger relation than Leibniz equality.
+      In other words, (x ∨ add 1 x) <> add 1 x.  *)
+    Equations? pres_semilattice : Semilattice NES.t Z :=
     pres_semilattice :=
-      {| carrier := NES.t;
-         eq x y := relations p.(C) -> univ_eq x y;
+      {| eq x y := relations p.(C) -> univ_eq x y;
          add := add_prems;
-         join x y := univ_union x y |}.
+         join x y := x ∪ y |}.
     Proof.
       all:intros.
       - split; red; intros.
@@ -1098,20 +1125,27 @@ End ZUnivConstraint.
         * now apply univ_eq_sym, H.
         * now eapply univ_eq_trans; eauto.
       - rewrite add_prems_add_prems. now apply univ_eq_refl.
+      - specialize (H H0). destruct H as [le le'].
+        split; move=> l k /In_add_prems => -[[l' k'] [hin [=]]] -> ->.
+        * exists (n + k')%Z. split => //. apply In_add_prems.
+          exists (l', k'). split => //. reflexivity.
+        * exists (n + k')%Z; split => //. apply In_add_prems.
+          exists (l', k'); split => //. reflexivity.
       - rewrite add_prems_0. now apply univ_eq_refl.
-      - apply univ_eq_refl. now rewrite univ_union_assoc.
-      - apply univ_eq_refl. now rewrite univ_union_comm.
+      - apply univ_eq_refl. now rewrite union_assoc.
+      - apply univ_eq_refl. now rewrite union_comm.
       - split. intros l k; rewrite !LevelExprSet.union_spec.
         intros []; exists k; split => //; try lia;
-          now rewrite univ_union_spec.
+          now rewrite union_spec.
         intros l k hin. exists k. split => //. lia.
       - split. intros l k; rewrite !LevelExprSet.union_spec.
         intros []; exists k; split => //; try lia;
-          now rewrite univ_union_spec.
+          now rewrite union_spec.
         intros l k hin. exists k. split => //. lia.
       - split. intros l k hin. exists k. split => //. reflexivity.
         intros l k hin. exists k. split => //; reflexivity.
-      - apply univ_eq_refl. now rewrite add_prems_univ_union.
+      - specialize (H H0). now eapply univ_add_inj.
+      - apply univ_eq_refl. now rewrite add_prems_union.
     Qed.
   End pres_Semilattice.
 
@@ -1129,27 +1163,27 @@ End ZUnivConstraint.
     intros le le'.
     eapply entails_trans. 2:exact le'.
     eapply entails_trans with (x ∨ y ∨ z).
-    rewrite univ_union_assoc. eapply entails_sym.
+    rewrite union_assoc. eapply entails_sym.
     eapply entails_join_congr_all => //. apply entails_refl.
-    rewrite univ_union_assoc.
+    rewrite union_assoc.
     eapply entails_trans with (x ∨ ((y ∨ y) ∨ z)).
     eapply entails_join_congr_all; auto with entails_L.
-    rewrite univ_union_assoc -univ_union_assoc.
+    rewrite union_assoc -union_assoc.
     now eapply entails_join_congr_all.
   Qed.
 
-  Lemma subset_univ_union {u u' : premises} :
+  Lemma subset_union {u u' : premises} :
     u ⊂_leset u' -> u ∨ u' = u'.
   Proof.
     intros hincl; apply equal_exprsets => l.
-    rewrite univ_union_spec. firstorder.
+    rewrite union_spec. firstorder.
   Qed.
 
   Lemma incl_entails_L {cls} {u u' : premises} :
     u ⊂_leset u' -> cls ⊢ℒ u ≤ u'.
   Proof.
     move=> hincl. unfold rel_le.
-    rewrite subset_univ_union //; auto with entails_L.
+    rewrite subset_union //; auto with entails_L.
   Qed.
 
   Lemma entails_L_subset {cls} {prems prems' prems'' : premises} :
@@ -1172,7 +1206,7 @@ End ZUnivConstraint.
   Definition relation_of_constraint c :=
     let '(l, d, r) := c in
     match d with
-    | ConstraintType.Le => (univ_union l r, r)
+    | ConstraintType.Le => (l ∪ r, r)
     | ConstraintType.Eq => (l, r)
     end.
 
@@ -1367,10 +1401,10 @@ End ZUnivConstraint.
       apply entails_idem.
     - move=> le' x hin hnin /LevelExprSet.add_spec [].
       * intros eq; subst le'.
-        rewrite univ_union_comm univ_union_add_singleton.
+        rewrite union_comm union_add_singleton.
         rewrite add_idem. apply entails_refl.
       * move/hin => heq.
-        rewrite -!univ_union_add_singleton -univ_union_assoc.
+        rewrite -!union_add_singleton -union_assoc.
         now apply entails_join_congr.
   Qed.
 
@@ -1393,12 +1427,13 @@ End ZUnivConstraint.
     induction 1.
     - rewrite /entails_L_clause /rel_le.
       destruct cl as [prems concl]; cbn.
-      rewrite -add_prems_singleton -add_prems_univ_union.
-      apply entails_succ_congr.
+      rewrite -add_prems_singleton -add_prems_union.
+      apply entails_add_congr.
       apply entails_c. now eapply presentation_of_clauses_spec.
-    - change (x, (k + 1)%Z) with (add_expr 1 (x, k)).
+    - replace (x, (k + 1)%Z) with (add_expr 1 (x, k)).
       rewrite -add_prems_singleton. red; cbn.
       eapply entails_sub.
+      now rewrite /succ_expr Z.add_comm.
   Qed.
 
   Lemma entails_L_le_eq {cls l r} : cls ⊢ℒ l ≤ r -> cls ⊢ℒ l ∨ r ≡ r.
@@ -1421,7 +1456,7 @@ End ZUnivConstraint.
   Proof.
     unfold rel_le. intros le le'.
     eapply entails_trans with (l ∨ r) => //.
-    apply entails_sym. now rewrite univ_union_comm.
+    apply entails_sym. now rewrite union_comm.
   Qed.
 
   Lemma entails_L_le_join_l {p x x' r} :
@@ -1430,7 +1465,7 @@ End ZUnivConstraint.
   Proof.
     intros le.
     unfold rel_le in le |- *.
-    rewrite univ_union_assoc (@univ_union_comm r) univ_union_assoc -univ_union_assoc.
+    rewrite union_assoc (@union_comm r) union_assoc -union_assoc.
     eapply entails_join_congr_all => //.
     apply entails_idem.
   Qed.
@@ -1442,7 +1477,7 @@ End ZUnivConstraint.
   Proof.
     move/(entails_L_le_join_l (r:=y)) => le le'.
     eapply entails_L_le_trans; tea.
-    rewrite !(@univ_union_comm x').
+    rewrite !(@union_comm x').
     now eapply entails_L_le_join_l.
   Qed.
 
@@ -1470,13 +1505,13 @@ End ZUnivConstraint.
     intros h; induction h.
     - red.
       now apply entails_L_idem_gen.
-    - move: IHh; rewrite -!univ_union_add_singleton.
+    - move: IHh; rewrite -!union_add_singleton.
       eapply in_pred_closure_entails_L in H.
       rewrite /entails_L_clause in H |- *; cbn in *.
       have hsub:= entails_L_subset H H0.
       move=> h'.
       eapply entails_L_le_trans. tea.
-      move/entails_L_eq_le_1: hsub. now rewrite univ_union_comm.
+      move/entails_L_eq_le_1: hsub. now rewrite union_comm.
   Qed.
 
   Definition entails_L_clauses p cls :=
@@ -1514,21 +1549,21 @@ End ZUnivConstraint.
         eapply LevelExprSet.add_spec. now right. }
       specialize (ih le); forward ih.
       eapply LevelExprSet.add_spec; now left.
-      rewrite -univ_union_add_singleton.
+      rewrite -union_add_singleton.
       now eapply entails_L_le_join.
   Qed.
 
   Lemma entails_L_le_left {p x y} :
     p ⊢ℒ x ≤ x ∨ y.
   Proof.
-    rewrite /rel_le. rewrite -univ_union_assoc.
+    rewrite /rel_le. rewrite -union_assoc.
     eapply entails_join_congr_all. apply entails_idem. apply entails_refl.
   Qed.
 
   Lemma entails_L_le_right {p x y} :
     p ⊢ℒ y ≤ x ∨ y.
   Proof.
-    rewrite univ_union_comm; apply entails_L_le_left.
+    rewrite union_comm; apply entails_L_le_left.
   Qed.
 
   Lemma entails_L_in p l (t : premises) :
@@ -1539,10 +1574,10 @@ End ZUnivConstraint.
     - move=>[l' k] /LevelExprSet.singleton_spec => ->.
       apply entails_L_le_refl.
     - move=> le x h hnin /NES.add_spec [].
-      * intros ->. rewrite -univ_union_add_singleton.
+      * intros ->. rewrite -union_add_singleton.
         apply entails_L_le_right.
       * move/h => hle.
-        rewrite -univ_union_add_singleton.
+        rewrite -union_add_singleton.
         eapply entails_L_le_trans with x => //.
         apply entails_L_le_left.
   Qed.
@@ -1644,13 +1679,15 @@ End ZUnivConstraint.
     ZUnivConstraintSet.For_all (entails_L_cstr p) cstrs.
 
   Section interp.
-    Context (v : Level.t -> nat).
+    Import Semilattice.
+    Context {S : Type} {SL : Semilattice S Z}.
+    Context (v : Level.t -> S).
 
     Definition interp_z_cstr c :=
       let '(l, d, r) := c in
       match d with
-      | ConstraintType.Le => interp_prems v l <= interp_prems v r
-      | ConstraintType.Eq => interp_prems v l = interp_prems v r
+      | ConstraintType.Le => interp_prems v l ≤ interp_prems v r
+      | ConstraintType.Eq => interp_prems v l ≡ interp_prems v r
       end%Z.
 
     Definition interp_univ_cstr c := interp_z_cstr (to_constraint c).
@@ -1658,41 +1695,29 @@ End ZUnivConstraint.
     Definition interp_univ_cstrs c :=
       UnivConstraintSet.For_all interp_univ_cstr c.
 
-    Definition interp_cstr r :=
-      let '(l, r) := r in
-      interp_prems v l = interp_prems v r.
-
-    Definition interp_cstrs c :=
-      List.Forall interp_cstr c.
-
-  End interp.
-
-  Module SemilatticeInterp.
-  Import Semilattice.
-
-  Section interp_gen.
-    Context (s : semilattice).
-    Context (v : Level.t -> s).
-
-    Definition interp_expr '(l, k) := (add s k (v l))%Z.
-    Definition interp_prems_s prems :=
-      let '(hd, tl) := to_nonempty_list prems in
-      fold_right (fun lk acc => join s (interp_expr lk) acc) (interp_expr hd) tl.
+    Definition interp_expr '(l, k) := (add k (v l))%Z.
 
     Definition interp_rel r :=
       let '(l, r) := r in
-      eq s (interp_prems_s l) (interp_prems_s r).
+      interp_prems v l ≡ interp_prems v r.
 
     Definition interp_rels c :=
       List.Forall interp_rel c.
-  End interp_gen.
+  End interp.
 
-  Definition valid_relation s rels c :=
-    (forall v, interp_rels s v rels -> interp_rel s v c).
-  End SemilatticeInterp.
+  Structure semilattice :=
+    { carrier :> Type;
+      sl : Semilattice carrier Z }.
+
+  Definition Z_semilattice := {| carrier := Z; sl := _ |}.
+
+  Instance semlattice_Semilattice (s : semilattice) : Semilattice (carrier s) Z := sl s.
+
+  Definition valid_relation rels c :=
+    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rel v c).
 
   Definition valid_constraint rels c :=
-    (forall v, interp_cstrs v rels -> interp_z_cstr v c).
+    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_z_cstr v c).
 
   Definition valid_cstrs p cstrs :=
     ZUnivConstraintSet.For_all (valid_constraint p) cstrs.
@@ -1768,15 +1793,65 @@ End ZUnivConstraint.
       * now eapply Theory.eq_sym.
       * now eapply Theory.eq_trans.
       * now eapply Theory.succ_congr.
+      * now eapply Theory.succ_inj.
       * now eapply Theory.join_congr_left.
       * eapply Theory.join_assoc.
       * eapply Theory.join_idem.
       * eapply Theory.join_comm.
       * eapply Theory.join_succ.
-      * now eapply Theory.succ_inj.
       * eapply Theory.succ_join.
     - move/entails_clauses_pres. apply entails_L_clauses_of_relations_eq.
   Qed.
+
+  Instance entails_all_proper : Proper (Clauses.Equal ==> Logic.eq ==> Logic.eq ==> iff) entails_all.
+  Proof.
+    intros cls cls' H ? ? <- ? ? <-.
+    split; intros ? ? hin. rewrite -H. now apply H0.
+    rewrite H; now apply H0.
+  Qed.
+
+  Instance entails_clauses_proper : Proper (Clauses.Equal ==> Clauses.Equal ==> iff) entails_clauses.
+  Proof.
+    intros cls cls' H ? ? H'.
+    split; intros ? ? hin. rewrite -H. apply H0. now rewrite H'.
+    rewrite H; apply H0. now rewrite -H'.
+  Qed.
+
+  Instance entails_equiv_proper : Proper (Clauses.Equal ==> Logic.eq ==> Logic.eq ==> iff) entails_equiv.
+  Proof.
+    intros cls cls' H ? ? <- ?? <-.
+    split.
+    - intros []; split; now rewrite -H.
+    - intros []; split; now rewrite H.
+  Qed.
+
+  Lemma to_clauses_of_z_constraints {cstrs} :
+    to_clauses cstrs =_clset of_z_constraints (to_z_cstrs cstrs).
+  Proof.
+    intros l.
+    rewrite to_clauses_spec of_z_constraints_spec.
+    split.
+    - intros [cstr [hin hin']].
+      exists (to_constraint cstr). split.
+      apply to_z_cstrs_spec_1 in hin as [cstrz []].
+      now subst cstrz.
+      assumption.
+    - intros [cstr [hin hin']].
+      apply to_z_cstrs_spec_2 in hin as [cstr' [hin ->]].
+      exists cstr'. split => //.
+  Qed.
+(*
+  Lemma clauses_of_relations_of_z_constraints {cstrs} :
+     Clauses.eq (clauses_of_relations (relations_of_constraints cstrs)) (of_z_constraints cstrs).
+  Proof.
+    intros cl; split. rewrite of_z_constraints_spec.
+    - move/clauses_of_relations_spec => [[l r]] [] /relations_of_constraints_spec => -[] [[u []] v] [] hin heq //=.
+      * cbn in heq. noconf heq.
+        cbn. move/Clauses.union_spec. => -[] /clauses_of_le_spec => -[] le [].
+        rewrite LevelExprSet.union_spec => -[] hin' eq.
+        + rewrite eq. eexists; split; tea. rewrite LoopCheck.to_clauses_spec. exists le; split => //.
+        + subst cl. eexists (u, ConstraintType.Le, v); split; tea. rewrite LoopCheck.to_clauses_spec. exists le; split => //. *)
+
 
   Lemma completeness_eq_cstrs cstrs s t :
     relations_of_constraints cstrs ⊢ℒ s ≡ t <->
@@ -1785,20 +1860,20 @@ End ZUnivConstraint.
     unfold entails_z_cstr.
     split.
     - intros h; depind h; cbn.
-      move: H => //=; rewrite relations_of_constraints_spec => -[] [[l' []] r'] [hin heq]; noconf heq.
-      * eapply Theory.le_spec.
+      * move: H => //=; rewrite relations_of_constraints_spec => -[] [[l' []] r'] [hin heq]; noconf heq.
+        eapply Theory.le_spec.
         now apply entails_clauses_le_cstr.
-      * now eapply entails_clauses_eq_cstr.
+        now eapply entails_clauses_eq_cstr.
       * eapply Theory.eq_refl.
       * now eapply Theory.eq_sym.
       * now eapply Theory.eq_trans.
       * now eapply Theory.succ_congr.
+      * now eapply Theory.succ_inj.
       * now eapply Theory.join_congr_left.
       * eapply Theory.join_assoc.
       * eapply Theory.join_idem.
       * eapply Theory.join_comm.
       * eapply Theory.join_succ.
-      * now eapply Theory.succ_inj.
       * eapply Theory.succ_join.
     - move/entails_clauses_pres; apply entails_L_clauses_of_eq.
   Qed.
@@ -1824,29 +1899,6 @@ End ZUnivConstraint.
     | ConstraintType.Eq => relations_of_constraints (to_z_cstrs cstrs) ⊢ℒ l ≡ r
     end.
 
-  Instance entails_clauses_proper : Proper (Clauses.Equal ==> Clauses.Equal ==> iff) entails_clauses.
-  Proof.
-    intros cls cls' H cls0 cls0' H'.
-    rewrite /entails_clauses.
-    rewrite H'. split; intros hf l. now rewrite -H. now rewrite H.
-  Qed.
-
-  Lemma to_clauses_of_z_constraints {cstrs} :
-    to_clauses cstrs =_clset of_z_constraints (to_z_cstrs cstrs).
-  Proof.
-    intros l.
-    rewrite to_clauses_spec of_z_constraints_spec.
-    split.
-    - intros [cstr [hin hin']].
-      exists (to_constraint cstr). split.
-      apply to_z_cstrs_spec_1 in hin as [cstrz []].
-      now subst cstrz.
-      assumption.
-    - intros [cstr [hin hin']].
-      apply to_z_cstrs_spec_2 in hin as [cstr' [hin ->]].
-      exists cstr'. split => //.
-  Qed.
-
   Lemma check_valid_pres m c :
     check m c <-> presentation_entails (constraints m) c.
   Proof.
@@ -1861,25 +1913,31 @@ End ZUnivConstraint.
   Qed.
 
   Section SemiLatticeInterp.
-    Import SemilatticeInterp.
     Import Semilattice.
-  Lemma presentation_entails_valid_rel {p r s} :
-    p ⊢ℒ r -> valid_relation s p r.
+  Lemma presentation_entails_valid_rel {p r} :
+    p ⊢ℒ r -> valid_relation p r.
   Proof.
     rewrite /valid_relation //=.
     destruct r as [l r] => //=.
-    intros h; depind h; cbn; move=> v hv.
+    intros h; depind h; cbn; move=> s v hv.
     1:{ red in hv. rewrite Forall_forall in hv; eapply hv in H. exact H. }
-    all:try specialize (IHh _ _ s eq_refl _ hv).
-    all:try specialize (IHh1 _ _ s eq_refl _ hv).
-    all:try specialize (IHh2 _ _ s eq_refl _ hv).
+    all:try specialize (IHh _ _ eq_refl s _ hv).
+    all:try specialize (IHh1 _ _ eq_refl s _ hv).
+    all:try specialize (IHh2 _ _ eq_refl s _ hv).
     all:try lia; eauto.
     all:rewrite ?interp_add_prems ?interp_prems_union ?interp_add_prems; try lia.
     - eapply reflexivity.
     - now eapply symmetry, IHh.
     - eapply transitivity; [eapply IHh1|eapply IHh2] => //.
-    - rewrite interp_add_prems.
-      rewrite ?interp_add_prems in IHh. lia.
+    - now apply add_congr.
+    - rewrite ?interp_add_prems in IHh.
+      now apply add_inj in IHh.
+    - now apply join_congr.
+    - apply join_assoc.
+    - apply join_idem.
+    - apply join_comm.
+    - apply (join_sub (Semilattice := sl s)).
+    - now apply add_join.
   Qed.
 
   Lemma presentation_entails_valid_eq {p l r} :
@@ -1895,7 +1953,7 @@ End ZUnivConstraint.
     rewrite /valid_constraint /interp_z_cstr //=.
     move/presentation_entails_valid_eq => vc v hc.
     specialize (vc v hc). cbn in vc.
-    rewrite interp_prems_union in vc. lia.
+    rewrite interp_prems_union in vc. apply vc.
   Qed.
 
   Lemma presentation_entails_valid {p c} :
@@ -1935,9 +1993,12 @@ End ZUnivConstraint.
   Admitted. *)
 
 
-  (* Lemma model_valuation_of_cstrs : interp_cstrs (LoopCheck.valuation m) *)
+  (* Lemma model_valuation_of_cstrs : interp_rels (LoopCheck.valuation m) *)
 
-  Lemma interp_cstrs_of_m m : interp_cstrs (LoopCheck.valuation (model m)) (relations_of_constraints (to_z_cstrs (constraints m))).
+  Definition model_Z_val m := (to_Z_val (to_val (LoopCheck.valuation (model m)))).
+
+
+  Lemma interp_rels_of_m m : interp_rels (model_Z_val m) (relations_of_constraints (to_z_cstrs (constraints m))).
   Proof.
     have hv := (LoopCheck.model_valuation m.(model)).
     red.
@@ -1945,39 +2006,41 @@ End ZUnivConstraint.
     eapply to_z_cstrs_spec_2 in hin as [cstr [hin ->]].
     have hrepr := repr_constraints m _ hin.
     destruct cstr as [[l' []] r']; cbn in heq; noconf heq.
-    - rewrite interp_prems_union. cbn in hrepr.
+    - rewrite /interp_rel interp_prems_union. cbn in hrepr.
       eapply clauses_sem_subset in hv; tea.
-      apply clauses_sem_clauses_of_le in hv. lia.
+      apply clauses_sem_clauses_of_le in hv. cbn in hv |- *.
+      unfold model_Z_val in *. lia.
     - cbn in hrepr.
       eapply clauses_sem_subset in hv; tea.
       rewrite /Clauses.clauses_of_eq in hv.
       eapply clauses_sem_union in hv. destruct hv as [hv hv'].
       apply clauses_sem_clauses_of_le in hv.
-      apply clauses_sem_clauses_of_le in hv'. lia.
+      apply clauses_sem_clauses_of_le in hv'. cbn in hv, hv' |- *.
+      unfold model_Z_val in *; lia.
   Qed.
 
   Lemma interp_univ_cstrs_of_m m :
-    interp_univ_cstrs (LoopCheck.valuation (model m)) (constraints m).
+    interp_univ_cstrs (model_Z_val m) (constraints m).
   Proof.
     intros uc hin. red.
     have h := repr_constraints m _ hin.
-    have hi := interp_cstrs_of_m m.
+    have hi := interp_rels_of_m m.
     red in hi. rewrite Forall_forall in hi.
     apply to_z_cstrs_spec_1 in hin as [cstrz [hin ->]].
     destruct uc as [[l []] r]; cbn. cbn in h.
-    - move: (hi (to_atoms l ∨ to_atoms r, to_atoms r)) => /fwd.
+    - move: (hi ((to_atoms l ∨ to_atoms r)%nes, to_atoms r)) => /fwd.
       { apply relations_of_constraints_spec. exists (to_atoms l, ConstraintType.Le, to_atoms r).
         cbn. split => //. }
-     by rewrite interp_prems_union; lia.
+     by rewrite /interp_rel interp_prems_union; unfold model_Z_val in *; cbn; lia.
     - move: (hi (to_atoms l, to_atoms r)) => /fwd.
       { apply relations_of_constraints_spec. exists (to_atoms l, ConstraintType.Eq, to_atoms r).
         cbn. split => //. }
       by [].
   Qed.
 
-  Lemma interp_univ_cstrs_relations v cstrs :
+  Lemma interp_univ_cstrs_relations {S} {SL : Semilattice S Z} v cstrs :
     interp_univ_cstrs v cstrs <->
-    interp_cstrs v (relations_of_constraints (to_z_cstrs cstrs)).
+    interp_rels v (relations_of_constraints (to_z_cstrs cstrs)).
   Proof.
     rewrite /interp_univ_cstrs.
     split.
@@ -1986,16 +2049,16 @@ End ZUnivConstraint.
       cbn in heq; noconf heq. destruct d; noconf heq.
       * eapply to_z_cstrs_spec_2 in hin as [cstr [hin heq]].
         destruct cstr as [[] ?]; noconf heq. specialize (hf _ hin). cbn in hf.
-        rewrite interp_prems_union. lia.
+        rewrite /interp_rel interp_prems_union; cbn in *. exact hf.
       * eapply to_z_cstrs_spec_2 in hin as [cstr [hin heq]].
         destruct cstr as [[] ?]; noconf heq. specialize (hf _ hin). cbn in hf.
-        lia.
+        exact hf.
     - intros hi uc hin. red in hi. rewrite Forall_forall in hi.
       move: (hi (relation_of_constraint (to_constraint uc))) => /fwd.
       rewrite relations_of_constraints_spec; exists (to_constraint uc); split => //.
       now apply to_z_cstrs_spec_1 in hin as [cstrz [hin ->]].
       destruct uc as [[l []] r] => //=.
-      rewrite interp_prems_union //=; cbn. lia.
+      rewrite interp_prems_union //=.
   Qed.
 
   Lemma prop_dec (b : bool) P : b <-> P -> (b = false <-> ~ P).
@@ -2085,16 +2148,16 @@ Qed. *)
     Lemma subset_add {a l x} :
       ~ LevelExprSet.In l a -> a ⊂_leset NES.add l x -> a ⊂_leset x.
     Proof.
-      intros hnin; rewrite -univ_union_add_singleton.
-      move=> hsub lk /[dup]/hsub. rewrite univ_union_spec.
+      intros hnin; rewrite -union_add_singleton.
+      move=> hsub lk /[dup]/hsub. rewrite union_spec.
       intros [] => //. apply LevelExprSet.singleton_spec in H. subst. contradiction.
     Qed.
 
     (* Lemma subset_add_2 {a l x} :
       LevelExprSet.In l a -> a ⊂_leset NES.add l x -> a ⊂_leset x.
     Proof.
-      intros hnin; rewrite -univ_union_add_singleton.
-      move=> hsub lk /[dup]/hsub. rewrite univ_union_spec.
+      intros hnin; rewrite -union_add_singleton.
+      move=> hsub lk /[dup]/hsub. rewrite union_spec.
       intros [] => //. apply LevelExprSet.singleton_spec in H. subst. contradiction.
     Qed. *)
 
@@ -2123,7 +2186,7 @@ Qed. *)
     Qed.
 
     Lemma premises_strict_subset_spec p p' : premises_strict_subset p p' <->
-      p ⊂_leset p' /\ exists le, In le p' /\ ~ In le p.
+      (p ⊂_leset p') /\ exists le, In le p' /\ ~ In le p.
     Proof.
       split.
       - intros [hincl hneq]. split => //.
@@ -2133,8 +2196,9 @@ Qed. *)
     Qed.
 
     Lemma premises_strict_subset_cardinal (p p' : premises) :
-      premises_strict_subset p p' -> cardinal p < cardinal p'.
-    Proof. rewrite premises_strict_subset_spec => -[incl [le [inp' ninp]]].
+      premises_strict_subset p p' -> (cardinal p < cardinal p')%nat.
+    Proof.
+      rewrite premises_strict_subset_spec => -[incl [le [inp' ninp]]].
       eapply subset_cardinal_lt; tea.
     Qed.
 
@@ -2174,9 +2238,6 @@ Qed. *)
     Instance ord_wf : WellFounded ord.
     Proof. red. exact acc_ord. Qed.
 
-    Definition clauses_of_relations (p : list (premises × premises)) :=
-      List.fold_right (fun '(l, r) => Clauses.union (clauses_of_eq l r)) Clauses.empty p.
-
     Definition check_pres_clause p r :=
       LoopCheck.Impl.check_clauses (clauses_of_relations p) (clauses_of_eq r.1 r.2).
 
@@ -2187,8 +2248,8 @@ Qed. *)
       ~ LevelExprSet.In l u -> premises_strict_subset u (NES.add l u).
     Proof.
       intros hnin; rewrite premises_strict_subset_spec.
-      rewrite -univ_union_add_singleton. setoid_rewrite univ_union_spec. split.
-      - intros l'. rewrite univ_union_spec; lesets.
+      rewrite -union_add_singleton. setoid_rewrite union_spec. split.
+      - intros l'. rewrite union_spec; lesets.
       - exists l; split => //. right; now apply LevelExprSet.singleton_spec.
     Qed.
 
@@ -2198,24 +2259,9 @@ Qed. *)
     Proof.
       cbn. reflexivity.
     Qed.
-
-    Instance entails_all_proper : Proper (Clauses.Equal ==> Logic.eq ==> Logic.eq ==> iff) entails_all.
-    Proof.
-      intros cls cls' H ? ? <- ? ? <-.
-      split; intros ? ? hin. rewrite -H. now apply H0.
-      rewrite H; now apply H0.
-    Qed.
-
-    Instance entails_equiv_proper : Proper (Clauses.Equal ==> Logic.eq ==> Logic.eq ==> iff) entails_equiv.
-    Proof.
-      intros cls cls' H ? ? <- ?? <-.
-      split.
-      - intros []; split; now rewrite -H.
-      - intros []; split; now rewrite H.
-    Qed.
 (*
     Lemma entails_deduction {cls prems prems' concl} :
-      entails cls (univ_union prems prems', concl) <->
+      entails cls (union prems prems', concl) <->
       entails (Clauses.add (prems, concl) cls) (prems', concl).
     Proof.
       split.
@@ -2298,6 +2344,209 @@ Qed. *)
       eapply entails_clauses_cut; tea.
     Qed.
 
+
+
+    Section M0.
+      Context (rs : rels).
+
+      Equations? M0 : Semilattice NES.t Z :=
+      M0 := {|
+          eq x y := rs ⊢ℒ x ≡ y;
+          add := add_prems;
+          join := union |}.
+      Proof.
+        all:intros. all:try solve [econstructor; eauto].
+        - split; intros.
+          * intros x. eapply entails_refl.
+          * intros x y. eapply entails_sym.
+          * intros x y z. eapply entails_trans.
+        - rewrite add_prems_add_prems. eapply entails_refl.
+        - rewrite add_prems_0. apply entails_refl.
+      Qed.
+      Print semilattice.
+
+      #[export] Existing Instance M0.
+
+      Definition initial_semilattice : semilattice :=
+        {| carrier := NES.t; sl := _ |}.
+
+    Definition ids := (fun l : Level.t => singleton (l, 0%Z)).
+
+    Lemma interp_triv l : interp_prems ids l ≡ l.
+    Proof.
+      move: l; apply: elim.
+      - intros [l k].
+        rewrite interp_prems_singleton //= /ids //=.
+        rewrite add_prems_singleton //= Z.add_0_r.
+        apply entails_refl.
+      - move=> [] l k x ih hnin.
+        have ha := (interp_prems_add (SL := M0) ids (l, k)).
+        rewrite ha ih. rewrite /Model.interp_expr. rewrite -union_add_singleton /ids.
+        rewrite [add _ _]add_prems_singleton /add_expr Z.add_0_r.
+        apply (join_comm (Semilattice := M0)).
+    Qed.
+  End M0.
+
+
+  Lemma interp_rels_init rs : interp_rels (SL := M0 rs) ids rs.
+  Proof.
+    unfold interp_rels; unfold interp_rel. cbn.
+    have ir : incl rs rs.
+    { now intros l. }
+    move: ir.
+    generalize rs at 1 6.
+    induction rs0; cbn.
+    - constructor.
+    - destruct a. constructor.
+      * change (eq (Semilattice := M0 rs) (interp_prems (s := M0 rs) ids t0) (interp_prems (s := M0 rs) ids t1)).
+        rewrite !interp_triv.
+        constructor. apply ir. now constructor.
+      * apply IHrs0. intros r hin; apply ir. now right.
+  Qed.
+
+  Definition valid {S} (SL : Semilattice S Z) v r :=
+    interp_rel (SL := SL) v r.
+
+  Lemma syntax_model rs r : valid (M0 rs) ids r <-> rs ⊢ℒ r.
+  Proof.
+    rewrite /valid.
+    destruct r as [l r]. unfold interp_rel.
+    rewrite !interp_triv; split; apply.
+  Qed.
+
+  Class Decidable (A : Prop) := dec : A \/ ~ A.
+  Arguments dec A {Decidable}.
+
+  Instance dec_entails_L {p s t} : Decidable (p ⊢ℒ s ≡ t).
+  Proof.
+    red. eapply check_pres_clause_spec.
+  Qed.
+
+  Lemma contra_prop A B (decB : Decidable B) : (~ B -> ~ A) -> (A -> B).
+  Proof. intros he a. destruct (dec B). exact H. specialize (he H). contradiction. Qed.
+
+  Definition satisfiable (s : semilattice) (r : rels) :=
+    exists v, interp_rels (SL := sl s) v r.
+
+  Definition neg_r p e :=
+    p ⊢ℒ add_prems 1 e.1 ≤ e.2 \/ p ⊢ℒ add_prems 1 e.2 ≤ e.1.
+
+  Definition consistent (r : rels) :=
+    ~ (exists e, r ⊢ℒ e /\ neg_r r e).
+
+  (* Lemma not_provable_neg p l r : ~ (p ⊢ℒ l ≡ r) -> neg_r p l r.
+  Proof.
+    intros np. red.
+    Admitted. *)
+
+
+  Lemma entails_L_completeness {p l r} :
+    (forall (s : semilattice) (v : Level.t -> s), interp_rels v p -> interp_prems v l ≡ interp_prems v r) ->
+    p ⊢ℒ l ≡ r.
+  Proof.
+    intros hv.
+    specialize (hv (initial_semilattice p) ids).
+    forward hv.
+    { apply interp_rels_init. }
+    rewrite !interp_triv in hv.
+    exact hv.
+  Qed.
+
+  Lemma check_completeness {m c} :
+    LoopCheck.Impl.Abstract.check_clauses m c <-> (forall (s : semilattice) (v : Level.t -> s), clauses_sem v (LoopCheck.Impl.Abstract.clauses m) -> clauses_sem v c).
+  Proof.
+    rewrite LoopCheck.Impl.Abstract.check_clauses_spec.
+    split.
+    - move/entails_clauses_pres.
+      move=> ent s v hyps cl /ent.
+      admit.
+    - intros valid.
+      Search entails_clauses.
+      Set Printing All.
+      rewrite /entails_L_clause.
+  Qed.
+
+  Lemma check_completeness {m c} :
+    check m c <-> (forall (s : semilattice) (v : Level.t -> s), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+  Proof.
+    destruct check eqn:hc.
+    - split => // _ s v hu.
+      eapply check_valid_pres in hc.
+      destruct c as [[l []] r]; cbn in hc.
+      * red in hu. have := presentation_entails_satisfies hc. v => /fwd.
+        { admit. }
+        rewrite interp_prems_union. cbn. lia.
+      * have := presentation_entails_satisfies hc v => /fwd.
+
+(*
+  Lemma satisfies_entails_presentation {m c} :
+    check m c = false <-> exists v, interp_univ_cstrs v (constraints m) -> invalid_cstr v c.
+  Proof.
+    split; revgoals.
+    - intros [v hv].
+
+      have vm := LoopCheck.model_valuation (model m).
+
+      intros he. eapply presentation_entails_valid in he.
+      red in he. intros v hv. apply (he v). cbn.
+      now rewrite -interp_univ_cstrs_relations.
+    - intros hv.
+      have hvm := (LoopCheck.model_valuation m.(model)).
+      red.
+      specialize (hv (LoopCheck.valuation m.(model))).
+      forward hv. apply interp_univ_cstrs_of_m. cbn in hv.
+      destruct c as [[l []] r]; cbn in *.
+
+      eapply
+
+
+
+
+
+      apply interp_univ_cstrs_of_m.
+      apply he. cbn.
+      apply interp_rels_of_m.
+    - move=> [v [ics ic]]. *)
+
+
+  Lemma satisfies_entails_presentation {m c} :
+    check m c <-> (forall v, interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+  Proof.
+    destruct check eqn:hc.
+    - split => // _ v hu.
+      eapply check_valid_pres in hc.
+      destruct c as [[l []] r]; cbn in hc.
+      * have := presentation_entails_satisfies hc v => /fwd.
+        { admit. }
+        rewrite interp_prems_union. cbn. lia.
+      * have := presentation_entails_satisfies hc v => /fwd.
+
+
+    rewrite check_
+    split.
+    -
+    intros hv.
+    have [v hc] : exists v, interp_rels v (C p).
+    admit.
+    specialize (hv _ hc).
+
+    induction 1; cbn; move=> v hv.
+    1:by red in hv; rewrite Forall_forall in hv; eapply hv in H.
+    all:try specialize (IHentails_L _ hv).
+    all:try specialize (IHentails_L1 _ hv).
+    all:try specialize (IHentails_L2 _ hv).
+    all:try lia; eauto.
+    all:rewrite ?interp_add_prems ?interp_prems_union ?interp_add_prems; try lia.
+    rewrite ?interp_add_prems in IHentails_L. lia.
+  Qed.
+
+
+End UnivLoopChecking.
+
+(* Completeness try *)
+(*
+
+
   Parameter ϕ : nat -> rel.
     Parameter ϕ_exists : forall r, exists n, ϕ n = r.
     Parameter ϕ_inj : forall n n', ϕ n = ϕ n' -> n = n'.
@@ -2309,7 +2558,7 @@ Qed. *)
       ~ (exists e, r ⊢ℒ e /\ neg_r r e).
 
     Definition satisfiable (r : rels) :=
-      exists v, interp_cstrs v r.
+      exists v, interp_rels v r.
 
     Definition satisfiable_consistent {p} :
       satisfiable p -> consistent p.
@@ -2323,6 +2572,11 @@ Qed. *)
 
     (* Definition consistent' (Γ : rels) :=
       exists r, ~ (Γ ⊢ℒ r). *)
+
+    Definition bottom (s : semilattice) :=
+      exists x : s, add 1%Z x ≤ x.
+
+    Notation "⟘" := (bottom _) : sl_scope.
 
     Definition consistent Γ :=
       ~ exists e, Γ ⊢ℒ e ≡ add_prems 1 e.
@@ -2343,15 +2597,16 @@ Qed. *)
     Definition maximally_consistent (Γ : rels) :=
        consistent Γ /\ forall r, (~ consistent (r :: Γ) \/ Γ ⊢ℒ r).
 
-    Definition satisfiable (r : rels) :=
-      exists v, interp_cstrs v r.
+    Definition satisfiable (s : semilattice) (r : rels) :=
+      exists v, interp_rels (SL := sl s) v r.
 
     Lemma consistent_satisfiable Γ :
-      satisfiable Γ -> consistent Γ.
+      satisfiable Z_semilattice Γ -> consistent Γ.
     Proof.
       move=> [v sat] [e].
-      move/presentation_entails_valid_rel/(_ v sat). cbn.
-      rewrite interp_add_prems. lia.
+      move/presentation_entails_valid_rel/(_ Z_semilattice v sat). cbn.
+      rewrite interp_add_prems. change (add 1%Z (interp_prems v e)) with (Z.add 1 (interp_prems v e)).
+      cbn -[Z.add]. lia.
     Qed.
 
     Section MaximallyConsistent.
@@ -2383,7 +2638,6 @@ Qed. *)
     Definition inSw rs r := exists n Γ, 𝒮 rs Γ n /\ Γ ⊢ℒ r.
 
     Import Semilattice.
-    Import SemilatticeInterp.
 
     Lemma axiom_inSw {rs r} : rs ⊢ℒ r -> inSw rs r.
     Proof.
@@ -2391,197 +2645,4 @@ Qed. *)
       exact: hs.
     Qed.
 
-    Section M0.
-      Context (rs : rels).
-
-      Equations? M0 : semilattice :=
-      M0 :=
-        {| carrier := NES.t;
-          eq x y := inSw rs (x, y);
-          add := add_prems;
-          join := univ_union |}.
-      Proof.
-        all:intros. 1-4:apply axiom_inSw.
-        - eapply entails_assoc.
-        - eapply entails_comm.
-        - eapply entails_idem.
-        - eapply entails_sub.
-        - destruct H as [n [Γ [insw ent]]].
-          exists n, Γ. split => //.
-          now eapply (@entails_succ_inj _ _ _ 1%Z).
-        - apply axiom_inSw. apply entails_succ_join.
-      Qed.
-    End M0.
-
-    Definition valid (s : semilattice) v r :=
-      interp_rel s v r.
-
-    Definition ids := (fun l : Level.t => singleton (l, 0%Z)).
-
-    Lemma interp_triv rs l : interp_prems_s (M0 rs) ids l = l.
-    Proof.
-      move: l; apply: elim.
-      - intros [l k].
-        * rewrite /interp_prems_s; cbn.
-            induction k; cbn; auto.
-          destruct p.
-          rewrite /add.
-          rewrite /interp_expr.
-
-    Qed.
-
-    Lemma syntax_model rs r : valid (M0 rs) ids r <-> inSw rs r.
-    Proof.
-      rewrite /valid.
-      destruct r as [l r]. cbn.
-
-
-    Qed.
-
-(*
-
-
-
-    Lemma 𝒮ω_maximal Γ (conΓ : consistent Γ) Γ' : 𝒮ω Γ Γ' -> maximally_consistent Γ'.
-    Proof.
-      intros [n sw]; red.
-      eapply 𝒮ω_consistent_maximal in sw. split => //.
-      move=> r. destruct (check_pres_clause_spec Γ' r).
-      now right. left. intros con.  [e he].
-    Qed. *)
-
-(*
-    Section S.
-      Context (p : rels).
-
-      Fixpoint 𝖲 (n : nat) (a : rel) :=
-        match n with
-        | 0 => List.In a p
-        | S n => 𝖲 n \/ ϕ n = a /\ (a :: 𝖲 n
-
-    Equations? S (p : list (premises × premises)) (r : premises × premises) (e : enumeration r) : list (premises × premises)
-     by wf r ord := {
-      S p ?((singleton le, singleton le')) (enum_single le le') :=
-        check_add p (NES.singleton le) (NES.singleton le') ;
-      S p _ (enum_add_left le u v nin e) := check_add (S p _ e) (NES.add le u) v;
-      S p _ (enum_add_right le u v nin e) := check_add (S p _ e) u (NES.add le v) }.
-    Proof.
-      - constructor; now apply premises_strict_subset_add.
-      - constructor; now apply premises_strict_subset_add.
-    Qed.
-
-    Fixpoint S' (p : rels) n :=
-      match n with
-      | 0 => p
-      | S n => S p rel (acc_enum rel)
-      end.
-
-    Lemma extension p : consistent p -> exists p', maximally_consistent p'.
-    Proof.
-      intros con.
-      destruct p as [V C].
-      exists {| V := V; C := (S' C) |}.
-      destruct C; cbn.
-      - red. split => //.
-        intros x y. left. intros hcon. red in hcon. admit.
-      - apply IHC. red in con. red.
-        intros [x hnc]. apply con. exists x. admit.
-    Admitted.
 *)
-
-  Class Decidable (A : Prop) := dec : A \/ ~ A.
-
-  Instance dec_entails_L {p s t} : Decidable (p ⊢ℒ s ≡ t).
-  Proof.
-    red. eapply check_pres_clause_spec.
-  Qed.
-
-  Lemma contra_prop A B (dec : Decidable B) : (~ B -> ~ A) -> (A -> B).
-  Proof. intros he a. destruct (dec B). exact H. specialize (he H). contradiction. Qed.
-
-
-  Lemma not_provable_neg p l r : ~ (p ⊢ℒ l ≡ r) -> neg_r p l r.
-  Proof.
-    intros np. red.
-    Admitted.
-
-
-  Lemma entails_L_completeness {p l r} :
-    (forall v, interp_cstrs v p -> interp_prems v l = interp_prems v r) ->
-    p ⊢ℒ l ≡ r.
-  Proof.
-    apply contra_prop.
-    apply dec_entails_L.
-    intros np hv.
-    apply not_provable_neg in np. destruct np.
-    have hp := @presentation_entails_satisfies p .
-    move/presentation_entails_valid_le: H.
-    rewrite /valid_constraint. cbn.
-
-
-  Qed.
-
-
-  Lemma satisfies_entails_presentation {m c} :
-    check m c = false <-> exists v, interp_univ_cstrs v (constraints m) -> invalid_cstr v c.
-  Proof.
-    split; revgoals.
-    - intros [v hv].
-
-      have vm := LoopCheck.model_valuation (model m).
-
-      intros he. eapply presentation_entails_valid in he.
-      red in he. intros v hv. apply (he v). cbn.
-      now rewrite -interp_univ_cstrs_relations.
-    - intros hv.
-      have hvm := (LoopCheck.model_valuation m.(model)).
-      red.
-      specialize (hv (LoopCheck.valuation m.(model))).
-      forward hv. apply interp_univ_cstrs_of_m. cbn in hv.
-      destruct c as [[l []] r]; cbn in *.
-
-      eapply
-
-
-
-
-
-      apply interp_univ_cstrs_of_m.
-      apply he. cbn.
-      apply interp_cstrs_of_m.
-    - move=> [v [ics ic]].
-
-
-  Lemma satisfies_entails_presentation {m c} :
-    check m c <-> (forall v, interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
-  Proof.
-    destruct check eqn:hc.
-    - split => // _ v hu.
-      eapply check_valid_pres in hc.
-      destruct c as [[l []] r]; cbn in hc.
-      * have := presentation_entails_satisfies hc v => /fwd.
-        { admit. }
-        rewrite interp_prems_union. cbn. lia.
-      * have := presentation_entails_satisfies hc v => /fwd.
-
-
-    rewrite check_
-    split.
-    -
-    intros hv.
-    have [v hc] : exists v, interp_cstrs v (C p).
-    admit.
-    specialize (hv _ hc).
-
-    induction 1; cbn; move=> v hv.
-    1:by red in hv; rewrite Forall_forall in hv; eapply hv in H.
-    all:try specialize (IHentails_L _ hv).
-    all:try specialize (IHentails_L1 _ hv).
-    all:try specialize (IHentails_L2 _ hv).
-    all:try lia; eauto.
-    all:rewrite ?interp_add_prems ?interp_prems_union ?interp_add_prems; try lia.
-    rewrite ?interp_add_prems in IHentails_L. lia.
-  Qed.
-
-
-End UnivLoopChecking.

@@ -444,7 +444,7 @@ Module NonEmptySetFacts.
   Qed.
 
   #[program]
-  Definition univ_union (prems prems' : nonEmptyLevelExprSet) : nonEmptyLevelExprSet :=
+  Definition union (prems prems' : nonEmptyLevelExprSet) : nonEmptyLevelExprSet :=
     {| t_set := LevelExprSet.union prems prems' |}.
   Next Obligation.
     destruct prems, prems'; cbn.
@@ -454,32 +454,32 @@ Module NonEmptySetFacts.
     destruct t_ne0. lesets.
   Qed.
 
-  Lemma univ_union_spec u u' l :
-    LevelExprSet.In l (univ_union u u') <->
+  Lemma union_spec u u' l :
+    LevelExprSet.In l (u ∪ u') <->
     LevelExprSet.In l u \/ LevelExprSet.In l u'.
   Proof.
-    destruct u, u'; unfold univ_union; cbn.
+    destruct u, u'; unfold union; cbn.
     apply LevelExprSet.union_spec.
   Qed.
 
-  Lemma univ_union_add_singleton u le : univ_union u (singleton le) = add le u.
+  Lemma union_add_singleton u le : union u (singleton le) = add le u.
   Proof.
     apply eq_univ_equal.
-    intros x. rewrite univ_union_spec LevelExprSet.singleton_spec add_spec.
+    intros x. rewrite union_spec LevelExprSet.singleton_spec add_spec.
     intuition auto.
   Qed.
 
-  Lemma univ_union_comm {u u'} : univ_union u u' = univ_union u' u.
+  Lemma union_comm {u u'} : u ∪ u' = union u' u.
   Proof.
     apply eq_univ_equal.
-    intros x. rewrite !univ_union_spec.
+    intros x. rewrite !union_spec.
     intuition auto.
   Qed.
 
-  Lemma univ_union_add_distr {le u u'} : univ_union (add le u) u' = add le (univ_union u u').
+  Lemma union_add_distr {le u u'} : union (add le u) u' = add le (u ∪ u').
   Proof.
     apply eq_univ_equal.
-    intros x. rewrite !univ_union_spec !add_spec !univ_union_spec.
+    intros x. rewrite !union_spec !add_spec !union_spec.
     intuition auto.
   Qed.
 
@@ -2885,15 +2885,15 @@ Qed.
 
 Lemma entails_weak_union {cls prem concl concl'} :
   entails cls (prem, concl) ->
-  entails cls (univ_union concl' prem, concl).
+  entails cls (union concl' prem, concl).
 Proof.
   intros hyp.
   move: concl'.
   apply: nonEmptyLevelExprSet_elim.
-  - intros le. rewrite univ_union_comm univ_union_add_singleton.
+  - intros le. rewrite union_comm union_add_singleton.
     now apply entails_weak.
   - intros le prems ih.
-    rewrite univ_union_add_distr. intros _.
+    rewrite union_add_distr. intros _.
     now eapply entails_weak.
 Qed.
 
@@ -2908,7 +2908,7 @@ Qed.
 
 Lemma entails_all_weak_union {cls prem concl concl'} :
   entails_all cls prem concl ->
-  entails_all cls (univ_union concl' prem) concl.
+  entails_all cls (union concl' prem) concl.
 Proof.
   intros hcl x hin.
   specialize (hcl _ hin). cbn in hcl.
@@ -2948,7 +2948,7 @@ Qed.
 
 (* Lemma entails_all_one {cls prems concl concl'} :
   entails_all cls prems concl ->
-  entails cls (univ_union concl prems, concl') ->
+  entails cls (union concl prems, concl') ->
   entails cls (prems, concl').
 Proof.
   intros hall he; depind he.
@@ -2990,7 +2990,7 @@ Qed.
 
 Lemma entails_cumul_one {cls prems prems' concl} :
   entails_all cls prems prems' ->
-  entails cls (univ_union prems prems', concl) ->
+  entails cls (union prems prems', concl) ->
   entails cls (prems, concl).
 Proof.
   revert prems' prems concl.
@@ -2998,9 +2998,9 @@ Proof.
   - intros. specialize (H le). forward H by now apply LevelExprSet.singleton_spec.
     cbn in H.
     eapply entails_add; tea.
-    now rewrite -univ_union_add_singleton.
+    now rewrite -union_add_singleton.
   - intros le prems ih _ prem concl' hadd hadd'.
-    rewrite univ_union_comm univ_union_add_distr -univ_union_comm -univ_union_add_distr in hadd'.
+    rewrite union_comm union_add_distr -union_comm -union_add_distr in hadd'.
     eapply ih in hadd'. 2:{ apply entails_all_weak. apply entails_all_add in hadd as []. exact H0. }
     apply entails_all_add in hadd as [].
     eapply entails_add; tea.
@@ -3008,7 +3008,7 @@ Qed.
 
 Lemma entails_all_cumul {cls prems prems' concl} :
   entails_all cls prems prems' ->
-  entails_all cls (univ_union prems prems') concl ->
+  entails_all cls (union prems prems') concl ->
   entails_all cls prems concl.
 Proof.
   intros hp hc.
@@ -3063,21 +3063,21 @@ Qed.
 Lemma entails_all_concl_union {cls prems concl concl'} :
   cls ⊢a prems → concl ->
   cls ⊢a prems → concl' ->
-  cls ⊢a prems → univ_union concl concl'.
+  cls ⊢a prems → union concl concl'.
 Proof.
   intros l r.
   rewrite /entails_all.
-  intros x. rewrite univ_union_spec. intros []. now apply l. now apply r.
+  intros x. rewrite union_spec. intros []. now apply l. now apply r.
 Qed.
 
 Lemma entails_all_union {cls prems concl prems' concl'} :
   cls ⊢a prems → concl ->
   cls ⊢a prems' → concl' ->
-  cls ⊢a univ_union prems prems' → univ_union concl concl'.
+  cls ⊢a union prems prems' → union concl concl'.
 Proof.
   intros l r.
   apply entails_all_concl_union.
-  rewrite univ_union_comm.
+  rewrite union_comm.
   now eapply entails_all_weak_union.
   now eapply entails_all_weak_union.
 Qed.
@@ -4903,7 +4903,7 @@ Qed.
 
 Lemma of_level_set_union_spec {ls ls' n hne} hne' hne'' :
   of_level_set (ls ∪ ls') n hne =
-  univ_union (of_level_set ls n hne') (of_level_set ls' n hne'').
+  union (of_level_set ls n hne') (of_level_set ls' n hne'').
 Proof.
   apply eq_univ_equal.
   intros [l k]. rewrite /of_level_set //= !levelexprset_of_levels_spec LevelExprSet.union_spec.

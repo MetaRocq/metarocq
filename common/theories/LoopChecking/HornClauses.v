@@ -727,7 +727,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma of_level_set_union_spec {ls ls' n hne} hne' hne'' :
     of_level_set (ls ∪ ls') n hne =
-    NES.univ_union (of_level_set ls n hne') (of_level_set ls' n hne'').
+    NES.union (of_level_set ls n hne') (of_level_set ls' n hne'').
   Proof.
     apply NES.equal_exprsets.
     intros [l k]. rewrite /of_level_set //= !levelexprset_of_levels_spec LevelExprSet.union_spec.
@@ -1208,26 +1208,26 @@ Module Clauses (LS : LevelSets).
       intros x; rewrite LevelExprSet.add_spec. firstorder.
   Qed.
 
-  Import NES (univ_union, univ_union_add_distr, univ_union_add_distr, univ_union_assoc, univ_union_spec, univ_union_comm, univ_union_add_singleton).
+  Import NES (union, union_add_distr, union_add_distr, union_assoc, union_spec, union_comm, union_add_singleton).
   Lemma entails_weak_union {cls prem concl concl'} :
     entails cls (prem, concl) ->
-    entails cls (NES.univ_union concl' prem, concl).
+    entails cls (NES.union concl' prem, concl).
   Proof.
     intros hyp.
     move: concl'.
     apply: NES.elim.
-    - intros le. rewrite univ_union_comm univ_union_add_singleton.
+    - intros le. rewrite union_comm union_add_singleton.
       now apply entails_weak.
     - intros le prems ih.
-      rewrite univ_union_add_distr. intros _.
+      rewrite union_add_distr. intros _.
       now eapply entails_weak.
   Qed.
 
-  Lemma add_prems_univ_union {n u u'} : add_prems n (univ_union u u') = univ_union (add_prems n u) (add_prems n u').
+  Lemma add_prems_union {n u u'} : add_prems n (u ∪ u') = union (add_prems n u) (add_prems n u').
   Proof.
     apply equal_exprsets => l.
     rewrite In_add_prems.
-    rw univ_union_spec.
+    rw union_spec.
     rewrite !In_add_prems. firstorder.
   Qed.
 
@@ -1242,7 +1242,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma entails_all_weak_union {cls prem concl concl'} :
     entails_all cls prem concl ->
-    entails_all cls (univ_union concl' prem) concl.
+    entails_all cls (union concl' prem) concl.
   Proof.
     intros hcl x hin.
     specialize (hcl _ hin). cbn in hcl.
@@ -1313,7 +1313,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma entails_cumul_one {cls prems prems' concl} :
     entails_all cls prems prems' ->
-    entails cls (univ_union prems prems', concl) ->
+    entails cls (union prems prems', concl) ->
     entails cls (prems, concl).
   Proof.
     revert prems' prems concl.
@@ -1321,9 +1321,9 @@ Module Clauses (LS : LevelSets).
     - intros. specialize (H le). forward H by now apply LevelExprSet.singleton_spec.
       cbn in H.
       eapply entails_add; tea.
-      now rewrite -univ_union_add_singleton.
+      now rewrite -union_add_singleton.
     - intros le prems ih _ prem concl' hadd hadd'.
-      rewrite univ_union_comm univ_union_add_distr -univ_union_comm -univ_union_add_distr in hadd'.
+      rewrite union_comm union_add_distr -union_comm -union_add_distr in hadd'.
       eapply ih in hadd'. 2:{ apply entails_all_weak. apply entails_all_add in hadd as []. exact H0. }
       apply entails_all_add in hadd as [].
       eapply entails_add; tea.
@@ -1331,7 +1331,7 @@ Module Clauses (LS : LevelSets).
 
   Lemma entails_all_cumul {cls prems prems' concl} :
     entails_all cls prems prems' ->
-    entails_all cls (univ_union prems prems') concl ->
+    entails_all cls (union prems prems') concl ->
     entails_all cls prems concl.
   Proof.
     intros hp hc.
@@ -1388,25 +1388,25 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Lemma entails_all_concl_union {cls prems concl concl'} :
-    cls ⊢a prems → univ_union concl concl' <->
+    cls ⊢a prems → union concl concl' <->
     cls ⊢a prems → concl /\ cls ⊢a prems → concl'.
   Proof.
     split; revgoals.
     - move=> [] l r.
       rewrite /entails_all.
-      intros x. rewrite NES.univ_union_spec. intros []. now apply l. now apply r.
+      intros x. rewrite NES.union_spec. intros []. now apply l. now apply r.
     - intros hu; split;
       move=> le hin; move: (hu le) => /fwd //;
-      now rewrite NES.univ_union_spec.
+      now rewrite NES.union_spec.
   Qed.
 
   Lemma entails_all_union {cls prems concl prems' concl'} :
     cls ⊢a prems → concl -> cls ⊢a prems' → concl' ->
-    cls ⊢a univ_union prems prems' → univ_union concl concl'.
+    cls ⊢a union prems prems' → union concl concl'.
   Proof.
     move=> l r.
     rewrite entails_all_concl_union. split.
-    rewrite univ_union_comm.
+    rewrite union_comm.
     now eapply entails_all_weak_union.
     now eapply entails_all_weak_union.
   Qed.
@@ -1614,7 +1614,7 @@ Module Clauses (LS : LevelSets).
         rewrite ih. right; firstorder.
   Qed.
 
-  Infix "∨" := univ_union (at level 30).
+  Infix "∨" := union (at level 30).
   Notation succ x := (add_prems 1%Z x).
 
   Definition clauses_of_eq (u v : NES.t) :=
@@ -1759,19 +1759,19 @@ Module Clauses (LS : LevelSets).
     Qed.
 
     Lemma join_comm {cls s t} : cls ⊢ℋ s ∨ t ≡ t ∨ s.
-    Proof. rewrite univ_union_comm; auto with entails. Qed.
+    Proof. rewrite union_comm; auto with entails. Qed.
 
     Lemma join_assoc {cls s t u} :
       cls ⊢ℋ s ∨ t ∨ u ≡ s ∨ (t ∨ u).
     Proof.
-      rewrite univ_union_assoc; auto with entails.
+      rewrite union_assoc; auto with entails.
     Qed.
 
     Lemma join_left {cls s t} :
       cls ⊢ℋ s ⋞ s ∨ t.
     Proof.
       eapply to_entails_all.
-      rewrite univ_union_comm;apply entails_all_weak_union;
+      rewrite union_comm;apply entails_all_weak_union;
         auto with entails.
     Qed.
 
@@ -1803,7 +1803,7 @@ Module Clauses (LS : LevelSets).
     Lemma succ_join {cls n s t} :
       cls ⊢ℋ add_prems n (s ∨ t) ≡ add_prems n s ∨ add_prems n t.
     Proof.
-      rewrite add_prems_univ_union; auto with entails.
+      rewrite add_prems_union; auto with entails.
     Qed.
 
     Lemma join_congr_left {cls r s t} :
@@ -1823,7 +1823,7 @@ Module Clauses (LS : LevelSets).
       cls ⊢ℋ r ∨ s ≡ r ∨ t.
     Proof.
       intros heq.
-      rewrite univ_union_comm [r ∨ _]univ_union_comm.
+      rewrite union_comm [r ∨ _]union_comm.
       now apply join_congr_left.
     Qed.
 
@@ -1839,7 +1839,7 @@ Module Clauses (LS : LevelSets).
     horn_semi := {|
          eq x y := cls ⊢ℋ x ≡ y;
          add := add_prems;
-         join := univ_union |}.
+         join := union |}.
     Proof.
       all: intros.
       - split; red.

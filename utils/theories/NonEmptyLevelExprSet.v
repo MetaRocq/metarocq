@@ -75,7 +75,14 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     now move/InA_In_eq/LevelExprSetFact.elements_2.
   Qed.
 
-  Record t := { t_set :> LevelExprSet.t ; t_ne : is_empty t_set = false }.
+  Record t :=
+    { t_set :> LevelExprSet.t ;
+      t_ne : is_empty t_set = false }.
+
+  Declare Scope nes_scope.
+  Bind Scope nes_scope with t.
+  Delimit Scope nes_scope with nes.
+  Local Open Scope nes_scope.
 
   Existing Instance LevelExprSet.reflect_eq.
   Existing Instance Q.comm_monoid.
@@ -340,7 +347,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Qed.
 
   #[program]
-  Definition univ_union (prems prems' : t) : t :=
+  Definition union (prems prems' : t) : t :=
     {| t_set := LevelExprSet.union prems prems' |}.
   Next Obligation.
     destruct prems, prems'; cbn.
@@ -350,35 +357,42 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     destruct t_ne0. lesets.
   Qed.
 
-  Lemma univ_union_spec u u' l :
-    LevelExprSet.In l (univ_union u u') <->
+  Infix "∪" := union (at level 70): nes_scope.
+
+  Lemma union_spec u u' l :
+    LevelExprSet.In l (u ∪ u') <->
     LevelExprSet.In l u \/ LevelExprSet.In l u'.
   Proof.
-    destruct u, u'; unfold univ_union; cbn.
+    destruct u, u'; unfold union; cbn.
     apply LevelExprSet.union_spec.
   Qed.
 
-  Lemma univ_union_add_singleton u le : univ_union u (singleton le) = add le u.
+  Lemma union_add_singleton u le : union u (singleton le) = add le u.
   Proof.
     apply equal_exprsets.
-    intros x. rewrite univ_union_spec LevelExprSet.singleton_spec add_spec.
+    intros x. rewrite union_spec LevelExprSet.singleton_spec add_spec.
     intuition auto.
   Qed.
 
-  Lemma univ_union_comm {u u'} : univ_union u u' = univ_union u' u.
+  Lemma union_comm {u u'} : u ∪ u' = union u' u.
   Proof.
     apply equal_exprsets.
-    intros x. rewrite !univ_union_spec.
+    intros x. rewrite !union_spec.
     intuition auto.
   Qed.
 
-  Lemma univ_union_add_distr {le u u'} : univ_union (add le u) u' = add le (univ_union u u').
+  Lemma union_add_distr {le u u'} : union (add le u) u' = add le (u ∪ u').
   Proof.
     apply equal_exprsets.
-    intros x. rewrite !univ_union_spec !add_spec !univ_union_spec.
+    intros x. rewrite !union_spec !add_spec !union_spec.
     intuition auto.
   Qed.
 
+  Lemma union_idem u : union u u = u.
+  Proof.
+    apply equal_exprsets => l.
+    rewrite union_spec. firstorder.
+  Qed.
 
   Lemma levels_spec_aux l (e : LevelExprSet.t) acc :
     LevelSet.In l (LevelExprSet.fold (fun le : LevelExprSet.elt => LevelSet.add (level le)) e acc) <->
@@ -474,11 +488,11 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
         cbn. firstorder. subst x'. now left.
   Qed.
 
-  Lemma univ_union_assoc {s t u} : univ_union (univ_union s t) u =
-    univ_union s (univ_union t u).
+  Lemma union_assoc {s t u} : union (s ∪ t) u =
+    union s (t ∪ u).
   Proof.
     apply equal_exprsets.
-    intros x. rewrite !univ_union_spec.
+    intros x. rewrite !union_spec.
     intuition auto.
   Qed.
 

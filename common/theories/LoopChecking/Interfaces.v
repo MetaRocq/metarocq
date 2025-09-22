@@ -80,6 +80,8 @@ Module LevelSetDecide := LevelSetProp.Dec.
 Module LevelMapFact := FMapFacts.WProperties_fun LevelMap.OT LevelMap.
 
 Declare Scope levels_scope.
+Delimit Scope levels_scope with levels.
+Bind Scope levels_scope with LevelSet.t.
 
 Ltac lsets := LevelSetDecide.fsetdec.
 Notation "(=_lset)" := LevelSet.Equal (at level 0) : levels_scope.

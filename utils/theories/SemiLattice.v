@@ -170,3 +170,14 @@ Module Semilattice.
 
   End Derived.
 End Semilattice.
+
+Module InitialSemilattice
+  (Level : OrderedTypeWithLeibniz) (Q : Quantity)
+  (LevelSet : LevelSet_fun Level)
+  (LevelExpr : LevelExprT Level Q)
+  (LevelExprSet : LevelExprSet_fun Level Q LevelExpr).
+
+
+
+
+End InitialSemilattice.
