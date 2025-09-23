@@ -11,7 +11,7 @@ Set Equations Transparent.
 
 Module HornSemilattice (LS : LevelSets).
   Module Export Clauses := Clauses LS.
-  Module Export SL := InitialSemilattice LS.
+  Module Import ISL := InitialSemilattice LS.
   Import NES.
 
   Local Open Scope sl_scope.
@@ -87,8 +87,11 @@ Module HornSemilattice (LS : LevelSets).
   Definition entails_L_clause p cl :=
     p ⊢ℒ singleton (concl cl) ≤ premise cl.
 
+  Definition entails_L_pres_clauses p cls :=
+    Clauses.For_all (entails_L_clause p) cls.
+
   Definition entails_L_clauses cls cls' :=
-    Clauses.For_all (entails_L_clause (relations_of_clauses cls)) cls'.
+    entails_L_pres_clauses (relations_of_clauses cls) cls'.
 
   Lemma entails_L_idem_gen {le} {prems : premises} {p} :
     LevelExprSet.In le prems ->
@@ -254,31 +257,62 @@ Module HornSemilattice (LS : LevelSets).
       + eapply entails_L_eq_le_1. eapply entails_sym. now constructor.
   Qed.
 
+  Lemma entails_L_pres_clauses_of_le {p s t} :
+    entails_L_pres_clauses p (s ⋞ t) <->
+    p ⊢ℒ s ≤ t.
+  Proof.
+    split.
+    - unfold entails_L_clauses.
+      intros hf. do 2 red in hf.
+      rw_in clauses_of_le_spec hf.
+      eapply entails_L_split.
+      move=> le hin.
+      move: (hf (t, le)) => /fwd.
+      { exists le; split => //. }
+      now move=> h; red in h.
+    - intros hf. rewrite /entails_L_pres_clauses.
+      intros cl. rewrite clauses_of_le_spec => -[] le [hin ->].
+      red. cbn. eapply entails_L_le_trans; tea. now eapply entails_L_in.
+  Qed.
+
   Lemma entails_L_clauses_pres_le {p s t} :
     entails_L_clauses (clauses_of_relations p) (s ⋞ t) ->
     p ⊢ℒ s ≤ t.
   Proof.
-    intros hf. do 2 red in hf.
-    rw_in clauses_of_le_spec hf.
-    eapply entails_L_split.
-    move=> le hin.
-    move: (hf (t, le)) => /fwd.
-    { exists le; split => //. }
-    move=> h; red in h. cbn in h.
-    now eapply entails_L_clauses_pres_all in h.
+    rewrite /entails_L_clauses entails_L_pres_clauses_of_le.
+    now move/entails_L_clauses_pres_all.
+  Qed.
+
+
+  Lemma entails_L_pres_clauses_of_eq_split {p s t} :
+    entails_L_pres_clauses p (s ≡ t) <->
+    entails_L_pres_clauses p (s ⋞ t) /\
+    entails_L_pres_clauses p (t ⋞ s).
+  Proof.
+    rewrite /entails_L_pres_clauses /clauses_of_eq /Clauses.For_all.
+    setoid_rewrite Clauses.union_spec.
+    split.
+    - intros h; split.
+      * intros h' hcl. apply h. now left.
+      * intros h' hcl. apply h. now right.
+    - intros [] x []; eauto.
+  Qed.
+
+  Lemma entails_L_pres_clauses_of_relations_eq {p s t} :
+    entails_L_pres_clauses p (s ≡ t) <->
+    p ⊢ℒ s ≡ t.
+  Proof.
+    rewrite entails_L_pres_clauses_of_eq_split.
+    rewrite !entails_L_pres_clauses_of_le.
+    eapply entails_L_eq_antisym.
   Qed.
 
   Lemma entails_L_clauses_of_relations_eq {p s t} :
     entails_L_clauses (clauses_of_relations p) (s ≡ t) ->
     p ⊢ℒ s ≡ t.
   Proof.
-    intros hf. do 2 red in hf.
-    eapply entails_L_eq_antisym.
-    all: apply entails_L_clauses_pres_le.
-    - intros cl hin; red. eapply hf.
-      rewrite /clauses_of_eq. clsets.
-    - intros cl hin; red. eapply hf.
-      rewrite /clauses_of_eq. clsets.
+    rewrite /entails_L_clauses entails_L_pres_clauses_of_relations_eq.
+    now move/entails_L_clauses_pres_all.
   Qed.
 
   Lemma completeness_eq p s t :
@@ -334,6 +368,15 @@ Module HornSemilattice (LS : LevelSets).
     now move/eq.
   Qed.
 
+  Lemma entails_ℋ_clauses_of_relations_equiv {cls cls'} :
+    cls ⊢ℋ cls' <->
+    clauses_of_relations (relations_of_clauses cls) ⊢ℋ cls'.
+  Proof.
+    split.
+    - move/entails_ℋ_clauses_subset; apply. apply clauses_of_relations_relations_of_clauses.
+    - apply entails_ℋ_clauses_of_relations.
+  Qed.
+
     (* - move/clauses_of_relations_spec => [] [l r] [] /relations_of_clauses_spec [] prems [] [concl k] [] incls [=] -> -> //=.
       rewrite /clauses_of_eq Clauses.union_spec. !clauses_of_le_spec => -[[lk [hin heq]]|[lk [hin heq]]].
       * subst cl.
@@ -370,6 +413,114 @@ Module HornSemilattice (LS : LevelSets).
     split.
     - apply entails_L_entails_ℋ.
     - apply entails_ℋ_entails_L.
+  Qed.
+
+  Lemma entails_L_clauses_entails_L_relations cls r :
+    relations_of_clauses cls ⊢ℒ r <->
+    entails_L_clauses cls (clauses_of_eq r.1 r.2).
+  Proof.
+    rewrite entails_L_clauses_eq.
+    destruct r as [l r]; cbn.
+    rewrite -entails_L_eq_antisym.
+    split; intros [le le']; split.
+    all:by apply entails_L_pres_clauses_of_le.
+  Qed.
+
+  Lemma clauses_of_relations_cons {l r rels} :
+    clauses_of_relations ((l, r) :: rels) =_clset
+    Clauses.union (clauses_of_eq l r) (clauses_of_relations rels).
+  Proof.
+    cbn. reflexivity.
+  Qed.
+
+  Lemma entails_L_cut {Γ r r'} :
+    Γ ⊢ℒ r ->
+    r :: Γ ⊢ℒ r' ->
+    Γ ⊢ℒ r'.
+  Proof.
+    destruct r as [l r], r' as [l' r'].
+    move/completeness_eq => h1.
+    move/completeness_eq => h2.
+    apply completeness_eq.
+    rewrite clauses_of_relations_cons in h2.
+    eapply entails_clauses_cut; tea.
+  Qed.
+
+  Lemma relations_of_clauses_mon {s s'}: s ⊂_clset s' -> incl (relations_of_clauses s) (relations_of_clauses s').
+  Proof.
+    intros hs.
+    move=> x /relations_of_clauses_spec [] prems [] concl [hin heq]. subst x.
+    apply hs in hin. eapply relations_of_clauses_spec_inv in hin. now cbn in *.
+  Qed.
+
+  Lemma entails_L_clauses_subset {cls cls' r} :
+    entails_L_clauses cls r ->
+    Clauses.Subset cls cls' ->
+    entails_L_clauses cls' r.
+  Proof.
+    intros ent sub.
+    red. red. do 2 red in ent.
+    move=> cl /ent. unfold entails_L_clause.
+    intros ent'.
+    eapply entails_L_rels_subset; tea.
+    now apply relations_of_clauses_mon.
+  Qed.
+
+  Lemma entails_clauses_tauto cls : cls ⊢ℋ cls.
+  Proof.
+    intros cl hin. now apply entails_in.
+  Qed.
+
+  Lemma entails_L_clauses_tauto cls : entails_L_clauses cls cls.
+  Proof.
+    intros cl hin. red. eapply entails_L_entails_ℋ_equiv; tea.
+    apply entails_clauses_tauto.
+  Qed.
+
+  Lemma entails_L_relations_of_clauses_le l r :
+    relations_of_clauses (l ⋞ r) ⊢ℒ l ≤ r.
+  Proof.
+    eapply completeness_eq.
+    rewrite -entails_ℋ_clauses_of_relations_equiv.
+    apply Theory.eq_antisym. split.
+    - apply Theory.join_le_left. split. apply entails_clauses_tauto.
+      apply Theory.le_refl.
+    - apply Theory.join_right.
+  Qed.
+
+  Lemma entails_L_relations_of_clauses_eq l r :
+    relations_of_clauses (l ≡ r) ⊢ℒ l ≡ r.
+  Proof.
+    eapply completeness_eq.
+    rewrite -entails_ℋ_clauses_of_relations_equiv.
+    apply entails_clauses_tauto.
+  Qed.
+
+  Lemma entails_L_to_clauses_pres_all {p r} :
+    p ⊢ℒ r ->
+    (relations_of_clauses (clauses_of_relations p)) ⊢ℒ r.
+  Proof.
+    intros h; depind h.
+    all:try solve [econstructor; eauto].
+    apply clauses_of_relations_spec_inv in H. cbn in H.
+    have hr := relations_of_clauses_spec_inv (cls := clauses_of_relations p).
+    rewrite entails_L_clauses_entails_L_relations. cbn.
+    eapply entails_L_clauses_subset; tea.
+    eapply entails_L_clauses_tauto.
+  Qed.
+
+  Lemma entails_L_clause_rels {p cl} :
+    entails_L_clause p cl ->
+    entails_L_clause (relations_of_clauses (clauses_of_relations p)) cl.
+  Proof.
+    now move/entails_L_to_clauses_pres_all.
+  Qed.
+
+  Lemma entails_L_clauses_relations {p cls} :
+    entails_L_pres_clauses p cls ->
+    entails_L_pres_clauses (relations_of_clauses (clauses_of_relations p)) cls.
+  Proof.
+    now move=> hcls cl /hcls/entails_L_clause_rels.
   Qed.
 
 End HornSemilattice.

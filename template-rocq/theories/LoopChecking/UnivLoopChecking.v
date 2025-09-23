@@ -1576,38 +1576,6 @@ Qed. *)
       - exists l; split => //. right; now apply LevelExprSet.singleton_spec.
     Qed.
 
-    Lemma clauses_of_relations_cons {l r rels} :
-      clauses_of_relations ((l, r) :: rels) =_clset
-      Clauses.union (clauses_of_eq l r) (clauses_of_relations rels).
-    Proof.
-      cbn. reflexivity.
-    Qed.
-(*
-    Lemma entails_deduction {cls prems prems' concl} :
-      entails cls (union prems prems', concl) <->
-      entails (Clauses.add (prems, concl) cls) (prems', concl).
-    Proof.
-      split.
-      - intros entc.
-        depind entc.
-        * *)
-
-
-
-    Lemma entails_L_cut {Γ r r'} :
-      Γ ⊢ℒ r ->
-      r :: Γ ⊢ℒ r' ->
-      Γ ⊢ℒ r'.
-    Proof.
-      destruct r as [l r], r' as [l' r'].
-      move/completeness_eq => h1.
-      move/completeness_eq => h2.
-      apply completeness_eq.
-      rewrite clauses_of_relations_cons in h2.
-      eapply entails_clauses_cut; tea.
-    Qed.
-
-
 
 
   Class Decidable (A : Prop) := dec : A \/ ~ A.

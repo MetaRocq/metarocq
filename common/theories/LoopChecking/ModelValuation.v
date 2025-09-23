@@ -18,17 +18,6 @@
 
   End Semantics.
 
-
-
-
-  Definition to_val (v : LevelMap.t nat) l :=
-    match LevelMap.find l v with
-    | Some n => n
-    | None => 0%nat
-    end.
-
-  Definition to_Z_val (v : Level.t -> nat) := fun l => Z.of_nat (v l).
-
   (* Interprest in a nat semilattice only *)
   Definition correct_model {SL : Semilattice Z Z} (cls : clauses) (m : model) :=
     enabled_clauses m cls /\ clauses_sem (to_Z_val (to_val (valuation_of_model m))) cls.

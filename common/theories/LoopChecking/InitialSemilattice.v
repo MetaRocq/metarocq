@@ -63,6 +63,10 @@ Module InitialSemilattice (LS : LevelSets).
     where " p ⊢ℒ r " := (entails_L p r%_rel).
   Derive Signature for entails_L.
 
+
+  Definition entails_L_rels p q :=
+    List.Forall (entails_L p) q.
+
   Lemma entails_join_congr_all {p} {x x' y y'} :
     p ⊢ℒ x ≡ x' -> p ⊢ℒ y ≡ y' -> p ⊢ℒ (x ∨ y) ≡ (x' ∨ y').
   Proof.
@@ -252,11 +256,13 @@ Module InitialSemilattice (LS : LevelSets).
     eapply entails_sym in eq. now eapply entails_L_eq_le_1 in eq.
   Qed.
 
-  Lemma entails_L_eq_antisym {cls} {l r} : cls ⊢ℒ r ≤ l -> cls ⊢ℒ l ≤ r -> cls ⊢ℒ l ≡ r.
+  Lemma entails_L_eq_antisym {cls} {l r} : (cls ⊢ℒ l ≤ r /\ cls ⊢ℒ r ≤ l) <-> cls ⊢ℒ l ≡ r.
   Proof.
-    unfold rel_le. intros le le'.
-    eapply entails_trans with (l ∨ r) => //.
-    apply entails_sym. now rewrite union_comm.
+    split.
+    - unfold rel_le. intros [le le'].
+      eapply entails_trans with (l ∨ r) => //.
+      apply entails_sym. now rewrite union_comm.
+    - intros eq; split. now apply entails_L_eq_le_1. now apply entails_L_eq_le_2.
   Qed.
 
   Lemma entails_L_le_join_l {p x x' r} :
@@ -632,6 +638,9 @@ End ForSemilattice.
   Definition valid_relation rels c :=
     (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rel v c).
 
+  Definition valid_relations rels rels' :=
+    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rels v rels').
+
   Lemma entails_L_valid {p r} :
     p ⊢ℒ r -> valid_relation p r.
   Proof.
@@ -738,6 +747,22 @@ End ForSemilattice.
     split.
     - apply valid_entails_L.
     - apply entails_L_valid.
+  Qed.
+
+  Lemma completeness_all {p rs} :
+    valid_relations p rs <-> entails_L_rels p rs.
+  Proof.
+    induction rs.
+    - split. constructor. intros _; red. intros; constructor.
+    - split. cbn.
+      * intros vr. red. constructor.
+        apply completeness. intros s v hi.
+        now move: (vr s v hi) => h; depelim h.
+        apply IHrs. intros s v hi. specialize (vr s v hi). now depelim vr.
+      * intros ent; depelim ent.
+        apply completeness in H.
+        intros s v hi. constructor.
+        now apply H. now apply IHrs.
   Qed.
 
 End InitialSemilattice.

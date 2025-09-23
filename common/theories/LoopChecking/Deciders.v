@@ -53,9 +53,8 @@ Module Import I := LoopCheckingImpl LS.
 Import LS.
 Local Open Scope Z_scope.
 
-Module Import Equiv := HornSemilattice LS.
-Import Equiv.SL.
-Import Equiv.
+(* Import I.Model.ISL. *)
+(* Import Equiv *)
 
 Definition init_model cls := max_clause_premises cls.
 
@@ -796,6 +795,8 @@ Module Abstract.
     intros [= <-]. now cbn.
   Qed.
 
+  Import I.Model.Model.Clauses.ISL.
+
   Definition clause_sem {S} {SL : Semilattice S Q.t} V (cl : clause) : Prop :=
     let '(prems, concl) := cl in
     le (interp_expr V concl) (interp_prems V prems).
@@ -805,17 +806,90 @@ Module Abstract.
 
   Lemma enforce_clauses_inconsistent m cls u :
     enforce_clauses m cls = Some (inr u) ->
-    entails_L (relations_of_clauses (Clauses.union (clauses m) cls)) (loop_univ u, succ_prems (loop_univ u)).
-    (* ~ exists V, clauses_sem (SL := Zsemilattice) V (Clauses.union (clauses m) cls). *)
+    entails_L_clauses (Clauses.union (clauses m) cls) (loop_univ u ≡ succ_prems (loop_univ u)).
   Proof.
     funelim (enforce_clauses m cls) => //=.
     intros [= <-]. clear -u.
     destruct u as [u loop]. cbn [loop_univ].
-    eapply Theory.to_entails_all in loop.
-  Admitted.
+    eapply to_entails_all in loop.
+    apply entails_L_clauses_eq; split; revgoals.
+    - now eapply entails_ℋ_entails_L.
+    - eapply entails_ℋ_entails_L.
+      eapply to_entails_all.
+      apply entails_all_succ.
+  Qed.
 
   Definition check_clauses m cls :=
     check_clauses (clauses m) cls.
+
+  Instance entails_L_pres_clauses_proper : Proper (Logic.eq ==> Clauses.Equal ==> iff) entails_L_pres_clauses.
+  Proof.
+    intros ?? -> ? ? h.
+    rewrite /entails_L_pres_clauses. now rewrite h.
+  Qed.
+
+  Lemma entails_L_pres_clauses_union {p cls cls'} : entails_L_pres_clauses p (Clauses.union cls cls') <->
+    entails_L_pres_clauses p cls /\
+    entails_L_pres_clauses p cls'.
+  Proof.
+    rewrite /entails_L_pres_clauses /Clauses.For_all.
+    setoid_rewrite Clauses.union_spec. by firstorder.
+  Qed.
+
+  Lemma entails_L_rels_entails_rels p rs :
+    entails_L_rels p rs <-> entails_L_clauses (clauses_of_relations p) (clauses_of_relations rs).
+  Proof.
+    induction rs.
+    - split => //.
+      * intros ent cl hin. cbn in hin. clsets.
+      * cbn. constructor.
+    - split.
+      * intros ent; depelim ent.
+        unfold entails_L_clauses.
+        destruct a as [l r]. rewrite clauses_of_relations_cons entails_L_pres_clauses_union. split.
+        now eapply entails_L_clauses_relations, entails_L_pres_clauses_of_relations_eq.
+        apply IHrs, ent.
+      * unfold entails_L_clauses.
+        destruct a as [l r]. rewrite clauses_of_relations_cons entails_L_pres_clauses_union.
+        move=> [] lr ih. constructor.
+        apply (proj1 entails_L_pres_clauses_of_relations_eq) in lr.
+        now apply entails_L_clauses_pres_all in lr.
+        apply IHrs, ih.
+  Qed.
+
+  Lemma entails_clauses_of_relations cls : entails_clauses cls (clauses_of_relations (relations_of_clauses cls)).
+  Proof.
+    apply entails_ℋ_clauses_of_relations_equiv. apply entails_clauses_tauto.
+  Qed.
+
+  Lemma entails_clauses_trans {cls cls' cls''} : cls ⊢ℋ cls' -> cls' ⊢ℋ cls'' -> cls ⊢ℋ cls''.
+  Proof.
+    intros ent ent'.
+    eapply entails_clauses_cut; tea.
+    eapply entails_ℋ_clauses_subset; tea. clsets.
+  Qed.
+
+  Lemma entails_L_rels_entails_L_clauses cls cls' :
+    entails_L_rels (relations_of_clauses cls) (relations_of_clauses cls') <-> entails_L_clauses cls cls'.
+  Proof.
+    rewrite entails_L_rels_entails_rels.
+    rewrite !entails_L_entails_ℋ_equiv.
+    split.
+    - intros cl. eapply entails_clauses_cut. eapply entails_ℋ_clauses_of_relations. tea.
+      eapply entails_ℋ_clauses_subset. eapply entails_clauses_tauto. intros cl' hin.
+      apply clauses_of_relations_relations_of_clauses in hin.
+      rewrite Clauses.union_spec. now left.
+    - intros hent. eapply (proj1 entails_ℋ_clauses_of_relations_equiv).
+      eapply entails_clauses_trans; tea. eapply entails_clauses_of_relations.
+  Qed.
+
+  Definition to_val (v : LevelMap.t nat) l :=
+    match LevelMap.find l v with
+    | Some n => n
+    | None => 0%nat
+    end.
+
+  Definition to_Z_val (v : Level.t -> nat) := fun l => Z.of_nat (v l).
 
   Lemma check_clauses_spec m cls :
     check_clauses m cls <-> entails_clauses (clauses m) cls.
@@ -830,13 +904,18 @@ Module Abstract.
       eapply Clauses.for_all_spec; tc => cl hin.
       destruct check eqn:hc => //.
       * exfalso; eapply check_entails_looping in hc; tea.
-        eapply Theory.to_entails_all in hc.
-        Search entails_L.
-
-
+        eapply to_entails_all in hc.
+        eapply entails_L_entails_ℋ_equiv in hc.
+        eapply entails_L_rels_entails_L_clauses in hc.
+        apply completeness_all in hc.
+        red in hc. specialize (hc {| carrier := Z; sl := _ |}). cbn in hc.
+        specialize (hc (to_Z_val (to_val (valuation_of_model m.(model).(model_valid).(model_model))))).
+        cbn in *.
+        admit.
+(*
         2:eapply m.(model).(model_valid).(model_ok).
         eapply enabled_clauses_ext, m.(model).(enabled_model).
-        eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)).
+        eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)). *)
       * move/check_invalid: hc => he.
         exfalso. elim he. now apply hv.
   Qed.
