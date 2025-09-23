@@ -42,66 +42,8 @@
       now rewrite join_sub.
   Qed.
 
-  (** Enabled and valid clauses are satisfied by valuation *)
-  Lemma valid_clause_model model cl :
-    enabled_clause model cl ->
-    valid_clause model cl ->
-    clause_sem (to_Z_val (to_val (valuation_of_model model))) cl.
-  Proof.
-    unfold enabled_clause, valid_clause.
-    destruct min_premise eqn:hmin => //= => //.
-    2:{ intros [k' eq]. congruence. }
-    intros [k' eq]. noconf eq.
-    destruct cl as [prems [concl k]]. cbn -[le].
-    unfold level_value_above.
-    destruct level_value eqn:hl => //.
-    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
-    move/Z.leb_le => hrel.
-    eapply LevelMap.find_2 in hfind.
-    have conclm := valuation_of_model_spec _ _ _ hfind.
-    set (v := (model_max _ - _)) in *.
-    cbn in conclm.
-    eapply LevelMap.find_1 in conclm.
-    subst v.
-    pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
-    rewrite hmin in premeq.
-    eapply transitivity. 2:{ eapply interp_prems_ge; tea. }
-    unfold interp_expr. destruct prem as [prem k'].
-    symmetry in premeq.
-    move: premeq. unfold min_atom_value.
-    unfold level_value. destruct (LevelMap.find prem) eqn:findp => //.
-    destruct o => //.
-    intros [= <-].
-    eapply LevelMap.find_2 in findp.
-    have premm := valuation_of_model_spec _ _ _ findp.
-    eapply LevelMap.find_1 in premm.
-    assert (z1 - k' <= z0 - k). lia.
-    have hm : z0 <= model_max model.
-    { eapply model_max_spec in hfind; tea. now depelim hfind. }
-    have hm' : z1 <= model_max model.
-    { eapply model_max_spec in findp; tea. now depelim findp. }
-    have hmi : model_min model <= z0.
-    { eapply model_min_spec; tea. }
-    have hmi' : model_min model <= z1.
-    { eapply model_min_spec; tea. }
-    assert (0 <= model_max model)%Z by apply model_max_spec2.
-    assert (model_min model <= 0)%Z by apply model_min_spec2.
-    rewrite /to_Z_val /to_val premm conclm.
-    cbn. lia.
-  Qed.
 
-  Lemma valid_clauses_model model cls :
-    enabled_clauses model cls ->
-    is_model cls model ->
-    clauses_sem (to_Z_val (to_val (valuation_of_model model))) cls.
-  Proof.
-    move=> en ism cl hin.
-    apply valid_clause_model.
-    now apply en.
-    now move/Clauses.for_all_spec: ism; apply.
-  Qed.
 
-  Definition valid_entailment cls cl := forall V, clauses_sem V cls -> clause_sem V cl.
   Definition invalid_entailment cls cl :=
     forall V, clauses_sem V cls -> clause_sem V cl -> False.
 

@@ -891,6 +891,194 @@ Module Abstract.
 
   Definition to_Z_val (v : Level.t -> nat) := fun l => Z.of_nat (v l).
 
+  (** Enabled and valid clauses are satisfied by valuation *)
+  Lemma valid_clause_model model cl :
+    enabled_clause model cl ->
+    valid_clause model cl ->
+    clause_sem (to_Z_val (to_val (valuation_of_model model))) cl.
+  Proof.
+    unfold enabled_clause, valid_clause.
+    destruct min_premise eqn:hmin => //= => //.
+    2:{ intros [k' eq]. congruence. }
+    intros [k' eq]. noconf eq.
+    destruct cl as [prems [concl k]]. cbn -[le].
+    unfold level_value_above.
+    destruct level_value eqn:hl => //.
+    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
+    move/Z.leb_le => hrel.
+    eapply LevelMap.find_2 in hfind.
+    have conclm := valuation_of_model_spec _ _ _ hfind.
+    set (v := (model_max _ - _)) in *.
+    cbn in conclm.
+    eapply LevelMap.find_1 in conclm.
+    subst v.
+    pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
+    rewrite hmin in premeq.
+    eapply transitivity. 2:{ eapply interp_prems_ge; tea. }
+    unfold interp_expr. destruct prem as [prem k'].
+    symmetry in premeq.
+    move: premeq. unfold min_atom_value.
+    unfold level_value. destruct (LevelMap.find prem) eqn:findp => //.
+    destruct o => //.
+    intros [= <-].
+    eapply LevelMap.find_2 in findp.
+    have premm := valuation_of_model_spec _ _ _ findp.
+    eapply LevelMap.find_1 in premm.
+    assert (z1 - k' <= z0 - k). lia.
+    have hm : z0 <= model_max model.
+    { eapply model_max_spec in hfind; tea. now depelim hfind. }
+    have hm' : z1 <= model_max model.
+    { eapply model_max_spec in findp; tea. now depelim findp. }
+    have hmi : model_min model <= z0.
+    { eapply model_min_spec; tea. }
+    have hmi' : model_min model <= z1.
+    { eapply model_min_spec; tea. }
+    assert (0 <= model_max model)%Z by apply model_max_spec2.
+    assert (model_min model <= 0)%Z by apply model_min_spec2.
+    rewrite /to_Z_val /to_val premm conclm.
+    cbn. lia.
+  Qed.
+
+  Lemma valid_clauses_model model cls :
+    enabled_clauses model cls ->
+    is_model cls model ->
+    clauses_sem (to_Z_val (to_val (valuation_of_model model))) cls.
+  Proof.
+    move=> en ism cl hin.
+    apply valid_clause_model.
+    now apply en.
+    now move/Clauses.for_all_spec: ism; apply.
+  Qed.
+
+  Lemma clauses_of_le_singleton le r :
+    (singleton le ⋞ r)%cls =_clset Clauses.singleton (r, le).
+  Proof.
+    intros l.
+    rewrite Clauses.singleton_spec clauses_of_le_spec.
+    firstorder.
+    - subst l. apply LevelExprSet.singleton_spec in H.
+      now red in H; subst x.
+    - subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
+  Qed.
+
+  Lemma clauses_of_le_add le l r :
+    (NES.add le l ⋞ r)%cls =_clset Clauses.add (r, le) (l ⋞ r).
+  Proof.
+    intros cl.
+    rewrite Clauses.add_spec clauses_of_le_spec.
+    split.
+    - move=> [] x [] /LevelExprSet.add_spec; rewrite /LevelExprSet.E.eq.
+      move=> [->|hin]. now left.
+      intros ->. right. rewrite clauses_of_le_spec. now exists x.
+    - move=> [->|]. exists le. split => //.
+      * now apply LevelExprSet.add_spec; left.
+      * rewrite clauses_of_le_spec => -[] k [] hin ->.
+        exists k. split => //. now apply LevelExprSet.add_spec.
+  Qed.
+
+  Instance clauses_sem_proper {S} {SL : Semilattice S Q.t} :
+    Proper (Logic.eq ==> Clauses.Equal ==> iff) clauses_sem.
+  Proof.
+    move=> ?? -> ?? h.
+    rewrite /clauses_sem.
+    now rewrite h.
+  Qed.
+
+  Lemma clauses_sem_singleton {S} {SL : Semilattice S Q.t} {V cl} :
+    clauses_sem V (Clauses.singleton cl) <-> clause_sem V cl.
+  Proof.
+    rewrite /clauses_sem /Clauses.For_all.
+    split; firstorder. apply H. clsets.
+    apply Clauses.singleton_spec in H0. now subst.
+  Qed.
+
+  Lemma clauses_sem_add {S} {SL : Semilattice S Q.t} {V cl cls} :
+    clauses_sem V (Clauses.add cl cls) <-> clause_sem V cl /\ clauses_sem V cls.
+  Proof.
+    rewrite /clauses_sem /Clauses.For_all.
+    split.
+    - intros hcl. split.
+      * apply hcl, Clauses.add_spec; now left.
+      * move=> x hin; apply hcl, Clauses.add_spec; now right.
+    - move=> [] hcl hcls x /Clauses.add_spec -[]. now subst.
+      apply hcls.
+  Qed.
+
+  Lemma clauses_sem_union {S} {SL : Semilattice S Q.t} {V cls cls'} :
+    clauses_sem V (Clauses.union cls cls') <-> clauses_sem V cls /\ clauses_sem V cls'.
+  Proof.
+    rewrite /clauses_sem /Clauses.For_all.
+    setoid_rewrite Clauses.union_spec. firstorder.
+  Qed.
+
+  Lemma clauses_sem_leq {S} {SL : Semilattice S Q.t} (V : Level.t -> S) l r :
+    clauses_sem V (l ⋞ r) <->
+    (interp_prems V l ≤ interp_prems V r)%sl.
+  Proof.
+    move: l.
+    apply: elim.
+    - intros le; cbn.
+      rewrite clauses_of_le_singleton clauses_sem_singleton.
+      cbn. now rewrite interp_prems_singleton.
+    - move=> le x xr hnin.
+      rewrite clauses_of_le_add clauses_sem_add xr.
+      cbn. rewrite interp_prems_add.
+      symmetry; apply join_le_left_eq.
+  Qed.
+
+  Lemma clauses_sem_eq {S} {SL : Semilattice S Q.t} (V : Level.t -> S) l r :
+    clauses_sem V (l ≡ r) <->
+    (interp_prems V l ≡ interp_prems V r)%sl.
+  Proof.
+    rewrite /clauses_of_eq clauses_sem_union !clauses_sem_leq.
+    symmetry; apply eq_antisym.
+  Qed.
+
+  Definition relation_of_clause cl := (singleton (concl cl) ≤ premise cl).
+
+  Lemma interp_rels_of_clauses {S} {SL : Semilattice S Q.t} {V cls} :
+    interp_rels V (relations_of_clauses cls) <->
+    forall cl, Clauses.In cl cls -> interp_rel V (relation_of_clause cl).
+  Proof.
+    rewrite /interp_rels Forall_forall.
+    split.
+    - move=> hx cl /relations_of_clauses_spec_inv.
+      now move/hx.
+    - move=> hcl x /relations_of_clauses_spec => -[] prems [] concl.
+      now move=> [] /hcl hin ->.
+  Qed.
+
+  Lemma interp_rels_clauses_sem {S} {SL : Semilattice S Q.t} {V cls} :
+    clauses_sem V cls <-> interp_rels V (relations_of_clauses cls).
+  Proof.
+    rewrite interp_rels_of_clauses.
+    split.
+    - move=> sem [prems concl] /sem //=.
+      now rewrite /le interp_prems_union interp_prems_singleton.
+    - move=> hcl [prems concl] /hcl /=.
+      now rewrite /le interp_prems_union interp_prems_singleton.
+  Qed.
+
+  Definition Z_valuation_of_model m :=
+    to_Z_val (to_val (valuation_of_model m.(model).(model_valid).(model_model))).
+
+  Lemma model_entails_succ m v : clauses m ⊢a v → succ v -> False.
+  Proof.
+    move/to_entails_all/entails_L_entails_ℋ_equiv.
+    move/entails_L_rels_entails_L_clauses/completeness_all.
+    move/(_ {| carrier := Z; sl := _ |}). cbn.
+    move/(_ (Z_valuation_of_model m)).
+    rewrite -!interp_rels_clauses_sem => /fwd.
+    cbn in *.
+    have mok := m.(model).(model_valid).(model_ok).
+    eapply valid_clauses_model.
+    eapply enabled_clauses_ext, m.(model).(enabled_model).
+    now eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)).
+    exact mok.
+    move/clauses_sem_leq.
+    rewrite interp_add_prems. cbn. lia.
+  Qed.
+
   Lemma check_clauses_spec m cls :
     check_clauses m cls <-> entails_clauses (clauses m) cls.
   Proof.
@@ -904,20 +1092,28 @@ Module Abstract.
       eapply Clauses.for_all_spec; tc => cl hin.
       destruct check eqn:hc => //.
       * exfalso; eapply check_entails_looping in hc; tea.
-        eapply to_entails_all in hc.
-        eapply entails_L_entails_ℋ_equiv in hc.
-        eapply entails_L_rels_entails_L_clauses in hc.
-        apply completeness_all in hc.
-        red in hc. specialize (hc {| carrier := Z; sl := _ |}). cbn in hc.
-        specialize (hc (to_Z_val (to_val (valuation_of_model m.(model).(model_valid).(model_model))))).
-        cbn in *.
-        admit.
-(*
-        2:eapply m.(model).(model_valid).(model_ok).
-        eapply enabled_clauses_ext, m.(model).(enabled_model).
-        eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)). *)
+        now apply model_entails_succ in hc.
       * move/check_invalid: hc => he.
         exfalso. elim he. now apply hv.
+  Qed.
+
+  Definition valid_entailments cls cls' :=
+    forall S (SL : Semilattice S Q.t) (V : Level.t -> S), clauses_sem V cls -> clauses_sem V cls'.
+
+  Lemma check_clauses_complete m cls :
+    check_clauses m cls <-> valid_entailments (clauses m) cls.
+  Proof.
+    rewrite check_clauses_spec.
+    rewrite -entails_L_entails_ℋ_equiv.
+    rewrite -entails_L_rels_entails_L_clauses.
+    rewrite -completeness_all.
+    split.
+    - move=> vr s sl v.
+      move: (vr {| carrier := _; sl := sl |} v).
+      rewrite !interp_rels_clauses_sem //.
+    - intros ve s v.
+      move: (ve s (sl s) v).
+      now rewrite //= !interp_rels_clauses_sem.
   Qed.
 
 End Abstract.
@@ -1001,11 +1197,25 @@ Module LoopChecking (LS : LevelSets).
     apply enforce_clauses_not_None.
   Qed.
 
+  Import Impl.Abstract.
+  Import Impl.CorrectModel.
+
   Lemma enforce_inconsistent {m cls u} :
     enforce m cls = Some (inr u) ->
     ~ exists V, clauses_sem V (Clauses.union (clauses m) (to_clauses cls)).
   Proof.
-    apply enforce_clauses_inconsistent.
+    rewrite /enforce.
+    move/enforce_clauses_inconsistent.
+    rewrite -entails_L_rels_entails_L_clauses.
+    rewrite -ISL.completeness_all.
+    move=> vr [] V.
+    specialize (vr {| ISL.carrier := Z; ISL.sl := _ |} V).
+    move: vr.
+    rewrite !interp_rels_clauses_sem // => vr /vr.
+    rewrite -interp_rels_clauses_sem.
+    rewrite clauses_sem_eq.
+    setoid_rewrite ISL.interp_add_prems; cbn -[Z.add].
+    lia.
   Qed.
 
   Lemma enforce_clauses {m cls m'} :
@@ -1020,6 +1230,9 @@ Module LoopChecking (LS : LevelSets).
     levels m' = levels m.
   Proof. apply enforce_clauses_levels. Qed.
 
+  Definition valid_entailments cls cls' :=
+    forall S (SL : Semilattice.Semilattice S Q.t) (V : Level.t -> S), clauses_sem V cls -> clauses_sem V cls'.
+
   (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply
      is not valid. *)
@@ -1030,17 +1243,21 @@ Module LoopChecking (LS : LevelSets).
     check m c <-> entails_clauses (clauses m) (to_clauses c).
   Proof. apply check_clauses_spec. Qed.
 
+  Lemma check_complete m c :
+    check m c <-> valid_entailments (clauses m) (to_clauses c).
+  Proof. apply check_clauses_complete. Qed.
+
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
-  Definition valuation m := Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model).
+  Definition valuation m := to_val (Model.valuation_of_model m.(Impl.Abstract.model).(Impl.CorrectModel.model_valid).(model_model)).
 
-  Definition model_valuation m : clauses_sem (to_Z_val (to_val (valuation m))) (clauses m).
+  Definition model_valuation m : clauses_sem (to_Z_val (valuation m)) (clauses m).
   Proof.
     destruct m as [levels clauses []]; cbn.
     apply valid_clauses_model; tea; cbn.
     - eapply enabled_clauses_ext; tea.
-      exact: is_update_of_ext (model_updates model_valid).
-    - apply model_valid.
+      eapply is_update_of_ext, model_valid0.
+    - apply model_valid0.
   Qed.
 
 End LoopChecking.
