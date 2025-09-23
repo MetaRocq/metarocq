@@ -17,13 +17,57 @@ Module Type OrderedTypeWithLeibnizWithReflect.
   Parameter to_string : t -> string.
 End OrderedTypeWithLeibnizWithReflect.
 
+Module CommutativeMonoid.
+Class IsCommMonoid (A : Type) :=
+  { zero : A;
+    one : A;
+    add : A -> A -> A;
+    comm_mon :: CommutativeMonoid zero add }.
+
+Declare Scope comm_monoid.
+Notation "0" := zero : comm_monoid.
+Notation "1" := one : comm_monoid.
+Notation "+" := add : comm_monoid.
+End CommutativeMonoid.
+
 Module Type Quantity.
   Include OrderedTypeWithLeibniz.
-  Parameter zero : t.
-  Parameter add : t -> t -> t.
-  Declare Instance comm_monoid : CommutativeMonoid zero add.
-  Declare Instance add_inj n : Injective (add n).
+  Import CommutativeMonoid.
+
+  Declare Instance comm_monoid : IsCommMonoid t.
+  Declare Instance add_inj_eq n : Injective (add n) Logic.eq Logic.eq.
+  Declare Instance add_inj_lt n : Injective (add n) lt lt.
 End Quantity.
+
+Module OfQuantity (Q : Quantity).
+  Import CommutativeMonoid.
+  Import Q.
+
+  Declare Scope quantity.
+  Bind Scope quantity with t.
+  Delimit Scope quantity with Q.
+  Infix "+" := add : quantity.
+
+  Definition le (x y : t) := lt x y \/ eq x y.
+
+  Instance le_refl : Reflexive le.
+  Proof. red. now right. Qed.
+
+  Instance le_trans : Transitive le.
+  Proof. red. intros x y z [] [].
+    - left. now transitivity y.
+    - rewrite -H0. now left.
+    - rewrite H. now left.
+    - rewrite H H0. now right.
+  Qed.
+
+  Lemma add_inj_le {n} : Injective (add n) le le.
+  Proof.
+    intros x y []. left. now apply inj in H.
+    apply inj in H. now right.
+  Qed.
+
+End OfQuantity.
 
 Module Type LevelExprT (Level : OrderedTypeWithLeibniz) (Q : Quantity).
   Include UsualOrderedType with Definition t := (Level.t * Q.t)%type.
@@ -64,6 +108,9 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Infix "⊂_leset" := LevelExprSet.Subset (at level 90).
   Infix "=_leset" := LevelExprSet.Equal (at level 90).
 
+  Import CommutativeMonoid.
+  Module Export OfQ := OfQuantity Q.
+
   Definition level : LevelExpr.t -> Level.t := fst.
 
   Definition levels (e : t) :=
@@ -86,7 +133,9 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
 
   Existing Instance LevelExprSet.reflect_eq.
   Existing Instance Q.comm_monoid.
-  Existing Instance Q.add_inj.
+  Existing Instance Q.add_inj_eq.
+  Existing Instance Q.add_inj_lt.
+  Existing Instance OfQ.add_inj_le.
 
   (* We use uip on the is_empty condition *)
   #[export, program] Instance reflect_eq : ReflectEq t :=
@@ -504,10 +553,11 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     firstorder eauto. subst. firstorder.
   Qed.
 
-  Definition add_expr n '((l, k) : LevelExpr.t) := (l, Q.add n k).
+  Definition add_expr n '((l, k) : LevelExpr.t) := (l, CommutativeMonoid.add n k).
 
-  Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (Q.add n n') lk.
-  Proof. destruct lk; unfold add_expr. f_equal. symmetry. now rewrite (MRClasses.assoc (f:=Q.add)). Qed.
+  Lemma add_expr_add_expr n n' lk : add_expr n (add_expr n' lk) = add_expr (CommutativeMonoid.add n n') lk.
+  Proof. destruct lk; unfold add_expr. f_equal. symmetry.
+    now rewrite (MRClasses.assoc (f:=CommutativeMonoid.add)). Qed.
   Definition add_prems n s := map (add_expr n) s.
 
   Lemma In_add_prems k (prems : t):
@@ -522,14 +572,14 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Proof.
     destruct e, e'; cbn; rewrite /add_expr.
     move=> [=] ->.
-    now move/(inj (f:=Q.add n)) => ->.
+    now move/(inj (f:=CommutativeMonoid.add n)) => ->.
   Qed.
 
   Lemma add_prems_inj n prems prems' : add_prems n prems = add_prems n prems' -> prems = prems'.
   Proof.
     rewrite /add_prems => /equal_exprsets hm.
     apply equal_exprsets.
-    intros [l k]. specialize (hm (l, Q.add n k)).
+    intros [l k]. specialize (hm (l, CommutativeMonoid.add n k)).
     rewrite !map_spec in hm. destruct hm as [hl hr].
     split; intros hin.
     - forward hl. exists (l, k); split => //.
@@ -544,7 +594,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Lemma inj_add_prems_sub {n u u'} : add_prems n u ⊂_leset add_prems n u' -> u ⊂_leset u'.
   Proof.
     rewrite /add_prems.
-    intros hm [l k]. specialize (hm (l, Q.add n k)).
+    intros hm [l k]. specialize (hm (l, CommutativeMonoid.add n k)).
     rewrite !map_spec in hm.
     intros hin.
     forward hm. exists (l, k); split => //.
@@ -552,7 +602,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     apply (@add_expr_inj n (l, k)) in eq. now noconf eq.
   Qed.
 
-  Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (Q.add n n') lk.
+  Lemma add_prems_add_prems n n' lk : add_prems n (add_prems n' lk) = add_prems (CommutativeMonoid.add n n') lk.
   Proof. destruct lk; unfold add_prems.
     rewrite map_map. apply equal_exprsets.
     intros x. rewrite !map_spec. cbn in *.
@@ -570,12 +620,12 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     firstorder. subst. red in H; subst x0. now left.
   Qed.
 
-  Lemma add_expr_0 e : add_expr Q.zero e = e.
+  Lemma add_expr_0 e : add_expr CommutativeMonoid.zero e = e.
   Proof.
     destruct e => //=. now rewrite neutral.
   Qed.
 
-  Lemma add_prems_0 u : add_prems Q.zero u = u.
+  Lemma add_prems_0 u : add_prems CommutativeMonoid.zero u = u.
   Proof.
     rewrite /add_prems.
     apply equal_exprsets.
@@ -585,5 +635,40 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     - intros inu; exists x. split => //. now rewrite add_expr_0.
   Qed.
 
+  Lemma add_prems_union {n u u'} : add_prems n (u ∪ u') = union (add_prems n u) (add_prems n u').
+  Proof.
+    apply equal_exprsets => l.
+    rewrite In_add_prems.
+    setoid_rewrite union_spec.
+    rewrite !In_add_prems. firstorder.
+  Qed.
+
+  Lemma add_idem {l x} : add l (add l x) = add l x.
+  Proof.
+    apply equal_exprsets => l'.
+    rewrite !add_spec. firstorder.
+  Qed.
+
+  Lemma add_prems_singleton n cl : add_prems n (singleton cl) = singleton (add_expr n cl).
+  Proof.
+    apply equal_exprsets => [] [l k].
+    rewrite In_add_prems LevelExprSet.singleton_spec.
+    firstorder.
+    - destruct x; noconf H0.
+      eapply LevelExprSet.singleton_spec in H.
+      now red in H; noconf H.
+    - destruct cl. red in H. noconf H. exists (t0, t1). split => //.
+      now apply LevelExprSet.singleton_spec.
+  Qed.
+
+  Definition choose_prems (u : t) : LevelExpr.t := (to_nonempty_list u).1.
+  Lemma choose_prems_spec u : LevelExprSet.In (choose_prems u) u.
+  Proof.
+    rewrite /choose_prems.
+    have hs := to_nonempty_list_spec u.
+    destruct to_nonempty_list. cbn.
+    rewrite -LevelExprSet.elements_spec1 InA_In_eq -hs.
+    now constructor.
+  Qed.
 
 End NonEmptyLevelExprSet.

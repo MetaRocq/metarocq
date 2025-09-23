@@ -383,18 +383,28 @@ Module Universe.
         - non empty *)
   Module Q <: Quantity.
     Include OrdersEx.Nat_as_OT.
+    Import CommutativeMonoid.
 
     #[program]
-    Instance comm_monoid : CommutativeMonoid 0%nat add.
+    Instance comm_monoid : IsCommMonoid nat :=
+      {| zero := 0%nat;
+         one := 1%nat;
+         add := Nat.add |}.
     Next Obligation.
-      apply add_assoc.
+      split; tc.
+      - red. apply add_assoc.
+      - red. apply add_comm.
+      - red. apply Nat.add_0_l.
     Qed.
-    Next Obligation.
-      apply add_comm.
-    Qed.
-    Instance add_inj n : Injective (add n).
+
+    Instance add_inj_eq n : Injective (add n) eq eq.
     Proof.
-      red. intros x y; lia.
+      red. intros x y; rewrite /eq /add //=. lia.
+    Qed.
+
+    Instance add_inj_lt n : Injective (add n) lt lt.
+    Proof.
+      red. intros x y; rewrite /eq /add //=. lia.
     Qed.
 
     Definition reflect_eq : ReflectEq t := _.
@@ -1002,13 +1012,6 @@ Section Univ.
     fold_right f acc l = fold_right g acc' l'.
   Proof.
     intros hfg -> ->; induction l'; cbn; auto; congruence.
-  Qed.
-
-  Lemma fold_right_map {A B C} (f : B -> A -> A) (g : C -> B) acc l :
-    fold_right (fun x acc => f (g x) acc) acc l =
-    fold_right (fun x acc => f x acc) acc (List.map g l).
-  Proof.
-    induction l; cbn; auto. congruence.
   Qed.
 
   Lemma subset_levels_exprs {le levels} :

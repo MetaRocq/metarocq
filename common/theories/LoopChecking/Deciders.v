@@ -7,7 +7,7 @@ From MetaRocq.Utils Require Import utils MRClasses SemiLattice.
 From MetaRocq.Common Require UnivConstraintType Universes.
 From Equations Require Import Equations.
 
-From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking.
+From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking InitialSemilattice HornSemilatticeEquiv.
 
 Set Equations Transparent.
 
@@ -52,6 +52,10 @@ Module Deciders (LS : LevelSets).
 Module Import I := LoopCheckingImpl LS.
 Import LS.
 Local Open Scope Z_scope.
+
+Module Import Equiv := HornSemilattice LS.
+Import Equiv.SL.
+Import Equiv.
 
 Definition init_model cls := max_clause_premises cls.
 
@@ -117,10 +121,10 @@ Definition print_clauses (cls : clauses) :=
 
 Definition valuation := LevelMap.t nat.
 
-Equations? infer_model (cls : clauses) : option model :=
+Equations? infer_model (cls : clauses) : model + premises :=
 infer_model cls with loop (clauses_levels cls) LevelSet.empty cls (init_model cls) (init_model cls) _ :=
-  | Loop _ _ => None
-  | Model w vm heq => Some vm.(model_model).
+  | Loop v _ => inr v
+  | Model w vm heq => inl vm.(model_model).
 Proof.
   split.
   - reflexivity.
@@ -128,11 +132,115 @@ Proof.
   - apply is_update_of_empty.
 Qed.
 
+Definition correct_model (cls : clauses) (m : model) :=
+  enabled_clauses m cls /\ is_model cls m.
+
+Lemma enabled_clauses_le {m v u} : enabled_clauses m (v ⋞ u)%cls <->
+  defined_model_of (levels u) m.
+Proof.
+  split.
+Admitted.
+
 Definition infer_correctness cls :=
   match infer_model cls with
-  | Some m => correct_model cls m
-  | None => ~ exists v, clauses_sem v cls
+  | inl m => correct_model cls m
+  | inr u => ~ exists m, defined_model_of (levels u) m /\ is_model cls m
   end.
+
+Definition valid_clauses m cls := Clauses.For_all (valid_clause m) cls.
+Infix "⊨" := valid_clauses (at level 90).
+
+Lemma is_model_valid {cls m} : is_model cls m <-> m ⊨ cls.
+Proof.
+  rewrite /is_model.
+  rewrite [is_true _]Clauses.for_all_spec. reflexivity.
+Qed.
+
+Lemma entails_all_model_valid {cls cls' : clauses} {m : model} :
+  m ⊨ cls -> cls ⊢ℋ cls' -> m ⊨ cls'.
+Proof.
+  intros ism ent cl incl.
+  move/ent: incl => entcl.
+  eapply entails_model_valid; tea.
+  apply Clauses.for_all_spec. tc. apply ism.
+Qed.
+
+Print valid_clause.
+
+Lemma valid_enabled_clause_spec model cl :
+  enabled_clause model cl ->
+  valid_clause model cl ->
+  exists hmin, min_premise model (premise cl) = Some hmin /\ (Some (hmin + (concl cl).2) ≤ level_value model (concl cl).1)%opt.
+Proof.
+  intros [hmin eq].
+  destruct cl as [prems [concl k]]. move/valid_clause_elim/(_ hmin eq) => hle.
+  exists hmin. split => //.
+Qed.
+
+Lemma valid_enabled_clauses_spec {model cls} :
+  enabled_clauses model cls ->
+  valid_clauses model cls ->
+  forall cl, Clauses.In cl cls ->
+  exists hmin, min_premise model (premise cl) = Some hmin /\ (Some (hmin + (concl cl).2) ≤ level_value model (concl cl).1)%opt.
+Proof.
+  intros en valid cl hin.
+  specialize (en cl hin).
+  specialize (valid cl hin).
+  now apply valid_enabled_clause_spec.
+Qed.
+
+
+Lemma min_opt_None_right x z : min_opt x None = Some z -> False.
+Proof.
+  destruct x => //=.
+Qed.
+
+Lemma min_opt_None_left x z : min_opt None x = Some z -> False.
+Proof.
+  destruct x => //=.
+Qed.
+
+Lemma loop_invalid {m u} : enabled_clauses m (succ u ⋞ u)%cls -> m ⊨ succ u ⋞ u -> False.
+Proof.
+  intros en valid.
+  have vm := valid_enabled_clauses_spec en valid.
+  setoid_rewrite clauses_of_le_spec in vm.
+  clear en valid.
+  move: u vm. apply: NES.elim.
+  - intros le hcl.
+    move: (hcl (singleton le, succ_expr le)) => /fwd.
+    { exists (succ_expr le). split => //.
+      apply In_add_prems. exists le; split => //. now apply LevelExprSet.singleton_spec. }
+    move=> [z [hmin hleq]]. cbn in hleq.
+    depelim hleq. cbn in H0.
+    rewrite min_premise_singleton /min_atom_value in hmin.
+    destruct le as [l k]. cbn -[Z.add] in *. rewrite H0 in hmin. noconf hmin. lia.
+  - intros le x en hnin h.
+    apply en. intros cl [lk [hin eq]]. subst cl.
+    eapply In_add_prems in hin as [? []]. subst lk. cbn.
+    move: (h (add le x, succ_expr x0)) => /fwd.
+    { exists (succ_expr x0). split => //.
+      apply In_add_prems. exists x0. split => //.
+      apply LevelExprSet.add_spec. now right. }
+    intros [hmin [eqmin lv]].
+    cbn in lv. cbn in eqmin.
+    rewrite min_premise_add in eqmin.
+    move: (h (add le x, succ_expr le)) => /fwd.
+    { exists (succ_expr le). split => //.
+      apply In_add_prems. exists le. split => //.
+      apply LevelExprSet.add_spec; now left. }
+    intros [hmin' [eqmin' lv']]. cbn in eqmin', lv'.
+    rewrite min_premise_add in eqmin'.
+    destruct (min_premise m x) eqn:mx.
+    * exists z. split => //.
+      destruct (min_atom_value m le) eqn:mina; cbn in * => //.
+      noconf eqmin; noconf eqmin'.
+      destruct le as [le lek]. destruct x0 as [x0 x0k]; cbn -[Z.add] in *.
+      destruct (level_value m le) => //.
+      Opaque Z.add. depelim lv'. depelim lv. rewrite H1. constructor.
+      noconf mina. lia.
+    * now apply min_opt_None_right in eqmin'.
+Qed.
 
 Import Semilattice.
 Lemma infer_correct cls : infer_correctness cls.
@@ -152,20 +260,15 @@ Proof.
     { eapply enabled_clauses_ext. apply is_update_of_ext in isupd. exact isupd.
       apply init_model_enabled. }
     split => //.
-    unfold clauses_sem.
-    intros cl hin.
-    eapply valid_clause_model. now eapply encl in hin.
-    eapply Clauses.for_all_spec in ism; tc. now specialize (ism _ hin).
-  - intros [v clssem].
+  - intros [v [en clssem]].
     move: hi.
-    funelim (infer_model cls) => //. intros _.
-    red in islooping.
-    have sem := clauses_sem_entails_all islooping v0.
-    specialize (sem clssem). red in sem.
-    rewrite interp_add_prems in sem.
-    cbn [add Zsemilattice] in sem.
-    cbn [join Zadd_is_comm_monoid Zsemilattice] in sem.
-    Opaque Z.add. cbn in sem. lia. Transparent Z.add.
+    funelim (infer_model cls) => //. intros [=]. subst t0.
+    red in islooping. clear Heq Heqcall.
+    apply to_entails_all in islooping.
+    apply is_model_valid in clssem.
+    have hv := entails_all_model_valid clssem islooping.
+    eapply loop_invalid in hv; tea.
+    now apply enabled_clauses_le.
 Qed.
 
 Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) cl).2 :=
@@ -212,7 +315,7 @@ Equations check (cls : clauses) (cl : clause) : check_result cls :=
 Definition check_clauses (cls : clauses) (cls' : clauses) : bool :=
   let check_one cl :=
     match check cls cl with
-    | IsLooping v isl => false
+    | IsLooping _ _ => false
     | Valid => true
     | Invalid => false
     end
@@ -225,9 +328,8 @@ Theorem check_entails {cls cl} :
 Proof.
   destruct cl as [prems [concl k]].
   funelim (check cls _) => // _.
-  set (V := clause_levels _ ∪ clauses_levels cls) in *.
+  set (V := (clause_levels _ ∪ clauses_levels cls)%levels) in *.
   clear Heqcall H. cbn [concl fst snd] in *. clear Heq0.
-  unfold valid_entailment, valid_clause, level_value_above.
   move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
   have vmupd := model_updates v.
   have vmok := model_ok v.
@@ -254,26 +356,40 @@ Proof.
 Qed.
 
 Lemma check_looping {cls cl v isl} :
-  check cls cl = IsLooping v isl -> ~ (exists V, clauses_sem V cls).
+  check cls cl = IsLooping v isl ->
+  ~ (exists m, defined_model_of (levels v) m /\ is_model cls m).
 Proof.
-  move/check_entails_looping/clauses_sem_entails_all => h [] V /h.
-  rewrite interp_add_prems. cbn -[Z.add]. lia.
+  move/check_entails_looping.
+  intros loop [m' [en clssem]].
+  apply to_entails_all in loop.
+  apply is_model_valid in clssem.
+  have hv := entails_all_model_valid clssem loop.
+  eapply loop_invalid in hv; tea.
+  now apply enabled_clauses_le.
 Qed.
 
-Lemma check_valid_looping {cls cl v isl m} :
+(* Lemma check_valid_looping {cls cl m v isl} :
   enabled_clauses m cls ->
   is_model cls m ->
   check cls cl = IsLooping v isl -> False.
 Proof.
-  move=> en /(valid_clauses_model _ _ en) csem /check_looping; apply.
-  now eexists.
-Qed.
+  move=> en ism.
+  rewrite /check /loop_check.
+  destruct loop.
+
+   /check_looping; apply.
+  destruct def as [def isupd].
+  exists m'. split => //.
+  move: isupd; move/is_update_of_case => [].
+  * move=> [] empw eq. rewrite -eq.
+  exists m.
+Qed. *)
 
 Theorem check_invalid {cls cl} :
   check cls cl = Invalid -> ~ entails cls cl.
 Proof.
   funelim (check cls cl) => //.
-  set (V := clause_levels cl ∪ clauses_levels cls) in *.
+  set (V := (clause_levels cl ∪ clauses_levels cls)%levels) in *.
   destruct cl as [prems [concl k]].
   rename val into conclval_v => _. clear H Heq0 Heqcall prf. cbn in he.
   move: (check_atom_value_spec (Some k) conclval_v). rewrite Heq.
@@ -680,17 +796,23 @@ Module Abstract.
     intros [= <-]. now cbn.
   Qed.
 
+  Definition clause_sem {S} {SL : Semilattice S Q.t} V (cl : clause) : Prop :=
+    let '(prems, concl) := cl in
+    le (interp_expr V concl) (interp_prems V prems).
+
+  Definition clauses_sem {S} {SL : Semilattice S Q.t} V (cls : Clauses.t) : Prop :=
+    Clauses.For_all (clause_sem V) cls.
+
   Lemma enforce_clauses_inconsistent m cls u :
     enforce_clauses m cls = Some (inr u) ->
-    ~ exists V, clauses_sem V (Clauses.union (clauses m) cls).
+    entails_L (relations_of_clauses (Clauses.union (clauses m) cls)) (loop_univ u, succ_prems (loop_univ u)).
+    (* ~ exists V, clauses_sem (SL := Zsemilattice) V (Clauses.union (clauses m) cls). *)
   Proof.
     funelim (enforce_clauses m cls) => //=.
-    intros [= <-]. clear -u. intros [V cs].
-    destruct u as [u loop].
-    eapply clauses_sem_entails_all in loop; tea.
-    rewrite interp_add_prems in loop.
-    cbn -[Z.add] in loop. lia.
-  Qed.
+    intros [= <-]. clear -u.
+    destruct u as [u loop]. cbn [loop_univ].
+    eapply Theory.to_entails_all in loop.
+  Admitted.
 
   Definition check_clauses m cls :=
     check_clauses (clauses m) cls.
@@ -707,7 +829,11 @@ Module Abstract.
       rewrite /check_clauses /Deciders.check_clauses.
       eapply Clauses.for_all_spec; tc => cl hin.
       destruct check eqn:hc => //.
-      * exfalso; eapply check_valid_looping; tea.
+      * exfalso; eapply check_entails_looping in hc; tea.
+        eapply Theory.to_entails_all in hc.
+        Search entails_L.
+
+
         2:eapply m.(model).(model_valid).(model_ok).
         eapply enabled_clauses_ext, m.(model).(enabled_model).
         eapply (is_update_of_ext m.(model).(model_valid).(I.model_updates)).

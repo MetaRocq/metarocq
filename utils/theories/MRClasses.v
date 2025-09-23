@@ -1,3 +1,4 @@
+From Corelib Require Import Relation_Definitions.
 
 Class Neutral {A} (f : A -> A -> A) (z : A) := neutral x : f z x = x.
 
@@ -10,4 +11,4 @@ Class CommutativeMonoid {A} (zero : A) (add : A -> A -> A) :=
     add_comm :: Commutative add;
     add_neutral :: Neutral add zero }.
 
-Class Injective {A B} (f : A -> B) := inj : forall x y, f x = f y -> x = y.
+Class Injective {A B} (f : A -> B) (R : relation A) (R' : relation B) := inj : forall x y, R' (f x) (f y) -> R x y.

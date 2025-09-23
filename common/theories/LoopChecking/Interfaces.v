@@ -46,10 +46,15 @@ End FMapOTInterface.
 
 Module Q <: Quantity.
   Include OrdersEx.Z_as_OT.
+  Import CommutativeMonoid.
 
-  Instance comm_monoid : CommutativeMonoid Z.zero Z.add := _.
+  Instance comm_monoid : IsCommMonoid Z :=
+    { zero := Z.zero ; one := 1%Z; add := Z.add }.
 
-  Program Instance add_inj z : Injective (Z.add z).
+  Program Instance add_inj_eq z : Injective (Z.add z) eq eq.
+  Next Obligation. unfold eq in *. lia. Qed.
+
+  Program Instance add_inj_lt z : Injective (Z.add z) lt lt.
   Next Obligation. lia. Qed.
 
   Definition reflect_eq : ReflectEq t := _.
@@ -63,12 +68,13 @@ Module Type LevelSets.
   Declare Module LevelExpr : LevelExprT Level Q.
   Declare Module LevelExprSet : LevelExprSet_fun Level Q LevelExpr.
   Declare Module LevelMap : FMapOTInterface Level.
+  Module NES := NonEmptyLevelExprSet Level Q LevelSet LevelExpr LevelExprSet.
 End LevelSets.
 
 Module FromLevelSets (LS : LevelSets).
 Export LS.
 
-Module NES := NonEmptyLevelExprSet Level Q LevelSet LevelExpr LevelExprSet.
+Import NES.OfQ.
 Import NES.
 
 #[export] Existing Instance Level.reflect_eq.

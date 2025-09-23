@@ -1,21 +1,10 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet.
 
-Module CommutativeMonoid.
-  Class IsCommMonoid (A : Type) :=
-  { zero : A;
-    one : A;
-    add : A -> A -> A;
-    comm_mon :: CommutativeMonoid zero add }.
-
-  Declare Scope comm_monoid.
-  Notation "0" := zero : comm_monoid.
-  Notation "1" := one : comm_monoid.
-  Notation "+" := add : comm_monoid.
-End CommutativeMonoid.
+Set Equations Transparent.
 
 Module Semilattice.
   Declare Scope sl_scope.
@@ -170,14 +159,3 @@ Module Semilattice.
 
   End Derived.
 End Semilattice.
-
-Module InitialSemilattice
-  (Level : OrderedTypeWithLeibniz) (Q : Quantity)
-  (LevelSet : LevelSet_fun Level)
-  (LevelExpr : LevelExprT Level Q)
-  (LevelExprSet : LevelExprSet_fun Level Q LevelExpr).
-
-
-
-
-End InitialSemilattice.

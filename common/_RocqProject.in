@@ -18,7 +18,9 @@ theories/Transform.v
 
 theories/LoopChecking/Common.v
 theories/LoopChecking/Interfaces.v
+theories/LoopChecking/InitialSemilattice.v
 theories/LoopChecking/HornClauses.v
+theories/LoopChecking/HornSemilatticeEquiv.v
 theories/LoopChecking/Model.v
 theories/LoopChecking/Models.v
 theories/LoopChecking/PartialLoopChecking.v

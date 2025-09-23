@@ -27,6 +27,13 @@ Qed.
 Lemma app_tip_assoc {A} (l : list A) x l' : (l ++ [x]) ++ l' = l ++ (x :: l').
 Proof. now rewrite <- app_assoc. Qed.
 
+Lemma fold_right_map {A B C} (f : B -> A -> A) (g : C -> B) acc l :
+  fold_right (fun x acc => f (g x) acc) acc l =
+  fold_right (fun x acc => f x acc) acc (List.map g l).
+Proof.
+  induction l; cbn; auto. congruence.
+Qed.
+
 Fixpoint fold_left_i_aux {A B} (f : A -> nat -> B -> A) (n0 : nat) (l : list B)
          (a0 : A) {struct l} : A
   := match l with
