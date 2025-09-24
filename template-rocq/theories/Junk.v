@@ -877,3 +877,29 @@ Qed. *)
     Qed.
 
 *)
+
+
+  Class Decidable (A : Prop) := dec : A \/ ~ A.
+  Arguments dec A {Decidable}.
+
+  (* Definition check_pres_clause p r :=
+    LoopCheck.Impl.check_clauses (clauses_of_relations p) (clauses_of_eq r.1 r.2).
+
+  Lemma check_pres_clause_spec p r : p ⊢ℒ r \/ ~ (p ⊢ℒ r).
+  Proof.
+    destruct (check_pres_clause p r) eqn:eq.
+    - move: eq.
+      rewrite /check_pres_clause.
+   Admitted.
+
+  Instance dec_entails_L {p s t} : Decidable (p ⊢ℒ s ≡ t).
+  Proof.
+    red. eapply check_pres_clause_spec.
+  Qed.
+
+  Lemma contra_prop A B (decB : Decidable B) : (~ B -> ~ A) -> (A -> B).
+  Proof. intros he a. destruct (dec B). exact H. specialize (he H). contradiction. Qed.
+
+  Definition satisfiable (s : semilattice) (r : rels) :=
+    exists v, interp_rels (SL := sl s) v r.
+ *)
