@@ -889,7 +889,8 @@ Module Abstract.
 
   Definition to_Z_val (v : Level.t -> nat) := fun l => Z.of_nat (v l).
 
-  (** Enabled and valid clauses are satisfied by valuation *)
+  (** Enabled and valid clauses are satisfied by valuation.
+     *)
   Lemma valid_clause_model model cl :
     enabled_clause model cl ->
     valid_clause model cl ->

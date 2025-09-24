@@ -411,6 +411,14 @@ Qed.
     4) optionally simplify and call eauto.
 *)
 
+Lemma Forall_tip {A} {P : A -> Prop} {a : A} :
+  Forall P [a] <-> P a.
+Proof.
+  split.
+  - intros h; now depelim h.
+  - constructor; auto.
+Qed.
+
 Lemma Forall_mix {A} (P Q : A -> Prop) : forall l, Forall P l -> Forall Q l -> Forall (fun x => P x /\ Q x) l.
 Proof.
   intros l Hl Hq. induction Hl; inv Hq; constructor; auto.

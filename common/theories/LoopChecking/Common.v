@@ -392,3 +392,14 @@ Proof. red. lia. Qed.
 #[export, refine] Instance ge_trans : Transitive Z.ge := _.
 Proof. red. lia. Qed.
 
+Lemma equivlistA_app_comm {A} (l l' : list A) :
+  equivlistA Logic.eq (l ++ l') (l' ++ l).
+Proof.
+  intros x. rewrite !InA_In_eq !in_app_iff. firstorder.
+Qed.
+
+Lemma equivlistA_app_cons_comm {A} (x : A) (l l' : list A) :
+  equivlistA Logic.eq (l ++ x :: l') (x :: l' ++ l).
+Proof.
+  intros y. rewrite !InA_In_eq !in_app_iff //= in_app_iff. firstorder.
+Qed.

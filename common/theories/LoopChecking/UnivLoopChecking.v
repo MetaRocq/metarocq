@@ -149,7 +149,8 @@ Proof.
 Qed.
 
 Lemma from_levelexprzset_spec_2 u :
-  forall l k, LevelExprSet.In (l, k) (from_levelexprzset u) -> exists z, LevelExprZSet.In (l, z) u /\ k = Z.to_nat z.
+  forall l k, LevelExprSet.In (l, k) (from_levelexprzset u) ->
+  exists z, LevelExprZSet.In (l, z) u /\ k = Z.to_nat z.
 Proof.
   intros l k.
   rewrite /from_levelexprzset.
@@ -1335,18 +1336,6 @@ End ZUnivConstraint.
       apply (relations_of_clauses_spec_inv (_, _)); now apply Clauses.union_spec.
   Qed.
 
-  Lemma equivlistA_app_comm {A} (l l' : list A) :
-    equivlistA Logic.eq (l ++ l') (l' ++ l).
-  Proof.
-    intros x. rewrite !InA_In_eq !in_app_iff. firstorder.
-  Qed.
-
-  Lemma equivlistA_app_cons_comm {A} (x : A) (l l' : list A) :
-    equivlistA Logic.eq (l ++ x :: l') (x :: l' ++ l).
-  Proof.
-    intros y. rewrite !InA_In_eq !in_app_iff //= in_app_iff. firstorder.
-  Qed.
-
   Lemma entails_L_all_app {x y x' y'} :
     x ⊩ℒ x' -> y ⊩ℒ y' -> x ++ y ⊩ℒ x' ++ y'.
   Proof.
@@ -1669,9 +1658,6 @@ End ZUnivConstraint.
       rewrite interp_prems_union //=.
   Qed.
 
-  Lemma prop_dec (b : bool) P : b <-> P -> (b = false <-> ~ P).
-  Proof. intuition. now subst b. destruct b => //. destruct (H (H0 eq_refl)). Qed.
-
   Definition invalid_cstr v c :=
     let '(l, d, r) := c in
     match d with
@@ -1723,33 +1709,36 @@ End ZUnivConstraint.
     split; now apply interp_rels_entails_proper.
   Qed.
 
+  Lemma interp_cstr_clauses_sem {c} {s : semilattice} {v : Level.t -> s} :
+    interp_univ_cstr v c <-> clauses_sem v (LoopCheck.to_clauses (to_constraint c)).
+  Proof.
+    rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
+    rewrite relation_of_constraint_of_clause.
+    rewrite /Clauses.ISL.interp_rels Forall_tip.
+    destruct c as [[l []] r]; cbn => //.
+    now rewrite interp_prems_union.
+  Qed.
+
+  Lemma interp_cstrs_clauses_sem {m} {s : semilattice} {v : Level.t -> s} :
+    interp_univ_cstrs v (constraints m) <-> clauses_sem v (LoopCheck.clauses (model m)).
+  Proof.
+    rewrite interp_univ_cstrs_relations.
+    rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
+    now rewrite -[Clauses.relations_of_clauses _]equiv_constraints_clauses.
+  Qed.
+
   Lemma check_completeness {m c} :
     check m c <-> (forall (s : semilattice) (v : Level.t -> s), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
   Proof.
     rewrite LoopCheck.check_complete /LoopCheck.valid_entailments.
+    setoid_rewrite interp_cstrs_clauses_sem.
     split.
     - intros hv s v hp.
-      move: (hv s (sl s) v) => /fwd.
-      { rewrite interp_univ_cstrs_relations in hp.
-        rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
-        rewrite -[Clauses.relations_of_clauses _]equiv_constraints_clauses.
-        exact hp. }
-      rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
-      rewrite relation_of_constraint_of_clause.
-      rewrite /Clauses.ISL.interp_rels => h. depelim h. clear h.
-      red. red. destruct c as [[l []] r]; cbn in H |- * => //.
-      red. now rewrite interp_prems_union in H.
-   - intros hs S SL V hsem.
-     move: (hs {| carrier := S; sl := SL |} V) => /fwd.
-     { rewrite interp_univ_cstrs_relations.
-       rewrite equiv_constraints_clauses.
-       rewrite -[interp_rels _ _]LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
-       exact hsem. }
-     rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
-      rewrite relation_of_constraint_of_clause.
-      rewrite /Clauses.ISL.interp_rels => h. constructor; [|constructor].
-      red. red. destruct c as [[l []] r]; cbn in hsem |- * => //.
-      red. now rewrite interp_prems_union.
+      move: (hv s (sl s) v hp).
+      now rewrite interp_cstr_clauses_sem.
+    - intros hs S SL V hsem.
+      move: (hs {| carrier := S; sl := SL |} V) => /fwd //.
+      now rewrite interp_cstr_clauses_sem.
   Qed.
 
 End UnivLoopChecking.
