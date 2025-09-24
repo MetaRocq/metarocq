@@ -5,7 +5,7 @@
 From Stdlib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils SemiLattice.
+From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet SemiLattice.
 From MetaRocq.Common Require Import UnivConstraintType Universes.
 From MetaRocq.Common.LoopChecking Require Import Common Interfaces Deciders.
 From Equations Require Import Equations.
@@ -101,6 +101,7 @@ Module LS <: LevelSets.
   Module LevelExpr := LevelExprZ.
   Module LevelExprSet := LevelExprZSet.
   Module LevelMap := LevelMap.
+  Module NES := NonEmptyLevelExprSet MoreLevel Q LevelSet LevelExprZ LevelExprZSet.
 End LS.
 
 Definition to_levelexprzset (u : LevelExprSet.t) : LS.LevelExprSet.t :=
@@ -164,7 +165,10 @@ Qed.
 
 Module UnivLoopChecking.
   Module LoopCheck := LoopChecking LS.
+  Import LoopCheck.Impl.Abstract.
   Import LoopCheck.Impl.I.
+  Import ISL.
+
   Program Definition to_atoms (u : Universe.t) : NES.t :=
     {| NES.t_set := to_levelexprzset u |}.
   Next Obligation.
@@ -245,7 +249,7 @@ Module ZUnivConstraint.
 
   Lemma eq_dec x y : {eq x y} + {~ eq x y}.
   Proof.
-    unfold eq. decide equality; apply eq_dec.
+    unfold eq. decide equality; apply Classes.eq_dec.
   Defined.
 
   Definition eq_leibniz (x y : t) : eq x y -> x = y := id.
@@ -472,7 +476,7 @@ End ZUnivConstraint.
         move: (repr_constraints m c' hin) => h. clsets.
     - move/LoopCheck.enforce_clauses: eq0.
       rewrite /LoopCheck.clauses => -> c'.
-      rewrite UnivLoopChecking.Clauses.union_spec => -[].
+      rewrite UnivLoopChecking.Clauses.Clauses.union_spec => -[].
       * move/(repr_constraints_inv m c') => [] c2 [].
         exists c2. split => //.
         rewrite UnivConstraintSet.add_spec. now right.
@@ -625,7 +629,7 @@ End ZUnivConstraint.
     let add_val l := LevelMap.add l (val v l) in
     LevelSet.fold add_val V (LevelMap.empty _).
 
-  Lemma clauses_sem_subset {v cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
+  Lemma clauses_sem_subset {S} {SL : Semilattice.Semilattice S Q.t} {v cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
   Proof.
     now move=> hall hsub cl /hsub.
   Qed.
@@ -654,7 +658,7 @@ End ZUnivConstraint.
       cbn. cbn in ih. lia.
   Qed.
 
-  Lemma to_atoms_singleton l k  : to_atoms (Universe.singleton (l, k)) = singleton (l, Z.of_nat k).
+  Lemma to_atoms_singleton l k  : to_atoms (Universe.singleton (l, k)) = NES.singleton (l, Z.of_nat k).
   Proof.
     apply NES.equal_exprsets.
     rewrite /to_atoms //=.
@@ -685,15 +689,6 @@ End ZUnivConstraint.
         rewrite Universes.LevelExprSet.add_spec. now right.
   Qed.
 
-  Lemma clauses_sem_union v cls cls' : clauses_sem v (Clauses.Clauses.union cls cls') <->
-    clauses_sem v cls /\ clauses_sem v cls'.
-  Proof.
-    unfold clauses_sem. split.
-    intros hf. split; eapply clauses_sem_subset; tea; clsets.
-    intros []. intros cl. rewrite Clauses.Clauses.union_spec.
-    specialize (H cl). specialize (H0 cl). intros []; auto.
-  Qed.
-
   Lemma interp_prem_to_atom v le : interp_expr (to_Z_val v) (to_atom le) = Z.of_nat (val (to_valuation v) le).
   Proof.
     destruct le => //=. cbn.
@@ -718,18 +713,18 @@ End ZUnivConstraint.
   Qed.
 
   Lemma clauses_sem_val m l r :
-    clauses_sem (to_Z_val (to_val (LoopCheck.valuation m))) (clauses_of_le (to_atoms l) (to_atoms r)) ->
-    Universes.val (to_valuation (to_val (LoopCheck.valuation m))) l <=
-    Universes.val (to_valuation (to_val (LoopCheck.valuation m))) r.
+    clauses_sem (to_Z_val (LoopCheck.valuation m)) (clauses_of_le (to_atoms l) (to_atoms r)) ->
+    Universes.val (to_valuation (LoopCheck.valuation m)) l <=
+    Universes.val (to_valuation (LoopCheck.valuation m)) r.
   Proof.
     move/clauses_sem_clauses_of_le.
-    have he := interp_prems_to_atoms (to_val (LoopCheck.valuation m)) l.
-    have he' := interp_prems_to_atoms (to_val (LoopCheck.valuation m)) r.
+    have he := interp_prems_to_atoms (LoopCheck.valuation m) l.
+    have he' := interp_prems_to_atoms (LoopCheck.valuation m) r.
     cbn in *. lia.
   Qed.
 
   Lemma model_satisfies m :
-    satisfies (to_valuation (to_val (LoopCheck.valuation (model m)))) (constraints m).
+    satisfies (to_valuation (LoopCheck.valuation (model m))) (constraints m).
   Proof.
     destruct m as [m cstrs repr repr_inv]. cbn.
     have val := LoopCheck.model_valuation m.
@@ -765,7 +760,7 @@ End ZUnivConstraint.
     - move=> x a s' s'' hin hnin hadd ih.
       rewrite LevelMapFact.F.add_mapsto_iff /Level.eq ih.
       rewrite hadd. firstorder; subst; auto.
-      destruct (eq_dec x l); firstorder. subst. now left.
+      destruct (Classes.eq_dec x l); firstorder. subst. now left.
   Qed.
 
   Lemma interp_level_of_valuation {V v l} :

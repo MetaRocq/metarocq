@@ -164,8 +164,6 @@ Proof.
   apply Clauses.for_all_spec. tc. apply ism.
 Qed.
 
-Print valid_clause.
-
 Lemma valid_enabled_clause_spec model cl :
   enabled_clause model cl ->
   valid_clause model cl ->
@@ -1197,9 +1195,6 @@ Module LoopChecking (LS : LevelSets).
     apply enforce_clauses_not_None.
   Qed.
 
-  Import Impl.Abstract.
-  Import Impl.CorrectModel.
-
   Lemma enforce_inconsistent {m cls u} :
     enforce m cls = Some (inr u) ->
     ~ exists V, clauses_sem V (Clauses.union (clauses m) (to_clauses cls)).
@@ -1256,8 +1251,8 @@ Module LoopChecking (LS : LevelSets).
     destruct m as [levels clauses []]; cbn.
     apply valid_clauses_model; tea; cbn.
     - eapply enabled_clauses_ext; tea.
-      eapply is_update_of_ext, model_valid0.
-    - apply model_valid0.
+      eapply is_update_of_ext, model_valid.
+    - apply model_valid.
   Qed.
 
 End LoopChecking.

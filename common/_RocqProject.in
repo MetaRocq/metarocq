@@ -25,3 +25,4 @@ theories/LoopChecking/Model.v
 theories/LoopChecking/Models.v
 theories/LoopChecking/PartialLoopChecking.v
 theories/LoopChecking/Deciders.v
+theories/LoopChecking/UnivLoopChecking.v
