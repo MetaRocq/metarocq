@@ -63,9 +63,12 @@ Module InitialSemilattice (LS : LevelSets).
     where " p ⊢ℒ r " := (entails_L p r%_rel).
   Derive Signature for entails_L.
 
-
   Definition entails_L_rels p q :=
     List.Forall (entails_L p) q.
+
+  Notation " p ⊩ℒ q " := (entails_L_rels p q) (at level 72, no associativity) : rel_scope.
+
+  Definition equiv_L_rels p q := p ⊩ℒ q /\ q ⊩ℒ p.
 
   Lemma entails_join_congr_all {p} {x x' y y'} :
     p ⊢ℒ x ≡ x' -> p ⊢ℒ y ≡ y' -> p ⊢ℒ (x ∨ y) ≡ (x' ∨ y').
@@ -239,6 +242,35 @@ Module InitialSemilattice (LS : LevelSets).
     induction 1; try solve [econstructor; eauto].
   Qed.
 
+  Instance entails_L_proper : Proper (equivlistA Logic.eq ==> Logic.eq ==> iff) entails_L.
+  Proof.
+    intros ?? eq ?? ->.
+    red in eq. rw_in (@InA_In_eq rel) eq.
+    split => h; eapply entails_L_rels_subset; tea; red; firstorder.
+  Qed.
+
+  Instance In_proper {A} : Proper (Logic.eq ==> equivlistA Logic.eq ==> iff) (@In A).
+  Proof.
+    intros x y -> l l' eq'.
+    red in eq'. setoid_rewrite InA_In_eq in eq'. firstorder.
+  Qed.
+
+  Instance Forall_proper {A} (P : A -> Prop) : Proper (equivlistA Logic.eq ==> iff) (Forall P).
+  Proof.
+    intros x y eq.
+    rewrite !Forall_forall.
+    now setoid_rewrite eq.
+  Qed.
+
+  Instance entails_L_all_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) entails_L_rels.
+  Proof.
+    intros ?? eq ?? eq'.
+    split.
+    - unfold entails_L_rels. rewrite eq'.
+      move/Forall_forall => h. eapply Forall_forall => h'. now rewrite -eq.
+    - unfold entails_L_rels. rewrite eq'.
+      move/Forall_forall => h. eapply Forall_forall => h'. now rewrite eq.
+  Qed.
 
   Lemma entails_L_le_eq {cls l r} : cls ⊢ℒ l ≤ r -> cls ⊢ℒ l ∨ r ≡ r.
   Proof. trivial. Qed.

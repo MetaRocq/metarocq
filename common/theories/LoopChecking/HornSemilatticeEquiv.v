@@ -446,6 +446,51 @@ Module HornSemilattice (LS : LevelSets).
     eapply entails_clauses_cut; tea.
   Qed.
 
+  Lemma entails_L_all_entails_cut {Γ r r'} :
+    Γ ⊢ℒ r ->
+    r :: Γ ⊩ℒ r' ->
+    Γ ⊩ℒ r'.
+  Proof.
+    intros h; elim; constructor.
+    now eapply entails_L_cut. exact H1.
+  Qed.
+
+  Lemma entails_L_all_weaken {p q w} :
+    p ⊩ℒ q -> w ++ p ⊩ℒ q.
+  Proof.
+    induction 1; constructor.
+    eapply entails_L_rels_subset; tea => //.
+    intros a hin. rewrite in_app_iff. now right.
+    exact IHForall.
+  Qed.
+
+  Lemma entails_L_all_cut {p q r} :
+    p ⊩ℒ q -> q ++ p ⊢ℒ r -> p ⊢ℒ r.
+  Proof.
+    move=> hp. move: hp r. elim.
+    - move=> r hr. eapply entails_L_rels_subset; tea. now red.
+    - move=> x l px pl ih r hxl.
+      move: (ih r) => /fwd //.
+      cbn in hxl. eapply entails_L_cut; tea.
+      eapply entails_L_rels_subset in px. tea. red => ?. now rewrite in_app_iff.
+  Qed.
+
+  Lemma entails_L_all_one_trans {p q r} :
+    p ⊩ℒ q -> q ⊢ℒ r -> p ⊢ℒ r.
+  Proof.
+    intros hq hr. eapply entails_L_all_cut; tea.
+    eapply entails_L_rels_subset; tea. red => ?; now rewrite in_app_iff.
+  Qed.
+
+  Lemma entails_L_all_trans {p q r} :
+    p ⊩ℒ q -> q ⊩ℒ r -> p ⊩ℒ r.
+  Proof.
+    move=> hp. elim.
+    - constructor.
+    - move=> re res ent hres ih.
+      constructor. eapply entails_L_all_one_trans. exact hp. exact ent. exact ih.
+  Qed.
+
   Lemma relations_of_clauses_mon {s s'}: s ⊂_clset s' -> incl (relations_of_clauses s) (relations_of_clauses s').
   Proof.
     intros hs.

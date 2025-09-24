@@ -592,3 +592,288 @@ Section Completeness.
     Lemma all_terms (x : s) : exists t : term,
 
 
+
+
+
+  Section Completeness.
+
+    Definition add_presentation eq p :=
+      {| V := p.(V); C := eq :: p.(C) |}.
+
+    Definition relation_levels (r : rel) := (NES.levels r.1 ∪ NES.levels r.2)%levels.
+
+    Definition wf_presentation p :=
+      forall r, List.In r p.(C) -> relation_levels r ⊂_lset p.(V).
+
+    Definition levels_position (l : Level.t) (ls : LevelSet.t) i :=
+      List.nth_error (LevelSet.elements ls) i = Some l.
+
+    Equations level_position (l : Level.t) (ls : list Level.t) : option nat :=
+    level_position l [] := None ;
+    level_position l (x :: xs) with Level.eqb l x :=
+      { | true => Some 0
+        | false with level_position l xs :=
+          | None => None
+          | Some n => Some (S n) }.
+
+    Definition levelexpr_pos (l : LevelExpr.t) (ls : LevelSet.t) :=
+      match level_position l.1 (LevelSet.elements ls) with
+      | None => 0
+      | Some pos =>  LevelSet.cardinal ls * Z.to_nat l.2 + pos
+      end.
+
+    Section Enum.
+
+    Inductive enumeration : premises × premises -> Type :=
+    | enum_single le le' : enumeration (singleton le, singleton le')
+    | enum_add_left le (u v : premises) : ~ LevelExprSet.In le u -> enumeration (u, v) -> enumeration (NES.add le u, v)
+    | enum_add_right le (u v : premises) : ~ LevelExprSet.In le v -> enumeration (u, v) -> enumeration (u, NES.add le v).
+
+    Lemma acc_enum : forall r, enumeration r.
+    Proof.
+      intros [l r].
+      move: l r. apply: NES.elim.
+      - intros le.
+        apply: NES.elim.
+        * intros le'. constructor.
+        * intros le' x. now constructor.
+      - intros le x ihr nin r. now constructor.
+    Qed.
+    End Enum.
+  Definition strict_subset (s s' : LevelExprSet.t) :=
+    LevelExprSet.Subset s s' /\ ~ LevelExprSet.Equal s s'.
+
+(* Lemma strict_subset_incl (x y z : LevelSet.t) : LevelSet.Subset x y -> strict_subset y z -> strict_subset x z.
+Proof.
+  intros hs []. split => //. lsets.
+  intros heq. apply H0. lsets.
+Qed. *)
+
+    Definition premises_strict_subset (x y : premises) := strict_subset x y.
+
+    Definition ord := lexprod premises_strict_subset premises_strict_subset.
+    Derive Signature for lexprod.
+
+    Lemma premises_incl_singleton (u : premises) le :
+      u ⊂_leset (singleton le) -> LevelExprSet.Equal u (singleton le).
+    Proof.
+      intros incl; split => //.
+      - apply incl.
+      - intros hin. eapply LevelExprSet.singleton_spec in hin. subst.
+        move: u incl. apply: NES.elim.
+        * intros le' hs. specialize (hs le'). forward hs. apply LevelExprSet.singleton_spec. lesets.
+          apply LevelExprSet.singleton_spec in hs. subst le'.
+          now apply LevelExprSet.singleton_spec.
+        * intros le' x ih hnin hadd.
+          rewrite LevelExprSet.add_spec. right; apply ih.
+          intros ? hin. apply hadd. now rewrite LevelExprSet.add_spec; right.
+    Qed.
+
+    Lemma subset_add {a l x} :
+      ~ LevelExprSet.In l a -> a ⊂_leset NES.add l x -> a ⊂_leset x.
+    Proof.
+      intros hnin; rewrite -union_add_singleton.
+      move=> hsub lk /[dup]/hsub. rewrite union_spec.
+      intros [] => //. apply LevelExprSet.singleton_spec in H. subst. contradiction.
+    Qed.
+
+    (* Lemma subset_add_2 {a l x} :
+      LevelExprSet.In l a -> a ⊂_leset NES.add l x -> a ⊂_leset x.
+    Proof.
+      intros hnin; rewrite -union_add_singleton.
+      move=> hsub lk /[dup]/hsub. rewrite union_spec.
+      intros [] => //. apply LevelExprSet.singleton_spec in H. subst. contradiction.
+    Qed. *)
+
+    Section LevelExprSetCardinal.
+
+    Import LevelExprSet.
+    Import LevelExprSetProp.
+
+    Lemma cardinal_1_is_singleton a : cardinal a = 1 <-> exists x, Equal a (singleton x).
+    Proof. Admitted.
+
+    Lemma premises_cardinal (p : premises) : cardinal p > 0.
+    Proof. Admitted.
+
+    Lemma not_Equal_exists_diff (p p' : premises) :
+      p ⊂_leset p' -> ~ Equal p p' ->
+      exists le, (In le p' /\ ~ In le p).
+    Proof.
+      intros hsub neq.
+      pose c := choose (diff p' p).
+      case hc : c => [elt|]. move/choose_spec1: hc.
+      rewrite diff_spec => -[hin nin]. now exists elt.
+      move/choose_spec2: hc => hc.
+      have hsub' : p' ⊂_leset p. lesets. elim neq.
+      lesets.
+    Qed.
+
+    Lemma premises_strict_subset_spec p p' : premises_strict_subset p p' <->
+      (p ⊂_leset p') /\ exists le, In le p' /\ ~ In le p.
+    Proof.
+      split.
+      - intros [hincl hneq]. split => //.
+        now apply not_Equal_exists_diff.
+      - intros [hincl [le [inp' ninp]]].
+        split => // => he. rewrite -he in inp'. contradiction.
+    Qed.
+
+    Lemma premises_strict_subset_cardinal (p p' : premises) :
+      premises_strict_subset p p' -> (cardinal p < cardinal p')%nat.
+    Proof.
+      rewrite premises_strict_subset_spec => -[incl [le [inp' ninp]]].
+      eapply subset_cardinal_lt; tea.
+    Qed.
+
+    Lemma cardinal_add {le x} : ~ In le x -> cardinal (add le x) = 1 + cardinal x.
+    Proof. lesets. Qed.
+
+    Lemma premises_eq_singleton {a : premises} {x} : a = singleton x :> LevelExprSet.t -> a = NES.singleton x.
+    Proof.
+      intros he. rewrite -equal_exprsets. cbn. now rewrite he.
+    Qed.
+
+    Lemma premises_strict_subset_wf : well_founded premises_strict_subset.
+    Proof.
+      red. intros a.
+      have hr : LevelExprSet.cardinal a <= LevelExprSet.cardinal a by lesets.
+      revert hr. generalize a at 2 => a'. move: a' a.
+      apply: NES.elim.
+      - intros le a. rewrite NES.LevelExprSetProp.singleton_cardinal.
+        have carda := premises_cardinal a => cardle.
+        have : cardinal a = 1 by lia.
+        rewrite cardinal_1_is_singleton => -[x heq].
+        move/eq_leibniz/premises_eq_singleton: heq. intros ->.
+        constructor. intros y hp.
+        destruct hp. eapply premises_incl_singleton in H. contradiction.
+      - intros le x accx hnin.
+        intros a asub.
+        constructor => y.
+        move/premises_strict_subset_cardinal => hc.
+        apply accx. rewrite cardinal_add // in asub. lia.
+    Qed.
+    End LevelExprSetCardinal.
+
+    Lemma acc_ord r : Acc ord r.
+    Proof.
+      apply wf_lexprod; apply premises_strict_subset_wf.
+    Qed.
+    Instance ord_wf : WellFounded ord.
+    Proof. red. exact acc_ord. Qed.
+
+    Lemma premises_strict_subset_add {l} {u : premises} :
+      ~ LevelExprSet.In l u -> premises_strict_subset u (NES.add l u).
+    Proof.
+      intros hnin; rewrite premises_strict_subset_spec.
+      rewrite -union_add_singleton. setoid_rewrite union_spec. split.
+      - intros l'. rewrite union_spec; lesets.
+      - exists l; split => //. right; now apply LevelExprSet.singleton_spec.
+    Qed.
+
+
+
+
+(* Completeness try *)
+(*
+
+
+  Parameter ϕ : nat -> rel.
+    Parameter ϕ_exists : forall r, exists n, ϕ n = r.
+    Parameter ϕ_inj : forall n n', ϕ n = ϕ n' -> n = n'.
+
+    Definition neg_r p e :=
+      p ⊢ℒ add_prems 1 e.1 ≤ e.2 \/ p ⊢ℒ add_prems 1 e.2 ≤ e.1.
+
+    (* Definition consistent (r : rels) :=
+      ~ (exists e, r ⊢ℒ e /\ neg_r r e).
+
+    Definition satisfiable (r : rels) :=
+      exists v, interp_rels v r.
+
+    Definition satisfiable_consistent {p} :
+      satisfiable p -> consistent p.
+    Proof.
+      move=> [v it] [[l r] [hx [hnl|hnl]]];
+      eapply presentation_entails_valid_eq in hx;
+      eapply presentation_entails_valid_le in hnl;
+      move: (hx _ it); move: (hnl _ it); cbn;
+      rewrite !interp_add_prems; lia.
+    Qed. *)
+
+    (* Definition consistent' (Γ : rels) :=
+      exists r, ~ (Γ ⊢ℒ r). *)
+
+    Definition bottom (s : semilattice) :=
+      exists x : s, add 1%Z x ≤ x.
+
+    Notation "⟘" := (bottom _) : sl_scope.
+
+    Definition consistent Γ :=
+      ~ exists e, Γ ⊢ℒ e ≡ add_prems 1 e.
+
+    Inductive 𝒮 (r : rels) : rels -> nat -> Prop :=
+    | S_0 Γ : List.incl Γ r -> 𝒮 r Γ 0
+    | S_incl Γ n : 𝒮 r Γ n ->
+      (* ~ consistent (ϕ n :: Γ) ->  *)
+      𝒮 r Γ (S n)
+    | S_phi Γ n : 𝒮 r Γ n -> consistent (ϕ n :: Γ) -> 𝒮 r (ϕ n :: Γ) (S n).
+
+    Definition 𝒮ω rs (Γ : rels) := exists (n: nat), 𝒮 rs Γ n.
+
+    Definition in𝒮ω rs r := exists (n: nat) Γ, 𝒮 rs Γ n /\ Γ ⊢ℒ r.
+
+    (* /\ Γ ⊢ℒ r *)
+
+    Definition maximally_consistent (Γ : rels) :=
+       consistent Γ /\ forall r, (~ consistent (r :: Γ) \/ Γ ⊢ℒ r).
+
+    Definition satisfiable (s : semilattice) (r : rels) :=
+      exists v, interp_rels (SL := sl s) v r.
+
+    Lemma consistent_satisfiable Γ :
+      satisfiable Z_semilattice Γ -> consistent Γ.
+    Proof.
+      move=> [v sat] [e].
+      move/presentation_entails_valid_rel/(_ Z_semilattice v sat). cbn.
+      rewrite interp_add_prems. change (add 1%Z (interp_prems v e)) with (Z.add 1 (interp_prems v e)).
+      cbn -[Z.add]. lia.
+    Qed.
+
+    Section MaximallyConsistent.
+
+      Lemma 𝒮ω_consistent_maximal Γ Γ' n : consistent Γ -> 𝒮 Γ Γ' n -> consistent Γ'.
+       (* /\ (consistent' (ϕ n :: Γ') \/ Γ' ⊢ℒ ϕ n). *)
+      Proof.
+        move=> con sprf. induction sprf.
+        - intros [e pe]. apply con. exists e.
+          eapply entails_L_rels_subset; tea.
+        - exact IHsprf.
+        - intros [e neq].
+          destruct H. now exists e.
+      Qed.
+
+      Definition 𝒮ω_exists rs (crs : consistent rs) n : exists Γ, 𝒮 rs Γ n.
+      Proof.
+        induction n.
+        - exists rs. by constructor.
+        - destruct IHn as [Γ' sn].
+          destruct (check_pres_clause_spec Γ' (ϕ n)).
+          * exists (ϕ n :: Γ'). apply S_phi => //.
+            intros [e he]. apply 𝒮ω_consistent_maximal in sn => //.
+            eapply entails_L_cut in H; tea.
+            apply sn. now exists e.
+          * exists Γ'. apply S_incl => //.
+      Qed.
+
+    Definition inSw rs r := exists n Γ, 𝒮 rs Γ n /\ Γ ⊢ℒ r.
+
+    Import Semilattice.
+
+    Lemma axiom_inSw {rs r} : rs ⊢ℒ r -> inSw rs r.
+    Proof.
+      intros hs. exists 0, rs; split. constructor. red; auto.
+      exact: hs.
+    Qed.
+
+*)
