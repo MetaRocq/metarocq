@@ -1203,7 +1203,7 @@ Module LoopChecking (LS : LevelSets).
     rewrite !interp_rels_clauses_sem // => vr /vr.
     rewrite -interp_rels_clauses_sem.
     rewrite clauses_sem_eq.
-    setoid_rewrite ISL.interp_add_prems; cbn -[Z.add].
+    setoid_rewrite interp_add_prems; cbn -[Z.add].
     lia.
   Qed.
 

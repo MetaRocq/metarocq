@@ -60,6 +60,14 @@ End ZSemiLattice.
 
 #[export] Existing Instance Zsemilattice.
 
-Import Semilattice.
+Section NatSemiLattice.
+  Import Semilattice.
 
-Canonical Structure Z_semilattice : Semilattice.semilattice Z := {| carrier := Z; comm_monoid := _; sl := _ |}.
+  Program Definition Natsemilattice : Semilattice nat nat :=
+    {| add := Nat.add;
+      join := Nat.max; |}.
+  Solve Obligations with program_simpl; try lia.
+
+End NatSemiLattice.
+
+#[export] Existing Instance Natsemilattice.

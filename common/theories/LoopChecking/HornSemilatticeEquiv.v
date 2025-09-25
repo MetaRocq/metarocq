@@ -641,7 +641,7 @@ Module HornSemilattice (LS : LevelSets).
   Qed.
 
   Lemma entails_L_relations_of_clauses_le l r :
-    relations_of_clauses (l ⋞ r) ⊫ℒ [l ≤ r].
+    relations_of_clauses (l ⋞ r) ⊫ℒ [l ≤ r]%rel.
   Proof.
     split.
     - constructor. apply entails_L_relations_of_clauses_le_impl. constructor.

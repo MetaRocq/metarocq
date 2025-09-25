@@ -632,8 +632,6 @@ End ZUnivConstraint.
     LevelSet.fold add_val V (LevelMap.empty _).
 
   Import LoopCheck.Impl.Abstract (clause_sem, clauses_sem, clauses_sem_union, to_val, to_Z_val).
-  Import ISL (interp_prems, interp_add_prems, interp_prems_union,
-    interp_prems_singleton, interp_prems_add, interp_expr).
 
   Lemma clauses_sem_subset {S} {SL : Semilattice.Semilattice S Q.t} {v cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
   Proof.
@@ -1107,6 +1105,23 @@ End ZUnivConstraint.
 
   End interp.
 
+  Section interp_nat.
+    Import Semilattice.
+    Import -(notations) Universe.
+    Context {S : Type} {SL : Semilattice S nat}.
+    Context (v : Level.t -> S).
+
+    Definition interp_nat_cstr c :=
+      let '(l, d, r) := c in
+      match d with
+      | ConstraintType.Le => interp_prems v l ≤ interp_prems v r
+      | ConstraintType.Eq => interp_prems v l ≡ interp_prems v r
+      end%Z.
+
+    Definition interp_cstrs c := UnivConstraintSet.For_all interp_nat_cstr c.
+
+  End interp_nat.
+
   Definition valid_relation rels c :=
     (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v rels -> interp_rel v c).
 
@@ -1118,6 +1133,8 @@ End ZUnivConstraint.
 
   Import Semilattice.
   Import ISL.
+
+  Definition model_val m := (LoopCheck.valuation (model m)).
 
   Definition model_Z_val m := (to_Z_val (LoopCheck.valuation (model m))).
 
@@ -1205,6 +1222,43 @@ End ZUnivConstraint.
     now rewrite -[Clauses.relations_of_clauses _]equiv_constraints_clauses.
   Qed.
 
+  Lemma to_valuation_val (v : Level.t -> nat) (l : Universes.Level.t) : v l = val (to_valuation v) l.
+  Proof.
+    destruct l => //=.
+    - todo "zero".
+    - todo "mono".
+  Qed.
+
+  (** Interpretation in the semilattice of natural numbers *)
+  Lemma interp_prems_val (v : Level.t -> nat) u :
+    Universe.interp_prems v u = Universes.val (to_valuation v) u.
+  Proof.
+    move: u. refine (Universe.interp_prems_elim v (fun u i => i = val (to_valuation v) u) _ _ _).
+    - now intros [l k]; rewrite val_singleton //= /val /Universe.interp_expr to_valuation_val; cbn.
+    - move=>[l k] u k' -> hnin.
+      rewrite val_add; cbn. now rewrite to_valuation_val; cbn.
+  Qed.
+
+  Lemma interp_univ_cstr_nat v cl :
+    interp_univ_cstr (to_Z_val v) cl <-> interp_nat_cstr v cl.
+  Proof.
+    destruct cl as [[l []] r] => //=;
+    cbn; rewrite !interp_prems_to_atoms !(interp_prems_val v) /model_val. split. all:lia.
+  Qed.
+
+  Lemma interp_univ_cstrs_nat v cl :
+    interp_univ_cstrs (to_Z_val v) cl <-> interp_cstrs v cl.
+  Proof.
+    split; move=> hin cl' /hin; now rewrite interp_univ_cstr_nat.
+  Qed.
+
+  Lemma interp_cstrs_of_m m :
+    interp_cstrs (model_val m) (constraints m).
+  Proof.
+    have ha := interp_univ_cstrs_of_m m.
+    now apply interp_univ_cstrs_nat.
+  Qed.
+
   Lemma entails_L_completeness {p l r} :
     (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_prems v l ≡ interp_prems v r)%sl ->
     p ⊢ℒ l ≡ r.
@@ -1217,10 +1271,15 @@ End ZUnivConstraint.
     exact hv.
   Qed.
 
+  Definition valid_model m c :=
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+
+  Infix "⊩" := valid_model (at level 70, no associativity).
+
   Theorem check_completeness {m c} :
-    check m c <-> (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    check m c <-> m ⊩ c.
   Proof.
-    rewrite LoopCheck.check_complete /LoopCheck.valid_entailments.
+    rewrite LoopCheck.check_complete /LoopCheck.valid_entailments /valid_model.
     setoid_rewrite interp_cstrs_clauses_sem.
     split.
     - intros hv S s v hp.
@@ -1229,6 +1288,16 @@ End ZUnivConstraint.
     - intros hs S SL V hsem.
       move: (hs S SL V) => /fwd //.
       now rewrite interp_cstr_clauses_sem.
+  Qed.
+
+  Theorem check_valid_nat {m c} :
+    check m c -> (forall (v : Level.t -> nat), interp_cstrs v (constraints m) -> interp_nat_cstr v c).
+  Proof.
+    rewrite check_completeness.
+    intros hv v hp.
+    move: (hv Z Zsemilattice (to_Z_val v)).
+    rewrite interp_univ_cstr_nat; apply.
+    now apply interp_univ_cstrs_nat.
   Qed.
 
 End UnivLoopChecking.

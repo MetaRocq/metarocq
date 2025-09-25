@@ -903,3 +903,14 @@ Qed. *)
   Definition satisfiable (s : semilattice) (r : rels) :=
     exists v, interp_rels (SL := sl s) v r.
  *)
+
+
+  Structure semilattice {Q} :=
+    { carrier :> Type;
+      comm_monoid : IsCommMonoid Q ;
+      sl : Semilattice carrier Q }.
+  Arguments semilattice : clear implicits.
+
+  Instance semilattice_CommMonoid {Q} (s : semilattice Q) : IsCommMonoid Q := comm_monoid s.
+
+  Instance semilattice_Semilattice {Q} (s : semilattice Q) : @Semilattice (carrier s) Q (comm_monoid s) := sl s.

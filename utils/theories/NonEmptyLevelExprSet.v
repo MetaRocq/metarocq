@@ -3,7 +3,7 @@ From Equations Require Import Equations.
 Set Equations Transparent.
 From Corelib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import SetoidList Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import MRPrelude ReflectEq MRString MRList MRClasses.
+From MetaRocq.Utils Require Import MRPrelude ReflectEq MRString MRList MRClasses SemiLattice.
 
 Module Type OrderedTypeWithLeibniz.
   Include UsualOrderedType.
@@ -657,5 +657,179 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     rewrite -LevelExprSet.elements_spec1 InA_In_eq -hs.
     now constructor.
   Qed.
+
+  Section SemilatticeInterp.
+    Import Semilattice.
+    Context {S: Type} {SL : Semilattice S Q.t}.
+    Context (v : Level.t -> S).
+
+    Definition interp_expr '(l, k) := (add k (v l)).
+
+    Definition interp_prems prems :=
+      let '(hd, tl) := to_nonempty_list prems in
+      fold_right (fun lk acc => join (interp_expr lk) acc) (interp_expr hd) tl.
+
+    Lemma interp_add_expr n e :
+      interp_expr (add_expr n e) ≡ add n (interp_expr e).
+    Proof.
+      destruct e as [l k]; cbn. now rewrite add_distr.
+    Qed.
+
+    Lemma interp_prems_singleton e :
+      interp_prems (singleton e) = interp_expr e.
+    Proof.
+      rewrite /interp_prems.
+      now rewrite singleton_to_nonempty_list /=.
+    Qed.
+
+    Lemma interp_prems_ge (prems : t) :
+      forall prem, LevelExprSet.In prem prems ->
+      interp_expr prem ≤ interp_prems prems.
+    Proof.
+      intros.
+      unfold interp_prems.
+      have he := to_nonempty_list_spec prems.
+      destruct to_nonempty_list.
+      pose proof to_nonempty_list_spec'.
+      rewrite In_elements in H. rewrite -he in H. clear H0 he. clear -H.
+      destruct H. subst t0.
+      - induction l. cbn. auto.
+        cbn. red. eapply join_idem. cbn.
+        etransitivity; tea.
+        apply join_le_right.
+      - induction l in H |- *.
+        now cbn in H.
+        cbn in H. destruct H; subst; cbn.
+        * cbn. apply join_le_left.
+        * specialize (IHl H). etransitivity; tea. apply join_le_right.
+    Qed.
+
+    Lemma interp_prems_elements u :
+      interp_prems u = fold_right join (interp_expr (to_nonempty_list u).1) (List.map (interp_expr) (to_nonempty_list u).2).
+    Proof.
+      rewrite /interp_prems.
+      have he := to_nonempty_list_spec u.
+      destruct to_nonempty_list.
+      now rewrite fold_right_map.
+    Qed.
+
+    Lemma fold_right_interp {x l x' l'} :
+      equivlistA Logic.eq (x :: l) (x' :: l') ->
+      fold_right join (interp_expr x) (List.map (interp_expr) l) ≡ fold_right join (interp_expr x') (List.map (interp_expr) l').
+    Proof.
+      intros eq. apply fold_right_equivlist_all.
+      intros a. rewrite !InA_In_eq.
+      rewrite !(in_map_iff (interp_expr) (_ :: _)).
+      setoid_rewrite <-InA_In_eq.
+      split.
+      - move=> [b [<- ]].
+        eexists; split; trea. now apply eq in b0.
+      - move=> [b [<- ]].
+        eexists; split; trea. now apply eq in b0.
+    Qed.
+
+    Lemma equivlistA_add le u : let l := to_nonempty_list (NonEmptyLevelExprSet.add le u) in
+      equivlistA Logic.eq (l.1 :: l.2) (le :: LevelExprSet.elements u).
+    Proof.
+      have he := to_nonempty_list_spec (NonEmptyLevelExprSet.add le u).
+      destruct to_nonempty_list. cbn.
+      intros x. rewrite he.
+      rewrite !LevelExprSet.elements_spec1.
+      split.
+      - move/LevelExprSet.add_spec => [->|hin].
+        now constructor. constructor 2. now apply LevelExprSet.elements_spec1.
+      - intros h; depelim h; subst. now apply LevelExprSet.add_spec; left.
+        apply LevelExprSet.add_spec. now apply LevelExprSet.elements_spec1 in h.
+    Qed.
+
+    Lemma interp_prems_add le (u : t) :
+      interp_prems (NonEmptyLevelExprSet.add le u) ≡ join (interp_expr le) (interp_prems u).
+    Proof.
+      rewrite 2!interp_prems_elements.
+      erewrite fold_right_interp. 2:apply equivlistA_add.
+      rewrite fold_right_comm.
+      { apply map_nil, elements_not_empty. }
+      apply join_congr_r. eapply fold_right_equivlist_all.
+      have he := to_nonempty_list_spec u.
+      destruct to_nonempty_list. rewrite -he //=.
+    Qed.
+
+    Lemma interp_prems_elim (P : t -> S -> Prop) :
+      Proper (Logic.eq ==> eq ==> iff) P ->
+      (forall le, P (singleton le) (interp_expr le)) ->
+      (forall le u k, P u k -> ~ LevelExprSet.In le u -> P (NonEmptyLevelExprSet.add le u) (join (interp_expr le) k)) ->
+      forall u, P u (interp_prems u).
+    Proof.
+      intros prop hs hadd.
+      eapply elim.
+      - intros le. rewrite interp_prems_singleton. apply hs.
+      - intros le prems ih hnin.
+        rewrite interp_prems_add. now apply hadd.
+    Qed.
+
+    Lemma interp_add_prems n e : interp_prems (add_prems n e) ≡ add n (interp_prems e).
+    Proof.
+      revert e.
+      refine (interp_prems_elim (fun u z => interp_prems (add_prems n u) ≡ add n z) _ _ _).
+      - intros p p' eq a a' eq'.
+        subst p'. now rewrite eq'.
+      - intros le.
+        rewrite add_prems_singleton interp_prems_singleton //=.
+        destruct le; cbn. now rewrite add_distr.
+      - intros le u k heq hnin.
+        rewrite add_prems_add.
+        rewrite interp_prems_add heq interp_add_expr.
+        now rewrite add_join.
+    Qed.
+
+    Lemma interp_prems_in {le} {u : t} :
+      LevelExprSet.In le u -> interp_expr le ≤ interp_prems u.
+    Proof.
+      revert u.
+      refine (interp_prems_elim (fun u z => LevelExprSet.In le u -> interp_expr le ≤ z) _ _ _).
+      - intros ? ? <- x y eq. now rewrite eq.
+      - intros le' u'.
+        apply LevelExprSet.singleton_spec in u'. red in u'; subst.
+        reflexivity.
+      - move=> le' u z hz hnin /LevelExprSet.add_spec [->|hin].
+        * apply join_le_left.
+        * specialize (hz hin).
+          now apply join_le_right_trans.
+    Qed.
+
+    Lemma interp_prems_union {x y : t} :
+      interp_prems (x ∪ y) ≡
+      join (interp_prems x) (interp_prems y).
+    Proof.
+      move: x; apply elim.
+      - intros []. rewrite union_comm union_add_singleton.
+        now rewrite interp_prems_add interp_prems_singleton.
+      - intros le' x ih hnin.
+        rewrite union_add_distr !interp_prems_add ih. cbn.
+        now rewrite join_assoc.
+    Qed.
+
+    Lemma clauses_sem_subset {u u' : t} : u ⊂_leset u' ->
+      interp_prems u ≤ interp_prems u'.
+    Proof.
+      intros hsub.
+      revert u u' hsub.
+      refine (interp_prems_elim (fun u z => forall u' : t, u ⊂_leset u' ->
+        z ≤ interp_prems u') _ _ _).
+      - intros ?? <- ?? eq.
+        now setoid_rewrite eq.
+      - intros le u' hsing.
+        specialize (hsing le). forward hsing by now apply LevelExprSet.singleton_spec.
+        now apply interp_prems_in.
+      - intros le u k ih hin u' sub.
+        have hle := sub le.
+        specialize (ih u').
+        forward ih. intros x hin'. apply sub. now apply LevelExprSet.add_spec; right.
+        forward hle by now apply LevelExprSet.add_spec; left.
+        have hi := interp_prems_in hle.
+        apply join_le_left_eq. split => //.
+    Qed.
+
+  End SemilatticeInterp.
 
 End NonEmptyLevelExprSet.

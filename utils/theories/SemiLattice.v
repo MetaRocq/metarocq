@@ -1,8 +1,8 @@
 (* Distributed under the terms of the MIT license. *)
 From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
-From Stdlib Require Import Program RelationClasses Morphisms.
+From Stdlib Require Import Program RelationClasses Morphisms SetoidList.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import MRClasses NonEmptyLevelExprSet.
+From MetaRocq.Utils Require Import MRPrelude MRClasses MRList.
 
 Set Equations Transparent.
 
@@ -159,14 +159,96 @@ Module Semilattice.
 
   End Derived.
 
-  Structure semilattice {Q} :=
-    { carrier :> Type;
-      comm_monoid : IsCommMonoid Q ;
-      sl : Semilattice carrier Q }.
-  Arguments semilattice : clear implicits.
+  Section FoldSemilattice.
+    Import CommutativeMonoid.
+    Context {A : Type} {V : Type} {CM : IsCommMonoid V} {SL : Semilattice A V}.
+    Open Scope sl_scope.
 
-  Instance semilattice_CommMonoid {Q} (s : semilattice Q) : IsCommMonoid Q := comm_monoid s.
+    Lemma fold_right_max_in {a : A} {l : list A} n : In a l -> a ≤ (fold_right join n l).
+    Proof.
+      induction l.
+      - now cbn.
+      - intros [eq|inl]. subst a0. cbn. apply join_le_left.
+        cbn. specialize (IHl inl). etransitivity; tea. apply join_le_right.
+    Qed.
 
-  Instance semilattice_Semilattice {Q} (s : semilattice Q) : @Semilattice (carrier s) Q (comm_monoid s) := sl s.
+    Lemma fold_right_max_acc {n l} : n ≤ fold_right join n l.
+    Proof.
+      induction l.
+      - now cbn.
+      - cbn. etransitivity; tea. eapply join_le_right.
+    Qed.
+
+    Lemma fold_right_impl n l l' :
+      (forall x, In x l -> In x l') -> fold_right join n l ≤ fold_right join n l'.
+    Proof.
+      induction l in l' |- *.
+      - cbn. destruct l'; cbn. reflexivity.
+        intros. have := @fold_right_max_acc n l'.
+        etransitivity; tea; eapply join_le_right.
+      - cbn; intros h.
+        have inal' := (h a (or_introl Logic.eq_refl)).
+        have := fold_right_max_in n inal'.
+        move: (IHl l') => /fwd.
+        intros. apply h. now right.
+        intros hle; rewrite join_le_left_eq. now split.
+    Qed.
+
+    Lemma fold_right_max_spec n l :
+      let fn := fold_right join in
+      (forall x, In x (n :: l) -> x ≤ fn n l).
+    Proof.
+      induction l; cbn.
+      - intros x [] => //. now subst.
+        (* exists n. firstorder. reflexivity. *)
+      - cbn in IHl.
+        intros x [|[]]; subst.
+        * move: (IHl x) => /fwd; auto.
+          now apply join_le_right_trans.
+        * apply join_le_left.
+        * move: (IHl x) => /fwd; auto.
+          now apply join_le_right_trans.
+    Qed.
+
+    Lemma fold_right_equivlist_all_le n n' l l' :
+      equivlistA Logic.eq (n :: l) (n' :: l') -> fold_right join n l ≤ fold_right join n' l'.
+    Proof.
+      intros eq.
+      have hla := fold_right_max_spec n l.
+      have hra := fold_right_max_spec n' l'.
+      red in eq.
+      setoid_rewrite InA_In_eq in eq.
+      cbn in hra. setoid_rewrite <- eq in hra. clear -hra.
+      move: hra; generalize (fold_right join n' l').
+      clear.
+      induction l.
+      - cbn. intros a heq. apply heq. now left.
+      - cbn. intros a' ih.
+        move: (IHl a') => /fwd.
+        { cbn; intros x []. subst. eapply ih. now left.
+          apply ih. auto. }
+        move: (ih a) => /fwd. { now right; left. }
+        intros ? ?; eapply join_le_left_eq; now split.
+    Qed.
+
+    Lemma fold_right_equivlist_all n n' l l' :
+      equivlistA Logic.eq (n :: l) (n' :: l') -> fold_right join n l ≡ fold_right join n' l'.
+    Proof.
+      intros eq.
+      apply eq_antisym; split; eapply fold_right_equivlist_all_le; auto.
+      now symmetry.
+    Qed.
+
+    Lemma fold_right_comm acc l : l <> [] -> fold_right join acc l ≡ join acc (fold_right join (List.hd acc l) (List.tl l)).
+    Proof.
+      induction l in acc |- *.
+      - intros; congruence.
+      - intros _. cbn. destruct l; cbn. apply join_comm.
+        cbn in IHl. rewrite (IHl acc). congruence.
+        rewrite (IHl a). congruence.
+        now rewrite -!join_assoc (join_comm a).
+    Qed.
+
+  End FoldSemilattice.
 
 End Semilattice.
