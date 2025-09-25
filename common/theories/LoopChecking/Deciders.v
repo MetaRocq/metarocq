@@ -789,11 +789,11 @@ Module Abstract.
 
   Import I.Model.Model.Clauses.ISL.
 
-  Definition clause_sem {S} {SL : Semilattice S Q.t} V (cl : clause) : Prop :=
+  Definition clause_sem {s : semilattice} (V : Level.t -> s) (cl : clause) : Prop :=
     let '(prems, concl) := cl in
     le (interp_expr V concl) (interp_prems V prems).
 
-  Definition clauses_sem {S} {SL : Semilattice S Q.t} V (cls : Clauses.t) : Prop :=
+  Definition clauses_sem {s : semilattice} (V : Leve.t -> s) (cls : Clauses.t) : Prop :=
     Clauses.For_all (clause_sem V) cls.
 
   Lemma enforce_clauses_inconsistent m cls u :
@@ -1221,7 +1221,7 @@ Module LoopChecking (LS : LevelSets).
   Proof. apply enforce_clauses_levels. Qed.
 
   Definition valid_entailments cls cls' :=
-    forall S (SL : Semilattice.Semilattice S Q.t) (V : Level.t -> S), clauses_sem V cls -> clauses_sem V cls'.
+    forall s : semilattice, (V : Level.t -> s), clauses_sem V cls -> clauses_sem V cls'.
 
   (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply

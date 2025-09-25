@@ -21,6 +21,7 @@ Module InitialSemilattice (LS : LevelSets).
 
   Import Semilattice.
   Import CommutativeMonoid.
+  Existing Instance semilattice_Semilattice.
   Existing Instance OfQ.add_inj_le.
 
   Definition rel := t × t.
@@ -698,16 +699,8 @@ End ForSemilattice.
 
   End OnInterp.
 
-  Structure semilattice :=
-    { carrier :> Type;
-      sl : Semilattice carrier Q.t }.
-
-  (* Definition incr_semilattice : semilattice_on comm_monoid := {| carrier := Q.t; sl := _ |}. *)
-
-  Instance semlattice_Semilattice (s : semilattice) : Semilattice (carrier s) Q.t := sl s.
-
   Definition valid_relation rels c :=
-    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rel v c).
+    (forall (s : semilattice Q.t) (v : Level.t -> s), interp_rels (SL := semilattice_Semilattice s) v rels -> interp_rel v c).
 
   Definition valid_relations rels rels' :=
     (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rels v rels').

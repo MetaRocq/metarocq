@@ -385,17 +385,10 @@ Module Universe.
     Include OrdersEx.Nat_as_OT.
     Import CommutativeMonoid.
 
-    #[program]
     Instance comm_monoid : IsCommMonoid nat :=
       {| zero := 0%nat;
          one := 1%nat;
          add := Nat.add |}.
-    Next Obligation.
-      split; tc.
-      - red. apply add_assoc.
-      - red. apply add_comm.
-      - red. apply Nat.add_0_l.
-    Qed.
 
     Instance add_inj_eq n : Injective (add n) eq eq.
     Proof.

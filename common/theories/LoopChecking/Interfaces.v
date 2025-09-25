@@ -48,8 +48,7 @@ Module Q <: Quantity.
   Include OrdersEx.Z_as_OT.
   Import CommutativeMonoid.
 
-  Instance comm_monoid : IsCommMonoid Z :=
-    { zero := Z.zero ; one := 1%Z; add := Z.add }.
+  Instance comm_monoid : IsCommMonoid Z := Zadd_is_comm_monoid.
 
   Program Instance add_inj_eq z : Injective (Z.add z) eq eq.
   Next Obligation. unfold eq in *. lia. Qed.

@@ -35,6 +35,7 @@ theories/Show.v
 theories/utils.v
 theories/MRClasses.v
 theories/SemiLattice.v
+theories/MRInstances.v
 
 theories/NonEmptyLevelExprSet.v
 

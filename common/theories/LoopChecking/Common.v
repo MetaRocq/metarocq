@@ -18,7 +18,6 @@ Next Obligation.
   destruct (Z.eqb_spec x y); constructor => //.
 Qed.
 
-
 Definition option_map2 {A} (f : A -> A -> A) (o o' : option A) : option A :=
   match o, o' with
   | Some x, Some y => Some (f x y)
@@ -64,68 +63,11 @@ Proof.
   intros com [x|] [y|] => //=. now rewrite comm.
 Qed.
 
-Instance Zmin_comm : Commutative Z.min := Z.min_comm.
-Instance Zmax_comm : Commutative Z.max := Z.max_comm.
-
-Instance nat_min_comm : Commutative Nat.min := Nat.min_comm.
-Instance nat_max_comm : Commutative Nat.max := Nat.max_comm.
-
 Instance option_map_2_assoc {A} f : @Associative A f -> @Associative (option A) (option_map2 f).
 Proof.
   intros assoc [x|] [y|] [z|]; cbn => //. now rewrite assoc.
 Qed.
 
-Instance nat_min_assoc : Associative Nat.min := Nat.min_assoc.
-Instance nat_max_assoc : Associative Nat.max := Nat.max_assoc.
-
-Instance Zmin_assoc : Associative Z.min := Z.min_assoc.
-Instance Zmax_assoc : Associative Z.max := Z.max_assoc.
-
-Instance Zadd_assoc : Associative Z.add := Z.add_assoc.
-Instance Zadd_comm : Commutative Z.add := Z.add_comm.
-
-Instance Nadd_assoc : Associative Nat.add := Nat.add_assoc.
-Instance Nadd_comm : Commutative Nat.add := Nat.add_comm.
-
-Import CommutativeMonoid.
-
-Instance Zadd_neutral : Neutral Z.add 0%Z.
-Proof. red. intros. lia. Qed.
-
-Instance Nadd_neutral : Neutral Nat.add 0%nat.
-Proof. red. intros. lia. Qed.
-
-Instance Zadd_comm_monoid : CommutativeMonoid 0%Z Z.add := {}.
-Instance Nadd_comm_monoid : CommutativeMonoid 0%nat Nat.add := {}.
-
-Instance Zadd_is_comm_monoid : IsCommMonoid Z :=
-  { zero := 0%Z;
-    one := 1%Z;
-    add := Z.add }.
-
-Instance Nadd_is_comm_monoid : IsCommMonoid nat :=
-  { zero := 0%nat;
-    one := 1%nat;
-    add := Nat.add }.
-
-
-Section ZSemiLattice.
-  Import Semilattice.
-
-  Program Definition Zsemilattice : Semilattice Z Z :=
-    {| add := Z.add;
-      join := Z.max; |}.
-  Solve Obligations with program_simpl; try lia.
-
-  Obligation Tactic := idtac.
-  Next Obligation.
-  Proof.
-    intros x; unfold one, Zadd_is_comm_monoid. lia.
-  Qed.
-
-End ZSemiLattice.
-
-#[export] Existing Instance Zsemilattice.
 
 Lemma fold_left_comm {A B} (f : B -> A -> B) (l : list A) (x : A) (acc : B) :
   (forall x y z, f (f z x) y = f (f z y) x) ->

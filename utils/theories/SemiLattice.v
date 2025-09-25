@@ -2,7 +2,7 @@
 From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet.
+From MetaRocq.Utils Require Import MRClasses NonEmptyLevelExprSet.
 
 Set Equations Transparent.
 
@@ -158,4 +158,15 @@ Module Semilattice.
     Qed.
 
   End Derived.
+
+  Structure semilattice {Q} :=
+    { carrier :> Type;
+      comm_monoid : IsCommMonoid Q ;
+      sl : Semilattice carrier Q }.
+  Arguments semilattice : clear implicits.
+
+  Instance semilattice_CommMonoid {Q} (s : semilattice Q) : IsCommMonoid Q := comm_monoid s.
+
+  Instance semilattice_Semilattice {Q} (s : semilattice Q) : @Semilattice (carrier s) Q (comm_monoid s) := sl s.
+
 End Semilattice.

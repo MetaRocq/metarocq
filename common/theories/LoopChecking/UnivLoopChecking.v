@@ -1106,10 +1106,6 @@ End ZUnivConstraint.
 
   End interp.
 
-  Definition Z_semilattice := {| carrier := Z; sl := _ |}.
-
-  Instance semlattice_Semilattice (s : semilattice) : Semilattice (carrier s) Z := sl s.
-
   Definition valid_relation rels c :=
     (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rel v c).
 

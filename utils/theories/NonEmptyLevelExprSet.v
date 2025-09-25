@@ -17,19 +17,6 @@ Module Type OrderedTypeWithLeibnizWithReflect.
   Parameter to_string : t -> string.
 End OrderedTypeWithLeibnizWithReflect.
 
-Module CommutativeMonoid.
-Class IsCommMonoid (A : Type) :=
-  { zero : A;
-    one : A;
-    add : A -> A -> A;
-    comm_mon :: CommutativeMonoid zero add }.
-
-Declare Scope comm_monoid.
-Notation "0" := zero : comm_monoid.
-Notation "1" := one : comm_monoid.
-Notation "+" := add : comm_monoid.
-End CommutativeMonoid.
-
 Module Type Quantity.
   Include OrderedTypeWithLeibniz.
   Import CommutativeMonoid.
