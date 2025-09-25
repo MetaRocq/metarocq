@@ -70,6 +70,8 @@ Module InitialSemilattice (LS : LevelSets).
 
   Definition equiv_L_rels p q := p ⊩ℒ q /\ q ⊩ℒ p.
 
+  Infix "⊫ℒ" := equiv_L_rels (no associativity, at level 72) : rel_scope.
+
   Lemma entails_join_congr_all {p} {x x' y y'} :
     p ⊢ℒ x ≡ x' -> p ⊢ℒ y ≡ y' -> p ⊢ℒ (x ∨ y) ≡ (x' ∨ y').
   Proof.
@@ -242,6 +244,23 @@ Module InitialSemilattice (LS : LevelSets).
     induction 1; try solve [econstructor; eauto].
   Qed.
 
+  Lemma entails_L_c {rs r} : In r rs -> rs ⊢ℒ r.
+  Proof. destruct r; apply entails_c. Qed.
+
+  Lemma entails_L_clauses_cons {rs r rs'} :
+    rs ⊢ℒ r -> rs ⊩ℒ rs' -> rs ⊩ℒ r :: rs'.
+  Proof. intros h h'; now constructor. Qed.
+
+  Lemma entails_L_clauses_incl {rs rs'} :
+    incl rs rs' ->
+    rs' ⊩ℒ rs.
+  Proof.
+    induction rs in rs' |- *.
+    - constructor.
+    - intros i. constructor. destruct a; eapply entails_c. apply i. now constructor.
+      apply IHrs. intros r hin. apply i. now right.
+  Qed.
+
   Instance entails_L_proper : Proper (equivlistA Logic.eq ==> Logic.eq ==> iff) entails_L.
   Proof.
     intros ?? eq ?? ->.
@@ -262,14 +281,34 @@ Module InitialSemilattice (LS : LevelSets).
     now setoid_rewrite eq.
   Qed.
 
-  Instance entails_L_all_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) entails_L_rels.
+  Instance Forall_ext_proper {A} : Proper ((Logic.eq ==> iff) ==> equivlistA Logic.eq ==> iff) (@Forall A).
   Proof.
-    intros ?? eq ?? eq'.
+    intros x y eq ? ? ->. red in eq.
+    rewrite !Forall_forall.
+    split; intros hyp ? hin. now rewrite -eq; trea.
+    now rewrite eq; trea.
+  Qed.
+
+  Instance entails_L_rels_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) entails_L_rels.
+  Proof.
+    intros l l' h ?? h'. unfold entails_L_rels. split; now rewrite h h'.
+  Qed.
+
+  Instance entails_L_equiv_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) equiv_L_rels.
+  Proof.
+    intros l l' h ?? h'. split; split. 1-2:rewrite -h -h'; apply H.
+    rewrite h h'; apply H.
+    rewrite h h'; apply H.
+  Qed.
+
+
+  Lemma entails_equiv_cons {rs r rs'} : rs ⊫ℒ r :: rs' <-> rs ⊩ℒ [r] /\ rs ⊩ℒ rs' /\ r :: rs' ⊩ℒ rs.
+  Proof.
     split.
-    - unfold entails_L_rels. rewrite eq'.
-      move/Forall_forall => h. eapply Forall_forall => h'. now rewrite -eq.
-    - unfold entails_L_rels. rewrite eq'.
-      move/Forall_forall => h. eapply Forall_forall => h'. now rewrite eq.
+    - move=> [] h; depelim h. intros hrs.
+      split. constructor => //. constructor => //.
+    - move=> [] rsr [] rsr' a.
+      split => //. constructor => //. now depelim rsr.
   Qed.
 
   Lemma entails_L_le_eq {cls l r} : cls ⊢ℒ l ≤ r -> cls ⊢ℒ l ∨ r ≡ r.
@@ -795,6 +834,62 @@ End ForSemilattice.
         apply completeness in H.
         intros s v hi. constructor.
         now apply H. now apply IHrs.
+  Qed.
+
+
+  Open Scope rel_scope.
+
+  Instance interp_rels_entails_proper {S} {SL : Semilattice S Q.t} V : Proper (entails_L_rels ==> impl) (interp_rels V).
+  Proof.
+    intros rs rs' hl.
+    induction rs' in rs, hl |- *.
+    * constructor.
+    * intros H0. depelim hl. specialize (IHrs' _ hl H0). constructor => //.
+      eapply entails_L_valid in H.
+      now apply (H {| carrier := S; sl := SL |} V H0).
+  Qed.
+
+  Instance interp_rels_proper {S} {SL : Semilattice S Q.t} V : Proper (equiv_L_rels ==> iff) (interp_rels V).
+  Proof.
+    intros rs rs' [hl hr].
+    split; now apply interp_rels_entails_proper.
+  Qed.
+
+  Lemma entails_L_all_weaken {p q w} :
+    p ⊩ℒ q -> w ++ p ⊩ℒ q.
+  Proof.
+    induction 1; constructor.
+    eapply entails_L_rels_subset; tea => //.
+    intros a hin. rewrite in_app_iff. now right.
+    exact IHForall.
+  Qed.
+
+  Lemma entails_L_all_refl r : r ⊩ℒ r.
+  Proof. induction r.
+    - constructor.
+    - constructor. destruct a; eapply entails_c. now constructor.
+      now eapply (entails_L_all_weaken (w := [a])).
+  Qed.
+
+  Lemma entails_L_all_app {x y x' y'} :
+    x ⊩ℒ x' -> y ⊩ℒ y' -> x ++ y ⊩ℒ x' ++ y'.
+  Proof.
+    intros hx hy.
+    rewrite equivlistA_app_comm.
+    induction hy.
+    - rewrite app_nil_r.
+      now eapply entails_L_all_weaken.
+    - rewrite equivlistA_app_cons_comm. constructor.
+      rewrite -equivlistA_app_comm. eapply entails_L_rels_subset; tea.
+      move=> ?; rewrite in_app_iff; now right.
+      rewrite (equivlistA_app_comm l x'). exact IHhy.
+  Qed.
+
+  Lemma entails_L_all_union {x y x' y'} :
+    x ⊫ℒ x' -> y ⊫ℒ y' -> x ++ y ⊫ℒ x' ++ y'.
+  Proof.
+    intros [hx hx'] [hy hy'].
+    split; now apply entails_L_all_app.
   Qed.
 
 End InitialSemilattice.

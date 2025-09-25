@@ -455,15 +455,6 @@ Module HornSemilattice (LS : LevelSets).
     now eapply entails_L_cut. exact H1.
   Qed.
 
-  Lemma entails_L_all_weaken {p q w} :
-    p ⊩ℒ q -> w ++ p ⊩ℒ q.
-  Proof.
-    induction 1; constructor.
-    eapply entails_L_rels_subset; tea => //.
-    intros a hin. rewrite in_app_iff. now right.
-    exact IHForall.
-  Qed.
-
   Lemma entails_L_all_cut {p q r} :
     p ⊩ℒ q -> q ++ p ⊢ℒ r -> p ⊢ℒ r.
   Proof.
@@ -491,11 +482,55 @@ Module HornSemilattice (LS : LevelSets).
       constructor. eapply entails_L_all_one_trans. exact hp. exact ent. exact ih.
   Qed.
 
+
+  Instance entails_L_all_preorder : PreOrder entails_L_rels.
+  Proof.
+    split.
+    - red. apply entails_L_all_refl.
+    - red. intros x y z. apply entails_L_all_trans.
+  Qed.
+
+  Instance equiv_L_rels_equiv : Equivalence equiv_L_rels.
+  Proof.
+    split.
+    - intros r. split; eapply entails_L_all_refl.
+    - intros r r' []; split; auto.
+    - intros r r0 r1 [] []; split; eapply entails_L_all_trans; eauto.
+  Qed.
+
+  Instance entails_L_all_partial_order : PartialOrder equiv_L_rels entails_L_rels.
+  Proof.
+    split; tc; auto.
+  Qed.
+
+  Instance entails_L_proper_equiv : Proper (equiv_L_rels ==> Logic.eq ==> iff) entails_L.
+  Proof.
+    intros r r' h ?? ->. split.
+    - intros h'. destruct h. eapply entails_L_all_one_trans; tea.
+    - intros h'. destruct h. eapply entails_L_all_one_trans; tea.
+  Qed.
+
   Lemma relations_of_clauses_mon {s s'}: s ⊂_clset s' -> incl (relations_of_clauses s) (relations_of_clauses s').
   Proof.
     intros hs.
     move=> x /relations_of_clauses_spec [] prems [] concl [hin heq]. subst x.
     apply hs in hin. eapply relations_of_clauses_spec_inv in hin. now cbn in *.
+  Qed.
+
+  Lemma relations_of_clauses_eq {s s' : clauses} :
+    s =_clset s' ->
+    equivlistA Logic.eq (relations_of_clauses s) (relations_of_clauses s').
+  Proof.
+    intros eq.
+    red. intros []; rewrite !InA_In_eq.
+    split.
+    - apply relations_of_clauses_mon. clsets.
+    - apply relations_of_clauses_mon. clsets.
+  Qed.
+
+  Instance relations_of_clauses_proper : Proper (Clauses.Equal ==> equivlistA Logic.eq) relations_of_clauses.
+  Proof.
+    intros cls cls' H. now apply relations_of_clauses_eq.
   Qed.
 
   Lemma entails_L_clauses_subset {cls cls' r} :
@@ -511,6 +546,23 @@ Module HornSemilattice (LS : LevelSets).
     now apply relations_of_clauses_mon.
   Qed.
 
+  Lemma entails_L_all_relations_of_clauses {cls cls'} :
+    cls =_clset cls' ->
+    relations_of_clauses cls ⊩ℒ relations_of_clauses cls'.
+  Proof.
+    intros heq. rewrite (relations_of_clauses_eq heq).
+    reflexivity.
+  Qed.
+
+  Lemma entails_L_clauses_subset_all {cls cls'} :
+    cls ⊂_clset cls' ->
+    relations_of_clauses cls' ⊩ℒ relations_of_clauses cls.
+  Proof.
+    intros heq.
+    have hm := relations_of_clauses_mon heq.
+    now eapply entails_L_clauses_incl.
+  Qed.
+
   Lemma entails_clauses_tauto cls : cls ⊢ℋ cls.
   Proof.
     intros cl hin. now apply entails_in.
@@ -522,7 +574,7 @@ Module HornSemilattice (LS : LevelSets).
     apply entails_clauses_tauto.
   Qed.
 
-  Lemma entails_L_relations_of_clauses_le l r :
+  Lemma entails_L_relations_of_clauses_le_impl l r :
     relations_of_clauses (l ⋞ r) ⊢ℒ l ≤ r.
   Proof.
     eapply completeness_eq.
@@ -566,6 +618,31 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_pres_clauses (relations_of_clauses (clauses_of_relations p)) cls.
   Proof.
     now move=> hcls cl /hcls/entails_L_clause_rels.
+  Qed.
+
+
+  Lemma entails_L_in_cls {prems concl cls} :
+    Clauses.In (prems, concl) cls -> relations_of_clauses cls ⊢ℒ singleton concl ≤ prems.
+  Proof.
+    intros hin. eapply entails_c.
+    apply relations_of_clauses_spec_inv in hin. now cbn in hin.
+  Qed.
+
+  Lemma entails_L_relations_of_clauses_le l r :
+    relations_of_clauses (l ⋞ r) ⊫ℒ [l ≤ r].
+  Proof.
+    split.
+    - constructor. apply entails_L_relations_of_clauses_le_impl. constructor.
+    - apply Forall_forall => rel.
+      move/relations_of_clauses_spec => [] prems [] concl [] hin ->.
+      unfold rel_le.
+      eapply clauses_of_le_spec in hin as [k [hin heq]]. noconf heq.
+      eapply entails_trans with (l ∨ r). 2:{ eapply entails_c. constructor. now constructor. }
+      apply entails_L_eq_antisym. split.
+      eapply entails_L_le_join_l. now eapply entails_L_in.
+      eapply entails_L_le_trans with r.
+      eapply entails_L_eq_le_1. eapply entails_c; now constructor.
+      eapply entails_L_le_right.
   Qed.
 
 End HornSemilattice.
