@@ -411,7 +411,7 @@ Module InitialSemilattice (LS : LevelSets).
     Context {S : Type} {SL : Semilattice S Q.t}.
     Context (v : Level.t -> S).
 
-    Definition interp_expr '(l, k) := (add k (v l))%Z.
+    Definition interp_expr '(l, k) := (add k (v l)).
 
     Definition interp_prems prems :=
       let '(hd, tl) := to_nonempty_list prems in
@@ -700,21 +700,21 @@ End ForSemilattice.
   End OnInterp.
 
   Definition valid_relation rels c :=
-    (forall (s : semilattice Q.t) (v : Level.t -> s), interp_rels (SL := semilattice_Semilattice s) v rels -> interp_rel v c).
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v rels -> interp_rel v c).
 
   Definition valid_relations rels rels' :=
-    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rels v rels').
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v rels -> interp_rels v rels').
 
   Lemma entails_L_valid {p r} :
     p ⊢ℒ r -> valid_relation p r.
   Proof.
     rewrite /valid_relation //=.
     destruct r as [l r] => //=.
-    intros h; depind h; cbn; move=> s v hv.
+    intros h; depind h; cbn; move=> S SL v hv.
     1:{ red in hv. rewrite Forall_forall in hv; eapply hv in H. exact H. }
-    all:try specialize (IHh _ _ Logic.eq_refl s _ hv).
-    all:try specialize (IHh1 _ _ Logic.eq_refl s _ hv).
-    all:try specialize (IHh2 _ _ Logic.eq_refl s _ hv).
+    all:try specialize (IHh _ _ Logic.eq_refl S SL _ hv).
+    all:try specialize (IHh1 _ _ Logic.eq_refl S SL _ hv).
+    all:try specialize (IHh2 _ _ Logic.eq_refl S SL _ hv).
     all:try lia; eauto.
     all:rewrite ?interp_add_prems ?interp_prems_union ?interp_add_prems; try lia.
     - eapply reflexivity.
@@ -727,7 +727,7 @@ End ForSemilattice.
     - apply join_assoc.
     - apply join_idem.
     - apply join_comm.
-    - apply (join_sub (Semilattice := sl s)).
+    - apply (join_sub (Semilattice := SL)).
     - now apply add_join.
   Qed.
 
@@ -748,7 +748,7 @@ End ForSemilattice.
 
   #[export] Existing Instance init_model.
 
-  Definition initial_semilattice rs : semilattice :=
+  Definition initial_semilattice rs : semilattice Q.t :=
     {| carrier := NES.t; sl := init_model rs |}.
 
   Definition ids (rs : rels) : Level.t -> t := (fun l : Level.t => singleton (l, zero)).
@@ -800,7 +800,7 @@ End ForSemilattice.
     intros ha. apply syntax_model.
     destruct r as [l r]. cbn.
     change (eq (Semilattice := init_model p) (interp_prems (SL := init_model p) (ids p) l) (interp_prems (SL := init_model p) (ids p) r)).
-    specialize (ha (initial_semilattice p) (ids p) (interp_rels_init p)).
+    specialize (ha _ (init_model p) (ids p) (interp_rels_init p)).
     now cbn in ha.
   Qed.
 
@@ -820,9 +820,9 @@ End ForSemilattice.
     - split. constructor. intros _; red. intros; constructor.
     - split. cbn.
       * intros vr. red. constructor.
-        apply completeness. intros s v hi.
-        now move: (vr s v hi) => h; depelim h.
-        apply IHrs. intros s v hi. specialize (vr s v hi). now depelim vr.
+        apply completeness. intros S s v hi.
+        now move: (vr _ s v hi) => h; depelim h.
+        apply IHrs. intros S s v hi. specialize (vr _ s v hi). now depelim vr.
       * intros ent; depelim ent.
         apply completeness in H.
         intros s v hi. constructor.
@@ -839,7 +839,7 @@ End ForSemilattice.
     * constructor.
     * intros H0. depelim hl. specialize (IHrs' _ hl H0). constructor => //.
       eapply entails_L_valid in H.
-      now apply (H {| carrier := S; sl := SL |} V H0).
+      now apply (H S SL V H0).
   Qed.
 
   Instance interp_rels_proper {S} {SL : Semilattice S Q.t} V : Proper (equiv_L_rels ==> iff) (interp_rels V).

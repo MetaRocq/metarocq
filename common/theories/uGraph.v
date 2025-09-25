@@ -2752,7 +2752,7 @@ Section AddLevelsCstrs.
 
   Lemma fold_left_comm_ext (l l' : list Nbar.t) :
     (forall x, In x l <-> In x l') ->
-    fold_left Nbar.max l =1 fold_left Nbar.max l'.
+    fold_left Nbar.max l ≐1 fold_left Nbar.max l'.
   Proof.
     intros eql acc.
     generalize (fold_left_max_spec l acc _ eq_refl).
@@ -2768,9 +2768,9 @@ Section AddLevelsCstrs.
       intuition auto. now apply eql. now apply H3, eql.
   Qed.
 
-  Lemma fold_left_comm_ext2 f f' (l l' : list (Z × Level.t)) : f =1 f' ->
+  Lemma fold_left_comm_ext2 f f' (l l' : list (Z × Level.t)) : f ≐1 f' ->
     (forall x, In x l <-> In x l') ->
-    fold_left Nbar.max (map f l) =1 fold_left Nbar.max (map f' l').
+    fold_left Nbar.max (map f l) ≐1 fold_left Nbar.max (map f' l').
   Proof.
     intros eqf eqg.
     apply fold_left_comm_ext.
@@ -2796,9 +2796,9 @@ Section AddLevelsCstrs.
     now setoid_rewrite (Equal_graph_edges eq).
   Qed.
 
-  Lemma fold_left_comm_ext3 f f' e e' x : f =1 f' ->
+  Lemma fold_left_comm_ext3 f f' e e' x : f ≐1 f' ->
     Equal_graph e e' ->
-    fold_left Nbar.max (map f (succs e x)) =1
+    fold_left Nbar.max (map f (succs e x)) ≐1
     fold_left Nbar.max (map f' (succs e' x)).
   Proof.
     intros eqf eqg.

@@ -143,7 +143,7 @@ Proof.
 Qed.
 #[global] Hint Resolve map_predicate_id_spec : all.
 
-#[global] Instance map_predicate_proper {term} : Proper (`=1` ==> `=1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
+#[global] Instance map_predicate_proper {term} : Proper (`≐1` ==> `≐1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
 Proof.
   intros eqf0 eqf1 eqf.
   intros eqf'0 eqf'1 eqf'.
@@ -152,7 +152,7 @@ Proof.
   now apply map_ext => x.
 Qed.
 
-#[global] Instance map_predicate_proper' {term} f : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_predicate term term id f).
+#[global] Instance map_predicate_proper' {term} f : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_predicate term term id f).
 Proof.
   intros eqf0 eqf1 eqf.
   intros x y ->.
@@ -261,7 +261,7 @@ Proof.
 Qed.
 #[global] Hint Resolve map_branch_eq_spec : all.
 
-#[global] Instance map_branch_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_branch term term).
+#[global] Instance map_branch_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_branch term term).
 Proof.
   intros eqf0 eqf1 eqf.
   intros x y ->.

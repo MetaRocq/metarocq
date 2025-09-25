@@ -715,7 +715,8 @@ End ZUnivConstraint.
     - intros le x eq nin.
       rewrite to_atoms_add interp_prems_add.
       rewrite val_add.
-      rewrite interp_prem_to_atom. cbn. lia.
+      rewrite interp_prem_to_atom. cbn in *.
+      lia.
   Qed.
 
   Lemma clauses_sem_val m l r :
@@ -1107,10 +1108,10 @@ End ZUnivConstraint.
   End interp.
 
   Definition valid_relation rels c :=
-    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_rel v c).
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v rels -> interp_rel v c).
 
   Definition valid_constraint rels c :=
-    (forall (s : semilattice) (v : Level.t -> s), interp_rels v rels -> interp_z_cstr v c).
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v rels -> interp_z_cstr v c).
 
   Definition valid_cstrs p cstrs :=
     ZUnivConstraintSet.For_all (valid_constraint p) cstrs.
@@ -1186,7 +1187,7 @@ End ZUnivConstraint.
       rewrite interp_prems_union //=.
   Qed.
 
-  Lemma interp_cstr_clauses_sem {c} {s : semilattice} {v : Level.t -> s} :
+  Lemma interp_cstr_clauses_sem {c} {S} {SL : Semilattice S Q.t} {v : Level.t -> S} :
     interp_univ_cstr v c <-> clauses_sem v (LoopCheck.to_clauses (to_constraint c)).
   Proof.
     rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
@@ -1196,7 +1197,7 @@ End ZUnivConstraint.
     now rewrite interp_prems_union.
   Qed.
 
-  Lemma interp_cstrs_clauses_sem {m} {s : semilattice} {v : Level.t -> s} :
+  Lemma interp_cstrs_clauses_sem {m} {S} {SL : Semilattice S Q.t} {v : Level.t -> S} :
     interp_univ_cstrs v (constraints m) <-> clauses_sem v (LoopCheck.clauses (model m)).
   Proof.
     rewrite interp_univ_cstrs_relations.
@@ -1205,28 +1206,28 @@ End ZUnivConstraint.
   Qed.
 
   Lemma entails_L_completeness {p l r} :
-    (forall (s : semilattice) (v : Level.t -> s), interp_rels v p -> interp_prems v l ≡ interp_prems v r)%sl ->
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_prems v l ≡ interp_prems v r)%sl ->
     p ⊢ℒ l ≡ r.
   Proof.
     intros hv.
-    specialize (hv (initial_semilattice p) (ids p)).
+    specialize (hv _ (init_model p) (ids p)).
     forward hv.
     { apply interp_rels_init. }
     rewrite !interp_triv in hv.
     exact hv.
   Qed.
 
-  Lemma check_completeness {m c} :
-    check m c <-> (forall (s : semilattice) (v : Level.t -> s), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+  Theorem check_completeness {m c} :
+    check m c <-> (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
   Proof.
     rewrite LoopCheck.check_complete /LoopCheck.valid_entailments.
     setoid_rewrite interp_cstrs_clauses_sem.
     split.
-    - intros hv s v hp.
-      move: (hv s (sl s) v hp).
+    - intros hv S s v hp.
+      move: (hv S s v hp).
       now rewrite interp_cstr_clauses_sem.
     - intros hs S SL V hsem.
-      move: (hs {| carrier := S; sl := SL |} V) => /fwd //.
+      move: (hs S SL V) => /fwd //.
       now rewrite interp_cstr_clauses_sem.
   Qed.
 

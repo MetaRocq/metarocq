@@ -3372,7 +3372,7 @@ Lemma subst_let_expand_app s Γ s' Δ k :
   #|s| = context_assumptions Γ ->
   subst0 s ∘
   subst0 (map (lift0 #|s|) s') ∘
-    (expand_lets (expand_lets_ctx Γ Δ) ∘ expand_lets_k Γ k) =1
+    (expand_lets (expand_lets_ctx Γ Δ) ∘ expand_lets_k Γ k) ≐1
   subst_let_expand (s' ++ s) (Γ ,,, Δ).
 Proof.
   intros hk hs t.

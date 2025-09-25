@@ -28,16 +28,16 @@ Definition shiftnP k p i :=
   (i <? k) || p (i - k).
 
 #[global]
-Instance shiftnP_ext k : Proper (`=1` ==> `=1`) (shiftnP k).
+Instance shiftnP_ext k : Proper (`≐1` ==> `≐1`) (shiftnP k).
 Proof. intros f g Hfg i. now rewrite /shiftnP Hfg. Qed.
 
-Lemma shiftnP0 P : shiftnP 0 P =1 P.
+Lemma shiftnP0 P : shiftnP 0 P ≐1 P.
 Proof. rewrite /shiftnP. intros i; rewrite Nat.sub_0_r //. Qed.
 
-Lemma shiftnP_add n k P : shiftnP n (shiftnP k P) =1 shiftnP (n + k) P.
+Lemma shiftnP_add n k P : shiftnP n (shiftnP k P) ≐1 shiftnP (n + k) P.
 Proof. rewrite /shiftnP. intros i; repeat nat_compare_specs => // /=. lia_f_equal. Qed.
 
-Lemma shiftnP_shiftn P f i : (shiftnP i P) ∘ (shiftn i f) =1 shiftnP i (P ∘ f).
+Lemma shiftnP_shiftn P f i : (shiftnP i P) ∘ (shiftn i f) ≐1 shiftnP i (P ∘ f).
 Proof.
   intros k.
   rewrite !/shiftnP /shiftn.
@@ -53,17 +53,17 @@ Proof.
   nat_compare_specs => //. apply Hi.
 Qed.
 
-Lemma shiftnP_S P n : shiftnP (S n) P =1 shiftnP 1 (shiftnP n P).
+Lemma shiftnP_S P n : shiftnP (S n) P ≐1 shiftnP 1 (shiftnP n P).
 Proof. now rewrite (shiftnP_add 1). Qed.
 
 Definition closedP (n : nat) (P : nat -> bool) :=
   fun i => if i <? n then P i else false.
 
 #[global]
-Instance closedP_proper n : Proper (`=1` ==> `=1`) (closedP n).
+Instance closedP_proper n : Proper (`≐1` ==> `≐1`) (closedP n).
 Proof. intros f g Hfg. intros i; rewrite /closedP. now rewrite Hfg. Qed.
 
-Lemma shiftnP_closedP k n P : shiftnP k (closedP n P) =1 closedP (k + n) (shiftnP k P).
+Lemma shiftnP_closedP k n P : shiftnP k (closedP n P) ≐1 closedP (k + n) (shiftnP k P).
 Proof.
   intros i; rewrite /shiftnP /closedP.
   repeat nat_compare_specs => //.
@@ -92,7 +92,7 @@ Fixpoint on_free_vars (p : nat -> bool) (t : term) : bool :=
   end.
 
 Lemma on_free_vars_ext (p q : nat -> bool) t :
-  p =1 q ->
+  p ≐1 q ->
   on_free_vars p t = on_free_vars q t.
 Proof.
   revert p q.
@@ -119,14 +119,14 @@ Proof.
 Qed.
 
 #[global]
-Instance on_free_vars_proper : Proper (`=1` ==> Logic.eq ==> Logic.eq) on_free_vars.
+Instance on_free_vars_proper : Proper (`≐1` ==> Logic.eq ==> Logic.eq) on_free_vars.
 Proof. intros f g Hfg ? ? ->. now apply on_free_vars_ext. Qed.
 
 #[global]
-Instance on_free_vars_proper_pointwise : Proper (`=1` ==> `=1`) on_free_vars.
+Instance on_free_vars_proper_pointwise : Proper (`≐1` ==> `≐1`) on_free_vars.
 Proof. intros f g Hfg x. now apply on_free_vars_ext. Qed.
 
-Lemma shiftnP_xpredT n : shiftnP n xpredT =1 xpredT.
+Lemma shiftnP_xpredT n : shiftnP n xpredT ≐1 xpredT.
 Proof. intros i; rewrite /shiftnP. nat_compare_specs => //. Qed.
 
 Lemma test_context_k_ctx p k (ctx : context) : test_context_k (fun=> p) k ctx = test_context p ctx.
@@ -152,7 +152,7 @@ Proof.
   - unfold test_def in *. apply /andP. now rewrite shiftnP_xpredT.
 Qed. *)
 
-Lemma on_free_vars_xpredT : on_free_vars xpredT =1 xpredT.
+Lemma on_free_vars_xpredT : on_free_vars xpredT ≐1 xpredT.
 Proof.
   intros t; apply on_free_vars_true.
 Qed. *)
@@ -237,18 +237,18 @@ Definition on_free_vars_decl P d :=
   test_decl (on_free_vars P) d.
 
 #[global]
-Instance on_free_vars_decl_proper : Proper (`=1` ==> Logic.eq ==> Logic.eq) on_free_vars_decl.
+Instance on_free_vars_decl_proper : Proper (`≐1` ==> Logic.eq ==> Logic.eq) on_free_vars_decl.
 Proof. rewrite /on_free_vars_decl => f g Hfg x y <-. now rewrite Hfg. Qed.
 
 #[global]
-Instance on_free_vars_decl_proper_pointwise : Proper (`=1` ==> `=1`) on_free_vars_decl.
+Instance on_free_vars_decl_proper_pointwise : Proper (`≐1` ==> `≐1`) on_free_vars_decl.
 Proof. rewrite /on_free_vars_decl => f g Hfg x. now rewrite Hfg. Qed.
 
 Definition on_free_vars_ctx P ctx :=
   alli (fun k => (on_free_vars_decl (shiftnP k P))) 0 (List.rev ctx).
 
 #[global]
-Instance on_free_vars_ctx_proper : Proper (`=1` ==> `=1`) on_free_vars_ctx.
+Instance on_free_vars_ctx_proper : Proper (`≐1` ==> `≐1`) on_free_vars_ctx.
 Proof.
   rewrite /on_free_vars_ctx => f g Hfg x.
   now setoid_rewrite Hfg.
@@ -295,7 +295,7 @@ Proof.
   apply closed_decl_on_free_vars.
 Qed.
 
-Lemma closedP_shiftnP (n : nat) : closedP n xpredT =1 shiftnP n xpred0.
+Lemma closedP_shiftnP (n : nat) : closedP n xpredT ≐1 shiftnP n xpred0.
 Proof.
   rewrite /closedP /shiftnP => i.
   destruct Nat.ltb => //.
@@ -344,13 +344,13 @@ Definition strengthenP k n (p : nat -> bool) :=
     else p (i - n).
 
 #[global]
-Instance strengthenP_proper n k : Proper (`=1` ==> `=1`) (strengthenP n k).
+Instance strengthenP_proper n k : Proper (`≐1` ==> `≐1`) (strengthenP n k).
 Proof.
   intros f g Hfg i. rewrite /strengthenP. now rewrite (Hfg i) (Hfg (i - k)).
 Qed.
 
 Lemma shiftnP_strengthenP k' k n p :
-  shiftnP k' (strengthenP k n p) =1 strengthenP (k' + k) n (shiftnP k' p).
+  shiftnP k' (strengthenP k n p) ≐1 strengthenP (k' + k) n (shiftnP k' p).
 Proof.
   intros i. rewrite /shiftnP /strengthenP.
   repeat nat_compare_specs => /= //.
@@ -388,7 +388,7 @@ Definition substP (k : nat) n (q p : nat -> bool) : nat -> bool :=
     else p (i + n) || strengthenP 0 k q i.
 
 Lemma shiftnP_substP k' k n q p :
-  shiftnP k' (substP k n q p) =1 substP (k' + k) n q (shiftnP k' p).
+  shiftnP k' (substP k n q p) ≐1 substP (k' + k) n q (shiftnP k' p).
 Proof.
   intros i; rewrite /shiftnP /substP.
   repeat nat_compare_specs => /= //.
@@ -440,7 +440,7 @@ Lemma rshiftk_S x f : S (rshiftk x f) = rshiftk (S x) f.
 Proof. reflexivity. Qed.
 
 Lemma substP_shiftnP n p :
-  substP 0 n p (shiftnP n p) =1 p.
+  substP 0 n p (shiftnP n p) ≐1 p.
 Proof.
   intros i; rewrite /shiftnP /substP /= /strengthenP /=.
   nat_compare_specs.
@@ -479,39 +479,39 @@ Definition addnP n (p : nat -> bool) :=
   fun i => p (n + i).
 
 #[global]
-Instance addnP_proper n : Proper (`=1` ==> Logic.eq ==> Logic.eq) (addnP n).
+Instance addnP_proper n : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (addnP n).
 Proof.
   intros i f g Hfg; now rewrite /addnP.
 Qed.
 
 #[global]
-Instance addnP_proper_pointwise : Proper (Logic.eq ==> `=1` ==> `=1`) addnP.
+Instance addnP_proper_pointwise : Proper (Logic.eq ==> `≐1` ==> `≐1`) addnP.
 Proof.
   intros i f g Hfg; now rewrite /addnP.
 Qed.
 
-Lemma addnP_add n k p : addnP n (addnP k p) =1 addnP (n + k) p.
+Lemma addnP_add n k p : addnP n (addnP k p) ≐1 addnP (n + k) p.
 Proof.
   rewrite /addnP => i. lia_f_equal.
 Qed.
 
-Lemma addnP0 p : addnP 0 p =1 p.
+Lemma addnP0 p : addnP 0 p ≐1 p.
 Proof. reflexivity. Qed.
 
-Lemma addnP_shiftnP n P : addnP n (shiftnP n P) =1 P.
+Lemma addnP_shiftnP n P : addnP n (shiftnP n P) ≐1 P.
 Proof.
   intros i; rewrite /addnP /shiftnP /=.
   nat_compare_specs => /=. lia_f_equal.
 Qed.
 
-Lemma addnP_orP n p q : addnP n (predU p q) =1 predU (addnP n p) (addnP n q).
+Lemma addnP_orP n p q : addnP n (predU p q) ≐1 predU (addnP n p) (addnP n q).
 Proof. reflexivity. Qed.
 
 Definition on_ctx_free_vars P ctx :=
   alli (fun k d => P k ==> (on_free_vars_decl (addnP (S k) P) d)) 0 ctx.
 
 #[global]
-Instance on_ctx_free_vars_proper : Proper (`=1` ==> eq ==> eq) on_ctx_free_vars.
+Instance on_ctx_free_vars_proper : Proper (`≐1` ==> eq ==> eq) on_ctx_free_vars.
 Proof.
   rewrite /on_ctx_free_vars => f g Hfg x y <-.
   apply alli_ext => k.
@@ -519,7 +519,7 @@ Proof.
 Qed.
 
 #[global]
-Instance on_ctx_free_vars_proper_pointwise : Proper (`=1` ==> `=1`) on_ctx_free_vars.
+Instance on_ctx_free_vars_proper_pointwise : Proper (`≐1` ==> `≐1`) on_ctx_free_vars.
 Proof.
   rewrite /on_ctx_free_vars => f g Hfg x.
   apply alli_ext => k.
@@ -542,7 +542,7 @@ Qed.
 Definition aboveP k (p : nat -> bool) :=
   fun i => if i <? k then false else p i.
 
-Lemma strengthenP_addn i p : strengthenP 0 i (addnP i p) =1 aboveP i p.
+Lemma strengthenP_addn i p : strengthenP 0 i (addnP i p) ≐1 aboveP i p.
 Proof.
    intros k.
    rewrite /strengthenP /= /addnP /aboveP.
@@ -653,17 +653,17 @@ Definition predA {A} (p q : pred A) : simpl_pred A :=
   [pred i | p i ==> q i].
 
 Definition eq_simpl_pred {A} (x y : simpl_pred A) :=
-  `=1` x y.
+  `≐1` x y.
 
 #[global]
-Instance implP_Proper {A} : Proper (`=1` ==> `=1` ==> eq_simpl_pred) (@predA A).
+Instance implP_Proper {A} : Proper (`≐1` ==> `≐1` ==> eq_simpl_pred) (@predA A).
 Proof.
   intros f g Hfg f' g' Hfg' i; rewrite /predA /=.
   now rewrite Hfg Hfg'.
 Qed.
 
 Lemma on_free_vars_implP p q t :
-  predA p q =1 xpredT ->
+  predA p q ≐1 xpredT ->
   on_free_vars p t -> on_free_vars q t.
 Proof.
   rewrite /predA /=. intros Hp.
@@ -672,7 +672,7 @@ Proof.
 Qed.
 
 Definition shiftnP_predU n p q :
-  shiftnP n (predU p q) =1 predU (shiftnP n p) (shiftnP n q).
+  shiftnP n (predU p q) ≐1 predU (shiftnP n p) (shiftnP n q).
 Proof.
   intros i.
   rewrite /shiftnP /predU /=.
@@ -680,26 +680,26 @@ Proof.
 Qed.
 
 #[global]
-Instance orP_Proper {A} : Proper (`=1` ==> `=1` ==> eq_simpl_pred) (@predU A).
+Instance orP_Proper {A} : Proper (`≐1` ==> `≐1` ==> eq_simpl_pred) (@predU A).
 Proof.
   intros f g Hfg f' g' Hfg' i; rewrite /predU /=.
   now rewrite Hfg Hfg'.
 Qed.
 
 #[global]
-Instance andP_Proper A : Proper (`=1` ==> `=1` ==> eq_simpl_pred) (@predI A).
+Instance andP_Proper A : Proper (`≐1` ==> `≐1` ==> eq_simpl_pred) (@predI A).
 Proof.
   intros f g Hfg f' g' Hfg' i; rewrite /predI /=.
   now rewrite Hfg Hfg'.
 Qed.
 
 #[global]
-Instance pred_of_simpl_proper {A} : Proper (eq_simpl_pred ==> `=1`) (@PredOfSimpl.coerce A).
+Instance pred_of_simpl_proper {A} : Proper (eq_simpl_pred ==> `≐1`) (@PredOfSimpl.coerce A).
 Proof.
   now move=> f g; rewrite /eq_simpl_pred => Hfg.
 Qed.
 
-Lemma orPL (p q : pred nat) : (predA p (predU p q)) =1 predT.
+Lemma orPL (p q : pred nat) : (predA p (predU p q)) ≐1 predT.
 Proof.
   intros i. rewrite /predA /predU /=.
   rewrite (ssrbool.implybE (p i)).
@@ -926,7 +926,7 @@ Qed.
 Lemma lenm_eq {n m} : n <= m -> n - m = 0.
 Proof. lia. Qed.
 
-Lemma addnP_shiftnP_comm n (P : nat -> bool) : P 0 -> addnP 1 (shiftnP n P) =1 shiftnP n (addnP 1 P).
+Lemma addnP_shiftnP_comm n (P : nat -> bool) : P 0 -> addnP 1 (shiftnP n P) ≐1 shiftnP n (addnP 1 P).
 Proof.
   intros p0 i; rewrite /addnP /shiftnP /=.
   repeat nat_compare_specs => /= //.
@@ -1219,7 +1219,7 @@ Proof.
 Qed.
 
 Lemma substP_shiftnP_gen k n p :
-  substP k n p (shiftnP (k + n) p) =1 shiftnP k p.
+  substP k n p (shiftnP (k + n) p) ≐1 shiftnP k p.
 Proof.
   intros i; rewrite /shiftnP /substP /= /strengthenP /=.
   repeat nat_compare_specs.

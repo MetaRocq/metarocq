@@ -417,8 +417,8 @@ Qed.
 
 Lemma urenaming_ext :
   forall P P' Γ Δ f g,
-    P =1 P' ->
-    f =1 g ->
+    P ≐1 P' ->
+    f ≐1 g ->
     urenaming P Δ Γ f ->
     urenaming P' Δ Γ g.
 Proof using Type.
@@ -438,7 +438,7 @@ Proof using Type.
 Qed.
 
 Lemma renaming_extP P P' Σ Γ Δ f :
-  P =1 P' ->
+  P ≐1 P' ->
   renaming P Σ Γ Δ f -> renaming P' Σ Γ Δ f.
 Proof using Type.
   intros hP; rewrite /renaming.
@@ -646,7 +646,7 @@ Qed.
 
 End Renaming.
 
-#[global] Instance rename_context_ext : Proper (`=1` ==> Logic.eq ==> Logic.eq) rename_context.
+#[global] Instance rename_context_ext : Proper (`≐1` ==> Logic.eq ==> Logic.eq) rename_context.
 Proof.
   intros f g Hfg x y ->.
   apply fold_context_k_ext => i t.

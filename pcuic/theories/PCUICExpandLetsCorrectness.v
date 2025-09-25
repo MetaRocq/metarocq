@@ -363,7 +363,7 @@ Proof.
 Qed.
 
 Lemma expand_lets_subst_comm Γ k s :
-  expand_lets (subst_context s k Γ) ∘ subst s (#|Γ| + k) =1
+  expand_lets (subst_context s k Γ) ∘ subst s (#|Γ| + k) ≐1
   subst s (context_assumptions Γ + k) ∘ expand_lets Γ.
 Proof.
   unfold expand_lets, expand_lets_k; simpl; intros x. len.
@@ -3908,7 +3908,7 @@ Proof.
 Qed.
 
 Lemma fold_right_ext {A B} {f g : B -> A -> A} {acc l} :
-  f =2 g ->
+  f ≐2 g ->
   fold_right f acc l = fold_right g acc l.
 Proof.
   induction l; cbn; auto => Hfg. now rewrite IHl.

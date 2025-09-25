@@ -616,7 +616,7 @@ Lemma map_predicate_eq_spec {A B} (finst finst' : Instance.t -> Instance.t)
   (f f' g g' : A -> B) h h' (p : predicate A) :
   finst (puinst p) = finst' (puinst p) ->
   map f (pparams p) = map g (pparams p) ->
-  h =1 h' ->
+  h ≐1 h' ->
   f' (preturn p) = g' (preturn p) ->
   map_predicate finst f f' h p = map_predicate finst' g g' h' p.
 Proof.
@@ -709,7 +709,7 @@ Qed.
 
 #[global]
 Instance map_predicate_proper {term} :
-  Proper (`=1` ==> `=1` ==> `=1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
+  Proper (`≐1` ==> `≐1` ==> `≐1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
 Proof.
   intros eqf0 eqf1 eqf.
   intros eqf'0 eqf'1 eqf' h h' eqh'.
@@ -719,7 +719,7 @@ Proof.
 Qed.
 
 #[global]
-Instance map_predicate_proper' {term} f : Proper (`=1` ==> `=1` ==> Logic.eq ==> Logic.eq)
+Instance map_predicate_proper' {term} f : Proper (`≐1` ==> `≐1` ==> Logic.eq ==> Logic.eq)
   (@map_predicate term term id f).
 Proof.
   intros eqf0 eqf1 eqf h h' eqh'.
@@ -727,7 +727,7 @@ Proof.
   apply map_predicate_eq_spec; auto.
 Qed.
 
-Lemma shiftf0 {A B} (f : nat -> A -> B) : shiftf f 0 =2 f.
+Lemma shiftf0 {A B} (f : nat -> A -> B) : shiftf f 0 ≐2 f.
 Proof. intros x. unfold shiftf. now rewrite Nat.add_0_r. Qed.
 
 #[global]
@@ -871,7 +871,7 @@ Qed.
 
 Lemma map_branch_eq_spec {A B} (f g : A -> B) h h' (x : branch A) :
   f (bbody x) = g (bbody x) ->
-  h =1 h' ->
+  h ≐1 h' ->
   map_branch f h x = map_branch g h' x.
 Proof.
   intros. unfold map_branch; f_equal; auto.
@@ -880,7 +880,7 @@ Qed.
 
 Lemma map_branch_k_eq_spec {A B} (f g : nat -> A -> B) h h' k k' (x : branch A) :
   shiftf f k #|x.(bcontext)| (bbody x) = shiftf g k' #|x.(bcontext)| (bbody x) ->
-  h =1 h' ->
+  h ≐1 h' ->
   map_branch_k f h k x = map_branch_k g h' k' x.
 Proof.
   intros. unfold map_branch_k; f_equal; auto.
@@ -888,7 +888,7 @@ Qed.
 #[global] Hint Resolve map_branch_eq_spec : all.
 
 #[global]
-Instance map_branch_proper {term} : Proper (`=1` ==> `=1` ==> Logic.eq ==> Logic.eq)
+Instance map_branch_proper {term} : Proper (`≐1` ==> `≐1` ==> Logic.eq ==> Logic.eq)
   (@map_branch term term).
 Proof.
   intros eqf0 eqf1 eqf h h' eqh'.
@@ -896,7 +896,7 @@ Proof.
   apply map_branch_eq_spec; auto.
 Qed.
 
-Lemma id_id {A} : @id A =1 id.
+Lemma id_id {A} : @id A ≐1 id.
 Proof. now intros x. Qed.
 #[global] Hint Resolve id_id : core.
 
@@ -932,7 +932,7 @@ Proof.
 Qed.
 
 Lemma mapu_prim_compose {term term' term''}
-  f (g : term' -> term'') f' (g' : term -> term') : mapu_prim f g ∘ mapu_prim f' g' =1 mapu_prim (f ∘ f') (g ∘ g').
+  f (g : term' -> term'') f' (g' : term -> term') : mapu_prim f g ∘ mapu_prim f' g' ≐1 mapu_prim (f ∘ f') (g ∘ g').
 Proof.
   intros [? []]; cbn => //. do 3 f_equal.
   unfold mapu_array_model; destruct a => //=. now rewrite map_map_compose.
@@ -952,14 +952,14 @@ Proof.
 Qed.
 
 Lemma mapu_array_model_proper {term term'} (l l' : Level.t -> Level.t) (f g : term -> term') a :
-  l =1 l' -> f =1 g ->
+  l ≐1 l' -> f ≐1 g ->
   mapu_array_model l f a = mapu_array_model l' g a.
 Proof.
   destruct a; cbn ; rewrite /mapu_array_model /=. intros; f_equal; eauto. now eapply map_ext.
 Qed.
 
 Lemma mapu_array_model_proper_cond {term term'} (P : term -> Type) (l l' : Level.t -> Level.t) (f g : term -> term') a :
-  l =1 l' -> (forall x, P x -> f x = g x) ->
+  l ≐1 l' -> (forall x, P x -> f x = g x) ->
   P a.(array_type) × P a.(array_default) × All P a.(array_value) ->
   mapu_array_model l f a = mapu_array_model l' g a.
 Proof.
@@ -969,7 +969,7 @@ Qed.
 
 Lemma primProp_map_eq {term term'} P p l l' (f g : term -> term') :
   tPrimProp P p ->
-  l =1 l' ->
+  l ≐1 l' ->
   (forall x, P x -> f x = g x) ->
   mapu_prim l f p = mapu_prim l' g p.
 Proof.
@@ -1100,7 +1100,7 @@ Qed.
 
 Lemma case_brs_map_spec {A B} {P : A -> Type} {l} {f g : A -> B}
   {h h' : list (BasicAst.context_decl A) -> list (BasicAst.context_decl B)} :
-  tCaseBrsProp P l -> (forall x, P x -> f x = g x) -> h =1 h' ->
+  tCaseBrsProp P l -> (forall x, P x -> f x = g x) -> h ≐1 h' ->
   map_branches f h l = map_branches g h' l.
 Proof.
   intros. red in X.
@@ -1212,7 +1212,7 @@ Proof.
 Qed.
 
 Lemma test_context_k_eq_spec (p q : nat -> term -> bool) k k' {ctx} :
-  (p =2 q) ->
+  (p ≐2 q) ->
   k = k' ->
   test_context_k p k ctx = test_context_k q k' ctx.
 Proof.
@@ -1229,14 +1229,14 @@ Proof.
 Qed.
 
 #[global]
-Instance test_context_k_Proper : Proper (`=2` ==> Logic.eq ==> `=1`) (@test_context_k term).
+Instance test_context_k_Proper : Proper (`≐2` ==> Logic.eq ==> `≐1`) (@test_context_k term).
 Proof.
   intros f g Hfg k k' <- ctx.
   now apply test_context_k_eq_spec.
 Qed.
 
 #[global]
-Instance test_predicate_k_Proper : Proper (`=1` ==> `=2` ==> Logic.eq ==> `=1`) (@test_predicate_k term).
+Instance test_predicate_k_Proper : Proper (`≐1` ==> `≐2` ==> Logic.eq ==> `≐1`) (@test_predicate_k term).
 Proof.
   intros hi hi' eqhi f g Hfg k k' <- ctx.
   unfold test_predicate_k. rewrite eqhi.
@@ -1244,7 +1244,7 @@ Proof.
 Qed.
 
 #[global]
-Instance test_predicate_ku_Proper : Proper (`=2` ==> `=2` ==> Logic.eq ==> `=1`) (@test_predicate_ku term).
+Instance test_predicate_ku_Proper : Proper (`≐2` ==> `≐2` ==> Logic.eq ==> `≐1`) (@test_predicate_ku term).
 Proof.
   intros hi hi' eqhi f g Hfg k k' <- ctx.
   unfold test_predicate_ku. rewrite eqhi.
@@ -1252,7 +1252,7 @@ Proof.
 Qed.
 
 #[global]
-Instance test_branch_k_Proper p : Proper (`=2` ==> Logic.eq ==> `=1`) (@test_branch_k term p).
+Instance test_branch_k_Proper p : Proper (`≐2` ==> Logic.eq ==> `≐1`) (@test_branch_k term p).
 Proof.
   intros f g Hfg k k' <- ctx.
   unfold test_branch_k.
@@ -1264,7 +1264,7 @@ Lemma case_brs_map_spec_cond {A B} {P : A -> Type} pctx p {l} {f g : A -> B} {h 
   forallb (test_branch pctx p) l ->
   (forall x, P x -> p x -> f x = g x) ->
   (* (forall ctx, onctx P ctx -> test_context pctx ctx -> h ctx = h' ctx) -> *)
-  h =1 h' ->
+  h ≐1 h' ->
   map_branches f h l = map_branches g h' l.
 Proof.
   intros. red in X.
@@ -1279,7 +1279,7 @@ Qed.
 Lemma case_brs_map_k_spec {A B} {P : A -> Type} {k l} {f g : nat -> A -> B} {h h'} :
   tCaseBrsProp P l ->
   (forall k x, P x -> f k x = g k x) ->
-  h =1 h' ->
+  h ≐1 h' ->
   map_branches_k f h k l = map_branches_k g h' k l.
 Proof.
   intros. red in X.
@@ -1293,7 +1293,7 @@ Lemma case_brs_forallb_map_spec {A B} {P : A -> Type} {pctx p : A -> bool}
   tCaseBrsProp P l ->
   forallb (test_branch pctx p) l ->
   (forall x, P x -> p x -> f x = g x) ->
-  h =1 h' ->
+  h ≐1 h' ->
   map (map_branch f h) l = map (map_branch g h') l.
 Proof.
   intros.

@@ -322,7 +322,7 @@ Proof.
 Qed.
 
 Lemma Up_subst_instance u σ :
-  ⇑ (subst_instance u ∘ σ) =1 subst_instance u ∘ ⇑ σ.
+  ⇑ (subst_instance u ∘ σ) ≐1 subst_instance u ∘ ⇑ σ.
 Proof.
   intros i => /=.
   rewrite - !up_Up /up.
@@ -331,7 +331,7 @@ Proof.
 Qed.
 
 Lemma upn_subst_instance u n σ :
-  up n (subst_instance u ∘ σ) =1 subst_instance u ∘ up n σ.
+  up n (subst_instance u ∘ σ) ≐1 subst_instance u ∘ up n σ.
 Proof.
   intros i => /=.
   rewrite /up.
@@ -340,7 +340,7 @@ Proof.
 Qed.
 
 Lemma Upn_subst_instance u n σ :
-  ⇑^n (subst_instance u ∘ σ) =1 subst_instance u ∘ ⇑^n σ.
+  ⇑^n (subst_instance u ∘ σ) ≐1 subst_instance u ∘ ⇑^n σ.
 Proof.
   rewrite - !up_Upn. rewrite upn_subst_instance.
   intros i. now rewrite up_Upn.
@@ -800,7 +800,7 @@ Proof.
   rewrite inst_closed_constructor_body //.
   apply (declared_constructor_closed declc).
 Qed.
-Lemma up_0 f : up 0 f =1 f.
+Lemma up_0 f : up 0 f ≐1 f.
 Proof.
   rewrite /up /=; setoid_rewrite Nat.sub_0_r.
   intros i. now rewrite rename_ren_id.
@@ -895,7 +895,7 @@ Proof.
 Qed.
 
 #[global]
-Instance map_def_ext {A B} : Proper (`=1` ==> `=1` ==> `=1`) (@map_def A B).
+Instance map_def_ext {A B} : Proper (`≐1` ==> `≐1` ==> `≐1`) (@map_def A B).
 Proof.
   intros f g Hfg f' g' Hfg' x.
   unfold map_def; destruct x; simpl.
@@ -1324,7 +1324,7 @@ Context `{cf: checker_flags}.
 
 Lemma usubst_ext {Δ σ σ' Γ} :
   usubst Γ σ Δ ->
-  σ =1 σ' ->
+  σ ≐1 σ' ->
   usubst Γ σ' Δ.
 Proof using Type.
   intros Hσ eq n decl hnth.
@@ -1338,7 +1338,7 @@ Qed.
 
 Lemma closed_subst_ext {Δ σ σ' Γ} :
   closed_subst Γ σ Δ ->
-  σ =1 σ' ->
+  σ ≐1 σ' ->
   closed_subst Γ σ' Δ.
   intros [HΔ Hσ] eq. destruct Hσ as [closed_σ Hσ]. repeat split; eauto.
   - intros n decl hnth. rewrite <- (eq n). eapply closed_σ; eauto.
@@ -1347,7 +1347,7 @@ Qed.
 
 Lemma well_subst_ext Σ Δ σ σ' Γ :
   Σ ;;; Δ ⊢ σ : Γ ->
-  σ =1 σ' ->
+  σ ≐1 σ' ->
   Σ ;;; Δ ⊢ σ' : Γ.
 Proof using Type.
   intros Hσ eq. destruct Hσ as [typed_σ Hσ]. split.
@@ -2046,7 +2046,7 @@ Proof using Type.
   now rewrite on_free_vars_ctx_on_ctx_free_vars.
 Qed.
 
-Lemma addnP_xpredT n : addnP n xpredT =1 xpredT.
+Lemma addnP_xpredT n : addnP n xpredT ≐1 xpredT.
 Proof using Type.
   now rewrite /addnP.
 Qed.
@@ -2066,7 +2066,7 @@ Proof using Type.
   now rewrite inst_subst.
 Qed.
 
-Instance inst_telescope_ext : Proper (`=1` ==> `=1`) inst_telescope.
+Instance inst_telescope_ext : Proper (`≐1` ==> `≐1`) inst_telescope.
 Proof using Type.
   intros f g Hfg Γ.
   rewrite /inst_telescope. apply mapi_ext => n x.

@@ -1141,7 +1141,7 @@ Section Rho.
               | None => nth_error Δ (r x) = None
               end.
 
-  Instance renaming_ext Γ Δ : Morphisms.Proper (`=1` ==> iff)%signature (renaming Γ Δ).
+  Instance renaming_ext Γ Δ : Morphisms.Proper (`≐1` ==> iff)%signature (renaming Γ Δ).
   Proof using Type.
     red. red. intros.
     split; intros.

@@ -978,7 +978,7 @@ Section ParallelWeakening.
     simpl. rewrite - IHn. f_equal. apply H.
   Qed.
 
-  Lemma lift_rename' n k : lift n k =1 rename (lift_renaming n k).
+  Lemma lift_rename' n k : lift n k ≐1 rename (lift_renaming n k).
   Proof. intros t; apply lift_rename. Qed.
 
   Lemma lift_iota_red n k pars p args br :
@@ -1722,10 +1722,10 @@ Section ParallelSubstitution.
   Proof. now intros -> ->. Qed.
 
   Lemma pred1_subst_ext (P P' Q Q' : nat -> bool) Γ Γ' Δ Δ' σ σ' τ τ' :
-    P =1 P' ->
-    Q =1 Q' ->
-    σ =1 σ' ->
-    τ =1 τ' ->
+    P ≐1 P' ->
+    Q ≐1 Q' ->
+    σ ≐1 σ' ->
+    τ ≐1 τ' ->
     pred1_subst P Q Γ Γ' Δ Δ' σ τ <~> pred1_subst P' Q' Γ Γ' Δ Δ' σ' τ'.
   Proof.
     intros HP HQ Hσ Hτ.
@@ -1747,7 +1747,7 @@ Section ParallelSubstitution.
     eapply simpl_pred. 2:rewrite Hτ; trea. rewrite Hσ. reflexivity. assumption.
   Qed.
 
-  Lemma shiftk_shift : ↑ =1 ↑^1.
+  Lemma shiftk_shift : ↑ ≐1 ↑^1.
   Proof. reflexivity. Qed.
 
   Lemma pred1_subst_Up {wfΣ : wf Σ} (P Q : nat -> bool) (Γ Γ' : context) (na : aname) (t0 t1 : term) (Δ Δ' : context) (σ τ : nat -> term) :

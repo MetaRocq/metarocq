@@ -1925,7 +1925,7 @@ Proof.
   now rewrite eqm.
 Qed.
 
-#[local] Instance fold_left_ext {A B} : Proper (`=2` ==> eq ==> eq ==> eq) (@fold_left A B).
+#[local] Instance fold_left_ext {A B} : Proper (`≐2` ==> eq ==> eq ==> eq) (@fold_left A B).
 Proof.
   intros f g hfg ? ? -> ? ? ->.
   induction y in y0 |- *; cbn; auto. now rewrite (hfg y0 a).

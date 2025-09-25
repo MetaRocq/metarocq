@@ -789,11 +789,11 @@ Module Abstract.
 
   Import I.Model.Model.Clauses.ISL.
 
-  Definition clause_sem {s : semilattice} (V : Level.t -> s) (cl : clause) : Prop :=
+  Definition clause_sem {S} {SL : Semilattice S Q.t} (V : Level.t -> S) (cl : clause) : Prop :=
     let '(prems, concl) := cl in
     le (interp_expr V concl) (interp_prems V prems).
 
-  Definition clauses_sem {s : semilattice} (V : Leve.t -> s) (cls : Clauses.t) : Prop :=
+  Definition clauses_sem {S} {SL : Semilattice S Q.t} (V : Level.t -> S) (cls : Clauses.t) : Prop :=
     Clauses.For_all (clause_sem V) cls.
 
   Lemma enforce_clauses_inconsistent m cls u :
@@ -1059,8 +1059,7 @@ Module Abstract.
   Proof.
     move/to_entails_all/entails_L_entails_ℋ_equiv.
     move/entails_L_rels_entails_L_clauses/completeness_all.
-    move/(_ {| carrier := Z; sl := _ |}). cbn.
-    move/(_ (Z_valuation_of_model m)).
+    move/(_ Z _ (Z_valuation_of_model m)).
     rewrite -!interp_rels_clauses_sem => /fwd.
     cbn in *.
     have mok := m.(model).(model_valid).(model_ok).
@@ -1102,10 +1101,10 @@ Module Abstract.
     rewrite -completeness_all.
     split.
     - move=> vr s sl v.
-      move: (vr {| carrier := _; sl := sl |} v).
+      move: (vr _ sl v).
       rewrite !interp_rels_clauses_sem //.
-    - intros ve s v.
-      move: (ve s (sl s) v).
+    - intros ve S s v.
+      move: (ve S s v).
       now rewrite //= !interp_rels_clauses_sem.
   Qed.
 
@@ -1199,7 +1198,7 @@ Module LoopChecking (LS : LevelSets).
     rewrite -entails_L_rels_entails_L_clauses.
     rewrite -ISL.completeness_all.
     move=> vr [] V.
-    specialize (vr {| ISL.carrier := Z; ISL.sl := _ |} V).
+    specialize (vr Z _ V).
     move: vr.
     rewrite !interp_rels_clauses_sem // => vr /vr.
     rewrite -interp_rels_clauses_sem.
@@ -1221,7 +1220,7 @@ Module LoopChecking (LS : LevelSets).
   Proof. apply enforce_clauses_levels. Qed.
 
   Definition valid_entailments cls cls' :=
-    forall s : semilattice, (V : Level.t -> s), clauses_sem V cls -> clauses_sem V cls'.
+    forall S (SL : Semilattice.Semilattice S Q.t) (V : Level.t -> S), clauses_sem V cls -> clauses_sem V cls'.
 
   (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply

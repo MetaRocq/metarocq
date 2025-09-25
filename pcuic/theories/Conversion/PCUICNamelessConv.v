@@ -937,7 +937,7 @@ Proof.
 Qed.
 
 Lemma map_anon_fold_context_k g g' ctx :
-  (forall i, nl ∘ g i =1 g' i ∘ nl) ->
+  (forall i, nl ∘ g i ≐1 g' i ∘ nl) ->
   map (map_decl_anon nl) (fold_context_k g ctx) =
   fold_context_k g' (map (map_decl_anon nl) ctx).
 Proof.

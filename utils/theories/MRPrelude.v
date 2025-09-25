@@ -37,32 +37,32 @@ Notation "x .π1" := (@projT1 _ _ x) (at level 3, format "x '.π1'").
 Notation "x .π2" := (@projT2 _ _ x) (at level 3, format "x '.π2'").
 
 (** Shorthand for pointwise equality relation in Proper signatures *)
-Notation "`=1`" := (pointwise_relation _ Logic.eq) (at level 80).
+Notation "`≐1`" := (pointwise_relation _ Logic.eq) (at level 80). (* \doteq *)
 #[warnings="-notation-overridden"]
 Infix "≐1" := (pointwise_relation _ Logic.eq) (at level 70) : type_scope.
-Notation "`=2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 80).
+Notation "`≐2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 80).
 #[warnings="-notation-overridden"]
-Infix "=2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 70) : type_scope.
+Infix "≐2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 70) : type_scope.
 
 (** Higher-order lemma to simplify Proper proofs. *)
-#[global] Instance proper_ext_eq {A B} : Proper (`=1` ==> `=1` ==> iff) (@pointwise_relation A _ (@Logic.eq B)).
+#[global] Instance proper_ext_eq {A B} : Proper (`≐1` ==> `≐1` ==> iff) (@pointwise_relation A _ (@Logic.eq B)).
 Proof.
   intros f f' Hff' g g' Hgg'. split; intros.
   - intros x. now rewrite <- Hff', <- Hgg'.
   - intros x. now rewrite Hff' Hgg'.
 Qed.
 
-#[global] Instance id_proper_proxy {A} : ProperProxy (`=1`) (@id A).
+#[global] Instance id_proper_proxy {A} : ProperProxy (`≐1`) (@id A).
 Proof.
   intros x; reflexivity.
 Qed.
 
-#[global] Instance pointwise_subrelation {A B} : subrelation (`=1`) (@Logic.eq A ==> @Logic.eq B)%signature.
+#[global] Instance pointwise_subrelation {A B} : subrelation (`≐1`) (@Logic.eq A ==> @Logic.eq B)%signature.
 Proof.
   intros f g Hfg x y ->. now rewrite Hfg.
 Qed.
 
-#[global] Instance pointwise_subrelation2 {A B C} : subrelation (`=2`) (@Logic.eq A ==> @Logic.eq B ==> @Logic.eq C)%signature.
+#[global] Instance pointwise_subrelation2 {A B C} : subrelation (`≐2`) (@Logic.eq A ==> @Logic.eq B ==> @Logic.eq C)%signature.
 Proof.
   intros f g Hfg x y -> ? ? ->. now rewrite Hfg.
 Qed.

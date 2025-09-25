@@ -98,7 +98,7 @@ Definition fresh_levels global_levels levels :=
     now rewrite mapi_unfold.
   Qed.
 
-  #[global] Instance unfold_proper {A} : Proper (eq ==> `=1` ==> eq) (@unfold A).
+  #[global] Instance unfold_proper {A} : Proper (eq ==> `≐1` ==> eq) (@unfold A).
   Proof.
     intros x y -> f g eqfg.
     induction y; cbn; auto. f_equal; auto. f_equal. apply eqfg.
