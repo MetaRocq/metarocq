@@ -1,6 +1,13 @@
 (* Distributed under the terms of the MIT license. *)
 (* This module provides an instantiation of the deciders for universe checking,
-  i.e. for constraints on non-empty level expressions (l, k) where k ∈ 𝐍 *)
+  i.e. for constraints on non-empty level expressions (l, k) where k ∈ 𝐍, by embedding
+  into constraints on expressions where k ∈ 𝐙.
+  The checking algorithm is sound and complete for entailment in the Horn Clauses system, which
+  is equivalent to the equational theory of the free semilattice (InitialSemilattice) which itself
+  is equivalent to validity of le/eq constraints over universes in Z.
+  For the nat case, we simply get that checking implies validity for any valuation in natural numbers,
+  losing the converse, simply because we didn't generalize the initial semilattice dev to support a restricted
+  interface.  *)
 
 From Stdlib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import Program RelationClasses Morphisms.
