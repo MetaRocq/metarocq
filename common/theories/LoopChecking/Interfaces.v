@@ -130,6 +130,12 @@ Qed.
 Lemma in_singleton l : LevelSet.In l (LevelSet.singleton l).
 Proof. lsets. Qed.
 
+Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
+Proof.
+  destruct le. intros hin.
+  apply levels_spec. now exists z.
+Qed.
+
 Lemma not_in_union_inv l ls ls' :
   ~ LevelSet.In l (LevelSet.union ls ls') ->
   ~ LevelSet.In l ls /\ ~ LevelSet.In l ls'.

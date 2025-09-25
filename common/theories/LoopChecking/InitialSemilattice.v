@@ -855,6 +855,13 @@ End ForSemilattice.
     split; now apply interp_rels_entails_proper.
   Qed.
 
+  Lemma entails_L_all_tip {rs r} : rs ⊩ℒ [r] <-> rs ⊢ℒ r.
+  Proof.
+    split; intros h.
+    - now depelim h.
+    - constructor => //.
+  Qed.
+
   Lemma entails_L_all_weaken {p q w} :
     p ⊩ℒ q -> w ++ p ⊩ℒ q.
   Proof.

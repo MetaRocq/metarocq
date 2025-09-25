@@ -1732,6 +1732,36 @@ Module Clauses (LS : LevelSets).
         rewrite ih. right; firstorder.
   Qed.
 
+  Lemma clauses_of_le_nempty l r : ~ Clauses.Empty (clauses_of_le l r).
+  Proof.
+    intros he. red in he. eapply he.
+    rewrite !clauses_of_le_spec.
+    exists (NES.choose_prems l). split; trea.
+    apply NES.choose_prems_spec.
+  Qed.
+
+  Import NES.
+  Lemma in_clause_levels_of_le lev l r : LevelSet.In lev (clauses_levels (clauses_of_le l r)) <->
+    LevelSet.In lev (levels l) \/ LevelSet.In lev (levels r).
+  Proof.
+    rewrite clauses_levels_spec.
+    setoid_rewrite clauses_of_le_spec.
+    split.
+    - intros [cl [hex hin]].
+      apply clause_levels_spec in hin.
+      destruct hex as [le [inl ->]]. cbn in *. destruct hin; auto. subst.
+      left. now apply in_levels.
+    - move=> [] hin.
+      * eapply levels_spec in hin as [k hin].
+        exists (r, (lev, k)). split => //. exists (lev, k). split => //.
+        apply clause_levels_spec. now right.
+      * eapply levels_spec in hin as [k hin].
+        exists (r, choose_prems l). split => //. exists (choose_prems l). split => //.
+        apply choose_prems_spec.
+        apply clause_levels_spec. left.
+        apply levels_spec. now exists k.
+  Qed.
+
   Lemma to_entails_all {cls s t} :
     cls ⊢ℋ s ⋞ t <-> cls ⊢a t → s.
   Proof.

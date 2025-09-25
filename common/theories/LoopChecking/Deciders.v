@@ -474,12 +474,6 @@ Proof.
       forward ho by now exists v. now right.
 Qed.
 
-Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
-Proof.
-  destruct le. intros hin.
-  apply levels_spec. now exists z.
-Qed.
-
 Lemma min_model_map_enabled m cls cls' :
   enabled_clauses m cls ->
   enabled_clauses (min_model_map m cls') (Clauses.union cls cls').

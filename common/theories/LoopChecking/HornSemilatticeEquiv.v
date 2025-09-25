@@ -84,6 +84,18 @@ Module HornSemilattice (LS : LevelSets).
       * move: (ih _ ina) => insing. now right.
   Qed.
 
+  Lemma relations_of_clauses_union {cls cls'} :
+    equivlistA Logic.eq (relations_of_clauses (Clauses.union cls cls'))
+      (relations_of_clauses cls ++ relations_of_clauses cls').
+  Proof.
+    intros eq. split; rewrite !InA_In_eq; rewrite in_app_iff.
+    - move/relations_of_clauses_spec => -[] prems [] concl [] hin ->.
+      eapply Clauses.union_spec in hin as [hin|hin]; [left|right];
+      now apply (relations_of_clauses_spec_inv (_, _)).
+    - move=> [] /relations_of_clauses_spec => -[] prems [] concl [] hin ->;
+      apply (relations_of_clauses_spec_inv (_, _)); now apply Clauses.union_spec.
+  Qed.
+
   Definition entails_L_clause p cl :=
     p ⊢ℒ singleton (concl cl) ≤ premise cl.
 
