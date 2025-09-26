@@ -59,7 +59,7 @@ Proof.
     intros [[l ct] l'] Hctr.
     rewrite /subst_instance_cstrs /= in Hctr.
     rewrite ConstraintSetProp.fold_spec_right in Hctr.
-    set cstrs' := (List.rev (CS.elements cstrs)) in Hctr.
+    set cstrs' := (List.rev (UCS.elements cstrs)) in Hctr.
     set Σ'' := (Σ.1,Polymorphic_ctx (inst, cstrs)) in Hcs.
     assert ((exists ct' l'', SetoidList.InA eq (l,ct',l'') cstrs') ->
       declared l (global_ext_levels Σ'')) as Hcs'.
@@ -67,7 +67,7 @@ Proof.
       intros [ct' [l'' in']].
       specialize (Hcs (l,ct',l'')).
       apply Hcs.
-      eapply ConstraintSet.union_spec. left.
+      eapply UnivConstraintSet.union_spec. left.
       now apply ConstraintSetFact.elements_2, SetoidList.InA_rev.
     }
     assert ((exists ct' l'', SetoidList.InA eq (l'',ct',l') cstrs') ->
@@ -76,13 +76,13 @@ Proof.
       intros [ct' [l'' in']].
       specialize (Hcs (l'',ct',l')).
       apply Hcs.
-      eapply ConstraintSet.union_spec. left.
+      eapply UnivConstraintSet.union_spec. left.
       now apply ConstraintSetFact.elements_2, SetoidList.InA_rev.
     }
     clear Hcs.
     induction cstrs' ; cbn in Hctr.
     + now apply ConstraintSetFact.empty_iff in Hctr.
-    + apply CS.add_spec in Hctr as [].
+    + apply UCS.add_spec in Hctr as [].
       2:{
         apply IHcstrs' ; tea.
         all: intros [? []].
@@ -153,7 +153,7 @@ Proof.
   - eapply LevelSet.union_spec. right. apply Hs.
   - intros x hx.
     cbn in hx. unfold global_ext_constraints in hx.
-    eapply ConstraintSet.union_spec in hx.
+    eapply UnivConstraintSet.union_spec in hx.
     destruct hx. cbn in H.
     * now apply ond.
     * specialize (Hc x H).

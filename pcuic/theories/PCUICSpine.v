@@ -2206,7 +2206,7 @@ Section WfEnv.
     assumption.
   Qed.
 
-  Lemma shift_subst_consn_tip t : ↑ ∘s ([t] ⋅n ids) =1 ids.
+  Lemma shift_subst_consn_tip t : ↑ ∘s ([t] ⋅n ids) ≐1 ids.
   Proof using Type.
     rewrite /subst_consn; intros [|i] => /= //.
   Qed.
@@ -2519,7 +2519,7 @@ Section WfEnv.
 
   Local Set SimplIsCbn.
 
-  Lemma subst_lift1 x s : (subst0 (x :: s) ∘ lift0 1) =1 subst0 s.
+  Lemma subst_lift1 x s : (subst0 (x :: s) ∘ lift0 1) ≐1 subst0 s.
   Proof using Type.
     intros t. erewrite <- PCUICParallelReduction.subst_skipn'.
     rewrite lift0_id. simpl. now rewrite skipn_S skipn_0.

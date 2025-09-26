@@ -761,7 +761,7 @@ Proof.
   now rewrite Nat.add_0_r rename_subst.
 Qed.
 
-Instance rename_telescope_ext : Proper (`=1` ==> `=1`) rename_telescope.
+Instance rename_telescope_ext : Proper (`≐1` ==> `≐1`) rename_telescope.
 Proof.
   intros f g Hfg Γ.
   rewrite /rename_telescope. apply mapi_ext => n x.

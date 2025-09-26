@@ -27,8 +27,8 @@ struct
 
   type quoted_sort_family = Universes0.allowed_eliminations
   type quoted_constraint_type = Universes0.ConstraintType.t
-  type quoted_univ_constraint = Universes0.UnivConstraint.t
-  type quoted_univ_constraints = Universes0.ConstraintSet.t
+  type quoted_univ_constraint = Universes0.LevelConstraint.t
+  type quoted_univ_constraints = Universes0.UnivConstraintSet.t
   type quoted_univ_level = Universes0.Level.t
   type quoted_univ_instance = Universes0.Instance.t
   type quoted_univ_context = Universes0.UContext.t
@@ -215,7 +215,7 @@ struct
     Caml_nat.iter_nat Univ.Universe.super u (snd trm)
 
   let unquote_universe evm (trm : Universes0.Universe.t) =
-    let u = Universes0.t_set trm in
+    let u = Universes0.LevelExprSet.t_set trm in
     let ux_list = Universes0.LevelExprSet.elements u in
     let l = List.map unquote_level_expr ux_list in
     let u = List.fold_left Univ.Universe.sup (List.hd l) (List.tl l) in

@@ -94,12 +94,12 @@ Proof.
   intros []; cbn; congruence.
 Qed.
 
-#[global] Instance option_map_proper {A B} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
+#[global] Instance option_map_proper {A B} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
 Proof.
   intros f g Hfg x y <-. now apply option_map_ext.
 Qed.
 
-Lemma option_map_id {A} : option_map (@id A) =1 id.
+Lemma option_map_id {A} : option_map (@id A) ≐1 id.
 Proof. by intros []. Qed.
 
 Lemma nth_map_option_out {A B} (f : nat -> A -> option B) l l' i t : map_option_out (mapi f l) = Some l' ->
@@ -177,13 +177,13 @@ Definition foroptb2 {A : Type} (p : A -> A -> bool) (o o': option A) : bool :=
   | _, _ => false
   end.
 
-#[global] Instance foroptb_proper A : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
+#[global] Instance foroptb_proper A : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
 Proof.
   intros f g Hfg x y ->; rewrite /foroptb.
   destruct y; simpl; rewrite // ?Hfg.
 Qed.
 
-#[global] Instance foroptb_proper_pointwise A : Proper (`=1` ==> `=1`) (@foroptb A).
+#[global] Instance foroptb_proper_pointwise A : Proper (`≐1` ==> `≐1`) (@foroptb A).
 Proof.
   intros f g Hfg y; rewrite /foroptb.
   destruct y; simpl; rewrite // ?Hfg.

@@ -41,7 +41,7 @@ let quote_rel_context env sigma ctx =
   quote_context decls
 
 (* todo(gmm): this definition adapted from quoter.ml (the body of quote_minductive_type) *)
-let of_mib (env : Environ.env) (t : Names.MutInd.t) (mib : Plugin_core.mutual_inductive_body) 
+let of_mib (env : Environ.env) (t : Names.MutInd.t) (mib : Plugin_core.mutual_inductive_body)
   : Ast0.Env.mutual_inductive_body =
   match quote_mind_decl env (Evd.from_env env) t mib with
   | Ast0.Env.InductiveDecl mib -> mib
@@ -73,9 +73,9 @@ let of_mib (env : Environ.env) (t : Names.MutInd.t) (mib : Plugin_core.mutual_in
     let ctx = oib.mind_arity_ctxt in
       CList.chop (List.length ctx - List.length mib.mind_params_ctxt) ctx
     in
-    let indices = quote_rel_context (push_rel_context pars env) indices in 
+    let indices = quote_rel_context (push_rel_context pars env) indices in
     let indty = quote_term env indty in
-    let indsort = Q.quote_sort (inductive_sort oib) in      
+    let indsort = Q.quote_sort (inductive_sort oib) in
     let (reified_ctors,acc) =
       List.fold_left (fun (ls,acc) (nm,ty,ar) ->
           let ty = quote_term acc ty in
@@ -100,7 +100,7 @@ let of_mib (env : Environ.env) (t : Names.MutInd.t) (mib : Plugin_core.mutual_in
     in
     let relevance = quote_relevance oib.mind_relevance in
     let sf = quote_sort_family oib.mind_kelim in
-    (quote_ident oib.mind_typename, indty, indsort, indices, sf, 
+    (quote_ident oib.mind_typename, indty, indsort, indices, sf,
     (List.rev reified_ctors), projs, relevance) :: ls, acc)
         ([],env) (Array.to_list mib.mind_packets)
   in
@@ -120,7 +120,7 @@ let get_constant_body b =
   match b with
   | Def b -> Some b
   | Undef inline -> None
-  | OpaqueDef pr -> 
+  | OpaqueDef pr ->
     let proof, _ = Global.force_proof Library.indirect_accessor pr in
     (* FIXME delayed univs skipped *)
     Some proof
@@ -234,7 +234,7 @@ let rec interp_tm (t : 'a coq_TM) : 'a tm =
              None -> Obj.magic (tmFail Pp.(str "inductive does not exist"))
            | Some (mi, mib) -> Obj.magic (tmOfMib mi mib))
   | Coq_tmQuoteUniverses ->
-    tmMap (fun x -> failwith "tmQuoteUniverses") tmQuoteUniverses
+    tmMap (fun x -> Obj.magic (quote_univ_contextset x)) tmQuoteUniverses
   | Coq_tmQuoteModule id ->
     tmMap (fun x -> Obj.magic (List.map quote_global_reference x)) (tmQuoteModule (to_qualid id))
   | Coq_tmQuoteModFunctor id ->

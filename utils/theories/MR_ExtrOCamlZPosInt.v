@@ -11,7 +11,7 @@ From Stdlib Require Import Extraction NArith ZArith.
 Extract Inductive positive => int
 [ "(fun p->1+2*p)" "(fun p->2*p)" "1" ]
 "(fun f2p1 f2p f1 p ->
-    if p<=1 then f1 () else if p mod 2 = 0 then f2p (p/2) else f2p1 (p/2))".
+    if p<≐1 then f1 () else if p mod 2 = 0 then f2p (p/2) else f2p1 (p/2))".
 
 Extract Inductive Z => int [ "0" "" "(~-)" ]
 "(fun f0 fp fn z -> if z=0 then f0 () else if z>0 then fp z else fn (-z))".

@@ -53,7 +53,7 @@ Cumulative Inductive TemplateMonad@{t u} : Type@{t} -> Prop :=
 | tmQuoteRecTransp : forall {A:Type@{t}}, A -> bool(* bypass opacity? *) -> TemplateMonad program
 (* Quote the body of a definition or inductive. Its name need not be fully qualified *)
 | tmQuoteInductive : kername -> TemplateMonad mutual_inductive_body
-| tmQuoteUniverses : TemplateMonad ConstraintSet.t
+| tmQuoteUniverses : TemplateMonad ContextSet.t
 | tmQuoteConstant : kername -> bool (* bypass opacity? *) -> TemplateMonad constant_body
 | tmQuoteModule : qualid -> TemplateMonad (list global_reference)
 | tmQuoteModFunctor : qualid -> TemplateMonad (list global_reference)
