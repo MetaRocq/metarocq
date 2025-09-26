@@ -271,6 +271,15 @@ Module Clauses (LS : LevelSets).
     now rewrite LevelSet.union_spec LevelSet.singleton_spec.
   Qed.
 
+  Lemma clauses_levels_union cls cls' : clauses_levels (Clauses.union cls cls') =_lset
+    LevelSet.union (clauses_levels cls) (clauses_levels cls').
+  Proof.
+    intros l.
+    rewrite clauses_levels_spec LevelSet.union_spec.
+    rw Clauses.union_spec; rewrite !clauses_levels_spec.
+    rw clause_levels_spec. firstorder.
+  Qed.
+
   Definition clause_conclusion cl := level (concl cl).
   Definition clauses_conclusions (cls : clauses) : LevelSet.t :=
     Clauses.fold (fun cl acc => LevelSet.add (level (concl cl)) acc) cls LevelSet.empty.

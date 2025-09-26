@@ -24,6 +24,13 @@ Module MoreLevel.
   Import Universes.
   Include Level.
   Definition to_string := string_of_level.
+
+  Definition zero := Level.lzero.
+  Definition is_global l :=
+    match l with
+    | Level.lvar _ | Level.lzero => false
+    | Level.level _ => true
+    end.
 End MoreLevel.
 
 Module LevelMap.
@@ -373,14 +380,41 @@ End ZUnivConstraint.
 
   Module Clauses := LoopCheck.Impl.I.Model.Model.Clauses.Clauses.
 
+  Definition U0 : Universe.t := Universe.make (Level.lzero, 0%nat).
+  Definition U1 : Universe.t := Universe.singleton LevelExpr.type1.
+
+  Definition init_constraint_of_level l :=
+    match l with
+    | Level.lzero => None
+    | Level.level s => Some (U1, ConstraintType.Le, Universe.singleton (l, 0%nat))
+    | Level.lvar n => Some (U0, ConstraintType.Le, Universe.singleton (l, 0%nat))
+    end.
+
+  Definition declared_init_constraint_of_level l cstrs :=
+    match init_constraint_of_level l with
+    | None => True
+    | Some c => UnivConstraintSet.In c cstrs
+    end.
   Record univ_model := {
-    model : LoopCheck.model;
+    model :> LoopCheck.t;
     constraints : UnivConstraintSet.t;
     repr_constraints : forall c, UnivConstraintSet.In c constraints ->
       Clauses.Subset (LoopCheck.to_clauses (to_constraint c)) (LoopCheck.Impl.Abstract.clauses model);
     repr_constraints_inv : forall cl, Clauses.In cl (LoopCheck.Impl.Abstract.clauses model) ->
       exists c, UnivConstraintSet.In c constraints /\ Clauses.In cl (LoopCheck.to_clauses (to_constraint c))
       }.
+
+  Import LoopCheck.Impl.CorrectModel.
+
+  Lemma declared_zero (m : univ_model) : LevelSet.In Level.lzero (LoopCheck.levels m.(model)).
+  Proof.
+    have := LoopCheck.zero_declared m.(model).
+    rewrite /zero_declared.
+    move=> [k hm].
+    declared_levels :
+      forall l, LevelSet.In l (LoopCheck.levels model) -> declared_init_constraint_of_level l constraints;
+
+
 
   Module C := LoopCheck.Impl.I.Model.Model.Clauses.
   Import C.
@@ -445,62 +479,14 @@ End ZUnivConstraint.
   init_model := {| model := LoopCheck.init_model;
                    constraints := UnivConstraintSet.empty |}.
   Proof.
-    move: H. now rewrite UnivConstraintSetFact.empty_iff.
-    move: H. now rewrite ClausesFact.empty_iff.
+    - LoopCheck.Impl.rsets.
+    - LoopCheck.Impl.rsets.  move: H; rewrite LevelSet.add_spec => -[->|h].
+      now cbn. lsets.
+    - move: H. now rewrite UnivConstraintSetFact.empty_iff.
+    - move: H. now rewrite ClausesFact.empty_iff.
   Qed.
 
   Local Obligation Tactic := idtac.
-
-  Local Definition declare_levels_aux m l :=
-    LevelSet.fold (fun l m => match LoopCheck.declare_level m l return _ with None => m | Some m => m end) l m.
-
-  Lemma declare_levels_aux_spec m l : LoopCheck.levels (declare_levels_aux m l) =_lset
-    LevelSet.union l (LoopCheck.levels m).
-  Proof.
-    rewrite /declare_levels_aux.
-    eapply LevelSetProp.fold_rec.
-    - move=> s' he. lsets.
-    - move=> x a s' s'' hin hnin hadd heq.
-      apply LevelSetProp.Add_Equal in hadd.
-      destruct LoopCheck.declare_level eqn:decl.
-      * apply LoopCheck.declare_level_levels in decl as [hnin' ->].
-        rewrite hadd heq. lsets.
-      * apply LoopCheck.declare_level_None in decl.
-        rewrite heq hadd.
-        rewrite heq LevelSet.union_spec in decl.
-        destruct decl => //. lsets.
-  Qed.
-
-  Lemma declare_levels_aux_clauses m l :
-    LoopCheck.clauses (declare_levels_aux m l) =_clset LoopCheck.clauses m.
-  Proof.
-    rewrite /declare_levels_aux.
-    eapply LevelSetProp.fold_rec.
-    - move=> s' he. clsets.
-    - move=> x a s' s'' hin hnin hadd heq.
-      apply LevelSetProp.Add_Equal in hadd.
-      destruct LoopCheck.declare_level eqn:hd => //.
-      rewrite -heq.
-      apply LoopCheck.declare_level_clauses in hd.
-      unfold LoopCheck.clauses.
-      now rewrite hd.
-  Qed.
-
-  (* We ignore errors here, which can happen only if the levels are already declared *)
-  Program Definition declare_levels (m : univ_model) (l : LevelSet.t) :=
-    {| model := declare_levels_aux m.(model) l; constraints := m.(constraints); |}.
-  Next Obligation.
-  Proof.
-    intros m l c.
-    rewrite [LoopCheck.Impl.Abstract.clauses _]declare_levels_aux_clauses => hin.
-    move: (repr_constraints m c hin) => h.
-    etransitivity; tea. reflexivity.
-  Qed.
-  Next Obligation.
-    move=> m l cl.
-    rewrite [LoopCheck.Impl.Abstract.clauses _]declare_levels_aux_clauses => hin.
-    now exact: repr_constraints_inv m cl hin.
-  Qed.
 
   Equations? enforce m (c : UnivConstraint.t) : option _ :=
     enforce m c with inspect (LoopCheck.enforce m.(model) (to_constraint c)) :=
@@ -508,6 +494,11 @@ End ZUnivConstraint.
       | exist (Some (inl m')) eq => Some (inl {| model := m'; constraints := UnivConstraintSet.add c m.(constraints) |})
       | exist (Some (inr loop)) eq => Some (inr loop).
   Proof.
+    - move/LoopCheck.enforce_levels: eq0. intros eq; rewrite eq. apply m.
+    - move/LoopCheck.enforce_levels: eq0. intros eq; rewrite eq.
+      have hd := declared_levels m.
+      move=> l /hd. rewrite /declared_init_constraint_of_level.
+      destruct init_constraint_of_level => //. ucsets.
     - move=> c'.
       move/LoopCheck.enforce_clauses: eq0.
       rewrite /LoopCheck.clauses => ->. rewrite UnivConstraintSet.add_spec => -[].
@@ -522,15 +513,6 @@ End ZUnivConstraint.
         rewrite UnivConstraintSet.add_spec. now right.
       * move=> hin. exists c. split => //.
         rewrite UnivConstraintSet.add_spec. now left.
-  Qed.
-
-  Lemma clauses_levels_union cls cls' : clauses_levels (Clauses.union cls cls') =_lset
-    LevelSet.union (clauses_levels cls) (clauses_levels cls').
-  Proof.
-    intros l.
-    rewrite clauses_levels_spec LevelSet.union_spec.
-    rw Clauses.union_spec; rewrite !clauses_levels_spec.
-    rw clause_levels_spec. firstorder.
   Qed.
 
   Definition univ_constraint_levels (c : UnivConstraint.t) :=
@@ -628,6 +610,138 @@ End ZUnivConstraint.
     - clear H Heqcall. now move/LoopCheck.enforce_levels: eq0.
     - clear H Heqcall. reflexivity.
   Qed.
+
+  Lemma declared_init_constraint_of_level_spec {l c cstrs}:
+    init_constraint_of_level l = Some c ->
+    declared_init_constraint_of_level l (UnivConstraintSet.add c cstrs).
+  Proof.
+    rewrite /declared_init_constraint_of_level => ->. ucsets.
+  Qed.
+
+  Lemma declared_init_constraint_of_level_add' {l c cstrs}:
+    declared_init_constraint_of_level l cstrs ->
+    declared_init_constraint_of_level l (UnivConstraintSet.add c cstrs).
+  Proof.
+    rewrite /declared_init_constraint_of_level. destruct init_constraint_of_level => //. ucsets.
+  Qed.
+
+  (* We ignore errors here, which can happen only if the levels are already declared *)
+  Equations? declare_level (m : univ_model) (l : Level.t) : option univ_model :=
+  declare_level m l with inspect (LoopCheck.declare_level m.(model) l) :=
+  { | exist (Some model) eq with inspect (init_constraint_of_level l) :=
+    { | exist (Some c) eqc with inspect (LoopCheck.enforce model (to_constraint c)) :=
+        { | exist (Some (inl m')) _ => Some {| model := m'; constraints := UnivConstraintSet.add c m.(constraints) |}
+          | exist (Some (inr _)) _ => False_rect _ _
+          | exist None eqm => False_rect _ _ }
+      | exist None eqc => False_rect _ _ } ;
+    | exist None eqdecl := None }.
+  Proof.
+    Import LoopCheck.Impl.Abstract LoopCheck.
+    - move/LoopCheck.declare_level_levels: eq0 => -[] hnin.
+      move/LoopCheck.enforce_levels: e => eq. rewrite eq. intros ->.
+      have := declared_zero m. lsets.
+    - move/LoopCheck.declare_level_levels: eq0 => -[] hnin eq l'.
+      move/LoopCheck.enforce_levels: e => eq'. rewrite eq'.
+      rewrite eq. rewrite LevelSet.add_spec => -[].
+      * intros ->. now apply declared_init_constraint_of_level_spec.
+      * intros. apply declared_init_constraint_of_level_add'.
+        now apply declared_levels.
+    - move/LoopCheck.enforce_clauses: e.
+      move/LoopCheck.declare_level_clauses: eq0 => eqcl.
+      intros eq c'.
+      rewrite UnivConstraintSet.add_spec => -[]; intros h; rewrite [_ m']eq => l'; rewrite Clauses.union_spec.
+      now right. subst. setoid_rewrite <- eqcl. left.
+      now apply (repr_constraints _ _ h).
+    - move/LoopCheck.enforce_clauses: e.
+      move/LoopCheck.declare_level_clauses: eq0 => eqcl.
+      intros eq c'. setoid_rewrite eq. rewrite Clauses.union_spec; setoid_rewrite <- eqcl.
+      move=> [] h.
+      * have [ec [? ?]] := repr_constraints_inv _ _ h. exists ec.
+        split => //. ucsets.
+      * exists c. split => //. ucsets.
+    - move/LoopCheck.enforce_inconsistent: e.
+      have val := LoopCheck.model_valuation model0.
+      destruct l; cbn in eqc => //; noconf eqc.
+      move=> hv.
+      pose (l' := fun l => if eqb l (Level.level t0) then 1%Z else (to_Z_val (valuation model0) l)).
+      move: (hv Z Zsemilattice l').
+      move/LoopCheck.declare_level_levels: eq0 => -[] hnin heq.
+      move=> /fwd.
+      setoid_rewrite LoopCheck.Impl.Abstract.clauses_sem_union.
+      split. admit. cbn. unfold flip.
+      cbn. rewrite clauses_sem_add; cbn -[Z.add].
+      rewrite Z.add_0_l. admit.
+      rewrite clauses_sem_eq. cbn.
+      setoid_rewrite interp_add_prems; cbn -[Z.add]. lia.
+
+      rewrite UnivConstraintSet.add_spec => -[]; intros h; rewrite [_ m']eq => l';
+      now right. subst. setoid_rewrite <- eqcl. left.
+      now apply (repr_constraints _ _ h).
+    -
+      * intros hin [_ m']eq => l'.
+
+
+
+    {| model := declare_levels_aux m.(model) l;
+       constraints := m.(constraints); |}.
+  Next Obligation.
+
+  Local Definition declare_levels_aux m l :=
+    LevelSet.fold (fun l m =>
+      match LoopCheck.declare_level m l return _ with
+      | None => m
+      | Some m => m
+      end) l m.
+
+  Lemma declare_levels_aux_spec m l : LoopCheck.levels (declare_levels_aux m l) =_lset
+    LevelSet.union l (LoopCheck.levels m).
+  Proof.
+    rewrite /declare_levels_aux.
+    eapply LevelSetProp.fold_rec.
+    - move=> s' he. lsets.
+    - move=> x a s' s'' hin hnin hadd heq.
+      apply LevelSetProp.Add_Equal in hadd.
+      destruct LoopCheck.declare_level eqn:decl.
+      * apply LoopCheck.declare_level_levels in decl as [hnin' ->].
+        rewrite hadd heq. lsets.
+      * apply LoopCheck.declare_level_None in decl.
+        rewrite heq hadd.
+        rewrite heq LevelSet.union_spec in decl.
+        destruct decl => //. lsets.
+  Qed.
+
+  Lemma declare_levels_aux_clauses m l :
+    LoopCheck.clauses (declare_levels_aux m l) =_clset LoopCheck.clauses m.
+  Proof.
+    rewrite /declare_levels_aux.
+    eapply LevelSetProp.fold_rec.
+    - move=> s' he. clsets.
+    - move=> x a s' s'' hin hnin hadd heq.
+      apply LevelSetProp.Add_Equal in hadd.
+      destruct LoopCheck.declare_level eqn:hd => //.
+      rewrite -heq.
+      apply LoopCheck.declare_level_clauses in hd.
+      unfold LoopCheck.clauses.
+      now rewrite hd.
+  Qed.
+
+  (* We ignore errors here, which can happen only if the levels are already declared *)
+  Program Definition declare_levels (m : univ_model) (l : LevelSet.t) :=
+    {| model := declare_levels_aux m.(model) l;
+       constraints := m.(constraints); |}.
+  Next Obligation.
+  Proof.
+    intros m l c.
+    rewrite [LoopCheck.Impl.Abstract.clauses _]declare_levels_aux_clauses => hin.
+    move: (repr_constraints m c hin) => h.
+    etransitivity; tea. reflexivity.
+  Qed.
+  Next Obligation.
+    move=> m l cl.
+    rewrite [LoopCheck.Impl.Abstract.clauses _]declare_levels_aux_clauses => hin.
+    now exact: repr_constraints_inv m cl hin.
+  Qed.
+
 
   Definition to_valuation (v : Level.t -> nat) : valuation :=
     {| valuation_mono := fun s => Pos.of_nat (v (Level.level s));

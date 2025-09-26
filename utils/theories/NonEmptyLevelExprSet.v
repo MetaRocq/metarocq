@@ -13,6 +13,8 @@ End OrderedTypeWithLeibniz.
 Module Type OrderedTypeWithLeibnizWithReflect.
   Include OrderedTypeWithLeibniz.
 
+  Parameter zero : t.
+  Parameter is_global : t -> bool.
   Parameter reflect_eq : ReflectEq t.
   Parameter to_string : t -> string.
 End OrderedTypeWithLeibnizWithReflect.
@@ -157,6 +159,9 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     apply nis_empty => he. eapply (he e). lesets.
   Qed.
 
+  Lemma singleton_spec {le e} : LevelExprSet.In le (singleton e) <-> le = e.
+  Proof. rewrite LevelExprSet.singleton_spec. reflexivity. Qed.
+
   Lemma not_Empty_is_empty s :
     ~ LevelExprSet.Empty s <-> LevelExprSet.is_empty s = false.
   Proof. now rewrite nis_empty. Qed.
@@ -168,6 +173,9 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     eapply H. eapply LevelExprSet.add_spec.
     left; reflexivity.
   Qed.
+
+  Lemma add_spec_les {le e es} : LevelExprSet.In le (add e es) <-> LevelExprSet.In le (LevelExprSet.add e es).
+  Proof. reflexivity. Qed.
 
   Lemma add_spec e u e' :
     In e' (add e u) <-> e' = e \/ In e' u.

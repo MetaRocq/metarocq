@@ -1434,7 +1434,7 @@ Module Model (LS : LevelSets).
     now apply Z.leb_le. intros h; depelim h.
   Qed.
 
-  Lemma level_value_add m l k : level_value (LevelMap.add l (Some k) m) l = Some k.
+  Lemma level_value_add m l k : level_value (LevelMap.add l k m) l = k.
   Proof.
     rewrite /level_value LevelMapFact.F.add_eq_o //.
   Qed.
