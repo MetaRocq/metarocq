@@ -1771,6 +1771,10 @@ Module Clauses (LS : LevelSets).
         apply levels_spec. now exists k.
   Qed.
 
+  Hint Rewrite clauses_of_le_spec clauses_levels_spec
+    Clauses.singleton_spec Clauses.add_spec Clauses.union_spec ClausesFact.empty_iff
+    : set_specs.
+
   Lemma to_entails_all {cls s t} :
     cls ⊢ℋ s ⋞ t <-> cls ⊢a t → s.
   Proof.

@@ -94,9 +94,11 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Module LevelExprSetExtraDecide := MSetDecide.Decide LevelExprSet.
   Ltac lesets := LevelExprSetDecide.fsetdec.
 
+  Infix "=_lset" := LevelSet.Equal (at level 70).
+
   Import -(notations) LevelExprSet.
-  Infix "⊂_leset" := LevelExprSet.Subset (at level 90).
-  Infix "=_leset" := LevelExprSet.Equal (at level 90).
+  Infix "⊂_leset" := LevelExprSet.Subset (at level 70).
+  Infix "=_leset" := LevelExprSet.Equal (at level 70).
 
   Import CommutativeMonoid.
   Module Export OfQ := OfQuantity Q.
@@ -402,7 +404,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     destruct t_ne0. lesets.
   Qed.
 
-  Infix "∪" := union (at level 70): nes_scope.
+  Infix "∪" := union (at level 60): nes_scope.
 
   Lemma union_spec u u' l :
     LevelExprSet.In l (u ∪ u') <->
@@ -466,6 +468,32 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
   Proof.
     rewrite levels_spec_aux. intuition auto. lsets.
+  Qed.
+
+
+  Lemma levelexprset_singleton {l le} : (exists k : Q.t, LevelExprSet.In (l, k) (singleton le)) <-> (l, le.2) = le.
+  Proof.
+    split.
+    - move=> [] k. now move/LevelExprSet.singleton_spec; rewrite /E.eq => <-.
+    - intros <-. now exists le.2; apply LevelExprSet.singleton_spec.
+  Qed.
+
+  Lemma levels_singleton le : levels (LevelExprSet.singleton le) =_lset LevelSet.singleton le.1.
+  Proof.
+    intros l; rewrite levels_spec.
+    rewrite LevelSet.singleton_spec; setoid_rewrite LevelExprSet.singleton_spec.
+    rewrite /E.eq /LevelSet.E.eq. firstorder. now subst. subst. exists le.2; now destruct le.
+  Qed.
+
+  Lemma levels_union {u u'} : levels (u ∪ u') =_lset LevelSet.union (levels u) (levels u').
+  Proof.
+    intros l; rewrite levels_spec; setoid_rewrite LevelExprSet.union_spec.
+    rewrite LevelSet.union_spec !levels_spec. firstorder.
+  Qed.
+
+  Lemma levels_add {le u} : levels (add le u) =_lset LevelSet.union (LevelSet.singleton le.1) (levels u).
+  Proof.
+    rewrite -union_add_singleton levels_union levels_singleton; lsets.
   Qed.
 
   #[export] Instance proper_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)

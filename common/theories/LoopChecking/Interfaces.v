@@ -1,4 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
+From Ltac2 Require Ltac2.
 From Stdlib Require Import ssreflect ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
@@ -8,6 +9,12 @@ From MetaRocq.Common Require Universes.
 From MetaRocq.Common Require Import LoopChecking.Common.
 From Equations Require Import Equations.
 Set Equations Transparent.
+
+Module Autorew.
+  Import Ltac2.
+  #[global] Ltac2 autorewrite0 ids cl :=
+  Std.autorewrite true None ids (default_on_concl cl).
+End Autorew.
 
 Module FMapOrderedType_from_UsualOrderedType (O : UsualOrderedType).
   Import O.
@@ -90,9 +97,9 @@ Bind Scope levels_scope with LevelSet.t.
 
 Ltac lsets := LevelSetDecide.fsetdec.
 Notation "(=_lset)" := LevelSet.Equal (at level 0) : levels_scope.
-Infix "=_lset" := LevelSet.Equal (at level 30) : levels_scope.
+Infix "=_lset" := LevelSet.Equal (at level 70) : levels_scope.
 Infix "⊂_lset" := LevelSet.Subset (at level 70) : levels_scope.
-Infix "∪" := LevelSet.union (at level 70) : levels_scope.
+Infix "∪" := LevelSet.union (at level 60) : levels_scope.
 Infix "=m" := LevelMap.Equal (at level 50) : levels_scope.
 Notation "#| V |" := (LevelSet.cardinal V) : levels_scope.
 
@@ -296,5 +303,58 @@ Proof.
   intros hsub.
   rewrite diff_cardinal_inter LevelSetProp.inter_sym LevelSetProp.inter_subset_equal //.
 Qed.
+
+
+
+Ltac lset :=
+  match goal with
+  | [ H : LevelSet.In _ (LevelSet.singleton _) |- _ ] =>
+    apply LevelSet.singleton_spec in H; red in H; try subst
+  | [ H : LevelSet.In _ (LevelSet.add _ _) |- _ ] =>
+    apply LevelSet.add_spec in H as []
+  | [ H : LevelSet.mem _ _ = false |- _ ] =>
+    apply LevelSetProp.FM.not_mem_iff in H
+  | [ H : LevelSet.mem _ _ = true |- _ ] =>
+    apply LevelSetProp.FM.mem_iff in H
+  | [ H : LevelExprSet.In _ (LevelExprSet.singleton _) |- _ ] =>
+    apply LevelExprSet.singleton_spec in H; red in H; try subst
+  | [ H : LevelExprSet.In _ (LevelExprSet.add _ _) |- _ ] =>
+    apply LevelExprSet.add_spec in H as []
+  | [ H : LevelMap.MapsTo _ _ (LevelMap.add _ _ _) |- _ ] =>
+    rewrite LevelMapFact.F.add_mapsto_iff in H; unfold Level.eq in H
+  | [ H : LevelMap.MapsTo _ _ (LevelMap.empty _) |- _ ] =>
+    rewrite LevelMapFact.F.empty_mapsto_iff in H; unfold Level.eq in H
+  | [ H : LevelSet.In _ (LevelSet.union _ _) |- _ ] =>
+    apply LevelSet.union_spec in H as []
+  | [ |- LevelSet.In _ (LevelSet.singleton _) ] =>
+    apply LevelSet.singleton_spec; rewrite ?/LevelSet.E.eq
+  | [ |- LevelSet.In _ (LevelSet.add _) ] =>
+    apply LevelSet.add_spec
+  | [ |- LevelSet.In _ (LevelSet.union _) ] =>
+    apply LevelSet.union_spec
+  | [ |- LevelSet.In _ (LevelSet.singleton _) -> _ ] =>
+    move/LevelSet.singleton_spec; rewrite ?/LevelSet.E.eq
+  | [ |- LevelSet.In _ (LevelSet.add _) -> _ ] =>
+    move/LevelSet.add_spec
+  | [ |- LevelSet.In _ (LevelSet.union _) -> _ ] =>
+    move/LevelSet.union_spec
+  end; try lsets.
+
+Hint Rewrite
+  LevelSet.singleton_spec LevelSet.add_spec LevelSet.union_spec
+  LevelSetFact.is_empty_1 LevelSetFact.empty_iff
+  LevelExprSet.singleton_spec LevelExprSet.add_spec LevelExprSet.union_spec LevelExprSetFact.empty_iff
+  @NES.singleton_spec @NES.add_spec_les
+  LevelMapFact.F.add_mapsto_iff LevelMapFact.F.empty_mapsto_iff
+  : set_specs.
+
+Hint Rewrite <- LevelSetProp.FM.not_mem_iff LevelSetProp.FM.mem_iff : set_specs.
+
+Ltac rsets := repeat (progress (autorewrite with set_specs || lset || intro
+  || unfold Level.eq, LevelSet.E.eq in * )).
+
+Ltac2 Notation "rsets" cl(opt(clause)) :=
+  let id := Option.get (Ident.of_string "set_specs") in
+  Autorew.autorewrite0 [id] cl.
 
 End FromLevelSets.

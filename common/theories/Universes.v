@@ -162,7 +162,7 @@ Module Level.
     { ReflectEq.eqb := eqb }.
   Proof.
     intros x y. apply reflect_reflectProp, eqb_spec.
-  Qed.
+  Defined.
 
 End Level.
 
@@ -177,7 +177,7 @@ Module LS := LevelSet.
 
 Ltac lsets := LevelSetDecide.fsetdec.
 Notation "(=_lset)" := LevelSet.Equal (at level 0).
-Infix "=_lset" := LevelSet.Equal (at level 30).
+Infix "=_lset" := LevelSet.Equal (at level 70).
 Notation "(==_lset)" := LevelSet.equal (at level 0).
 Infix "==_lset" := LevelSet.equal (at level 30).
 
