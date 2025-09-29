@@ -135,11 +135,62 @@ Qed.
 Definition correct_model (cls : clauses) (m : model) :=
   enabled_clauses m cls /\ is_model cls m.
 
-Lemma enabled_clauses_le {m v u} : enabled_clauses m (v ⋞ u)%cls <->
-  defined_model_of (levels u) m.
+
+
+Lemma clauses_of_le_singleton le r :
+  (singleton le ⋞ r)%cls =_clset Clauses.singleton (r, le).
 Proof.
+  intros l.
+  rewrite Clauses.singleton_spec clauses_of_le_spec.
+  firstorder.
+  - subst l. apply LevelExprSet.singleton_spec in H.
+    now red in H; subst x.
+  - subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
+Qed.
+
+Lemma clauses_of_le_add le l r :
+  (NES.add le l ⋞ r)%cls =_clset Clauses.add (r, le) (l ⋞ r).
+Proof.
+  intros cl.
+  rewrite Clauses.add_spec clauses_of_le_spec.
   split.
-Admitted.
+  - move=> [] x [] /LevelExprSet.add_spec; rewrite /LevelExprSet.E.eq.
+    move=> [->|hin]. now left.
+    intros ->. right. rewrite clauses_of_le_spec. now exists x.
+  - move=> [->|]. exists le. split => //.
+    * now apply LevelExprSet.add_spec; left.
+    * rewrite clauses_of_le_spec => -[] k [] hin ->.
+      exists k. split => //. now apply LevelExprSet.add_spec.
+Qed.
+
+Lemma enabled_clauses_of_le m v u :
+  (exists z, min_premise m u = Some z) ->
+  enabled_clauses m (v ⋞ u)%cls.
+Proof.
+  intros hmin cl hcl.
+  eapply clauses_of_le_spec in hcl.
+  destruct hcl as [lk [hin eq]]. subst cl.
+  hnf. now cbn.
+Qed.
+
+Lemma enabled_clauses_le {m} {v u : NES.t} : defined_model_of (levels u) m -> enabled_clauses m (v ⋞ u)%cls.
+Proof.
+  intros def. eapply enabled_clauses_of_le.
+  move: u def; apply: NES.elim.
+  - intros le. rewrite levels_singleton min_premise_singleton.
+    intros h. specialize (h le.1). forward h by now rsets.
+    destruct h as [k hm]; rewrite /min_atom_value.
+    destruct le; cbn. rewrite (level_value_MapsTo hm). now eexists.
+  - intros le r hd hnin hdef.
+    rewrite levels_add in hdef.
+    rewrite min_premise_add.
+    eapply defined_model_of_union_inv in hdef as [].
+    forward hd by auto.
+    destruct hd as [z ->].
+    specialize (H le.1); forward H by now rsets.
+    destruct H as [k hm]; rewrite /min_atom_value.
+    destruct le; cbn. rewrite (level_value_MapsTo hm). now eexists.
+Qed.
 
 Definition infer_correctness cls :=
   match infer_model cls with
@@ -1468,32 +1519,6 @@ Module Abstract.
       rewrite Clauses.union_spec. now left.
     - intros hent. eapply (proj1 entails_ℋ_clauses_of_relations_equiv).
       eapply entails_clauses_trans; tea. eapply entails_clauses_of_relations.
-  Qed.
-
-  Lemma clauses_of_le_singleton le r :
-    (singleton le ⋞ r)%cls =_clset Clauses.singleton (r, le).
-  Proof.
-    intros l.
-    rewrite Clauses.singleton_spec clauses_of_le_spec.
-    firstorder.
-    - subst l. apply LevelExprSet.singleton_spec in H.
-      now red in H; subst x.
-    - subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
-  Qed.
-
-  Lemma clauses_of_le_add le l r :
-    (NES.add le l ⋞ r)%cls =_clset Clauses.add (r, le) (l ⋞ r).
-  Proof.
-    intros cl.
-    rewrite Clauses.add_spec clauses_of_le_spec.
-    split.
-    - move=> [] x [] /LevelExprSet.add_spec; rewrite /LevelExprSet.E.eq.
-      move=> [->|hin]. now left.
-      intros ->. right. rewrite clauses_of_le_spec. now exists x.
-    - move=> [->|]. exists le. split => //.
-      * now apply LevelExprSet.add_spec; left.
-      * rewrite clauses_of_le_spec => -[] k [] hin ->.
-        exists k. split => //. now apply LevelExprSet.add_spec.
   Qed.
 
   Lemma clauses_sem_leq {S} {SL : Semilattice S Q.t} (V : Level.t -> S) l r :
