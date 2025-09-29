@@ -15,6 +15,7 @@ Module Type OrderedTypeWithLeibnizWithReflect.
 
   Parameter zero : t.
   Parameter is_global : t -> bool.
+  Parameter is_global_zero : ~~ is_global zero.
   Parameter reflect_eq : ReflectEq t.
   Parameter to_string : t -> string.
 End OrderedTypeWithLeibnizWithReflect.

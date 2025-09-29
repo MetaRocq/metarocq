@@ -83,6 +83,8 @@ Module Model (LS : LevelSets).
   Import Init.Logic (eq).
 
   Definition model := LevelMap.t (option Z).
+  Implicit Type m : model.
+
   Definition equal_model (m m' : model) := LevelMap.Equal m m'.
   Definition defined_map (m : LevelMap.t (option Z)) :=
     exists l k, LevelMap.MapsTo l (Some k) m.
@@ -124,7 +126,7 @@ Module Model (LS : LevelSets).
     - constructor. constructor.
   Qed.
 
-  Inductive findSpec {A} l m : option A -> Prop :=
+  Inductive findSpec {A} l (m : LevelMap.t A) : option A -> Prop :=
     | inm k : LevelMap.MapsTo l k m -> findSpec l m (Some k)
     | ninm : ~ LevelMap.In l m -> findSpec l m None.
 
@@ -2452,7 +2454,7 @@ Module Model (LS : LevelSets).
   Qed.
 
 
-  Definition model_min m :=
+  Definition model_min (m : model) :=
     LevelMap.fold (fun l k acc => Z.min acc (option_get 0 k)) m 0.
 
   Lemma model_min_spec m : forall l k, LevelMap.MapsTo l (Some k) m -> (model_min m <= k)%Z.
@@ -2478,10 +2480,36 @@ Module Model (LS : LevelSets).
     - intros k' e a m' m'' hm nin hadd hle. lia.
   Qed.
 
-  Definition model_max m :=
+  Lemma model_has_min m : (model_min m = 0) \/ exists l k, LevelMap.MapsTo l (Some k) m /\ model_min m = k.
+  Proof.
+    rewrite /model_min.
+    eapply LevelMapFact.fold_rec.
+    - move=> he hm. now left.
+    - intros l' e a m' m'' hm nin hadd hle.
+      destruct hle as [eqa|[l [k [hm' hle]]]].
+      subst a.
+      destruct (Z.min_spec 0 (option_get 0 e)) as [[hlt heq]|[hlt heq]].
+      * now left.
+      * destruct e; cbn in *. right. exists l', z. split => //.
+        apply levelmap_add_spec in hadd. rewrite hadd.
+        eapply LevelMapFact.F.add_mapsto_iff. now left.
+        now left.
+      * subst a.
+        destruct (Z.min_spec k (option_get 0 e)) as [[hlt heq]|[hlt heq]].
+        + right. exists l, k. split; try lia.
+          apply levelmap_add_spec in hadd. rewrite hadd.
+          rewrite LevelMapFact.F.add_mapsto_iff. right; split => //.
+          intros eq. apply nin. rewrite eq. now eexists.
+        + destruct e; cbn in *. 2:{ now left. }
+          right. exists l', z. split; try lia.
+          apply levelmap_add_spec in hadd. rewrite hadd.
+          rewrite LevelMapFact.F.add_mapsto_iff. now left.
+  Qed.
+
+  Definition model_max (m : model) :=
     LevelMap.fold (fun l k acc => Z.max acc (option_get 0 k)) m 0.
 
-  Lemma model_max_spec m : forall l k, LevelMap.MapsTo l k m -> (k ≤ Some (model_max m)).
+  Lemma model_max_spec (m : model) : forall l k, LevelMap.MapsTo l k m -> (k ≤ Some (model_max m)).
   Proof.
     intros l k hm.
     rewrite /model_max.
@@ -2502,6 +2530,32 @@ Module Model (LS : LevelSets).
     eapply LevelMapFact.fold_rec.
     - intros; reflexivity.
     - intros k' e a m' m'' hm nin hadd hle. lia.
+  Qed.
+
+  Lemma model_has_max m : model_max m = 0 \/ exists l k, LevelMap.MapsTo l (Some k) m /\ model_max m = k.
+  Proof.
+    rewrite /model_max.
+    eapply LevelMapFact.fold_rec.
+    - move=> he hm. now left.
+    - intros l' e a m' m'' hm nin hadd hle.
+      destruct hle as [hz|[l [k [hm' hle]]]].
+      subst a.
+      destruct (Z.max_spec 0 (option_get 0 e)) as [[hlt heq]|[hlt heq]].
+      * destruct e; cbn in *. right. exists l', z. split => //.
+        apply levelmap_add_spec in hadd. rewrite hadd.
+        eapply LevelMapFact.F.add_mapsto_iff. now left.
+        now left.
+      * now left.
+      * subst a.
+        destruct (Z.max_spec k (option_get 0 e)) as [[hlt heq]|[hlt heq]].
+        + destruct e; cbn in *. 2:{ now left. }
+          right. exists l', z. split; try lia.
+          apply levelmap_add_spec in hadd. rewrite hadd.
+          rewrite LevelMapFact.F.add_mapsto_iff. now left.
+        + right. exists l, k. split => //.
+          apply levelmap_add_spec in hadd. rewrite hadd.
+          rewrite LevelMapFact.F.add_mapsto_iff. right; split => //.
+          intros eq. apply nin. rewrite eq. now eexists.
   Qed.
 
   Definition valuation_of_model (m : model) : LevelMap.t nat :=
