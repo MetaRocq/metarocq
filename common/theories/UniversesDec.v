@@ -2,7 +2,7 @@ From Stdlib Require Import PArith NArith ZArith Lia.
 From MetaRocq.Utils Require Import MRList MROption MRUtils.
 From MetaRocq.Common Require Import uGraph.
 From MetaRocq.Common Require Import Universes.
-Import wGraph.
+(* Import wGraph. *)
 
 Definition levels_of_cs (cstr : UnivConstraintSet.t) : LevelSet.t
   := UnivConstraintSet.fold (fun '(l1, _, l2) acc => LevelSet.add l1 (LevelSet.add l2 acc)) cstr (LevelSet.singleton Level.lzero).

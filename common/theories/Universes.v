@@ -965,6 +965,7 @@ Section Univ.
                          -> satisfies0 v (l, ConstraintType.Le, l')
   | satisfies0_Eq (l l' : Universe.t) : val v l = val v l'
                          -> satisfies0 v (l, ConstraintType.Eq, l').
+  Derive Signature for satisfies0.
 
   Definition satisfies v : UnivConstraintSet.t -> Prop :=
     UnivConstraintSet.For_all (satisfies0 v).
