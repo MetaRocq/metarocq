@@ -1759,17 +1759,6 @@ Module LoopChecking (LS : LevelSets).
     check m c <-> valid_entailments (clauses m) (to_clauses c).
   Proof. apply check_clauses_complete. Qed.
 
-  Lemma check_declared m c :
-    check m c -> LevelSet.Subset (clauses_levels (to_clauses c)) (levels m).
-  Proof.
-    rewrite /check /Impl.check_clauses.
-    move: (to_clauses c) => cls.
-    move/Clauses.for_all_spec.
-    move: cls; apply: ClausesProp.set_induction.
-    - intros s he.
-     cl. hin.
-
-
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)

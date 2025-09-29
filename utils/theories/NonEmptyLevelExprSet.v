@@ -846,7 +846,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
         now rewrite join_assoc.
     Qed.
 
-    Lemma clauses_sem_subset {u u' : t} : u ⊂_leset u' ->
+    Lemma interp_prems_subset {u u' : t} : u ⊂_leset u' ->
       interp_prems u ≤ interp_prems u'.
     Proof.
       intros hsub.

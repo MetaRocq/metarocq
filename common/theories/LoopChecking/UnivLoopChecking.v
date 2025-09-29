@@ -650,7 +650,6 @@ End ZUnivConstraint.
   Qed.
 
 
-  (* We ignore errors here, which can happen only if the levels are already declared *)
   Equations? declare_level (m : univ_model) (l : Level.t) : option univ_model :=
   declare_level m l with inspect (LoopCheck.declare_level m.(model) l) :=
   { | exist (Some model) eq with inspect (init_constraint_of_level l) :=
@@ -1567,7 +1566,7 @@ End ZUnivConstraint.
   Lemma declared_cstrs {m : univ_model} :
     UnivConstraintSet.For_all (declared_univ_cstr_levels (levels m)) (constraints m).
   Proof.
-    intros cl hin. destruct cl as [[l d] r]. cbn. split;
+    intros cl hin. destruct cl as [[l d] r]. cbn. split.
     transitivity (univ_constraint_levels (l, d, r)); cbn; try lsets.
     transitivity (univ_constraints_levels (constraints m)) => //.
     intros ?; rewrite univ_constraints_levels_spec; firstorder.
