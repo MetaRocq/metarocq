@@ -3098,4 +3098,121 @@ Module Model (LS : LevelSets).
         exact: valid_clause_elim IHentails _ hadd.
   Qed.
 
+  Definition model_inter (m m' : model) : model :=
+    LevelMap.fold (fun l k acc =>
+      match LevelMap.find l m' with
+      | None => acc
+      | Some k' => LevelMap.add l (option_map2 Z.min k k') acc
+      end)
+      m (LevelMap.empty _).
+
+  Lemma model_inter_spec {m m'} l k :
+    LevelMap.MapsTo l k (model_inter m m') ->
+    exists k0 k1, LevelMap.MapsTo l k0 m /\ LevelMap.MapsTo l k1 m' /\ k = option_map2 Z.min k0 k1.
+  Proof.
+    rewrite /model_inter.
+    move: l k.
+    eapply LevelMapFact.fold_rec.
+    - move=> m0 he l k; now rewrite LevelMapFact.F.empty_mapsto_iff.
+    - move=> e a m0 m1 m2 hm hnin hadd ih l k h.
+      destruct (find_spec e m').
+      * rewrite LevelMapFact.F.add_mapsto_iff in h.
+        apply levelmap_add_spec in hadd.
+        destruct h as [[h h']|[h h']].
+        { subst k. red in h; subst e. exists a, k0; split => //.
+           rewrite hadd. rewrite LevelMapFact.F.add_mapsto_iff. now left. }
+        apply ih in h' as [? [? []]]; do 2 eexists; split; tea.
+        rewrite hadd. rewrite LevelMapFact.F.add_mapsto_iff. now right.
+      * specialize (ih _ _ h) as [? [? [? []]]].
+        exists x, x0. split; auto.
+        apply levelmap_add_spec in hadd. rewrite hadd.
+        rewrite LevelMapFact.F.add_mapsto_iff. right; split => //.
+        intros eq; red in eq; subst e. apply H. now eexists.
+  Qed.
+
+  Lemma model_inter_spec_inv {m m'} l :
+    forall k0 k1, LevelMap.MapsTo l k0 m -> LevelMap.MapsTo l k1 m' ->
+    LevelMap.MapsTo l (option_map2 Z.min k0 k1) (model_inter m m').
+  Proof.
+    rewrite /model_inter.
+    move: l.
+    eapply LevelMapFact.fold_rec.
+    - move=> m0 he l k0 k1 hm hm'; rewrite LevelMapFact.F.empty_mapsto_iff. firstorder.
+    - move=> e a m0 m1 m2 hm hnin hadd ih l k0 k1 hm0 hm1.
+      destruct (find_spec e m').
+      * rewrite LevelMapFact.F.add_mapsto_iff.
+        apply levelmap_add_spec in hadd. rewrite hadd in hm0.
+        rewrite LevelMapFact.F.add_mapsto_iff in hm0; destruct hm0 as [[? ?]|[? ?]]; try congruence.
+        subst a. left; split => //. red in H0; subst e.
+        eapply LevelMapFact.F.MapsTo_fun in hm1; tea. now subst k.
+        right. split => //. apply ih => //.
+      * apply levelmap_add_spec in hadd. rewrite hadd in hm0.
+        rewrite LevelMapFact.F.add_mapsto_iff in hm0.
+        destruct hm0 as [[? ?]|[? ?]]; try congruence. subst a. red in H0; subst e.
+        elim H. now eexists. apply ih => //.
+  Qed.
+
+  Lemma min_atom_value_mapsto {l k v m} : LevelMap.MapsTo l (Some v) m -> min_atom_value m (l,k) = Some (v - k).
+  Proof.
+    rewrite /min_atom_value //=.
+    now move/level_value_MapsTo => ->.
+  Qed.
+
+  Lemma model_inter_ext m m' : model_inter m m' ⩽ m /\ model_inter m m' ⩽ m'.
+  Proof.
+    split.
+    - move=> l k /model_inter_spec => -[k0 [k1 [m0 [m1 ->]]]].
+      exists k0. split => //. destruct k0, k1; constructor; lia.
+    - move=> l k /model_inter_spec => -[k0 [k1 [m0 [m1 ->]]]].
+      exists k1. split => //. destruct k0, k1; constructor; lia.
+  Qed.
+
+  Lemma min_premise_model_inter {m m'} prems k :
+    min_premise (model_inter m m') prems = Some k ->
+    exists k0 k1, min_premise m prems = Some k0 /\ min_premise m' prems = Some k1 /\
+      k <= Z.min k0 k1.
+  Proof.
+    have [hminps [[mini minik] [inmini eqmini]]] := min_premise_spec (model_inter m m') prems.
+    rewrite eqmini => eqmin. rewrite eqmin in eqmini.
+    have [fs exs] := min_premise_spec m prems.
+    have [fs' exs'] := min_premise_spec m' prems.
+    unfold min_atom_value in eqmin.
+    move: eqmin; case: level_valueP => // k0 /[dup] heq /model_inter_spec [k1 [k2 [mk1 [mk2 eq]]]].
+    destruct k0 => // [=] eq'. subst k. destruct k1, k2; noconf eq.
+    specialize (fs _ inmini). specialize (fs' _ inmini).
+    rewrite (min_atom_value_mapsto mk1) in fs.
+    rewrite (min_atom_value_mapsto mk2) in fs'.
+    have [lem lem'] := model_inter_ext m m'.
+    have minp0 := min_premise_pres prems lem.
+    have minp1 := min_premise_pres prems lem'.
+    rewrite eqmini in minp0, minp1. depelim minp0; depelim minp1.
+    exists y, y0. split; auto; split => //. rewrite H0 in fs; rewrite H2 in fs'.
+    depelim fs; depelim fs'. lia.
+  Qed.
+
+  Lemma model_intersection {m m' cls} : is_model cls m -> is_model cls m' -> is_model cls (model_inter m m').
+  Proof.
+    move/is_modelP => m0 /is_modelP m1.
+    apply/is_modelP => cl hin.
+    move: (m0 _ hin). move: (m1 _ hin).
+    destruct cl as [prems [concl k]].
+    move/valid_clause_elim => h1 /valid_clause_elim => h2.
+    apply valid_clause_intro => z hmin.
+    have [fmins [[minp mink] [inmins eqmins]]] := min_premise_spec (model_inter m m') prems.
+    rewrite hmin in eqmins.
+    rewrite /min_atom_value in eqmins.
+    destruct (level_value _ minp) eqn:hl => //.
+    eapply level_value_MapsTo' in hl.
+    eapply model_inter_spec in hl as [k0 [k1 [mk0 [mk1 eqk]]]].
+    destruct k0, k1; noconf eqk.
+    rewrite -hmin in eqmins.
+    have [mink0 [mink1 [eqmin0 [eqmin1 eqmini]]]] := min_premise_model_inter prems _ eqmins.
+    specialize (h1 _ eqmin1). specialize (h2 _ eqmin0).
+    depelim h1. depelim h2.
+    apply level_value_MapsTo' in H0, H2.
+    have minv := model_inter_spec_inv concl _ _ H2 H0.
+    cbn in minv. eapply level_value_MapsTo in minv. rewrite minv. constructor.
+    rewrite hmin in eqmins. noconf eqmins. lia.
+  Qed.
+
 End Model.
