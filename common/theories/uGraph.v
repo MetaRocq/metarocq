@@ -5,15 +5,16 @@ From MetaRocq.Common Require Import config UnivConstraintType Universes UnivLoop
 From Equations.Prop Require Import DepElim.
 From Equations Require Import Equations.
 Import ConstraintType.
+Set Equations Transparent.
 
 Definition universe_model := UnivLoopChecking.univ_model.
-Definition init_graph : universe_model := UnivLoopChecking.init_model.
+Definition init_model : universe_model := UnivLoopChecking.init_model.
 
 Definition uctx_invariants (uctx : ContextSet.t)
   := UnivConstraintSet.For_all (declared_univ_cstr_levels uctx.1) uctx.2.
 
 Definition global_uctx_invariants (uctx : ContextSet.t)
-  := LevelSet.In Level.lzero uctx.1 /\ uctx_invariants uctx.
+  := ~ LevelSet.In Level.lzero uctx.1 /\ uctx_invariants uctx.
 
 Section Push.
   Import UnivLoopChecking.
@@ -23,16 +24,28 @@ push_uctx g uctx with UnivLoopChecking.declare_levels g uctx.1 :=
   | Some g' => enforce_constraints g' uctx.2
   | None => None.
 
+Instance declared_univ_cstrs_levels_proper : Proper (LevelSet.Equal ==> UnivConstraintSet.Equal ==> iff)
+  declared_univ_cstrs_levels.
+Proof. Admitted.
+
+Definition push_uctx_precond g uctx :=
+  let allcstrs := UnivConstraintSet.union uctx.2 (UnivConstraintSet.union (init_constraints_of_levels uctx.1) (constraints g)) in
+  ~ (exists l, LevelSet.In l uctx.1 /\ LevelSet.In l (UnivLoopChecking.levels g)) /\
+  declared_univ_cstrs_levels (LevelSet.union (levels g) uctx.1) uctx.2.
+
 Lemma push_uctx_spec g uctx :
+  let allcstrs := UnivConstraintSet.union uctx.2 (UnivConstraintSet.union (init_constraints_of_levels uctx.1) (constraints g)) in
   match push_uctx g uctx with
   | None =>
     (* Either a universe was already declared *)
     (exists l, LevelSet.In l uctx.1 /\ LevelSet.In l (UnivLoopChecking.levels g)) \/
+    (* Or a universe from the constraints is unbound *)
+    ~ (declared_univ_cstrs_levels (LevelSet.union (levels g) uctx.1) uctx.2) \/
     (* Or the constraints are not satisfiable *)
-    (~ exists v, satisfies v uctx.2)
+    (~ exists v, satisfies v allcstrs)
   | Some g' =>
     levels g' =_lset LevelSet.union uctx.1 (levels g) /\
-    constraints g' =_ucset UnivConstraintSet.union uctx.2 (UnivConstraintSet.union (init_constraints_of_levels uctx.1) (constraints g))
+    constraints g' =_ucset allcstrs
   end.
 Proof.
   funelim (push_uctx g uctx).
@@ -43,231 +56,79 @@ Proof.
     rewrite /levels in eql. rewrite -eql in hdecll. split => //.
     now rewrite eqc hdeclc.
   - move/enforce_constraints_None: ec.
-
-
-
-
-
-Section MakeGraph.
-  Context uctx (Huctx : global_uctx_invariants uctx).
-  Let ctrs := uctx.2.
-  Let G : universes_graph := make_graph uctx.
-
-  Lemma valuation_labelling_eq l (Hl : correct_labelling G l)
-    : forall x, VSet.In x uctx.1
-           -> labelling_of_valuation (valuation_of_labelling l) x = l x.
-  Proof using Type.
-    destruct x as [|s|n]; cbnr.
-    - intros _. now apply proj1 in Hl; cbn in Hl.
-    - intro Hs. apply Nat2Pos.id.
-      assert (HH: EdgeSet.In (lzero, Z.of_nat 1, vtn (VariableLevel.level  s)) (wGraph.E G)). {
-        subst G. apply make_graph_E. left.
-        exists (VariableLevel.level  s). intuition. }
-      apply (proj2 Hl) in HH; cbn in HH. lia.
-  Qed.
-
-  Lemma make_graph_spec v :
-    gc_satisfies v uctx.2 <-> correct_labelling G (labelling_of_valuation v).
-  Proof using Type.
-    unfold gc_satisfies, correct_labelling. split; intro H.
-    - split. reflexivity.
-      intros e He. cbn in He.
-      apply make_graph_E in He.
-      destruct He as [[l [Hl He]]|[ctr [Hc He]]]; cbn.
-      + subst e; cbn. destruct l; cbn; lia.
-      + subst e.
-        apply GoodUnivConstraintSet.for_all_spec in H.
-        2: intros x y []; reflexivity.
-        specialize (H _ Hc). cbn in *.
-        destruct ctr as [[] z []|[] []| |n|n]; cbn in *; toProp H; try lia.
-        all:try destruct t0; cbn in *; try lia.
-    - apply GoodUnivConstraintSet.for_all_spec.
-      intros x y []; reflexivity.
-      intros gc Hgc.
-      pose proof (XX := proj2 (make_graph_E uctx (edge_of_constraint gc))).
-      forward XX. { right. now exists gc. }
-      specialize (H.p2 _ XX).
-      destruct gc as [[] z []|k ?| |n|n]; intro HH; cbn in *; toProp; try lia.
-  Qed.
-
-  Corollary make_graph_spec' l :
-    (* gc_satisfies (valuation_of_labelling l) uctx.2 <-> correct_labelling G l. *)
-    correct_labelling G l -> gc_satisfies (valuation_of_labelling l) uctx.2.
-  Proof using Huctx.
-    intro H. apply (make_graph_spec (valuation_of_labelling l)).
-    unfold correct_labelling. intuition.
-    rewrite !valuation_labelling_eq; tas. 3:now apply H.
-    all: now apply make_graph_invariants.
-  Qed.
-
-  Corollary make_graph_spec2 :
-    gc_consistent uctx.2 <-> exists l, correct_labelling G l.
-  Proof.
-    split.
-    - intros [v H]. exists (labelling_of_valuation v).
-      apply make_graph_spec. assumption.
-    - intros [l Hl]. exists (valuation_of_labelling l).
-      apply make_graph_spec'. assumption.
-  Defined.
-
-  Global Instance consistent_no_loop : gc_consistent ctrs -> acyclic_no_loop G.
-  Proof.
-    intro. apply acyclic_caract1, make_graph_spec2.
-    now apply make_graph_invariants. assumption.
-  Defined.
-End MakeGraph.
-
-Existing Class gc_consistent.
-Existing Class global_gc_uctx_invariants.
-Existing Class global_uctx_invariants.
-Global Existing Instance gc_of_uctx_invariants.
+    have := declare_levels_spec g uctx.1.
+    rewrite Heq.
+    move=> [] hfresh hunion hcstrs [].
+    + move=> ndecl. right. left.
+      rewrite [levels _]hunion in ndecl.
+      now rewrite LevelSetProp.union_sym.
+    + move=> incon. right. right => -[v he]. apply incon.
+      exists v. now rewrite hcstrs.
+  - left. have := declare_levels_spec g uctx.1.
+    now rewrite Heq.
+Qed.
 
 (** ** Check of consistency ** *)
 
-Definition is_consistent `{checker_flags} uctx :=
-  match gc_of_uctx uctx with
-  | Some uctx => is_acyclic (make_graph uctx)
-  | None => false
-  end.
+Equations is_consistent (uctx : ContextSet.t) : bool :=
+is_consistent uctx := isSome (push_uctx init_model uctx).
+
+Lemma satisfies_init v ls : satisfies v (init_constraints_of_levels ls).
+Proof.
+  move=> c /init_constraints_of_levels_spec_inv [l [inz eq]].
+  destruct l; noconf eq.
+  constructor; cbn. lia.
+  constructor; cbn. lia.
+Qed.
 
 Lemma is_consistent_spec `{checker_flags} uctx (Huctx : global_uctx_invariants uctx)
   : is_consistent uctx <-> consistent uctx.2.
 Proof.
-  etransitivity. 2: symmetry; apply gc_consistent_iff.
-  unfold is_consistent; cbn.
-  case_eq (gc_of_constraints uctx.2); cbn.
-  2: intro; split; [discriminate|inversion 1].
-  intros ctrs Hctrs.
-  pose proof (gc_of_uctx_invariants uctx (uctx.1, ctrs)) as XX.
-  cbn in XX; rewrite Hctrs in XX; specialize (XX Logic.eq_refl Huctx).
-  etransitivity. apply make_graph_invariants in XX.
-  etransitivity. apply is_acyclic_spec; tas.
-  apply acyclic_caract1; tas.
-  symmetry; apply (make_graph_spec2 (uctx.1, ctrs)); tas.
-Qed.
-
-Definition Equal_graph :=
-  fun G G' : universes_graph =>
-  LevelSet.Equal G.1.1 G'.1.1 /\
-  wGraph.EdgeSet.Equal G.1.2 G'.1.2 /\ Level.eq G.2 G'.2.
-
-Notation "'(=_g)'" := Equal_graph (at level 30).
-Infix "=_g" := Equal_graph (at level 30).
-
-Global Instance: RelationClasses.RewriteRelation ((=_g)) := {}.
-
-Global Instance equal_graph_equiv : RelationClasses.Equivalence ((=_g)).
-Proof. split; unfold Equal_graph.
-  - intros [[vs es] s]; cbn. intuition reflexivity.
-  - intros [[vs es] s] [[vs' es'] s']; cbn.
-    intuition now symmetry.
-  - intros [[vs es] s] [[vs' es'] s'] [[vs'' es''] s'']; cbn.
-    intuition etransitivity; eauto.
-Qed.
-
-Lemma PathOf_proper {g g' x y} : g =_g g' -> PathOf g x y -> PathOf g' x y.
-Proof.
-  intros eq; induction 1; econstructor; eauto.
-  destruct e as [n ine]. apply eq in ine. now exists n.
-Defined.
-
-Lemma PathOf_proper_weight {g g' x y} (eq: g =_g g') (p : PathOf g x y) : weight (PathOf_proper eq p) = weight p.
-Proof.
-  induction p; cbn; auto. destruct e; cbn.
-  now rewrite IHp.
-Qed.
-
-Global Instance invariants_proper : Proper ((=_g) ==> impl) invariants.
-Proof.
-  intros [[vs es] s] [[vs' es'] s']; cbn in *.
-  intros eq [ev sv sp]; constructor; eauto; cbn in *; intros.
-  - firstorder eauto.
-  - destruct eq as [? []]; cbn in *. rewrite -H1. now apply H.
-  - specialize (sp x). apply eq in H. specialize (sp H).
-    destruct sp as [[p hp]].
-    pose proof (hs := proj2 (proj2 eq)); cbn in hs.
-    rewrite -{2 4 6}hs.
-    split; exists (PathOf_proper eq p). cbn.
-    sq. now rewrite (PathOf_proper_weight eq).
-Qed.
-
-Global Instance invariants_proper_iff : Proper ((=_g) ==> iff) invariants.
-Proof.
-  intros g g' eq. split. now rewrite eq.
-  now rewrite eq.
-Qed.
-
-Global Instance acyclic_no_loop_proper : Proper ((=_g) ==> iff) acyclic_no_loop.
-Proof.
-  intros g g' eq. split.
-  - intros ac x p.
-    rewrite -(PathOf_proper_weight (symmetry eq) p).
-    apply ac.
-  - intros ac x p.
-    rewrite -(PathOf_proper_weight eq p).
-    apply ac.
+  rewrite /is_consistent.
+  have he := push_uctx_spec init_model uctx.
+  destruct push_uctx => //.
+  - cbn. split => // _.
+    have hs := model_satisfies u. exists (to_valuation (LoopCheck.valuation u)).
+    destruct he as [hl hcs]. rewrite hcs in hs.
+    now eapply satisfies_union in hs as [].
+  - split => //= hc.
+    destruct Huctx as [hs ho].
+    destruct he as [[l [inctx init]] | [h | h ]].
+    { cbn in init. apply LevelSet.singleton_spec in init. subst l. contradiction. }
+    { elim h. red in ho. move=> c /ho.
+      rewrite declared_univ_cstr_levels_spec. intros cdecl.
+      rewrite declared_univ_cstr_levels_spec.
+      lsets. }
+    { elim h. destruct hc as [v hv].
+      exists v. eapply satisfies_union. split => //.
+      eapply satisfies_union; split => //.
+      2:{ cbn. intros c. ucsets. }
+      apply satisfies_init. }
 Qed.
 
 Section CheckLeqProcedure.
 
   Context {cf:checker_flags}.
-  Context (leqb_level_n : Z -> Level.t -> Level.t -> bool).
 
-  (* this is function [check_smaller_expr] of kernel/uGraph.ml *)
-  Definition leqb_expr_n_gen lt (e1 e2 : LevelExpr.t) :=
-    match e1, e2 with
-    | (l1, k), (l2, k') =>
-      (* l1 + k < n = l2 + k' <-> l1 < n + (k - k') = l2 *)
-      leqb_level_n (lt + (Z.of_nat k - Z.of_nat k'))%Z l1 l2
-    end.
+  Context (model : universe_model).
 
-  (* this is function [exists_bigger] of kernel/uGraph.ml *)
-  Definition leqb_expr_univ_n_gen lt (e1 : LevelExpr.t) (u : Universe.t) :=
-    (* CHECKME:SPROP: should we use [prop_sub_type] here somehow? *)
-    (* if LevelExpr.is_prop e1 && (n =? 0) then *)
-    (*   prop_sub_type || Sort.is_prop u *)
-                                             (* else *)
-    let '(e2, u) := Universe.exprs u in
-    List.fold_left (fun b e2 => leqb_expr_n_gen lt e1 e2 || b)
-      u (leqb_expr_n_gen lt e1 e2).
+  Definition check_cstr := check model.
 
-  (* this is function [real_check_leq] of kernel/uGraph.ml *)
-  Definition leqb_universe_n_gen lt (l1 l2 : Universe.t) :=
-      let '(e1, u1) := Universe.exprs l1 in
-      List.fold_left (fun b e1 => leqb_expr_univ_n_gen ⎩ lt ⎭ e1 l2 && b)
-                     u1 (leqb_expr_univ_n_gen ⎩ lt ⎭ e1 l2).
-
-  Definition check_leqb_universe_gen (u1 u2 : Universe.t) :=
+  Definition check_leqb_universe (u1 u2 : Universe.t) :=
     ~~ check_univs
     || (u1 == u2)
-    || leqb_universe_n_gen false u1 u2.
+    || check_cstr (u1, Le, u2).
 
-  Definition check_eqb_universe_gen (u1 u2 : Universe.t) :=
+  Definition check_eqb_universe (u1 u2 : Universe.t) :=
     ~~ check_univs
     || (u1 == u2)
-    || (leqb_universe_n_gen false u1 u2 && leqb_universe_n_gen false u2 u1).
+    || check_cstr (u1, Eq, u2).
 
-  Definition check_gc_constraint_gen (gc : GoodConstraint.t) :=
-    ~~ check_univs ||
-    match gc with
-    | GoodConstraint.gc_le l z l' => leqb_level_n z l l'
-    | GoodConstraint.gc_lt_set_level k l => leqb_level_n (Z.of_nat (S k)) lzero (Level.level  l)
-    | GoodConstraint.gc_le_set_var k n => leqb_level_n (Z.of_nat k) lzero (Level.lvar n)
-    | GoodConstraint.gc_le_level_set l k => leqb_level_n (- Z.of_nat k)%Z (Level.level  l) lzero
-    | GoodConstraint.gc_le_var_set n k => leqb_level_n (- Z.of_nat k)%Z (Level.lvar n) lzero
-    end.
-
-  Definition check_gc_constraints_gen :=
-    GoodUnivConstraintSet.for_all check_gc_constraint_gen.
-
-  Definition check_constraints_gen ctrs :=
-    match gc_of_constraints ctrs with
-    | Some ctrs => check_gc_constraints_gen ctrs
-    | None => false
-    end.
+  Definition check_constraint (c : UnivConstraint.t) :=
+    ~~ check_univs || check_cstr c.
 
   Definition eqb_univ_instance_gen (u1 u2 : Instance.t) : bool :=
-    forallb2 (fun l1 l2 => check_eqb_universe_gen
+    forallb2 (fun l1 l2 => check_eqb_universe
         (Universe.make' l1) (Universe.make' l2)) u1 u2.
 
   Definition leqb_sort_gen (s1 s2 : Sort.t) :=

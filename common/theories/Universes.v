@@ -2,7 +2,7 @@ From Stdlib Require Import OrdersAlt Structures.OrdersEx MSetList MSetAVL MSetFa
 From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils MRMSets MRFSets NonEmptyLevelExprSet MRClasses.
 From MetaRocq.Common Require Import BasicAst config UnivConstraintType.
-From Stdlib Require Import ssreflect.
+From Stdlib Require Import ssreflect ssrfun.
 
 Local Open Scope nat_scope.
 Local Open Scope string_scope2.
@@ -409,6 +409,8 @@ Module Universe.
 
   #[global] Instance eq_dec_univ0 : EqDec t := eq_dec.
 
+  Definition eqb : t -> t -> bool := eqb.
+
   Definition make (e: LevelExpr.t) : t := singleton e.
   Definition make' (l: Level.t) : t := singleton (LevelExpr.make l).
 
@@ -434,13 +436,17 @@ Module Universe.
   Definition is_level (u : t) : bool :=
     (LevelExprSet.cardinal u =? 1)%nat && is_levels u.
 
+  Definition zero := make' Level.lzero.
+
   Definition succ : t -> t := map LevelExpr.succ.
+
+  Definition plus (n : nat) : t -> t := map (LevelExpr.add n).
 
   Definition from_kernel_repr (e : Level.t * nat) (es : list (Level.t * nat)) : t
     := add_list es (Universe.make e).
 
   (** The l.u.b. of 2 non-prop universe sets *)
-  Definition sup : t -> t -> t := non_empty_union.
+  Definition sup : t -> t -> t := union.
 
   Definition get_is_level (u : t) : option Level.t :=
     match LevelExprSet.elements u with
@@ -463,6 +469,117 @@ Module Universe.
     cbv [lt]; constructor.
     { intros ? H. apply irreflexivity in H; assumption. }
     { intros ??? H1 H2; etransitivity; tea. }
+  Qed.
+
+  Definition fold_union (f : LevelExpr.t -> t) (u : t) :=
+    let '(hd, tl) := to_nonempty_list u in
+    List.fold_right (fun r u => sup (f r) u) (f hd) tl.
+
+  Instance proper_fold_union f : Proper (NES.eq ==> NES.eq) (fold_union f).
+  Proof.
+    intros x y ?. apply NES.equal_exprsets. apply NES.equal_exprsets in H. subst x.
+    reflexivity.
+  Qed.
+
+  Definition fold_union_singleton {f le} :
+    fold_union f (singleton le) = f le.
+  Proof.
+    now cbn.
+  Qed.
+
+  Lemma in_fold_sup acc l :
+    forall le, LevelExprSet.In le (fold_right sup acc l) <->
+      LevelExprSet.In le acc \/ (exists le', In le' l /\ LevelExprSet.In le le').
+  Proof.
+    induction l; cbn.
+    - intros le. firstorder.
+    - intros le. rewrite LevelExprSet.union_spec.
+      rewrite IHl. split.
+      * intros [H|[H|H]].
+        right. exists a. split => //. now left.
+        now left.
+        right. destruct H as [le' []]. exists le'; split => //. now right.
+      * intros [H|[le' H]].
+        right. now left.
+        destruct H. destruct H. subst.
+        now left.
+        right. right. exists le'. split => //.
+  Qed.
+
+  Lemma in_map {le} {f} {u : NES.t} : In le (ListDef.map f (LevelExprSet.elements u)) <-> LevelExprSet.In le (map f u).
+  Proof.
+    rewrite map_spec.
+    split.
+    - intros hin. rewrite in_map_iff in hin. destruct hin as [x [<- hin]].
+      exists x; split => //. now rewrite -LevelExprSet.elements_spec1 InA_In_eq.
+    - intros [x [hin ->]]. rewrite in_map_iff. exists x. split => //.
+      now rewrite -LevelExprSet.elements_spec1 InA_In_eq in hin.
+  Qed.
+
+  Definition fold_union_add {f le u} :
+    fold_union f (add le u) = sup (f le) (fold_union f u).
+  Proof.
+    rewrite /fold_union.
+    have hs := to_nonempty_list_spec (add le u).
+    have hs' := to_nonempty_list_spec u.
+    destruct to_nonempty_list.
+    destruct to_nonempty_list.
+    rewrite fold_right_map (fold_right_map _ _ (f p0)).
+    apply equal_exprsets. intros le'.
+    rewrite LevelExprSet.union_spec.
+    rewrite !in_fold_sup.
+    eapply (f_equal (List.map f)) in hs.
+    eapply (f_equal (List.map f)) in hs'.
+    cbn [List.map ListDef.map] in hs, hs'.
+    have equ :
+       LevelExprSet.In le' (f p) \/ (exists le'0 : t, In le'0 (ListDef.map f l) /\ LevelExprSet.In le' le'0) <->
+       exists le, In le (f p :: ListDef.map f l) /\ LevelExprSet.In le' le.
+    { firstorder. subst x. now left. }
+    rewrite equ.
+    have equ' :
+       LevelExprSet.In le' (f p0) \/ (exists le'0 : t, In le'0 (ListDef.map f l0) /\ LevelExprSet.In le' le'0) <->
+       exists le, In le (f p0 :: ListDef.map f l0) /\ LevelExprSet.In le' le.
+    { firstorder. subst x. now left. }
+    rewrite equ'. rewrite hs. rewrite hs'.
+    split.
+    - move=> [] lk. rewrite !in_map_iff.
+      move=> [] [x] [] hfx /In_elements; rewrite add_spec => inadd inlk.
+      subst lk.
+      destruct inadd. subst x. now left. right.
+      exists (f x). split => //. rewrite in_map_iff. exists x. split => //.
+      now apply In_elements.
+    - move=> [] fle.
+      * exists (f le). split => //.
+        rewrite in_map_iff. exists le. split => //.
+        apply In_elements. apply LevelExprSet.add_spec; now left.
+      * destruct fle as [le2 [hin hin']].
+        exists le2. split => //.
+        rewrite in_map_iff in hin. destruct hin as [x [hfx hin]]. subst le2.
+        apply In_elements in hin. rewrite in_map_iff. exists x. split => //.
+        rewrite -In_elements. apply LevelExprSet.add_spec; now right.
+  Qed.
+
+   Lemma fold_union_spec {f u} :
+    forall le, LevelExprSet.In le (fold_union f u) <->
+    exists le', LevelExprSet.In le' u /\ LevelExprSet.In le (f le').
+  Proof.
+    intros le.
+    move: u le. clear; apply: elim.
+    - intros le' u. cbn. split.
+      * exists le'. split => //. now apply singleton_spec.
+      * now move=> [] le [] /LevelExprSet.singleton_spec ->.
+    - move=> le' x hin hnin inm.
+      rewrite fold_union_add /sup union_spec hin.
+      setoid_rewrite add_spec. firstorder.
+      subst. now left.
+  Qed.
+
+  Definition concat_map := fold_union.
+
+  Definition concat_map_singleton {f le} :
+    concat_map f (singleton le) = f le.
+  Proof.
+    now cbn.
   Qed.
 
 End Universe.
@@ -763,11 +880,11 @@ Qed.
 
 (** {6 Sort instances} *)
 
-Module Instance.
+Module LevelInstance.
 
   (** A universe instance represents a vector of argument concrete_sort
       to a polymorphic definition (constant, inductive or constructor). *)
-  Definition t : Set := list Level.t.
+  Definition t := list Level.t.
 
   Definition empty : t := [].
   Definition is_empty (i : t) : bool :=
@@ -779,22 +896,38 @@ Module Instance.
   Definition eqb (i j : t) :=
     forallb2 Level.eqb i j.
 
-  Definition equal_upto (f : Level.t -> Level.t -> bool) (i j : t) :=
-    forallb2 f i j.
+End LevelInstance.
+
+Module Instance.
+
+  (** A universe instance represents a vector of argument concrete_sort
+      to a polymorphic definition (constant, inductive or constructor). *)
+  Definition t := list Universe.t.
+
+  Definition empty : t := [].
+  Definition is_empty (i : t) : bool :=
+    match i with
+    | [] => true
+    | _ => false
+    end.
+
+  Definition eqb (i j : t) :=
+    forallb2 Universe.eqb i j.
+
 End Instance.
 
 Module UContext.
-  Definition t := list name × (Instance.t × UnivConstraintSet.t).
+  Definition t := list name × (LevelInstance.t × UnivConstraintSet.t).
 
-  Definition make' : Instance.t -> UnivConstraintSet.t -> Instance.t × UnivConstraintSet.t := pair.
-  Definition make (ids : list name) (inst_ctrs : Instance.t × UnivConstraintSet.t) : t := (ids, inst_ctrs).
+  Definition make' : LevelInstance.t -> UnivConstraintSet.t -> LevelInstance.t × UnivConstraintSet.t := pair.
+  Definition make (ids : list name) (inst_ctrs : LevelInstance.t × UnivConstraintSet.t) : t := (ids, inst_ctrs).
 
-  Definition empty : t := ([], (Instance.empty, UnivConstraintSet.empty)).
+  Definition empty : t := ([], (LevelInstance.empty, UnivConstraintSet.empty)).
 
-  Definition instance : t -> Instance.t := fun x => fst (snd x).
+  Definition instance : t -> LevelInstance.t := fun x => fst (snd x).
   Definition constraints : t -> UnivConstraintSet.t := fun x => snd (snd x).
 
-  Definition dest : t -> list name * (Instance.t * UnivConstraintSet.t) := fun x => x.
+  Definition dest : t -> list name * (LevelInstance.t * UnivConstraintSet.t) := fun x => x.
 End UContext.
 
 Module AUContext.
@@ -2335,18 +2468,26 @@ Definition fresh_universe : Universe.t := Universe.make' fresh_level.
 
 (** Substitutable type *)
 
+Class UnivLevelSubst A := subst_level_instance : LevelInstance.t -> A -> A.
+
+Notation "x @@[ u ]" := (subst_level_instance u x) (at level 3,
+  format "x @@[ u ]").
+
 Class UnivSubst A := subst_instance : Instance.t -> A -> A.
 
 Notation "x @[ u ]" := (subst_instance u x) (at level 3,
   format "x @[ u ]").
 
-#[global] Instance subst_instance_level : UnivSubst Level.t :=
+#[global] Instance subst_level_instance_level : UnivLevelSubst Level.t :=
   fun u l => match l with
             Level.lzero | Level.level     _ => l
           | Level.lvar n => List.nth n u Level.lzero
           end.
 
-#[global] Instance subst_instance_level_expr : UnivSubst LevelExpr.t :=
+#[global] Instance subst_level_instance_level_instance : UnivLevelSubst LevelInstance.t :=
+  fun u l => map (subst_level_instance_level u) l.
+
+#[global] Instance subst_level_instance_level_expr : UnivLevelSubst LevelExpr.t :=
 fun u e => match e with
         | (Level.lzero, _)
         | (Level.level _, _) => e
@@ -2357,21 +2498,54 @@ fun u e => match e with
           end
         end.
 
+Definition subst_instance_level_expr (u : Instance.t) (l : LevelExpr.t) : Universe.t :=
+  match l with
+  | (Level.lzero, _)
+  | (Level.level _, _) => Universe.make l
+  | (Level.lvar n, k) =>
+    match nth_error u n with
+    | Some l => Universe.plus k l
+    | None => Universe.zero
+    end
+  end.
+
+#[global] Instance subst_level_instance_universe : UnivLevelSubst Universe.t :=
+  fun u => Universe.map (subst_level_instance_level_expr u).
+
 #[global] Instance subst_instance_universe : UnivSubst Universe.t :=
-  fun u => Universe.map (subst_instance_level_expr u).
+  fun u => Universe.concat_map (subst_instance_level_expr u).
+
+#[global] Instance subst_level_instance_univ_cstr : UnivLevelSubst UnivConstraint.t :=
+  fun u c => (c.1.1@@[u], c.1.2, c.2@@[u]).
 
 #[global] Instance subst_instance_univ_cstr : UnivSubst UnivConstraint.t :=
-  fun u c => (subst_instance u c.1.1, c.1.2, subst_instance u c.2).
+  fun u c => (c.1.1@[u], c.1.2, c.2@[u]).
+
+#[global] Instance subst_level_instance_cstrs : UnivLevelSubst UnivConstraintSet.t :=
+  fun u ctrs => UnivConstraintSet.fold (fun c => UnivConstraintSet.add (subst_level_instance_univ_cstr u c))
+                                ctrs UnivConstraintSet.empty.
 
 #[global] Instance subst_instance_cstrs : UnivSubst UnivConstraintSet.t :=
   fun u ctrs => UnivConstraintSet.fold (fun c => UnivConstraintSet.add (subst_instance_univ_cstr u c))
                                 ctrs UnivConstraintSet.empty.
 
+#[global] Instance subst_level_instance_sort : UnivLevelSubst Sort.t :=
+  fun u e => match e with
+          | sProp | sSProp => e
+          | sType u' => sType u'@@[u]
+          end.
+
 #[global] Instance subst_instance_sort : UnivSubst Sort.t :=
   fun u e => match e with
           | sProp | sSProp => e
-          | sType u' => sType (subst_instance u u')
+          | sType u' => sType u'@[u]
           end.
+
+Lemma subst_level_instance_to_family s u :
+  Sort.to_family s@@[u] = Sort.to_family s.
+Proof.
+  destruct s => //.
+Qed.
 
 Lemma subst_instance_to_family s u :
   Sort.to_family s@[u] = Sort.to_family s.
@@ -2379,9 +2553,11 @@ Proof.
   destruct s => //.
 Qed.
 
-#[global] Instance subst_instance_instance : UnivSubst Instance.t :=
-  fun u u' => List.map (subst_instance_level u) u'.
+#[global] Instance subst_level_instance_instance : UnivLevelSubst Instance.t :=
+  fun u u' => List.map (subst_level_instance_universe u) u'.
 
+#[global] Instance subst_instance_instance : UnivSubst Instance.t :=
+  fun u u' => List.map (subst_instance_universe u) u'.
 
 Theorem relevance_subst_eq u s : relevance_of_sort (subst_instance_sort u s) = relevance_of_sort s.
 Proof.
@@ -2423,23 +2599,83 @@ Section Closedu.
     | sType l => closedu_universe l
     end.
 
-  Definition closedu_instance (u : Instance.t) :=
+  Definition closedu_level_instance (u : LevelInstance.t) :=
     forallb closedu_level u.
+
+  Definition closedu_instance (u : Instance.t) :=
+    forallb closedu_universe u.
+
 End Closedu.
 
 (** Universe-closed terms are unaffected by universe substitution. *)
 Section UniverseClosedSubst.
-  Lemma closedu_subst_instance_level u l
-  : closedu_level 0 l -> subst_instance_level u l = l.
+
+  Lemma closedu_subst_level_instance_level u l
+    : closedu_level 0 l -> subst_level_instance_level u l = l.
   Proof.
     destruct l; cbnr. discriminate.
   Qed.
 
-  Lemma closedu_subst_instance_level_expr u e
-    : closedu_level_expr 0 e -> subst_instance_level_expr u e = e.
+  Lemma closedu_subst_level_instance_level_expr u e
+    : closedu_level_expr 0 e -> subst_level_instance_level_expr u e = e.
   Proof.
     intros.
     destruct e as [t b]. destruct t;cbnr. discriminate.
+  Qed.
+
+  Lemma closedu_subst_instance_level_expr u e
+    : closedu_level_expr 0 e -> subst_instance_level_expr u e = Universe.make e.
+  Proof.
+    intros.
+    destruct e as [t b]. destruct t;cbnr. discriminate.
+  Qed.
+
+  Lemma closedu_subst_level_instance_universe u e
+    : closedu_universe 0 e -> subst_level_instance_universe u e = e.
+  Proof.
+    Import Universe.
+    intros.
+    rewrite /subst_level_instance_universe.
+    apply Universe.equal_exprsets => l.
+    rewrite Universe.map_spec.
+    apply LevelExprSet.for_all_spec in H.
+    split.
+    - intros [le' [hin heq]]. rewrite closedu_subst_level_instance_level_expr in heq.
+      unfold closedu_universe in H.
+      now specialize (H le' hin). tc. now subst le'.
+    - intros hin. exists l. split => //.
+      rewrite closedu_subst_level_instance_level_expr.
+      now apply H. reflexivity.
+    - tc.
+  Qed.
+
+  Lemma closedu_subst_instance_universe u e
+    : closedu_universe 0 e -> subst_instance_universe u e = e.
+  Proof.
+    Import Universe.
+    intros.
+    rewrite /subst_instance_universe.
+    apply Universe.equal_exprsets => l.
+    rewrite /Universe.concat_map Universe.fold_union_spec.
+    apply LevelExprSet.for_all_spec in H.
+    split.
+    - intros [le' [hin heq]]. rewrite closedu_subst_instance_level_expr in heq.
+      unfold closedu_universe in H.
+      now specialize (H le' hin). tc.
+      apply LevelExprSet.singleton_spec in heq. now subst le'.
+    - intros hin. exists l. split => //.
+      rewrite closedu_subst_instance_level_expr.
+      now apply H. now apply LevelExprSet.singleton_spec.
+    - tc.
+  Qed.
+
+  Lemma closedu_subst_level_instance_univ u s
+    : closedu_sort 0 s -> subst_level_instance_sort u s = s.
+  Proof.
+    intro H.
+    destruct s as [| | t]; cbnr.
+    apply f_equal. unfold subst_level_instance.
+    now rewrite closedu_subst_level_instance_universe.
   Qed.
 
   Lemma closedu_subst_instance_univ u s
@@ -2447,53 +2683,70 @@ Section UniverseClosedSubst.
   Proof.
     intro H.
     destruct s as [| | t]; cbnr.
-    apply f_equal. apply Universe.equal_exprsets.
-    destruct t as [ts H1].
-    unfold closedu_sort, closedu_universe in *;cbn in *.
-    intro e; split; intro He.
-    - apply Universe.map_levelexprset_spec in He as [e' [He' X]].
-      subst e.
-      rewrite closedu_subst_instance_level_expr.
-      apply LevelExprSet.for_all_spec in H; proper.
-      exact (H _ He').
-      now subst.
-    - apply Universe.map_levelexprset_spec. exists e; split; tas.
-      symmetry; apply closedu_subst_instance_level_expr.
-      apply LevelExprSet.for_all_spec in H; proper. now apply H.
+    apply f_equal. unfold subst_instance.
+    now rewrite closedu_subst_instance_universe.
   Qed.
 
-  Lemma closedu_subst_instance u t
+  Lemma closedu_subst_level_instance_level_instance u t
+    : closedu_level_instance 0 t -> subst_level_instance u t = t.
+  Proof.
+    intro H. apply forall_map_id_spec.
+    apply Forall_forall; intros l Hl.
+    apply closedu_subst_level_instance_level.
+    eapply forallb_forall in H; eassumption.
+  Qed.
+
+  Lemma closedu_subst_level_instance_instance u t
+    : closedu_instance 0 t -> subst_level_instance u t = t.
+  Proof.
+    intro H. apply forall_map_id_spec.
+    apply Forall_forall; intros l Hl.
+    apply closedu_subst_level_instance_universe.
+    eapply forallb_forall in H; eassumption.
+  Qed.
+
+  Lemma closedu_subst_instance_instance u t
     : closedu_instance 0 t -> subst_instance u t = t.
   Proof.
     intro H. apply forall_map_id_spec.
     apply Forall_forall; intros l Hl.
-    apply closedu_subst_instance_level.
+    apply closedu_subst_instance_universe.
     eapply forallb_forall in H; eassumption.
   Qed.
 
 End UniverseClosedSubst.
 
 #[global]
-Hint Resolve closedu_subst_instance_level closedu_subst_instance_level_expr
-     closedu_subst_instance_univ closedu_subst_instance : substu.
+Hint Resolve
+  closedu_subst_level_instance_level
+  closedu_subst_level_instance_level_instance
+  closedu_subst_level_instance_level_expr
+  closedu_subst_level_instance_universe
+  closedu_subst_level_instance_instance
+  closedu_subst_level_instance_univ
+  closedu_subst_instance_level_expr
+  closedu_subst_instance_universe
+  closedu_subst_instance_instance
+  closedu_subst_instance_univ
+  : substu.
 
 (** Substitution of a universe-closed instance of the right size
     produces a universe-closed term. *)
-Section SubstInstanceClosed.
-  Context (u : Instance.t) (Hcl : closedu_instance 0 u).
+Section SubstLevelInstanceClosed.
+  Context (u : LevelInstance.t) (Hcl : closedu_level_instance 0 u).
 
-  Lemma subst_instance_level_closedu l
-    : closedu_level #|u| l -> closedu_level 0 (subst_instance_level u l).
+  Lemma subst_level_instance_level_closedu l
+    : closedu_level #|u| l -> closedu_level 0 (subst_level_instance_level u l).
   Proof using Hcl.
     destruct l; cbnr.
-    unfold closedu_instance in Hcl.
+    unfold closedu_level_instance in Hcl.
     destruct (nth_in_or_default n u Level.lzero).
     - intros _. eapply forallb_forall in Hcl; tea.
     - rewrite e; reflexivity.
   Qed.
 
-  Lemma subst_instance_level_expr_closedu e :
-    closedu_level_expr #|u| e -> closedu_level_expr 0 (subst_instance_level_expr u e).
+  Lemma subst_level_instance_level_expr_closedu e :
+    closedu_level_expr #|u| e -> closedu_level_expr 0 (subst_level_instance_level_expr u e).
   Proof using Hcl.
     destruct e as [l b]. destruct l;cbnr.
     case_eq (nth_error u n); cbnr. intros [] Hl X; cbnr.
@@ -2502,18 +2755,105 @@ Section SubstInstanceClosed.
     discriminate.
   Qed.
 
+  Lemma subst_level_instance_universe_closedu s
+    : closedu_universe #|u| s -> closedu_universe 0 (subst_level_instance_universe u s).
+  Proof using Hcl.
+    intro H.
+    apply LevelExprSet.for_all_spec; proper.
+    intros e He. eapply Universe.map_levelexprset_spec in He.
+    destruct He as [e' [He' X]]; subst.
+    apply subst_level_instance_level_expr_closedu.
+    apply LevelExprSet.for_all_spec in H; proper.
+    now apply H.
+  Qed.
+
+  Lemma subst_level_instance_univ_closedu s
+    : closedu_sort #|u| s -> closedu_sort 0 (subst_level_instance_sort u s).
+  Proof using Hcl.
+    intro H.
+    destruct s as [| |t]; cbnr.
+    destruct t as [l Hl].
+    now apply subst_level_instance_universe_closedu.
+  Qed.
+
+  Lemma subst_level_instance_level_instance_closedu t :
+    closedu_level_instance #|u| t -> closedu_level_instance 0 (subst_level_instance_level_instance u t).
+  Proof using Hcl.
+    intro H. etransitivity. eapply forallb_map.
+    eapply forallb_impl; tea.
+    intros l Hl; cbn. apply subst_level_instance_level_closedu.
+  Qed.
+
+  Lemma subst_level_instance_instance_closedu t :
+    closedu_instance #|u| t -> closedu_instance 0 (subst_level_instance_instance u t).
+  Proof using Hcl.
+    intro H. etransitivity. eapply forallb_map.
+    eapply forallb_impl; tea.
+    intros l Hl; cbn. apply subst_level_instance_universe_closedu.
+  Qed.
+
+End SubstLevelInstanceClosed.
+
+#[global]
+Hint Resolve subst_level_instance_level_closedu subst_level_instance_level_expr_closedu
+     subst_level_instance_universe_closedu
+     subst_level_instance_univ_closedu
+     subst_level_instance_instance_closedu
+     subst_level_instance_level_instance_closedu : substu.
+
+Lemma eqb_iff {b b' : bool} : b = true <-> b' = true -> b = b'.
+Proof. intros []; destruct b, b'; auto. elim (H eq_refl). reflexivity. Qed.
+
+Lemma closedu_universe_plus {u k n} : closedu_universe k u = closedu_universe k (Universe.plus n u).
+Proof.
+  apply eqb_iff.
+  rewrite /closedu_universe /Universe.plus.
+  rewrite !LevelExprSet.for_all_spec /LevelExprSet.For_all.
+  setoid_rewrite Universe.map_spec. firstorder.
+  - subst x. rewrite /closedu_level_expr. cbn. now apply H.
+  - specialize (H (LevelExpr.add n x)). forward H. exists x. split => //.
+    now unfold closedu_level_expr in *; destruct x; cbn in *.
+Qed.
+
+(** Substitution of a universe-closed instance of the right size
+    produces a universe-closed term. *)
+Section SubstInstanceClosed.
+  Context (u : Instance.t) (Hcl : closedu_instance 0 u).
+
+  Lemma subst_instance_level_expr_closedu e :
+    closedu_level_expr #|u| e -> closedu_universe 0 (subst_instance_level_expr u e).
+  Proof using Hcl.
+    destruct e as [l b]. destruct l;cbnr.
+    case_eq (nth_error u n); cbnr. intros u' Hl; cbnr.
+    apply nth_error_In in Hl. cbn in Hl.
+    intros hn.
+    unfold closedu_instance in Hcl.
+    red in Hcl; rewrite -> forallb_forall in Hcl. specialize (Hcl _ Hl).
+    now rewrite -closedu_universe_plus.
+  Qed.
+
+  Lemma subst_instance_universe_closedu s
+    : closedu_universe #|u| s -> closedu_universe 0 (subst_instance_universe u s).
+  Proof using Hcl.
+    intro H.
+    apply LevelExprSet.for_all_spec; proper.
+    intros e He. rewrite /subst_instance_universe in He.
+    eapply Universe.fold_union_spec in He.
+    apply LevelExprSet.for_all_spec in H.
+    destruct He as [le [hin hin']].
+    have := subst_instance_level_expr_closedu le;
+    move => /fwd. now apply H.
+    now move/LevelExprSet.for_all_spec/(_ e hin').
+    tc.
+  Qed.
+
   Lemma subst_instance_univ_closedu s
     : closedu_sort #|u| s -> closedu_sort 0 (subst_instance_sort u s).
   Proof using Hcl.
     intro H.
     destruct s as [| |t]; cbnr.
     destruct t as [l Hl].
-    apply LevelExprSet.for_all_spec; proper.
-    intros e He. eapply Universe.map_levelexprset_spec in He.
-    destruct He as [e' [He' X]]; subst.
-    apply subst_instance_level_expr_closedu.
-    apply LevelExprSet.for_all_spec in H; proper.
-    now apply H.
+    now apply subst_instance_universe_closedu.
   Qed.
 
   Lemma subst_instance_closedu t :
@@ -2521,14 +2861,15 @@ Section SubstInstanceClosed.
   Proof using Hcl.
     intro H. etransitivity. eapply forallb_map.
     eapply forallb_impl; tea.
-    intros l Hl; cbn. apply subst_instance_level_closedu.
+    intros l Hl; cbn. apply subst_instance_universe_closedu.
   Qed.
 End SubstInstanceClosed.
 
 #[global]
-Hint Resolve subst_instance_level_closedu subst_instance_level_expr_closedu
-     subst_instance_univ_closedu subst_instance_closedu : substu.
-
+Hint Resolve subst_instance_level_expr_closedu
+  subst_instance_universe_closedu
+  subst_instance_univ_closedu
+  subst_instance_closedu : substu.
 
 Definition string_of_level (l : Level.t) : string :=
   match l with
@@ -2566,13 +2907,13 @@ Definition universes_entry_of_decl (u : universes_decl) : universes_entry :=
 
 Definition polymorphic_instance uctx :=
   match uctx with
-  | Monomorphic_ctx => Instance.empty
+  | Monomorphic_ctx => LevelInstance.empty
   | Polymorphic_ctx c => fst (snd (AUContext.repr c))
   end.
 (* TODO: duplicate of polymorphic_instance *)
 Definition abstract_instance decl :=
   match decl with
-  | Monomorphic_ctx => Instance.empty
+  | Monomorphic_ctx => LevelInstance.empty
   | Polymorphic_ctx auctx => UContext.instance (AUContext.repr auctx)
   end.
 

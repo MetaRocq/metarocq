@@ -763,6 +763,14 @@ End ZUnivConstraint.
     - move: H. now rewrite ClausesFact.empty_iff.
   Qed.
 
+  Definition levels m := LoopCheck.levels m.(model).
+
+  Lemma init_model_levels : levels init_model = LevelSet.singleton (Level.zero).
+  Proof. now cbn. Qed.
+
+  Lemma init_model_constraints : constraints init_model = UnivConstraintSet.empty.
+  Proof. now cbn. Qed.
+
   Local Obligation Tactic := idtac.
 
   Equations? enforce m (c : UnivConstraint.t) : option _ :=
@@ -806,7 +814,7 @@ End ZUnivConstraint.
   Qed.
 
   Definition constraint_levels (c : LoopCheck.constraint) :=
-    LevelSet.union (levels c.1.1) (levels c.2).
+    LevelSet.union (NES.levels c.1.1) (NES.levels c.2).
 
   Lemma in_constraint_levels_to_constraint c :
     forall l, LevelSet.In l (constraint_levels (to_constraint c)) <->
@@ -869,8 +877,6 @@ End ZUnivConstraint.
     - cbn. rewrite ndecl_nin_levels.
       rewrite -LoopCheck.enforce_not_None eq. split => //. congruence.
   Qed.
-
-  Definition levels m := LoopCheck.levels m.(model).
 
   Lemma enforce_model m c m' :
     enforce m c = Some (inl m') -> levels m = levels m' /\
@@ -1202,7 +1208,7 @@ End ZUnivConstraint.
 
   Lemma init_constraints_of_levels_spec_inv ls :
     forall c, UnivConstraintSet.In c (init_constraints_of_levels ls) ->
-    exists l c, LevelSet.In l ls /\ init_constraint_of_level l = Some c.
+    exists l, LevelSet.In l ls /\ init_constraint_of_level l = Some c.
   Proof. Admitted.
 
   Instance init_constraints_of_levels_proper : Proper (LevelSet.Equal ==> UnivConstraintSet.Equal) (init_constraints_of_levels).
@@ -1231,7 +1237,7 @@ End ZUnivConstraint.
     - move=> s' he. destruct og => //. exists u. split => //.
       split. lsets. split => //. lsets.
       intros c. rsets. split; auto. intros []; auto.
-      apply init_constraints_of_levels_spec_inv in H as [l [c' [he' _]]]; lsets.
+      apply init_constraints_of_levels_spec_inv in H as [l [he' _]]; lsets.
       now left.
     - move=> x a s' s'' hin hnin hadd.
       destruct a.
