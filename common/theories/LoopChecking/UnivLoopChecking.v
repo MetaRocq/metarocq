@@ -1792,6 +1792,48 @@ End ZUnivConstraint.
     exact hv.
   Qed.
 
+
+  Definition valid_Z_model m c :=
+    (forall (v : Level.t -> Z), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+
+  Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
+
+  Definition valid_Z_entailments p r :=
+    (forall (v : Level.t -> Z), interp_rels v p -> interp_rels v r).
+(*
+  Lemma valid_Z_entails_L {p r} :
+    valid_Z_entailments p r -> p ⊩ℒ r.
+  Proof.
+    rewrite /valid_Z_entailments.
+    intros ha.
+    have ha' := entails_L_entails_ℋ_equiv.
+    Search entails.
+
+
+     apply syntax_model.
+    destruct r as [l r]. cbn.
+    Print ids.
+    change (eq (Semilattice := init_model p) (interp_prems (SL := init_model p) (ids p) l) (interp_prems (SL := init_model p) (ids p) r)).
+    specialize (ha _ (init_model p) (ids p) (interp_rels_init p)).
+    now cbn in ha.
+  Qed. *)
+
+
+  Theorem check_completeness {m c} :
+    check m c <-> m ⊩Z c.
+  Proof.
+    rewrite LoopCheck.check_complete /LoopCheck.valid_entailments /valid_model.
+    setoid_rewrite interp_cstrs_clauses_sem.
+    split.
+    - intros hv S s v hp.
+      move: (hv S s v hp).
+      now rewrite interp_cstr_clauses_sem.
+    - intros hs S SL V hsem.
+      move: (hs S SL V) => /fwd //.
+      now rewrite interp_cstr_clauses_sem.
+  Qed.
+
+
   Definition valid_model m c :=
     (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
@@ -1869,5 +1911,10 @@ End ZUnivConstraint.
     exact hp.
     destruct c as [[l d] r]; cbn. split; lsets.
   Qed.
+(*
+  Theorem check_invalid_nat {m c} :
+    check m c = false -> (forall (v : Level.t -> nat), wf_valuation (levels m ∪ univ_constraint_levels c) v -> interp_cstrs v (constraints m) -> interp_nat_cstr v c -> False).
+  Proof.
+   *)
 
 End UnivLoopChecking.

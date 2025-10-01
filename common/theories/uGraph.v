@@ -109,30 +109,26 @@ Qed.
 Section CheckLeqProcedure.
 
   Context {cf:checker_flags}.
+  Context (check_cstr : UnivConstraint.t -> bool).
 
-  Context (model : universe_model).
-
-  Definition check_cstr := check model.
-
-  Definition check_leqb_universe (u1 u2 : Universe.t) :=
+  Definition check_leqb_universe_gen (u1 u2 : Universe.t) :=
     ~~ check_univs
     || (u1 == u2)
     || check_cstr (u1, Le, u2).
 
-  Definition check_eqb_universe (u1 u2 : Universe.t) :=
+  Definition check_eqb_universe_gen (u1 u2 : Universe.t) :=
     ~~ check_univs
     || (u1 == u2)
     || check_cstr (u1, Eq, u2).
 
-  Definition check_constraint (c : UnivConstraint.t) :=
+  Definition check_constraint_gen (c : UnivConstraint.t) :=
     ~~ check_univs || check_cstr c.
 
   Definition eqb_univ_instance_gen (u1 u2 : Instance.t) : bool :=
-    forallb2 (fun l1 l2 => check_eqb_universe
-        (Universe.make' l1) (Universe.make' l2)) u1 u2.
+    forallb2 check_eqb_universe_gen u1 u2.
 
   Definition leqb_sort_gen (s1 s2 : Sort.t) :=
-    leqb_sort_n_ (fun _ => check_leqb_universe_gen) false s1 s2.
+    leqb_sort_ (fun _ => check_leqb_universe_gen) false s1 s2.
 
   Definition check_leqb_sort_gen (s1 s2 : Sort.t) :=
     (s1 == s2)
@@ -144,13 +140,41 @@ Section CheckLeqProcedure.
 
 End CheckLeqProcedure.
 
+Definition model_of_uctx (m : universe_model) uctx :=
+  LevelSet.Equal (levels m) (LevelSet.add Level.lzero uctx.1) /\
+  UnivConstraintSet.Equal (constraints m) (UnivConstraintSet.union (init_constraints_of_levels uctx.1) uctx.2).
+
+Definition leq0_universe ctrs (u u' : Universe.t) :=
+  forall v, satisfies v ctrs -> val v u <= val v u'.
+
+Definition leq_universe {cf : checker_flags} ctrs (u u' : Universe.t) :=
+  if check_univs then leq0_universe ctrs u u' else True.
+
+Definition eq0_universe φ (u u' : Universe.t) :=
+  forall v, satisfies v φ -> val v u = val v u'.
+
+Definition eq_universe {cf : checker_flags} φ (u u' : Universe.t) :=
+  if check_univs then eq0_universe φ u u' else True.
+
+Definition valid0_cstr φ (c : UnivConstraint.t) :=
+  forall v, satisfies v φ -> satisfies0 v c.
+
+Definition valid_cstr {cf : checker_flags} φ (c : UnivConstraint.t) :=
+  if check_univs then valid0_cstr φ c else True.
+
+Definition valid0_cstrs φ (c : UnivConstraintSet.t) :=
+  forall v, satisfies v φ -> satisfies v c.
+
+Definition valid_cstrs {cf : checker_flags} φ (c : UnivConstraintSet.t) :=
+  if check_univs then valid0_cstrs φ c else True.
+
 (* This section: specif in term of gc_uctx *)
 Section CheckLeq.
   Context {cf:checker_flags}.
 
-  Context (G : universes_graph)
-          uctx (Huctx: global_gc_uctx_invariants uctx) (HC : gc_consistent uctx.2)
-          (HG : Equal_graph G (make_graph uctx)).
+  Context (m : universe_model)
+          uctx (Huctx: global_uctx_invariants uctx)
+          (HG : model_of_uctx m uctx).
 
   Definition on_inl {A B : Type} (P : A -> Prop) (x : A + B) :=
     match x with
@@ -158,688 +182,114 @@ Section CheckLeq.
     | inr _ => True
     end.
 
+  Definition level_declared l := LevelSet.In l uctx.1.
 
-  Definition gc_level_declared l
-    := VSet.In l uctx.1.
-
-  Lemma gc_level_declared_make_graph (l : Level.t) :
-    gc_level_declared l -> VSet.In l (wGraph.V G).
+  Lemma level_declared_model (l : Level.t) :
+    level_declared l -> LevelSet.In l (levels m).
   Proof using HG.
-    intros Hl;subst. now apply HG.
+    intros Hl;subst. apply HG. clear cf.
+    red in Hl; lsets.
   Qed.
 
-  Definition gc_expr_declared e
-    := on_Some_or_None (fun l => VSet.In l uctx.1) (LevelExpr.get_noprop e).
+  Definition expr_declared (e : LevelExpr.t)
+    := LevelSet.In e.1 uctx.1.
 
-  Definition gc_levels_declared (u : Universe.t)
-    := LevelExprSet.For_all gc_expr_declared u.
+  Definition levels_declared (u : Universe.t)
+    := LevelExprSet.For_all expr_declared u.
 
-  Definition gc_levels_declared_sort (s : Sort.t)
-    := Sort.on_sort gc_levels_declared True s.
+  Definition levels_declared_sort (s : Sort.t)
+    := Sort.on_sort levels_declared True s.
 
-  Lemma val_level_of_variable_level v (l : VariableLevel.t)
-    : val v (l : Level.t) = val v l.
-  Proof using Type.
-    destruct l; cbn; lia.
+  Definition leqb_universe u u' := check m (u, Le, u').
+  Definition eqb_universe u u' := check m (u, Eq, u').
+
+  Definition checkb := check m.
+
+  Definition check_spec (check: UnivConstraint.t -> bool) :=
+    forall c, declared_univ_cstr_levels uctx.1 c ->
+    check c <-> valid0_cstr uctx.2 c.
+
+  Lemma contra_prop_bool (P : Prop) (b : bool) :
+    (~~ b -> ~ P) -> (P -> b).
+  Proof.
+    destruct b => //.
+    intros f p. elim f. reflexivity.
+    exact p.
   Qed.
 
-  Local Open Scope univ_scope.
-
-  Lemma val_labelling_of_valuation v (l : Level.t)
-    : val v l = labelling_of_valuation v l.
-  Proof using Type.
-    destruct l; cbnr.
-  Qed.
-
-  Lemma val_labelling_of_valuation' v (l : Level.t) n :
-    val v (Universe.make (l, n))
-    = n + labelling_of_valuation v l.
-  Proof using Type.
-    reflexivity.
-  Qed.
-
-  Lemma val_valuation_of_labelling' L  (l : Level.t) n
-        (e := (l, n)) :
-    gc_level_declared l ->
-    correct_labelling G L ->
-    val (valuation_of_labelling L) e = (n + (L l))%nat.
-  Proof using HG.
-    intros Hl [HG1 HG2]. rewrite [wGraph.s _](proj2 (proj2 HG)) in HG1. simpl in HG1.
-    destruct l as [|l|l]; rewrite ?HG1; cbnr.
-    pose proof (make_graph_E uctx (edge_of_level (VariableLevel.level  l))).p2 as H.
-    forward H. {
-      left. eexists; split; try reflexivity; tas. }
-    apply HG in H.
-    specialize (HG2 _ H); cbn in HG2. rewrite HG1 in HG2; cbn in HG2.
-    f_equal. clear -HG2. set (L (Level.level  l)) in *; clearbody n.
-    destruct n; try lia.
-  Qed.
-
-  Lemma val_valuation_of_labelling L  (l : Level.t) :
-    gc_level_declared l ->
-    correct_labelling G L ->
-    val (valuation_of_labelling L) l = (L l).
-  Proof using HG.
-    intros Hl HL.
-    exact (val_valuation_of_labelling' L l 0 Hl HL).
-  Qed.
-
-  Instance correct_labelling_proper : Proper ((=_g) ==> Logic.eq ==> iff) correct_labelling.
-  Proof using Type.
-    intros g g' eq x ? ->.
-    unfold correct_labelling.
-    rewrite [wGraph.s _](proj2 (proj2 eq)).
-    now setoid_rewrite (proj1 (proj2 eq)).
-  Qed.
-
-  (** ** Check of leq ** *)
-
-  Ltac unfold_univ_rel0 :=
-    unfold eq0_universe, leq0_universe_n, leq_vertices,
-    gc_eq0_universe, gc_leq0_universe, gc_lt0_universe, gc_leq0_universe_n in *;
-    intros v Hv; cbnr.
-
-  Lemma leq_universe_vertices0 n (l l' : Level.t)
-    : leq_vertices G n l l'
-      -> gc_leq0_universe_n n uctx.2 (Universe.make' l) (Universe.make' l').
-  Proof using HG.
-    intros H. unfold_univ_rel0.
-    apply make_graph_spec in Hv; tas.
-    eapply correct_labelling_proper in Hv; tea. 2:reflexivity.
-    red in Hv.
-    specialize (H _ Hv).
-    rewrite !val_labelling_of_valuation; lia.
-  Qed.
-
-  Lemma leq_universe_vertices1 n (l l' : Level.t)
-        (Hl : VSet.In l (wGraph.V G)) (Hl' : VSet.In l' (wGraph.V G))
-    : gc_leq0_universe_n n uctx.2 (Universe.make' l) (Universe.make' l')
-      -> leq_vertices G n l l'.
-  Proof using HG Huctx.
-    intros H. unfold_univ_rel0.
-    eapply correct_labelling_proper in Hv. 2:symmetry; tea. 2:reflexivity.
-    specialize (H _ (make_graph_spec' _ Huctx _ Hv)) as HH.
-    eapply HG in Hl, Hl'.
-    rewrite !Universe.val_make' in HH.
-    rewrite <- (valuation_labelling_eq _ _ Hv l Hl).
-    rewrite <- (valuation_labelling_eq _ _ Hv l' Hl').
-    pose proof (val_labelling_of_valuation (valuation_of_labelling v) l).
-    pose proof (val_labelling_of_valuation (valuation_of_labelling v) l').
-    rewrite H0 H1 in HH. lia.
-  Qed.
-
-  Lemma leq_universe_vertices n (l l' : Level.t)
-        (Hl : VSet.In l (wGraph.V G)) (Hl' : VSet.In l' (wGraph.V G))
-    : gc_leq0_universe_n n uctx.2 (Universe.make' l) (Universe.make' l')
-      <-> leq_vertices G n l l'.
-  Proof using HG Huctx.
+  Lemma checkb_spec : check_spec checkb.
+  Proof.
+    intros c decl.
+    rewrite /checkb.
     split.
-    - intros H. unfold_univ_rel0. apply leq_universe_vertices1; tas.
-    - apply leq_universe_vertices0.
-  Qed.
+    - rewrite check_completeness.
+      intros mc. intros v sat.
+      apply clauses_sem_satisfies0_equiv.
+      (* apply clauses_sem_satisfies_equiv in sat. *)
+      red in mc.
+      setoid_rewrite interp_cstrs_clauses_sem in mc.
+      specialize (mc Z _ (valuation_to_Z v)).
+      eapply interp_cstr_clauses_sem. apply mc.
+      apply satisfies_clauses_sem_to_Z.
+      destruct HG as [hlev hcstrs].
+      rewrite hcstrs. eapply satisfies_union. split => //.
+      eapply satisfies_init.
+    - intros hv. red in hv.
+      have hi := interp_cstrs_of_m m.
+      destruct HG as [hlev hcstrs].
+      rewrite hcstrs in hi.
 
-  Definition leqb_level_n n (l l' : Level.t)
-    := leqb_vertices G n l l'.
+      (* setoid_rewrite <- clauses_sem_satisfies0_equiv in hv. *)
+      setoid_rewrite <- clauses_sem_satisfies_equiv in hv.
+      destruct HG as [hlev hcstrs].
+      rewrite hcstrs in hcls.
 
-  Definition leqb_level_n_spec_gen (leqb_level_n : Z -> Level.t -> Level.t -> bool) :=
-    forall n (l l' : Level.t)
-      (Hl : VSet.In l uctx.1) (Hl' : VSet.In l' uctx.1), leqb_level_n n l l'
-    <-> gc_leq0_universe_n n uctx.2 (Universe.make' l) (Universe.make' l').
 
-  Lemma leqb_level_n_spec : leqb_level_n_spec_gen leqb_level_n.
-  Proof using HC HG Huctx.
-    unfold leqb_level_n_spec_gen; intros;
-    symmetry. etransitivity. apply leq_universe_vertices; now apply HG.
-    etransitivity. apply leqb_vertices_correct; try exact _. 1-2:now rewrite HG; exact _.
-    now unfold leqb_level_n.
-  Qed.
+      (* rewrite interp_univ_cstrs_nat
+      setoid_rewrite interp_cstrs_clauses_sem in hcls.
+      rewrite interp_cstr_clauses_sem. *)
 
-  Definition leqb_expr_n := (leqb_expr_n_gen leqb_level_n).
 
-  Lemma leqb_expr_n_spec0_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-    lt e e'
-    : gc_expr_declared e ->
-      gc_expr_declared e' ->
-      leqb_expr_n_gen leqb_level_n_gen lt e e' ->
-      gc_leq0_universe_n lt uctx.2 (Universe.make e) (Universe.make e').
-  Proof using Type.
-    unfold leqb_expr_n.
-    destruct e as [l k], e' as [l' k'];
-    try (cbn in *; discriminate);
-      intros He He' H v Hv; cbn;
-        eapply leqb_correct in H; eauto;
-        specialize (H v Hv); cbn in H;lia.
-  Qed.
 
-  Definition leqb_expr_n_spec0 := leqb_expr_n_spec0_gen _ leqb_level_n_spec.
 
-  Lemma andb_is_true (b b' : bool) : b /\ b' -> b && b'.
-  Proof using Type. destruct b, b'; cbnr; intuition 0. Qed.
+       Search LoopCheck.Impl.CorrectModel.clauses_sem.
+    specialize (HG c).
 
-  Lemma leqb_expr_n_spec_gen leqb_level_n_gen
-      (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen) n e e'
-      (HHl  : gc_expr_declared e)
-      (HHl' : gc_expr_declared e')
-    : leqb_expr_n_gen leqb_level_n_gen ⎩ n ⎭ e e'
-      <-> gc_leq0_universe_n ⎩ n ⎭ uctx.2 (Universe.make e) (Universe.make e').
-  Proof using HC.
-    split; [apply (leqb_expr_n_spec0_gen _ leqb_correct)|]; try assumption.
-    destruct e as [l k] eqn:eqe, e' as [l' k'] eqn:eqe'; cbn; intro H;
-      destruct HC as [v0 Hv0]; pose proof (H v0 Hv0) as H0; cbn in H0.
-     simpl in H0 |- *.
-    apply leqb_correct; tas.
-    unfold_univ_rel0.
-    specialize (H v Hv). simpl in H. cbn in H.
-    lia.
-  Qed.
 
-  Definition leqb_expr_n_spec := leqb_expr_n_spec_gen _ leqb_level_n_spec.
-
-  Import NonEmptySetFacts.
-
-  Definition leqb_expr_univ_n := (leqb_expr_univ_n_gen leqb_level_n).
-
-  Lemma leqb_expr_univ_n_spec0_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-    n e1 u
-    : gc_expr_declared e1 -> gc_levels_declared u -> leqb_expr_univ_n_gen leqb_level_n_gen n e1 u
-      -> gc_leq0_universe_n n uctx.2 (Universe.make e1) u.
-  Proof using Type.
-    unfold leqb_expr_univ_n_gen; intros He1 Hu H.
-    unfold_univ_rel0.
-    rewrite val_fold_right.
-    destruct (Universe.exprs u) as [e u'] eqn:ee;cbn in *.
-    rewrite <- !fold_left_rev_right in H; cbn in *.
-    red in Hu.
-    assert (Hu': gc_expr_declared e /\ Forall gc_expr_declared u'). {
-    split. apply Hu. apply In_to_nonempty_list. fold Universe.exprs. left. now rewrite ee.
-    apply Forall_forall. intros e' He'. apply Hu.
-    apply In_to_nonempty_list. fold Universe.exprs. right. now rewrite ee. }
-    destruct Hu' as [He Hu'].
-    apply Forall_rev in Hu'. revert Hu'.
-    induction (List.rev u'); cbn in *; intros.
-    - eapply leqb_expr_n_spec0_gen; eauto; tas.
-    - apply orb_true_iff in H. destruct H as [H|H].
-      + eapply leqb_expr_n_spec0_gen in H; eauto. specialize (H v Hv); cbn in *.
-        lia. now inversion Hu'.
-      + apply IHl in H; clear IHl. lia. now inversion Hu'.
-  Qed.
-
-  Definition leqb_expr_univ_n_spec0 := leqb_expr_univ_n_spec0_gen _ leqb_level_n_spec.
-
-  Import Nbar Datatypes.
-
-  Lemma val_le_caract' (u : Universe.t) v k :
-    (exists e, LevelExprSet.In e u /\ Z.of_nat k <= Z.of_nat (val v e))%Z <-> (Z.of_nat k <= Z.of_nat (val v u))%Z.
-  Proof using Type.
-    epose proof (val_le_caract u v k).
-    intuition auto.
-    apply inj_le, H0.
-    destruct H as [e [? ?]]. exists e; split; auto.
-    lia.
-    assert (k <= val v u)%nat. lia.
-    destruct (H1 H2) as [e [? ?]]. exists e; split; auto.
-    lia.
-  Qed.
-
-  Lemma val_ge_caract' (u : Universe.t) v k :
-    (forall e, LevelExprSet.In e u -> (Z.of_nat (val v e) <= Z.of_nat k)%Z) <-> (Z.of_nat (val v u) <= Z.of_nat k)%Z.
-  Proof using Type.
-    epose proof (val_ge_caract u v k).
-    intuition auto.
-    apply inj_le, H0.
-    intros e hin. specialize (H e hin). lia.
-    assert (val v u <= k)%nat. lia.
-    specialize (H1 H3 e H2). lia.
-  Qed.
-
-  Lemma Z_of_nat_bool_to_nat x b : (Z.of_nat x + ⎩ b ⎭)%Z = Z.of_nat (x + if b then 1%nat else 0%nat).
-  Proof using Type. destruct b; simpl; lia. Qed.
-
-  Lemma Z_of_nat_inj_bool (x : bool) : Z.of_nat (if x then 1%nat else 0%nat) = ⎩ x ⎭.
-  Proof using Type. destruct x; simpl; auto. Qed.
-
-  Definition neg_forall p u :=
-    LevelExprSet.for_all p u = false.
-
-  Lemma exists_neg_forall p u : neg_forall p u <-> LevelExprSet.exists_ (fun x => ~~ (p x)) u.
-  Proof using Type.
-    unfold neg_forall.
-    split. intros nf.
-    now apply LevelExprSet_for_all_false in nf.
-    intros ex.
-    apply not_true_iff_false; intro HH.
-    eapply LevelExprSet.for_all_spec in HH. 2:proper.
-    red in ex.
-    eapply LevelExprSet.exists_spec in ex as [x [inx npx]]. 2:proper.
-    specialize (HH _ inx). simpl in HH. rewrite HH in npx. simpl in npx. congruence.
-  Qed.
-
-  Definition lsp_expr G l (ei : LevelExpr.t) : Nbar.t :=
-    let '(li, bi) := ei in (lsp G l li + Some (Z.of_nat bi))%nbar.
-
-  Local Open Scope Z_scope.
-
-  Definition is_lt (x y : Nbar.t) : bool :=
-    ~~ le_lt_dec y x.
-
-  Lemma is_lt_spec x y : is_lt x y -> (x < y)%nbar.
-  Proof using Type.
-    unfold is_lt. destruct le_lt_dec. simpl. discriminate. simpl.
-    auto.
-  Qed.
-
-  (* Non trivial lemma *)
-  (* l + n  <= max (l1, ... ln)  -> exists i, l+n <= li *)
-  Lemma gc_leq0_universe_n_sup lt (l : Level.t) b (u : Universe.t)
-        (e := (l, b)) :
-      gc_level_declared l ->
-      gc_levels_declared u ->
-      gc_leq0_universe_n ⎩ lt ⎭ uctx.2 (Universe.make e) u ->
-      exists (e' : LevelExpr.t), LevelExprSet.In e' u
-            /\ gc_leq0_universe_n ⎩ lt ⎭ uctx.2 (Universe.make e) (Universe.make e').
-  Proof using HC HG Huctx.
-    intros Hl Hu H.
-    assert (HG1 : invariants G) by (rewrite HG; exact _).
-    assert (HG2 : acyclic_no_loop G) by (rewrite HG; exact _).
-    assert (Hs : wGraph.s G = lzero) by apply (proj2 (proj2 HG)).
-    assert (Vs : VSet.In lzero (wGraph.V G)).
-    { rewrite <-Hs. now apply source_vertex. }
-    case_eq (lsp G l lzero).
-    (* case where there is a path from l to Set, so l <= Set+ (-m).
-      This implies that -m + b <= val v u.
-    *)
-    - intros lset Hlset. red in H.
-      (** Needs to strengthen the argument using a valuations of l with - m *)
-      assert (Hinl : VSet.In l (wGraph.V G)). {
-        red in Hl;  cbn in Hl. now apply HG. }
-      epose proof (lsp_to_s G Hinl).
-      rewrite Hs in H0. specialize (H0 Hlset).
-      pose proof (lsp_s G _ Hinl) as [sl [lspsl slpos]].
-      assert (Hl' : forall v, gc_satisfies v uctx.2 -> (val v l <= Z.to_nat (- lset))%nat). {
-        intros v Hv. apply make_graph_spec in Hv.
-        rewrite <- HG in Hv.
-        eapply correct_labelling_lsp in Hlset; tea.
-        cbn in Hlset.
-        change (labelling_of_valuation v l) with (val v l) in Hlset. lia. }
-      assert (Hl'' : forall v, gc_satisfies v uctx.2 -> (Z.to_nat sl <= val v l)%nat). {
-          intros v Hv. apply make_graph_spec in Hv.
-          rewrite <- HG in Hv. rewrite Hs in lspsl.
-          eapply correct_labelling_lsp in lspsl; tea.
-          cbn in lspsl.
-          change (labelling_of_valuation v l) with (val v l) in lspsl. lia. }
-      assert (LevelExprSet.for_all
-        (fun ei => is_lt (lsp_expr G l ei - Some (Z.of_nat b))%nbar (Some ⎩ lt ⎭))%Z
-        u = false) as HH. {
-        apply not_true_iff_false; intro HH.
-        apply LevelExprSet.for_all_spec in HH; proper.
-        set (G' := wGraph.Subgraph1.G' G lzero l lset) in *.
-        assert (HG'1 : invariants G'). {
-          subst G'; apply Subgraph1.HI'; tas. }
-        assert (HG'2 : acyclic_no_loop G'). {
-          subst G'; apply Subgraph1.HG'; tas. }
-        eapply (Subgraph1.correct_labelling_lsp_G' G) in Hlset as Hlab; tas.
-        fold G' in Hlab; cbn in Hlab.
-        set (lab := fun x => to_label (lsp G' (wGraph.s G) x)) in *.
-        pose proof (make_graph_spec' _ Huctx lab) as Hv.
-        forward Hv; [now rewrite <- HG|].
-        specialize (H _ Hv). specialize (Hl' _ Hv).
-        specialize (Hl'' _ Hv).
-        rewrite Universe.val_make in H.
-        rewrite (val_valuation_of_labelling' _ l b) in H; tas.
-        apply switch_minus in H.
-        subst e.
-        rewrite Z_of_nat_bool_to_nat in H.
-        eapply val_le_caract' in H.
-        destruct H as [ei [Hei H]]. specialize (HH ei Hei); cbn in HH.
-        specialize (Hu ei Hei).
-        destruct ei as [li bi]; cbn in *.
-        assert (Vli : VSet.In li (wGraph.V G)).
-        { now apply HG. }
-
-        simpl in H. unfold is_lt in HH.
-        match goal with
-        | H : ~~ is_left ?X = true |- _ =>
-          destruct X as [HH'|Hlt]; [discriminate|]; clear H
-        end.
-        rewrite val_valuation_of_labelling in H; tas.
-        rewrite !Nat2Z.inj_add in H.
-        rewrite Z_of_nat_inj_bool in H.
-        assert (Z.of_nat (lab l) = - lset).
-        { unfold lab.
-          epose proof (Subgraph1.lsp_G'_spec_left G _ _ Hinl Vs _ Hlset l).
-          fold G' in H1. rewrite Hs H1. clear H1.
-          rewrite lsp_xx.
-          pose proof (lsp_sym _ Hlset).
-          destruct (lsp_s G l Hinl) as [sl' [lspsl' w]].
-          rewrite Hs in lspsl'. rewrite lspsl' in H1 |- *.
-          simpl in H1. cbn -[to_label].
-          rewrite Z_of_to_label_pos //; lia. }
-        rewrite H1 in H.
-        destruct (lsp_s G' li) as [ni [Hni nipos]].
-        { cbn. now apply HG. }
-        generalize (Subgraph1.lsp_G'_spec_left G lzero l Hinl Vs _ Hlset li).
-        fold G'. simpl in Hni.
-        rewrite <-Hs, Hni.
-        destruct (lsp_s G li Vli) as [sli [lspsli wsli]].
-        rewrite lspsli. rewrite Hs in Hni, lspsli, lspsl.
-        assert (⎩ lt ⎭ <= - Z.of_nat b + lset + Z.of_nat bi + Z.of_nat (lab li)) by lia.
-        destruct (lsp G l li) as [lli|] eqn:elli.
-        2:{ exfalso.
-          generalize (lsp_codistance G l lzero li).
-          now rewrite elli Hlset lspsli. }
-        simpl in Hlt.
-        assert (lli + Z.of_nat bi - Z.of_nat b < - Z.of_nat b + lset + Z.of_nat bi + Z.of_nat (lab li)) by lia.
-        assert (lli < lset + Z.of_nat (lab li)) by lia.
-        unfold lab in H. rewrite Hs in H.
-        rewrite Hni in H.
-        rewrite Z_of_to_label_pos in H; try lia.
-        intros hmax.
-        symmetry in hmax.
-        apply eq_max in hmax as [[= eq]|eq]. subst ni.
-        unfold lab in H4. rewrite Hs Hni in H4.
-        rewrite Z_of_to_label_pos in H4; try lia.
-        pose proof (lsp_codistance G l lzero li). rewrite Hlset lspsli elli in H5.
-        simpl in H5. lia.
-        simpl in eq. noconf eq.
-        lia. }
-      apply LevelExprSet_for_all_false in HH.
-      apply LevelExprSet.exists_spec in HH; proper.
-      unfold LevelExprSet.Exists in *.
-      destruct HH as [[li bi] [He' HH]]. unfold is_lt in HH.
-      rewrite negb_involutive in HH.
-      eexists; split; tea.
-      match goal with
-      | H : ssrbool.is_left ?X = true |- _ =>
-        destruct X as [HH'|HH']; try discriminate; clear H
-      end.
-      cbn in HH'.
-      rewrite Hs in lspsl.
-      case_eq (lsp G l li).
-      2: intros X; rewrite X in HH'; destruct bi, b; contradiction.
-      intros nl Hnl v Hv; rewrite Hnl in HH'.
-      simpl in HH'.
-      rewrite (val_labelling_of_valuation' v li bi); cbn.
-      specialize (Hl' _ Hv).
-      specialize (Hl'' _ Hv).
-      pose proof Hv as Hv'.
-      apply make_graph_spec in Hv; tas. rewrite <- HG in Hv.
-      apply (correct_labelling_lsp _ Hnl) in Hv. cbn in Hv.
-      apply switch_minus.
-      rewrite !Nat2Z.inj_add.
-      enough (Z.of_nat b + Z.of_nat (val v l) + ⎩ lt ⎭ - Z.of_nat bi <= Z.of_nat (labelling_of_valuation v li)) by lia.
-      etransitivity; [|eassumption].
-      assert (Z.of_nat (val v l) = Z.of_nat (labelling_of_valuation v l)).
-      reflexivity. rewrite H1. lia.
-
-    (* case where there is no path from l to Set *)
-    - intros HlSet. subst e.
-      assert (Hl' : VSet.In l (wGraph.V G)). {
-        red in Hl; cbn in Hl; now apply HG. }
-
-      assert (LevelExprSet.for_all
-                (fun ei => match ei with
-                        | (li, bi) =>
-                          le_lt_dec (Some (Z.of_nat bi)
-                          + Some (match b with 0%nat => 1%Z | _ => (- (Z.pred (Z.of_nat b)))%Z end)
-                          + lsp G l li)
-                          (Some ⎩ lt ⎭)%Z
-                        end)%nbar
-                u = false) as HH. {
-        apply not_true_iff_false; intro HH.
-        destruct (lsp_s G _ Hl') as [nl [Hnl nlpos]]; cbn in Hnl.
-
-        assert (exists K : Z, (nl <= K)%Z /\
-                LevelExprSet.For_all
-                  (fun ei => match ei with
-                            | (li, bi) =>
-                              match lsp G (wGraph.s G) li with
-                              | None => True
-                              | Some ni => ((Z.of_nat bi) + ni < K)%Z
-                              end
-                                 end) u) as XX. {
-          exists (LevelExprSet.fold
-               (fun ei K => match ei with
-                         | (li, bi) =>
-                           match lsp G (wGraph.s G) li with
-                           | None => K
-                           | Some ni => Z.max K (Z.succ (Z.of_nat bi) + ni)
-                           end
-                         end) u nl).
-          clear -Hu HG HG1 HG2. split.
-          - rewrite LevelExprSet.fold_spec. rewrite <- fold_left_rev_right.
-            induction (List.rev (LevelExprSet.elements u)). reflexivity.
-            cbn. destruct a as [li bi]; tas.
-            destruct (lsp G (wGraph.s G) li); tas; lia.
-          - intros [li bi] Hei; trivial.
-            specialize (Hu _ Hei); cbn in Hu.
-            destruct (lsp_s G li) as [ni' [Hni' ni'pos]].
-            { now apply HG. }
-            rewrite Hni'.
-            rewrite LevelExprSet.fold_spec. rewrite <- fold_left_rev_right.
-            apply LevelExprSetFact.elements_1, InA_In_eq, in_rev in Hei.
-            change (In (li, bi)
-                       (@List.rev LevelExprSet.elt (LevelExprSet.elements u))) in Hei.
-            induction (List.rev (LevelExprSet.elements u)); inv Hei.
-            + subst a; cbn. rewrite Hni'. lia.
-            + specialize (IHl H). cbn. destruct a as [li' bi'].
-              destruct (lsp G (wGraph.s G) li'); lia. }
-        destruct XX as [K [HK1 HK2]].
-        assert (Hs' : VSet.In lzero (wGraph.V G)). {
-          rewrite <- Hs; apply HG1. }
-        set (G' := wGraph.G' G lzero l K) in *.
-        assert (lsG : l <> wGraph.s G). intros eq.
-        { rewrite eq in HlSet, Hnl.
-          congruence. }
-        assert (HG'1 : invariants G'). {
-          subst G'; apply HI'; tas. }
-        assert (HG'2 : acyclic_no_loop G'). {
-          subst G'; apply HG'; tas. }
-        apply correct_labelling_lsp_G' with (K:=K) in HlSet as Hlab; tas.
-        fold G' in Hlab; cbn in Hlab.
-        set (lab := fun x => to_label (lsp G' (wGraph.s G) x)) in *.
-        pose proof (make_graph_spec' _ Huctx lab) as Hv.
-        forward Hv; [now rewrite <- HG|].
-        specialize (H _ Hv); clear Hv.
-        rewrite Universe.val_make in H.
-        rewrite val_valuation_of_labelling' in H; tas.
-
-        apply switch_minus in H.
-        rewrite Z_of_nat_bool_to_nat in H.
-        apply val_le_caract' in H.
-        destruct H as [ei [Hei H]].
-        apply LevelExprSet.for_all_spec in HH; proper.
-        specialize (HH _ Hei); cbn in HH.
-        specialize (Hu _ Hei).
-        destruct ei as [li bi]; cbn in H.
-        rewrite val_valuation_of_labelling in H; tas.
-        match goal with
-        | H : is_left ?X = true |- _ =>
-          destruct X as [HH'|HH']; try discriminate; clear H
-        end.
-        assert (lab l = to_label (Some K)) as XX. {
-          subst lab; cbn. subst G'. rewrite -> Hs in *.
-          rewrite lsp_G'_spec_left; tas. rewrite Hnl.
-          unfold lsp. rewrite acyclic_lsp0_xx; tas.
-          simpl. assert (Z.max nl (K + 0) = K). lia. now rewrite H0. }
-        rewrite XX in H.
-        destruct (lsp_s G li) as [ni [Hni nipos]].
-        { now apply HG. }
-        specialize (HK2 _ Hei); cbn in HK2. rewrite Hni in HK2.
-
-        case_eq (lsp G l li).
-        - intros ki Hki. rewrite Hki in HH'; cbn in HH'.
-          destruct (Z.leb_spec ni (K + ki)).
-          assert (lab li = to_label (Some (K + ki)%Z)) as XX'. {
-            subst lab; cbn. subst G'. rewrite -> Hs in *.
-            rewrite lsp_G'_spec_left; tas. rewrite Hki.
-            rewrite Hni; cbn.
-            assert (Z.max ni (K + ki) = K + ki)%Z as ->. lia.
-            reflexivity. }
-          rewrite XX' in H.
-          rewrite !Nat2Z.inj_add in H.
-          rewrite !Z_of_to_label in H.
-          destruct (Z.leb_spec 0 K); [|lia].
-          destruct (Z.leb_spec 0 (K + ki)); [|].
-          rewrite Z_of_nat_inj_bool in H.
-          destruct b; cbn in *; lia.
-          destruct b, lt; cbn in *; lia.
-          assert (lab li = to_label (Some ni)) as XX'. {
-            subst lab; cbn. subst G'. rewrite -> Hs in *.
-            rewrite lsp_G'_spec_left; tas. rewrite Hki Hni; simpl.
-            enough (Z.max ni (K + ki) = ni)%Z as ->; auto. lia. }
-          rewrite XX' in H.
-          rewrite !Nat2Z.inj_add !Z_of_to_label Z_of_nat_inj_bool in H.
-          destruct (Z.leb_spec 0 K); [|lia].
-          destruct (Z.leb_spec 0 ni); [|lia].
-          destruct b, lt; cbn in *; lia.
-
-        - intro Hki.
-          assert (lab li = to_label (Some ni)) as XX'. {
-            subst lab; cbn. subst G'. rewrite -> Hs in *.
-            rewrite lsp_G'_spec_left; tas. now rewrite Hki Hni. }
-          rewrite XX' in H.
-          rewrite !Nat2Z.inj_add !Z_of_to_label Z_of_nat_inj_bool in H.
-          destruct (Z.leb_spec 0 K); [|lia].
-          destruct (Z.leb_spec 0 ni); [|lia].
-          destruct b, lt; cbn in *; lia. }
-
-    apply LevelExprSet_for_all_false in HH.
-    apply LevelExprSet.exists_spec in HH; proper.
-    destruct HH as [[li bi] [He' HH]].
-    eexists; split; tea.
-    match goal with
-    | H : ~~ is_left ?X = true |- _ =>
-      destruct X as [HH'|HH']; try discriminate; clear H
-    end.
-    cbn in HH'. case_eq (lsp G l li).
-    2: intros X; rewrite X in HH'; destruct bi, b; contradiction.
-    intros nl Hnl v Hv; rewrite Hnl in HH'.
-    apply make_graph_spec in Hv; tas. rewrite <- HG in Hv.
-    apply (correct_labelling_lsp _ Hnl) in Hv.
-    rewrite !val_labelling_of_valuation'.
-    destruct b, lt; cbn in *; lia.
-  Qed.
-
-  Lemma leqb_expr_univ_n_spec_gen leqb_level_n_gen
-      (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-      lt e1 (u : Universe.t)
-      (He1 : gc_expr_declared e1)
-      (Hu  : gc_levels_declared u)
-    : leqb_expr_univ_n_gen leqb_level_n_gen ⎩ lt ⎭ e1 u
-      <-> gc_leq0_universe_n ⎩ lt ⎭ uctx.2 (Universe.make e1) u.
-  Proof using HC HG Huctx.
-    split; [eapply leqb_expr_univ_n_spec0_gen; eauto|].
-    unfold leqb_expr_univ_n_gen; intro HH.
-    case_eq (Universe.exprs u). intros e u' ee.
-    assert (Hu': gc_expr_declared e /\ Forall gc_expr_declared u'). {
-    split. apply Hu. apply In_to_nonempty_list. fold Universe.exprs. left. now rewrite ee.
-    apply Forall_forall. intros e' He'. apply Hu.
-    apply In_to_nonempty_list. fold Universe.exprs. right. now rewrite ee. }
-    destruct e1 as [l1 b1].
-    apply gc_leq0_universe_n_sup in HH; tas.
-    destruct HH as [e' [He' HH]]. eapply leqb_expr_n_spec_gen in HH; eauto; tas.
-    apply In_to_nonempty_list in He'. fold Universe.exprs in He'; rewrite ee in He'; cbn in He'.
-    rewrite <- !fold_left_rev_right.
-    clear -He' HH. destruct He' as [H|H]; [subst|].
-    * induction (List.rev u'); tas;cbn -[leqb_expr_n].
-      now rewrite IHl orb_true_r.
-    * apply In_rev in H.
-      induction (List.rev u'); cbn -[leqb_expr_n]; invs H.
-      unfold leqb_expr_n_gen in HH. now rewrite HH. now rewrite IHl; auto; rewrite orb_true_r.
-  Qed.
-
-  Definition leqb_expr_univ_n_spec := leqb_expr_univ_n_spec_gen _ leqb_level_n_spec.
-
-  Definition leqb_universe_n := (leqb_universe_n_gen leqb_level_n).
 
   Lemma fold_right_xpred0 {A} (l : list A) : fold_right (fun _ => xpred0) false l = false.
   Proof using Type. induction l; simpl; auto. Qed.
 
-  Lemma leqb_universe_n_spec0_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-    lt (u1 u2 : Universe.t)
-    (Hu1  : gc_levels_declared u1)
-    (Hu2  : gc_levels_declared u2)
-: leqb_universe_n_gen leqb_level_n_gen lt u1 u2 -> gc_leq0_universe_n ⎩ lt ⎭ uctx.2 u1 u2.
-  Proof using Type.
-    unfold leqb_universe_n_gen. intros H.
-    unfold_univ_rel0.
-    unfold val, Universe.Evaluable.
-    destruct (Universe.exprs u1) as [e1 u1'] eqn:Hu1'.
-    rewrite <- fold_left_rev_right in *; cbn in *.
-    assert (Hu': gc_expr_declared e1 /\ Forall gc_expr_declared u1'). {
-    split. apply Hu1. apply In_to_nonempty_list. fold Universe.exprs. left. now rewrite Hu1'.
-    apply Forall_forall. intros e' He'. apply Hu1.
-    apply In_to_nonempty_list. fold Universe.exprs. right. now rewrite Hu1'. }
-    destruct Hu' as [? Hu']. apply Forall_rev in Hu'. revert Hu'.
-    induction (List.rev u1'); cbn in *; intros.
-    + eapply leqb_expr_univ_n_spec0_gen in H; eauto.
-      specialize (H v Hv); cbn in H. assumption.
-    + set (z := (fold_right (fun e x => Nat.max (val v e) x) (val v e1) l)) in *.
-      toProp as [H HH].
-      eapply leqb_expr_univ_n_spec0_gen in H; eauto. specialize (H v Hv). cbn in H.
-      destruct (Nat.max_dec (val v a) z) as [ee|ee]; rewrite ee.
-      * assumption.
-      * apply IHl; tas. now inversion Hu'.
-      * now inversion Hu'.
+  Definition check_leqb_universe := (check_leqb_universe_gen checkb).
+  Definition check_eqb_universe := (check_eqb_universe_gen checkb).
+
+  Lemma check_leqb_universe_spec_gen check
+     (check_correct : check_spec check)
+     (l l' : Universe.t)
+     (Hu1  : declared_univ_cstr_levels uctx.1 (l, Le, l'))
+    : check_leqb_universe_gen check l l' <-> valid_cstr uctx.2 (l, Le, l').
+  Proof using HG Huctx.
+    specialize (check_correct _ Hu1).
+    rewrite /check_leqb_universe_gen /valid_cstr. destruct check_univs => //=.
+    destruct (eqb_spec l l').
+    - subst l' => //=. split => // _. red. intros. constructor. lia.
+    - cbn. apply check_correct.
   Qed.
 
-  Definition leqb_universe_n_spec0 := leqb_universe_n_spec0_gen _ leqb_level_n_spec.
-
-  Lemma leqb_universe_n_spec_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-    lt (l1 l2 : Universe.t)
-        (Hu1  : gc_levels_declared l1)
-        (Hu2  : gc_levels_declared l2)
-    : leqb_universe_n_gen leqb_level_n_gen lt l1 l2
-      <-> gc_leq0_universe_n ⎩ lt ⎭ uctx.2 l1 l2.
-  Proof using HC HG Huctx.
-    split; [eapply leqb_universe_n_spec0_gen; eauto |].
-    unfold leqb_universe_n_gen; intro HH.
-    unfold Universe.exprs.
-    case_eq (to_nonempty_list l1); intros e1 uu1 Huu1.
-    rewrite (fold_left_andb_forallb (fun e => _)).
-    pose proof (to_nonempty_list_spec' l1) as X; rewrite Huu1 in X; cbn in X.
-    rewrite X. apply forallb_Forall. apply Forall_forall.
-    intros ei Hei.
-    apply InA_In_eq, LevelExprSetFact.elements_2 in Hei.
-    specialize (Hu1 _ Hei).
-    eapply leqb_expr_univ_n_spec_gen; eauto; tas.
-    intros v Hv. specialize (HH v Hv).
-    simpl in HH |- *.
-    transitivity (Z.of_nat (val v l1)); eauto.
-    eapply (val_ge_caract' l1 v (val v l1)).p2. lia. auto.
+  Lemma check_eqb_universe_spec_gen check
+     (check_correct : check_spec check)
+     (l l' : Universe.t)
+     (Hu1  : declared_univ_cstr_levels uctx.1 (l, Eq, l'))
+    : check_eqb_universe_gen check l l' <-> valid_cstr uctx.2 (l, Eq, l').
+  Proof using HG Huctx.
+    specialize (check_correct _ Hu1).
+    rewrite /check_eqb_universe_gen /valid_cstr. destruct check_univs => //=.
+    destruct (eqb_spec l l').
+    - subst l' => //=. split => // _. red. intros. constructor. lia.
+    - cbn. apply check_correct.
   Qed.
 
-  Definition leqb_universe_n_spec := leqb_universe_n_spec_gen _ leqb_level_n_spec.
-
-  Definition check_leqb_universe := (check_leqb_universe_gen leqb_level_n).
-
-  Lemma check_leqb_universe_spec_gen leqb_level_n_gen
-     (leqb_correct : leqb_level_n_spec_gen leqb_level_n_gen)
-     (u1 u2 : Universe.t)
-     (Hu1  : gc_levels_declared u1)
-     (Hu2  : gc_levels_declared u2)
-    : check_leqb_universe_gen leqb_level_n_gen u1 u2 <-> gc_leq_universe uctx.2 u1 u2.
-  Proof using HC HG Huctx.
-    unfold check_leqb_universe_gen,
-          gc_leq_universe, gc_leq_universe_n,
-          leqb_universe_n_gen, gc_leq0_universe_n.
-    destruct check_univs; [|split; trivial].
-    split; cbn.
-    - move/orP => [|].
-      + rewrite univ_expr_eqb_true_iff.
-        intros <- v Hv. lia.
-      + now eapply (leqb_universe_n_spec0_gen _ _ false).
-    - intros H; eapply (leqb_universe_n_spec_gen _ _ false) in H; tas.
-      unfold leqb_universe_n_gen in H. rewrite H.
-      now rewrite orb_true_r.
-    Unshelve. all:eauto.
-  Qed.
-
-  Definition check_leqb_universe_spec := check_leqb_universe_spec_gen _ leqb_level_n_spec.
+  Definition check_leqb_universe_spec := check_leqb_universe_spec_gen _ check_spec.
 
   Definition check_eqb_universe := (check_eqb_universe_gen leqb_level_n).
 

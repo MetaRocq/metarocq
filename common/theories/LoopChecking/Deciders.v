@@ -435,14 +435,14 @@ Proof.
 Qed. *)
 
 Theorem check_invalid {cls cl} :
-  check cls cl = Invalid -> ~ entails cls cl.
+  check cls cl = Invalid -> exists m, [/\ is_model cls m, enabled_clause m cl & ~ valid_clause m cl].
 Proof.
   funelim (check cls cl) => //.
   set (V := (clause_levels cl ∪ clauses_levels cls)%levels) in *.
   destruct cl as [prems [concl k]].
   rename val into conclval_v => _. clear H Heq0 Heqcall prf. cbn in he.
   move: (check_atom_value_spec (Some k) conclval_v). rewrite Heq.
-  intros r; depelim r. rename H into nent. intros H.
+  intros r; depelim r. rename H into nent.
   have vmupd := model_updates v.
   have vmok := model_ok v.
   set (pm := premises_model_map _ _) in *.
@@ -453,18 +453,20 @@ Proof.
   have nev : defined_map (model_model v).
     by apply (is_update_of_defined_map nepm vmupd).
   move/(is_update_of_entails (hne := nepm) (hne' := nev)): vmupd => ent.
-  move/entails_model_valid/(_ _ vmok): H.
-  have [z minp] : enabled_clause (model_model v) cl.
+  exists (model_model v).
+  have en : enabled_clause (model_model v) cl.
   { apply (@enabled_clause_ext pm).
     exact: is_update_of_ext (model_updates v).
     red; cbn.
     have hcl : Clauses.In cl (Clauses.singleton cl).
     { now eapply Clauses.singleton_spec. }
     have hs:= @premises_model_map_min_premise_inv V _ _ hcl. firstorder. }
+  split => //.
+  destruct en as [z minp].
   move/valid_clause_elim/(_ z minp).
   cbn in minp.
   rewrite /level_value he => h; depelim h. apply nent.
-  constructor.
+  constructor. cbn -[check_atom_value] in Heq.
   have posz : 0 <= z.
   { have hsu := model_updates v.
     eapply is_update_of_ext in hsu.
@@ -475,6 +477,13 @@ Proof.
     destruct hmin as [minp' [hmineq hpos]].
     rewrite hmineq in hs. depelim hs. lia. }
   lia.
+Qed.
+
+Lemma check_invalid_entails {cls cl} :
+  check cls cl = Invalid -> ~ entails cls cl.
+Proof.
+  move/check_invalid => [m [ism en nv]].
+  now move/entails_model_valid/(_ m ism).
 Qed.
 
 Equations? infer_model_extension (V : LevelSet.t) (m : model) (cls cls' : clauses)
@@ -639,7 +648,7 @@ Module CorrectModel.
   Proof.
     intros hl.
     have ha : forall l, (level_value (model_of x) l ≤ level_value (model_of x) Level.zero)%opt.
-    { admit. }
+    { todo "semi". }
     have hmax := model_max_spec.
     have hmax' := model_max_spec2.
     Print model_max.
@@ -770,7 +779,6 @@ Module CorrectModel.
         exists z. apply (level_value_MapsTo' hl).
   Qed.
 
-
   Definition clause_sem {S} {SL : Semilattice S Q.t} (V : Level.t -> S) (cl : clause) : Prop :=
     let '(prems, concl) := cl in
     le (interp_expr V concl) (interp_prems V prems).
@@ -832,6 +840,116 @@ Module CorrectModel.
     have mins := model_min_spec m _ _ hm.
     have maxs := model_max_spec m _ _ hm.
     depelim maxs. lia.
+  Qed.
+
+  Section interp_semi.
+    Obligation Tactic := idtac.
+    Import Semilattice (Semilattice, eq, add, join).
+
+    Equations? opt_semi : Semilattice (option Z) Z :=
+    opt_semi := {|
+         eq x y := R_opt Logic.eq x y;
+         eq_equiv := _;
+         add n x := option_map (Z.add n) x;
+         join := option_map2 Z.max |}.
+    Proof.
+      all: intros.
+      - split; red.
+        * intros x. destruct x => //.
+        * intros [x|] [y|]; cbn; auto.
+        * intros [x|] [y|] [z|]; cbn; auto. lia.
+      - destruct x => //=. lia.
+      - destruct x, y; cbn in *; lia.
+      - destruct x => //=.
+      - destruct x, y, z => //=. lia.
+      - destruct x, y => //=. lia.
+      - destruct x, x', y; cbn in *; lia.
+      - destruct x => //=. lia.
+      - destruct x => //=. lia.
+      - destruct x, y; cbn in *; lia.
+      - destruct x, y; cbn in *; lia.
+    Defined.
+
+    Existing Instance opt_semi.
+    Lemma opt_semi_le_spec {x y} : x ≤ y -> (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ x' <= y').
+    Proof.
+      rewrite /le. cbn. destruct x, y => //=.
+      - intros <-. right. exists z, (Z.max z z0). split => //. split => //. lia.
+      - intros _. now left.
+      - intros _. now left.
+    Qed.
+
+  End interp_semi.
+
+  Existing Instance opt_semi.
+
+  Definition opt_valuation_of_model (m : LevelMap.t (option Z)) l :=
+    let max := model_max m in
+    let min := model_min m in
+    match LevelMap.find l m with
+    | Some (Some n) => Some (max - n - min)
+    | _ => None
+    end.
+
+  Lemma valid_clause_model_opt model cl :
+    valid_clause model cl ->
+    clause_sem (opt_valuation_of_model model) cl.
+  Proof.
+    unfold valid_clause.
+    destruct min_premise eqn:hmin => //= => //.
+    2:{ move/min_premise_spec_aux: hmin => [hf [[min mink] [inmin hmin]]].
+        move=> _. destruct cl as [prems concl]. cbn.
+        rewrite /min_atom_value in hmin.
+        set (v := opt_valuation_of_model _).
+        set (ip := interp_prems _ _).
+        have -> : ip = None.
+        { subst ip. move/(interp_prems_ge v): inmin; tea.
+          have -> : interp_expr v (min, mink) = None.
+          { cbn. subst v. unfold opt_valuation_of_model.
+            move: hmin; rewrite /level_value; case: find_spec => //.
+            move=> k hm. destruct k => //. }
+          move/opt_semi_le_spec. intros [] => //.
+          destruct H as [? [? []]]. congruence. }
+        destruct interp_expr => //=. }
+    destruct cl as [prems [concl k]]. cbn -[le].
+    unfold level_value_above.
+    destruct level_value eqn:hl => //.
+    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
+    move/Z.leb_le => hrel.
+    eapply LevelMap.find_2 in hfind.
+    have conclm := valuation_of_model_spec _ _ _ hfind.
+    set (v := (model_max _ - _)) in *.
+    cbn in conclm.
+    eapply LevelMap.find_1 in conclm.
+    subst v.
+    pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
+    rewrite hmin in premeq.
+    eapply transitivity. 2:{ eapply interp_prems_ge; tea. }
+    unfold interp_expr. destruct prem as [prem k'].
+    symmetry in premeq.
+    move: premeq. unfold min_atom_value.
+    unfold level_value. destruct (LevelMap.find prem) eqn:findp => //.
+    destruct o => //.
+    intros [= <-].
+    eapply LevelMap.find_2 in findp.
+    have premm := valuation_of_model_spec _ _ _ findp.
+    eapply LevelMap.find_1 in premm.
+    assert (z1 - k' <= z0 - k). lia.
+    have [z0min z0max] := valuation_range hfind.
+    have [z1min z1max] := valuation_range findp.
+    assert (0 <= model_max model)%Z by apply model_max_spec2.
+    assert (model_min model <= 0)%Z by apply model_min_spec2.
+    rewrite /opt_valuation_of_model. rewrite (LevelMap.find_1 findp) (LevelMap.find_1 hfind).
+    cbn. lia.
+  Qed.
+
+  Lemma valid_clauses_model_opt model cls :
+    is_model cls model ->
+    clauses_sem (opt_valuation_of_model model) cls.
+  Proof.
+    move=> ism cl hin.
+    apply valid_clause_model_opt.
+    now move/Clauses.for_all_spec: ism; apply.
   Qed.
 
   (** Enabled and valid clauses are satisfied by valuation.
@@ -1602,7 +1720,7 @@ Module Abstract.
       destruct check eqn:hc => //.
       * exfalso; eapply check_entails_looping in hc; tea.
         now apply model_entails_succ in hc.
-      * move/check_invalid: hc => he.
+      * move/check_invalid_entails: hc => he.
         exfalso. elim he. now apply hv.
   Qed.
 
@@ -1624,6 +1742,128 @@ Module Abstract.
       move: (ve S s v).
       now rewrite //= !interp_rels_clauses_sem.
   Qed.
+
+  Definition valid_semilattice_entailment {S} {SL : Semilattice S Q.t} cls cl :=
+    (forall (v : Level.t -> S), clauses_sem v cls -> clause_sem v cl).
+
+  Definition valid_semilattice_entailments {S} {SL : Semilattice S Q.t} cls cls' :=
+    (forall (v : Level.t -> S), clauses_sem v cls -> clauses_sem v cls').
+
+  Infix "⊩Z" := valid_entailments (at level 70, no associativity).
+
+  Lemma opt_valuation_of_model_equiv m l :
+    option_get 0%Z (opt_valuation_of_model m l) = to_Z_val (to_val (valuation_of_model m)) l.
+  Proof.
+    rewrite /opt_valuation_of_model /to_Z_val /to_val.
+    case: find_spec.
+    * move=> k hm.
+      destruct k => //.
+      have he := valuation_of_model_spec m l _ hm.
+      apply LevelMap.find_1 in he. rewrite he. todo "bounds".
+      apply LevelMap.find_1 in hm. cbn. todo "zero".
+    * move=> hnin. cbn. todo "zero".
+  Qed.
+
+  Lemma check_clauses_Z_complete m cls :
+    check_clauses m cls <-> valid_semilattice_entailments (clauses m) cls.
+  Proof.
+    split.
+    - rewrite check_clauses_spec.
+      rewrite -entails_L_entails_ℋ_equiv.
+      rewrite -entails_L_rels_entails_L_clauses.
+      rewrite -completeness_all.
+      move=> vr v.
+      red in vr.
+      move: (vr (option Z) opt_semi v).
+      rewrite !interp_rels_clauses_sem //.
+    - intros sem. unfold check_clauses, Deciders.check_clauses.
+      eapply Clauses.for_all_spec. tc.
+      move=> cl /sem => semcl.
+      destruct check eqn:hc => //.
+      * move/check_looping: hc. intros ne. elim ne.
+        exists (model_of m). split. red. admit.
+        apply m.(model_valid).
+      * move/check_invalid: hc.
+        move=> [m' [ism en inval]].
+        have vc := valid_clauses_model_opt m' (clauses m) ism.
+        specialize (semcl (opt_valuation_of_model m') vc).
+        destruct cl as [prems [concl k]].
+        cbn -[le] in semcl.
+        destruct en as [minp mineq]. cbn in mineq.
+        unfold valid_clause in inval. rewrite mineq in inval. cbn in inval.
+        elim inval. clear inval.
+        cbn -[le] in semcl.
+        apply opt_semi_le_spec in semcl. destruct semcl.
+        { todo "premises not activated: impossible". }
+        destruct H as [y' [z' [eq [eq' le]]]].
+        move: eq.
+
+        rewrite /opt_valuation_of_model /level_value_above /level_value.
+        destruct LevelMap.find eqn:hl => //.
+        destruct o; cbn.
+        + intros [= <-]. apply Z.leb_le.
+          move: prems z' le eq' mineq.
+          apply: NES.elim.
+          { intros [l lk]. rewrite interp_prems_singleton min_premise_singleton //=.
+            rewrite /opt_valuation_of_model /level_value.
+            destruct (LevelMap.find l m') eqn:hl' => //=. destruct o => //.
+            cbn. intros z' le. intros [= <-]. intros [= <-]. lia. }
+          { intros le' x hi hnin z' le hadd.
+            have ha := (NES.interp_prems_add (SL := opt_semi) (opt_valuation_of_model m') le' x).
+            rewrite hadd in ha. cbn in ha.
+            destruct (interp_prems _ x); cbn in ha => //.
+            specialize (hi z' le). destruct (interp_expr) eqn:he; cbn in ha => //.
+            subst z'. rewrite min_premise_add.
+            destruct le'. move: he; cbn. rewrite /opt_valuation_of_model /level_value.
+            destruct (LevelMap.find t0 m') => //. destruct o => //. cbn.
+            intros [= <-]. destruct (min_premise m' x) eqn:hm'. intros [= <-].
+            cbn in ha. in hadd.
+           }
+
+
+        have [exm [[minl mink] [hin fmin]]] := min_premise_spec_aux _ _ _ mineq.
+        have hi := interp_prems_ge (SL := opt_semi) (opt_valuation_of_model m') _ _ hin.
+        rewrite eq' in hi. cbn in hi.
+        rewrite /opt_valuation_of_model in hi.
+        rewrite /min_atom_value /level_value in fmin.
+        move: hi fmin.
+        + destruct o; cbn. intros eqmax. move=> [=]. intros ->.
+          destruct (LevelMap.find concl _) eqn:hl' => //.
+          destruct o; cbn. intros [= <-].
+          rewrite -eqmax in le.
+          move: le.
+
+           constructor.
+          specialize (exm _ hin). depelim exm. rewrite /level_value hl in H0. noconf H0.
+          have hpos : 0 <= (Model.model_max m' - z0 - model_min m'). admit.
+          have hmin : model_min m' <= z0. admit.
+          have hmax : z0 <= Model.model_max m'. admit.
+          have hmin' : model_min m' <= z. admit.
+          have hmax' : z <= Model.model_max m'. admit.
+          lia.
+
+          destruct (LevelMap.find minp m'). destruct o.
+
+
+      rewrite entails_L_rels_entails_L_clauses.
+      rewrite entails_L_entails_ℋ_equiv.
+     rewrite -completeness_all.
+      red.
+     intros ve.
+      eapply Forall_forall. intros [l r] hin.
+      apply relations_of_clauses_spec in hin as [prems [concl []]].
+      noconf H0. red in ve.
+      have mv := model_valuation m. specialize (ve _ mv).
+      apply ve in H. cbn in H.
+
+       specialize (ve (prems, concl)). apply ve in H.
+      apply syntax_model.
+      red. red. cbn. red in ve.
+      have hi := @interp_triv (relations_of_clauses (clauses m)) l.
+      red in hi. cbn in hi.
+      rewrite hi.
+  Qed.
+
 
 End Abstract.
 End Deciders.
