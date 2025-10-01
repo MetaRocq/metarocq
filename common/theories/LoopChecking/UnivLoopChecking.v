@@ -918,8 +918,8 @@ End ZUnivConstraint.
   Definition valuation_to_Z (v : Universes.valuation) : Level.t -> option Z :=
     fun l => Some (Z.of_nat (val v l)).
 
-  Import LoopCheck.Impl.CorrectModel (opt_semi).
-  Existing Instance opt_semi.
+  Import LoopCheck.Impl.CorrectModel (Zopt_semi).
+  Existing Instance Zopt_semi.
 
   Lemma interp_prems_valuation_to_Z_to_atoms v u :
     interp_prems (valuation_to_Z v) (to_atoms u) = Some (Z.of_nat (Universes.val v u)).
@@ -992,7 +992,7 @@ End ZUnivConstraint.
     funelim (UnivLoopChecking.enforce m c) => //=.
     move=> [=]; intros <-; cbn. clear H Heqcall.
     intros [v sat].
-    have he := LoopCheck.enforce_inconsistent eq0 (option Z) opt_semi (valuation_to_Z v).
+    have he := LoopCheck.enforce_inconsistent eq0 (option Z) Zopt_semi (valuation_to_Z v).
     rewrite clauses_sem_union clauses_sem_satisfies0_equiv in he.
     rewrite UnivConstraintSetProp.add_union_singleton satisfies_union in sat.
     destruct sat as [satc satcs].
@@ -1836,10 +1836,29 @@ End ZUnivConstraint.
     exact hv.
   Qed.
 
-  Existing Instance Impl.CorrectModel.opt_semi.
+  Existing Instance Impl.CorrectModel.Zopt_semi.
+
+  Instance nat_opt_semi : Semilattice (option nat) nat := Impl.CorrectModel.opt_semi Natsemilattice.
+
+  Import Impl.CorrectModel (positive_valuation, opt_valuation_of_model_pos).
 
   Definition valid_Z_model m c :=
-    (forall (v : Level.t -> option Z), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    (forall (v : Level.t -> option Z), positive_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+
+  Definition valid_nat_model m c :=
+    (forall (v : Level.t -> option nat), interp_cstrs v (constraints m) -> interp_nat_cstr v c).
+
+  Lemma valid_Z_pos_nat_model m c : valid_Z_model m c <-> valid_nat_model m c.
+  Proof.
+    split.
+    - intros vz v ic.
+      specialize (vz (fun l => option_map Z.of_nat (v l))).
+      forward vz. { red. intros. destruct (v l); noconf H. lia. }
+      rewrite -interp_univ_cstr_nat.
+      Search interp_nat_cstr.
+  Qed.
+
+
 
   Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
 
@@ -1849,8 +1868,9 @@ End ZUnivConstraint.
   Theorem check_completeness {m c} :
     check m c <-> m ⊩Z c.
   Proof.
-    rewrite LoopCheck.check_Z_complete /valid_semilattice_entailments /valid_Z_model.
-    now setoid_rewrite interp_cstrs_clauses_sem; setoid_rewrite interp_cstr_clauses_sem.
+    rewrite LoopCheck.check_Z_complete_positive /valid_semilattice_entailments /valid_Z_model.
+    setoid_rewrite interp_cstrs_clauses_sem; setoid_rewrite interp_cstr_clauses_sem.
+    now rewrite /valid_clauses.
   Qed.
 
   Lemma interp_univ_cstrs_of_m m :
@@ -1865,7 +1885,7 @@ End ZUnivConstraint.
   Theorem check_implies {m c} :
     check m c -> interp_univ_cstr (opt_valuation m) c.
   Proof.
-    now rewrite check_completeness => /(_ (opt_valuation m) (interp_univ_cstrs_of_m m)).
+    now rewrite check_completeness => /(_ (opt_valuation m) (opt_valuation_of_model_pos) (interp_univ_cstrs_of_m m)).
   Qed.
 
   Definition valid_model m c :=
