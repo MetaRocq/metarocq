@@ -225,27 +225,24 @@ Section CheckLeq.
     - rewrite check_completeness.
       intros mc. intros v sat.
       apply clauses_sem_satisfies0_equiv.
-      (* apply clauses_sem_satisfies_equiv in sat. *)
       red in mc.
       setoid_rewrite interp_cstrs_clauses_sem in mc.
-      specialize (mc Z _ (valuation_to_Z v)).
+      specialize (mc (valuation_to_Z v)).
       eapply interp_cstr_clauses_sem. apply mc.
       apply satisfies_clauses_sem_to_Z.
       destruct HG as [hlev hcstrs].
       rewrite hcstrs. eapply satisfies_union. split => //.
       eapply satisfies_init.
-    - intros hv. red in hv.
+    - rewrite check_completeness.
+      intros hv. red in hv.
       have hi := interp_cstrs_of_m m.
       destruct HG as [hlev hcstrs].
       rewrite hcstrs in hi.
-
-      (* setoid_rewrite <- clauses_sem_satisfies0_equiv in hv. *)
       setoid_rewrite <- clauses_sem_satisfies_equiv in hv.
-      destruct HG as [hlev hcstrs].
-      rewrite hcstrs in hcls.
-
-
-      (* rewrite interp_univ_cstrs_nat
+      red. intros v vcs.
+      rewrite interp_cstr_clauses_sem.
+      Search interp_univ_cstr.
+      rewrite interp_univ_cstrs_nat.
       setoid_rewrite interp_cstrs_clauses_sem in hcls.
       rewrite interp_cstr_clauses_sem. *)
 

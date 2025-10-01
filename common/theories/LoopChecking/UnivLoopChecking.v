@@ -233,7 +233,6 @@ Module UnivLoopChecking.
         rewrite Universes.LevelExprSet.add_spec. now right.
   Qed.
 
-
   Program Definition from_atoms (u : NES.t) : Universe.t :=
     {| Universe.t_set := from_levelexprzset (NES.t_set u) |}.
   Next Obligation.
@@ -243,6 +242,33 @@ Module UnivLoopChecking.
     apply from_levelexprzset_spec in hin. now apply he in hin.
   Qed.
 
+  Definition from_atom (le : LevelExprZ.t) := (le.1, Z.to_nat le.2).
+
+  Lemma from_atoms_singleton l k  : from_atoms (singleton (l, k)) = Universe.singleton (l, Z.to_nat k).
+  Proof.
+    apply Universe.equal_exprsets.
+    rewrite /from_atoms //=.
+  Qed.
+
+  Lemma from_atoms_add le u : from_atoms (NES.add le u) = Universe.add (from_atom le) (from_atoms u).
+  Proof. apply Universe.equal_exprsets => //=.
+    move=> [l k].
+    rewrite Universes.LevelExprSet.add_spec.
+    split.
+    - move/from_levelexprzset_spec_2 => [] z.
+      rewrite LevelExprZSet.add_spec => -[[<-|hin] eq]. subst k.
+      * left. cbn. lia_f_equal. rewrite /from_atom. now cbn.
+      * right. subst.
+        now apply from_levelexprzset_spec in hin.
+    - move=> [eq|hin].
+      * destruct le; noconf eq.
+        apply from_levelexprzset_spec. cbn.
+        apply LevelExprZSet.add_spec.
+        now left.
+      * apply from_levelexprzset_spec_2 in hin as [hin [pos eq]]. subst k.
+        apply from_levelexprzset_spec.
+        apply LevelExprZSet.add_spec. now right.
+  Qed.
 
 Module ZUnivConstraint.
   Definition t : Type := NES.t * ConstraintType.t * NES.t.
@@ -889,29 +915,32 @@ End ZUnivConstraint.
     - clear H Heqcall. reflexivity.
   Qed.
 
-  Definition valuation_to_Z (v : Universes.valuation) : Level.t -> Z :=
-    fun l => Z.of_nat (val v l).
+  Definition valuation_to_Z (v : Universes.valuation) : Level.t -> option Z :=
+    fun l => Some (Z.of_nat (val v l)).
 
-  Lemma interp_prems_valuation_to_Z v u :
-    interp_prems (valuation_to_Z v) (to_atoms u) = Z.of_nat (Universes.val v u).
+  Import LoopCheck.Impl.CorrectModel (opt_semi).
+  Existing Instance opt_semi.
+
+  Lemma interp_prems_valuation_to_Z_to_atoms v u :
+    interp_prems (valuation_to_Z v) (to_atoms u) = Some (Z.of_nat (Universes.val v u)).
   Proof.
     move: u.
     apply: Universe.elim.
     - intros [l k]; rewrite to_atoms_singleton interp_prems_singleton //= val_singleton //=.
-      rewrite /valuation_to_Z. cbn. lia.
+      cbn; lia_f_equal.
     - intros [l k] x hx hnin.
-      rewrite to_atoms_add !interp_prems_add //= val_add //= /valuation_to_Z hx; cbn.
-      lia.
+      rewrite to_atoms_add !interp_prems_add_opt_Z //= val_add //= hx; cbn.
+      lia_f_equal.
   Qed.
 
   Lemma clauses_sem_satisfies0_equiv v cstr : clauses_sem (valuation_to_Z v) (LoopCheck.to_clauses (to_constraint cstr)) <-> satisfies0 v cstr.
   Proof.
     destruct cstr as [[l []] r]; cbn.
-    - rewrite clauses_sem_leq !interp_prems_valuation_to_Z.
+    - rewrite clauses_sem_leq !interp_prems_valuation_to_Z_to_atoms.
       split; cbn.
       * constructor; lia.
       * intros s; depelim s. lia.
-    - rewrite clauses_sem_eq !interp_prems_valuation_to_Z.
+    - rewrite clauses_sem_eq !interp_prems_valuation_to_Z_to_atoms.
       split; cbn.
       * constructor. lia.
       * intros s; depelim s. lia.
@@ -946,13 +975,24 @@ End ZUnivConstraint.
     red in sat. now move/sat.
   Qed.
 
+  Lemma interp_prems_valuation_to_Z v u :
+    interp_prems (valuation_to_Z v) u <> None.
+  Proof.
+    move: u.
+    apply: NES.elim.
+    - intros [l k]. rewrite interp_prems_singleton //= val_singleton //=.
+    - intros [l k] x hx hnin.
+      rewrite !interp_prems_add_opt_Z //=.
+      destruct interp_prems => //.
+  Qed.
+
   Lemma enforce_inconsistent m (c : UnivConstraint.t) u :
     UnivLoopChecking.enforce m c = Some (inr u) -> ~ exists v, satisfies v (UnivConstraintSet.add c (constraints m)).
   Proof.
     funelim (UnivLoopChecking.enforce m c) => //=.
     move=> [=]; intros <-; cbn. clear H Heqcall.
     intros [v sat].
-    have he := LoopCheck.enforce_inconsistent eq0 Z Zsemilattice (valuation_to_Z v).
+    have he := LoopCheck.enforce_inconsistent eq0 (option Z) opt_semi (valuation_to_Z v).
     rewrite clauses_sem_union clauses_sem_satisfies0_equiv in he.
     rewrite UnivConstraintSetProp.add_union_singleton satisfies_union in sat.
     destruct sat as [satc satcs].
@@ -960,7 +1000,9 @@ End ZUnivConstraint.
     forward he.
     { split => //. now apply satisfies_clauses_sem_to_Z. }
     destruct loop0 as [u hu]. cbn in he.
-    apply clauses_sem_eq in he. rewrite interp_add_prems in he. cbn -[Z.add] in he. lia.
+    apply clauses_sem_eq in he. rewrite interp_add_prems in he. cbn -[Z.add] in he.
+    have hid := interp_prems_valuation_to_Z v u.
+    destruct interp_prems => //. cbn -[Z.add] in he. lia.
   Qed.
 
   Definition enforce_constraints_aux (g : option univ_model) (cstrs : UnivConstraintSet.t) : option univ_model :=
@@ -1675,6 +1717,8 @@ End ZUnivConstraint.
 
   Definition model_val (m : univ_model) := (LoopCheck.valuation m).
 
+  Definition model_opt_val (m : univ_model) := (LoopCheck.opt_valuation m).
+
   Definition model_Z_val (m : univ_model) := (to_Z_val (LoopCheck.valuation m)).
 
   Lemma interp_rels_of_m m : interp_rels (model_Z_val m) (relations_of_constraints (to_z_cstrs (constraints m))).
@@ -1699,7 +1743,7 @@ End ZUnivConstraint.
   Qed.
 
   (** The constraints in the model are already valid. *)
-  Lemma interp_univ_cstrs_of_m m :
+  Lemma interp_univ_cstrs_of_m_Z m :
     interp_univ_cstrs (model_Z_val m) (constraints m).
   Proof.
     intros uc hin. red.
@@ -1770,7 +1814,7 @@ End ZUnivConstraint.
   Lemma interp_cstrs_of_m m :
     interp_cstrs (model_val m) (constraints m).
   Proof.
-    have ha := interp_univ_cstrs_of_m m.
+    have ha := interp_univ_cstrs_of_m_Z m.
     eapply interp_univ_cstrs_nat.
     - eapply wf_model_valuation.
     - move=> cstr /repr_constraints => hincl.
@@ -1792,54 +1836,44 @@ End ZUnivConstraint.
     exact hv.
   Qed.
 
+  Existing Instance Impl.CorrectModel.opt_semi.
 
   Definition valid_Z_model m c :=
-    (forall (v : Level.t -> Z), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    (forall (v : Level.t -> option Z), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
   Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
 
   Definition valid_Z_entailments p r :=
     (forall (v : Level.t -> Z), interp_rels v p -> interp_rels v r).
-(*
-  Lemma valid_Z_entails_L {p r} :
-    valid_Z_entailments p r -> p ⊩ℒ r.
-  Proof.
-    rewrite /valid_Z_entailments.
-    intros ha.
-    have ha' := entails_L_entails_ℋ_equiv.
-    Search entails.
-
-
-     apply syntax_model.
-    destruct r as [l r]. cbn.
-    Print ids.
-    change (eq (Semilattice := init_model p) (interp_prems (SL := init_model p) (ids p) l) (interp_prems (SL := init_model p) (ids p) r)).
-    specialize (ha _ (init_model p) (ids p) (interp_rels_init p)).
-    now cbn in ha.
-  Qed. *)
-
 
   Theorem check_completeness {m c} :
     check m c <-> m ⊩Z c.
   Proof.
-    rewrite LoopCheck.check_complete /LoopCheck.valid_entailments /valid_model.
-    setoid_rewrite interp_cstrs_clauses_sem.
-    split.
-    - intros hv S s v hp.
-      move: (hv S s v hp).
-      now rewrite interp_cstr_clauses_sem.
-    - intros hs S SL V hsem.
-      move: (hs S SL V) => /fwd //.
-      now rewrite interp_cstr_clauses_sem.
+    rewrite LoopCheck.check_Z_complete /valid_semilattice_entailments /valid_Z_model.
+    now setoid_rewrite interp_cstrs_clauses_sem; setoid_rewrite interp_cstr_clauses_sem.
   Qed.
 
+  Lemma interp_univ_cstrs_of_m m :
+    interp_univ_cstrs (model_opt_val m) (constraints m).
+  Proof.
+    rewrite interp_cstrs_clauses_sem.
+    apply model_opt_Z_valuation.
+  Qed.
+
+  (** The current model must already imply the constraint. Note that the converse
+      is not true: a constraint can be satisfied by chance in the model. *)
+  Theorem check_implies {m c} :
+    check m c -> interp_univ_cstr (opt_valuation m) c.
+  Proof.
+    now rewrite check_completeness => /(_ (opt_valuation m) (interp_univ_cstrs_of_m m)).
+  Qed.
 
   Definition valid_model m c :=
     (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
   Infix "⊩" := valid_model (at level 70, no associativity).
 
-  Theorem check_completeness {m c} :
+  Theorem check_any_completeness {m c} :
     check m c <-> m ⊩ c.
   Proof.
     rewrite LoopCheck.check_complete /LoopCheck.valid_entailments /valid_model.
@@ -1898,10 +1932,13 @@ End ZUnivConstraint.
     apply constraint_levels_declared.
   Qed.
 
+  Definition to_nat_val (v : Level.t -> option Z) :=
+    fun l => Z.to_nat (option_get 0%Z (v l)).
+
   Theorem check_valid_nat {m c} :
     check m c -> (forall (v : Level.t -> nat), wf_valuation (levels m ∪ univ_constraint_levels c) v -> interp_cstrs v (constraints m) -> interp_nat_cstr v c).
   Proof.
-    rewrite check_completeness.
+    rewrite check_any_completeness.
     intros hv v wfv hp.
     have [wfm wfc] := wf_valuation_union wfv.
     move: (hv Z Zsemilattice (to_Z_val v)).
@@ -1911,10 +1948,5 @@ End ZUnivConstraint.
     exact hp.
     destruct c as [[l d] r]; cbn. split; lsets.
   Qed.
-(*
-  Theorem check_invalid_nat {m c} :
-    check m c = false -> (forall (v : Level.t -> nat), wf_valuation (levels m ∪ univ_constraint_levels c) v -> interp_cstrs v (constraints m) -> interp_nat_cstr v c -> False).
-  Proof.
-   *)
 
 End UnivLoopChecking.
