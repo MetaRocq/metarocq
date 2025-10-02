@@ -1845,7 +1845,7 @@ End ZUnivConstraint.
   Definition valid_Z_model m c :=
     (forall (v : Level.t -> option Z), positive_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
-  Definition valid_nat_model m c :=
+  (* Definition valid_nat_model m c :=
     (forall (v : Level.t -> option nat), interp_cstrs v (constraints m) -> interp_nat_cstr v c).
 
   Lemma valid_Z_pos_nat_model m c : valid_Z_model m c <-> valid_nat_model m c.
@@ -1856,7 +1856,7 @@ End ZUnivConstraint.
       forward vz. { red. intros. destruct (v l); noconf H. lia. }
       rewrite -interp_univ_cstr_nat.
       Search interp_nat_cstr.
-  Qed.
+  Qed. *)
 
 
 

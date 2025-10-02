@@ -2042,47 +2042,29 @@ Module Abstract.
 
   Lemma clause_sem_defined_valid_all {model cl} :
     defined_model_of (clause_levels cl) model ->
-    clause_sem (to_Z_val (to_val (Model.valuation_of_model model))) cl -> valid_clause model cl.
+    clause_sem (valuation_of_model model) cl <-> clause_sem (opt_valuation_of_model model) cl.
   Proof.
-    intros def semcl. Print clause_sem.
+    intros def.
     destruct cl as [prems [concl k]].
-    cbn -[le] in semcl.
-    apply valid_clause_intro => minp mineq.
-    cbn -[le] in semcl.
-    have [iprems [eqiprems [[maxl [maxk [inmax [hmax eqmax]]]] hleprems]]] := min_premise_interp_prems_ex mineq.
-    have he : interp_prems (valuation_of_model model) prems = iprems.
-    { rewrite interp_prems_defined in eqiprems.
-      intros l hin; apply (def l). rewrite /clause_levels //=. lsets. congruence. }
-    rewrite he in semcl.
-    move: semcl.
-    rewrite /to_Z_val /to_val.
-    case: (find_spec concl (Model.valuation_of_model _)) => [vconcl|] hmconcl.
-    2:{ elim hmconcl. move:(def concl); rewrite clause_levels_spec. firstorder.
-        eexists. now eapply valuation_of_model_spec. }
-    have [vconclm [hmconcl' heqn]] := valuation_of_model_inv hmconcl.
-    subst vconcl.
-    rewrite /level_value_above.
-    rewrite (level_value_MapsTo hmconcl').
-    have [exm [[minl mink] [hin fmin]]] := min_premise_spec_aux _ _ _ mineq.
-    specialize (hleprems _ inmax). cbn in hleprems.
-    destruct hleprems as [minv [hminv [lei ge]]].
-    eapply LevelMapFact.F.MapsTo_fun in hmax; tea. noconf hmax.
-    have exm' := (exm _ hin). depelim exm'.
-    rewrite /min_atom_value in fmin. destruct (level_value model minl) eqn:hminl => //.
-    noconf fmin. noconf H0.
-    destruct vconclm.
-    - constructor. cbn in hmconcl.
-      move: lei ge. rewrite eqmax.
-      rewrite /valuation_of_value. unfold le, eq; cbn. cbn in semcl.
-      have valpos := valuation_of_value_pos hmconcl'.
-      move: semcl. rewrite Z2Nat.id. lia. subst iprems.
-      unfold valuation_of_value. lia.
-    - move: (def concl) => /fwd.
-      rewrite clause_levels_spec. cbn. now right.
-      intros [? hm]. eapply LevelMapFact.F.MapsTo_fun in hmconcl'; tea. congruence.
+    rewrite /clause_sem. rewrite interp_prems_defined.
+    { intros l hin; apply def. rewrite /clause_levels //=. lsets. }
+    rewrite interp_expr_defined.
+    { intros l hin; apply def; rewrite /clause_levels //=. cbn in hin. lsets. }
+    now cbn.
   Qed.
 
-  clause_sem_defined_valid_all
+  Lemma clauses_sem_def_equiv {model cls} :
+    defined_model_of (clauses_levels cls) model ->
+    clauses_sem (valuation_of_model model) cls <-> clauses_sem (opt_valuation_of_model model) cls.
+  Proof.
+    intros def.
+    rewrite /clauses_sem. red in def.
+    split; move=> ha cl /[dup]/ha cs hin.
+    rewrite -clause_sem_defined_valid_all //.
+    { intros l hin'; apply def. eapply clauses_levels_spec. now exists cl. }
+    rewrite clause_sem_defined_valid_all //.
+    { intros l hin'; apply def. eapply clauses_levels_spec. now exists cl. }
+  Qed.
 
   Lemma clause_sem_valid {model cl} :
     clause_sem (opt_valuation_of_model model) cl -> valid_clause model cl.
@@ -2121,16 +2103,13 @@ Module Abstract.
     move=> vm cl /vm. apply valid_clause_model_opt.
   Qed.
 
-  Lemma clauses_sem_all_valid {model cls} :
+  Lemma def_clauses_sem_valid {model cls} :
     defined_model_of (clauses_levels cls) model ->
-    clauses_sem (to_Z_val (to_val (valuation_of_model model))) cls <-> is_model cls model.
+    clauses_sem (valuation_of_model model) cls <-> is_model cls model.
   Proof.
-    intros def.
-    rewrite is_model_valid. split.
-    intros clssem. red. move=> cl /clssem. apply clause_sem_valid.
-    move=> vm cl /vm. apply valid_clause_model_opt.
+    intros def. rewrite clauses_sem_def_equiv //.
+    apply clauses_sem_valid.
   Qed.
-
 
   (* cls ⊭ x >= y, so cls + x < y is consistent, validates all clauses *)
 

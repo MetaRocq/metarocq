@@ -217,6 +217,11 @@ Section CheckLeq.
     exact p.
   Qed.
 
+  Lemma posv v : LoopCheck.Impl.CorrectModel.positive_valuation (valuation_to_Z v).
+  Proof.
+    red. intros l k. unfold valuation_to_Z. intros [= <-]. lia.
+  Qed.
+
   Lemma checkb_spec : check_spec checkb.
   Proof.
     intros c decl.
@@ -228,21 +233,28 @@ Section CheckLeq.
       red in mc.
       setoid_rewrite interp_cstrs_clauses_sem in mc.
       specialize (mc (valuation_to_Z v)).
-      eapply interp_cstr_clauses_sem. apply mc.
+      eapply interp_cstr_clauses_sem. apply mc. apply posv.
       apply satisfies_clauses_sem_to_Z.
       destruct HG as [hlev hcstrs].
       rewrite hcstrs. eapply satisfies_union. split => //.
       eapply satisfies_init.
     - rewrite check_completeness.
       intros hv. red in hv.
-      have hi := interp_cstrs_of_m m.
       destruct HG as [hlev hcstrs].
-      rewrite hcstrs in hi.
+      rewrite valid_Z_pos_nat_model => v.
+      rewrite hcstrs.
+      erewrite <-interp_univ_cstrs_nat.
+      Search wf_valuation.
+      rewrite interp_cstrs_union.
+      specialize (hv (valuation_of_opt_nat v)).
+      intros interp.
+      rewrite -interp_univ_cstrs_nat in interp.
+
+
       setoid_rewrite <- clauses_sem_satisfies_equiv in hv.
       red. intros v vcs.
       rewrite interp_cstr_clauses_sem.
-      Search interp_univ_cstr.
-      rewrite interp_univ_cstrs_nat.
+      Search interp_univ_cstrs.
       setoid_rewrite interp_cstrs_clauses_sem in hcls.
       rewrite interp_cstr_clauses_sem. *)
 
