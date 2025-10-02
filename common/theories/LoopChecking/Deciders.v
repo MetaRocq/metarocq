@@ -1887,6 +1887,19 @@ Module Abstract.
     exists z. split => //.
   Qed.
 
+  Lemma valuation_of_model_inv {m l k} :
+    LevelMap.MapsTo l k (valuation_of_model m) ->
+    exists k', LevelMap.MapsTo l k' m /\ k = Z.to_nat (valuation_of_value m (option_get 0%Z k')).
+  Proof.
+    (* destruct k. *)
+    (* move/valuation_of_model_spec.
+    rewrite /valuation_of_model.
+    destruct (find_spec l m) => //.
+    destruct k0 => //; intros [= <-].
+    exists z. split => //. *)
+  Admitted.
+
+
   Lemma mapsto_opt_valuation_of_model {m l k} :
     LevelMap.MapsTo l (Some k) m ->
     opt_valuation_of_model m l = Some (valuation_of_value m k).
@@ -1975,20 +1988,109 @@ Module Abstract.
 
   Definition enables_clauses val cls := Clauses.For_all (enables_clause val) cls.
 
-  Theorem check_invalid_valuation {cls cl} :
-    check cls cl = Invalid ->
-    exists v : Level.t -> option Z,
-    [/\ positive_valuation v, clauses_sem v cls & ~ clause_sem v cl].
+  Definition valuation_of_model model :=
+    to_Z_val (to_val (Model.valuation_of_model model)).
+
+  Lemma interp_expr_defined {model} le :
+    defined_model_of (LevelSet.singleton le.1) model ->
+    interp_expr (opt_valuation_of_model model) le = Some (interp_expr (valuation_of_model model) le).
   Proof.
-    move/check_invalid=> [m' [ism en inval]].
-    have hpos := opt_valuation_of_model_pos.
-    have semcls := valid_clauses_model_opt _ _ ism.
-    exists (opt_valuation_of_model m'). split => // semcl.
+    destruct le as [l k]; cbn.
+    move => /(_ l) => /fwd. lsets.
+    move=> [v hm].
+    have := (@opt_valuation_of_model_pos model l).
+    rewrite /opt_valuation_of_model /valuation_of_model /to_val /to_Z_val.
+    rewrite (LevelMap.find_1 hm). cbn.
+    eapply Model.valuation_of_model_spec in hm.
+    rewrite (LevelMap.find_1 hm). cbn.
+    rewrite /valuation_of_value. cbn.
+    intros h; specialize (h _ eq_refl).
+    f_equal. lia.
+  Qed.
+
+  Lemma R_optP (x y : option Z) : reflectProp (R_opt eq x y) (eqb x y).
+  Proof.
+    destruct (eqb_spec x y); constructor.
+    - destruct x, y; cbn; try congruence. now noconf H.
+    - intros hr. destruct x, y; cbn; depelim hr; try congruence.
+  Qed.
+
+  Lemma interp_prems_add_opt_Z {v le u} : NES.interp_prems (SL := Zopt_semi) v (NES.add le u) =
+    option_map2 Z.max (interp_expr v le) (interp_prems (SL := Zopt_semi) v u).
+  Proof.
+    have ha := interp_prems_add (SL := Zopt_semi) v le u.
+    move/R_optP: ha. move/(eqb_eq _ _). auto.
+  Qed.
+
+  Lemma interp_prems_defined {m} (u : NES.t) :
+    defined_model_of (NES.levels u) m ->
+    interp_prems (opt_valuation_of_model m) u = Some (interp_prems (valuation_of_model m) u).
+  Proof.
+    move: u.
+    apply: elim.
+    - intros [l k] => //= hin.
+      rewrite !interp_prems_singleton.
+      rewrite levels_singleton in hin.
+      rewrite interp_expr_defined //.
+    - move=> le x eq wf def.
+      forward eq. move: def. rewrite /defined_model_of.
+      move=> h l hin. apply h. rewrite levels_add. lsets.
+      rewrite interp_prems_add_opt_Z eq interp_expr_defined.
+      { intros l; move: (def l) => h hin; apply h. rewrite levels_add. rsets. now left. }
+      cbn. now rewrite interp_prems_add.
+  Qed.
+
+  Lemma clause_sem_defined_valid_all {model cl} :
+    defined_model_of (clause_levels cl) model ->
+    clause_sem (to_Z_val (to_val (Model.valuation_of_model model))) cl -> valid_clause model cl.
+  Proof.
+    intros def semcl. Print clause_sem.
     destruct cl as [prems [concl k]].
     cbn -[le] in semcl.
-    destruct en as [minp mineq]. cbn in mineq.
-    unfold valid_clause in inval. rewrite mineq in inval. cbn in inval.
-    elim inval. clear inval.
+    apply valid_clause_intro => minp mineq.
+    cbn -[le] in semcl.
+    have [iprems [eqiprems [[maxl [maxk [inmax [hmax eqmax]]]] hleprems]]] := min_premise_interp_prems_ex mineq.
+    have he : interp_prems (valuation_of_model model) prems = iprems.
+    { rewrite interp_prems_defined in eqiprems.
+      intros l hin; apply (def l). rewrite /clause_levels //=. lsets. congruence. }
+    rewrite he in semcl.
+    move: semcl.
+    rewrite /to_Z_val /to_val.
+    case: (find_spec concl (Model.valuation_of_model _)) => [vconcl|] hmconcl.
+    2:{ elim hmconcl. move:(def concl); rewrite clause_levels_spec. firstorder.
+        eexists. now eapply valuation_of_model_spec. }
+    have [vconclm [hmconcl' heqn]] := valuation_of_model_inv hmconcl.
+    subst vconcl.
+    rewrite /level_value_above.
+    rewrite (level_value_MapsTo hmconcl').
+    have [exm [[minl mink] [hin fmin]]] := min_premise_spec_aux _ _ _ mineq.
+    specialize (hleprems _ inmax). cbn in hleprems.
+    destruct hleprems as [minv [hminv [lei ge]]].
+    eapply LevelMapFact.F.MapsTo_fun in hmax; tea. noconf hmax.
+    have exm' := (exm _ hin). depelim exm'.
+    rewrite /min_atom_value in fmin. destruct (level_value model minl) eqn:hminl => //.
+    noconf fmin. noconf H0.
+    destruct vconclm.
+    - constructor. cbn in hmconcl.
+      move: lei ge. rewrite eqmax.
+      rewrite /valuation_of_value. unfold le, eq; cbn. cbn in semcl.
+      have valpos := valuation_of_value_pos hmconcl'.
+      move: semcl. rewrite Z2Nat.id. lia. subst iprems.
+      unfold valuation_of_value. lia.
+    - move: (def concl) => /fwd.
+      rewrite clause_levels_spec. cbn. now right.
+      intros [? hm]. eapply LevelMapFact.F.MapsTo_fun in hmconcl'; tea. congruence.
+  Qed.
+
+  clause_sem_defined_valid_all
+
+  Lemma clause_sem_valid {model cl} :
+    clause_sem (opt_valuation_of_model model) cl -> valid_clause model cl.
+  Proof.
+    intros semcl.
+    destruct cl as [prems [concl k]].
+    cbn -[le] in semcl.
+    apply valid_clause_intro => minp mineq.
     cbn -[le] in semcl.
     have [iprems [eqiprems [[maxl [maxk [inmax [hmax eqmax]]]] hleprems]]] := min_premise_interp_prems_ex mineq.
     rewrite eqiprems in semcl. subst iprems.
@@ -1999,16 +2101,49 @@ Module Abstract.
     move/opt_valuation_of_model_inv: evconcl => [mconcl [hmconcl eq]].
     subst vconcl.
     rewrite /level_value_above.
-    rewrite (level_value_MapsTo hmconcl). apply Z.leb_le.
+    rewrite (level_value_MapsTo hmconcl). constructor.
     have [exm [[minl mink] [hin fmin]]] := min_premise_spec_aux _ _ _ mineq.
     specialize (hleprems _ inmax). cbn in hleprems.
     destruct hleprems as [minv [hminv [lei ge]]].
     eapply LevelMapFact.F.MapsTo_fun in hmax; tea. noconf hmax.
     have exm' := (exm _ hin). depelim exm'.
-    rewrite /min_atom_value in fmin. destruct (level_value m' minl) eqn:hminl => //.
+    rewrite /min_atom_value in fmin. destruct (level_value model minl) eqn:hminl => //.
     noconf fmin. noconf H0.
     move: lei ge le0.
     rewrite /valuation_of_value. unfold le, eq; cbn. lia.
+  Qed.
+
+  Lemma clauses_sem_valid {model cls} :
+    clauses_sem (opt_valuation_of_model model) cls <-> is_model cls model.
+  Proof.
+    rewrite is_model_valid. split.
+    intros clssem. red. move=> cl /clssem. apply clause_sem_valid.
+    move=> vm cl /vm. apply valid_clause_model_opt.
+  Qed.
+
+  Lemma clauses_sem_all_valid {model cls} :
+    defined_model_of (clauses_levels cls) model ->
+    clauses_sem (to_Z_val (to_val (valuation_of_model model))) cls <-> is_model cls model.
+  Proof.
+    intros def.
+    rewrite is_model_valid. split.
+    intros clssem. red. move=> cl /clssem. apply clause_sem_valid.
+    move=> vm cl /vm. apply valid_clause_model_opt.
+  Qed.
+
+
+  (* cls ⊭ x >= y, so cls + x < y is consistent, validates all clauses *)
+
+  Theorem check_invalid_valuation {cls cl} :
+    check cls cl = Invalid ->
+    exists v : Level.t -> option Z,
+    [/\ positive_valuation v, clauses_sem v cls & ~ clause_sem v cl].
+  Proof.
+    move/check_invalid=> [m' [ism en inval]].
+    have hpos := opt_valuation_of_model_pos.
+    have semcls := valid_clauses_model_opt _ _ ism.
+    exists (opt_valuation_of_model m'). split => // semcl.
+    apply clause_sem_valid in semcl. contradiction.
   Qed.
 
   Definition valid_clauses cls cls' :=
@@ -2099,20 +2234,6 @@ Module Abstract.
       Z.max (interp_expr v le) (interp_prems v u).
     Proof.
       now rewrite interp_prems_add.
-    Qed.
-
-    Lemma R_optP (x y : option Z) : reflectProp (R_opt eq x y) (eqb x y).
-    Proof.
-      destruct (eqb_spec x y); constructor.
-      - destruct x, y; cbn; try congruence. now noconf H.
-      - intros hr. destruct x, y; cbn; depelim hr; try congruence.
-    Qed.
-
-    Lemma interp_prems_add_opt_Z {v le u} : NES.interp_prems (SL := Zopt_semi) v (NES.add le u) =
-      option_map2 Z.max (interp_expr v le) (interp_prems (SL := Zopt_semi) v u).
-    Proof.
-      have ha := interp_prems_add (SL := Zopt_semi) v le u.
-      move/R_optP: ha. move/(eqb_eq _ _). auto.
     Qed.
 
     Lemma interp_prems_opt {v e} :
