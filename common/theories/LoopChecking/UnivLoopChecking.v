@@ -738,7 +738,7 @@ End ZUnivConstraint.
 
   End interp.
 
-  Lemma interp_univ_cstrs_relations {S} {SL : Semilattice S Z} v cstrs :
+  Lemma interp_univ_cstrs_relations {S} {SL : Semilattice S Z} (v : Level.t -> S) cstrs :
     interp_univ_cstrs v cstrs <->
     interp_rels v (relations_of_constraints (to_z_cstrs cstrs)).
   Proof.
@@ -1346,7 +1346,7 @@ End ZUnivConstraint.
     LevelSet.fold add_val V (LevelMap.empty _).
 
 
-  Lemma clauses_sem_subset {S} {SL : Semilattice.Semilattice S Q.t} {v cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
+  Lemma clauses_sem_subset {S} {SL : Semilattice.Semilattice S Q.t} {v : Level.t -> S} {cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
   Proof.
     now move=> hall hsub cl /hsub.
   Qed.
@@ -1838,12 +1838,12 @@ End ZUnivConstraint.
 
   Existing Instance Impl.CorrectModel.Zopt_semi.
 
-  Instance nat_opt_semi : Semilattice (option nat) nat := Impl.CorrectModel.opt_semi Natsemilattice.
+  Instance nat_opt_semi : Semilattice (option nat) nat := opt_semi Natsemilattice.
 
-  Import Impl.CorrectModel (positive_valuation, opt_valuation_of_model_pos).
+  Import Impl.CorrectModel (positive_valuation, positive_opt_valuation, opt_valuation_of_model_pos).
 
   Definition valid_Z_model m c :=
-    (forall (v : Level.t -> option Z), positive_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    (forall (v : Level.t -> option Z), positive_opt_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
   Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
 
@@ -1867,7 +1867,6 @@ End ZUnivConstraint.
       rewrite -interp_univ_cstr_nat.
       Search interp_nat_cstr.
   Qed. *)
-
 
 
   Theorem check_completeness {m c} :

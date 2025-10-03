@@ -189,8 +189,15 @@ Proof.
   now eapply entails_all_clauses_subset.
 Qed.
 
+Definition declared_clause_levels V cl := LevelSet.Subset (clause_levels cl) V.
+
+Lemma declared_clause_levels_mon {V V' cl} : LevelSet.Subset V V' -> declared_clause_levels V cl -> declared_clause_levels V' cl.
+Proof.
+  now move => sub h l /h.
+Qed.
+
 Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
-  | Loop (v : premises) (islooping : loop_on_univ cls v)
+  | Loop (v : premises) (hincl : LevelSet.Subset (levels v) (clauses_levels cls)) (islooping : loop_on_univ cls v)
   | Model (w : LevelSet.t) (m : valid_model V w m cls) (prf : U ⊂_lset w).
 Arguments Loop {V U cls m}.
 Arguments Model {V U cls m}.
@@ -346,7 +353,7 @@ Qed.
 Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   match r with
   | Model w m _ => Some m.(model_model)
-  | Loop v _ => None
+  | Loop v _ _ => None
   end.
 
 Notation loop_measure V W := (#|V|, #|V| - #|W|)%nat.
@@ -562,14 +569,14 @@ Section InnerLoop.
       by wf (measure W cls m) lt :=
       inner_loop_partition m upd with loop W LevelSet.empty premconclW (restrict_model W m) (restrict_model W m) _ _ := {
         (* premconclW = cls ⇂ W , conclW = (Clauses.diff (cls ↓ W) (cls ⇂ W)) *)
-        | Loop u isl => Loop u (loop_on_subset _ isl)
+        | Loop u incl isl => Loop u _ (loop_on_subset _ isl)
         (* We have a model for (cls ⇂ W), we try to extend it to a model of (csl ↓ W).
           By invariant Wr ⊂ W *)
         | Model Wr mr empWr with inspect (check_model conclW (Wr, model_update m (model_model mr))) := {
           | exist None eqm => Model Wr {| model_model := model_update m (model_model mr) |} _
           | exist (Some (Wconcl, mconcl)) eqm with inner_loop_partition mconcl _ := {
             (* Here Wr ⊂ Wconcl by invariant *)
-              | Loop u isl => Loop u isl
+              | Loop u incl isl => Loop u incl isl
               | Model Wr' mr' UWconcl => Model (LevelSet.union Wconcl Wr') {| model_model := model_model mr' |} _ }
               (* Here Wr' ⊂ W by invariant *)
         (* We check if the new model [mr] for (cls ⇂ W) extends to a model of (cls ↓ W). *)
@@ -590,6 +597,8 @@ Section InnerLoop.
         * now eapply strictly_updates_restrict_only_model.
         * eapply is_update_of_empty.
       - left. now eapply strict_subset_cardinal.
+      - transitivity (clauses_levels premconclW) => //.
+        eapply clauses_levels_mon. rewrite eqprem. apply restrict_clauses_subset.
       - rewrite eqprem. eapply restrict_clauses_subset.
       - have mu := model_updates mr.
         setoid_rewrite eqprem at 1 in mu.
@@ -686,6 +695,14 @@ End InnerLoop.
 (* To help equations *)
 Opaque lexprod_rel_wf.
 
+Lemma is_update_of_incl {cls : clauses} {W : LevelSet.t} {m m' : model} :
+  is_update_of cls W m m' -> W ⊂_lset clauses_conclusions cls.
+Proof.
+  move/is_update_of_case => [[he heq]|].
+  - intros l; lsets.
+  - now move/strictly_updates_incl.
+Qed.
+
 Local Open Scope Z_scope.
 
 #[tactic="idtac"]
@@ -695,33 +712,42 @@ Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (minit m : mod
   loop V U cls minit m prf with inspect (check_model cls (U, m)) :=
     | exist None eqm => Model U {| model_model := m |} _
     | exist (Some (W, m')) eqm with inspect (LevelSet.equal W V) := {
-      | exist true eq := Loop (of_level_map minit (check_model_defined_init_map prf eqm)) _
+      | exist true eq := Loop (of_level_map minit (check_model_defined_init_map prf eqm)) _ _
       (* Loop on cls ↓ W, with |W| < |V| *)
       | exist false neq with inner_loop V U minit loop W (cls ↓ W) m' _ :=
-        { | Loop u isloop := Loop u (loop_on_subset _ isloop)
+        { | Loop u incl isloop := Loop u _ (loop_on_subset _ isloop)
           | Model Wc mwc _
           (* We get a model for (cls ↓ W), we check if it extends to all clauses.
               By invariant |Wc| cannot be larger than |W|. *)
             with inspect (check_model cls (Wc, mwc.(model_model))) :=
           { | exist None eqm' => Model (LevelSet.union W Wc) {| model_model := mwc.(model_model) |} _
             | exist (Some (Wcls, mcls)) eqm' with inspect (LevelSet.equal Wcls V) := {
-              | exist true _ := Loop (of_level_map m' (check_model_defined_map eqm)) _
+              | exist true _ := Loop (of_level_map m' (check_model_defined_map eqm)) _ _
               | exist false neq' with loop V (LevelSet.union W Wcls) cls minit mcls _ := {
                 (* Here Wcls < V, we've found a model for all of the clauses with conclusion
                   in W, which can now be fixed. We concentrate on the clauses whose
                   conclusion is different. Clearly |W| < |V|, but |Wcls| is not
                   necessarily < |V| *)
-                  | Loop u isloop := Loop u isloop
+                  | Loop u incl isloop := Loop u incl isloop
                   | Model Wvw mcls' hsub := Model Wvw {| model_model := model_model mcls' |} _ } } }
           }
       }
     .
 Proof.
-  all:cbn -[cls_diff clauses_with_concl restrict_clauses]; clear loop.
+  all:cbn -[of_level_map cls_diff clauses_with_concl restrict_clauses]; clear loop.
   all:try solve [intuition auto].
   all:try eapply levelset_neq in neq.
   all:have cls_sub := clauses_conclusions_levels cls.
   all:destruct prf as [clsV mof isupd].
+  - red. eapply LevelSet.equal_spec in eq0.
+    set (prf := check_model_defined_init_map _ _); clearbody prf.
+    eapply check_model_is_update_of in eqm; tea. rewrite eq0 in eqm.
+    destruct eqm. rewrite union_idem in H. eapply strictly_updates_incl in H.
+    have heq : V =_lset clauses_levels cls.
+    { intros l. split. move/H. apply clauses_conclusions_levels. apply clsV. }
+    intros l. rewrite -heq.
+    rewrite levels_spec => -[k].
+    rewrite of_level_map_spec. specialize (mof l). rewrite mof. now eexists.
   - red. eapply LevelSet.equal_spec in eq0.
     set (prf := check_model_defined_init_map _ _); clearbody prf.
     eapply check_model_is_update_of in eqm; tea. rewrite eq0 in eqm.
@@ -736,8 +762,28 @@ Proof.
     * now eapply strictly_updates_non_empty.
     * apply clauses_conclusions_clauses_with_concl.
     * eapply strictly_updates_strenghten. exact eqm.
-
+  - intros l; move/incl. apply clauses_levels_mon. apply clauses_with_concl_subset.
   - now intros ?; rewrite in_clauses_with_concl.
+  - apply LevelSet.equal_spec in e.
+    set (ne := check_model_defined_map _). clearbody ne.
+    have hu := model_updates mwc.
+    eapply check_model_is_update_of in eqm as [eqm incl]; tea.
+    have om : only_model_of V m'.
+    { rewrite union_idem in eqm.
+      have incl' := strictly_updates_incl eqm.
+      have hcl := clauses_conclusions_levels cls.
+      eapply strictly_updates_only_model_gen in eqm; tea. eapply only_model_of_eq; tea. intro; lsets. }
+    eapply strictly_updates_is_update_of in eqm; tea.
+    rewrite union_idem union_with_concl in eqm.
+    eapply check_model_update_of in eqm' as [wmcls [upd eq]].
+    intros l. rewrite levels_spec => -[k hin].
+    eapply of_level_map_spec in hin.
+    specialize (om l) as [_ incl'].
+    forward incl'. now eexists. rewrite -e in incl'.
+    eapply strictly_updates_incl in eqm.
+    eapply is_update_of_incl in upd.
+    apply cls_sub. move: incl'; rewrite eq LevelSet.union_spec => -[] incl'.
+    apply eqm. lsets. now apply upd.
   - set (ne := check_model_defined_map _). clearbody ne.
     have hu := model_updates mwc.
     eapply check_model_is_update_of in eqm as [eqm incl]; tea.

@@ -91,7 +91,7 @@ Definition print_level_Z_map (m : LevelMap.t (option Z)) :=
 
 Definition print_result {V cls} (m : infer_result V cls) :=
   match m return string with
-  | Loop _ _ => "looping on "
+  | Loop _ _ _ => "looping on "
   | Model w m _ => "satisfiable with model: " ^ print_level_Z_map m.(model_model) ^ nl ^ " W = " ^
     print_lset w
     ^ nl ^ "valuation: " ^ print_level_nat_map (valuation_of_model m.(model_model))
@@ -99,7 +99,7 @@ Definition print_result {V cls} (m : infer_result V cls) :=
 
 Definition valuation_of_result {V cls} (m : infer_result V cls) :=
   match m with
-  | Loop _ _  => "looping"
+  | Loop _ _ _  => "looping"
   | Model w m _ => print_level_nat_map (valuation_of_model m.(model_model))
   end.
 
@@ -123,7 +123,7 @@ Definition valuation := LevelMap.t nat.
 
 Equations? infer_model (cls : clauses) : model + premises :=
 infer_model cls with loop (clauses_levels cls) LevelSet.empty cls (init_model cls) (init_model cls) _ :=
-  | Loop v _ => inr v
+  | Loop v _ _ => inr v
   | Model w vm heq => inl vm.(model_model).
 Proof.
   split.
@@ -334,7 +334,7 @@ Next Obligation.
 Qed.
 
 Variant check_result {cls} :=
-  | IsLooping (v : premises) (islooping : loop_on_univ cls v)
+  | IsLooping (v : premises) (hincl : NES.levels v ⊂_lset clauses_levels cls) (islooping : loop_on_univ cls v)
   | Invalid
   | Valid.
 Arguments check_result : clear implicits.
@@ -353,19 +353,20 @@ Proof.
 Qed.
 
 Equations check (cls : clauses) (cl : clause) : check_result cls :=
-  check cls cl with loop_check cls cl :=
-    | Loop v isl => IsLooping v isl
-    | Model W v _ with inspect (LevelMap.find (concl cl).1 v.(model_model)) := {
-      | exist (Some val) he with check_atom_value (Some (concl cl).2) val :=
+check cls cl with inspect (loop_check cls cl) :=
+  { | exist (Loop v _ isl) he => IsLooping v _ isl
+    | exist (Model W v _) he with inspect (LevelMap.find (concl cl).1 v.(model_model)) := {
+      | exist (Some val) he' with check_atom_value (Some (concl cl).2) val :=
         { | true => Valid
           | false => Invalid }
-      | exist None he with valid_model_find v he := {}
-    }.
+      | exist None he' with valid_model_find v he' := {}
+    }
+  }.
 
 Definition check_clauses (cls : clauses) (cls' : clauses) : bool :=
   let check_one cl :=
     match check cls cl with
-    | IsLooping _ _ => false
+    | IsLooping _ _ _ => false
     | Valid => true
     | Invalid => false
     end
@@ -379,7 +380,7 @@ Proof.
   destruct cl as [prems [concl k]].
   funelim (check cls _) => // _.
   set (V := (clause_levels _ ∪ clauses_levels cls)%levels) in *.
-  clear Heqcall H. cbn [concl fst snd] in *. clear Heq0.
+  clear Heqcall H H0. cbn [concl fst snd] in *.
   move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
   have vmupd := model_updates v.
   have vmok := model_ok v.
@@ -395,18 +396,18 @@ Proof.
   have of_lset := of_level_map_premises_model_map cls cl V nepm.
   have tr := entails_all_trans of_lset ent.
   eapply (entails_all_satisfies (l := concl0) (k := k)) in tr.
-  2:{ red. rewrite /level_value he. now constructor. }
+  2:{ red. rewrite /level_value he'. now constructor. }
   exact tr.
 Qed.
 
-Lemma check_entails_looping {cls cl v isl} :
-  check cls cl = IsLooping v isl -> cls ⊢a v → succ_prems v.
+Lemma check_entails_looping {cls cl v vcls isl} :
+  check cls cl = IsLooping v vcls isl -> cls ⊢a v → succ_prems v.
 Proof.
   funelim (check cls cl) => //.
 Qed.
 
-Lemma check_looping {cls cl v isl} :
-  check cls cl = IsLooping v isl ->
+Lemma check_looping {cls cl v vcls isl} :
+  check cls cl = IsLooping v vcls isl ->
   ~ (exists m, defined_model_of (levels v) m /\ is_model cls m).
 Proof.
   move/check_entails_looping.
@@ -418,30 +419,25 @@ Proof.
   now apply enabled_clauses_le.
 Qed.
 
-(* Lemma check_valid_looping {cls cl m v isl} :
-  enabled_clauses m cls ->
+Lemma check_valid_looping {cls cl m v vcls isl} :
   is_model cls m ->
-  check cls cl = IsLooping v isl -> False.
+  check cls cl = IsLooping v vcls isl ->
+  defined_model_of (levels v) m -> False.
 Proof.
-  move=> en ism.
-  rewrite /check /loop_check.
-  destruct loop.
-
-   /check_looping; apply.
-  destruct def as [def isupd].
-  exists m'. split => //.
-  move: isupd; move/is_update_of_case => [].
-  * move=> [] empw eq. rewrite -eq.
-  exists m.
-Qed. *)
+  move=> ism.
+  move/check_looping => ex hdef. apply ex.
+  exists m. split => //.
+Qed.
 
 Theorem check_invalid {cls cl} :
   check cls cl = Invalid -> exists m, [/\ is_model cls m, enabled_clause m cl & ~ valid_clause m cl].
 Proof.
   funelim (check cls cl) => //.
+  clear H H0 he.
   set (V := (clause_levels cl ∪ clauses_levels cls)%levels) in *.
   destruct cl as [prems [concl k]].
-  rename val into conclval_v => _. clear H Heq0 Heqcall prf. cbn in he.
+  rename val into conclval_v => _.
+  clear Heqcall prf.
   move: (check_atom_value_spec (Some k) conclval_v). rewrite Heq.
   intros r; depelim r. rename H into nent.
   have vmupd := model_updates v.
@@ -466,7 +462,8 @@ Proof.
   destruct en as [z minp].
   move/valid_clause_elim/(_ z minp).
   cbn in minp.
-  rewrite /level_value he => h; depelim h. apply nent.
+  cbn in he'.
+  rewrite /level_value he' => h; depelim h. apply nent.
   constructor. cbn -[check_atom_value] in Heq.
   have posz : 0 <= z.
   { have hsu := model_updates v.
@@ -628,6 +625,9 @@ Module CorrectModel.
   Definition model_of {V cls} (x : t V cls) := x.(model_valid).(model_model).
   Coercion model_of : t >-> model.
 
+  Lemma is_model_of {V cls} (x : t V cls) : is_model cls (model_of x).
+  Proof. apply x.(model_valid). Qed.
+
   Lemma declared_zero_model_of {V cls} (x :t V cls) : zero_declared (model_of x).
   Proof.
     have h := declared_zero x.
@@ -697,7 +697,7 @@ Module CorrectModel.
     (declp : declared_pos V init)
     : result V (Clauses.union cls cls') :=
   infer_extension_correct m enabled hincl hs cls' hs' hdeclz hdecla hdeclp with infer_extension m hincl hs cls' :=
-    | Loop u isl => inr {| loop_univ := u; loop_on_univ := isl |}
+    | Loop u vcls isl => inr {| loop_univ := u; loop_on_univ := isl |}
     | Model w m' _ =>
       inl {|
         initial_model := min_model_map m.(model_model) cls';
@@ -2225,6 +2225,35 @@ Module Abstract.
     Qed.
 
 
+  Lemma defined_model (m : t) : defined_model_of (levels m) (model_of m).
+  Proof.
+    intros l hin.
+    have [k hm] := declared_pos_model_of m l hin.
+    now exists (Z.of_nat k).
+  Qed.
+
+  Definition declared_clauses_levels V cls := LevelSet.Subset (clauses_levels cls) V.
+
+  Lemma defined_model_of_subset {V V' m} : LevelSet.Subset V V' -> defined_model_of V' m -> defined_model_of V m.
+  Proof.
+    now move=> sub def l /sub /def.
+  Qed.
+
+  Lemma entails_dec (m : t) cl :
+    { entails (clauses m) cl } + { ~ entails (clauses m) cl }.
+  Proof.
+    destruct (check (clauses m) cl) eqn:ch.
+    - move/check_looping: ch; elim.
+      exists (model_of m). split.
+      { have dm := defined_model m.
+        eapply defined_model_of_subset; tea.
+        eapply defined_model_of_subset; tea.
+        apply clauses_levels_declared. }
+      exact: is_model_of m.
+    - move/check_invalid_entails: ch. now right.
+    - move/check_entails: ch. now left.
+  Qed.
+
   (** ~ (x >= y) <-> (y > x)*)
   (* cls ⊭ x >= y, so cls + x < y is consistent, validates all clauses *)
 
@@ -2241,12 +2270,17 @@ Module Abstract.
     [/\ positive_opt_valuation v, clauses_sem v cls & ~ clause_sem v cl].
 *)
 
+  Definition valid_clauses_nat cls cl :=
+    forall v : Level.t -> Z, clauses_sem v cls -> ~ clause_sem v cl.
+(*
   Lemma enforce_inverse_model m minv cl :
     is_model (clauses m) minv ->
     ~ valid_clause minv cl ->
     exists m', enforce_inverse m cl = Some (inl m').
   Proof.
     intros ism inval.
+    Search entails.
+    Search enforce_clauses.
     rewrite /enforce_inverse.
     destruct enforce_clauses eqn:ec.
     destruct s.
@@ -2270,7 +2304,7 @@ Module Abstract.
       admit.
     - move/enforce_clauses_None: ec.
       admit.
-  Admitted.
+  Admitted. *)
 
 
 
@@ -2387,7 +2421,7 @@ Module LoopChecking (LS : LevelSets).
   Import Semilattice.
   Lemma enforce_inconsistent {m cls u} :
     enforce m cls = Some (inr u) ->
-    forall S (SL : Semilattice.Semilattice S Q.t) V, clauses_sem V (Clauses.union (clauses m) (to_clauses cls)) ->
+    forall S (SL : Semilattice.Semilattice S Q.t) (V : Level.t -> S), clauses_sem V (Clauses.union (clauses m) (to_clauses cls)) ->
        clauses_sem V (Impl.CorrectModel.loop_univ u ≡ succ (Impl.CorrectModel.loop_univ u)).
   Proof.
     rewrite /enforce.
@@ -2398,10 +2432,6 @@ Module LoopChecking (LS : LevelSets).
     specialize (vr S SL V).
     move: vr.
     rewrite !interp_rels_clauses_sem // => vr /vr.
-    (* rewrite -interp_rels_clauses_sem.
-    rewrite clauses_sem_eq.
-    setoid_rewrite interp_add_prems; cbn -[Z.add].
-    lia. *)
   Qed.
 
   Lemma enforce_clauses {m cls m'} :
