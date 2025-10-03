@@ -5,7 +5,7 @@ From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils MRClasses SemiLattice.
 
-From MetaRocq.Common Require UnivConstraintType Universes.
+From MetaRocq.Common Require UnivConstraintType.
 From Equations Require Import Equations.
 
 From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models PartialLoopChecking InitialSemilattice HornSemilatticeEquiv.
@@ -260,13 +260,14 @@ Proof.
     move: (hcl (singleton le, succ_expr le)) => /fwd.
     { exists (succ_expr le). split => //.
       apply In_add_prems. exists le; split => //. now apply LevelExprSet.singleton_spec. }
-    move=> [z [hmin hleq]]. cbn in hleq.
-    depelim hleq. cbn in H0.
+    move=> [z [hmin hleq]]. cbn -[Z.add] in hleq.
     rewrite min_premise_singleton /min_atom_value in hmin.
-    destruct le as [l k]. cbn -[Z.add] in *. rewrite H0 in hmin. noconf hmin. lia.
+    destruct le as [l k]. cbn -[Z.add] in *.
+    destruct (level_value m l) eqn:hl => //. noconf hmin.
+    apply opt_le_some_inv in hleq. lia.
   - intros le x en hnin h.
     apply en. intros cl [lk [hin eq]]. subst cl.
-    eapply In_add_prems in hin as [? []]. subst lk. cbn.
+    eapply In_add_prems in hin as [? []]. subst lk. rewrite /concl. cbn.
     move: (h (add le x, succ_expr x0)) => /fwd.
     { exists (succ_expr x0). split => //.
       apply In_add_prems. exists x0. split => //.
@@ -781,13 +782,13 @@ Module CorrectModel.
 
   Definition clause_sem {S} {SL : Semilattice S Q.t} (V : Level.t -> S) (cl : clause) : Prop :=
     let '(prems, concl) := cl in
-    le (interp_expr V concl) (interp_prems V prems).
+    le (interp_expr V concl) (interp_nes V prems).
 
   Definition clauses_sem {S} {SL : Semilattice S Q.t} (V : Level.t -> S) (cls : Clauses.t) : Prop :=
     Clauses.For_all (clause_sem V) cls.
 
   Instance clauses_sem_proper {S} {SL : Semilattice S Q.t} :
-    Proper (Logic.eq ==> Clauses.Equal ==> iff) clauses_sem.
+    Proper (Logic.eq ==> Clauses.Equal ==> iff) (clauses_sem (S:=S)).
   Proof.
     move=> ?? -> ?? h.
     rewrite /clauses_sem.
@@ -795,7 +796,7 @@ Module CorrectModel.
   Qed.
 
   Lemma clauses_sem_singleton {S} {SL : Semilattice S Q.t} {V cl} :
-    clauses_sem V (Clauses.singleton cl) <-> clause_sem V cl.
+    clauses_sem (S:=S) V (Clauses.singleton cl) <-> clause_sem V cl.
   Proof.
     rewrite /clauses_sem /Clauses.For_all.
     split; firstorder. apply H. clsets.
@@ -803,7 +804,7 @@ Module CorrectModel.
   Qed.
 
   Lemma clauses_sem_add {S} {SL : Semilattice S Q.t} {V cl cls} :
-    clauses_sem V (Clauses.add cl cls) <-> clause_sem V cl /\ clauses_sem V cls.
+    clauses_sem (S:=S) V (Clauses.add cl cls) <-> clause_sem V cl /\ clauses_sem V cls.
   Proof.
     rewrite /clauses_sem /Clauses.For_all.
     split.
@@ -815,7 +816,7 @@ Module CorrectModel.
   Qed.
 
   Lemma clauses_sem_union {S} {SL : Semilattice S Q.t} {V cls cls'} :
-    clauses_sem V (Clauses.union cls cls') <-> clauses_sem V cls /\ clauses_sem V cls'.
+    clauses_sem (S:=S) V (Clauses.union cls cls') <-> clauses_sem V cls /\ clauses_sem V cls'.
   Proof.
     rewrite /clauses_sem /Clauses.For_all.
     setoid_rewrite Clauses.union_spec. firstorder.
@@ -842,47 +843,6 @@ Module CorrectModel.
     depelim maxs. lia.
   Qed.
 
-  Section interp_semi.
-    Obligation Tactic := idtac.
-    Import Semilattice (Semilattice, eq, add, join).
-
-    Context {S Q} {CM : CommutativeMonoid.IsCommMonoid Q} (SL : Semilattice S Q).
-
-    Equations? opt_semi : Semilattice (option S) Q :=
-    opt_semi := {|
-         eq x y := R_opt (@eq _ _ CM SL) x y;
-         eq_equiv := _;
-         add n x := option_map (add n) x;
-         join := option_map2 join |}.
-    Proof.
-      all: intros.
-      - split; red.
-        * intros x. destruct x => //=. reflexivity.
-        * intros [x|] [y|]; cbn; auto. now symmetry.
-        * intros [x|] [y|] [z|]; cbn; auto. apply transitivity.
-      - destruct x => //=. now rewrite add_distr.
-      - destruct x, y; cbn in * => //. now apply add_congr.
-      - destruct x => //=. apply add_neutral.
-      - destruct x, y, z => //=. apply join_assoc.
-      - destruct x, y => //=. apply join_comm.
-      - destruct x, x', y; cbn in * => //. now apply join_congr.
-      - destruct x => //=. apply join_idem.
-      - destruct x => //=. apply join_sub.
-      - destruct x, y => //=; cbn in *. now eapply add_inj.
-      - destruct x, y => //=; cbn in *; now eapply add_join.
-    Defined.
-    Existing Instance opt_semi.
-
-    Lemma Zopt_semi_le_spec {x y : option S} : x ≤ y -> (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
-    Proof.
-      rewrite /le. cbn. destruct x, y => //=.
-      - intros hc. right. exists s, s0. split => //.
-      - intros _. now left.
-      - intros _. now left.
-    Qed.
-
-  End interp_semi.
-
   Definition Zopt_semi := opt_semi Zsemilattice.
   Existing Instance Zopt_semi.
 
@@ -907,10 +867,13 @@ Module CorrectModel.
     | _ => None
     end.
 
-  Definition positive_valuation (v : Level.t -> option Z) :=
+  Definition positive_opt_valuation (v : Level.t -> option Z) :=
     forall l k, v l = Some k -> k >= 0.
 
-  Lemma opt_valuation_of_model_pos {m} : positive_valuation (opt_valuation_of_model m).
+  Definition positive_valuation (v : Level.t -> Z) :=
+    forall l, v l >= 0.
+
+  Lemma opt_valuation_of_model_pos {m} : positive_opt_valuation (opt_valuation_of_model m).
   Proof.
     rewrite /opt_valuation_of_model /positive_valuation => l k'.
     case: (find_spec l m) => //.
@@ -1027,14 +990,14 @@ Module CorrectModel.
         move=> _. destruct cl as [prems concl]. cbn.
         rewrite /min_atom_value in hmin.
         set (v := opt_valuation_of_model _).
-        set (ip := interp_prems _ _).
+        set (ip := interp_nes _ _).
         have -> : ip = None.
-        { subst ip. move/(interp_prems_ge v): inmin; tea.
+        { subst ip. move/(interp_nes_ge v): inmin; tea.
           have -> : interp_expr v (min, mink) = None.
           { cbn. subst v. unfold opt_valuation_of_model.
             move: hmin; rewrite /level_value; case: find_spec => //.
             move=> k hm. destruct k => //. }
-          move/Zopt_semi_le_spec. intros [] => //.
+          move/le_spec. intros [] => //.
           destruct H as [? [? []]]. congruence. }
         destruct interp_expr => //=. }
     destruct cl as [prems [concl k]]. cbn -[le].
@@ -1050,7 +1013,7 @@ Module CorrectModel.
     subst v.
     pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
     rewrite hmin in premeq.
-    eapply transitivity. 2:{ eapply interp_prems_ge; tea. }
+    eapply transitivity. 2:{ eapply interp_nes_ge; tea. }
     unfold interp_expr. destruct prem as [prem k'].
     symmetry in premeq.
     move: premeq. unfold min_atom_value.
@@ -1102,7 +1065,7 @@ Module CorrectModel.
     subst v.
     pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
     rewrite hmin in premeq.
-    eapply transitivity. 2:{ eapply interp_prems_ge; tea. }
+    eapply transitivity. 2:{ eapply interp_nes_ge; tea. }
     unfold interp_expr. destruct prem as [prem k'].
     symmetry in premeq.
     move: premeq. unfold min_atom_value.
@@ -1247,7 +1210,7 @@ Module CorrectModel.
       have hv := model_valuation m.
       apply hv in hin.
       move: hin; rewrite /clause_sem /init_clause_of_level //=.
-      rewrite interp_prems_singleton //=.
+      rewrite interp_nes_singleton //=.
       rewrite /to_Z_val /to_val /valuation /to_val.
       have vs:= valuation_of_model_spec _ _ _ hm.
       rewrite (LevelMap.find_1 vs).
@@ -1286,7 +1249,7 @@ Module CorrectModel.
       have hv := model_valuation m.
       apply hv in hin.
       move: hin; rewrite /clause_sem /init_clause_of_level //=.
-      rewrite interp_prems_singleton //=.
+      rewrite interp_nes_singleton //=.
       rewrite /to_Z_val /to_val /valuation /to_val.
       have vs:= valuation_of_model_spec _ _ _ hm.
       rewrite (LevelMap.find_1 vs).
@@ -1767,22 +1730,22 @@ Module Abstract.
 
   Lemma clauses_sem_leq {S} {SL : Semilattice S Q.t} (V : Level.t -> S) l r :
     clauses_sem V (l ⋞ r) <->
-    (interp_prems V l ≤ interp_prems V r)%sl.
+    (interp_nes V l ≤ interp_nes V r)%sl.
   Proof.
     move: l.
     apply: elim.
     - intros le; cbn.
       rewrite clauses_of_le_singleton clauses_sem_singleton.
-      cbn. now rewrite interp_prems_singleton.
+      cbn. now rewrite interp_nes_singleton.
     - move=> le x xr hnin.
       rewrite clauses_of_le_add clauses_sem_add xr.
-      cbn. rewrite interp_prems_add.
+      cbn. rewrite interp_nes_add.
       symmetry; apply join_le_left_eq.
   Qed.
 
   Lemma clauses_sem_eq {S} {SL : Semilattice S Q.t} (V : Level.t -> S) l r :
     clauses_sem V (l ≡ r) <->
-    (interp_prems V l ≡ interp_prems V r)%sl.
+    (interp_nes V l ≡ interp_nes V r)%sl.
   Proof.
     rewrite /clauses_of_eq clauses_sem_union !clauses_sem_leq.
     symmetry; apply eq_antisym.
@@ -1790,7 +1753,7 @@ Module Abstract.
 
   Definition relation_of_clause cl := (singleton (concl cl) ≤ premise cl).
 
-  Lemma interp_rels_of_clauses {S} {SL : Semilattice S Q.t} {V cls} :
+  Lemma interp_rels_of_clauses {S} {SL : Semilattice S Q.t} {V : Level.t -> S} {cls} :
     interp_rels V (relations_of_clauses cls) <->
     forall cl, Clauses.In cl cls -> interp_rel V (relation_of_clause cl).
   Proof.
@@ -1802,15 +1765,15 @@ Module Abstract.
       now move=> [] /hcl hin ->.
   Qed.
 
-  Lemma interp_rels_clauses_sem {S} {SL : Semilattice S Q.t} {V cls} :
+  Lemma interp_rels_clauses_sem {S} {SL : Semilattice S Q.t} {V : Level.t -> S} {cls} :
     clauses_sem V cls <-> interp_rels V (relations_of_clauses cls).
   Proof.
     rewrite interp_rels_of_clauses.
     split.
     - move=> sem [prems concl] /sem //=.
-      now rewrite /le interp_prems_union interp_prems_singleton.
+      now rewrite /le interp_nes_union interp_nes_singleton.
     - move=> hcl [prems concl] /hcl /=.
-      now rewrite /le interp_prems_union interp_prems_singleton.
+      now rewrite /le interp_nes_union interp_nes_singleton.
   Qed.
 
   Definition Z_valuation_of_model m :=
@@ -1929,16 +1892,16 @@ Module Abstract.
     cbn. now have -> : k' - z + z = k' by lia.
   Qed.
 
-  Lemma min_premise_interp_prems_ex {m u minp} :
+  Lemma min_premise_interp_nes_ex {m u minp} :
     min_premise m u = Some minp ->
-    exists z, interp_prems (opt_valuation_of_model m) u = Some z /\
+    exists z, interp_nes (opt_valuation_of_model m) u = Some z /\
     (exists maxx maxk, LevelExprSet.In maxx u /\ LevelMap.MapsTo maxx.1 (Some maxk) m /\ z = valuation_of_value m maxk + maxx.2) /\
     forall x, LevelExprSet.In x u -> exists k, LevelMap.MapsTo x.1 (Some k) m /\
     valuation_of_value m k + x.2 <= z /\ minp <= k - x.2.
   Proof.
     move: u minp.
     apply: NES.elim.
-    { intros [l lk]. rewrite interp_prems_singleton min_premise_singleton //= => minp.
+    { intros [l lk]. rewrite interp_nes_singleton min_premise_singleton //= => minp.
       case: (@level_valueP m l) => // -[] // vl hm [=] <-.
       rewrite (mapsto_opt_valuation_of_model hm) //=.
       eexists; split => //.
@@ -1953,13 +1916,13 @@ Module Abstract.
       destruct (min_premise m u) => //.
       specialize (h _ eq_refl) as [z1 [? [[maxx [maxk [inmax [mmax maxle]]]]]]].
       cbn. intros [= <-].
-      have ha := (NES.interp_prems_add (SL := Zopt_semi) (opt_valuation_of_model m) (l, k) u).
+      have ha := (NES.interp_nes_add (SL := Zopt_semi) (opt_valuation_of_model m) (l, k) u).
       rewrite H in ha.
       have hminv := min_atom_value_mapsto hmin. cbn in hminv.
       cbn [interp_expr] in ha.
       rewrite (mapsto_opt_valuation_of_model hminv) in ha.
       cbn [eq Zopt_semi] in ha.
-      destruct (interp_prems _ (NES.add _ _)); cbn in ha => //.
+      destruct (interp_nes _ (NES.add _ _)); cbn in ha => //.
       subst z2. eexists; split; trea.
       split.
       destruct (Z.max_spec (k + valuation_of_value m (z + k)) z1) as [[hle heq]|[hle heq]].
@@ -1984,7 +1947,7 @@ Module Abstract.
   Qed.
 
   Definition enables_clause val cl :=
-    exists k, interp_prems val (premise cl) = Some k.
+    exists k, interp_nes val (premise cl) = Some k.
 
   Definition enables_clauses val cls := Clauses.For_all (enables_clause val) cls.
 
@@ -2015,29 +1978,29 @@ Module Abstract.
     - intros hr. destruct x, y; cbn; depelim hr; try congruence.
   Qed.
 
-  Lemma interp_prems_add_opt_Z {v le u} : NES.interp_prems (SL := Zopt_semi) v (NES.add le u) =
-    option_map2 Z.max (interp_expr v le) (interp_prems (SL := Zopt_semi) v u).
+  Lemma interp_nes_add_opt_Z {v le u} : NES.interp_nes (SL := Zopt_semi) v (NES.add le u) =
+    option_map2 Z.max (interp_expr v le) (interp_nes (SL := Zopt_semi) v u).
   Proof.
-    have ha := interp_prems_add (SL := Zopt_semi) v le u.
+    have ha := interp_nes_add (SL := Zopt_semi) v le u.
     move/R_optP: ha. move/(eqb_eq _ _). auto.
   Qed.
 
-  Lemma interp_prems_defined {m} (u : NES.t) :
+  Lemma interp_nes_defined {m} (u : NES.t) :
     defined_model_of (NES.levels u) m ->
-    interp_prems (opt_valuation_of_model m) u = Some (interp_prems (valuation_of_model m) u).
+    interp_nes (opt_valuation_of_model m) u = Some (interp_nes (valuation_of_model m) u).
   Proof.
     move: u.
     apply: elim.
     - intros [l k] => //= hin.
-      rewrite !interp_prems_singleton.
+      rewrite !interp_nes_singleton.
       rewrite levels_singleton in hin.
       rewrite interp_expr_defined //.
     - move=> le x eq wf def.
       forward eq. move: def. rewrite /defined_model_of.
       move=> h l hin. apply h. rewrite levels_add. lsets.
-      rewrite interp_prems_add_opt_Z eq interp_expr_defined.
+      rewrite interp_nes_add_opt_Z eq interp_expr_defined.
       { intros l; move: (def l) => h hin; apply h. rewrite levels_add. rsets. now left. }
-      cbn. now rewrite interp_prems_add.
+      cbn. now rewrite interp_nes_add.
   Qed.
 
   Lemma clause_sem_defined_valid_all {model cl} :
@@ -2046,7 +2009,7 @@ Module Abstract.
   Proof.
     intros def.
     destruct cl as [prems [concl k]].
-    rewrite /clause_sem. rewrite interp_prems_defined.
+    rewrite /clause_sem. rewrite interp_nes_defined.
     { intros l hin; apply def. rewrite /clause_levels //=. lsets. }
     rewrite interp_expr_defined.
     { intros l hin; apply def; rewrite /clause_levels //=. cbn in hin. lsets. }
@@ -2074,9 +2037,9 @@ Module Abstract.
     cbn -[le] in semcl.
     apply valid_clause_intro => minp mineq.
     cbn -[le] in semcl.
-    have [iprems [eqiprems [[maxl [maxk [inmax [hmax eqmax]]]] hleprems]]] := min_premise_interp_prems_ex mineq.
+    have [iprems [eqiprems [[maxl [maxk [inmax [hmax eqmax]]]] hleprems]]] := min_premise_interp_nes_ex mineq.
     rewrite eqiprems in semcl. subst iprems.
-    apply Zopt_semi_le_spec in semcl. destruct semcl => //.
+    apply le_spec in semcl. destruct semcl => //.
     destruct H as [y' [z' [eq [eq' le]]]]. noconf eq'.
     destruct opt_valuation_of_model eqn:evconcl; noconf eq.
     rename z into vconcl.
@@ -2103,6 +2066,16 @@ Module Abstract.
     move=> vm cl /vm. apply valid_clause_model_opt.
   Qed.
 
+  Lemma def_clause_sem_valid {model cl} :
+    defined_model_of (clause_levels cl) model ->
+    clause_sem (valuation_of_model model) cl <-> valid_clause model cl.
+  Proof.
+    intros def.
+    split.
+    - intros cs. apply clause_sem_valid. rewrite -clause_sem_defined_valid_all //.
+    - intros v. rewrite clause_sem_defined_valid_all //. now apply valid_clause_model_opt.
+  Qed.
+
   Lemma def_clauses_sem_valid {model cls} :
     defined_model_of (clauses_levels cls) model ->
     clauses_sem (valuation_of_model model) cls <-> is_model cls model.
@@ -2111,12 +2084,10 @@ Module Abstract.
     apply clauses_sem_valid.
   Qed.
 
-  (* cls ⊭ x >= y, so cls + x < y is consistent, validates all clauses *)
-
   Theorem check_invalid_valuation {cls cl} :
     check cls cl = Invalid ->
     exists v : Level.t -> option Z,
-    [/\ positive_valuation v, clauses_sem v cls & ~ clause_sem v cl].
+    [/\ positive_opt_valuation v, clauses_sem v cls & ~ clause_sem v cl].
   Proof.
     move/check_invalid=> [m' [ism en inval]].
     have hpos := opt_valuation_of_model_pos.
@@ -2127,7 +2098,7 @@ Module Abstract.
 
   Definition valid_clauses cls cls' :=
     forall v : Level.t -> option Z,
-      positive_valuation v ->
+      positive_opt_valuation v ->
       clauses_sem v cls -> clauses_sem v cls'.
 
   Lemma check_clauses_Z_positive_complete m cls :
@@ -2209,41 +2180,41 @@ Module Abstract.
       destruct e; cbn. rewrite /Z_val_of_opt_val. destruct (v t0) eqn:vt0 => //=. congruence.
     Qed.
 
-    Lemma interp_prems_add_Z {v le u} : NES.interp_prems (SL := Zsemilattice) v (NES.add le u) =
-      Z.max (interp_expr v le) (interp_prems v u).
+    Lemma interp_nes_add_Z {v le u} : NES.interp_nes (SL := Zsemilattice) v (NES.add le u) =
+      Z.max (interp_expr v le) (interp_nes v u).
     Proof.
-      now rewrite interp_prems_add.
+      now rewrite interp_nes_add.
     Qed.
 
-    Lemma interp_prems_opt {v e} :
-      interp_prems (opt_val_of_Z_val v) e = Some (interp_prems v e).
+    Lemma interp_nes_opt {v e} :
+      interp_nes (opt_val_of_Z_val v) e = Some (interp_nes v e).
     Proof.
       move: e; apply elim.
-      - intros []. now rewrite !interp_prems_singleton interp_expr_opt.
+      - intros []. now rewrite !interp_nes_singleton interp_expr_opt.
       - intros le x h nin.
-        rewrite interp_prems_add_opt_Z interp_expr_opt h //=.
-        f_equal. now rewrite interp_prems_add.
+        rewrite interp_nes_add_opt_Z interp_expr_opt h //=.
+        f_equal. now rewrite interp_nes_add.
     Qed.
 
-    Lemma interp_prems_opt_inv {v} {e z} :
-      interp_prems v e = Some z ->
-      interp_prems (Z_val_of_opt_val v) e = z.
+    Lemma interp_nes_opt_inv {v} {e z} :
+      interp_nes v e = Some z ->
+      interp_nes (Z_val_of_opt_val v) e = z.
     Proof.
       move: e z; apply: NES.elim.
-      - intros le z. rewrite !interp_prems_singleton.
+      - intros le z. rewrite !interp_nes_singleton.
         now move/interp_expr_opt_inv.
       - intros le x h nin z.
-        rewrite interp_prems_add_opt_Z interp_prems_add.
-        case he : interp_expr => //. 2:{ cbn. destruct interp_prems => //. }
+        rewrite interp_nes_add_opt_Z interp_nes_add.
+        case he : interp_expr => //. 2:{ cbn. destruct interp_nes => //. }
         move/interp_expr_opt_inv: he => ->.
-        case he' : interp_prems => //=.
+        case he' : interp_nes => //=.
         move/h: he'. intros ->. congruence.
     Qed.
 
     Lemma clause_sem_opt {v cl} :
       clause_sem (opt_val_of_Z_val v) cl <-> clause_sem v cl.
     Proof.
-      destruct cl as [prems concl]; rewrite /clause_sem interp_expr_opt interp_prems_opt.
+      destruct cl as [prems concl]; rewrite /clause_sem interp_expr_opt interp_nes_opt.
       now cbn.
     Qed.
 
@@ -2252,6 +2223,56 @@ Module Abstract.
     Proof.
       now split; move => h cl /h; rewrite clause_sem_opt.
     Qed.
+
+
+  (** ~ (x >= y) <-> (y > x)*)
+  (* cls ⊭ x >= y, so cls + x < y is consistent, validates all clauses *)
+
+  Definition inverse_clauses (cl : clause) :=
+    let (prems, concl) := cl in
+    clauses_of_le (succ_prems prems) (singleton concl).
+
+  Definition enforce_inverse m cl :=
+    enforce_clauses m (inverse_clauses cl).
+
+(*  ~ (x <= y) <-> (x <= y -> succ x <= x).
+    check cls cl = Invalid ->
+    exists v : Level.t -> option Z,
+    [/\ positive_opt_valuation v, clauses_sem v cls & ~ clause_sem v cl].
+*)
+
+  Lemma enforce_inverse_model m minv cl :
+    is_model (clauses m) minv ->
+    ~ valid_clause minv cl ->
+    exists m', enforce_inverse m cl = Some (inl m').
+  Proof.
+    intros ism inval.
+    rewrite /enforce_inverse.
+    destruct enforce_clauses eqn:ec.
+    destruct s.
+    - eexists; trea.
+    - move/enforce_clauses_inconsistent: ec.
+      rewrite -entails_L_rels_entails_L_clauses.
+      rewrite -completeness_all.
+      move/(_ Z _ (Z_valuation_of_model m)).
+      rewrite -!interp_rels_clauses_sem.
+      rewrite clauses_sem_union.
+      rewrite -def_clause_sem_valid in inval. admit.
+
+      move=> /fwd. split. admit.
+      Search valid_clause.
+      Search interp_rels.
+
+
+
+
+      rewrite entails_ℋ_
+      admit.
+    - move/enforce_clauses_None: ec.
+      admit.
+  Admitted.
+
+
 
    (* Definition full_valuation V v :=
       forall l, LevelSet.In l V -> exists z, v l = Some z /\
@@ -2275,7 +2296,7 @@ Module Abstract.
       - move=> ent v cs. specialize (ent (Z_val_of_opt_val v)).
         forward ent. move=> cl /cs.
         destruct cl as [prems concl] => //=.
-        intros hm. rewrite interp_expr_opt interp_prems_opt //=.
+        intros hm. rewrite interp_expr_opt interp_nes_opt //=.
         move=> cl /ent. destruct cl as [prems concl] => //=.
     Qed.*)
 End Abstract.
@@ -2466,7 +2487,7 @@ Module LoopChecking (LS : LevelSets).
     move=> cl /en; clear.
     destruct cl as [prems concl]; rewrite /enabled_clause /enables_clause; cbn.
     intros [k hmin].
-    move/min_premise_interp_prems_ex: hmin => [z [eq rest]]. now exists z.
+    move/min_premise_interp_nes_ex: hmin => [z [eq rest]]. now exists z.
   Qed.
 
   Lemma clauses_consistent_val m : consistent_val (opt_valuation m) (clauses m).

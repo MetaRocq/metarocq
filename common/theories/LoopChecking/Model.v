@@ -1151,7 +1151,7 @@ Module Model (LS : LevelSets).
 
   Lemma min_atom_value_add_inv m e x n :
     min_atom_value m (add_expr n e) = Some x ->
-    min_atom_value m e = Some (x + n)%Z.
+    min_atom_value m e = Some (n + x)%Z.
   Proof.
     rewrite /min_atom_value. destruct e. cbn.
     destruct level_value => //. intros [= <-].
@@ -1176,21 +1176,21 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma min_premise_add_prems_inv {m n prems z} : min_premise m (add_prems n prems) = Some z ->
-    min_premise m prems = Some (z + n)%Z.
+    min_premise m prems = Some (n + z)%Z.
   Proof.
     revert z.
     pattern prems.
     set (P := (fun n0 hm =>
     forall z : Z,
-      min_premise m (add_prems n n0) = Some z -> hm = Some (z + n)%Z)).
+      min_premise m (add_prems n n0) = Some z -> hm = Some (n + z)%Z)).
     apply (@min_premise_elim _ P); subst P; cbn.
     - intros le z hm.
       destruct le as [concl k].
-      rewrite add_prems_singleton min_premise_singleton in hm.
+      rewrite add_prems_singleton min_premise_singleton //= in hm.
       now apply min_atom_value_add_inv.
     - intros prems' acc le ih nle z.
       rewrite add_prems_add min_premise_add.
-      destruct (min_premise m (add_prems n prems')) eqn:he => //=.
+      destruct (min_premise m (add_prems n prems')) eqn:he => //.
       * destruct (min_atom_value m (add_expr n le)) eqn:ha => //=.
         intros [= <-].
         eapply min_atom_value_add_inv in ha. rewrite ha.
@@ -1254,7 +1254,7 @@ Module Model (LS : LevelSets).
     rewrite In_add_prems. split.
     - move=> [] [l' k'] [] hin heq. noconf heq.
       now have <- : k' = - premise_min s + k' + premise_min s by lia.
-    - move=> hin; exists (l, k + premise_min s). split => //.
+    - move=> hin; exists (l, k + premise_min s). split; rewrite /add_expr => //.
       cbn. lia_f_equal.
   Qed.
 

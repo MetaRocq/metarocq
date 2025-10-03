@@ -152,7 +152,6 @@ From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
 
-From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
 
 From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses Model Models.

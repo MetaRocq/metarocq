@@ -836,7 +836,7 @@ Qed. *)
     Proof.
       move=> [v sat] [e].
       move/presentation_entails_valid_rel/(_ Z_semilattice v sat). cbn.
-      rewrite interp_add_prems. change (add 1%Z (interp_prems v e)) with (Z.add 1 (interp_prems v e)).
+      rewrite interp_add_prems. change (add 1%Z (interp_nes v e)) with (Z.add 1 (interp_nes v e)).
       cbn -[Z.add]. lia.
     Qed.
 

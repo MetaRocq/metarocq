@@ -241,6 +241,7 @@ Section CheckLeq.
     - rewrite check_completeness.
       intros hv. red in hv.
       destruct HG as [hlev hcstrs].
+      red.
       rewrite valid_Z_pos_nat_model => v.
       rewrite hcstrs.
       erewrite <-interp_univ_cstrs_nat.

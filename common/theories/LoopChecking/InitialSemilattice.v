@@ -412,7 +412,7 @@ Module InitialSemilattice (LS : LevelSets).
 
     Definition interp_rel r :=
       let '(l, r) := r in
-      interp_prems v l ≡ interp_prems v r.
+      interp_nes v l ≡ interp_nes v r.
 
     Definition interp_rels c :=
       List.Forall interp_rel c.
@@ -436,7 +436,7 @@ Module InitialSemilattice (LS : LevelSets).
     all:try specialize (IHh1 _ _ Logic.eq_refl S SL _ hv).
     all:try specialize (IHh2 _ _ Logic.eq_refl S SL _ hv).
     all:try lia; eauto.
-    all:rewrite ?interp_add_prems ?interp_prems_union ?interp_add_prems; try lia.
+    all:rewrite ?interp_add_prems ?interp_nes_union ?interp_add_prems; try lia.
     - eapply reflexivity.
     - now eapply symmetry, IHh.
     - eapply transitivity; [eapply IHh1|eapply IHh2] => //.
@@ -470,15 +470,15 @@ Module InitialSemilattice (LS : LevelSets).
 
   Definition ids (rs : rels) : Level.t -> t := (fun l : Level.t => singleton (l, zero)).
 
-  Lemma interp_triv rs l : eq (Semilattice := init_model rs) (interp_prems (SL := init_model rs) (ids rs) l) l.
+  Lemma interp_triv rs l : eq (Semilattice := init_model rs) (interp_nes (SL := init_model rs) (ids rs) l) l.
   Proof.
     move: l; apply: elim.
     - intros [l k].
-      rewrite interp_prems_singleton //= /ids //=.
-      rewrite add_prems_singleton //=. rewrite comm neutral.
+      rewrite interp_nes_singleton //= /ids //=.
+      rewrite add_prems_singleton //=. rewrite /add_expr //= comm neutral.
       apply entails_refl.
     - move=> [] l k x ih hnin.
-      have ha := (interp_prems_add (SL := init_model rs) (ids rs) (l, k)).
+      have ha := (interp_nes_add (SL := init_model rs) (ids rs) (l, k)).
       rewrite ha ih. rewrite /interp_expr. rewrite -union_add_singleton /ids.
       rewrite [add _ _]add_prems_singleton /add_expr comm neutral.
       apply (join_comm (Semilattice := init_model rs)).
@@ -494,7 +494,7 @@ Module InitialSemilattice (LS : LevelSets).
     induction rs0; cbn.
     - constructor.
     - destruct a. constructor.
-      * change (eq (Semilattice := init_model rs) (interp_prems (SL := init_model rs) (ids rs) t0) (interp_prems (SL := init_model rs) (ids rs) t1)).
+      * change (eq (Semilattice := init_model rs) (interp_nes (SL := init_model rs) (ids rs) t0) (interp_nes (SL := init_model rs) (ids rs) t1)).
         rewrite !interp_triv.
         constructor. apply ir. now constructor.
       * apply IHrs0. intros r hin; apply ir. now right.
@@ -516,7 +516,7 @@ Module InitialSemilattice (LS : LevelSets).
     rewrite /valid_relation.
     intros ha. apply syntax_model.
     destruct r as [l r]. cbn.
-    change (eq (Semilattice := init_model p) (interp_prems (SL := init_model p) (ids p) l) (interp_prems (SL := init_model p) (ids p) r)).
+    change (eq (Semilattice := init_model p) (interp_nes (SL := init_model p) (ids p) l) (interp_nes (SL := init_model p) (ids p) r)).
     specialize (ha _ (init_model p) (ids p) (interp_rels_init p)).
     now cbn in ha.
   Qed.
@@ -549,7 +549,7 @@ Module InitialSemilattice (LS : LevelSets).
 
   Open Scope rel_scope.
 
-  Instance interp_rels_entails_proper {S} {SL : Semilattice S Q.t} V : Proper (entails_L_rels ==> impl) (interp_rels V).
+  Instance interp_rels_entails_proper {S} {SL : Semilattice S Q.t} V : Proper (entails_L_rels ==> impl) (interp_rels (S:=S) V).
   Proof.
     intros rs rs' hl.
     induction rs' in rs, hl |- *.
@@ -559,7 +559,7 @@ Module InitialSemilattice (LS : LevelSets).
       now apply (H S SL V H0).
   Qed.
 
-  Instance interp_rels_proper {S} {SL : Semilattice S Q.t} V : Proper (equiv_L_rels ==> iff) (interp_rels V).
+  Instance interp_rels_proper {S} {SL : Semilattice S Q.t} V : Proper (equiv_L_rels ==> iff) (interp_rels (S:=S) V).
   Proof.
     intros rs rs' [hl hr].
     split; now apply interp_rels_entails_proper.

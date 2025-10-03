@@ -4751,13 +4751,13 @@ Section Semantics.
       end.
 
     Definition interp_expr '(l, k) := (interp_level l + k)%nat.
-    Definition interp_prems prems :=
+    Definition interp_nes prems :=
       let '(hd, tl) := to_nonempty_list prems in
       fold_right (fun lk acc => Nat.max (interp_expr lk) acc) (interp_expr hd) tl.
 
     Definition clause_sem (cl : clause) : Prop :=
       let '(prems, concl) := cl in
-      interp_prems prems >= interp_expr concl.
+      interp_nes prems >= interp_expr concl.
 
     Definition clauses_sem (cls : clauses) : Prop :=
       Clauses.For_all clause_sem cls.
@@ -5981,12 +5981,12 @@ Proof.
   rewrite heq in hp. depelim hp. exists y. split => //; lia.
 Qed.
 
-Lemma interp_prems_ge v (prems : nonEmptyLevelExprSet) :
+Lemma interp_nes_ge v (prems : nonEmptyLevelExprSet) :
   forall prem, LevelExprSet.In prem prems ->
-  interp_expr v prem <= interp_prems v prems.
+  interp_expr v prem <= interp_nes v prems.
 Proof.
   intros.
-  unfold interp_prems.
+  unfold interp_nes.
   have he := to_nonempty_list_spec prems.
   destruct to_nonempty_list.
   pose proof to_nonempty_list_spec'.
@@ -6024,7 +6024,7 @@ Proof.
   subst v.
   pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
   rewrite hmin in premeq.
-  eapply Nat.le_trans. 2:{ eapply interp_prems_ge; tea. }
+  eapply Nat.le_trans. 2:{ eapply interp_nes_ge; tea. }
   unfold interp_expr. destruct prem as [prem k'].
   symmetry in premeq.
   move: premeq. unfold min_atom_value.
@@ -6076,11 +6076,11 @@ End Nat_as_OT.
 
 Module NatSet := MSetList.MakeWithLeibniz Nat_as_OT.
 
-Definition interp_prems_nat V e := LevelExprSet.fold (fun e acc => NatSet.add (interp_expr V e) acc) e NatSet.empty.
+Definition interp_nes_nat V e := LevelExprSet.fold (fun e acc => NatSet.add (interp_expr V e) acc) e NatSet.empty.
 
-Lemma interp_prems_eq V (u : univ) : interp_prems V u = LevelExprSet.fold (fun e acc => Nat.max (interp_expr V e) acc) u 0.
+Lemma interp_nes_eq V (u : univ) : interp_nes V u = LevelExprSet.fold (fun e acc => Nat.max (interp_expr V e) acc) u 0.
 Proof.
-  rewrite /interp_prems.
+  rewrite /interp_nes.
   have he := to_nonempty_list_spec u.
   destruct to_nonempty_list.
   pose proof to_nonempty_list_spec'.
@@ -6152,9 +6152,9 @@ Proof.
   lia.
 Qed.
 
-Lemma interp_add_prems V n e : interp_prems V (add_prems n e) = n + interp_prems V e.
+Lemma interp_add_prems V n e : interp_nes V (add_prems n e) = n + interp_nes V e.
 Proof.
-  rewrite !interp_prems_eq.
+  rewrite !interp_nes_eq.
   rewrite !LevelExprSetProp.fold_spec_right.
   rewrite Universes.fold_right_map (Universes.fold_right_map _ (interp_expr V)).
   rewrite fold_right_comm_add_n.
@@ -6178,10 +6178,10 @@ Proof.
     eapply In_add_prems. exists (l, k); split => //.
 Qed.
 
-Lemma interp_prems_singleton V e :
-  interp_prems V (singleton e) = interp_expr V e.
+Lemma interp_nes_singleton V e :
+  interp_nes V (singleton e) = interp_expr V e.
 Proof.
-  rewrite /interp_prems.
+  rewrite /interp_nes.
   now rewrite singleton_to_nonempty_list /=.
 Qed.
 
@@ -6198,14 +6198,14 @@ Proof.
     destruct concl as [concl conclk].
     rewrite /add_expr; cbn. lia.
   - intros V clsm. cbn.
-    rewrite interp_prems_singleton.
+    rewrite interp_nes_singleton.
     cbn. lia.
 Qed.
 
-Lemma interp_prems_add V cl (u : univ) :
-  interp_prems V (add cl u) = Nat.max (interp_expr V cl) (interp_prems V u).
+Lemma interp_nes_add V cl (u : univ) :
+  interp_nes V (add cl u) = Nat.max (interp_expr V cl) (interp_nes V u).
 Proof.
-  rewrite !interp_prems_eq. unfold add. cbn.
+  rewrite !interp_nes_eq. unfold add. cbn.
   destruct (LevelExprSetProp.In_dec cl u).
   erewrite LevelExprSetProp.add_fold => //. 2-3:tc. 2:red; lia.
   rewrite LevelExprSetProp.fold_spec_right.
@@ -6221,10 +6221,10 @@ Proof.
 Qed.
 
 Lemma clauses_sem_subset {u u' : univ} : u ⊂_leset u' ->
-  forall V, interp_prems V u' >= interp_prems V u.
+  forall V, interp_nes V u' >= interp_nes V u.
 Proof.
   intros hsub V.
-  rewrite !interp_prems_eq. red.
+  rewrite !interp_nes_eq. red.
   rewrite !LevelExprSetProp.fold_spec_right.
   rewrite !(Universes.fold_right_map _ (interp_expr V)).
   eapply fold_right_impl. intros x.
@@ -6243,12 +6243,12 @@ Proof.
   induction 1.
   - intros v clls. red.
     destruct concl0 as [concl k].
-    now have hge := interp_prems_ge v prems _ H.
+    now have hge := interp_nes_ge v prems _ H.
   - move=> V Hcls.
     move: {IHentails} (IHentails _ Hcls).
     unfold clause_sem. unfold ge => hyp.
-    etransitivity; tea. rewrite interp_prems_add.
-    rewrite interp_prems_add in hyp.
+    etransitivity; tea. rewrite interp_nes_add.
+    rewrite interp_nes_add in hyp.
     eapply in_pred_closure_entails in H; tea.
     move: H; rewrite /clause_sem. unfold ge.
     have ssub := clauses_sem_subset H1 V. lia.
@@ -6256,12 +6256,12 @@ Qed.
 
 Lemma clauses_sem_entails_all {cls prems concl} :
   cls ⊢a prems → concl ->
-  (forall V, clauses_sem V cls -> interp_prems V prems >= interp_prems V concl).
+  (forall V, clauses_sem V cls -> interp_nes V prems >= interp_nes V concl).
 Proof.
   intros ha V hcls.
   red in ha.
   move: ha.
-  rewrite (interp_prems_eq _ concl); cbn.
+  rewrite (interp_nes_eq _ concl); cbn.
   destruct concl as [concl t_ne]; cbn. clear t_ne.
   eapply LevelExprSetProp.fold_rec.
   - lia.

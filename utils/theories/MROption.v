@@ -46,6 +46,34 @@ Definition R_opt {A} (R : relation A) : relation (option A) :=
     | _, _ => False
   end.
 
+Instance R_opt_refl {A R} : @Reflexive A R -> Reflexive (R_opt R).
+Proof.
+  intros hr []; cbn; reflexivity.
+Qed.
+
+Instance R_opt_sym {A R} : @Symmetric A R -> Symmetric (R_opt R).
+Proof.
+  intros hr [] []; cbn => //. now symmetry.
+Qed.
+
+Instance R_opt_trans {A R} : @Transitive A R -> Transitive (R_opt R).
+Proof.
+  intros hr [] [] []; cbn => //. intros; now etransitivity.
+Qed.
+
+Instance R_opt_equiv {A R} : @Equivalence A R -> Equivalence (R_opt R).
+Proof.
+  split; tc.
+Qed.
+
+Definition option_map2 {A B} (f : A -> A -> B) (o o' : option A) : option B :=
+  match o, o' with
+  | Some x, Some y => Some (f x y)
+  | None, Some _
+  | Some _, None
+  | None, None => None
+  end.
+
 Definition option_default {A B} (f : A -> B) (o : option A) (b : B) :=
   match o with Some x => f x | None => b end.
 

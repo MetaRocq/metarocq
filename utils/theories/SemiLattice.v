@@ -1,8 +1,9 @@
 (* Distributed under the terms of the MIT license. *)
+From Equations Require Import Equations.
 From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms SetoidList.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import MRPrelude MRClasses MRList.
+From MetaRocq.Utils Require Import MRPrelude MRClasses MRList MROption.
 
 Set Equations Transparent.
 
@@ -14,6 +15,8 @@ Module Semilattice.
   Local Open Scope comm_monoid.
 
   Reserved Notation "x ≡ y" (at level 70).
+
+  #[mode="! ! -"]
   Class Semilattice (carrier : Type) (incr : Type) `{CM : IsCommMonoid incr} :=
     { eq : carrier -> carrier -> Prop where "x ≡ y" := (eq x y) : sl_scope;
       eq_equiv :: Equivalence eq;
@@ -42,33 +45,34 @@ Module Semilattice.
   Infix "<" := lt (at level 70) : sl_scope.
 
   Class JoinDec (carrier : Type) `{SL : Semilattice carrier} :=
-    { join_dec x y : (join x y ≡ x) \/ (join y x ≡ y) }.
+    { join_dec (x y : carrier) : (join x y ≡ x) \/ (join y x ≡ y) }.
 
   Local Open Scope sl_scope.
   Section Derived.
     Context {A : Type} {incr : Type} {CM : IsCommMonoid incr} {SL : Semilattice A incr}.
-
+    Implicit Type x y s t u : A.
     Lemma join_congr_r x y y' : y ≡ y' -> join x y ≡ join x y'.
     Proof.
       intros he; etransitivity. apply join_comm.
       etransitivity. 2:apply join_comm. now apply join_congr.
     Qed.
-
-    #[export] Instance proper_join : Proper (eq ==> eq ==> eq) join.
+    #[export] Instance proper_join : Proper (eq ==> eq ==> eq) (@join A incr _ _).
     Proof. intros x y ? x0 y0 ?. transitivity (join y x0).
       now apply join_congr. now apply join_congr_r.
     Qed.
 
-    #[export] Instance proper_add : Proper (Logic.eq ==> eq ==> eq) add.
+    #[export] Instance proper_add : Proper (Logic.eq ==> eq ==> eq) (@add A incr _ _).
     Proof. intros x y ? x0 y0 ?. subst y. now apply add_congr. Qed.
 
     Lemma le_refl x : x ≤ x.
     Proof. apply join_idem. Qed.
+
     Lemma le_trans x y z : x ≤ y -> y ≤ z -> x ≤ z.
     Proof.
       unfold le; intros le le'. now rewrite -le' -join_assoc le.
     Qed.
-    #[export] Instance le_preorder : PreOrder le.
+
+    #[export] Instance le_preorder : @PreOrder A le.
     Proof.
       split.
       - intros ?; apply le_refl.
@@ -86,7 +90,7 @@ Module Semilattice.
         apply join_comm.
     Qed.
 
-    #[export] Instance proper_le : Proper (eq ==> eq ==> iff) le.
+    #[export] Instance proper_le : Proper (eq ==> eq ==> iff) (@le A incr _ _).
     Proof. intros x y ? x0 y0 ?.
       apply eq_antisym in H0 as [].
       apply eq_antisym in H as [].
@@ -103,12 +107,12 @@ Module Semilattice.
       - intros []. red in H0. apply eq_antisym. split => //.
     Qed.
 
-    Lemma join_le_left {s t} : s ≤ s ∨ t.
+    Lemma join_le_left {s t : A} : s ≤ s ∨ t.
     Proof.
       red. now rewrite -join_assoc join_idem.
     Qed.
 
-    Lemma join_le_left_trans {s t u} : s ≤ t -> s ≤ t ∨ u.
+    Lemma join_le_left_trans {s t u : A} : s ≤ t -> s ≤ t ∨ u.
     Proof. transitivity t => //. apply join_le_left. Qed.
 
     Lemma join_le_right {s t} : t ≤ s ∨ t.
@@ -128,6 +132,18 @@ Module Semilattice.
       - intros [le le']. red in le, le'. red.
         now rewrite join_assoc le' le.
     Qed.
+
+    Lemma join_le_pres {s t u v} :
+      s ≤ t -> u ≤ v -> s ∨ u ≤ t ∨ v.
+    Proof.
+      intros le le'.
+      rewrite join_le_left_eq. split.
+      - setoid_rewrite le. apply join_le_left.
+      - setoid_rewrite le'. apply join_le_right.
+    Qed.
+
+    #[export] Instance proper_join_le : Proper (le ==> le ==> le) (@join A incr _ _).
+    Proof. intros x y ? x0 y0 ?. now apply join_le_pres. Qed.
 
     Lemma join_le_right_impl {s t u} :
       s ≤ t \/ s ≤ u -> s ≤ t ∨ u.
@@ -163,6 +179,7 @@ Module Semilattice.
     Import CommutativeMonoid.
     Context {A : Type} {V : Type} {CM : IsCommMonoid V} {SL : Semilattice A V}.
     Open Scope sl_scope.
+    Implicit Types n : A.
 
     Lemma fold_right_max_in {a : A} {l : list A} n : In a l -> a ≤ (fold_right join n l).
     Proof.
@@ -172,14 +189,14 @@ Module Semilattice.
         cbn. specialize (IHl inl). etransitivity; tea. apply join_le_right.
     Qed.
 
-    Lemma fold_right_max_acc {n l} : n ≤ fold_right join n l.
+    Lemma fold_right_max_acc {n : A} {l} : n ≤ fold_right join n l.
     Proof.
       induction l.
       - now cbn.
       - cbn. etransitivity; tea. eapply join_le_right.
     Qed.
 
-    Lemma fold_right_impl n l l' :
+    Lemma fold_right_impl (n : A) l l' :
       (forall x, In x l -> In x l') -> fold_right join n l ≤ fold_right join n l'.
     Proof.
       induction l in l' |- *.
@@ -239,7 +256,7 @@ Module Semilattice.
       now symmetry.
     Qed.
 
-    Lemma fold_right_comm acc l : l <> [] -> fold_right join acc l ≡ join acc (fold_right join (List.hd acc l) (List.tl l)).
+    Lemma fold_right_comm (acc : A) l : l <> [] -> fold_right join acc l ≡ join acc (fold_right join (List.hd acc l) (List.tl l)).
     Proof.
       induction l in acc |- *.
       - intros; congruence.
@@ -252,3 +269,87 @@ Module Semilattice.
   End FoldSemilattice.
 
 End Semilattice.
+
+Section OptSemilattice.
+  Obligation Tactic := idtac.
+  Import Semilattice.
+
+  Context {S Q} {CM : CommutativeMonoid.IsCommMonoid Q} (SL : Semilattice S Q).
+
+  (* The semilattice on possibly undefined elements: two elements are equal iff
+     they are both undefined or both defined to equal elements of {S}. *)
+  Equations? opt_semi : Semilattice (option S) Q :=
+  opt_semi := {|
+    eq x y := R_opt (@eq _ _ CM SL) x y;
+    eq_equiv := _;
+    add n x := option_map (add n) x;
+    join := option_map2 join |}.
+  Proof.
+    all: intros.
+    - destruct x => //=. now rewrite add_distr.
+    - destruct x, y; cbn in * => //. now apply add_congr.
+    - destruct x => //=. apply add_neutral.
+    - destruct x, y, z => //=. apply join_assoc.
+    - destruct x, y => //=. apply join_comm.
+    - destruct x, x', y; cbn in * => //. now apply join_congr.
+    - destruct x => //=. apply join_idem.
+    - destruct x => //=. apply join_sub.
+    - destruct x, y => //=; cbn in *. now eapply add_inj.
+    - destruct x, y => //=; cbn in *; now eapply add_join.
+  Defined.
+  Existing Instance opt_semi.
+
+  (* None is greater than any element in this semilattice *)
+  Lemma le_spec {x y : option S} : x ≤ y <->
+    (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
+  Proof.
+    rewrite /le. cbn. destruct x, y => //=.
+    - split.
+      * intros hc. right. exists s, s0. split => //.
+      * now move=> [] => // -[x' [y' [[= ->]]]] [[= ->]].
+    - split; auto.
+    - split => //; auto. case => //. case => [] x [] y [] => //.
+    - now split => //.
+  Qed.
+
+  (* The alternative notions of strict inequality and equality *)
+  Definition le_strict (x y : option S) :=
+    match x, y with
+    | Some x, Some y => x ≤ y
+    | _, _ => False
+    end.
+
+  Infix "≤!" := le_strict (at level 50).
+
+  Lemma le_strict_spec {x y : option S} : x ≤! y <->
+    (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
+  Proof.
+    rewrite /le. cbn. destruct x, y => //=.
+    - split.
+      * intros hc. exists s, s0. split => //.
+      * now move=> // -[x' [y' [[= ->]]]] [[= ->]].
+    - split => //. case => x [] y [] ? [] => //.
+    - split => //. case => x [] y [] ? [] => //.
+    - split => //. case => x [] y [] => //.
+  Qed.
+(*
+  (* The alternative notions of strict inequality and equality *)
+  Definition eq_strict (x y : option S) :=
+    match x, y with
+    | Some x, Some y => x ≤ y
+    | _, _ => False
+    end.
+
+  Lemma eq_strict_spec {x y : option S} : x  y <->
+    (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
+  Proof.
+    rewrite /le. cbn. destruct x, y => //=.
+    - split.
+      * intros hc. exists s, s0. split => //.
+      * now move=> // -[x' [y' [[= ->]]]] [[= ->]].
+    - split => //. case => x [] y [] ? [] => //.
+    - split => //. case => x [] y [] ? [] => //.
+    - split => //. case => x [] y [] => //.
+  Qed. *)
+
+End OptSemilattice.

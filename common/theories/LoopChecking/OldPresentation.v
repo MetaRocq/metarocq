@@ -80,7 +80,7 @@
     rewrite /valid_constraint /interp_z_cstr //=.
     move/presentation_entails_valid_eq => vc v hc.
     specialize (vc v hc). cbn in vc.
-    rewrite interp_prems_union in vc. apply vc.
+    rewrite interp_nes_union in vc. apply vc.
   Qed.
 
   Lemma presentation_entails_valid {p c} :

@@ -888,7 +888,7 @@ Module Clauses (LS : LevelSets).
       destruct cl'; cbn in * => /In_add_prems => [] [] x [].
       destruct x => hin [=] ->. intros ->.
       apply clause_levels_spec. left. apply NES.levels_spec. now exists z.
-      intros ->. apply clause_levels_spec; right. destruct cl' => //=. destruct t2 => //.
+      intros ->. apply clause_levels_spec; right. destruct cl' => //=. now destruct t2.
     - move/clauses_levels_spec => [] cl [] hin /clause_levels_spec [].
       * move=> /NES.levels_spec => [] [k hin']; exists (add_clause n cl); split => //.
         now apply add_clauses_spec.
@@ -907,13 +907,12 @@ Module Clauses (LS : LevelSets).
     now rewrite add_prems_0.
   Qed.
 
-  Lemma add_clause_singleton n le concl k : add_clause n (singleton le, (concl, k)) = (singleton (add_expr n le), (concl, k + n)).
+  Lemma add_clause_singleton n le concl k : add_clause n (singleton le, (concl, k)) = (singleton (add_expr n le), (concl, n + k)).
   Proof.
     rewrite /add_clause //=. f_equal.
     apply NES.equal_exprsets. intros le'. rewrite In_add_prems.
     rewrite_strat (topdown LevelExprSet.singleton_spec).
     unfold LevelExprSet.E.eq. firstorder; subst; try lia_f_equal.
-    f_equal. lia.
   Qed.
 
   Lemma max_premise_of_spec_aux s l k :
@@ -1403,28 +1402,27 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Lemma entails_incr_shift cls concl k n :
-    entails cls (singleton (concl, k), (concl, k + 1)) ->
-    entails cls (singleton (concl, k), (concl, k + 1 + Z.of_nat n)).
+    entails cls (singleton (concl, k), (concl, 1 + k)) ->
+    entails cls (singleton (concl, k), (concl, Z.of_nat n + 1 + k)).
   Proof.
     induction n in k |- *; auto.
-    - now rewrite Z.add_0_r.
-    - intros en.
-      have hs := entails_shift 1 en. rewrite add_clause_singleton /= in hs.
-      rewrite Z.add_comm in hs.
-      apply IHn in hs.
-      eapply entails_trans; tea.
-      now have -> : k + 1 + Z.of_nat (S n) = k + 1 + 1 + Z.of_nat n by lia.
+    intros en.
+    have hs := entails_shift 1 en. rewrite add_clause_singleton /= in hs.
+    apply IHn in hs.
+    eapply entails_trans; tea.
+    now have <- : Z.of_nat n + 1 + (1 + k) = Z.of_nat (S n) + 1 + k by lia.
   Qed.
 
   Lemma entails_incr_all cls concl k :
-    entails cls (singleton (concl, k), (concl, k + 1)) ->
+    entails cls (singleton (concl, k), (concl, 1 + k)) ->
     forall k', entails cls (singleton (concl, k), (concl, k')).
   Proof.
     intros en k'.
     destruct (Z.lt_trichotomy k k') as [|[]]; subst; auto.
     - have ispos : 0 <= k' - k - 1 by lia.
       eapply (entails_incr_shift _ _ _ (Z.to_nat (k' - k - 1))) in en.
-      assert (k + 1 + Z.of_nat (Z.to_nat (k' - k - 1)) = k') by lia. now rewrite H0 in en.
+      assert (Z.of_nat (Z.to_nat (k' - k - 1)) + 1 + k = k') by lia.
+      now rewrite H0 in en.
     - constructor. now rewrite LevelExprSet.singleton_spec.
     - have [k0 ->] : (exists kd : nat, k = k' + Z.of_nat kd). { exists (Z.to_nat (k - k')). lia. }
       eapply (entails_pred_closure_n (n:=k0)). constructor. now apply LevelExprSet.singleton_spec.
@@ -1594,7 +1592,7 @@ Module Clauses (LS : LevelSets).
         rewrite Z.add_comm in H1.
         rewrite -(add_prems_add_prems 1 n prems') in H1.
         now move/inj_add_prems_sub: H1.
-      + specialize (H0 (x, k + 1)). forward H0. now apply LevelExprSet.singleton_spec.
+      + specialize (H0 (x, 1 + k)). forward H0. rewrite Z.add_comm. now apply LevelExprSet.singleton_spec.
         eapply In_add_prems in H0 as [[l' k'] [hin heq]]. noconf heq.
         cbn -[Z.add] in *.
         have eq: k' = k by lia. subst k'. clear H.

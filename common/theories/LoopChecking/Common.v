@@ -4,7 +4,6 @@ From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet SemiLattice.
 
-From MetaRocq.Common Require Universes.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
@@ -17,14 +16,6 @@ Ltac rw_in l H := rewrite_strat (topdown l) in H.
 Next Obligation.
   destruct (Z.eqb_spec x y); constructor => //.
 Qed.
-
-Definition option_map2 {A} (f : A -> A -> A) (o o' : option A) : option A :=
-  match o, o' with
-  | Some x, Some y => Some (f x y)
-  | None, Some _
-  | Some _, None
-  | None, None => None
-  end.
 
 Derive Signature for InA.
 
@@ -57,6 +48,9 @@ Proof.
   intros hre x; induction x; destruct y as [y|]; intros z H H'; depelim H; depelim H'; constructor.
   now transitivity y.
 Qed.
+
+Lemma opt_le_some_inv {A} (le : relation A) {x y} : opt_le le (Some x) (Some y) -> le x y.
+Proof. now intros h; depelim h. Qed.
 
 Instance option_map_2_comm {A} f : @Commutative A f -> @Commutative (option A) (option_map2 f).
 Proof.
