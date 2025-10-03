@@ -1346,35 +1346,6 @@ End ZUnivConstraint.
     LevelSet.fold add_val V (LevelMap.empty _).
 
 
-  Lemma clauses_sem_subset {S} {SL : Semilattice.Semilattice S Q.t} {v : Level.t -> S} {cls cls'} : clauses_sem v cls -> cls' ⊂_clset cls -> clauses_sem v cls'.
-  Proof.
-    now move=> hall hsub cl /hsub.
-  Qed.
-
-  Import Semilattice.
-
-  Lemma clauses_sem_clauses_of_le (V : Level.t -> Z) l r :
-    clauses_sem V (clauses_of_le l r) ->
-    (interp_nes V l ≤ interp_nes V r)%sl.
-  Proof.
-    rewrite /clauses_sem.
-    intros hl. red in hl.
-    setoid_rewrite clauses_of_le_spec in hl.
-    move: l hl. apply: elim.
-    - move => le he.
-      rewrite interp_nes_singleton.
-      move: (he (r, le)) => /fwd.
-      exists le. split => //. now apply LevelExprSet.singleton_spec.
-      cbn. lia.
-    - intros le x ih hnin ih'.
-      rewrite interp_nes_add.
-      forward ih. intros x0 [x1 [hin ->]].
-      move: (ih' (r, x1)) => /fwd. exists x1. split => //. apply LevelExprSet.add_spec. now right.
-      auto.
-      move: (ih' (r, le)) => /fwd. exists le. split => //.  apply LevelExprSet.add_spec. now left.
-      cbn. cbn in ih. lia.
-  Qed.
-
 
   Import LoopCheck (valuation).
   Import LoopCheck.Impl.CorrectModel (clauses_sem, clause_sem).
@@ -1822,18 +1793,6 @@ End ZUnivConstraint.
       etransitivity; [|eapply clauses_levels_declared].
       now eapply clauses_levels_mon.
     - exact ha.
-  Qed.
-
-  Lemma entails_L_completeness {p l r} :
-    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
-    p ⊢ℒ l ≡ r.
-  Proof.
-    intros hv.
-    specialize (hv _ (init_model p) (ids p)).
-    forward hv.
-    { apply interp_rels_init. }
-    rewrite !interp_triv in hv.
-    exact hv.
   Qed.
 
   Existing Instance Impl.CorrectModel.Zopt_semi.

@@ -96,11 +96,14 @@ Module HornSemilattice (LS : LevelSets).
       apply (relations_of_clauses_spec_inv (_, _)); now apply Clauses.union_spec.
   Qed.
 
-  Definition entails_L_clause p cl :=
+  Definition entails_L_pres_clause p cl :=
     p ⊢ℒ singleton (concl cl) ≤ premise cl.
 
   Definition entails_L_pres_clauses p cls :=
-    Clauses.For_all (entails_L_clause p) cls.
+    Clauses.For_all (entails_L_pres_clause p) cls.
+
+  Definition entails_L_clause cls cl :=
+    entails_L_pres_clause (relations_of_clauses cls) cl.
 
   Definition entails_L_clauses cls cls' :=
     entails_L_pres_clauses (relations_of_clauses cls) cls'.
@@ -123,10 +126,10 @@ Module HornSemilattice (LS : LevelSets).
 
   Lemma in_pred_closure_entails_L {cls} cl :
     in_pred_closure cls cl ->
-    entails_L_clause (relations_of_clauses cls) cl.
+    entails_L_pres_clause (relations_of_clauses cls) cl.
   Proof.
     induction 1.
-    - rewrite /entails_L_clause /rel_le.
+    - rewrite /entails_L_pres_clause /rel_le.
       destruct cl as [prems concl]; cbn.
       rewrite -add_prems_singleton -add_prems_union.
       apply entails_add_congr.
@@ -139,14 +142,14 @@ Module HornSemilattice (LS : LevelSets).
 
   Lemma entails_entails_L {cls} cl :
     entails cls cl ->
-    entails_L_clause (relations_of_clauses cls) cl.
+    entails_L_pres_clause (relations_of_clauses cls) cl.
   Proof.
     intros h; induction h.
     - red.
       now apply entails_L_idem_gen.
     - move: IHh; rewrite -!union_add_singleton.
       eapply in_pred_closure_entails_L in H.
-      rewrite /entails_L_clause in H |- *; cbn in *.
+      rewrite /entails_L_pres_clause in H |- *; cbn in *.
       have hsub:= entails_L_subset H H0.
       move=> h'.
       eapply entails_L_le_trans. tea.
@@ -338,7 +341,7 @@ Module HornSemilattice (LS : LevelSets).
   Qed.
 (*
   Lemma entails_L_clause_entails {cls cl} :
-    entails_L_clause (relations_of_clauses cls) cl ->
+    entails_L_pres_clause (relations_of_clauses cls) cl ->
     entails cls cl.
   Proof. *)
 
@@ -619,8 +622,8 @@ Module HornSemilattice (LS : LevelSets).
   Qed.
 
   Lemma entails_L_clause_rels {p cl} :
-    entails_L_clause p cl ->
-    entails_L_clause (relations_of_clauses (clauses_of_relations p)) cl.
+    entails_L_pres_clause p cl ->
+    entails_L_pres_clause (relations_of_clauses (clauses_of_relations p)) cl.
   Proof.
     now move/entails_L_to_clauses_pres_all.
   Qed.
