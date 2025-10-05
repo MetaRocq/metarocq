@@ -56,9 +56,15 @@ Section ZSemiLattice.
     intros x; unfold one, Zadd_is_comm_monoid. lia.
   Qed.
 
+  #[export] Instance con_Z : @Consistent Z _ _ Zsemilattice.
+  Proof.
+    intros u; cbn -[Z.add]. lia.
+  Qed.
+
 End ZSemiLattice.
 
 #[export] Existing Instance Zsemilattice.
+
 
 Section NatSemiLattice.
   Import Semilattice.
@@ -67,6 +73,11 @@ Section NatSemiLattice.
     {| add := Nat.add;
       join := Nat.max; |}.
   Solve Obligations with program_simpl; try lia.
+
+  #[export] Instance con_nat : @Consistent _ _ _ Natsemilattice.
+  Proof.
+    intros u; cbn. lia.
+  Qed.
 
 End NatSemiLattice.
 

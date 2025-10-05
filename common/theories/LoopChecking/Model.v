@@ -69,7 +69,7 @@
 From Stdlib Require Import ssreflect ssrbool ssrfun ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Utils Require Import utils SemiLattice.
 
 From MetaRocq.Common Require Universes.
 From MetaRocq.Common Require Import Common Interfaces HornClauses HornSemilatticeEquiv.
@@ -3213,6 +3213,295 @@ Module Model (LS : LevelSets).
     have minv := model_inter_spec_inv concl _ _ H2 H0.
     cbn in minv. eapply level_value_MapsTo in minv. rewrite minv. constructor.
     rewrite hmin in eqmins. noconf eqmins. lia.
+  Qed.
+
+  Section ModelShift.
+
+
+  Definition shift_model n (m : model) :=
+    LevelMap.map (fun k => option_map (fun k => k + n) k) m.
+
+  Lemma level_value_shift_model {n m l} : level_value (shift_model n m) l = option_map (fun v => v + n) (level_value m l).
+  Proof.
+    rewrite /shift_model /level_value LevelMapFact.F.map_o.
+    case: (find_spec l m) => //.
+  Qed.
+
+  Lemma min_premise_shift {n m k u} :
+    min_premise (shift_model n m) u = Some k ->
+    min_premise m u = Some (k - n).
+  Proof.
+    move/min_premise_spec_aux => [hf [[minl mink] [hin heq]]].
+    rewrite /min_atom_value level_value_shift_model in heq.
+    have [hf' [[minl' mink'] [hin' heq']]] := min_premise_spec m u.
+    rewrite /min_atom_value in heq'.
+    destruct (level_value m minl) eqn:hl => //.
+    cbn in heq. noconf heq.
+    specialize (hf' _ hin).
+    specialize (hf _ hin').
+    rewrite /min_atom_value in hf'.
+    rewrite /min_atom_value level_value_shift_model in hf.
+    destruct (level_value m minl') eqn:hl'; cbn in *.
+    - rewrite heq'; f_equal. rewrite heq' in hf'.
+      rewrite hl in hf'. depelim hf. depelim hf'. lia.
+    - depelim hf.
+  Qed.
+
+  Lemma min_premise_shift_inv {n m k u} :
+    min_premise m u = Some k ->
+    min_premise (shift_model n m) u = Some (n + k).
+  Proof.
+    move/min_premise_spec_aux => [hf [[minl mink] [hin heq]]].
+    have [hf' [[minl' mink'] [hin' heq']]] := min_premise_spec (shift_model n m) u.
+    rewrite /min_atom_value level_value_shift_model in heq'.
+    destruct (level_value m minl') eqn:hl => //.
+    rewrite /min_atom_value in heq.
+    cbn in heq'. noconf heq'.
+    specialize (hf' _ hin).
+    specialize (hf _ hin').
+    rewrite /min_atom_value in hf'.
+    rewrite /min_atom_value  in hf.
+    destruct (level_value m minl) eqn:hl'; cbn in *.
+    - rewrite heq'; f_equal. rewrite heq' level_value_shift_model in hf'.
+      rewrite hl in hf. noconf heq. rewrite hl' in hf'. depelim hf. depelim hf'. lia.
+    - noconf heq.
+    - cbn in heq'. specialize (hf _ hin'). rewrite /min_atom_value hl //= in hf. depelim hf.
+  Qed.
+
+  Lemma valid_clause_shift_model {n m cl} : valid_clause m cl <-> valid_clause (shift_model n m) cl.
+  Proof.
+    destruct cl as [prems [concl k]].
+    split.
+    - move/valid_clause_elim => hz.
+      apply valid_clause_intro => z.
+      move/min_premise_shift /hz.
+      rewrite level_value_shift_model.
+      intros hle; depelim hle. rewrite H0 //=. constructor. lia.
+    - move/valid_clause_elim => hz.
+      apply valid_clause_intro => z.
+      move/min_premise_shift_inv /hz.
+      rewrite level_value_shift_model.
+      destruct (level_value m concl) => //=;
+      intros hle; depelim hle. constructor. lia.
+  Qed.
+
+  Lemma enabled_clause_shift {n m cl} : enabled_clause m cl <-> enabled_clause (shift_model n m) cl.
+  Proof.
+    destruct cl as [prems [concl k]].
+    split.
+    - move=> [] z. cbn. move/min_premise_shift_inv.
+      now eexists.
+    - move=> [] z; move/min_premise_shift. now eexists.
+  Qed.
+
+  Lemma shift_model_invariant {n m cls} :
+    is_model cls m <->
+    is_model cls (shift_model n m).
+  Proof.
+    rewrite /is_model.
+    rewrite ![is_true _]Clauses.for_all_spec.
+    unfold Clauses.For_all.
+    now setoid_rewrite (@valid_clause_shift_model n m).
+  Qed.
+
+  Lemma shift_model_min_pos {m} : model_min (shift_model (- model_min m) m) = 0.
+  Proof.
+    destruct (model_has_min (shift_model (- model_min m) m)) => //.
+    destruct H as [l [k [inshift eq]]].
+    move: inshift.
+    rewrite /shift_model LevelMapFact.F.map_mapsto_iff => -[a [eq' hm]].
+    destruct a; cbn in eq' => //.
+    noconf eq'. rewrite eq.
+    have msp := model_min_spec _ _ _ hm.
+    have m0 := model_min_spec2 m.
+    have m1 := model_min_spec2 (shift_model (- model_min m) m). lia.
+  Qed.
+
+  End ModelShift.
+
+
+
+
+  Definition to_val (v : LevelMap.t nat) l :=
+    match LevelMap.find l v with
+    | Some n => n
+    | None => 0%nat
+    end.
+
+  Definition to_Z_val (v : Level.t -> nat) := fun l => Z.of_nat (v l).
+
+  Definition valuation m := to_val (Model.valuation_of_model m).
+
+  Lemma valuation_range {m l k} :
+    LevelMap.MapsTo l (Some k) m ->
+    model_min m <= k <= model_max m.
+  Proof.
+    move=> hm.
+    have mins := model_min_spec m _ _ hm.
+    have maxs := model_max_spec m _ _ hm.
+    depelim maxs. lia.
+  Qed.
+
+  Definition valuation_of_value m n :=
+    let max := model_max m in
+    let min := model_min m in
+    max - n - min.
+
+  Lemma valuation_of_value_pos {l m n} :
+    LevelMap.MapsTo l (Some n) m -> valuation_of_value m n >= 0.
+  Proof.
+    rewrite /valuation_of_value => hm.
+    have hmax := model_max_spec m _ _ hm.
+    have hmin := model_min_spec m _ _ hm.
+    depelim hmax.
+    have := model_min_spec2 m. lia.
+  Qed.
+
+  Definition opt_valuation_of_model (m : LevelMap.t (option Z)) l :=
+    match LevelMap.find l m with
+    | Some (Some n) => Some (valuation_of_value m n)
+    | _ => None
+    end.
+
+  Definition Z_valuation_of_model model :=
+    to_Z_val (to_val (Model.valuation_of_model model)).
+
+  Definition positive_opt_valuation (v : Level.t -> option Z) :=
+    forall l k, v l = Some k -> k >= 0.
+
+  Definition positive_valuation (v : Level.t -> Z) :=
+    forall l, v l >= 0.
+
+  Lemma opt_valuation_of_model_pos {m} : positive_opt_valuation (opt_valuation_of_model m).
+  Proof.
+    rewrite /opt_valuation_of_model /positive_valuation => l k'.
+    case: (find_spec l m) => //.
+    move=> [k|] hm // [=] <-.
+    now eapply valuation_of_value_pos.
+  Qed.
+
+  Lemma valuation_of_model_pos {m} : positive_valuation (Z_valuation_of_model m).
+  Proof.
+    intros l. rewrite /Z_valuation_of_model /to_Z_val /to_val. lia.
+  Qed.
+
+  Definition Zopt_semi := opt_semi Zsemilattice.
+  Existing Instance Zopt_semi.
+  Import Semilattice.
+
+  Lemma valid_clause_model_opt model cl :
+    valid_clause model cl ->
+    clause_sem (opt_valuation_of_model model) cl.
+  Proof.
+    unfold valid_clause.
+    destruct min_premise eqn:hmin => //= => //.
+    2:{ move/min_premise_spec_aux: hmin => [hf [[min mink] [inmin hmin]]].
+        move=> _. destruct cl as [prems concl]. cbn.
+        rewrite /min_atom_value in hmin.
+        set (v := opt_valuation_of_model _).
+        set (ip := interp_nes _ _).
+        have -> : ip = None.
+        { subst ip. move/(interp_nes_ge v): inmin; tea.
+          have -> : interp_expr v (min, mink) = None.
+          { cbn. subst v. unfold opt_valuation_of_model.
+            move: hmin; rewrite /level_value; case: find_spec => //.
+            move=> k hm. destruct k => //. }
+          move/le_spec. intros [] => //.
+          destruct H as [? [? []]]. congruence. }
+        destruct interp_expr => //=. }
+    destruct cl as [prems [concl k]]. cbn -[Semilattice.le].
+    unfold level_value_above.
+    destruct level_value eqn:hl => //.
+    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
+    move/Z.leb_le => hrel.
+    eapply LevelMap.find_2 in hfind.
+    have conclm := valuation_of_model_spec _ _ _ hfind.
+    set (v := (model_max _ - _)) in *.
+    cbn in conclm.
+    eapply LevelMap.find_1 in conclm.
+    subst v.
+    pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
+    rewrite hmin in premeq.
+    eapply transitivity. 2:{ eapply (interp_nes_ge (S := option Z) (SL := Zopt_semi)); tea. }
+    unfold interp_expr. destruct prem as [prem k'].
+    symmetry in premeq.
+    move: premeq. unfold min_atom_value.
+    unfold level_value. destruct (LevelMap.find prem) eqn:findp => //.
+    destruct o => //.
+    intros [= <-].
+    eapply LevelMap.find_2 in findp.
+    have premm := valuation_of_model_spec _ _ _ findp.
+    eapply LevelMap.find_1 in premm.
+    assert (z1 - k' <= z0 - k). lia.
+    have [z0min z0max] := valuation_range hfind.
+    have [z1min z1max] := valuation_range findp.
+    assert (0 <= model_max model)%Z by apply model_max_spec2.
+    assert (model_min model <= 0)%Z by apply model_min_spec2.
+    rewrite /opt_valuation_of_model. rewrite (LevelMap.find_1 findp) (LevelMap.find_1 hfind).
+    rewrite /valuation_of_value. cbn. lia.
+  Qed.
+
+  Lemma valid_clauses_model_opt model cls :
+    is_model cls model ->
+    clauses_sem (opt_valuation_of_model model) cls.
+  Proof.
+    move=> ism cl hin.
+    apply valid_clause_model_opt.
+    now move/Clauses.for_all_spec: ism; apply.
+  Qed.
+
+  (** Enabled and valid clauses are satisfied by valuation.
+     *)
+  Lemma valid_clause_model model cl :
+    enabled_clause model cl ->
+    valid_clause model cl ->
+    clause_sem (Z_valuation_of_model model) cl.
+  Proof.
+    unfold enabled_clause, valid_clause.
+    destruct min_premise eqn:hmin => //= => //.
+    2:{ intros [k' eq]. congruence. }
+    intros [k' eq]. noconf eq.
+    destruct cl as [prems [concl k]]. cbn -[Semilattice.le].
+    unfold level_value_above.
+    destruct level_value eqn:hl => //.
+    unfold level_value in hl. destruct LevelMap.find eqn:hfind => //. noconf hl.
+    move/Z.leb_le => hrel.
+    eapply LevelMap.find_2 in hfind.
+    have conclm := valuation_of_model_spec _ _ _ hfind.
+    set (v := (model_max _ - _)) in *.
+    cbn in conclm.
+    eapply LevelMap.find_1 in conclm.
+    subst v.
+    pose proof (@min_premise_spec model prems) as [premmin [prem [premin premeq]]].
+    rewrite hmin in premeq.
+    eapply transitivity. 2:{ eapply interp_nes_ge; tea. }
+    unfold interp_expr. destruct prem as [prem k'].
+    symmetry in premeq.
+    move: premeq. unfold min_atom_value.
+    unfold level_value. destruct (LevelMap.find prem) eqn:findp => //.
+    destruct o => //.
+    intros [= <-].
+    eapply LevelMap.find_2 in findp.
+    have premm := valuation_of_model_spec _ _ _ findp.
+    eapply LevelMap.find_1 in premm.
+    assert (z1 - k' <= z0 - k). lia.
+    have [z0min z0max] := valuation_range hfind.
+    have [z1min z1max] := valuation_range findp.
+    assert (0 <= model_max model)%Z by apply model_max_spec2.
+    assert (model_min model <= 0)%Z by apply model_min_spec2.
+    rewrite /Z_valuation_of_model /to_Z_val /to_val premm conclm.
+    cbn. lia.
+  Qed.
+
+  Lemma valid_clauses_model model cls :
+    enabled_clauses model cls ->
+    is_model cls model ->
+    clauses_sem (Z_valuation_of_model model) cls.
+  Proof.
+    move=> en ism cl hin.
+    apply valid_clause_model.
+    now apply en.
+    now move/Clauses.for_all_spec: ism; apply.
   Qed.
 
 End Model.

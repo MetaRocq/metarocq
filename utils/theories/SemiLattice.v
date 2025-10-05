@@ -31,7 +31,7 @@ Module Semilattice.
       join_idem x : join x x ≡ x;
       join_sub x : join x (add 1 x) ≡ add 1 x;
       add_inj : forall n x y, add n x ≡ add n y -> x ≡ y;
-      add_join : forall n x y, add n (join x y) ≡ join (add n x) (add n y);
+      add_join : forall n x y, add n (join x y) ≡ join (add n x) (add n y)
     }.
 
   Notation "x ≡ y" := (eq x y) (at level 70) : sl_scope.
@@ -44,8 +44,14 @@ Module Semilattice.
   Definition lt {A} `{SL : Semilattice A} (x y : A) := add 1 x ≤ y.
   Infix "<" := lt (at level 70) : sl_scope.
 
-  Class JoinDec (carrier : Type) `{SL : Semilattice carrier} :=
-    { join_dec (x y : carrier) : (join x y ≡ x) \/ (join y x ≡ y) }.
+  Class EqDec (carrier : Type) `{SL : Semilattice carrier} :=
+    eq_dec (x y : carrier) : (x ≡ y) \/ (~ x ≡ y).
+
+  Class Consistent (carrier : Type) `{SL : Semilattice carrier} :=
+    incon : forall u : carrier, ~ u ≡ add 1 u.
+
+  Class Total (S : Type) `{SL : Semilattice S} :=
+    total : forall x y : S, x ≤ y \/ y < x.
 
   Local Open Scope sl_scope.
   Section Derived.
@@ -153,16 +159,26 @@ Module Semilattice.
       now rewrite (join_comm t) -join_assoc le.
     Qed.
 
-    Lemma join_dec_spec {JD : @JoinDec A incr CM SL} (x y : A) :
-      (x ≤ y /\ join x y ≡ y) \/ (y ≤ x /\ join x y ≡ x).
+    Lemma le_dec {JD : @EqDec A incr CM SL} (x y : A) :
+      (x ≤ y) \/ ~ (x ≤ y).
     Proof.
-      destruct (join_dec x y).
-      - right. split => //.
-        red. now rewrite join_comm H.
-      - left. split => //. red.
-        rewrite join_comm H. reflexivity.
-        rewrite join_comm H. reflexivity.
+      destruct (eq_dec (join x y) y).
+      - now left.
+      - right. intros hle. red in hle. contradiction.
     Qed.
+
+    (* Lemma le_inv {JD : @EqDec A incr CM SL} {ST : @Total A incr CM SL} (x y : A) :
+      (x ≤ y) \/ (y < x).
+    Proof.
+      destruct (le_dec x y).
+      - now left.
+      - right.
+        destruct (total x (add 1 y)). contradiction.
+
+       red.
+        assert (hi := (incon y)).
+       unfold le in *. intros hle. red in hle. contradiction.
+    Qed. *)
 
     Lemma le_add {n} {x y : A} : x ≤ y <-> add n x ≤ add n y.
     Proof.
@@ -299,7 +315,8 @@ Section OptSemilattice.
   Defined.
   Existing Instance opt_semi.
 
-  (* None is greater than any element in this semilattice *)
+  (* None is greater than any element in this semilattice.
+     This models implications *)
   Lemma le_spec {x y : option S} : x ≤ y <->
     (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
   Proof.

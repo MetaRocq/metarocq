@@ -1602,6 +1602,12 @@ Module Clauses (LS : LevelSets).
         rewrite /succ_expr //=. lia_f_equal.
   Qed.
 
+  Lemma add_assoc le le' prems : add le (add le' prems) = add le' (add le prems).
+  Proof.
+    rewrite -!NES.union_add_singleton.
+    now rewrite !union_assoc (@union_comm (singleton _)).
+  Qed.
+
   Lemma entails_weak_list {cls prem concl concl'} :
     cls ⊢ prem → concl ->
     cls ⊢ add_list concl' prem → concl.
@@ -1676,6 +1682,50 @@ Module Clauses (LS : LevelSets).
         { constructor. now rewrite LevelExprSet.add_spec; left. }
         assumption.
   Qed.
+
+(*
+  Lemma succ_clauses_equiv_weak cls prems concl :
+    succ_clauses cls ⊢ NES.add concl (succ_prems prems) → succ_expr concl ->
+    cls ⊢ prems → concl \/ cls ⊢ singleton concl → succ_expr concl.
+  Proof.
+    intros ha; depind ha.
+    - left. constructor.
+      move: H.
+      rewrite add_spec.
+      move=> -[]. destruct concl1; unfold add; cbn. move=> [=]. lia.
+      rewrite In_add_prems => [] [le [hin heq]].
+      move/add_expr_inj: heq. now intros ->.
+    - depelim H.
+      + destruct cl as [prems concl]. noconf H0.
+        eapply in_add_clauses in H as [[prems' concl'] [hin heq]].
+        noconf heq.
+        apply (incls cls (prems', concl') n) in hin.
+        specialize (IHha (add (add_expr n concl') prems0) concl1).
+        forward IHha.
+        { f_equal. rewrite !add_expr_add_expr. cbn -[Z.add];
+          now rewrite add_prems_add add_expr_add_expr Z.add_comm add_assoc. }
+        rewrite add_prems_add_prems in H1.
+        destruct IHha.
+        cbn -[Z.add] in H1.
+        rewrite Z.add_comm in H1.
+        rewrite -(add_prems_add_prems 1 n prems') in H1.
+        eapply (clause_cut _ (add_prems n prems') (add_expr n concl')) in H; tea.
+        now left.
+
+        2:{} 2:eapply IHha.
+        2:
+        eapply (@inj_add_prems_sub 1).
+        rewrite LevelExprSet.add_spec in H1.
+      + specialize (H0 (x, 1 + k)). forward H0. rewrite Z.add_comm. now apply LevelExprSet.singleton_spec.
+        eapply In_add_prems in H0 as [[l' k'] [hin heq]]. noconf heq.
+        cbn -[Z.add] in *.
+        have eq: k' = k by lia. subst k'. clear H.
+        eapply clause_cut. 2:eapply IHha. eapply (predcl _ x (k - 1)).
+        2:{ intros x'. move/LevelExprSet.singleton_spec => ->. now have -> : k - 1 + 1 = k by lia. }
+        f_equal. rewrite add_prems_add. f_equal.
+        rewrite /succ_expr //=. lia_f_equal.
+  Qed. *)
+
 
   Lemma entails_clauses_cut_one {cls cls0 cl} :
     cls ⊢ℋ cls0 ->

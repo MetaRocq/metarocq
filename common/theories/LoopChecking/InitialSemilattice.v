@@ -609,4 +609,11 @@ Module InitialSemilattice (LS : LevelSets).
     split; now apply entails_L_all_app.
   Qed.
 
+Lemma interp_rels_tip {S} {SL : Semilattice.Semilattice S Q.t} (v : Level.t -> S) r : interp_rels v [r] <-> interp_rel v r.
+Proof.
+  split.
+  - now intros h; depelim h.
+  - now constructor.
+Qed.
+
 End InitialSemilattice.

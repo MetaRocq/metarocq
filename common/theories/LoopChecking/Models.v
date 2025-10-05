@@ -3,7 +3,7 @@
   for defining satisfiability and validity checking.
 *)
 
-From Stdlib Require Import ssreflect ssrbool ZArith.
+From Stdlib Require Import ssreflect ssrfun ssrbool ZArith.
 From Stdlib Require Import Program RelationClasses Morphisms.
 From Stdlib Require Import Orders OrderedTypeAlt OrderedTypeEx MSetList MSetInterface MSetAVL MSetFacts FMapInterface MSetProperties MSetDecide.
 From MetaRocq.Utils Require Import utils.
@@ -16,6 +16,53 @@ Set Equations Transparent.
 Module Models (LS : LevelSets).
   Module Export Model := Model(LS).
   Local Open Scope Z_scope.
+
+
+  (* To infer an extension, we weaken a valid model for V to a model for [V ∪ clauses_levels cls] by
+    setting a minimal value for the new atoms in [clauses_levels cls \ V]
+    such that the new clauses [cls] do not hold vacuously.
+  *)
+
+  Equations add_max (l : Level.t) (k : option Z) (m : model) : model :=
+  add_max l k m with level_value m l :=
+    { | Some k' with check_atom_value k (Some k') :=
+      { | true => m
+        | false => LevelMap.add l k m }
+    | None => LevelMap.add l k m }.
+
+  Lemma add_max_spec l l' k k' (m : model) :
+    LevelMap.MapsTo l k (add_max l' k' m) <->
+    (l = l' /\ k = max_opt_of Z.max k' (level_value m l)) \/
+    (l <> l' /\ LevelMap.MapsTo l k m).
+  Proof.
+    funelim (add_max l' k' m).
+    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq. firstorder; subst.
+      left. split => //. rewrite Heq. now rewrite max_opt_of_l.
+      left. firstorder. now rewrite Heq max_opt_of_l.
+    - clear Heqcall.
+      destruct (Level.eq_dec l0 l).
+      * subst l0. rewrite Heq0.
+        move/check_atom_value_spec: Heq.
+        rewrite (maps_to_update (level_value_MapsTo' Heq0)).
+        firstorder; subst; try left; try split; auto; depelim Heq; cbn; lia_f_equal.
+      * firstorder.
+    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq.
+      have := check_atom_value_spec k (Some k'). rewrite {}Heq.
+      intros h; depelim h. apply nleq_optZ in H as [z [-> hlt]].
+      firstorder; subst.
+      * left; split => //. rewrite Heq0 //=. lia_f_equal.
+      * left; split => //. rewrite Heq0 //=. lia_f_equal.
+  Qed.
+
+  Lemma In_add_max l l' k acc :
+    LevelMap.In l (add_max l' k acc) <-> (l = l' \/ LevelMap.In l acc).
+  Proof.
+    rewrite /LevelMap.In.
+    rw add_max_spec. firstorder subst.
+    eexists; left; eauto.
+    destruct (Level.eq_dec l l'); subst; eexists; eauto.
+  Qed.
+
 
   Definition premises_model_map (m : model) cls : model :=
     let levels := clauses_premises_levels cls in
@@ -201,57 +248,12 @@ Module Models (LS : LevelSets).
     constructor. destruct l; reflexivity.
   Qed.
 
-  (* To infer an extension, we weaken a valid model for V to a model for [V ∪ clauses_levels cls] by
-    setting a minimal value for the new atoms in [clauses_levels cls \ V]
-    such that the new clauses [cls] do not hold vacuously.
-  *)
-
-  Equations add_max (l : Level.t) (k : option Z) (m : model) : model :=
-  add_max l k m with level_value m l :=
-    { | Some k' with check_atom_value k (Some k') :=
-      { | true => m
-        | false => LevelMap.add l k m }
-    | None => LevelMap.add l k m }.
-
-  Lemma add_max_spec l l' k k' (m : model) :
-    LevelMap.MapsTo l k (add_max l' k' m) <->
-    (l = l' /\ k = max_opt_of Z.max k' (level_value m l)) \/
-    (l <> l' /\ LevelMap.MapsTo l k m).
-  Proof.
-    funelim (add_max l' k' m).
-    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq. firstorder; subst.
-      left. split => //. rewrite Heq. now rewrite max_opt_of_l.
-      left. firstorder. now rewrite Heq max_opt_of_l.
-    - clear Heqcall.
-      destruct (Level.eq_dec l0 l).
-      * subst l0. rewrite Heq0.
-        move/check_atom_value_spec: Heq.
-        rewrite (maps_to_update (level_value_MapsTo' Heq0)).
-        firstorder; subst; try left; try split; auto; depelim Heq; cbn; lia_f_equal.
-      * firstorder.
-    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq.
-      have := check_atom_value_spec k (Some k'). rewrite {}Heq.
-      intros h; depelim h. apply nleq_optZ in H as [z [-> hlt]].
-      firstorder; subst.
-      * left; split => //. rewrite Heq0 //=. lia_f_equal.
-      * left; split => //. rewrite Heq0 //=. lia_f_equal.
-  Qed.
-
   Definition min_model_clause cl m :=
     LevelExprSet.fold (fun '(l, k) acc => add_max l (Some k) acc) (premise cl)
       (add_max (concl cl).1 None m).
 
   Definition min_model_map (m : model) cls : model :=
     Clauses.fold min_model_clause cls m.
-
-  Lemma In_add_max l l' k acc :
-    LevelMap.In l (add_max l' k acc) <-> (l = l' \/ LevelMap.In l acc).
-  Proof.
-    rewrite /LevelMap.In.
-    rw add_max_spec. firstorder subst.
-    eexists; left; eauto.
-    destruct (Level.eq_dec l l'); subst; eexists; eauto.
-  Qed.
 
   Definition max_of_premises l kl n :=
     (forall kl', LevelExprSet.In (l, kl') n -> Some kl' ≤ kl).
@@ -560,5 +562,28 @@ Module Models (LS : LevelSets).
         firstorder.
       * rewrite (om l). now exists x.
   Qed.
+
+  Lemma min_model_map_enabled m cls cls' :
+    enabled_clauses m cls ->
+    enabled_clauses (min_model_map m cls') (Clauses.union cls cls').
+  Proof.
+    intros en cl.
+    rewrite Clauses.union_spec => -[].
+    - move/en; rewrite /enabled_clause => -[z hmin].
+      have := @min_premise_pres m (min_model_map m cls') (premise cl) => /fwd.
+      apply min_model_map_acc.
+      rewrite hmin => h; depelim h. now exists y.
+    - intros hin; rewrite /enabled_clause.
+      have [hm [incl hext]] := min_model_map_spec cls' m.
+      have [hle [minp [inp ->]]] := min_premise_spec (min_model_map m cls') (premise cl).
+      move: (incl _ hin). move/(_ minp.1) => /fwd.
+      { apply clause_levels_spec. left. now apply in_levels. }
+      move=> [k hmap].
+      specialize (hm minp.1 k hmap) as [_ hm _].
+      destruct minp.
+      move: hm => /(_ _ hin)/(_ _ inp). intros le; depelim le.
+      exists (y - z). now rewrite /min_atom_value (level_value_MapsTo hmap).
+  Qed.
+
 
 End Models.
