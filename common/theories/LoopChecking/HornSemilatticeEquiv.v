@@ -792,7 +792,7 @@ Section ClausesSemantics.
   Qed.
 
   Definition valid_semilattice_entailment cls cl :=
-    (forall S (SL : Semilattice S Q.t) (CSL : Consistent S),
+    (forall S (SL : Semilattice S Q.t),
       forall (v : Level.t -> S), clauses_sem v cls -> clause_sem v cl).
 
   Lemma clauses_of_le_add le l r :
@@ -862,5 +862,44 @@ Section ClausesSemantics.
   Qed.
 
 End ClausesSemantics.
+
+
+  Import Semilattice.
+
+  Lemma entails_L_completeness {p l r} :
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
+    p ⊢ℒ l ≡ r.
+  Proof.
+    intros hv.
+    specialize (hv _ (init_model p) (ids p)).
+    forward hv.
+    { apply interp_rels_init. }
+    rewrite !interp_triv in hv.
+    exact hv.
+  Qed.
+
+  Lemma entails_completeness {cls cl} :
+    entails cls cl <-> valid_semilattice_entailment cls cl.
+  Proof.
+    split; revgoals.
+    - intros hv.
+      eapply entails_L_entails_ℋ_equiv.
+      2:{ now eapply Clauses.singleton_spec. }
+      intros c. rewrite Clauses.singleton_spec => ->.
+      red. eapply entails_L_completeness.
+      intros S SL v. specialize (hv S SL v).
+      rewrite -interp_rels_clauses_sem. move/hv.
+      destruct cl; cbn => //.
+      rewrite interp_nes_union interp_nes_singleton //.
+    - move/entails_entails_L.
+      move/entails_L_clause_clauses.
+      move/entails_L_rels_entails_L_clauses.
+      move/completeness_all.
+      unfold valid_relations, valid_semilattice_entailment.
+      setoid_rewrite interp_rels_clauses_sem.
+      setoid_rewrite interp_rel_clause_sem.
+      rewrite relations_of_clauses_singleton.
+      now setoid_rewrite interp_rels_tip.
+  Qed.
 
 End HornSemilattice.
