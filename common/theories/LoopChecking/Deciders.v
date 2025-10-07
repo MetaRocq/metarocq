@@ -513,8 +513,8 @@ Proof.
   red. rewrite -is_ext_spec. now destruct is_ext.
 Qed.
 
-Definition le_inter V m m' :=
-  (forall l k k', LevelSet.In l V -> LevelMap.MapsTo l k m -> LevelMap.MapsTo l k' m' -> (k ≤ k')%opt).
+Definition le_inter m m' :=
+  (forall l k k', LevelMap.MapsTo l k m -> LevelMap.MapsTo l k' m' -> (k ≤ k')%opt).
 
 Definition le_values V m m' :=
   forall l, LevelSet.In l V -> (level_value m l ≤ level_value m' l)%opt.
@@ -525,10 +525,10 @@ Lemma dec_le_values V m m' : Decidable.decidable (m ≦[V] m').
 Proof.
 Admitted.
 
-Lemma is_ext_le_inter V m m' :
- (m ⩽ m') -> le_inter V m m'.
+Lemma is_ext_le_inter m m' :
+ (m ⩽ m') -> le_inter m m'.
 Proof.
-  move=> hext l k k' hin /hext [] x [] hm0 hle hm1.
+  move=> hext l k k' /hext [] x [] hm0 hle hm1.
   eapply LevelMapFact.F.MapsTo_fun in hm0; tea. now subst.
 Qed.
 
@@ -656,9 +656,9 @@ Proof.
   now hnf.
 Qed.
 
-Instance le_inter_refl V : Reflexive (le_inter V).
+Instance le_inter_refl : Reflexive le_inter.
 Proof.
-  intros x l k k' hin m m'. eapply LevelMapFact.F.MapsTo_fun in m; tea. subst. reflexivity.
+  intros x l k k' m m'. eapply LevelMapFact.F.MapsTo_fun in m; tea. subst. reflexivity.
 Qed.
 
 Instance le_values_refl V : Reflexive (le_values V).
@@ -701,15 +701,15 @@ Qed.
 Definition is_smaller_model V (m m' : model) :=
   m ≦[V] m' /\ has_lt V m m'.
 
-Lemma le_values_inter V m m' : le_values V m m' -> le_inter V m m'.
+(* Lemma le_values_inter V m m' : le_values V m m' -> le_inter m m'.
 Proof.
-  intros hle l hin k k' hm hm'.
+  intros hle l k k' hm hm'.
   move: (hle l).
   rewrite (level_value_MapsTo hm).
   now rewrite (level_value_MapsTo hm').
-Qed.
+Qed. *)
 
-Instance model_rel_strictorder V : StrictOrder (is_smaller_model V).
+(* Instance model_rel_strictorder V : StrictOrder (is_smaller_model V).
 Proof.
   split.
   - intros x. red.
@@ -730,8 +730,8 @@ Proof.
       intros hnin lenon.  specialize (lenon hin).
       depelim lenon => //. auto.
       now destruct k0 ; cbn in hlt'.
-Qed.
-
+Qed. *)
+(*
 Definition is_smaller_model_dec V m m' : Decidable.decidable (is_smaller_model V m m').
 Proof. Admitted.
 
@@ -767,14 +767,14 @@ Proof.
   now eapply irreflexivity in H2.
 Qed.
 
-Lemma le_inter_has_lt V m m' : le_inter V m m' <-> ~ has_lt V m' m.
+Lemma le_inter_has_lt V m m' : le_inter m m' <-> ~ has_lt V m' m.
 Proof.
   split.
   - intros hinter [l0 [k0 [k0' [hin [hm0 [hm0' hlt']]]]]].
-    specialize (hinter _ _ _ hin hm0' hm0).
+    specialize (hinter _ _ _ hm0' hm0).
     eapply le_opt_lt in hlt'; tea.
     now eapply irreflexivity in hlt'.
-  - move/nlt_spec => hlt l k k' hin hm hm'.
+  - move/nlt_spec => hlt l k k' hm hm'.
     destruct (check_atom_value_spec k k') => //. exfalso.
     apply (hlt l k' k hin) => //.
     now apply nlt_opt_le in H.
@@ -794,7 +794,7 @@ Proof.
   specialize (hinter _ _ _ hin hm0' hm0).
   eapply le_opt_lt in hlt'; tea.
   now eapply irreflexivity in hlt'.
-Qed.
+Qed. *)
 
 (* Lemma le_values_inter_inv V m m' : model_of V m -> le_inter V m m' -> m ≦[V] m'.
 Proof.
@@ -996,22 +996,63 @@ Proof.
   now rewrite (level_value_MapsTo hin').
 Qed.
 
-
 Definition minimal_above cls minit m :=
   forall m', minit ⩽ m' -> is_model cls m' -> m ⩽ m'.
 
+Lemma Some_leq x y : (Some x ≤ y)%opt -> exists y', y = Some y' /\ (x <= y')%Z.
+Proof.
+  intros h; depelim h. now eexists.
+Qed.
+
+Lemma strictly_updates_minimal_above cls W m m' :
+  strictly_updates cls W m m' ->
+  minimal_above cls m m'.
+Proof.
+  move: W m m'.
+  apply: (strictly_updates_elim cls).
+  - intros l l' h ? ? x ? ? y. subst x0 x1.
+    unfold minimal_above. reflexivity.
+  - destruct cl as [prems [concl k]].
+    move=> m' hin [minp [hmin habove]].
+    rewrite /minimal_above. intros h; setoid_rewrite h.
+    move=> mf ext ism.
+    eapply is_model_valid in ism.
+    specialize (ism _ hin). cbn in ism.
+    move/valid_clause_elim: ism.
+    intros hz.
+    have := @min_premise_pres m mf prems ext.
+    rewrite hmin. move/Some_leq => -[minmf] [] /hz /Some_leq [mfconcl] [] vmconcl leq' leq.
+    move=> l k'. rsets. destruct H as [[<- <-]|[neq mt]].
+    * exists (Some mfconcl). split => //. now eapply level_value_MapsTo'.
+      constructor. lia.
+    * now apply ext.
+  - intros * su ma su' ma'.
+    intros mf extinit ism.
+    move: (ma mf extinit ism) => hext.
+    exact (ma' mf hext ism).
+Qed.
+
 Hint Rewrite clause_levels_spec levels_spec : set_specs.
+
+Lemma nge_lt x y : (~ x <= y) -> y < x.
+Proof. intros n. unfold lt; cbn. lia. Qed.
+
+Definition check_init_model cls cl :=
+  (premises_model (clauses_levels cls) cl).2.
 
 Theorem check_invalid_allm {cls cl} :
   check_gen cls cl = Invalid ->
   forall m, is_model cls m ->
+    let minit := check_init_model cls cl in
+    minimal_above cls minit m ->
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
-    (premises_model (clauses_levels cls) cl).2 ⩽ m ->
+    minit ⩽ m ->
     valid_clause m cl -> False.
 Proof.
   move/check_invalid => [m [ism encl invcl]].
-  intros m' ism' mof.
-  set (pmodel := (premises_model _ _).2).
+  intros m' ism' pmodel minm' mof.
+  have mofm : model_of (clauses_levels cls ∪ clause_levels cl) m.
+  todo "model of".
   have minm : minimal_above cls pmodel m. todo "minimal infered".
   have pmodelm : pmodel ⩽ m. todo "ext inferred".
   intros ext' vm'.
@@ -1026,65 +1067,29 @@ Proof.
   clear invcl. cbn in eqminp.
   have [minmf [[minpl minpk] [hin heq]]] := min_premise_spec_aux _ _ _ eqminp.
   cbn in heq. destruct (level_value m minpl) as [minpmv|] => //. noconf heq.
-  (* destruct enclm' as [minp' eqminp']. *)
   destruct concl as [concl k].
-  destruct (min_premise m' prems) as [minp'|] eqn:minm';revgoals.
-  { (* Clause is vacuously true in m', so some level in the premises
-       is undefined in m'. That's a contradiction to minimality of m.
-
-     *)
-    apply min_premise_None in minm' as [[minm' minm'k] [inminm' undef]]. cbn in undef.
-    move/min_premise_spec_aux: eqminp => -[hf _].
-    specialize (hf _ inminm'). rewrite /min_atom_value in hf.
-    destruct (level_value m minm') eqn:hl' => //. 2:{ depelim hf. }
-    depelim hf. specialize (minm minm').
-    move: minm.
-    have [|km' [hm hl]] := (model_of_level_value minm' mof).
-    { repeat (rsets; cbn); firstorder. }
-    eapply level_value_MapsTo' in hl'.
-    (* eapply (mapsto_shift_model_inv) in hl'. *)
-    (* rewrite /normalize_model. *)
-    rewrite undef in hl; subst km'.
-    move/(_ _ hl').
-    intros [k' []].
-    (* eapply (mapsto_shift_model_inv) in hm. *)
-    eapply LevelMapFact.F.MapsTo_fun in hm; tea. subst k'.
-    cbn in H1. depelim H1. }
-  { (* Clause is not vacuously true in m'. *)
-    move/valid_clause_elim: vm'. rewrite minm'.
-    move/(_ _ eq_refl) => hle.
-    depelim hle. rename H into leminp'; rename H0 into conclm'.
-    rename y into m'conclv.
-    unfold satisfiable_atom in nsat. cbn in nsat.
-    destruct (level_value m concl) as [mconclv|] eqn:hl => //=.
-    rewrite [is_true _]Z.leb_le in nsat.
-    move: (minm concl).
-    (* { repeat (rsets; cbn). firstorder. } *)
-    apply level_value_MapsTo' in hl.
-    (* eapply (mapsto_shift_model_inv (n := - model_min m)) in hl. *)
-    move/(_ _ hl).
-    apply level_value_MapsTo' in conclm'.
-    (* eapply (mapsto_shift_model_inv (n := - model_min m')) in conclm'. *)
-    intros [k' [hm hleq]].
-    eapply LevelMapFact.F.MapsTo_fun in conclm'; tea. subst k'.
-    cbn in hleq.
-    move/check_atom_value_spec: hleq; cbn.
-    move/Z.leb_le.
-    have [minm'f minm'ex] := min_premise_spec_aux _ _ _ minm'.
-    cbn in hl.
-    destruct minm'ex as [[minpm' minpm'k] [inmin' eqmin']].
-    rewrite /min_atom_value in eqmin'. destruct (level_value m' minpm') as [minpm'v|] eqn:hlx => //.
-    noconf eqmin'. specialize (minm'f _ hin).
-    eapply level_value_MapsTo' in hlx.
-    unfold min_atom_value in minm'f. destruct (level_value m' minpl).
-    move/check_atom_value_spec: minm'f; cbn. move/Z.leb_le.
-    specialize (minmf _ inmin'). unfold min_atom_value in minmf.
-    depelim minmf.
-    destruct (level_value m minpm') as [minpm'mv|] eqn:hlx' => //. noconf H0.
-    have hpres : (min_premise m prems ≤ min_premise m' prems)%opt. admit.
-    rewrite eqminp minm' in hpres. depelim hpres.
-    intros. lia.
-  Qed.
+  have hpres : (min_premise m prems ≤ min_premise m' prems)%opt.
+  { now eapply min_premise_pres. }
+  rewrite eqminp in hpres. depelim hpres.
+  rename y into minpm'. rename H into minpm'minpm.
+  rename H0 into minpm'eq.
+  (* Clause is not vacuously true in m'. *)
+  move/valid_clause_elim: vm'.
+  move/(_ _ minpm'eq) => hle.
+  depelim hle. rename H into leminp'; rename H0 into conclm'.
+  rename y into m'conclv.
+  unfold satisfiable_atom in nsat. cbn in nsat.
+  destruct (model_of_level_value concl mofm) as [conclv [hm hl]].
+  { repeat (rsets; cbn). now right. }
+  eapply level_value_MapsTo' in conclm'.
+  move: (minm' m pmodelm ism). move/is_ext_le_inter => /(_ concl _ _ conclm' hm)
+    /check_atom_value_spec //=.
+  destruct conclv as [conclv|] => //. move/Z.leb_le => concllt.
+  rewrite hl in nsat. move/Z.leb_le in nsat.
+  have hmconcl : (conclv < minpmv - minpk + k)%Z by lia.
+  move/is_ext_le_inter: minm => /(_ concl _ _ hm conclm') /check_atom_value_spec //=.
+  move/Z.leb_le. lia.
+Qed.
 
 Lemma check_invalid_entails {cls cl} :
   check_gen cls cl = Invalid -> ~ entails cls cl.
