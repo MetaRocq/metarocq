@@ -999,6 +999,12 @@ Qed.
 Definition minimal_above cls minit m :=
   forall m', minit ⩽ m' -> is_model cls m' -> m ⩽ m'.
 
+Lemma minimal_above_refl cls m : minimal_above cls m m.
+Proof.
+  red.
+  now intros m'.
+Qed.
+
 Lemma Some_leq x y : (Some x ≤ y)%opt -> exists y', y = Some y' /\ (x <= y')%Z.
 Proof.
   intros h; depelim h. now eexists.
@@ -1051,19 +1057,19 @@ Definition check_init_model cls cl :=
 
 Theorem check_invalid_allm {cls cl} :
   check_gen cls cl = Invalid ->
-  forall m, is_model cls m ->
-    let minit := check_init_model cls cl in
+  forall minit m, is_model cls m ->
     minimal_above cls minit m ->
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
     minit ⩽ m ->
     valid_clause m cl -> False.
 Proof.
   move/check_invalid => [m [ism encl invcl]].
-  intros m' ism' pmodel minm' mof.
+  intros minit m' ism' minm' mof.
   have mofm : model_of (clauses_levels cls ∪ clause_levels cl) m.
   todo "model of".
-  have minm : minimal_above cls pmodel m. todo "minimal infered".
-  have pmodelm : pmodel ⩽ m. todo "ext inferred".
+  have minm : minimal_above cls minit m.
+  { todo "minimal infered". }
+  have pmodelm : minit ⩽ m. todo "ext inferred".
   intros ext' vm'.
   specialize (minm m' ext' ism').
   destruct cl as [prems concl].
@@ -1099,6 +1105,16 @@ Proof.
   move/is_ext_le_inter: minm => /(_ concl _ _ hm conclm') /check_atom_value_spec //=.
   move/Z.leb_le. lia.
 Qed.
+(*
+Lemma check_invalid_allm_zero {cls cl} :
+  check_gen cls cl = Invalid ->
+  forall m, is_model cls m ->
+    minimal_above cls (zero_model (clauses )) m ->
+    model_of (clauses_levels cls ∪ clause_levels cl) m ->
+    minit ⩽ m ->
+    valid_clause m cl -> False.
+Proof. *)
+
 
 Lemma check_invalid_entails {cls cl} :
   check_gen cls cl = Invalid -> ~ entails cls cl.
@@ -2986,7 +3002,6 @@ Proof.
   move/check_invalid_allm => /(_ (model m) (model_ok (model_valid m))).
   set (minit := check_init_model _ _).
   move=> /fwd.
-  Locate model_updates.
   { have minimal := model_minimal m.
     red. red in minimal.
     move=> m' initle ism. eapply minimal.
