@@ -1032,7 +1032,16 @@ Proof.
     exact (ma' mf hext ism).
 Qed.
 
-Hint Rewrite clause_levels_spec levels_spec : set_specs.
+Lemma is_update_of_minimal_above cls W m m' :
+  is_update_of cls W m m' ->
+  minimal_above cls m m'.
+Proof.
+  move/is_update_of_case => [[emp eq]|su].
+  - rewrite /minimal_above => m0. now rewrite eq.
+  - now eapply strictly_updates_minimal_above.
+Qed.
+
+Hint Rewrite clause_levels_spec levels_spec : set_specs'.
 
 Lemma nge_lt x y : (~ x <= y) -> y < x.
 Proof. intros n. unfold lt; cbn. lia. Qed.
@@ -1080,7 +1089,7 @@ Proof.
   rename y into m'conclv.
   unfold satisfiable_atom in nsat. cbn in nsat.
   destruct (model_of_level_value concl mofm) as [conclv [hm hl]].
-  { repeat (rsets; cbn). now right. }
+  { repeat (autorewrite with set_specs set_specs'; cbn). now right. }
   eapply level_value_MapsTo' in conclm'.
   move: (minm' m pmodelm ism). move/is_ext_le_inter => /(_ concl _ _ conclm' hm)
     /check_atom_value_spec //=.
@@ -1258,7 +1267,8 @@ Module CorrectModel.
     only_model_of_V : only_model_of V initial_model;
     model_updates : LevelSet.t;
     clauses_declared : clauses_levels cls ⊂_lset V;
-    model_valid : valid_model V model_updates initial_model cls }.
+    model_valid : valid_model V model_updates initial_model cls
+     }.
   Arguments t : clear implicits.
 
   Definition model_of {V cls} (x : t V cls) := x.(model_valid).(model_model).
@@ -1266,6 +1276,12 @@ Module CorrectModel.
 
   Lemma is_model_of {V cls} (x : t V cls) : is_model cls (model_of x).
   Proof. apply x.(model_valid). Qed.
+
+  Lemma model_minimal {V cls} (x : t V cls) : minimal_above cls (initial_model x) (model_of x).
+  Proof.
+    have upd := I.model_updates x.(model_valid).
+    now eapply is_update_of_minimal_above in upd.
+  Qed.
 
   Lemma declared_zero_model_of {V cls} (x :t V cls) : zero_declared (model_of x).
   Proof.
@@ -2967,28 +2983,25 @@ Lemma check_clause_invalid_valid_Z m cl :
 Proof.
   move=> hwf.
   unfold check_clause.
-  move/[dup]/check_invalid_entails => nent /check_invalid [m' [ism en inval]].
-  intros vcl. red in vcl.
-  destruct (enforce_dec m (inverse_clauses (checking_clause cl))) => //.
-  * setoid_rewrite <- hwf.
-    rewrite clause_levels_inverse.
-    now rewrite checking_clause_levels.
-  * destruct c as [tot [totpos csem']].
-    apply clauses_sem_union in csem' as [cls cinv].
-    move: (vcl tot) => /fwd. exact: totpos.
-    move=>/(_ cls) => hcl.
-    eapply clauses_sem_tot_inverse_false; tea.
-    destruct cl as [prems [concl k]].
-    move: hcl; cbn -[Semilattice.le].
-    rewrite interp_nes_union interp_nes_singleton /interp_expr. cbn -[Semilattice.le]. cbn; lia.
-  * clear vcl. rewrite neg_inverse in ncheck.
-    { now rewrite checking_clause_premise_levels in def. }
-    destruct i as [loop incl hloop]. red in i. red in i. apply (i v).
-    rewrite clause_levels_inverse.
-    now rewrite checking_clause_premise_levels in def.
-    apply clauses_sem_union. split => //.
-
-    exact ncheck.
+  move/check_invalid_allm => /(_ (model m) (model_ok (model_valid m))).
+  set (minit := check_init_model _ _).
+  move=> /fwd.
+  Locate model_updates.
+  { have minimal := model_minimal m.
+    red. red in minimal.
+    move=> m' initle ism. eapply minimal.
+    admit. exact ism. }
+  move=> /fwd.
+  { move=> k hin. have he := model_levels m k. admit. }
+  move=> /fwd.
+  { admit. }
+  move=> invalidc vc. apply invalidc.
+  red in vc. move: (vc (Z_valuation_of_model m)) => /fwd.
+  eapply valuation_of_model_pos.
+  move/(_ (model_valuation m)).
+  rewrite def_clause_sem_valid //.
+  { eapply defined_model_of_subset; tea.
+    eapply defined_model. }
 Qed.
 
 
