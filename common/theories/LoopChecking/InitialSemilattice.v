@@ -156,6 +156,7 @@ Module InitialSemilattice (LS : LevelSets).
     Equations? pres_semilattice : Semilattice NES.t Q.t :=
     pres_semilattice :=
       {| eq x y := relations p.(C) -> univ_eq x y;
+         zero := NES.singleton (Level.zero, 0%Z);
          add := add_prems;
          join x y := x ∪ y |}.
     Proof.
@@ -454,6 +455,7 @@ Module InitialSemilattice (LS : LevelSets).
   Equations? init_model (rs : rels) : Semilattice t Q.t :=
   init_model rs := {|
         eq x y := rs ⊢ℒ x ≡ y;
+        zero := NES.singleton (Level.zero, 0%Z);
         add := add_prems;
         join := union |}.
   Proof.

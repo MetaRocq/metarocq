@@ -20,6 +20,7 @@ Module Semilattice.
   Class Semilattice (carrier : Type) (incr : Type) `{CM : IsCommMonoid incr} :=
     { eq : carrier -> carrier -> Prop where "x ≡ y" := (eq x y) : sl_scope;
       eq_equiv :: Equivalence eq;
+      zero : carrier;
       add : incr -> carrier -> carrier;
       join : carrier -> carrier -> carrier;
       add_distr n m x : add n (add m x) ≡ add (CommutativeMonoid.add n m) x;
@@ -298,6 +299,7 @@ Section OptSemilattice.
   opt_semi := {|
     eq x y := R_opt (@eq _ _ CM SL) x y;
     eq_equiv := _;
+    zero := Some zero;
     add n x := option_map (add n) x;
     join := option_map2 join |}.
   Proof.

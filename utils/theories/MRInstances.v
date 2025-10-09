@@ -46,7 +46,8 @@ Section ZSemiLattice.
   Import Semilattice.
 
   Program Definition Zsemilattice : Semilattice Z Z :=
-    {| add := Z.add;
+    {| zero := 0%Z;
+      add := Z.add;
       join := Z.max; |}.
   Solve Obligations with program_simpl; try lia.
 
@@ -70,7 +71,8 @@ Section NatSemiLattice.
   Import Semilattice.
 
   Program Definition Natsemilattice : Semilattice nat nat :=
-    {| add := Nat.add;
+    {| zero := 0;
+      add := Nat.add;
       join := Nat.max; |}.
   Solve Obligations with program_simpl; try lia.
 

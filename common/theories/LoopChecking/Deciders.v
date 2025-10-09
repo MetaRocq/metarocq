@@ -2906,7 +2906,29 @@ Proof.
   unfold valid_clause_Z, nvalid_clause_Z; firstorder.
 Qed.
 
-(*Lemma check_clause_invalid_valid_Z m mcheck cl :
+Lemma check_clause_invalid_valid_Z m mcheck cl :
+  clause_levels cl ⊂_lset (levels m) ->
+  check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Z (clauses m) cl.
+Proof.
+  intros wf.
+  move/check_invalid_entails.
+  rewrite entails_completeness_syn.
+  intros nvsl nz.
+  apply nvsl.
+  intros v cs.
+  set (sl := init_model (relations_of_clauses (clauses m))).
+  have he : clause_sem v cl \/ ~ clause_sem v cl. admit.
+  destruct he => //. red in nz.
+  destruct cl as [prems concl].
+  specialize (nv  (Z_valuation_of_model m)). forward nv. admit.
+  specialize (nv (model_valuation m)). cbn.
+  cbn in nv.
+  red in nv.
+  set (v' : premises -> Z := fun u =>
+  specialize (nv (fun l => interp_nes v' (v l))).
+
+
+Lemma check_clause_invalid_valid_Z m mcheck cl :
   clause_levels cl ⊂_lset (levels m) ->
   check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Z (clauses m) cl.
 Proof.

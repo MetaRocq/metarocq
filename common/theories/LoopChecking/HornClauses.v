@@ -2026,12 +2026,13 @@ Module Clauses (LS : LevelSets).
 
   Section prems_semi.
     Obligation Tactic := idtac.
-    Import Semilattice (Semilattice, eq, add, join).
+    Import Semilattice (Semilattice, eq, zero, add, join).
     Context (cls : Clauses.t).
 
     Equations? horn_semi : Semilattice NES.t Z :=
     horn_semi := {|
          eq x y := cls ⊢ℋ x ≡ y;
+         zero := NES.singleton (Level.zero, 0);
          add := add_prems;
          join := union |}.
     Proof.

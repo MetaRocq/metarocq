@@ -873,29 +873,6 @@ End ClausesSemantics.
     apply (@completeness p (l, r)).
   Qed.
 
-  Lemma entails_L_completeness_syn {p l r} :
-    let SL := init_model p in
-    (forall (v : Level.t -> NES.t), interp_nes v l ≡ interp_nes v r)%sl ->
-    p ⊢ℒ l ≡ r.
-  Proof.
-    intros SL hv.
-    specialize (hv (ids p)).
-    rewrite !interp_triv in hv.
-    exact hv.
-  Qed.
-
-  (* Lemma entails_L_completeness_syn_Z {p l r} :
-    let SL := init_model p in
-    (forall (v : Level.t -> Z), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
-    p ⊢ℒ l ≡ r.
-  Proof.
-    intros SL hv. cbn in hv.
-    unfold interp_rels in hv. unfold interp_nes in hv. cbn in hv.
-    specialize (hv (ids p)).
-    rewrite !interp_triv in hv.
-    exact hv.
-  Qed. *)
-
   Lemma entails_completeness {cls cl} :
     entails cls cl <-> valid_semilattice_entailment cls cl.
   Proof.
@@ -914,6 +891,45 @@ End ClausesSemantics.
       move/entails_L_rels_entails_L_clauses.
       move/completeness_all.
       unfold valid_relations, valid_semilattice_entailment.
+      setoid_rewrite interp_rels_clauses_sem.
+      setoid_rewrite interp_rel_clause_sem.
+      rewrite relations_of_clauses_singleton.
+      now setoid_rewrite interp_rels_tip.
+  Qed.
+
+  Lemma entails_L_completeness_syn {p l r} :
+    let SL := init_model p in
+    (forall (v : Level.t -> NES.t), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
+    p ⊢ℒ l ≡ r.
+  Proof.
+    intros SL hv.
+    specialize (hv (ids p) (interp_rels_init p)).
+    rewrite !interp_triv in hv.
+    exact hv.
+  Qed.
+
+  Definition valid_semilattice_entailment_syn cls cl :=
+    let SL := init_model (relations_of_clauses cls) in
+    (forall (v : Level.t -> NES.t), clauses_sem v cls -> clause_sem v cl).
+
+  Lemma entails_completeness_syn {cls cl} :
+    entails cls cl <-> valid_semilattice_entailment_syn cls cl.
+  Proof.
+    split; revgoals.
+    - intros hv.
+      eapply entails_L_entails_ℋ_equiv.
+      2:{ now eapply Clauses.singleton_spec. }
+      intros c. rewrite Clauses.singleton_spec => ->.
+      red. eapply entails_L_completeness_syn.
+      intros v. red in hv. specialize (hv v).
+      rewrite -interp_rels_clauses_sem. move/hv.
+      destruct cl => //.
+      rewrite interp_nes_union interp_nes_singleton //.
+    - move/entails_entails_L.
+      move/entails_L_clause_clauses.
+      move/entails_L_rels_entails_L_clauses.
+      move/completeness_all.
+      unfold valid_relations, valid_semilattice_entailment_syn.
       setoid_rewrite interp_rels_clauses_sem.
       setoid_rewrite interp_rel_clause_sem.
       rewrite relations_of_clauses_singleton.
