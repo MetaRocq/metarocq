@@ -123,7 +123,7 @@
 	"coq-lsp.show_universes_on_hover": false,
 	"coq-lsp.pp_type": 1,
 	"coq-lsp.heatmap.enabled": true,
-	"coq-lsp.goal_after_tactic": true,
+	"coq-lsp.goal_after_tactic": false,
 	"coq-lsp.messages_follow_goal": false,
 	"coq-lsp.send_perf_data": false,
 	"coq-lsp.admit_on_bad_qed": false,

@@ -1,3 +1,431 @@
+Definition has_lt V m m' :=
+  (exists l k k', LevelSet.In l V /\ LevelMap.MapsTo l k m /\ LevelMap.MapsTo l k' m' /\ lt_value k k').
+
+Lemma nlt_spec V m m' : ~ has_lt V m m' <-> forall l k k', LevelSet.In l V -> LevelMap.MapsTo l k m -> LevelMap.MapsTo l k' m' -> lt_value k k' -> False.
+Proof.
+  split.
+  - intros nlt l k k' inv hm hm' lt.
+    apply nlt. red. exists l, k, k'; split => //.
+  - intros hl [l0 [k0 [k0' [hin [hm0 [hm0' hlt']]]]]].
+    apply (hl l0 k0 k0') => //.
+Qed.
+
+(* Lemma nsmaller m m' : ~ is_smaller_model m m' <->
+  exists l k k', LevelMap.MapsTo l k m /\ LevelMap.MapsTo l k' m' /\ lt_value k' k.
+Proof.
+  split.
+  - intros hnsm. unfold is_smaller_model in hnsm.
+    eapply Decidable.not_and in hnsm. destruct hnsm. *)
+
+
+Definition le_values V m m' :=
+  forall l, LevelSet.In l V -> (level_value m l ≤ level_value m' l)%opt.
+
+Infix "≦[ V ]" := (le_values V) (at level 70, format "x  ≦[ V ]  y").
+
+Lemma dec_le_values V m m' : Decidable.decidable (m ≦[V] m').
+Proof.
+Admitted.
+
+
+Lemma is_ext_le_value V m m' :
+ (m ⩽ m') -> le_values V m m'.
+Proof.
+  move=> hext l.
+  destruct (@level_valueP m l). eapply hext in H as [k' [hm' le]].
+  now rewrite (level_value_MapsTo hm').
+  constructor.
+Qed.
+
+Lemma le_opt_lt x y z : (lt_value x y)%opt -> (y ≤ z)%opt -> lt_value x z.
+Proof.
+  destruct x, y, z; cbn; intros hle hle'; depelim hle'; lia.
+Qed.
+
+Lemma nlt_opt_le x y : ~ (x ≤ y)%opt -> lt_value y x.
+Proof.
+  destruct (check_atom_value x y) eqn:ca.
+  - move/check_atom_value_spec: ca. contradiction.
+  - destruct x, y; cbn in * => //.
+    intros hne. red in hne. cbn in hne. lia.
+Qed.
+
+Definition lt_value (x y : option Z) :=
+  match x, y with
+  | Some x, Some y => x < y
+  | None, Some _ => True
+  | Some _, None => False
+  | None, None => False
+  end.
+
+Definition is_ext m m' : bool :=
+  LevelMapFact.for_all (fun l k =>
+    match LevelMap.find l m' with
+    | None => false
+    | Some k' => check_atom_value k k'
+    end) m.
+
+(* Definition extends m m' :=
+  (forall l k, LevelMap.MapsTo l k m -> exists k', LevelMap.MapsTo l k' m' /\ (k ≤ k')%opt). *)
+
+Lemma is_ext_spec m m' : is_ext m m' <-> m ⩽ m'.
+Proof.
+  split.
+  - rewrite /is_ext.
+    rewrite [is_true _]LevelMapFact.for_all_iff => hf l k /hf.
+    case: (find_spec l m') => //.
+    move=> k0 hm /check_atom_value_spec hle. exists k0. split => //.
+  - intros ext. rewrite /is_ext.
+    rewrite [is_true _]LevelMapFact.for_all_iff => l e /ext.
+    intros [k' [hm hle]].
+    rewrite (LevelMap.find_1 hm).
+    now apply/check_atom_value_spec.
+Qed.
+
+Lemma dec_ext m m' : Decidable.decidable (m ⩽ m').
+Proof.
+  red. rewrite -is_ext_spec. now destruct is_ext.
+Qed.
+
+
+
+Instance lt_irrefl : Irreflexive lt_value.
+Proof.
+  intros []; cbn. red. unfold lt_value. unfold lt; cbn. lia.
+  now hnf.
+Qed.
+
+Instance le_inter_refl : Reflexive le_inter.
+Proof.
+  intros x l k k' m m'. eapply LevelMapFact.F.MapsTo_fun in m; tea. subst. reflexivity.
+Qed.
+
+Instance le_values_refl V : Reflexive (le_values V).
+Proof.
+  intros x l; reflexivity.
+Qed.
+
+Instance le_inter_trans V : Transitive (le_values V).
+Proof.
+  intros x y z h0 h1 l hin. transitivity (level_value y l). apply h0 => //. apply h1 => //.
+Qed.
+
+Instance le_values_preorder V : PreOrder (le_values V).
+Proof.
+  split; tc.
+Qed.
+
+Definition eq_level_values V m m' :=
+  forall l, LevelSet.In l V -> level_value m l = level_value m' l.
+
+Instance eq_level_values_equiv V : Equivalence (eq_level_values V).
+Proof.
+  split.
+  - intros x l. reflexivity.
+  - move=> x y h l. now symmetry.
+  - move=> x y z h h' l. now transitivity (level_value y l).
+Qed.
+
+Instance le_values_partial_order V : PartialOrder (eq_level_values V) (le_values V).
+Proof.
+  intros m m'.
+  split.
+  - intros hm. cbn. split. intros l hin. now rewrite hm.
+    red. intros l hin; now rewrite hm.
+  - cbn; unfold flip => -[] le le'.
+    red. intros l hin. move: (le l hin) (le' l hin).
+    apply antisymmetry.
+Qed.
+
+Definition is_smaller_model V (m m' : model) :=
+  m ≦[V] m' /\ has_lt V m m'.
+
+(* Lemma le_values_inter V m m' : le_values V m m' -> le_inter m m'.
+Proof.
+  intros hle l k k' hm hm'.
+  move: (hle l).
+  rewrite (level_value_MapsTo hm).
+  now rewrite (level_value_MapsTo hm').
+Qed. *)
+
+(* Instance model_rel_strictorder V : StrictOrder (is_smaller_model V).
+Proof.
+  split.
+  - intros x. red.
+    unfold is_smaller_model.
+    move=> [eq hlt]. destruct hlt as [l [k [k' [hin [hm [hm' hlt]]]]]].
+    eapply LevelMapFact.F.MapsTo_fun in hm; tea. subst. destruct k; cbn in hlt => //. lia.
+  - intros x y z [le [l0 [k0 [k0' [hin [hm0 [hm0' hlt']]]]]]] [le' _].
+    split.
+    * now transitivity y.
+    * red. exists l0, k0. apply le_values_inter in le.
+      specialize (le _ _ _ hin hm0 hm0').
+      specialize (le' l0).
+      rewrite (level_value_MapsTo hm0') in le'.
+      move: le'.
+      case: (@level_valueP z l0).
+      intros k hm le'. exists k. split => //. split => //. split => //. eapply le_opt_lt; tea.
+      now eapply le'.
+      intros hnin lenon.  specialize (lenon hin).
+      depelim lenon => //. auto.
+      now destruct k0 ; cbn in hlt'.
+Qed. *)
+(*
+Definition is_smaller_model_dec V m m' : Decidable.decidable (is_smaller_model V m m').
+Proof. Admitted.
+
+Lemma eq_values_equal V m m' : LevelMap.Equal m m' -> eq_level_values V m m'.
+Proof.
+  move=> eqv l; move: (eqv l).
+  rewrite /level_value. do 2 destruct LevelMap.find => //; congruence.
+Qed.
+
+Lemma eq_level_values_inter {V m m'} : eq_level_values V m m' ->
+  forall l k k', LevelSet.In l V -> LevelMap.MapsTo l k m -> LevelMap.MapsTo l k' m' -> (k = k')%opt.
+Proof.
+  intros eq l k k' hin hm hm'.
+  specialize (eq l). move: eq.
+  rewrite (level_value_MapsTo hm) (level_value_MapsTo hm'). intros ->. reflexivity. auto.
+Qed.
+Print is_smaller_model.
+Lemma nis_smaller_spec V m m' : ~ (is_smaller_model V m m') <-> ~ (m ≦[V] m') \/ ~ has_lt V m m'.
+Proof.
+  rewrite /is_smaller_model.
+  split.
+  - move/Decidable.not_and => /fwd. apply dec_le_values. auto.
+  - intros [] []. now apply H. now apply H.
+Qed.
+
+Lemma le_lt_model V m m' : m ≦[V] m' -> ~ (is_smaller_model V m' m).
+Proof.
+  intros le [lt li].
+  eapply antisymmetry in le; tea.
+  move: li. change (~ has_lt V m' m). rewrite nlt_spec.
+  intros.
+  eapply eq_level_values_inter in le; tea. subst k'.
+  now eapply irreflexivity in H2.
+Qed.
+
+Lemma le_inter_has_lt V m m' : le_inter m m' <-> ~ has_lt V m' m.
+Proof.
+  split.
+  - intros hinter [l0 [k0 [k0' [hin [hm0 [hm0' hlt']]]]]].
+    specialize (hinter _ _ _ hm0' hm0).
+    eapply le_opt_lt in hlt'; tea.
+    now eapply irreflexivity in hlt'.
+  - move/nlt_spec => hlt l k k' hm hm'.
+    destruct (check_atom_value_spec k k') => //. exfalso.
+    apply (hlt l k' k hin) => //.
+    now apply nlt_opt_le in H.
+Qed.
+
+Lemma nle_inter_has_lt V m m' : ~ le_inter V m m' <-> has_lt V m' m.
+Proof.
+  split.
+  - intros nle. rewrite le_inter_has_lt in nle. todo "decidability".
+  - rewrite le_inter_has_lt. auto.
+Qed.
+
+Lemma le_values_has_lt V m m' : le_values V m m' -> ~ has_lt V m' m.
+Proof.
+  intros hinter [l0 [k0 [k0' [hin [hm0 [hm0' hlt']]]]]].
+  eapply le_values_inter in hinter.
+  specialize (hinter _ _ _ hin hm0' hm0).
+  eapply le_opt_lt in hlt'; tea.
+  now eapply irreflexivity in hlt'.
+Qed. *)
+
+(* Lemma le_values_inter_inv V m m' : model_of V m -> le_inter V m m' -> m ≦[V] m'.
+Proof.
+  intros mof hle l hin.
+  specialize (mof l hin).
+  specialize (hle l hin).
+  move: hle.
+  destruct (@level_valueP m l) => //.
+  intros hle. intros h h'. eapply LevelMapFact.F.MapsTo_fun in H; tea. subst k.
+  depelim hle.
+  eapply level_value_MapsTo' in H0.
+  eapply LevelMapFact.F.MapsTo_fun in H0; tea. subst k'.
+  now constructor.
+  constructor.
+Qed. *)
+
+(*
+- move/nlt_spec => hlt l. k k' hm hm'.
+    destruct (check_atom_value_spec k k') => //. exfalso.
+    apply (hlt l k' k). split => //. split => //.
+    now apply nlt_opt_le in H.
+Qed. *)
+(*
+Lemma contra A B : Decidable.decidable B -> (A -> ~ B) -> (~ A -> B).
+Proof.
+  intros dec f na.
+  destruct dec. exact H. *)
+
+Lemma nle_values_has_lt V m m' :
+  ~ LevelSet.Empty V ->
+  model_of V m -> ~ le_values V m m' -> has_lt V m' m.
+Proof.
+  intros hne le.
+Admitted.
+
+(*
+Lemma nle_ m m' : ~ m ⩽ m' <-> (LevelMap.Empty m' /\ ~ LevelMap.Empty m) \/
+  has_lt m m'.
+Proof.
+  move: m'. apply: LevelMapFact.map_induction.
+  - intros m' he. split.
+    intros hne. left; split => //. intros he'. apply hne.
+    have eq : m =m m'.
+    { rewrite LevelMapFact.F.Equal_mapsto_iff. firstorder. }
+    rewrite eq. reflexivity.
+    intros [[hem hem']|lt].
+    * intros le. now apply hem' => l k /le -[k' []] /hem.
+    * intros hle. destruct lt as [l0 [k0 [k0' [hm0 [hm0' hlt']]]]].
+      now eapply he in hm0'.
+  - move=> m0 m1 nle l k nin hadd. split.
+    * intros nle'. right. red.
+      specialize (hle _ _ hm0) as [k' [hin']].
+      eapply LevelMapFact.F.MapsTo_fun in hm0'; tea. subst k0'. *)
+
+Instance le_values_proper V : Proper (LevelMap.Equal ==> LevelMap.Equal ==> iff) (le_values V).
+Proof.
+  intros ?? h ?? h'; rewrite /le_values //=.
+  now setoid_rewrite h; setoid_rewrite h'.
+Qed.
+(*
+Lemma nle_lt_model m m' : m ≦ m' <-> ~ has_lt m' m.
+Proof.
+  split.
+  - intros hm' hlt.
+    destruct hlt as [l0 [k0 [k0' [hm0 [hm0' hlt']]]]].
+    eapply le_values_inter in hm'.
+    specialize (hm' l0 _ _ hm0' hm0).
+    have h := le_opt_lt _ _ _ hlt' hm'. now apply irreflexivity in h.
+  - intros nlt l. rewrite -le_inter_has_lt in nlt.
+    red in nlt.
+
+    Search has_lt.
+*)
+(*
+  move: m m'. apply: LevelMapFact.map_induction.
+  - intros m he m'. split.
+    intros hne. elim hne. intros l.
+    destruct (@level_valueP m l). now eapply he in H. constructor.
+    unfold has_lt. intros [l [k [k' [hm [hm' _]]]]].
+    now eapply he in hm'.
+  - intros m m0 h x k hnin hadd m'.
+    apply levelmap_add_spec in hadd.
+    rewrite /has_lt.
+    split.
+    intros hle. setoid_rewrite hadd in hle.
+    destruct ()
+
+
+     left; split => //. intros he'. apply hne.
+    have eq : m =m m'.
+    { rewrite LevelMapFact.F.Equal_mapsto_iff. firstorder. }
+    rewrite eq. reflexivity.
+    intros [[hem hem']|lt].
+    * intros le. now apply hem' => l k /le -[k' []] /hem.
+    * intros hle. destruct lt as [l0 [k0 [k0' [hm0 [hm0' hlt']]]]].
+      now eapply he in hm0'.
+  - move=> m0 m1 nle l k nin hadd. split.
+    * intros nle'. right. red.
+      specialize (hle _ _ hm0) as [k' [hin']].
+
+
+  intros nle.
+  destruct (dec_le_values m' m). split => //.
+  eapply nle_values_has_lt. in H.
+  apply nle_inter_has_lt.
+  intros lei. apply nle.
+  red in H, lei. intros l. specialize (H l).
+  destruct (@level_valueP m l).
+  destruct (@level_valueP m' l).
+  specialize (lei _ _ _ H0 H1). auto.
+
+  Search le_inter.
+  eapply is_ext_le_inter in H.
+  eapply antisymmetry in H;.
+
+
+  destruct (is_smaller_model_dec m' m) => //.
+   [lt li].
+  have eq : m =m m'.
+  now apply antisymmetry.
+  setoid_rewrite eq in li.
+  destruct li as [l0 [k0 [k0' [hm0 [hm0' hlt']]]]].
+  eapply LevelMapFact.F.MapsTo_fun in hm0; tea. subst.
+  now apply irreflexivity in hlt'.
+Qed. *)
+
+
+(*
+Lemma minimal_unique cls m m' :
+  minimal cls m -> is_model cls m -> minimal cls m' -> is_model cls m' -> (normalize_model m) ⩽ (normalize_model m').
+Proof.
+  intros min ism.
+  rewrite minimal_forall in min.
+  intros min' ism'.
+  rewrite minimal_forall in min'.
+  specialize (min _ ism').
+  specialize (min' _ ism).
+  destruct (is_smaller_model_dec (normalize_model m) (normalize_model m')). apply H.
+  assert (sirr := irreflexivity (R := is_smaller_model) (normalize_model m)).
+
+  destruct (dec_ext (normalize_model m) (normalize_model m')) => //.
+Qed. *)
+Print has_lt.
+Lemma nle_values V m m' :
+  ~ LevelSet.Empty V ->
+  model_of V m ->
+  ~ (le_values V m m') ->
+  exists l, LevelSet.In l V /\ lt_value (level_value m' l) (level_value m l).
+Proof.
+  intros hne mof leq.
+  have := (nle_values_has_lt V m m' hne mof leq).
+  intros [l [k [k' []]]]. destruct H0 as [? []].
+  exists l; split => //.
+  now rewrite (level_value_MapsTo H0) (level_value_MapsTo H1).
+Qed.
+
+(* Lemma minimal_le cls m m' :
+  minimal cls m -> is_model cls m' -> model_of (clauses_levels cls) m' ->
+  model_of (clauses_levels cls) m ->
+  is_smaller_model (clauses_levels cls) (normalize_model m) (normalize_model m').
+Proof.
+  intros nex ism mof mof'.
+  rewrite minimal_forall in nex.
+  specialize (nex _ ism).
+  destruct (is_smaller_model_dec (clauses_levels cls) (normalize_model m) (normalize_model m')) => //.
+Abort. *)
+
+
+
+(* Lemma minimal_forall cls cls' m : minimal cls cls' m <->
+  forall m', is_model cls m' -> is_smaller_model (clauses_levels cls) (normalize_model m') (normalize_model m) -> False.
+Proof.
+  split.
+  - intros hmin m' ism issm. apply hmin. exists m'. split => //.
+  - intros hm' [m' [issm ism]]. apply (hm' m' ism issm).
+Qed. *)
+
+(* Lemma minimal_mapsto cls m m' :
+  minimal cls cls' m -> is_model cls m' -> is_smaller_model (clauses_levels cls) (normalize_model m') (normalize_model m) -> False.
+Proof.
+  intros nex ism.
+  rewrite minimal_forall in nex.
+  now specialize (nex _ ism).
+Qed. *)
+
+(* Lemma minimal_model_unique cls minit m m' :
+  minimal_above minit cls m -> minimal_above minit cls m' -> is_model cls m -> is_model cls m' ->
+  normalize_model m =m normalize_model m'.
+Abort. *)
+
+
+
 #[program]
 Definition of_level_map_n (m : LevelMap.t nat) V n (hne : ~ LevelMap.Empty m) : nonEmptyLevelExprSet :=
   {| t_set := LevelMap.fold (fun l k acc =>

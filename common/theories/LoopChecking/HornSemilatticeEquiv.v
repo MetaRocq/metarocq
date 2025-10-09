@@ -867,16 +867,34 @@ End ClausesSemantics.
   Import Semilattice.
 
   Lemma entails_L_completeness {p l r} :
-    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
+    (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl <->
     p ⊢ℒ l ≡ r.
   Proof.
-    intros hv.
-    specialize (hv _ (init_model p) (ids p)).
-    forward hv.
-    { apply interp_rels_init. }
+    apply (@completeness p (l, r)).
+  Qed.
+
+  Lemma entails_L_completeness_syn {p l r} :
+    let SL := init_model p in
+    (forall (v : Level.t -> NES.t), interp_nes v l ≡ interp_nes v r)%sl ->
+    p ⊢ℒ l ≡ r.
+  Proof.
+    intros SL hv.
+    specialize (hv (ids p)).
     rewrite !interp_triv in hv.
     exact hv.
   Qed.
+
+  (* Lemma entails_L_completeness_syn_Z {p l r} :
+    let SL := init_model p in
+    (forall (v : Level.t -> Z), interp_rels v p -> interp_nes v l ≡ interp_nes v r)%sl ->
+    p ⊢ℒ l ≡ r.
+  Proof.
+    intros SL hv. cbn in hv.
+    unfold interp_rels in hv. unfold interp_nes in hv. cbn in hv.
+    specialize (hv (ids p)).
+    rewrite !interp_triv in hv.
+    exact hv.
+  Qed. *)
 
   Lemma entails_completeness {cls cl} :
     entails cls cl <-> valid_semilattice_entailment cls cl.
