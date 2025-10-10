@@ -69,12 +69,12 @@ Module Models (LS : LevelSets).
     LevelSet.fold (fun l acc =>
       LevelMap.add l (max_clause_premise_of l cls) acc) levels m.
 
-  Definition zero_model levels : model :=
-    LevelSet.fold (fun l acc => LevelMap.add l None acc) levels (LevelMap.empty _).
+  Definition zero_model n levels : model :=
+    LevelSet.fold (fun l acc => LevelMap.add l n acc) levels (LevelMap.empty _).
 
-  Definition premises_model V cl : LevelSet.t * model :=
+  Definition premises_model V n cl : LevelSet.t * model :=
     let levels := LevelSet.union (clause_levels cl) V in
-    (levels, premises_model_map (zero_model levels) (Clauses.singleton cl)).
+    (levels, premises_model_map (zero_model n levels) (Clauses.singleton cl)).
 
   Lemma premises_model_map_spec m cls :
     forall l k,
@@ -102,7 +102,7 @@ Module Models (LS : LevelSets).
         rewrite LevelMapFact.F.add_mapsto_iff. right; split => //.
   Qed.
 
-  Lemma zero_model_spec {l ls n} : LevelMap.MapsTo l n (zero_model ls) <-> LevelSet.In l ls /\ n = None.
+  Lemma zero_model_spec {l ls i n} : LevelMap.MapsTo l n (zero_model i ls) <-> LevelSet.In l ls /\ n = i.
   Proof.
     unfold zero_model.
     eapply LevelSetProp.fold_rec.
@@ -115,21 +115,21 @@ Module Models (LS : LevelSets).
   Qed.
 
 
-  Lemma premises_model_map_min_premise {levels cls prems z} :
-    min_premise (premises_model_map (zero_model levels) cls) prems = Some z ->
+  Lemma premises_model_map_min_premise {levels i cls prems z} :
+    min_premise (premises_model_map (zero_model i levels) cls) prems = Some z ->
     (exists minp mink, LevelExprSet.In (minp, mink) prems /\
       exists maxp, max_clause_premise_of minp cls = Some maxp /\
       z = maxp - mink) \/
-    (exists minp mink, LevelExprSet.In (minp, mink) prems /\ z + mink <= 0)%Z.
+    (exists minp mink idef, LevelExprSet.In (minp, mink) prems /\ i = Some idef /\ z = idef - mink)%Z.
   Proof.
     set (m := premises_model_map _ _).
     have [minple [[minp mink] [inminp mineq]]] := min_premise_spec m prems.
     rewrite mineq. rewrite /min_atom_value.
     destruct level_value eqn:hl => //. intros [= <-].
     eapply level_value_MapsTo' in hl.
-    eapply premises_model_map_spec in hl as [[inpcls [hm _]]|[ninpcls h']]. left.
-    2:{ apply zero_model_spec in h' as [h' [= ->]]. }
-    exists minp, mink. split => //. noconf hm. rewrite -hm.
+    eapply premises_model_map_spec in hl as [[inpcls [hm _]]|[ninpcls h']].
+    2:{ apply zero_model_spec in h' as [h' [= eq]]. right. do 3 eexists; split; tea. subst i. split; trea. }
+    left. exists minp, mink. split => //. noconf hm. rewrite -hm.
     eexists; split => //.
   Qed.
 
@@ -144,9 +144,9 @@ Module Models (LS : LevelSets).
       firstorder.
   Qed.
 
-  Lemma premises_model_map_min_premise_inv {levels cls} :
+  Lemma premises_model_map_min_premise_inv {levels cls i} :
     forall cl, Clauses.In cl cls ->
-    exists z, min_premise (premises_model_map (zero_model levels) cls) (premise cl) = Some z /\ (0 <= z)%Z.
+    exists z, min_premise (premises_model_map (zero_model i levels) cls) (premise cl) = Some z /\ (0 <= z)%Z.
   Proof.
     set (m := premises_model_map _ _).
     move=> cl hin.
@@ -176,9 +176,9 @@ Module Models (LS : LevelSets).
         eapply levels_spec. now exists mink.
   Qed.
 
-  Lemma in_premises_model V cl :
+  Lemma in_premises_model V i cl :
     forall l,
-    LevelMap.In l (premises_model V cl).2 <->
+    LevelMap.In l (premises_model V i cl).2 <->
     LevelSet.In l V \/ LevelSet.In l (clause_levels cl).
   Proof.
     intros l. rewrite premises_model_map_in.
@@ -188,15 +188,15 @@ Module Models (LS : LevelSets).
       apply clause_levels_spec. left. now subst.
     - apply zero_model_spec in H as [hin ->].
       apply LevelSet.union_spec in hin. firstorder.
-    - right. exists None. apply zero_model_spec. split => //; lsets.
+    - right. exists i. apply zero_model_spec. split => //; lsets.
     - eapply clause_levels_spec in H as [H|H].
       * left. exists cl. split => //. now apply Clauses.singleton_spec.
-      * subst. right. exists None. apply zero_model_spec. split => //.
+      * subst. right. exists i. apply zero_model_spec. split => //.
         apply LevelSet.union_spec. left. apply clause_levels_spec. now right.
   Qed.
 
   Lemma of_level_map_premises_model_map cls cl V ne :
-    cls ⊢a premise cl → of_level_map (premises_model_map (zero_model V) (Clauses.singleton cl)) ne.
+    cls ⊢a premise cl → of_level_map (premises_model_map (zero_model None V) (Clauses.singleton cl)) ne.
   Proof.
     intros [l k].
     rewrite of_level_map_spec. move/premises_model_map_spec; cbn.
@@ -206,6 +206,22 @@ Module Models (LS : LevelSets).
     eapply max_premise_of_spec_in in H as [maxp' [eq hin']].
     rewrite eq in heq; noconf heq.
     now constructor.
+  Qed.
+
+  Lemma of_level_map_premises_model_map_some cls cl V i ne ne' :
+    cls ⊢a union (of_level_map (zero_model (Some i) V) ne') (premise cl) →
+      of_level_map (premises_model_map (zero_model (Some i) V) (Clauses.singleton cl)) ne.
+  Proof.
+    intros [l k].
+    rewrite of_level_map_spec. move/premises_model_map_spec; cbn.
+    intros [[hin' [[= heq] _]]|[hnin hm]].
+    2:{ apply zero_model_spec in hm as []. noconf H0.
+      constructor. eapply LevelExprSet.union_spec; left.
+      eapply of_level_map_spec. now eapply zero_model_spec. }
+    move: hin'; cbn; rewrite LevelSet.union_spec. intros []; [|lsets].
+    eapply max_premise_of_spec_in in H as [maxp' [eq hin']].
+    rewrite eq in heq; noconf heq.
+    constructor. now eapply LevelExprSet.union_spec; right.
   Qed.
 
   Lemma entails_all_satisfies {cls prems m hne l k} :

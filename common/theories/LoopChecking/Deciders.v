@@ -289,14 +289,14 @@ Proof.
     now apply enabled_clauses_le.
 Qed.
 
-Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) cl).2 :=
+Program Definition loop_check cls (cl : clause) : result (premises_model (clauses_levels cls) None cl).1 LevelSet.empty cls (premises_model (clauses_levels cls) None cl).2 :=
   let V := clauses_levels cls in
-  loop (premises_model V cl).1 LevelSet.empty cls (premises_model V cl).2 (premises_model V cl).2 _.
+  loop (premises_model V None cl).1 LevelSet.empty cls (premises_model V None cl).2 (premises_model V None cl).2 _.
 Next Obligation.
   split => //.
   - lsets.
   - intros l. rewrite LevelSet.union_spec.
-    rewrite -/(LevelMap.In l (premises_model (clauses_levels cls) cl).2).
+    rewrite -/(LevelMap.In l (premises_model (clauses_levels cls) None cl).2).
     rewrite in_premises_model. intuition auto.
   - apply is_update_of_empty.
 Qed.
@@ -308,7 +308,7 @@ Variant check_result {cls} :=
 Arguments check_result : clear implicits.
 
 Lemma valid_model_find {V W cl cls} :
-  forall v : valid_model (clause_levels cl ∪ V) W (premises_model_map (zero_model (clause_levels cl ∪ V)) (Clauses.singleton cl)) cls,
+  forall v : valid_model (clause_levels cl ∪ V) W (premises_model_map (zero_model None (clause_levels cl ∪ V)) (Clauses.singleton cl)) cls,
   ~ LevelMap.find (concl cl).1 (model_model v) = None.
 Proof.
   intros v hfind.
@@ -699,7 +699,7 @@ Proof.
 
 
 Definition check_init_model cls cl :=
-  (premises_model (clauses_levels cls) cl).2.
+  (premises_model (clauses_levels cls) None cl).2.
 
 
 Lemma minimal_above_refl cls m : minimal_above cls m m.
@@ -782,7 +782,7 @@ Proof.
     red; cbn.
     have hcl : Clauses.In cl (Clauses.singleton cl).
     { now eapply Clauses.singleton_spec. }
-    have hs:= @premises_model_map_min_premise_inv V _ _ hcl. firstorder. }
+    have hs:= @premises_model_map_min_premise_inv V _ None _ hcl. firstorder. }
   split => //.
   { have hv := model_of_V v. clear -hv.
     subst V. cbn. now rewrite LevelSetProp.union_sym.
@@ -799,7 +799,7 @@ Proof.
     eapply is_update_of_ext in hsu.
     have hs := min_premise_pres prems hsu.
     rewrite minp in hs.
-    have hmin := @premises_model_map_min_premise_inv V (Clauses.singleton cl) cl.
+    have hmin := @premises_model_map_min_premise_inv V (Clauses.singleton cl) None cl.
     forward hmin. now apply Clauses.singleton_spec.
     destruct hmin as [minp' [hmineq hpos]].
     rewrite hmineq in hs. depelim hs. lia. }
@@ -923,7 +923,7 @@ Theorem check_invalid_allm {cls cl mcheck} :
   check_gen cls (checking_clause cl) = Invalid mcheck ->
   let minit := check_init_model cls (checking_clause cl) in
   forall m, is_model cls m ->
-    mcheck ⩽ m ->
+    minimal_above cls mcheck m ->
     (* (level_value m (concl cl).1 ≤ level_value mcheck (concl cl).1)%opt -> *)
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
     minit ⩽ m ->
@@ -960,7 +960,8 @@ Proof.
   { repeat (autorewrite with set_specs set_specs'; cbn). now right. }
   eapply level_value_MapsTo' in conclm'.
   rewrite hl in nsat.
-  move:minm'; move/is_ext_le_inter/(_ concl _ _ conclm' hm) => /check_atom_value_spec //=.
+  move:(minm' mcheck) => /fwd. reflexivity.
+  move/(_ ism). move/is_ext_le_inter/(_ concl _ _ conclm' hm) => /check_atom_value_spec //=.
   move/negP: nsat.
   destruct conclv as [conclv|].
   case: Z.leb_spec => //= hlt _ /Z.leb_le. lia.
