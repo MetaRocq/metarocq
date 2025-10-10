@@ -889,16 +889,45 @@ Hint Rewrite clause_levels_spec levels_spec : set_specs'.
 
 Lemma nge_lt x y : (~ x <= y) -> y < x.
 Proof. intros n. unfold lt; cbn. lia. Qed.
+Definition pred_expr (le : LevelExpr.t) :=
+  (le.1, le.2 - 1).
+
+Definition checking_clause (cl : clause) :=
+  let (prems, concl) := cl in
+  (singleton (pred_expr concl) ∪ prems, concl).
+
+  Definition clause_premises_levels cl := NES.levels (premise cl).
+
+  Lemma checking_clause_premise_levels cl :
+    clause_premises_levels (checking_clause cl) =_lset
+    clause_levels (checking_clause cl).
+  Proof.
+    destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
+    rewrite /clause_levels. cbn. unfold pred_expr; cbn.
+    intros l; firstorder. lsets. rsets.
+    rewrite NES.levels_spec. exists (k - 1). lsets.
+  Qed.
+
+  Lemma checking_clause_levels cl :
+    clause_levels (checking_clause cl) =_lset clause_levels cl.
+  Proof.
+    destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
+    rewrite /clause_levels. cbn. unfold pred_expr; cbn.
+    intros l. rewrite LevelSet.union_spec NES.levels_spec.
+    setoid_rewrite LevelExprSet.union_spec; rewrite LevelSet.union_spec.
+    setoid_rewrite NES.levels_spec. firstorder rsets. noconf H.
+    now right.
+  Qed.
 
 Theorem check_invalid_allm {cls cl mcheck} :
-  check_gen cls cl = Invalid mcheck ->
-  let minit := check_init_model cls cl in
+  check_gen cls (checking_clause cl) = Invalid mcheck ->
+  let minit := check_init_model cls (checking_clause cl) in
   forall m, is_model cls m ->
-    minimal_above cls mcheck m ->
+    mcheck ⩽ m ->
     (* (level_value m (concl cl).1 ≤ level_value mcheck (concl cl).1)%opt -> *)
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
     minit ⩽ m ->
-    valid_clause m cl -> False.
+    valid_clause m (checking_clause cl) -> False.
 Proof.
   move/check_invalid => [ism mofm minm encl invcl].
   intros minit m' ism' minm' mof.
@@ -915,7 +944,8 @@ Proof.
   have [minmf [[minpl minpk] [hin heq]]] := min_premise_spec_aux _ _ _ eqminp.
   cbn in heq. destruct (level_value mcheck minpl) as [minpmv|] => //. noconf heq.
   destruct concl as [concl k].
-  have hpres : (min_premise mcheck prems ≤ min_premise m' prems)%opt.
+  set (prems' := (singleton (pred_expr (concl, k)) ∨ prems)%nes) in *.
+  have hpres : (min_premise mcheck prems' ≤ min_premise m' prems')%opt.
   { now eapply min_premise_pres. }
   rewrite eqminp in hpres. depelim hpres.
   rename y into minpm'. rename H into minpm'minpm.
@@ -930,8 +960,7 @@ Proof.
   { repeat (autorewrite with set_specs set_specs'; cbn). now right. }
   eapply level_value_MapsTo' in conclm'.
   rewrite hl in nsat.
-  move:(minm' mcheck) => /fwd. reflexivity.
-  move/(_ ism). move/is_ext_le_inter/(_ concl _ _ conclm' hm) => /check_atom_value_spec //=.
+  move:minm'; move/is_ext_le_inter/(_ concl _ _ conclm' hm) => /check_atom_value_spec //=.
   move/negP: nsat.
   destruct conclv as [conclv|].
   case: Z.leb_spec => //= hlt _ /Z.leb_le. lia.
@@ -2338,8 +2367,6 @@ Lemma opt_valuation_of_model_equiv m l :
     apply clauses_sem_valid.
   Qed.
 
-  Definition clause_premises_levels cl := NES.levels (premise cl).
-
   Theorem check_invalid_valuation {cls cl m} :
     check_gen cls cl = Invalid m ->
     let v := opt_valuation_of_model m in
@@ -2596,33 +2623,7 @@ Lemma opt_valuation_of_model_equiv m l :
   Qed.
 
 
-Definition pred_expr (le : LevelExpr.t) :=
-  (le.1, le.2 - 1).
 
-Definition checking_clause (cl : clause) :=
-  let (prems, concl) := cl in
-  (singleton (pred_expr concl) ∪ prems, concl).
-
-  Lemma checking_clause_premise_levels cl :
-    clause_premises_levels (checking_clause cl) =_lset
-    clause_levels (checking_clause cl).
-  Proof.
-    destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
-    rewrite /clause_levels. cbn. unfold pred_expr; cbn.
-    intros l; firstorder. lsets. rsets.
-    rewrite NES.levels_spec. exists (k - 1). lsets.
-  Qed.
-
-  Lemma checking_clause_levels cl :
-    clause_levels (checking_clause cl) =_lset clause_levels cl.
-  Proof.
-    destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
-    rewrite /clause_levels. cbn. unfold pred_expr; cbn.
-    intros l. rewrite LevelSet.union_spec NES.levels_spec.
-    setoid_rewrite LevelExprSet.union_spec; rewrite LevelSet.union_spec.
-    setoid_rewrite NES.levels_spec. firstorder rsets. noconf H.
-    now right.
-  Qed.
 
 Definition check_genb cls cl :=
   match check_gen cls cl with
@@ -2886,60 +2887,90 @@ Proof.
   move=> //.
 Qed.
 
-Print valid_clause.
+Definition finite_premise (v : Level.t -> option Z) cl :=
+  exists k, interp_nes v (premise cl) = Some k.
+
+Definition finite_clause (v : Level.t -> option Z) cl :=
+  finite_premise v cl /\ isSome (v (concl cl).1).
+
+(* The valution here is in 𝐙 + ∞:
+  - clauses max (∞, ...) >= x are trivially valid.
+  - clauses max ... >= ∞ are invalid.
+ *)
+Definition valid_clause_Zinf cls cl :=
+  forall v : Level.t -> option Z,
+  positive_opt_valuation v ->
+  clauses_sem v cls ->
+  (* finite_clause v cl -> *)
+  clause_sem v cl.
+
 Definition valid_clause_Z cls cl :=
   forall v : Level.t -> Z,
   positive_valuation v ->
-  clauses_sem v cls -> clause_sem v cl.
+  clauses_sem v cls ->
+  clause_sem v cl.
 
-Lemma valid_clause_Z_weaken cls cls' cl :
-  Clauses.Subset cls' cls -> valid_clause_Z cls' cl -> valid_clause_Z cls cl.
+Lemma valid_clause_Z_Zinf cls cl : valid_clause_Zinf cls cl -> valid_clause_Z cls cl.
 Proof.
-  intros hsub vc v pos csem. apply vc; tea. eapply clauses_sem_subset; tea.
+  move=> vzinf v pos csem.
+  move: (vzinf (opt_val_of_Z_val v)) => /fwd.
+  { rewrite /opt_val_of_Z_val => l k hopt. noconf hopt.
+    apply pos. }
+  rewrite clauses_sem_opt clause_sem_opt; apply => //.
 Qed.
 
-Definition nvalid_clause_Z cls cl :=
-  exists v : Level.t -> Z, positive_valuation v /\ clauses_sem v cls /\ ~ clause_sem v cl.
+Lemma contra A B : (B -> A) -> (~ A -> ~ B).
+Proof. intros f na b. exact (na (f b)). Qed.
 
-Lemma valid_clause_Z_invalid cls cl : nvalid_clause_Z cls cl -> ~ valid_clause_Z cls cl.
+
+
+Definition valid_clause_Z_mon cls cls' cl :
+  Clauses.Subset cls cls' -> valid_clause_Zinf cls cl -> valid_clause_Zinf cls' cl.
 Proof.
-  unfold valid_clause_Z, nvalid_clause_Z; firstorder.
+  intros hsub vz v vpos clsem.
+  eapply vz => //.  eapply clauses_sem_subset; tea.
 Qed.
 
-Lemma check_clause_invalid_valid_Z m mcheck cl :
-  clause_levels cl ⊂_lset (levels m) ->
-  check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Z (clauses m) cl.
+Definition valid_clause_Z_mon_neg cls cls' cl :
+  Clauses.Subset cls cls' -> ~ valid_clause_Zinf cls' cl -> ~ valid_clause_Zinf cls cl.
 Proof.
-  intros wf.
-  move/check_invalid_entails.
-  rewrite entails_completeness_syn.
-  intros nvsl nz.
-  apply nvsl.
-  intros v cs.
-  set (sl := init_model (relations_of_clauses (clauses m))).
-  have he : clause_sem v cl \/ ~ clause_sem v cl. admit.
-  destruct he => //. red in nz.
-  destruct cl as [prems concl].
-  specialize (nv  (Z_valuation_of_model m)). forward nv. admit.
-  specialize (nv (model_valuation m)). cbn.
-  cbn in nv.
-  red in nv.
-  set (v' : premises -> Z := fun u =>
-  specialize (nv (fun l => interp_nes v' (v l))).
+  intros hsub vz vz'. eapply valid_clause_Z_mon in vz'; tea. contradiction.
+Qed.
+
+Section Zinf_semi.
+  Definition inf_model := LevelMap.t (option (option Z)).
+
+  Definition le (x y : option Z) :=
+    match x, y with
+    | None, None => true
+    | None, Some _ => false
+    | Some _, None => true
+    | Some x, Some y => x <=? y
+    end.
+
+End Zinf_semi.
 
 
-Lemma check_clause_invalid_valid_Z m mcheck cl :
+Lemma check_clause_invalid_Zinf m mcheck cl :
+  check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Zinf (clauses m) cl.
+Proof.
+  unfold check_clause.
+  move/check_invalid_valuation => [vpos csem hdef clsem].
+  now move=> /(_ (opt_valuation_of_model mcheck) vpos csem).
+Qed.
+
+Lemma check_clause_invalid_Z m mcheck cl :
   clause_levels cl ⊂_lset (levels m) ->
   check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Z (clauses m) cl.
 Proof.
   move=> hwf.
-  unfold check_clause.
   move/check_invalid_allm => /(_ (model m) (model_ok (model_valid m))).
   move=> /fwd.
   { (* This means the conclusion's level in the inital model to check should
     be set at least as high as in the current clauses. This should follow
     from minimality. *)
     red.
+    red. unfold model_rel.
     todo "level of conclusion". }
   move=> /fwd.
   { red. todo "scope, easy". }
@@ -2952,7 +2983,7 @@ Proof.
   rewrite def_clause_sem_valid //.
   { eapply defined_model_of_subset; tea.
     eapply defined_model. }
-Qed.*)
+Qed.
 
 Search entails.
 (*

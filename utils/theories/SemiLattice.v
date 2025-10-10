@@ -317,8 +317,8 @@ Section OptSemilattice.
   Defined.
   Existing Instance opt_semi.
 
-  (* None is greater than any element in this semilattice.
-     This models implications *)
+  (* None is greater than any element in this semilattice, i.e.
+    it models +∞. *)
   Lemma le_spec {x y : option S} : x ≤ y <->
     (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
   Proof.
