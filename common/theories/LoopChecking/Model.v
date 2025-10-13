@@ -3152,7 +3152,7 @@ Module Model (LS : LevelSets).
         elim H. now eexists. apply ih => //.
   Qed.
 
-  Lemma min_atom_value_mapsto {l k v m} : LevelMap.MapsTo l (Some v) m -> min_atom_value m (l,k) = Some (v - k).
+  Lemma min_atom_value_mapsto {l k v m} : LevelMap.MapsTo l v m -> min_atom_value m (l,k) = option_map (fun v => v - k) v.
   Proof.
     rewrite /min_atom_value //=.
     now move/level_value_MapsTo => ->.
