@@ -326,6 +326,15 @@ Module Model (LS : LevelSets).
     intros hin su; econstructor 2; trea.
   Qed.
 
+  Lemma trans_update_eq {cls m ls ls' m' ls'' m''} :
+    strictly_updates cls ls m m' ->
+    strictly_updates cls ls' m' m'' ->
+    ls'' =_lset (ls ∪ ls') ->
+    strictly_updates cls ls'' m m''.
+  Proof.
+    intros hin su; econstructor 2; trea.
+  Qed.
+
   Lemma one_update {cls m cl m'} :
     Clauses.In cl cls -> strict_update m cl m' ->
     strictly_updates cls (LevelSet.singleton (clause_conclusion cl)) m m'.
