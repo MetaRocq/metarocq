@@ -549,6 +549,28 @@ Proof.
     now rewrite eq.
 Qed.
 
+
+Instance incl_preorder : PartialOrder LevelSet.Equal LevelSet.Subset.
+Proof.
+  red. intros x y. split.
+  - unfold relation_conjunction; cbn. intros ->. split; auto. reflexivity.
+    red. reflexivity.
+  - cbn; unfold flip. lsets.
+Qed.
+
+Instance rew_sub : RewriteRelation LevelSet.Subset := {}.
+
+
+Instance incl_cls_preorder : PartialOrder Clauses.Equal Clauses.Subset.
+Proof.
+  red. intros x y. split.
+  - unfold relation_conjunction; cbn. intros ->. split; auto. reflexivity.
+    red. reflexivity.
+  - cbn; unfold flip. clsets.
+Qed.
+
+Instance rew_cls_sub : RewriteRelation Clauses.Subset := {}.
+
 Section InnerLoop.
 
   Context (V : LevelSet.t) (U : LevelSet.t) (init_model : model)
@@ -703,6 +725,17 @@ Proof.
   - now move/strictly_updates_incl.
 Qed.
 
+Lemma strictly_updates_update_of {cls W m m'} :
+  strictly_updates cls W m m' ->
+  is_update_of cls W m m'.
+Proof.
+  intros su.
+  rewrite /is_update_of.
+  destruct LevelSet.is_empty eqn:he => //.
+  eapply LevelSet.is_empty_spec in he.
+  eapply strictly_updates_non_empty in su => //.
+Qed.
+
 Local Open Scope Z_scope.
 
 #[tactic="idtac"]
@@ -719,10 +752,10 @@ Equations? loop (V : LevelSet.t) (U : LevelSet.t) (cls : clauses) (minit m : mod
           | Model Wc mwc _
           (* We get a model for (cls ↓ W), we check if it extends to all clauses.
               By invariant |Wc| cannot be larger than |W|. *)
-            with inspect (check_model cls (Wc, mwc.(model_model))) :=
+            with inspect (check_model cls (W, mwc.(model_model))) :=
           { | exist None eqm' => Model (LevelSet.union W Wc) {| model_model := mwc.(model_model) |} _
             | exist (Some (Wcls, mcls)) eqm' with inspect (LevelSet.equal Wcls V) := {
-              | exist true _ := Loop (of_level_map m' (check_model_defined_map eqm)) _ _
+              | exist true _ := Loop (of_level_map minit (check_model_defined_init_map prf eqm)) _ _
               | exist false neq' with loop V (LevelSet.union W Wcls) cls minit mcls _ := {
                 (* Here Wcls < V, we've found a model for all of the clauses with conclusion
                   in W, which can now be fixed. We concentrate on the clauses whose
@@ -765,47 +798,53 @@ Proof.
   - intros l; move/incl. apply clauses_levels_mon. apply clauses_with_concl_subset.
   - now intros ?; rewrite in_clauses_with_concl.
   - apply LevelSet.equal_spec in e.
-    set (ne := check_model_defined_map _). clearbody ne.
+    set (ne := check_model_defined_init_map _ _). clearbody ne.
     have hu := model_updates mwc.
     eapply check_model_is_update_of in eqm as [eqm incl]; tea.
-    have om : only_model_of V m'.
-    { rewrite union_idem in eqm.
-      have incl' := strictly_updates_incl eqm.
-      have hcl := clauses_conclusions_levels cls.
-      eapply strictly_updates_only_model_gen in eqm; tea. eapply only_model_of_eq; tea. intro; lsets. }
     eapply strictly_updates_is_update_of in eqm; tea.
     rewrite union_idem union_with_concl in eqm.
     eapply check_model_update_of in eqm' as [wmcls [upd eq]].
     intros l. rewrite levels_spec => -[k hin].
     eapply of_level_map_spec in hin.
-    specialize (om l) as [_ incl'].
+    specialize (mof l) as [_ incl'].
     forward incl'. now eexists. rewrite -e in incl'.
     eapply strictly_updates_incl in eqm.
     eapply is_update_of_incl in upd.
     apply cls_sub. move: incl'; rewrite eq LevelSet.union_spec => -[] incl'.
     apply eqm. lsets. now apply upd.
-  - set (ne := check_model_defined_map _). clearbody ne.
+  - set (ne := check_model_defined_init_map _ _). clearbody ne.
+    apply LevelSet.equal_spec in e.
     have hu := model_updates mwc.
     eapply check_model_is_update_of in eqm as [eqm incl]; tea.
-    have om : only_model_of V m'.
+    have inclW : W ⊂_lset V.
     { rewrite union_idem in eqm.
       have incl' := strictly_updates_incl eqm.
-      have hcl := clauses_conclusions_levels cls.
-      eapply strictly_updates_only_model_gen in eqm; tea. eapply only_model_of_eq; tea. intro; lsets. }
+      etransitivity; tea. etransitivity; tea. }
     eapply strictly_updates_is_update_of in eqm; tea.
     rewrite union_idem union_with_concl in eqm.
-    eapply check_model_is_update_of in eqm' as [eqm' incl']; tea.
-    rewrite ClausesProp.union_sym union_with_concl in eqm'.
+    (* have isupd' : is_update_of cls (W ∪ Wc) minit (model_model mwc). *)
+    have incl' := is_update_of_incl hu.
+    rewrite clauses_conclusions_clauses_with_concl in incl'.
+    have hwwc : W ∪ Wc =_lset W.
+    { intros l; lsets. }
+    rewrite hwwc in eqm.
+    eapply strictly_updates_update_of in eqm.
+    eapply check_model_is_update_of in eqm' as [eqm' incl2]; tea.
+    rewrite union_idem in eqm'. rewrite e in eqm'.
     eapply (strictly_updates_entails_on_V _ _ _ ne) in eqm'. red.
     eapply entails_all_clauses_subset; tea.
-    eapply clauses_with_concl_subset. apply LevelSet.equal_spec in e. rewrite e. exact om.
+    eapply clauses_with_concl_subset. exact mof.
   - eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     have hu := model_updates mwc.
+    have incl' := is_update_of_incl hu.
     eapply strictly_updates_is_update_of in hu; tea.
     rewrite union_idem union_with_concl in hu.
     eapply check_model_update_of in eqm' as [wmcls [upd ->]].
     eapply is_update_of_strictly_updates in hu.
     have tr := is_update_of_trans_eq hu upd.
+    rewrite clauses_conclusions_clauses_with_concl in incl'.
+    have hwwc : W ∪ Wc =_lset W.
+    { intros l. lsets. }
     split => //. apply tr. clsets. lsets.
   - right.
     eapply check_model_spec_V in eqm' as eqm''. 3:etransitivity; [apply clauses_conclusions_levels|exact clsV]. cbn in eqm''.
@@ -814,13 +853,19 @@ Proof.
       eapply strictly_updates_is_update_of in eqm; tea. 2:apply mwc.
       eapply strictly_updates_model_of_gen in eqm; tea. 2:exact mof.
       eapply model_of_subset; tea. lsets. }
-    2:{ eapply is_update_of_total_model. apply mwc. }
+    2:{ apply mwc. }
     destruct eqm'' as [Hwc Hwcls H1 mext tot].
     eapply check_model_is_update_of in eqm as [eqm incl]; tea.
     rewrite union_idem in eqm.
     have hu := model_updates mwc.
-    eapply check_model_is_update_of in eqm' as [eqm' incl']; tea.
-    rewrite ClausesProp.union_sym union_with_concl in eqm'.
+    have incl' := is_update_of_incl hu.
+    rewrite clauses_conclusions_clauses_with_concl in incl'.
+    have hwwc : W ∪ Wc =_lset W.
+    { intros l. lsets. }
+    eapply strictly_updates_is_update_of in hu; tea.
+    rewrite union_with_concl hwwc in hu.
+    eapply check_model_is_update_of in eqm' as [eqm' incl2]; tea.
+    2:{ now eapply strictly_updates_update_of. }
     have WcW := model_incl mwc.
     have w_incl := strictly_updates_incl eqm.
     have wcls_incl := strictly_updates_incl eqm'.
@@ -831,7 +876,11 @@ Proof.
       assert (~ LevelSet.In (level (concl cl)) W).
       { intros hin. rewrite in_clauses_with_concl in H. intuition auto. }
       exists (concl cl).1. split => //. }
-    rewrite -!diff_cardinal //. clear -w_incl clsV incl wcls_incl. have hincl := clauses_conclusions_levels cls. lsets. lsets.
+    rewrite -!diff_cardinal //. rewrite union_idem in wcls_incl.
+    clear -w_incl clsV incl wcls_incl.
+    have hincl := clauses_conclusions_levels cls.
+    { lsets. }
+    { lsets. }
     assert (Wcls ⊂_lset V). lsets.
     eapply strict_subset_cardinal.
     eapply (strict_subset_leq_right _ (LevelSet.diff V W)). 2:lsets.
