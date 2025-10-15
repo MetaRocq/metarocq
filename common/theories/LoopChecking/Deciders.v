@@ -1804,7 +1804,6 @@ Proof.
   - eapply is_update_of_empty.
 Qed.
 
-
 Equations? infer_extension {V W init cls} (m : valid_model V W init cls)
   (hincl : only_model_of V init)
   (hs : clauses_levels cls ⊂_lset V)
@@ -3311,6 +3310,23 @@ Lemma opt_valuation_of_model_equiv m l :
     rewrite interp_add_prems interp_nes_singleton. cbn; lia.
   Qed.
 
+  Lemma neg_inverse_Z (v : Level.t -> Z) (cl : clause) :
+    ~ clause_sem v cl <-> clauses_sem v (inverse_clauses cl).
+  Proof.
+    destruct cl as [prems [concl k]].
+    cbn [clause_sem]. rewrite clauses_sem_leq.
+    rewrite interp_add_prems interp_nes_singleton. cbn.
+    split; lia.
+  Qed.
+
+  Lemma neg_inverse_Z_inv (v : Level.t -> Z) (cl : clause) :
+    clause_sem v cl <-> ~ clauses_sem v (inverse_clauses cl).
+  Proof.
+    destruct cl as [prems [concl k]].
+    cbn [clause_sem]. rewrite clauses_sem_leq.
+    rewrite interp_add_prems interp_nes_singleton. cbn.
+    split; lia.
+  Qed.
 
   Lemma neg_inverse (v : Level.t -> option Z) (cl : clause) :
     defined_valuation_of (clause_levels cl) v ->
@@ -3358,6 +3374,13 @@ Lemma opt_valuation_of_model_equiv m l :
       exists (choose (succ prems)). split => //. apply choose_spec.
       apply clause_levels_spec. left; cbn.
       apply levels_spec; exists concl.2. destruct concl; cbn. now rsets.
+  Qed.
+
+  Lemma clause_sem_Z_dec (v : Level.t -> Z) cl :
+    Decidable.decidable (clause_sem v cl).
+  Proof.
+    destruct cl; cbn.
+    red. lia.
   Qed.
 
   Lemma clause_sem_dec (v : Level.t -> option Z) cl :
@@ -3716,13 +3739,116 @@ Proof.
   now eapply entails_all_singleton.
 Qed.
 
+(* Definition is_finite cls u := forall cl, Clauses.In cl cls -> cls ⊢a premise cl → u. *)
+
+Lemma consistent_dec (m : t) cl :
+  { consistent (Clauses.union (clauses m) (Clauses.singleton cl)) } +
+  { ~ consistent (Clauses.union (clauses m) (Clauses.singleton cl)) }.
+Proof.
+  destruct (enforce_dec m (Clauses.singleton cl)). todo "scope".
+  - now left.
+  - right. destruct i as [loop [incl ent]].
+    intros [v [csem c]].
+    eapply entails_L_entails_ℋ_equiv in ent.
+    eapply entails_L_rels_entails_L_clauses in ent.
+    eapply completeness_all in ent.
+    red in ent.
+    specialize (ent Z _ v).
+    rewrite -!interp_rels_clauses_sem in ent.
+    specialize (ent c).
+    eapply clauses_sem_clauses_of_le in ent.
+    rewrite interp_add_prems in ent. cbn in ent. lia.
+Qed.
+
+Lemma curry {A B C : Prop} : (A /\ B -> C) <-> (A -> B -> C).
+Proof. intuition. Qed.
+
+Lemma incon_con m cl :
+  ~ consistent (Clauses.union (clauses m) (Clauses.singleton cl)) ->
+  consistent (Clauses.union (clauses m) (inverse_clauses cl)).
+Proof.
+  intros n.
+  have hf := incon_forall _ n.
+  setoid_rewrite clauses_sem_union in hf.
+  specialize (hf (Z_valuation_of_model m)).
+  forward hf. apply valuation_of_model_pos.
+  rewrite (@curry _ _ _) in hf.
+  forward hf. eapply model_valuation.
+  exists (Z_valuation_of_model m). split.
+  apply valuation_of_model_pos.
+  eapply clauses_sem_union. split.
+  apply model_valuation.
+  rewrite clauses_sem_singleton in hf. cbn in hf.
+  now eapply neg_inverse_Z in hf.
+Qed.
+
+Lemma consistent_clause_dec (m : t) cl :
+  { consistent (Clauses.union (clauses m) (Clauses.singleton cl)) } +
+  { consistent (Clauses.union (clauses m) (inverse_clauses cl)) }.
+Proof.
+  destruct (consistent_dec m cl).
+  - now left.
+  - right. now apply incon_con.
+Qed.
+
+Instance proper_clauses_sem {S} {SL : Semilattice S Q.t} (v : Level.t -> S) : Proper (Clauses.Equal ==> iff) (clauses_sem v).
+Proof.
+  intros cls cls' h.
+  rewrite /clauses_sem. now rewrite h.
+Qed.
+
+Lemma consistent_clauses_dec (m : t) cls :
+  clauses_levels cls ⊂_lset levels m ->
+  { m' | clauses m' =_clset Clauses.union (clauses m) cls } + (* consistent *)
+  { ~ exists m', clauses m' =_clset (Clauses.union (clauses m) cls) }.
+  (* { exists cl, Clauses.In cl cls /\ consistent (Clauses.union (clauses m) (inverse_clauses cl)) }. *)
+Proof.
+  intros hwf.
+  destruct (enforce_clauses m cls) eqn:hl.
+  destruct s as [m'|loop].
+  - move/enforce_clauses_clauses: hl.
+    left; exists m'. rewrite hl. reflexivity.
+  - move/enforce_clauses_inconsistent: hl.
+    intros hincon. right. intros [m' hcls].
+    elim hincon. red. exists (Z_valuation_of_model m'). split.
+    eapply valuation_of_model_pos. have hm := model_valuation m'.
+    now rewrite hcls in hm.
+  - now move/enforce_clauses_None: hl.
+Qed.
+
+Lemma ncon_nconopt cls : ~ consistent cls -> ~ consistent_opt cls.
+Proof.
+  intros ncon [v csem]. red in csem.
+  have hi := incon_forall _ ncon.
+  apply ncon. red.
+Admitted.
+Lemma consistent_clauses_dec' m cls :
+  clauses_levels cls ⊂_lset levels m ->
+  { consistent (Clauses.union (clauses m) cls) } +
+  { ~ consistent (Clauses.union (clauses m) cls) }.
+Proof.
+  intros hwf; destruct (consistent_clauses_dec m cls hwf) as [[m' he]|he'].
+  - left. red. exists (Z_valuation_of_model m'). rewrite -he. split.
+    apply valuation_of_model_pos. apply model_valuation.
+  - right. intros [v csem].
+Admitted.
+
+Lemma strictly_updates_shift {cls V m m'} k :
+  strictly_updates cls V m m' ->
+  strictly_updates cls V (shift_model k m) (shift_model k m').
+Admitted.
+
+
+(* Definition is_finite m hne cls u := cls ⊢a of_level_map m hne → u. *)
+
 Lemma check_clause_invalid_Z m mcheck cl :
   clause_levels cl ⊂_lset (levels m) ->
   check_gen (clauses m) (checking_clause cl) = Invalid mcheck -> ~ valid_clause_Z (clauses m) (checking_clause cl).
 Proof.
   move=> hwf.
   intros inval nv.
-  destruct (enforce_dec m (inverse_clauses (checking_clause cl))). admit.
+  red in nv.
+  destruct (enforce_dec m (inverse_clauses (checking_clause cl))). todo "scope".
   - red in c.
     destruct c as [val [hpos csems]].
     eapply clauses_sem_union in csems as [].
@@ -3732,6 +3858,25 @@ Proof.
     rewrite interp_add_prems interp_nes_singleton //= in H0. lia.
   - have minv := check_invalid_inverse inval.
     move/check_invalid: inval => [ism]. intros.
+    setoid_rewrite neg_inverse_Z_inv in nv.
+    destruct (consistent_clauses_dec' m (inverse_clauses (checking_clause cl))). admit.
+    * destruct c as [v [vpos csems]].
+      eapply clauses_sem_union in csems as []. now eapply nv.
+    * elim n. exists (opt_valuation_of_model mcheck). red.
+    eapply clauses_sem_union. split. now eapply valid_clauses_model_opt. now eapply valid_clauses_model_opt.
+Qed.
+
+
+Lemma check_clause_invalid_Z m mcheck cl :
+  clause_levels cl ⊂_lset (levels m) ->
+  check_gen (clauses m) (checking_clause cl) = Invalid mcheck -> ~ valid_clause_Z (clauses m) (checking_clause cl).
+Proof.
+  move=> hwf.
+  intros inval nv.
+  red in nv.
+  destruct (enforce_dec m (inverse_clauses (checking_clause cl))). todo "scope".
+  - red in c.
+
     destruct i as [loop [incl ent]].
     eapply entails_L_entails_ℋ_equiv in ent.
     eapply entails_L_rels_entails_L_clauses in ent.
@@ -3744,17 +3889,52 @@ Proof.
     { eapply is_model_union => //. }
     now eapply valid_clauses_model_opt in ism'.
     eapply clauses_sem_clauses_of_le in ent.
-    rewrite interp_add_prems in ent. red in ent. cbn in ent.
-    destruct (interp_nes _ loop) eqn:hloop. cbn in ent. lia.
+
+    have nem : defined_map (model m). admit.
+    have ent' : is_finite (model m) nem (Clauses.union (clauses m) (inverse_clauses (checking_clause cl))) loop.
+    red. admit.
+
+    red in ent'.
+
+    Print inverse_clauses.
+    have ent' : is_finite (Clauses.union (clauses m) (inverse_clauses (checking_clause cl))) loop.
+    red.
     admit.
 
-    eapply is_model_valid in ism'.
-    Search is_model.
-
-    eapply entails_L_completeness in ent. 2:{ }
-
-
-Search entails.
+    destruct cl as [prems [concl k]]. cbn in p1.
+    red in ent'.
+    specialize (ent' (singleton (concl, k), choose (succ prems))).
+    forward ent'.
+    { eapply Clauses.union_spec. right.
+      rewrite /inverse_clauses. cbn.
+      eapply clauses_of_le_spec. exists (choose (succ prems)).
+      split => //. rewrite add_prems_union.
+      eapply LevelExprSet.union_spec. right; apply choose_spec. }
+    eapply to_entails_all in ent'.
+    eapply entails_L_entails_ℋ_equiv in ent'.
+    eapply entails_L_rels_entails_L_clauses in ent'.
+    eapply completeness_all in ent'.
+    red in ent'.
+    specialize (ent' (option Z) _ (opt_valuation_of_model mcheck)).
+    rewrite -!interp_rels_clauses_sem in ent'.
+    forward ent'.
+    have ism' : is_model (Clauses.union (clauses m) (inverse_clauses (checking_clause (prems, (concl, k))))) mcheck.
+    { eapply is_model_union => //. }
+    now eapply valid_clauses_model_opt in ism'.
+    eapply clauses_sem_clauses_of_le in ent'.
+    rewrite interp_nes_singleton in ent'.
+    apply le_spec in ent'.
+    destruct ent'.
+    * move: p1 => [] z.
+      move/min_premise_pos_spec/(_ (pred_expr (concl, k))) => /fwd.
+      { cbn. eapply LevelExprSet.union_spec. left. lesets. }
+      cbn; move/Some_leq => -[y']; rewrite /levelexpr_value //= => -[] lmconcl _.
+      move: H; rewrite /interp_expr. Search opt_valuation_of_model.
+      eapply level_value_MapsTo' in lmconcl.
+      rewrite (mapsto_opt_valuation_of_model lmconcl) //=.
+    * destruct H as [x' [y'[eql [eqconcl _]]]].
+      rewrite interp_add_prems !eql in ent. cbn in ent. lia.
+Qed.
 (*
 Lemma check_clause_invalid_valid_Z m cl mcheck :
   clause_levels cl ⊂_lset (levels m) ->
