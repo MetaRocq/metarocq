@@ -124,8 +124,7 @@ Proof.
 Qed.
 
 Definition correct_model (cls : clauses) (m : model) :=
-  enabled_clauses m cls /\ is_model cls m.
-
+  enabled_clauses m cls /\ is_model m cls.
 
 (* Entailment *)
 
@@ -163,13 +162,13 @@ Qed.
 Definition infer_correctness cls :=
   match infer_model cls with
   | inl m => correct_model cls m
-  | inr u => ~ exists m, defined_model_of (levels u) m /\ is_model cls m
+  | inr u => ~ exists m, defined_model_of (levels u) m /\ is_model m cls
   end.
 
 Definition valid_clauses m cls := Clauses.For_all (valid_clause m) cls.
 Infix "⊨" := valid_clauses (at level 90).
 
-Lemma is_model_valid {cls m} : is_model cls m <-> m ⊨ cls.
+Lemma is_model_valid {cls m} : is_model m cls <-> m ⊨ cls.
 Proof.
   rewrite /is_model.
   rewrite [is_true _]Clauses.for_all_spec. reflexivity.
@@ -374,7 +373,7 @@ Qed.
 
 Lemma check_looping {cls cl v vcls isl} :
   check_gen cls cl = IsLooping v vcls isl ->
-  ~ (exists m, defined_model_of (levels v) m /\ is_model cls m).
+  ~ (exists m, defined_model_of (levels v) m /\ is_model m cls).
 Proof.
   move/check_gen_entails_looping.
   intros loop [m' [en clssem]].
@@ -386,7 +385,7 @@ Proof.
 Qed.
 
 Lemma check_valid_looping {cls cl m v vcls isl} :
-  is_model cls m ->
+  is_model m cls ->
   check_gen cls cl = IsLooping v vcls isl ->
   defined_model_of (levels v) m -> False.
 Proof.
@@ -396,7 +395,7 @@ Proof.
 Qed.
 
 Lemma model_entails_succ cls m v :
-  is_model cls m ->
+  is_model m cls ->
   enabled_clauses m cls ->
   cls ⊢a v → succ v -> False.
 Proof.
@@ -470,13 +469,8 @@ Qed.
 
 Definition minimal_above_updates cls minit m :=
   forall m', updates cls minit m' ->
-    is_model cls m' ->
+    is_model m' cls ->
     updates cls m m'.
-
-Lemma Some_leq x y : (Some x ≤ y)%opt -> exists y', y = Some y' /\ (x <= y')%Z.
-Proof.
-  intros h; depelim h. now eexists.
-Qed.
 
 Lemma not_value_above m l k : ~~ level_value_above m l k <-> opt_le Z.lt (level_value m l) (Some k).
 Proof.
@@ -659,7 +653,7 @@ Admitted.
   minimal_above_updates cls minit m ->
   updates cls minit m ->
   forall cl, valid_clause m cl ->
-  forall m', updates cls m m' -> is_model cls m' -> valid_clause m' cl.
+  forall m', updates cls m m' -> is_model m cls' -> valid_clause m' cl.
 Proof.
   intros hmin hupd [prems [concl k]].
   move/valid_clause_elim => hz m' ext ism.
@@ -680,12 +674,12 @@ Proof.
 
 
 Definition minimal_above cls minit m :=
-  forall m', minit ⩽ m' -> is_model cls m' -> m ⩽ m'.
+  forall m', minit ⩽ m' -> is_model m' cls -> m ⩽ m'.
 
 
 (*
 Lemma minimal_above_valid cls minit m : minimal_above cls minit m ->
-  forall cl, valid_clause m cl -> forall m', minit ⩽ m' -> is_model cls m' ->
+  forall cl, valid_clause m cl -> forall m', minit ⩽ m' -> is_model m cls' ->
     minimal_above cls minit m' -> valid_clause m' cl.
 Proof.
   intros hmin [prems [concl k]].
@@ -760,7 +754,7 @@ Qed.
 
 Theorem check_invalid {cls cl m} :
   check_gen cls cl = Invalid m ->
-  [/\ is_model cls m,
+  [/\ is_model m cls,
      model_of (clauses_levels cls ∪ clause_levels cl) m,
      minimal_above cls (check_init_model cls cl) m,
      enabled_clause m cl & ~ valid_clause m cl].
@@ -927,7 +921,7 @@ Definition checking_clause (cl : clause) :=
   Qed.
 
 Definition is_total_model m cls :=
-  Model.enabled_clauses m cls /\ is_model cls m.
+  Model.enabled_clauses m cls /\ is_model m cls.
 
 Definition is_enabled_clause m cl :=
   isSome (min_premise m (premise cl)).
@@ -965,7 +959,7 @@ Proof.
 Qed.
 
 Lemma is_model_split m cls :
-  is_model cls m <-> (is_total_model m (enabled_clauses_of m cls)).
+  is_model m cls <-> (is_total_model m (enabled_clauses_of m cls)).
 Proof.
   split.
   - move/Clauses.for_all_spec => ism.
@@ -1596,7 +1590,7 @@ Qed.
 
 Theorem check_invalid_inverse {cls cl mcheck} :
   check_gen cls (checking_clause cl) = Invalid mcheck ->
-  is_model (inverse_clauses (checking_clause cl)) mcheck.
+  is_model mcheck (inverse_clauses (checking_clause cl)).
 Proof.
   (* destruct cl as [prems [concl k]]. *)
   move/check_invalid => [ism mofm minm encl invcl].
@@ -1683,7 +1677,7 @@ Qed. *)
 (*Theorem check_invalid_allm {cls cl mcheck} :
   check_gen cls (checking_clause cl) = Invalid mcheck ->
   let minit := check_init_model cls (checking_clause cl) in
-  forall m, is_model cls m ->
+  forall m, is_model m cls ->
     minimal_above cls mcheck m ->
     (* (level_value m (concl cl).1 ≤ level_value mcheck (concl cl).1)%opt -> *)
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
@@ -1733,7 +1727,7 @@ Qed.*)
 (*
 Lemma check_invalid_allm_zero {cls cl} :
   check_gen cls cl = Invalid ->
-  forall m, is_model cls m ->
+  forall m, is_model m cls ->
     minimal_above cls (zero_model (clauses )) m ->
     model_of (clauses_levels cls ∪ clause_levels cl) m ->
     minit ⩽ m ->
@@ -1804,18 +1798,40 @@ Proof.
   - eapply is_update_of_empty.
 Qed.
 
+Lemma is_update_of_only_model_of {V cls W m m'} :
+  only_model_of V m ->
+  is_update_of cls W m m' ->
+  clauses_conclusions cls ⊂_lset V ->
+  only_model_of V m'.
+Proof.
+  intros om.
+  move/is_update_of_case => -[].
+  - move=> [] he heq. now rewrite -heq.
+  - move/[dup]/strictly_updates_only_model_gen.
+    move/(_ _ om) => om' /strictly_updates_incl incl incl'.
+    have he : (LevelSet.union V W) =_lset V.
+    { lsets. }
+    now rewrite he in om'.
+Qed.
+
 Equations? infer_extension {V W init cls} (m : valid_model V W init cls)
   (hincl : only_model_of V init)
   (hs : clauses_levels cls ⊂_lset V)
-  (cls' : clauses) :
-  result (LevelSet.union (clauses_levels cls') V) LevelSet.empty (Clauses.union cls cls') (min_model_map m.(model_model) cls') :=
-  infer_extension m hincl hs cls' :=
-    infer_model_extension (LevelSet.union (clauses_levels cls') V) (min_model_map m.(model_model) cls') cls cls' _.
+  (cls' : clauses)
+  (hs' : clauses_levels cls' ⊂_lset V) :
+  result V LevelSet.empty (Clauses.union cls cls') m.(model_model) :=
+  infer_extension m hincl hs cls' hs' :=
+    infer_model_extension V m.(model_model) cls cls' _.
 Proof.
-  repeat split.
+  split; [|split].
   - lsets.
   - lsets.
-  - have ms := min_model_map_spec cls' (model_model m).
+  - eapply is_update_of_only_model_of. exact hincl.
+    eapply m.
+    now rewrite (clauses_conclusions_levels cls).
+Qed.
+(*
+     have ms := min_model_map_spec cls' (model_model m).
     set (map := min_model_map _ _) in *.
     destruct ms as [hm [hcls hext]].
     rewrite LevelSet.union_spec => [] [].
@@ -1837,7 +1853,7 @@ Proof.
       + right. intuition.
     * have [_ ho] := valid_model_only_model _ _ _ _ m hincl k.
       forward ho by now exists v. now right.
-Qed.
+Qed. *)
 
 Section InitModels.
 
@@ -1914,7 +1930,7 @@ Module CorrectModel.
   Definition model_of {V cls} (x : t V cls) := x.(model_valid).(model_model).
   Coercion model_of : t >-> model.
 
-  Lemma is_model_of {V cls} (x : t V cls) : is_model cls (model_of x).
+  Lemma is_model_of {V cls} (x : t V cls) : is_model (model_of x) cls.
   Proof. apply x.(model_valid). Qed.
 
   Lemma model_minimal {V cls} (x : t V cls) : minimal_above cls (initial_model x) (model_of x).
@@ -1951,6 +1967,28 @@ Module CorrectModel.
 
  *)
 
+  Lemma enabled_clauses_union {m cls cls'} :
+    enabled_clauses m cls ->
+    enabled_clauses m cls' ->
+    enabled_clauses m (Clauses.union cls cls').
+  Proof. Admitted.
+
+  Lemma declared_pos_enabled {m V cls} :
+    clauses_levels cls ⊂_lset V ->
+    declared_pos V m ->
+    enabled_clauses m cls.
+  Proof.
+    intros incl dp.
+    intros [prems [concl k]] hin; cbn.
+    red. cbn.
+    destruct min_premise eqn:hmin. now eexists.
+    have [le [hin' heq]] := proj1 (min_premise_None m prems) hmin.
+    move: (dp le.1) => /fwd.
+    apply incl. eapply clauses_levels_spec. eexists; split; tea.
+    rewrite clause_levels_spec. left. cbn. apply levels_spec. exists le.2; destruct le => //.
+    intros [k0 hm].
+    eapply level_value_MapsTo in hm. congruence.
+  Qed.
 
   Equations? init_model : t (LevelSet.singleton Level.zero) Clauses.empty :=
   init_model := {|
@@ -1992,30 +2030,27 @@ Module CorrectModel.
     (hdecla : above_zero_declared V (Clauses.union cls cls'))
     (declp : declared_pos V init)
     : result V (Clauses.union cls cls') :=
-  infer_extension_correct m enabled hincl hs cls' hs' hdeclz hdecla hdeclp with infer_extension m hincl hs cls' :=
+  infer_extension_correct m enabled hincl hs cls' hs' hdeclz hdecla hdeclp with infer_extension m hincl hs cls' hs' :=
     | Loop u vcls isl => inr {| loop_univ := u; loop_on_univ := isl |}
     | Model w m' _ =>
       inl {|
-        initial_model := min_model_map m.(model_model) cls';
+        initial_model := m.(model_model);
         only_model_of_V := _;
         model_updates := w; clauses_declared := _;
         model_valid := {| model_model := m'.(model_model) |} |}.
   Proof.
-    - have [_ [_ hm]] := min_model_map_spec cls' (model_model m).
-      have mupd := I.model_updates m. eapply is_update_of_ext in mupd.
-      assert (hr := transitivity mupd hm).
+    - have mupd := I.model_updates m. eapply is_update_of_ext in mupd.
       eapply zero_declared_ext; tea.
     - move=> l inv.
-      have [_ [_ hm]] := min_model_map_spec cls' (model_model m).
       have mupd := I.model_updates m. eapply is_update_of_ext in mupd.
-      assert (hr := transitivity mupd hm).
       eapply declared_pos_ext; tea.
-    - eapply min_model_map_enabled.
-      eapply enabled_clauses_ext.
+    - eapply enabled_clauses_ext.
       have mupd := I.model_updates m. eapply is_update_of_ext in mupd. exact mupd.
-      exact enabled.
-    - have := valid_model_only_model _ _ _ _ m hincl.
-      now apply only_model_of_min_model_map.
+      eapply enabled_clauses_union => //.
+      red in hdeclp.
+      red in hdecla.
+      eapply declared_pos_enabled; tea.
+    - exact: (valid_model_only_model _ _ _ _ m hincl).
     - intros x; rewrite clauses_levels_spec; rw Clauses.union_spec.
       intros [cl [[hin|hin] incl]]. apply hs. apply clauses_levels_spec. clear -hin incl; firstorder.
       apply hs'. apply clauses_levels_spec. clear -hin incl; firstorder.
@@ -2083,22 +2118,6 @@ Module CorrectModel.
     - eapply enabled_clauses_ext; tea.
       eapply is_update_of_ext, model_valid0.
     - apply model_valid.
-  Qed.
-
-  Lemma is_update_of_only_model_of {V cls W m m'} :
-    only_model_of V m ->
-    is_update_of cls W m m' ->
-    clauses_conclusions cls ⊂_lset V ->
-    only_model_of V m'.
-  Proof.
-    intros om.
-    move/is_update_of_case => -[].
-    - move=> [] he heq. now rewrite -heq.
-    - move/[dup]/strictly_updates_only_model_gen.
-      move/(_ _ om) => om' /strictly_updates_incl incl incl'.
-      have he : (LevelSet.union V W) =_lset V.
-      { lsets. }
-      now rewrite he in om'.
   Qed.
 
   Lemma model_levels {V cls} (m : t V cls) :
@@ -2370,8 +2389,8 @@ Module Abstract.
 
   Lemma is_model_add clauses l k m :
     ~ LevelSet.In l (clauses_levels clauses) ->
-    is_model clauses m ->
-    is_model clauses (LevelMap.add l k m).
+    is_model m clauses ->
+    is_model (LevelMap.add l k m) clauses.
   Proof.
     move=> hnin ism.
     eapply Clauses.for_all_spec; tc => cl hin'.
@@ -3103,7 +3122,7 @@ Lemma opt_valuation_of_model_equiv m l :
   Qed.
 
   Lemma clauses_sem_valid {model cls} :
-    clauses_sem (opt_valuation_of_model model) cls <-> is_model cls model.
+    clauses_sem (opt_valuation_of_model model) cls <-> is_model model cls.
   Proof.
     rewrite is_model_valid. split.
     intros clssem. red. move=> cl /clssem. apply clause_sem_valid.
@@ -3122,7 +3141,7 @@ Lemma opt_valuation_of_model_equiv m l :
 
   Lemma def_clauses_sem_valid {model cls} :
     defined_model_of (clauses_levels cls) model ->
-    clauses_sem (Z_valuation_of_model model) cls <-> is_model cls model.
+    clauses_sem (Z_valuation_of_model model) cls <-> is_model model cls.
   Proof.
     intros def. rewrite clauses_sem_def_equiv //.
     apply clauses_sem_valid.
@@ -3443,7 +3462,8 @@ Proof.
 Qed.
 
 Lemma check_gen_model m cl :
-  check_genb (clauses m) cl <-> (forall m', is_model (clauses m) m' -> enabled_clause m' cl -> valid_clause m' cl).
+  check_genb (clauses m) cl <->
+  (forall m', is_model m' (clauses m) -> enabled_clause m' cl -> valid_clause m' cl).
 Proof.
   unfold check_genb.
   destruct (check_gen) eqn:ec.
@@ -3459,7 +3479,7 @@ Proof.
 Qed.
 
 Definition valid_model_clause m cl :=
-  (forall m', is_model (clauses m) m' -> enabled_clause m' cl -> valid_clause m' cl).
+  (forall m', is_model m' (clauses m) -> enabled_clause m' cl -> valid_clause m' cl).
 
 Lemma entails_models m cl : entails (clauses m) cl <-> valid_model_clause m cl.
 Proof.
@@ -3467,10 +3487,10 @@ Proof.
 Qed.
 
 Definition valid_all_model_clauses m cls :=
-  (forall m', is_model (clauses m) m' -> enabled_clauses m' cls -> valid_clauses m' cls).
+  (forall m', is_model m' (clauses m) -> enabled_clauses m' cls -> valid_clauses m' cls).
 
 Definition valid_model_clauses m cls :=
-  (forall m', is_model (clauses m) m' ->
+  (forall m', is_model m' (clauses m) ->
     forall cl, Clauses.In cl cls -> enabled_clause m' cl -> valid_clause m' cl).
 
 Lemma entails_all_models m cls : clauses m ⊢ℋ cls -> valid_all_model_clauses m cls.
@@ -3504,7 +3524,7 @@ Qed.
 Qed. *)
 
 Lemma check_gen_exists_model m cl :
-  check_genb (clauses m) cl -> exists m', [/\ is_model (clauses m) m', enabled_clause m' cl & valid_clause m' cl].
+  check_genb (clauses m) cl -> exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & valid_clause m' cl].
 Proof.
   unfold check_genb.
   funelim (check_gen (clauses m) cl) => // _.
@@ -3518,7 +3538,7 @@ Qed.
 
 Lemma check_gen_neg_exists_model m cl :
   check_genb (clauses m) cl = false <->
-  exists m', [/\ is_model (clauses m) m', enabled_clause m' cl & ~ valid_clause m' cl].
+  exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & ~ valid_clause m' cl].
 Proof.
   unfold check_genb.
   funelim (check_gen (clauses m) cl) => //.
@@ -3537,7 +3557,7 @@ Proof. destruct b; intuition. Qed.
 
 Lemma nentails_model m cl :
   ~ entails (clauses m) cl <->
-  exists m', [/\ is_model (clauses m) m', enabled_clause m' cl & ~ valid_clause m' cl].
+  exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & ~ valid_clause m' cl].
 Proof.
   rewrite -checkb_entails.
   rewrite negb_iff /is_true negb_true_iff.
@@ -3551,7 +3571,7 @@ Definition consistent_clauses cls :=
   exists val : Level.t -> Z, positive_valuation val /\ clauses_sem val cls.
 
 Lemma equiv_all_models cls cl :
-  (forall m, is_model cls m -> enabled_clause m cl -> valid_clause m cl) <->
+  (forall m, is_model m cls -> enabled_clause m cl -> valid_clause m cl) <->
   (forall m, is_total_model m (enabled_clauses_of m cls) -> enabled_clause m cl -> valid_clause m cl).
 Proof. now setoid_rewrite is_model_split. Qed.
 
@@ -3859,10 +3879,14 @@ Proof.
   - have minv := check_invalid_inverse inval.
     move/check_invalid: inval => [ism]. intros.
     setoid_rewrite neg_inverse_Z_inv in nv.
+    hnf in i.
+    destruct i as [loop [hincl hloop]].
+    red in p0. unfold not in nv.
+
     destruct (consistent_clauses_dec' m (inverse_clauses (checking_clause cl))). admit.
     * destruct c as [v [vpos csems]].
       eapply clauses_sem_union in csems as []. now eapply nv.
-    * elim n. exists (opt_valuation_of_model mcheck). red.
+    * elim n. exists (Z_valuation_of_model mcheck). red.
     eapply clauses_sem_union. split. now eapply valid_clauses_model_opt. now eapply valid_clauses_model_opt.
 Qed.
 
@@ -4040,7 +4064,7 @@ Definition check_clauses (cls : Clauses.t) (cls' : Clauses.t) : bool :=
   Clauses.for_all (check_genb cls) cls'.
 
 Definition consistent_clauses_model cls :=
-  exists m, Model.enabled_clauses m cls /\ is_model cls m.
+  exists m, Model.enabled_clauses m cls /\ is_model m cls.
 
 Lemma consistent_model m : consistent_clauses_model (clauses m).
 Proof.

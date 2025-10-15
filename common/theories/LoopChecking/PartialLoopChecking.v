@@ -170,7 +170,7 @@ Record valid_model_def (V W : LevelSet.t) (m : model) (cls : clauses) :=
     model_of_V :> model_of V model_model;
     model_updates : is_update_of cls W m model_model;
     model_clauses_conclusions : clauses_conclusions cls ⊂_lset V;
-    model_ok :> is_model cls model_model;
+    model_ok :> is_model model_model cls;
  }.
 Arguments model_model {V W m cls}.
 Arguments model_of_V {V W m cls}.
@@ -195,6 +195,14 @@ Lemma declared_clause_levels_mon {V V' cl} : LevelSet.Subset V V' -> declared_cl
 Proof.
   now move => sub h l /h.
 Qed.
+
+Definition invalid_clauses m cls := Clauses.For_all (fun cl => valid_clause m cl = false) cls.
+
+Record LoopClauses {cls loop_cls m loop} := mkLoopClauses
+  { loop_cls_incl : loop_cls ⊂_clset cls;
+    loop_nmodel : ~ exists cl, Clauses.In cl loop_cls /\ valid_clause m cl;
+    incl_loop : levels loop ⊂_lset clauses_levels loop_cls }.
+Arguments LoopClauses : clear implicits.
 
 Inductive result (V U : LevelSet.t) (cls : clauses) (m : model) :=
   | Loop (v : premises) (hincl : LevelSet.Subset (levels v) (clauses_levels cls)) (islooping : loop_on_univ cls v)
@@ -402,7 +410,7 @@ Definition measure (W : LevelSet.t) (cls : clauses) (m : model) : nat :=
 Lemma measure_model W cls m :
   defined_model_of W m ->
   let clsdiff := cls_diff cls W in
-  measure W cls m = 0%nat -> is_model clsdiff m.
+  measure W cls m = 0%nat -> is_model m clsdiff.
 Proof using.
   intros dnf clsdiff hm.
   apply Clauses.for_all_spec. tc.
@@ -571,6 +579,94 @@ Qed.
 
 Instance rew_cls_sub : RewriteRelation Clauses.Subset := {}.
 
+Lemma is_modelP {m cls} : is_model m cls <-> Clauses.For_all (valid_clause m) cls.
+Proof.
+  rewrite /is_model.
+  now rewrite [is_true _]Clauses.for_all_spec.
+Qed.
+
+Lemma Some_leq x y : (Some x ≤ y)%opt -> exists y', y = Some y' /\ (x <= y')%Z.
+Proof.
+  intros h; depelim h. now eexists.
+Qed.
+
+Lemma is_model_subset {m cls cls'} : cls ⊂_clset cls' -> is_model m cls' -> is_model m cls.
+Proof.
+  move=> incl /is_modelP cl; now apply/is_modelP=> cl' /incl /cl.
+Qed.
+
+Lemma is_model_restrict {cls W m} : is_model m cls -> is_model (restrict_model W m) (cls ↓ W).
+Proof.
+  move/is_modelP => ha. apply is_modelP => cl.
+  move/in_clauses_with_concl => -[] conclW /ha.
+  destruct cl as [prems [concl k]].
+  move/valid_clause_elim => hz. apply valid_clause_intro => z hmin.
+  move/min_premise_restrict: hmin => /hz.
+  intros hs. cbn in conclW.
+  move: (@level_valueP m concl) hs; case. 2:{ intros hnin hleq; depelim hleq. }
+  move=> k' hm /Some_leq => -[vconcl [heq hle]]. subst k'.
+  have [_] := restrict_model_spec W m concl (Some vconcl) => /fwd.
+  split => //.
+  move/level_value_MapsTo => ->. now constructor.
+Qed.
+
+Lemma restrict_with_concl_subset {cls W} : cls ⇂ W ⊂_clset (cls ↓ W).
+Proof.
+  move=> cl /in_restrict_clauses => -[conclW premsW hin].
+  rewrite in_clauses_with_concl. split => //.
+Qed.
+
+Lemma is_model_restrict_only_w {cls W m} : is_model m cls -> is_model (restrict_model W m) (cls ⇂ W).
+Proof.
+  move/(is_model_restrict (W:=W)).
+  intros he.
+  eapply is_model_subset; tea.
+  apply restrict_with_concl_subset.
+Qed.
+
+(* Lemma not_model_valid {m cls cl} : ~~ is_model m cls -> valid_clause m cl -> Clauses.In cl cls  *)
+Lemma invalid_clauses_restrict {cls cls' W m} : cls ⊂_clset (cls' ⇂ W) ->
+  invalid_clauses (restrict_model W m) cls ->
+  invalid_clauses m cls.
+Proof.
+  move=> hincl ha cl /[dup] hin /ha.
+  destruct cl as [prems [concl k]].
+  rewrite /valid_clause. cbn.
+  destruct min_premise eqn:hmin => //.
+  move/min_premise_restrict: hmin => ->.
+
+Admitted.
+
+Lemma is_model_restrict_valid_noop {cls cls' W m} : cls ⊂_clset (cls' ⇂ W) ->
+  forall cl, Clauses.In cl cls -> valid_clause m cl -> valid_clause (restrict_model W m) cl.
+Proof.
+  move=> hincl cl hin.
+  destruct cl as [prems [concl k]].
+  move/valid_clause_elim => hz. apply valid_clause_intro => z hmin.
+  move/min_premise_restrict: hmin => /hz.
+  intros hs.
+  move: (@level_valueP m concl) hs; case. 2:{ intros hnin hleq; depelim hleq. }
+  move=> k' hm /Some_leq => -[vconcl [heq hle]]. subst k'.
+  have [_] := restrict_model_spec W m concl (Some vconcl) => /fwd.
+  split => //. eapply hincl in hin.
+  move/in_restrict_clauses: hin => -[] //=.
+  move/level_value_MapsTo => ->. now constructor.
+Qed.
+
+Lemma is_model_restrict_noop {cls cls' W m} : cls ⊂_clset (cls' ⇂ W) -> is_model m cls -> is_model (restrict_model W m) cls.
+Proof.
+  move=> hincl.
+  move/is_modelP => ha. apply is_modelP => cl /[dup] hin /ha.
+  intros; now eapply is_model_restrict_valid_noop.
+Qed.
+
+Lemma strictly_updates_not_model {cls W m m'} : strictly_updates cls W m m' -> ~ is_model m cls.
+Proof.
+  intros su hn.
+  eapply strictly_updates_invalid in su => //.
+  move/negbTE: su. congruence.
+Qed.
+
 Section InnerLoop.
 
   Context (V : LevelSet.t) (U : LevelSet.t) (init_model : model)
@@ -684,12 +780,12 @@ Section InnerLoop.
         eapply is_update_of_weaken. 2:apply updm. rewrite eqprem. apply restrict_clauses_subset.
       - rewrite check_model_is_model in eqm.
         have okm := (model_ok mr).
-        have okupdm : is_model premconclW (model_update m (model_model mr)).
-        { setoid_rewrite eqprem at 1. apply is_model_update. apply strictly_updates_model_of in upd; tea.
+        have okupdm : is_model (model_update m (model_model mr)) premconclW.
+        { setoid_rewrite eqprem at 2. apply is_model_update. apply strictly_updates_model_of in upd; tea.
            eapply valid_model_only_model. now eapply strictly_updates_restrict_only_model.
            now setoid_rewrite <- eqprem at 1. }
         have mu := is_model_union okupdm eqm.
-        rewrite {1}eqprem in mu.
+        rewrite {2}eqprem in mu.
         rewrite union_diff_eq in mu.
         rewrite union_restrict_with_concl in mu.
         now rewrite (clauses_conclusions_eq _ _ clsW).
@@ -734,6 +830,14 @@ Proof.
   destruct LevelSet.is_empty eqn:he => //.
   eapply LevelSet.is_empty_spec in he.
   eapply strictly_updates_non_empty in su => //.
+Qed.
+
+Lemma levels_of_level_map {m ne V}:
+  only_model_of V m ->
+  levels (of_level_map m ne) ⊂_lset V.
+Proof.
+  move=> om l; rewrite levels_spec => -[k] /of_level_map_spec hin. apply om.
+  now eexists.
 Qed.
 
 Local Open Scope Z_scope.

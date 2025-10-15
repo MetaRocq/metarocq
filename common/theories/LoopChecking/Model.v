@@ -1,7 +1,7 @@
 (* Distributed under the terms of the MIT license. *)
 (* This module defines the notion of model as a partial function from levels to Z.
 
-  [is_model cls m] states that all clauses [cls] are valid in [m].
+  [is_model m cls] states that all clauses [cls] are valid in [m].
 
   An atom [l + k] is satisfied in a model [m] when the value of [l] in [m] is defined to [v : Z] and
   [k ≤ v]. If the value is undefined the atom does not hold.
@@ -27,7 +27,7 @@
 
   We also show the relation of a model to entailment:
   - If an entailment [cls ⊢ prems → concl] holds then any valid model [m] of the clauses [cls]
-    satisfies [prems → concl], i.e [ is_model cls m -> valid_clause m (prems, concl) ].
+    satisfies [prems → concl], i.e [ is_model m cls -> valid_clause m (prems, concl) ].
   - Conversely, if we have a sequence of strict updates from model [m] to model [m'] under clauses
     [cls] then we have an entailment: [ cls ⊢ of_model_map m → of_level_map m' ], where
     [of_level_map] turns assignments [m -> Some v] to atoms [m + v] and [m -> None] are discarded.
@@ -192,7 +192,7 @@ Module Model (LS : LevelSets).
       level_value_above m l (k + k0)
     end.
 
-  Definition is_model (cls : clauses) (m : model) : bool :=
+  Definition is_model (m : model) (cls : clauses) : bool :=
     Clauses.for_all (valid_clause m) cls.
 
   Inductive update_result :=
@@ -436,9 +436,9 @@ Module Model (LS : LevelSets).
     red; intros. now transitivity y.
   Qed.
 
-  #[export] Instance is_model_proper : Proper (Clauses.Equal ==> eq ==> eq) is_model.
+  #[export] Instance is_model_proper : Proper (eq ==> Clauses.Equal ==> eq) is_model.
   Proof.
-    intros cl cl' eqcl x y ->. unfold is_model. now rewrite eqcl.
+    intros x y -> cl cl' eqcl. unfold is_model. now rewrite eqcl.
   Qed.
 
   #[export] Instance update_model_proper : Proper (LevelMap.Equal ==> eq ==> eq ==> LevelMap.Equal) update_model.
@@ -551,7 +551,7 @@ Module Model (LS : LevelSets).
 
   Lemma check_model_aux_spec {cls w m w' m'} :
     check_model_aux cls (w, m) = (w', m') ->
-    (w = w' -> m = m' /\ is_model cls m) /\
+    (w = w' -> m = m' /\ is_model m cls) /\
     (w <> w' -> exists pref, w' = pref ++ w /\ strictly_updates cls (LevelSetProp.of_list pref) m m').
   Proof.
     rewrite /check_model_aux /is_model.
@@ -680,7 +680,7 @@ Module Model (LS : LevelSets).
     rewrite /valid_clause. rewrite him //=.
   Qed.
 
-  Lemma strictly_updates_invalid cls w m m' : strictly_updates cls w m m' -> ~~ is_model cls m.
+  Lemma strictly_updates_invalid cls w m m' : strictly_updates cls w m m' -> ~~ is_model m cls.
   Proof.
     induction 1.
     - eapply strict_update_invalid in H1.
@@ -692,7 +692,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma check_model_None {cls acc} :
-    check_model cls acc = None <-> is_model cls acc.2.
+    check_model cls acc = None <-> is_model acc.2 cls.
   Proof.
     unfold check_model.
     destruct check_model_aux eqn:cm.
@@ -973,7 +973,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma is_model_union {cls cls' m} :
-    is_model cls m -> is_model cls' m -> is_model (Clauses.union cls cls') m.
+    is_model m cls -> is_model m cls' -> is_model m (Clauses.union cls cls').
   Proof.
     rewrite /is_model. rewrite /is_true -!ClausesFact.for_all_iff.
     now move=> ism ism' x /Clauses.union_spec [].
@@ -1580,7 +1580,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma check_model_is_model {W cls m} :
-    check_model cls (W, m) = None <-> is_model cls m.
+    check_model cls (W, m) = None <-> is_model m cls.
   Proof.
     now rewrite check_model_None.
   Qed.
@@ -1588,7 +1588,7 @@ Module Model (LS : LevelSets).
   Lemma check_model_update {W cls m wm'} :
     model_of (clauses_conclusions cls) m ->
     model_of W m ->
-    check_model cls (W, m) = Some wm' -> ~~ is_model cls m /\ m ⩽ wm'.2.
+    check_model cls (W, m) = Some wm' -> ~~ is_model m cls /\ m ⩽ wm'.2.
   Proof.
     intros mof tot.
     destruct wm'.
@@ -2109,16 +2109,42 @@ Module Model (LS : LevelSets).
     intros x [k l']. apply cl'. exists k. now right.
   Qed.
 
+  Lemma restrict_model_ext {W m}: restrict_model W m ⩽ m.
+  Proof.
+    move=> l k /restrict_model_spec => -[hm _].
+    exists k; split => //. reflexivity.
+  Qed.
+
+  Lemma min_premise_some_preserved {m m'} {prems : premises} {k} :
+    (forall x k, LevelSet.In x (levels prems) -> level_value m x = Some k -> level_value m' x = Some k) ->
+    min_premise m prems = Some k ->
+    min_premise m' prems = Some k.
+  Proof.
+    intros hcl.
+    move: prems k hcl; apply: NES.elim.
+    - intros [l lk] k ih.
+      rewrite !min_premise_singleton.
+      rewrite /min_atom_value. destruct level_value eqn:hl => //.
+      eapply ih in hl. rewrite hl. auto.
+      rewrite levels_singleton. cbn. lsets.
+    - intros [l lk] x ih hnin k' hle.
+      rewrite !min_premise_add.
+      unfold min_atom_value.
+      destruct (level_value m l) eqn:hl => //=.
+      eapply hle in hl. rewrite hl. destruct (min_premise) eqn:hmin => //=.
+      move: (ih z0) => /fwd.
+      { intros x0 k hin. eapply hle. rewrite levels_add. rsets. now right. }
+      move/(_ (eq_refl)) ->. congruence.
+      rewrite levels_add. rsets; now left.
+      destruct min_premise => //.
+  Qed.
+
   Lemma min_premise_restrict m W (prems : premises) v :
-    (forall l k, LevelExprSet.In (l, k) prems -> LevelSet.In l W) ->
     min_premise (restrict_model W m) prems = Some v ->
     min_premise m prems = Some v.
   Proof.
-    intros hin.
-    rewrite (@min_premise_preserved _ m) //.
-    move=> x. rewrite levels_spec => [] [k] /hin inW.
-    apply levelmap_level_value_eq => k'.
-    rewrite restrict_model_spec. firstorder.
+    apply min_premise_some_preserved.
+    now move=> x k hin /level_value_MapsTo' /restrict_model_spec -[] /level_value_MapsTo.
   Qed.
 
   Lemma model_of_model_update W m m' :
@@ -2210,8 +2236,6 @@ Module Model (LS : LevelSets).
       rewrite hm in hmin, above.
       exists v. split => //.
       eapply min_premise_restrict with W => //.
-      { intros l k' hp. move/in_restrict_clauses: incl => [] //= _ hsub _. apply hsub.
-        rewrite levels_spec. now exists k'. }
       move: above.
       rewrite /level_value_above /level_value.
       elim: find_spec => //.
@@ -2374,8 +2398,8 @@ Module Model (LS : LevelSets).
   Lemma is_model_update W m m' cls :
     model_of W m ->
     only_model_of W m' ->
-    is_model (cls ⇂ W) m' ->
-    is_model (cls ⇂ W) (model_update m m').
+    is_model m' (cls ⇂ W) ->
+    is_model (model_update m m') (cls ⇂ W).
   Proof.
     intros mW om.
     rewrite /is_model.
@@ -2449,14 +2473,14 @@ Module Model (LS : LevelSets).
     eapply model_of_subset. exact mof. tea.
   Qed.
 
-  Lemma is_modelP m cls : reflect (Clauses.For_all (valid_clause m) cls) (is_model cls m).
+  Lemma is_modelP m cls : reflect (Clauses.For_all (valid_clause m) cls) (is_model m cls).
   Proof.
     case E: is_model; constructor.
     - now move: E; rewrite /is_model -ClausesFact.for_all_iff.
     - intros hf. apply ClausesFact.for_all_iff in hf; tc. unfold is_model in E; congruence.
   Qed.
 
-  Lemma is_model_invalid_clause cl cls m : is_model cls m -> ~~ valid_clause m cl -> ~ Clauses.In cl cls.
+  Lemma is_model_invalid_clause cl cls m : is_model m cls -> ~~ valid_clause m cl -> ~ Clauses.In cl cls.
   Proof.
     move/is_modelP => ism /negP valid hin.
     now specialize (ism _ hin).
@@ -2591,7 +2615,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma strictly_updates_valid_model {W W' m m' cls} :
-    is_model (cls ↓ W) m ->
+    is_model m (cls ↓ W) ->
     strictly_updates cls W' m m' ->
     exists l, LevelSet.In l W' /\ ~ LevelSet.In l W.
   Proof.
@@ -3065,7 +3089,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma entails_model_valid cls cl : entails cls cl ->
-    forall m, is_model cls m -> valid_clause m cl.
+    forall m, is_model m cls -> valid_clause m cl.
   Proof.
     induction 1.
     - intros m ism.
@@ -3199,7 +3223,7 @@ Module Model (LS : LevelSets).
     depelim fs; depelim fs'. lia.
   Qed.
 
-  Lemma model_intersection {m m' cls} : is_model cls m -> is_model cls m' -> is_model cls (model_inter m m').
+  Lemma model_intersection {m m' cls} : is_model m cls -> is_model m' cls -> is_model (model_inter m m') cls.
   Proof.
     move/is_modelP => m0 /is_modelP m1.
     apply/is_modelP => cl hin.
@@ -3304,8 +3328,8 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma shift_model_invariant {n m cls} :
-    is_model cls m <->
-    is_model cls (shift_model n m).
+    is_model m cls <->
+    is_model (shift_model n m) cls.
   Proof.
     rewrite /is_model.
     rewrite ![is_true _]Clauses.for_all_spec.
@@ -3451,7 +3475,7 @@ Module Model (LS : LevelSets).
   Qed.
 
   Lemma valid_clauses_model_opt model cls :
-    is_model cls model ->
+    is_model model cls ->
     clauses_sem (opt_valuation_of_model model) cls.
   Proof.
     move=> ism cl hin.
@@ -3504,7 +3528,7 @@ Module Model (LS : LevelSets).
 
   Lemma valid_clauses_model model cls :
     enabled_clauses model cls ->
-    is_model cls model ->
+    is_model model cls ->
     clauses_sem (Z_valuation_of_model model) cls.
   Proof.
     move=> en ism cl hin.
