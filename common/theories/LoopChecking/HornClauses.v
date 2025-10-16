@@ -1511,15 +1511,21 @@ Module Clauses (LS : LevelSets).
     eapply entails_clauses_subset; tea.
   Qed.
 
-  Lemma entails_succ cls (u v : premises) :
-    (forall l k, LevelExprSet.In (l, k) v -> exists k', LevelExprSet.In (l, k') u /\ k <= k') ->
-    cls ⊢a u → v.
+  Lemma entails_lower cls (u : premises) l k :
+    (exists k', LevelExprSet.In (l, k') u /\ k <= k') ->
+    cls ⊢ u → (l, k).
   Proof.
-    intros hk [l k] hin.
-    specialize (hk _ _ hin) as [k' [hin' le]].
+    intros [k' [hin' le']].
     assert (exists n, k' = k + n) as [n ->] by (exists (k' - k); lia).
     eapply (entails_pred_closure_n (n := Z.to_nat n)).
     constructor. rewrite Z2Nat.id. lia. assumption.
+  Qed.
+
+  Lemma entails_all_lower cls (u v : premises) :
+    (forall l k, LevelExprSet.In (l, k) v -> exists k', LevelExprSet.In (l, k') u /\ k <= k') ->
+    cls ⊢a u → v.
+  Proof.
+    intros hk [l k] hin. apply entails_lower. now apply hk.
   Qed.
 
   Lemma entails_all_tauto cls u : cls ⊢a u → u.
@@ -1640,7 +1646,7 @@ Module Clauses (LS : LevelSets).
     cls ⊢a succ_prems s → s.
   Proof.
     intros cl hin.
-    eapply Clauses.entails_succ; tea.
+    eapply Clauses.entails_all_lower; tea.
     intros l k hin'. exists (1 + k). split => //; try lia.
     eapply In_add_prems. exists (l, k); split => //.
   Qed.

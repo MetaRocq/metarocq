@@ -318,8 +318,14 @@ Ltac lset :=
     apply LevelSetProp.FM.mem_iff in H
   | [ H : LevelExprSet.In _ (LevelExprSet.singleton _) |- _ ] =>
     apply LevelExprSet.singleton_spec in H; red in H; try subst
+  | [ H : LevelExprSet.In _ (singleton _) |- _ ] =>
+    apply LevelExprSet.singleton_spec in H; red in H; try subst
   | [ H : LevelExprSet.In _ (LevelExprSet.add _ _) |- _ ] =>
     apply LevelExprSet.add_spec in H as []
+  | [ H : LevelExprSet.In _ (add _ _) |- _ ] =>
+    apply LevelExprSet.add_spec in H as []
+  | [ H : LevelExprSet.In _ (union _ _) |- _ ] =>
+    apply LevelExprSet.union_spec in H as []
   | [ H : LevelMap.MapsTo _ _ (LevelMap.add _ _ _) |- _ ] =>
     rewrite LevelMapFact.F.add_mapsto_iff in H; unfold Level.eq in H
   | [ H : LevelMap.MapsTo _ _ (LevelMap.empty _) |- _ ] =>

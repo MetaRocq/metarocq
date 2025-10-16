@@ -2894,7 +2894,7 @@ Module Model (LS : LevelSets).
     have entails_prems : cls ⊢a hyps → premise_values prems m.
       by eapply model_hyps_entails with conclk; auto.
     eapply entails_all_trans; tea.
-    eapply entails_succ.
+    eapply entails_all_lower.
     intros l k. rewrite In_add_prems.
     intros [[prem premk] [inprem [= -> ->]]].
     rw premise_values_spec. eexists.
