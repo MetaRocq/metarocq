@@ -1342,3 +1342,380 @@ Qed. *)
   Instance semilattice_CommMonoid {Q} (s : semilattice Q) : IsCommMonoid Q := comm_monoid s.
 
   Instance semilattice_Semilattice {Q} (s : semilattice Q) : @Semilattice (carrier s) Q (comm_monoid s) := sl s.
+
+
+
+Inductive simplified cls : Clause.t -> Prop :=
+| simpl_incl cl : cls cl -> simplified cls cl
+| simpl_below {cl prems concl prems' k k'} :
+  simplified cls cl ->
+  cls (prems, (concl, k)) ->
+  (concl, k') ∈ prems ->
+  k' < k ->
+  remove_prem_opt (concl, k') prems = Some prems' ->
+  simplified cls (prems', (concl, k)).
+
+(*
+Inductive simplified cls : Clauses.t -> Prop :=
+| simpl_below {cls' prems concl prems' k k'} :
+  simplified cls cls' ->
+  max_chain cls (prems, (concl, k)) ->
+  (concl, k') ∈ prems ->
+  k' < k ->
+  remove_prem_opt (concl, k') prems = Some prems' ->
+  Clauses.In (prems', (concl, k)) cls' ->
+  simplified cls cls'. *)
+
+
+
+(* Inductive simplified cls : Clause.t -> Prop :=
+| simpl_incl cl : entails cls cl -> simplified cls cl
+| simpl_below {prems concl prems' k k'} :
+  simplified cls (prems, (concl, k)) ->
+  (concl, k') ∈ prems ->
+  k' < k ->
+  remove_prem_opt (concl, k') prems = Some prems' ->
+  simplified cls (prems', (concl, k)). *)
+
+Inductive simplified cls : Clauses.t -> Prop :=
+| simpl_incl cls' : entails_clauses cls' cls -> simplified cls cls'
+| simpl_below {cls' prems concl prems' k k'} :
+  simplified cls cls' ->
+  cls' ⊢ prems → (concl, k) ->
+  (concl, k') ∈ prems ->
+  k' < k ->
+  remove_prem_opt (concl, k') prems = Some prems' ->
+  simplified cls (Clauses.add (prems', (concl, k)) cls').
+
+Definition con_cls cls := ~ exists u, entails_all cls u (succ u).
+
+Lemma eq_inj concl le (prems : NES.t) :
+  ~ le ∈ prems ->
+  NES.add concl (singleton le) = union (singleton le) prems ->
+  prems = singleton concl.
+Proof.
+  move=> hnin /equal_exprsets eq.
+  apply equal_exprsets => l.
+  rewrite LevelExprSet.singleton_spec /LevelExprSet.E.eq.
+  split.
+  - intros inp.
+    specialize (eq l).
+    have hneq : l <> le.
+    { intros ->. contradiction. }
+    destruct eq as [eq eq'].
+    forward eq'. rewrite LevelExprSet.union_spec. now right.
+    eapply LevelExprSet.add_spec in eq' as [eq'|eq']; auto.
+    eapply LevelExprSet.singleton_spec in eq'. contradiction.
+  - intros ->.
+    have hneq : concl <> le.
+    { intros ->.
+      have eqs : NES.add le (singleton le) = singleton le.
+      apply equal_exprsets. intros l.
+      rewrite LevelExprSet.add_spec. firstorder. red in H; subst l.
+      now apply LevelExprSet.singleton_spec.
+      rewrite eqs in eq.
+      specialize (eq (choose prems)).
+      destruct eq. forward H0.
+      apply LevelExprSet.union_spec. right; apply choose_spec.
+      eapply LevelExprSet.singleton_spec in H0.
+      red in H0; subst le.
+      apply hnin. apply choose_spec. }
+    specialize (eq concl).
+    destruct eq.
+    forward H. apply NES.add_spec. now left.
+    apply LevelExprSet.union_spec in H as [H|H] => //.
+    apply LevelExprSet.singleton_spec in H. red in H; subst.
+    congruence.
+Qed.
+
+Definition simple_clauses cls cl :=
+  let '(prems, (concl, k)) := cl in
+  ~ exists k', k' < k /\ (concl, k') ∈ prems /\ entails cls cl.
+
+(* Enforce x ∨ y + k' -> z + k.
+  If satisfiable, check for each premise if (m[l] - k') + k > m[concl]
+  if not, i.e. m[y] - k' + k > m[z] then remove the premise y + k'.
+
+  Then the new clauses have the same model and entail the previous one.
+  For Z models they are equivalent.
+ *)
+
+Lemma simplified_entails cls cls' :
+  simplified cls cls' ->
+  forall cl, entails cls cl -> entails cls' cl.
+Proof.
+  induction 1.
+  - intros cl. red in H. specialize (H cl).
+Admitted.
+Lemma con_cls_entails cls cl :
+  con_cls cls ->
+  entails cls cl ->
+  forall k', ((concl cl).1, k') ∈ premise cl ->
+  k' < (concl cl).2 ->
+  exists cls' prem',
+  remove_prem_opt ((concl cl).1, k') (premise cl) = Some prem' /\
+  simplified cls cls' /\
+  entails cls' (prem', concl cl).
+Proof.
+  intros hcon.
+  induction 1.
+  - intros k' hin hlt.
+    destruct concl0 as [concl k].
+    cbn -[lt remove_prem_opt] in *.
+    destruct remove_prem_opt eqn:hr.
+    * eapply remove_prem_opt_Some_eq in hr as [hr hneq]=> //.
+      subst prems.
+      exists cls.
+      eexists; split; trea.
+      eapply LevelExprSet.union_spec in H as [H|H].
+      { apply LevelExprSet.singleton_spec in H. noconf H. cbn in hlt. lia. }
+      split.
+      { constructor. eapply entails_clauses_tauto. }
+      now constructor.
+    * eapply remove_prem_opt_None in hr.
+      apply hr in hin. subst prems.
+      eapply LevelExprSet.singleton_spec in H; noconf H.
+      cbn in hlt. lia.
+  - destruct concl0 as [concl k].
+    cbn -[lt remove_prem_opt] in *.
+    intros k' hin hlt.
+    move: (IHentails k') => /fwd.
+    { eapply LevelExprSet.add_spec. now right. }
+    move/(_ hlt) => -[cls' [prem' [hr [hsimp hent]]]].
+    eapply remove_prem_opt_Some_eq in hr as [hr hnin].
+    rewrite hr in H0.
+    destruct (remove_prem_opt (concl, k') prems) eqn:hr'; revgoals.
+    * eapply remove_prem_opt_None in hr'.
+      eapply hr' in hin. subst prems.
+      exfalso.
+      apply eq_inj in hr. subst prem'.
+      apply subset_singleton in H1. subst prems'.
+      clear hr'.
+      eapply entails_cumul_one in H0.
+      2:{ eapply in_pred_closure_entails_clause in H. now eapply entails_all_singleton. }
+      elim hcon; exists (singleton (concl, k')).
+      rewrite add_prems_singleton.
+      eapply entails_all_trans.
+      eapply entails_all_singleton; tea.
+      eapply entails_all_singleton; tea.
+      eapply entails_lower. exists k. split => //.
+      now eapply LevelExprSet.singleton_spec.
+      cbn in *. lia. exact hnin.
+    * destruct (LevelExprSet.mem (concl, k') prems') eqn:hm.
+      eapply LevelExprSet.mem_spec in hm.
+      destruct (remove_prem_opt (concl, k') prems') eqn:hr2.
+      { exists (Clauses.add (t1, concl') cls'). exists t0. split => //.
+        split => //.
+        { constructor. admit. }
+        have he : prem' = NES.add concl' t0.
+        admit. subst prem'.
+        eapply (entails_cumul_one (prems' := singleton concl')).
+        eapply entails_all_singleton.
+        have hinc : t1 ⊂_leset t0. admit.
+        eapply entails_subset; tea. eapply entails_in.
+        eapply Clauses.add_spec. now left.
+        eapply entails_clauses_subset.
+        rewrite union_add_singleton. exact hent. clsets. }
+      eapply remove_prem_opt_None in hr2.
+      apply hr2 in hm. subst prems'.
+      destruct (Classes.eq_dec concl' (concl, k')). subst.
+      exists cls', t0. split => //. split => //.
+      have eq : prem' = t0. admit. subst t0. exact hent.
+      exists (Clauses.add (t0, (concl, k)) cls'), t0. split => //. split => //. admit.
+      eapply entails_in. eapply Clauses.add_spec. now left.
+  Admitted.
+
+Lemma simplified_entails cls cl :
+  con_cls cls ->
+  simplified cls cl -> entails cls cl.
+Proof.
+  intros con. induction 1.
+  - now eapply entails_in.
+  - eapply remove_prem_opt_Some_eq in H2.
+    subst prems.
+
+  eapply (entails_cumul_one (prems' := singleton (concl0, k'))); revgoals.
+
+
+    now rewrite -NES.union_add_singleton in IHsimplified.
+
+    { rewrite union_opt_union union_remove //. now eapply entails_weak_union. }
+    eapply (entails_shift (k' - k)) in IHmax_chain1.
+    cbn in IHmax_chain1.
+    have heq: k' - k + k = k' by lia.
+    rewrite heq in IHmax_chain1.
+    eapply entails_all_singleton.
+    now eapply entails_weak_union_opt.
+Qed.
+
+Lemma strictly_updates_strengthen V m m' :
+  strictly_updates (clauses m) V (model m) m' ->
+  is_model m' (clauses m) ->
+  is_model m' (thin_clauses m).
+Proof.
+  intros su.
+  remember (model m) as model.
+  remember (clauses m) as cls.
+  revert m Heqcls Heqmodel.
+  induction su.
+  - destruct cl as [prems [concl k]].
+    destruct H1 as [vmin [hmin nabove eqm]].
+    move/negPf: nabove => /[dup].
+    move/update_model_not_above => ext /level_value_not_above_spec.
+    move=> hle m0 eqcls eqm0. subst cls m.
+    move=> /[dup] ism' /is_modelP /(_ (prems, (concl, k))) /fwd // /valid_clause_elim hz.
+    have [hf [[minp minl] [hin heq]]] := min_premise_spec_aux _ _ _ hmin.
+    destruct (Classes.eq_dec minp concl).
+    * (* Minimial premise is the conclusion *)
+      subst minp.
+      unfold min_atom_value in heq.
+      destruct (level_value _ concl) eqn:hl => //.
+      noconf heq. depelim hle.
+      (* We are updating the conclusion by k - minl > 0 *)
+      have hk : k - minl > 0 by lia.
+      have hpres := min_premise_pres prems ext.
+      rewrite hmin in hpres.
+      depelim hpres.
+      specialize (hz y).
+      rewrite eqm in hz. specialize (hz H3).
+      rewrite level_value_add in hz. depelim hz.
+      have [hf' hex'] := min_premise_spec_aux _ _ _ H3.
+      specialize (hf' _ hin).
+      rewrite /min_atom_value level_value_add in hf'.
+      depelim hf'. cbn in *.
+      destruct hex' as [[minp' minl'] [hin' heq']].
+      have hz : z <= y + minl by lia.
+      have hz' : y + minl <= k + (z - minl) by lia.
+      destruct (Classes.eq_dec minp' concl).
+      { subst minp'. rewrite /min_atom_value level_value_add in heq'. noconf heq'.
+        have hm : minl' = minl.
+        apply antisymmetry. 2:lia.
+        have ha := hf _ hin.
+        have hb := hf _ hin'.
+        apply level_value_MapsTo' in hl.
+        rewrite !(Model.min_atom_value_mapsto hl) in ha, hb.
+        cbn in ha, hb. depelim hb. lia. lia.
+       }
+      have hne : exists le', (concl, minl) <> le' /\ LevelExprSet.In le' prems.
+      { exists (minp', minl'). split => //. intros [=]. congruence. }
+      set premsd := remove_prem (concl, minl) prems hne.
+      apply/is_modelP => cl /thin_clauses_spec_inv.
+      move=> -[cl0 [heqo hino]].
+      have hs := thin_clause_opt_spec m0 cl0.
+      rewrite heqo in hs.
+      destruct hs as [premsnl [premsl [eq eq' ent nent]]].
+      subst cl.
+      Search thin_clauses.
+
+
+      exists (Clauses.add (premsd, (concl, k)) cls).
+      split; [|split].
+      { (* Weakening *) todo "weaking of entails H". }
+      { rewrite ClausesProp.add_union_singleton. eapply is_model_union => //.
+        eapply is_model_singleton.
+        eapply valid_clause_intro. setoid_rewrite eqm.
+        intros z' hz''.
+        eapply (min_premise_remove (hne := hne)) in H3; tea.
+        rewrite H3 in hz''. noconf hz''.
+        rewrite level_value_add. constructor. lia.
+        intros h'; noconf h'. congruence. }
+      red.
+      intros prems' concl' k0 k' ent hlt.
+      admit.
+    *
+Qed.
+
+
+Lemma strengthen_model m cls :
+  is_total_model m cls ->
+  exists cls', cls' ⊢ℋ cls /\ is_total_model m cls' /\ normalized cls'.
+Proof.
+  intros ism.
+
+Qed.
+
+
+(*
+  Suppose we have an entailment comming from strict updates which gaves us a model of:
+
+  cls |- l + k' ∨ prems -> l + k
+
+  Then we can remove l + k' from all premises in cls.
+
+  If a clause mentionned l + k' in its premise and it was the minimal premise either
+  we found a loop or the minimal premise is another universe so the clause without the
+  l + k' premise is valid.
+
+*)
+
+
+Definition normalized cls :=
+  forall prems concl k k',
+  entails cls (NES.add (concl, k') prems, (concl, k)) ->
+  k' < k ->
+  entails cls (prems, (concl, k)).
+
+#[local] Obligation Tactic := idtac.
+#[program] Definition remove_prem le (e : NES.t) (hne : exists le', le <> le' /\ LevelExprSet.In le' e) :=
+  {| t_set := LevelExprSet.remove le e;
+     t_ne := _ |}.
+Next Obligation with idtac.
+  intros le e [le' [diff hin]].
+  rewrite -not_Empty_is_empty => /(_ le'); apply.
+  apply LevelExprSet.remove_spec. split => //. congruence.
+Qed.
+
+Lemma remove_prem_spec le e hne le' :
+  LevelExprSet.In le' (remove_prem le e hne) <->
+  LevelExprSet.In le' e /\ le <> le'.
+Proof. Admitted.
+
+Lemma remove_prem_singleton le le' hne :
+  remove_prem le (singleton le') hne = singleton le'.
+Proof.
+  apply equal_exprsets.
+  intros lk.
+  rewrite LevelExprSet.singleton_spec.
+  split.
+  - move/remove_prem_spec => -[/LevelExprSet.singleton_spec hdiff].
+    red in hdiff; subst lk. reflexivity.
+  - intros ->. apply/remove_prem_spec.
+    destruct hne as [? [hd hs]].
+    eapply LevelExprSet.singleton_spec in hs. red in hs; subst.
+    split => //. now apply singleton_spec.
+Qed.
+
+Lemma remove_prem_add le le' prems hne hne' :
+  le <> le' ->
+  remove_prem le (NES.add le' prems) hne = NES.add le' (remove_prem le prems hne').
+Proof.
+  intros hdiff. apply equal_exprsets.
+  intros lk.
+  rewrite !remove_prem_spec !add_spec remove_prem_spec.
+  firstorder. subst.
+  eapply LevelExprSet.add_spec in H0 as [heq|hin] => //.
+Qed.
+
+Lemma min_premise_remove {m le prems hne minv minp mink} :
+  min_premise m prems = Some minv ->
+  Some minv = min_atom_value m (minp, mink) ->
+  LevelExprSet.In (minp, mink) prems ->
+  le <> (minp, mink) ->
+  min_premise m (remove_prem le prems hne) = Some minv.
+Proof.
+  move=> hmin mineq hin hdiff.
+  have [hf [[minp' minl] [heq hin']]] := min_premise_spec m (remove_prem le prems hne).
+  rewrite hin'.
+  eapply remove_prem_spec in heq as [hinr hdiff'].
+  enough (min_atom_value m (minp', minl) = min_atom_value m (minp, mink)).
+  noconf H. congruence.
+  apply antisymmetry.
+  * rewrite -mineq.
+    specialize (hf (minp, mink)). forward hf.
+    apply remove_prem_spec. split => //.
+    rewrite -mineq in hf.
+    now rewrite hin' in hf.
+  * have [hf' _] := min_premise_spec m prems.
+    specialize (hf' _ hinr).
+    now rewrite hmin mineq in hf'.
+Qed.

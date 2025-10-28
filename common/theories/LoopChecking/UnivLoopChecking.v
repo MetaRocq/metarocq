@@ -184,7 +184,6 @@ Qed.
 Module UnivLoopChecking.
   Module LoopCheck := LoopChecking LS.
   Import LoopCheck.Impl.Abstract.
-  Import LoopCheck.Impl.CorrectModel (clauses_sem, clause_sem, clauses_sem_union).
   Import LoopCheck.Impl.I.
   Import Universes (valuation).
   Import LoopCheck.
@@ -475,7 +474,7 @@ End ZUnivConstraint.
   Proof.
     have := LoopCheck.zero_declared m.
     have := LoopCheck.Impl.Abstract.model_levels m.(model) Level.lzero.
-    rewrite /LoopCheck.Impl.CorrectModel.zero_declared. intros ->.
+    rewrite /Impl.zero_declared. intros ->.
     intros [k hm]. now exists (Z.of_nat (S k)).
   Qed.
 
@@ -763,12 +762,10 @@ End ZUnivConstraint.
       rewrite interp_nes_union //=.
   Qed.
 
-  Import LoopCheck.Impl.CorrectModel (clause_sem, clauses_sem, clauses_sem_union, to_val, to_Z_val).
-
   Lemma interp_cstr_clauses_sem {c} {S} {SL : Semilattice S Q.t} {v : Level.t -> S} :
     interp_univ_cstr v c <-> clauses_sem v (LoopCheck.to_clauses (to_constraint c)).
   Proof.
-    rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
+    rewrite interp_rels_clauses_sem.
     rewrite relation_of_constraint_of_clause.
     rewrite /Clauses.ISL.interp_rels Forall_tip.
     destruct c as [[l []] r]; cbn => //.
@@ -779,7 +776,7 @@ End ZUnivConstraint.
     interp_univ_cstrs v (constraints m) <-> clauses_sem v (LoopCheck.clauses m).
   Proof.
     rewrite interp_univ_cstrs_relations.
-    rewrite LoopCheck.Impl.Abstract.interp_rels_clauses_sem.
+    rewrite interp_rels_clauses_sem.
     now rewrite -[Clauses.relations_of_clauses _]equiv_constraints_clauses.
   Qed.
 
@@ -919,8 +916,6 @@ End ZUnivConstraint.
 
   Definition valuation_to_Z (v : Universes.valuation) : Level.t -> Z :=
     fun l => Z.of_nat (val v l).
-
-  Import LoopCheck.Impl.CorrectModel (Zopt_semi, positive_valuation).
 
   Lemma positive_valuation_to_Z v :
     positive_valuation (valuation_to_Z v).
@@ -1351,8 +1346,6 @@ End ZUnivConstraint.
   Definition of_valuation V (v : Universes.valuation) : LevelMap.t nat :=
     let add_val l := LevelMap.add l (val v l) in
     LevelSet.fold add_val V (LevelMap.empty _).
-
-  Import LoopCheck.Impl.CorrectModel (to_Z_val, clauses_sem, clause_sem).
 
   Definition wf_valuation V v :=
     forall l, LevelSet.In l V ->
@@ -1797,14 +1790,10 @@ End ZUnivConstraint.
     - exact ha.
   Qed.
 
-  Existing Instance Impl.CorrectModel.Zopt_semi.
-
   Instance nat_opt_semi : Semilattice (option nat) nat := opt_semi Natsemilattice.
 
-  Import Impl.CorrectModel (positive_valuation, positive_opt_valuation, opt_valuation_of_model_pos).
-
   Definition valid_Z_model m c :=
-    (forall (v : Level.t -> Z), positive_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    (forall (v : Level.t -> option Z), positive_opt_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
 
   Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
 
@@ -1820,7 +1809,7 @@ End ZUnivConstraint.
   Proof.
     rewrite LoopCheck.check_Z_complete_positive /valid_Z_model.
     setoid_rewrite interp_cstrs_clauses_sem; setoid_rewrite interp_cstr_clauses_sem.
-    rewrite /valid_clauses. todo "update".
+    rewrite /valid_clauses. reflexivity.
   Qed.
 
   Lemma interp_univ_cstrs_of_m m :
@@ -1832,12 +1821,12 @@ End ZUnivConstraint.
 
   (** The current model must already imply the constraint. Note that the converse
       is not true: a constraint can be satisfied by chance in the model. *)
-  Theorem check_implies {m c} :
+  (* Theorem check_implies {m c} :
     check m c -> interp_univ_cstr (to_Z_val (valuation m)) c.
   Proof.
-    todo "update".
-    (* now rewrite check_completeness => /(_ (to_Z_val (opt_valuation m) (opt_valuation_of_model_pos) (interp_univ_cstrs_of_m m)). *)
-  Qed.
+    rewrite check_completeness => /(_ (model_opt_val m) (opt_valuation_of_model_pos) (interp_univ_cstrs_of_m m)).
+
+  Qed. *)
 
   Definition valid_model m c :=
     (forall S (SL : Semilattice S Q.t) (v : Level.t -> S), interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).

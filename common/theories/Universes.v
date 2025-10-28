@@ -24,15 +24,24 @@ Hint Extern 10 => absurd : core.
 
 (** * Valuations *)
 
-(** A valuation is a universe level (nat) given for each
-    universe lvariable (Level.t).
-    It is >= for polymorphic concrete_sort and > 0 for monomorphic concrete_sort. *)
+(** A valuation gives a constant universe level (in nat) or +∞ for each
+    universe variable (Level.t).
+    It is >= 0 for polymorphic levels and > 0 for monomorphic / global levels.
+    It is = 0 for the bottom universe ("Set").
+    If a universe level [l] is mapped to +∞, then [max (l, ...) >= k] is trivial
+    while [max (u_1, ... u_n)... >= l] is absurd (unless one of u_1 ... u_n is
+    mapped to +∞ as well). *)
 Record valuation :=
   { valuation_mono : string -> positive ;
     valuation_poly : nat -> nat }.
 
 Class Evaluable (A : Type) := val : valuation -> A -> nat.
 
+Record valuation_inf :=
+  { valuation_inf_mono : string -> option positive ;
+    valuation_inf_poly : nat -> option nat }.
+
+Class EvaluableInf (A : Type) := val_inf : valuation_inf -> A -> option nat.
 
 (** Levels are Set or Level or lvar *)
 Module Level.
@@ -63,6 +72,12 @@ Module Level.
                | lvar x => (v.(valuation_poly) x)
                end.
 
+  Global Instance EvaluableInf : EvaluableInf t
+    := fun v l => match l with
+               | lzero => Some 0%nat
+               | level s => (option_map Pos.to_nat (v.(valuation_inf_mono) s))
+               | lvar x => (v.(valuation_inf_poly) x)
+               end.
 
   Definition compare (l1 l2 : t) : comparison :=
     match l1, l2 with
@@ -258,6 +273,9 @@ Module LevelExpr.
   Global Instance Evaluable : Evaluable t
     := fun v l => (snd l + val v (fst l)).
 
+  Global Instance EvaluableInf : EvaluableInf t
+    := fun v l => option_map (Nat.add (snd l)) (val_inf v (fst l)).
+
   Definition succ (l : t) : t := (fst l, S (snd l)).
 
   Definition add (k : nat) (l : t) : t := (fst l, k + snd l).
@@ -427,6 +445,11 @@ Module Universe.
     := fun v u =>
       let '(e, u) := exprs u in
       List.fold_left (fun n e => Nat.max (val v e) n) u (val v e).
+
+  Global Instance EvaluableInf : EvaluableInf t
+    := fun v u =>
+      let '(e, u) := exprs u in
+      List.fold_left (fun n e => option_map2 Nat.max (val_inf v e) n) u (val_inf v e).
 
   (** Test if the universe is a lub of levels or contains +n's. *)
   Definition is_levels (u : t) : bool :=

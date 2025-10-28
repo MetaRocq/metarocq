@@ -53,7 +53,7 @@ Proof.
   - move/enforce_constraints_spec: ec => [] eql eqc.
     have hs := declare_levels_spec g uctx.1.
     rewrite Heq in hs. move: hs => [] hndecl hdecll hdeclc.
-    rewrite /levels in eql. rewrite -eql in hdecll. split => //.
+    rewrite -eql in hdecll. split => //.
     now rewrite eqc hdeclc.
   - move/enforce_constraints_None: ec.
     have := declare_levels_spec g uctx.1.
@@ -217,10 +217,31 @@ Section CheckLeq.
     exact p.
   Qed.
 
-  Lemma posv v : LoopCheck.Impl.CorrectModel.positive_valuation (valuation_to_Z v).
+  Definition to_opt_val (v : Level.t -> Z) : Level.t -> option Z :=
+    fun l => Some (v l).
+
+  Lemma posv v : LoopCheck.Impl.I.Model.Model.positive_opt_valuation (to_opt_val (valuation_to_Z v)).
   Proof.
-    red. intros l k. unfold valuation_to_Z. intros [= <-]. lia.
+    red. intros l. unfold valuation_to_Z, to_opt_val. intros k [=]. lia.
   Qed.
+
+  Lemma interp_univ_cstr_to_opt_val v c :
+    interp_univ_cstr (to_opt_val v) c <-> interp_univ_cstr v c.
+  Proof.
+    destruct c as [[l []] r]; cbn -[SemiLattice.Semilattice.eq].
+  Admitted.
+
+  Lemma interp_univ_cstrs_to_opt_val v c :
+    interp_univ_cstrs (to_opt_val v) c <-> interp_univ_cstrs v c.
+  Proof.
+  Admitted.
+
+  Import C (clauses_sem).
+
+  Lemma clauses_sem_to_opt_val v c :
+    clauses_sem (to_opt_val v) c <-> clauses_sem v c.
+  Proof.
+  Admitted.
 
   Lemma checkb_spec : check_spec checkb.
   Proof.
@@ -232,8 +253,11 @@ Section CheckLeq.
       apply clauses_sem_satisfies0_equiv.
       red in mc.
       setoid_rewrite interp_cstrs_clauses_sem in mc.
-      specialize (mc (valuation_to_Z v)).
-      eapply interp_cstr_clauses_sem. apply mc. apply posv.
+      specialize (mc (to_opt_val (valuation_to_Z v))).
+      eapply interp_cstr_clauses_sem.
+      forward mc. apply posv.
+      rewrite -interp_univ_cstr_to_opt_val. apply mc.
+      rewrite clauses_sem_to_opt_val.
       apply satisfies_clauses_sem_to_Z.
       destruct HG as [hlev hcstrs].
       rewrite hcstrs. eapply satisfies_union. split => //.
@@ -241,6 +265,8 @@ Section CheckLeq.
     - rewrite check_completeness.
       intros hv. red in hv.
       destruct HG as [hlev hcstrs].
+      intros v vpos cs.
+      Print valuation.
       red.
       rewrite valid_Z_pos_nat_model => v.
       rewrite hcstrs.
