@@ -1902,3 +1902,189 @@ Proof.
   specialize (min' m).
   Search level_value.
   Search valid_clause. *)
+
+
+
+(** If a clause cl is not entailed then its inverse must be consistent. *)
+Lemma nentails_thin_con m cl :
+  ~ entails (thin_clauses m) cl ->
+  (exists l, Clauses.union (thin_clauses m) (inverse_clauses cl) ⊢ℋ (succ l ⋞ l)%cls) -> False.
+Proof.
+  intros _ hl.
+  set (cl' := (singleton (concl cl), succ_expr (concl cl))).
+  destruct (entails_dec_thin m cl').
+  { eapply entails_completeness in e.
+    specialize (e Z _ (Z_valuation_of_model m)).
+    forward e. apply valid_clauses_model;
+    apply total_model_thin.
+    destruct cl as [prems [concl k]]; cbn in e. rewrite /interp_expr in e.
+    rewrite interp_nes_singleton //= in e. lia. }
+  { destruct hl as [l hl].
+    unfold inverse_clauses in hl.
+    destruct cl as [prems concl]. cbn in cl'.
+    admit. }
+Admitted.
+
+
+Lemma entails_thin_disj m cl :
+  entails (thin_clauses m) cl ->
+  thin_clauses m ⊢ℋ inverse_clauses cl -> False.
+Proof.
+  have ht := is_total_model_thin m m.
+  forward ht. split. eapply model_enabled. apply model_ok.
+  rewrite entails_completeness => ha.
+  move/entails_clauses_completeness => hz.
+  move: (hz (Z_valuation_of_model m)) => /fwd.
+  apply valuation_of_model_pos. move=> /fwd.
+  eapply valid_clauses_model; apply ht.
+  specialize (ha Z _ (Z_valuation_of_model m)).
+  forward ha.
+  eapply valid_clauses_model; apply ht.
+  move: ha. rewrite -neg_inverse_Z. contradiction.
+Qed.
+
+Definition thinned_clause cls cl :=
+  forall e, e ∈ premise cl -> ~ cls ⊢ premise cl → succ_expr e.
+
+Lemma nthinned_clause cls cl : ~ thinned_clause cls cl <->
+  (exists e, e ∈ premise cl /\ cls ⊢ premise cl → succ_expr e).
+Proof.
+  split. intros.
+  admit. intros [e [hin heent]] hf.
+  specialize (hf e hin). contradiction.
+Admitted.
+
+Definition thinned_clauses cls :=
+  forall cl, Clauses.In cl cls -> thinned_clause cls cl.
+
+Definition unique_prems (prems : NES.t) :=
+  forall l k k', (l, k) ∈ prems -> (l, k') ∈ prems -> k = k'.
+
+Definition increasing cl :=
+  (exists k', LevelExprSet.In ((concl cl).1, k') (premise cl)) /\
+  (forall k', LevelExprSet.In ((concl cl).1, k') (premise cl) -> (k' < (concl cl).2)%Z).
+
+Lemma increasing_dec cl : { increasing cl } + { ~ increasing cl }.
+Admitted.
+
+Lemma nincreasing_spec cl : (~ increasing cl) <->
+  (~ exists k', LevelExprSet.In ((concl cl).1, k') (premise cl)) \/
+  (exists k', LevelExprSet.In ((concl cl).1, k') (premise cl) /\ (concl cl).2 <= k')%Z.
+Proof.
+Admitted.
+
+Lemma entails_thin_dup cls prems concl :
+  entails cls (prems, concl) ->
+  forall l k k', (l, k) ∈ prems -> (l, k') ∈ prems -> k < k' ->
+  exists prems', remove_prem_opt (l, k) prems = Some prems' /\
+  entails cls (prems', concl).
+Proof.
+  intros ent l k k' ha hb hlt.
+  destruct (remove_prem_opt) eqn:rm.
+  - eapply remove_prem_opt_Some_eq in rm as []. subst prems.
+    exists t0. split => //.
+    eapply (entails_cumul_one (prems' := singleton (l, k))).
+    eapply entails_all_singleton.
+    move/LevelExprSet.union_spec: hb => -[].
+    * move/LevelExprSet.singleton_spec => [=] eq. subst k'. cbn in hlt; lia.
+    * intros he. eapply entails_lower. exists k'. split => //. cbn in *; lia.
+    * now rewrite union_comm.
+    * exact ha.
+  - eapply remove_prem_opt_None in rm.
+    apply rm in ha.
+    cbn in ha; subst prems.
+    apply LevelExprSet.singleton_spec in hb. noconf hb.
+    cbn in hlt. lia.
+Qed.
+(*
+  Inductive entailsS (cls : Clauses.t) : clause -> Prop :=
+  | clause_in (prems : premises) (concl : LevelExpr.t) :
+    LevelExprSet.In concl prems -> entailsS cls (prems, concl)
+
+  | clause_cut prems' concl' prems concl :
+    in_pred_closure cls (prems', concl') ->
+    ~ (exists k', (concl'.1, k') ∈ prems /\ concl'.2 <= k') ->
+    entailsS cls (NES.add concl' prems, concl) ->
+    LevelExprSet.Subset prems' prems ->
+    entailsS cls (prems, concl).
+
+About entailsS_ind.
+
+  Lemma entails_entailsS cls cl :
+    entailsS cls cl ->
+    entails cls cl.
+  Proof.
+    induction 1.
+    - now constructor.
+    - eapply Clauses.clause_cut; tea.
+  Qed. *)
+
+
+
+(* Print entails. *)
+
+Lemma entails_thinned cls :
+  (* thinned_clauses cls -> *)
+  forall cl, entails cls cl ->
+  (increasing cl /\ exists cl, Clauses.In cl cls /\ ~ thinned_clause cls cl) \/
+  (~ increasing cl).
+Proof.
+  intros cl.
+  induction 1.
+  - right. move=> -[[k' hin] ha].
+    destruct concl0 as [concl k].
+    cbn in *.
+    specialize (ha _ H). lia.
+  - cbn.
+    destruct IHentails.
+    destruct H2 as [inc nthin].
+    destruct inc as [[k' hink'] hf].
+    * cbn -[lt] in *.
+      eapply LevelExprSet.add_spec in hink' as [heq|hinc].
+      red in heq; subst concl'.
+      destruct (increasing_dec (prems, concl0)).
+      now left. now right.
+      left. split => //.
+      split; cbn -[lt]. now exists k'.
+      intros. apply hf. apply LevelExprSet.add_spec; now right.
+    * apply nincreasing_spec in H2.
+      cbn -[lt] in *.
+      destruct H2.
+      right. move=> [h h']. apply H2. cbn in *.
+      destruct h as [k' ?]; exists k'; apply LevelExprSet.add_spec; now right.
+      destruct H2.
+      destruct (increasing_dec (prems, concl0)).
+      left. split => //. destruct H2.
+      apply LevelExprSet.add_spec in H2. destruct H2.
+      red in H2; subst concl'.
+      red in i. cbn in i.
+  Admitted.
+
+      (** We are inferring (concl0, n + kc') from a clause (premsc, (concl0, kc'))
+        in cls where premsc + n ⊂ prems and prems has all it concl0 atoms smaller
+        than kc'. If the premsc contains concl0 it cannot be thinned.
+        Otherwise it might be introducing concl0, n + kc', e.g.
+
+        x -> (concl0, kc') allows to prove x -> (concl0, kc).
+
+        *)
+
+
+Lemma thin_clauses_levels m : clauses_levels (thin_clauses m) ⊂_lset clauses_levels (clauses m).
+Proof. Admitted.
+
+Lemma entails_dec_thin (m : t) cl :
+  { entails (thin_clauses m) cl } + { ~ entails (thin_clauses m) cl }.
+Proof.
+  destruct (check_gen (thin_clauses m) cl) eqn:ch.
+  - move/check_looping: ch; elim.
+    exists (model_of m). split.
+    { have dm := defined_model m.
+      eapply defined_model_of_subset; tea.
+      eapply defined_model_of_subset; tea.
+      intros ?; rewrite -clauses_levels_declared.
+      apply thin_clauses_levels. }
+    apply total_model_thin.
+  - move/check_invalid_entails: ch. intros ne. now right.
+  - move/check_gen_entails: ch. now left.
+Qed.
