@@ -1719,3 +1719,186 @@ Proof.
     specialize (hf' _ hinr).
     now rewrite hmin mineq in hf'.
 Qed.
+
+
+
+Lemma strictly_updates_update cls W m m' :
+  strictly_updates cls W m m' ->
+  forall prems concl k minp,
+  Clauses.In (prems, (concl, k)) cls ->
+  min_premise m prems = Some minp ->
+  opt_le Z.lt (level_value m concl) (Some (k + minp)) ->
+  (Some (k + minp) ≤ level_value m' concl)%opt ->
+  updates cls m (LevelMap.add concl (Some (k + minp)) m) /\
+  updates cls (LevelMap.add concl (Some (k + minp)) m) m'.
+Proof.
+  move: W m m'. apply: strictly_updates_elim.
+  - intros l l' h ? ? x ? ? y. subst x0 x1.
+    unfold updates, is_update_of.
+    reflexivity.
+  - intros m [prems [concl k]] m' hin su prems' concl' k' minp hin' eqminp lt le'.
+    destruct su as [z [minp' nabove]].
+    move/not_value_above: nabove => nabove.
+    cbn.
+    destruct (Classes.eq_dec concl concl').
+    { (* Updates the same level *)
+      subst concl'.
+      (* have eql : LevelSet.add concl (LevelSet.singleton concl) =_lset LevelSet.singleton concl. *)
+      (* { rsets. lsets. } *)
+      (* rewrite eql. *)
+      rewrite H. rewrite H in le'.
+      rewrite level_value_add in le'. depelim le'.
+      destruct (Z.eq_dec (k' + minp) (k + z))%Z.
+      { (* No real update *)
+        cbn in e; rewrite e.
+        split.
+        * exists (LevelSet.singleton concl).
+          rewrite /is_update_of levelset_is_empty_singleton.
+          apply (one_update (cl := (prems, (concl, k)))); tea.
+          cbn. exists z. split => //.
+          now apply/not_value_above.
+        * exists LevelSet.empty.
+          rewrite /is_update_of levelset_is_empty_empty.
+          reflexivity. }
+      { (* Real updates to compose *)
+        cbn in n.
+        have hlt : (k' + minp < k + z)%Z by lia.
+        clear n H0. split.
+        * exists (LevelSet.singleton concl).
+          rewrite /is_update_of levelset_is_empty_singleton.
+          eapply (one_update (cl := (prems', (concl, k')))). exact hin'.
+          cbn. exists minp. split => //.
+          now apply/not_value_above.
+        * exists (LevelSet.singleton concl).
+          rewrite /is_update_of levelset_is_empty_singleton.
+          eapply (one_update (cl := (prems, (concl, k)))). exact hin.
+          cbn. exists z. split => //. 2:{ apply/not_value_above. rewrite level_value_add.
+            constructor => //. }
+          have [hf hex] := min_premise_spec_aux _ _ _ minp'.
+          destruct hex as [[minpl minpk] [inmin eqmin]].
+          unfold min_atom_value in eqmin.
+          destruct (level_value m minpl) as [minpv|] eqn:hl => //. noconf eqmin.
+          destruct (Classes.eq_dec minpl concl). subst minpl.
+          rewrite hl in lt. depelim lt. rewrite hl in nabove. depelim nabove.
+          have hk : (minpk < k)%Z by lia.
+          have hk' : (k' + minp - minpk = minpv - minpk).
+Admitted.
+         (* rewrite min_premise_add_down
+          rewrite level_value_add.
+
+          have [hf' hex'] := min_premise_spec_aux _ _ _ eqminp.
+          destruct hex' as [[minpl' minpk'] [inmin' eqmin']].
+          unfold min_atom_value in eqmin'.
+          destruct (level_value m minpl') as [minpv'|] eqn:hl' => //. noconf eqmin'.
+          destruct (Classes.eq_dec minpl' concl). subst minpl'.
+          rewrite hl in hl'. noconf hl'.
+Admitted.*)
+   (*       rewrite hl in lt. depelim lt. rewrite hl in nabove. depelim nabove.
+
+
+        rewrite -eql.
+        rewrite -(union_idem cls).
+        rewrite LevelSetProp.add_union_singleton.
+        eapply strictly_updates_trans.
+
+
+
+
+    }
+
+
+ Admitted. *)
+(*
+Lemma strictly_updates_use_ext cls W m m' m0 :
+  strictly_updates cls W m m' ->
+  m ⩽ m0 ->
+  m0 ⩽ m' ->
+  updates cls m0 m'.
+Proof.
+  move: W m m'.
+  apply: (strictly_updates_elim cls).
+  - intros l l' h ? ? x ? ? y. subst x0 x1.
+    unfold updates. reflexivity.
+  - destruct cl as [prems [concl k]].
+    move=> m' hin [minp [hmin /not_value_above habove]].
+    rewrite /updates. intros h. setoid_rewrite h.
+    move=> ext ext'.
+    have := @min_premise_pres m m0 prems ext.
+    rewrite hmin; move/Some_leq => -[minm0] [] minp0 hle.
+    exists (LevelSet.singleton concl).
+    rewrite /is_update_of levelset_is_empty_singleton.
+
+     /hz /Some_leq [mfconcl] [] vmconcl leq' leq. hle.
+
+
+    eapply is_model_valid in ism.
+    specialize (ism _ hin). cbn in ism.
+    move/valid_clause_elim: ism.
+    intros hz.
+
+
+Qed.
+*)
+Lemma minimal_above_updates_updates cls W m m' :
+  strictly_updates cls W m m' ->
+  minimal_above_updates cls m m'.
+Proof.
+  move: W m m'.
+  apply: (strictly_updates_elim cls).
+  - intros l l' h ? ? x ? ? y. subst x0 x1.
+    unfold minimal_above_updates. reflexivity.
+  - destruct cl as [prems [concl k]].
+    move=> m' hin [minp [hmin habove]].
+    rewrite /minimal_above_updates. intros h. setoid_rewrite h.
+    move=> mf ext ism.
+    eapply is_model_valid in ism.
+    specialize (ism _ hin). cbn in ism.
+    move/valid_clause_elim: ism.
+    intros hz.
+    have := @min_premise_pres m mf prems (updates_ext ext).
+    rewrite hmin. move/Some_leq => -[minmf] [] /hz /Some_leq [mfconcl] [] vmconcl leq' leq.
+    destruct ext as [W ext].
+    exists (LevelSet.add concl W). red.
+    destruct LevelSet.is_empty eqn:ise.
+    { exfalso. eapply LevelSet.is_empty_spec in ise. apply (ise concl). lsets. }
+    move/is_update_of_case: ext => -[[emp eq]|su].
+    { exfalso. move: vmconcl habove. rewrite -eq.
+      move=> hl /not_value_above. rewrite hl => hlt.
+      depelim hlt. lia. }
+    { move/not_value_above: habove => hlt.
+      (* The conclusion is higher in mf. *)
+      todo "commutation". }
+      (* eapply strictly_updates_update; tea. *)
+
+
+      (* rewrite vmconcl. constructor. lia. } *)
+  - intros * su ma su' ma'.
+    intros mf extinit ism.
+    move: (ma mf extinit ism) => hext.
+    exact (ma' mf hext ism).
+Qed.
+
+Lemma updates_extends {cls m m'} : updates cls m m' -> m ⩽ m'.
+Admitted.
+(* Lemma minimal_above_valid cls minit m :
+  minimal_above_updates cls minit m ->
+  updates cls minit m ->
+  forall cl, valid_clause m cl ->
+  forall m', updates cls m m' -> is_model m cls' -> valid_clause m' cl.
+Proof.
+  intros hmin hupd [prems [concl k]].
+  move/valid_clause_elim => hz m' ext ism.
+  unfold valid_clause. cbn.
+  destruct (min_premise m' prems) eqn:hminp => //.
+  specialize (hmin m' ext ism).
+  destruct (min_premise m prems) eqn:hl.
+  specialize (hz _ eq_refl).
+  have minp := min_premise_pres prems (updates_extends hmin).
+  rewrite hl in minp. rewrite hminp in minp. depelim minp.
+  depelim hz. rewrite /level_value_above.
+  have mle := model_le_values concl (updates_extends hmin).
+  rewrite H0 in mle. depelim mle. rewrite H3. apply Z.leb_le.
+
+  specialize (min' m).
+  Search level_value.
+  Search valid_clause. *)
