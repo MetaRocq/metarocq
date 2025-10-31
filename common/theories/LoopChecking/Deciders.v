@@ -326,8 +326,8 @@ Proof.
   rewrite clause_levels_spec. now right.
 Qed.
 
-Equations check_gen (cls : clauses) (cl : clause) : check_result cls :=
-check_gen cls cl with inspect (loop_check cls cl) :=
+Equations check_entails (cls : clauses) (cl : clause) : check_result cls :=
+check_entails cls cl with inspect (loop_check cls cl) :=
   { | exist (Loop v _ isl) he => IsLooping v _ isl
     | exist (Model W v _) he with inspect (LevelMap.find (concl cl).1 v.(model_model)) := {
       | exist (Some val) he' with check_atom_value (Some (concl cl).2) val :=
@@ -338,11 +338,11 @@ check_gen cls cl with inspect (loop_check cls cl) :=
   }.
 
 (* If a clause checks, then it is entailed (and will be valid in any extension of the model) *)
-Theorem check_gen_entails {cls cl} :
-  check_gen cls cl = Valid -> entails cls cl.
+Theorem check_entails_entails {cls cl} :
+  check_entails cls cl = Valid -> entails cls cl.
 Proof.
   destruct cl as [prems [concl k]].
-  funelim (check_gen cls _) => // _.
+  funelim (check_entails cls _) => // _.
   set (V := (clause_levels _ ∪ clauses_levels cls)%levels) in *.
   clear Heqcall H H0. cbn [concl fst snd] in *.
   move/check_atom_value_spec: Heq; intros h; depelim h. rename H into hgt.
@@ -365,17 +365,17 @@ Proof.
 Qed.
 
 
-Lemma check_gen_entails_looping {cls cl v vcls isl} :
-  check_gen cls cl = IsLooping v vcls isl -> cls ⊢a v → succ_prems v.
+Lemma check_entails_entails_looping {cls cl v vcls isl} :
+  check_entails cls cl = IsLooping v vcls isl -> cls ⊢a v → succ_prems v.
 Proof.
-  funelim (check_gen cls cl) => //.
+  funelim (check_entails cls cl) => //.
 Qed.
 
 Lemma check_looping {cls cl v vcls isl} :
-  check_gen cls cl = IsLooping v vcls isl ->
+  check_entails cls cl = IsLooping v vcls isl ->
   ~ (exists m, defined_model_of (levels v) m /\ is_model m cls).
 Proof.
-  move/check_gen_entails_looping.
+  move/check_entails_entails_looping.
   intros loop [m' [en clssem]].
   apply to_entails_all in loop.
   apply is_model_valid in clssem.
@@ -386,7 +386,7 @@ Qed.
 
 Lemma check_valid_looping {cls cl m v vcls isl} :
   is_model m cls ->
-  check_gen cls cl = IsLooping v vcls isl ->
+  check_entails cls cl = IsLooping v vcls isl ->
   defined_model_of (levels v) m -> False.
 Proof.
   move=> ism.
@@ -560,13 +560,13 @@ Proof.
 Qed.
 
 Theorem check_invalid {cls cl m} :
-  check_gen cls cl = Invalid m ->
+  check_entails cls cl = Invalid m ->
   [/\ is_model m cls,
      model_of (clauses_levels cls ∪ clause_levels cl) m,
      minimal_above cls (check_init_model cls cl) m,
      enabled_clause m cl & ~ valid_clause m cl].
 Proof.
-  funelim (check_gen cls cl) => //.
+  funelim (check_entails cls cl) => //.
   clear H H0 he.
   set (V := (clause_levels cl ∪ clauses_levels cls)%levels) in *.
   destruct cl as [prems [concl k]].
@@ -811,7 +811,7 @@ Qed.
 
 
 Theorem check_invalid_inverse {cls cl mcheck} :
-  check_gen cls (checking_clause cl) = Invalid mcheck ->
+  check_entails cls (checking_clause cl) = Invalid mcheck ->
   is_model mcheck (inverse_clauses (checking_clause cl)).
 Proof.
   move/check_invalid => [ism mofm minm encl invcl].
@@ -821,7 +821,7 @@ Proof.
 Qed.
 
 Lemma check_invalid_entails {cls cl m} :
-  check_gen cls cl = Invalid m -> ~ entails cls cl.
+  check_entails cls cl = Invalid m -> ~ entails cls cl.
 Proof.
   move/check_invalid => [ism mof mabove en nv].
   now move/entails_model_valid/(_ m ism).
@@ -2264,7 +2264,7 @@ Lemma opt_valuation_of_model_equiv m l :
   Qed.
 
   Theorem check_invalid_valuation {cls cl m} :
-    check_gen cls cl = Invalid m ->
+    check_entails cls cl = Invalid m ->
     let v := opt_valuation_of_model m in
     [/\ positive_opt_valuation v, clauses_sem v cls,
       defined_valuation_of (clause_premises_levels cl) v & ~ clause_sem v cl].
@@ -2355,7 +2355,7 @@ Lemma opt_valuation_of_model_equiv m l :
   Lemma entails_dec (m : t) cl :
     { entails (clauses m) cl } + { ~ entails (clauses m) cl }.
   Proof.
-    destruct (check_gen (clauses m) cl) eqn:ch.
+    destruct (check_entails (clauses m) cl) eqn:ch.
     - move/check_looping: ch; elim.
       exists (model_of m). split.
       { have dm := defined_model m.
@@ -2364,29 +2364,8 @@ Lemma opt_valuation_of_model_equiv m l :
         apply clauses_levels_declared. }
       exact: is_model_of m.
     - move/check_invalid_entails: ch. intros ne. now right.
-    - move/check_gen_entails: ch. now left.
+    - move/check_entails_entails: ch. now left.
   Qed.
-
-  Lemma entails_dec_clauses (m : t) cls :
-    { entails_clauses (clauses m) cls } + { ~ entails_clauses (clauses m) cls /\
-      forall cl, Clauses.In cl cls ->
-      exists v : Level.t -> option Z,
-      [/\ positive_opt_valuation v, clauses_sem v (clauses m), defined_valuation_of (clause_premises_levels cl) v & ~ clause_sem v cl] }.
-  Proof.
-  Admitted.
-   (* destruct (check_gen (clauses m) cl) eqn:ch.
-    - move/check_looping: ch; elim.
-      exists (model_of m). split.
-      { have dm := defined_model m.
-        eapply defined_model_of_subset; tea.
-        eapply defined_model_of_subset; tea.
-        apply clauses_levels_declared. }
-      exact: is_model_of m.
-    - have ci := check_invalid_valuation ch.
-      move/check_invalid_entails: ch. intros ne. right. split => //.
-    - move/check_gen_entails: ch. now left.
-  Qed.
- *)
 
   Definition valid_clause_opt cls cl :=
     forall v : Level.t -> option Z,
@@ -2544,18 +2523,15 @@ Lemma opt_valuation_of_model_equiv m l :
     intros x; cbn. lia.
   Qed.
 
-
-
-
-Definition check_genb cls cl :=
-  match check_gen cls cl with
+Definition check_entailsb cls cl :=
+  match check_entails cls cl with
   | IsLooping _ _ _ => false
   | Valid => true
   | Invalid _ => false
   end.
 
-Lemma check_gen_model_looping m cl v vcls isl :
-  check_gen (clauses m) cl = IsLooping v vcls isl -> False.
+Lemma check_entails_model_looping m cl v vcls isl :
+  check_entails (clauses m) cl = IsLooping v vcls isl -> False.
 Proof.
   intros. eapply check_valid_looping; tea.
   apply m.(model_valid).(model_ok).
@@ -2567,29 +2543,29 @@ Proof.
 Qed.
 
 Lemma checkb_entails m cl :
-  check_genb (clauses m) cl <-> entails (clauses m) cl.
+  check_entailsb (clauses m) cl <-> entails (clauses m) cl.
 Proof.
-  unfold check_genb.
-  destruct (check_gen) eqn:ec.
-  - now move/check_gen_model_looping: ec.
+  unfold check_entailsb.
+  destruct (check_entails) eqn:ec.
+  - now move/check_entails_model_looping: ec.
   - split => //.
     now move/check_invalid_entails: ec.
-  - now move/check_gen_entails: ec.
+  - now move/check_entails_entails: ec.
 Qed.
 
-Lemma check_gen_model m cl :
-  check_genb (clauses m) cl <->
+Lemma check_entails_model m cl :
+  check_entailsb (clauses m) cl <->
   (forall m', is_model m' (clauses m) -> enabled_clause m' cl -> valid_clause m' cl).
 Proof.
-  unfold check_genb.
-  destruct (check_gen) eqn:ec.
-  - now move/check_gen_model_looping: ec.
+  unfold check_entailsb.
+  destruct (check_entails) eqn:ec.
+  - now move/check_entails_model_looping: ec.
   - split => //.
     move/check_invalid: ec.
     intros [ism mof hmin en inval]. move/(_ m0 ism en). contradiction.
   - split => // _.
     intros m' ism.
-    move/check_gen_entails: ec => ent.
+    move/check_entails_entails: ec => ent.
     intros _.
     eapply entails_model_valid; tea.
 Qed.
@@ -2599,7 +2575,7 @@ Definition valid_model_clause m cl :=
 
 Lemma entails_models m cl : entails (clauses m) cl <-> valid_model_clause m cl.
 Proof.
-  now rewrite -checkb_entails check_gen_model.
+  now rewrite -checkb_entails check_entails_model.
 Qed.
 
 Definition valid_all_model_clauses m cls :=
@@ -2636,32 +2612,32 @@ Qed.
 
 
   intros; red; eauto.
-  now rewrite -checkb_entails check_gen_model.
+  now rewrite -checkb_entails check_entails_model.
 Qed. *)
 
-Lemma check_gen_exists_model m cl :
-  check_genb (clauses m) cl -> exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & valid_clause m' cl].
+Lemma check_entails_exists_model m cl :
+  check_entailsb (clauses m) cl -> exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & valid_clause m' cl].
 Proof.
-  unfold check_genb.
-  funelim (check_gen (clauses m) cl) => // _.
+  unfold check_entailsb.
+  funelim (check_entails (clauses m) cl) => // _.
   clear H H0. symmetry in Heqcall.
-  move/check_gen_entails: Heqcall => ent.
+  move/check_entails_entails: Heqcall => ent.
   exists v.(model_model). split. apply model_ok. todo "enabled".
   eapply entails_model_valid; tea.
   apply model_ok.
 Qed.
 
 
-Lemma check_gen_neg_exists_model m cl :
-  check_genb (clauses m) cl = false <->
+Lemma check_entails_neg_exists_model m cl :
+  check_entailsb (clauses m) cl = false <->
   exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & ~ valid_clause m' cl].
 Proof.
-  unfold check_genb.
-  funelim (check_gen (clauses m) cl) => //.
+  unfold check_entailsb.
+  funelim (check_entails (clauses m) cl) => //.
   - clear H. symmetry in Heqcall.
-    now move/check_gen_model_looping: Heqcall.
+    now move/check_entails_model_looping: Heqcall.
   - clear H H0. symmetry in Heqcall. split => //.
-    move/check_gen_entails: Heqcall => ent.
+    move/check_entails_entails: Heqcall => ent.
     intros [m' []]; exfalso.
     eapply entails_model_valid in ent; tea. contradiction.
   - clear H H0. symmetry in Heqcall. split => //.
@@ -2677,11 +2653,8 @@ Lemma nentails_model m cl :
 Proof.
   rewrite -checkb_entails.
   rewrite negb_iff /is_true negb_true_iff.
-  apply check_gen_neg_exists_model.
+  apply check_entails_neg_exists_model.
 Qed.
-
-Definition check_clause m cl :=
-  check_genb (clauses m) (checking_clause cl).
 
 Definition consistent_clauses cls :=
   exists val : Level.t -> Z, positive_valuation val /\ clauses_sem val cls.
@@ -2737,9 +2710,8 @@ Proof.
 Qed.
 
 Lemma check_clause_invalid_Zinf m mcheck cl :
-  check_gen (clauses m) cl = Invalid mcheck -> ~ valid_clause_Zinf (clauses m) cl.
+  check_entails (clauses m) cl = Invalid mcheck -> ~ valid_clause_Zinf (clauses m) cl.
 Proof.
-  unfold check_clause.
   move/check_invalid_valuation => [vpos csem hdef clsem].
   now move=> /(_ (opt_valuation_of_model mcheck) vpos csem).
 Qed.
@@ -2811,7 +2783,6 @@ Lemma consistent_clauses_dec (m : t) cls :
   clauses_levels cls ⊂_lset levels m ->
   { m' | clauses m' =_clset Clauses.union (clauses m) cls } + (* consistent *)
   { ~ exists m', clauses m' =_clset (Clauses.union (clauses m) cls) }.
-  (* { exists cl, Clauses.In cl cls /\ consistent (Clauses.union (clauses m) (inverse_clauses cl)) }. *)
 Proof.
   intros hwf.
   destruct (enforce_clauses m cls) eqn:hl.
@@ -2826,17 +2797,17 @@ Proof.
   - now move/enforce_clauses_None: hl.
 Qed.
 
-Definition check_clauses (cls : Clauses.t) (cls' : Clauses.t) : bool :=
-  Clauses.for_all (check_genb cls) cls'.
+Definition check_entails_clauses (cls : Clauses.t) (cls' : Clauses.t) : bool :=
+  Clauses.for_all (check_entailsb cls) cls'.
 
-Lemma check_clauses_spec m cls' :
-  check_clauses (clauses m) cls' <-> clauses m ⊢ℋ cls'.
+Lemma check_entails_clauses_spec m cls' :
+  check_entails_clauses (clauses m) cls' <-> clauses m ⊢ℋ cls'.
 Proof.
-  rewrite /check_clauses.
+  rewrite /check_entails_clauses.
   rewrite [is_true _]Clauses.for_all_spec.
   split.
   move=> ha cl /ha.
-  rewrite -/(is_true (check_genb (clauses m) cl)).
+  rewrite -/(is_true (check_entailsb (clauses m) cl)).
   now rewrite checkb_entails.
   move=> hent cl /hent.
   now rewrite -checkb_entails.
@@ -2888,7 +2859,12 @@ Proof.
       apply LevelExprSet.singleton_spec in hadd. red in hadd. congruence.
 Qed.
 
-
+(** Due to the possible models of entailments in arbitrary semilattices
+  with an inflationary and injective endomorphism, one cannot rule out
+  models where + is the identity, hence the following counterexamples:
+  a clause can be declared invalid by checking while it is valid
+  when considering only models in (Z, max, +).
+*)
 Module CounterExample1.
 (* x ∨ y -> y + 1 *)
 Definition valid_Z_counterexample_cls (x y : Level.t) : clause :=
@@ -2902,7 +2878,7 @@ Example check_clause_invalid_Z_counterexample (x y : Level.t) :
   x <> y ->
   let cls := Clauses.singleton (valid_Z_counterexample_cls x y) in
   let cl := valid_Z_counterexample_cl x y in
-  exists mcheck, check_gen cls cl = Invalid mcheck /\ valid_clause_Z cls cl.
+  exists mcheck, check_entails cls cl = Invalid mcheck /\ valid_clause_Z cls cl.
 Proof.
   move=> hdiff cls cl.
   set (v := (fun l : Level.t => if eqb l x then 1 else 0)%Z).
@@ -2915,8 +2891,8 @@ Proof.
   have hcon : consistent cls.
   { exists v. split => //.
     intros l. unfold v. case: eqb_spec => //. }
-  destruct check_gen eqn:ec.
-  - move/check_gen_entails_looping: ec.
+  destruct check_entails eqn:ec.
+  - move/check_entails_entails_looping: ec.
     move/consistent_no_loop. contradiction.
   - exists m. split => //.
     intros v' vpos csem.
@@ -2924,7 +2900,7 @@ Proof.
     rewrite interp_nes_singleton //=.
     move: (csem (valid_Z_counterexample_cls x y)) => /fwd. now eapply Clauses.singleton_spec.
     cbn. rewrite !interp_nes_union !interp_nes_singleton //=. lia.
-  - exfalso. move/check_gen_entails: ec.
+  - exfalso. move/check_entails_entails: ec.
     rewrite entails_completeness.
     intros ent.
     set (vopt := (fun l : Level.t => if eqb l x then Some 0 else None)%Z).
@@ -2944,7 +2920,7 @@ Example check_clause_checking_invalid_Z_example (x y : Level.t) :
   x <> y ->
   let cls := Clauses.singleton (valid_Z_counterexample_cls x y) in
   let cl := valid_Z_counterexample_cl x y in
-  check_gen cls (checking_clause cl) = Valid.
+  check_entails cls (checking_clause cl) = Valid.
 Proof.
   move=> hdiff cls cl.
   set (v := (fun l : Level.t => if eqb l x then 1 else 0)%Z).
@@ -2957,8 +2933,8 @@ Proof.
   have hcon : consistent cls.
   { exists v. split => //.
     intros l. unfold v. case: eqb_spec => //. }
-  destruct check_gen eqn:ec.
-  - move/check_gen_entails_looping: ec.
+  destruct check_entails eqn:ec.
+  - move/check_entails_entails_looping: ec.
     move/consistent_no_loop. contradiction.
   - exfalso. move/check_invalid_entails: ec.
     apply. apply entails_completeness.
@@ -2986,7 +2962,7 @@ Example check_clause_invalid_Z_counterexample (x y : Level.t) :
   x <> y ->
   let cls := Clauses.singleton (valid_Z_counterexample_cls x y) in
   let cl := valid_Z_counterexample_cl x y in
-  exists mcheck, check_gen cls cl = Invalid mcheck /\ valid_clause_Z cls cl.
+  exists mcheck, check_entails cls cl = Invalid mcheck /\ valid_clause_Z cls cl.
 Proof.
   move=> hdiff cls cl.
   set (v := (fun l : Level.t => if eqb l x then 1 else 0)%Z).
@@ -2999,8 +2975,8 @@ Proof.
   have hcon : consistent cls.
   { exists v. split => //.
     intros l. unfold v. case: eqb_spec => //. }
-  destruct check_gen eqn:ec.
-  - move/check_gen_entails_looping: ec.
+  destruct check_entails eqn:ec.
+  - move/check_entails_entails_looping: ec.
     move/consistent_no_loop. contradiction.
   - exists m. split => //.
     intros v' vpos csem.
@@ -3008,7 +2984,7 @@ Proof.
     rewrite interp_nes_singleton //=.
     move: (csem (valid_Z_counterexample_cls x y)) => /fwd. now eapply Clauses.singleton_spec.
     cbn. rewrite !interp_nes_union !interp_nes_singleton //=. lia.
-  - exfalso. move/check_gen_entails: ec.
+  - exfalso. move/check_entails_entails: ec.
     rewrite entails_completeness.
     intros ent.
     set (vopt := (fun l : Level.t => if eqb l x then Some 0 else None)%Z).
@@ -3028,7 +3004,7 @@ Example check_clause_checking_invalid_Z_example (x y : Level.t) :
   x <> y ->
   let cls := Clauses.singleton (valid_Z_counterexample_cls x y) in
   let cl := valid_Z_counterexample_cl x y in
-  check_gen cls (checking_clause cl) = Valid.
+  check_entails cls (checking_clause cl) = Valid.
 Proof.
   move=> hdiff cls cl.
   set (v := (fun l : Level.t => if eqb l x then 1 else 0)%Z).
@@ -3041,8 +3017,8 @@ Proof.
   have hcon : consistent cls.
   { exists v. split => //.
     intros l. unfold v. case: eqb_spec => //. }
-  destruct check_gen eqn:ec.
-  - move/check_gen_entails_looping: ec.
+  destruct check_entails eqn:ec.
+  - move/check_entails_entails_looping: ec.
     move/consistent_no_loop. contradiction.
   - exfalso. move/check_invalid_entails: ec.
     apply. apply entails_completeness.
@@ -3211,15 +3187,71 @@ Proof.
   intros hs. now rewrite clause_levels_inverse.
 Qed.
 
-Equations check_clause_enf m cl (wf : clause_levels cl ⊂_lset levels m) : bool :=
-  check_clause_enf m cl wf with enforce_dec m (inverse_clauses cl) (inverse_clauses_levels wf) :=
+Lemma check_entails_valid_Z m cl :
+  check_entailsb (clauses m) cl -> valid_clause_Z (clauses m) cl.
+Proof.
+  rewrite checkb_entails.
+  move=> ent v posv csem.
+  apply entails_completeness in ent.
+  red in ent.
+  now move: {ent}(ent Z _ v csem).
+Qed.
+
+Definition consistent_clauses_model cls :=
+  exists m, Model.enabled_clauses m cls /\ is_model m cls.
+
+Lemma consistent_model m : consistent_clauses_model (clauses m).
+Proof.
+  exists (model m). split.
+  eapply model_enabled.
+  apply model_ok.
+Qed.
+
+Lemma check_entails_clauses_gen_spec cls cls' :
+  consistent_clauses_model cls ->
+  check_entails_clauses cls cls' <-> entails_clauses cls cls'.
+Proof.
+  intros hcon.
+  split.
+  - rewrite /check_entails_clauses.
+    move/Clauses.for_all_spec => ha cl /ha.
+    unfold check_entailsb; destruct check_entails eqn:hc => //.
+    now move/check_entails_entails: hc.
+  - intros hv.
+    rewrite /check_entails_clauses /check_entailsb.
+    eapply Clauses.for_all_spec; tc => cl hin.
+    destruct check_entails eqn:hc => //.
+    * exfalso. destruct hcon as [m [en ism]].
+      eapply check_entails_entails_looping in hc; tea.
+      eapply model_entails_succ in hc; tea.
+    * move/check_invalid_entails: hc => he.
+      exfalso. elim he. now apply hv.
+Qed.
+
+
+Equations check_clause_wf m cl (wf : clause_levels cl ⊂_lset levels m) : bool :=
+  check_clause_wf m cl wf with enforce_dec m (inverse_clauses cl) (inverse_clauses_levels wf) :=
   | left con => false
   | right incon => true.
 
-Lemma check_clause_enf_invalid m cl wf :
-  check_clause_enf m cl wf = false -> ~ valid_clause_Z (clauses m) cl.
+Equations? check_clause (m : t) (cl : clause) : option bool :=
+  check_clause m cl with inspect (LevelSet.subset (clause_levels cl) (levels m)) :=
+    | exist true hl => Some (check_clause_wf m cl _)
+    | exist false _ => None.
+Proof. apply LevelSet.subset_spec in hl; now apply hl. Qed.
+
+Definition check_clauses m (cls : Clauses.t) : option bool :=
+  Clauses.fold (fun cl acc =>
+    match acc with
+    | None => None
+    | Some false => acc
+    | Some true => check_clause m cl
+    end) cls (Some true).
+
+Lemma check_clause_invalid m cl wf :
+  check_clause_wf m cl wf = false -> ~ valid_clause_Z (clauses m) cl.
 Proof.
-  unfold check_clause_enf.
+  unfold check_clause_wf.
   destruct (enforce_dec m (inverse_clauses cl)) => //= _.
   intros inv. destruct c as [v [vpos csem]].
   specialize (inv v vpos).
@@ -3228,24 +3260,10 @@ Proof.
   apply neg_inverse_Z in clsem. contradiction.
 Qed.
 
-Lemma ntot_forall {m cl} :
-  (~ exists m' : Model.model,
-    is_total_model m' (Clauses.union (clauses m) (inverse_clauses cl))) ->
-  forall m' : Model.model,
-    is_total_model m' (clauses m) ->
-    enabled_clauses m' (inverse_clauses cl) ->
-    ~ valid_clauses m' (inverse_clauses cl).
+Lemma check_clause_valid m cl wf :
+  check_clause_wf m cl wf -> valid_clause_Z (clauses m) cl.
 Proof.
-  intros ne m' ist en hv.
-  apply ne. exists m'. apply is_total_model_union. split => //.
-  split => //.
-  now eapply is_modelP.
-Qed.
-
-Lemma check_clause_enf_valid m cl wf :
-  check_clause_enf m cl wf -> valid_clause_Z (clauses m) cl.
-Proof.
-  unfold check_clause_enf.
+  unfold check_clause_wf.
   destruct (enforce_dec m (inverse_clauses cl)) => //= _ v vpos csem.
   red in i. destruct i as [loop [hincl hloop]].
   have nev : ~ exists v, positive_valuation v /\ clauses_sem v (Clauses.union (clauses m) (inverse_clauses cl)).
@@ -3260,171 +3278,208 @@ Proof.
   apply clauses_sem_union. split => //.
 Qed.
 
-Lemma check_clause_enf_spec m cl wf :
-  check_clause_enf m cl wf <-> valid_clause_Z (clauses m) cl.
+Lemma check_clause_wf_spec m cl wf :
+  check_clause_wf m cl wf <-> valid_clause_Z (clauses m) cl.
 Proof.
-  destruct (check_clause_enf m cl) eqn:ec.
+  destruct (check_clause_wf m cl) eqn:ec.
   - split => // _.
-    now apply check_clause_enf_valid in ec.
+    now apply check_clause_valid in ec.
   - split => // hv.
-    apply check_clause_enf_invalid in ec.
+    apply check_clause_invalid in ec.
     contradiction.
 Qed.
 
-Lemma check_clause_valid_Z m cl :
-  check_clause m cl -> valid_clause_Z (clauses m) cl.
+Lemma check_clause_undeclared m cl :
+  check_clause m cl = None <-> ~ clause_levels cl ⊂_lset (levels m).
 Proof.
-  unfold check_clause.
-  rewrite checkb_entails.
-  move=> ent v posv csem.
-  apply entails_completeness in ent.
-  red in ent.
-  move: {ent}(ent Z _ v csem).
-  destruct cl as [prems [concl k]].
-  rewrite //= !interp_nes_union interp_nes_singleton //= /interp_expr //=.
-  lia.
+  funelim (check_clause m cl) => //.
+  - split => //. intros ne; exfalso. clear H Heqcall.
+    apply LevelSet.subset_spec in hl. contradiction.
+  - split => // _ hincl.
+    apply LevelSet.subset_spec in hincl. congruence.
 Qed.
 
-Definition consistent_clauses_model cls :=
-  exists m, Model.enabled_clauses m cls /\ is_model m cls.
-
-Lemma consistent_model m : consistent_clauses_model (clauses m).
+Lemma check_clause_spec m cl :
+  forall b, check_clause m cl = Some b ->
+  b <-> valid_clause_Z (clauses m) cl.
 Proof.
-  exists (model m). split.
-  eapply model_enabled.
-  apply model_ok.
+  funelim (check_clause m cl) => //.
+  clear H Heqcall. intros b [= <-].
+   apply check_clause_wf_spec.
+Qed.
+Print reflect.
+Inductive reflect_opt (PN PS : Prop) : option bool -> Prop :=
+  | ReflectNone : PN -> reflect_opt PN PS None
+  | ReflectSomeT : PS -> reflect_opt PN PS (Some true)
+  | ReflectSomeF : ~ PS -> reflect_opt PN PS (Some false).
+Derive Signature for reflect_opt.
+
+Lemma check_clauseP {m cl} : reflect_opt
+  (~ clause_levels cl ⊂_lset (levels m))
+  (valid_clause_Z (clauses m) cl)
+  (check_clause m cl).
+Proof.
+  destruct (check_clause m cl) as [b|] eqn:ec.
+  - apply check_clause_spec in ec.
+    destruct b; constructor; try apply ec => //.
+    destruct ec. now move/H0.
+  - constructor. now apply check_clause_undeclared.
 Qed.
 
-Lemma check_clauses_gen_spec cls cls' :
-  consistent_clauses_model cls ->
-  check_clauses cls cls' <-> entails_clauses cls cls'.
+Definition valid_clauses cls cls' :=
+  forall v : Level.t -> Z,
+    positive_valuation v ->
+    clauses_sem v cls -> clauses_sem v cls'.
+
+Lemma check_clausesP {m cls} : reflect_opt
+  (~ clauses_levels cls ⊂_lset (levels m))
+  (valid_clauses (clauses m) cls)
+  (check_clauses m cls).
 Proof.
-  intros hcon.
-  split.
-  - rewrite /check_clauses.
-    move/Clauses.for_all_spec => ha cl /ha.
-    unfold check_genb; destruct check_gen eqn:hc => //.
-    now move/check_gen_entails: hc.
-  - intros hv.
-    rewrite /check_clauses /check_genb.
-    eapply Clauses.for_all_spec; tc => cl hin.
-    destruct check_gen eqn:hc => //.
-    * exfalso. destruct hcon as [m [en ism]].
-      eapply check_gen_entails_looping in hc; tea.
-      eapply model_entails_succ in hc; tea.
-    * move/check_invalid_entails: hc => he.
-      exfalso. elim he. now apply hv.
+  unfold check_clauses.
+  eapply ClausesProp.fold_rec.
+  - intros s' he. constructor.
+    now move=> v vpos csem cl /he.
+  - intros x a s' s'' hin hnin hadd ih.
+    destruct a => //.
+    depelim ih.
+    * elim: (@check_clauseP m x).
+      { move=> hdecl. constructor => hincl.
+        apply hdecl. rewrite -hincl.
+        red in hadd.
+        have hcl := clauses_levels_mon (Clauses.singleton x) s''.
+        rewrite -hcl => l. rewrite hadd.
+        rewrite Clauses.singleton_spec. intros; now left.
+        rewrite clauses_levels_spec => hin'. exists x; split => //. clsets. }
+      { move=> hv. constructor. intros v vpos csem.
+        specialize (H v vpos csem).
+        specialize (hv v vpos csem).
+        move=> cl /hadd -[].
+        now intros ->. apply H. }
+      { move=> hv. constructor. intros inv.
+        apply hv => v vpos csem. apply (inv v vpos csem x).
+        apply hadd. now left. }
+    * constructor. intros inv.
+      apply H => v vpos csem. specialize (inv v vpos csem).
+      move=> cl hin'. specialize (hadd cl).
+      destruct hadd. forward H1. now right.
+      now apply inv.
+    * constructor. depelim ih.
+      move=> hincl. apply H.
+      rewrite -hincl.
+      eapply clauses_levels_mon.
+      intros cl; rewrite (hadd cl).
+      now right.
 Qed.
 
+Definition check_entails_model_clauses m cls :=
+  check_entails_clauses (clauses m) cls.
 
-Definition check_model_clauses m cls :=
-  check_clauses (clauses m) cls.
-
-Lemma check_model_clauses_entails m cls :
-  check_model_clauses m cls <-> entails_clauses (clauses m) cls.
+Lemma check_entails_model_clauses_entails m cls :
+  check_entails_model_clauses m cls <-> entails_clauses (clauses m) cls.
 Proof.
-  rewrite check_clauses_gen_spec //.
+  rewrite check_entails_clauses_gen_spec //.
   apply consistent_model.
 Qed.
 
-Theorem check_spec m cl :
+Theorem check_entailsb_spec m cl :
   clause_levels cl ⊂_lset levels m ->
-  check_clause m cl -> valid_clause_Z (clauses m) cl.
+  check_entailsb (clauses m) cl -> valid_clause_Z (clauses m) cl.
 Proof.
-  move=> hwf; apply check_clause_valid_Z.
+  move=> hwf; apply check_entails_valid_Z.
 Qed.
 
-  Definition valid_clauses cls cls' :=
-    forall v : Level.t -> option Z,
-      positive_opt_valuation v ->
-      clauses_sem v cls -> clauses_sem v cls'.
+Definition valid_clauses_inf cls cls' :=
+  forall v : Level.t -> option Z,
+    positive_opt_valuation v ->
+    clauses_sem v cls -> clauses_sem v cls'.
 
-  Lemma check_clauses_complete m cls :
-    check_model_clauses m cls <-> valid_entailments (clauses m) cls.
-  Proof.
-    rewrite check_model_clauses_entails.
+Lemma check_entails_clauses_complete m cls :
+  check_entails_model_clauses m cls <-> valid_entailments (clauses m) cls.
+Proof.
+  rewrite check_entails_model_clauses_entails.
+  rewrite -entails_L_entails_ℋ_equiv.
+  rewrite -entails_L_rels_entails_L_clauses.
+  rewrite -completeness_all.
+  split.
+  - move=> vr s sl v.
+    move: (vr _ sl v).
+    rewrite !interp_rels_clauses_sem //.
+  - intros ve S s v.
+    move: (ve S s v).
+    now rewrite //= !interp_rels_clauses_sem.
+Qed.
+
+Lemma check_entails_clauses_Z_positive_complete m cls :
+  check_entails_model_clauses m cls <-> valid_clauses_inf (clauses m) cls.
+Proof.
+  split.
+  - rewrite check_entails_model_clauses_entails.
     rewrite -entails_L_entails_ℋ_equiv.
     rewrite -entails_L_rels_entails_L_clauses.
     rewrite -completeness_all.
-    split.
-    - move=> vr s sl v.
-      move: (vr _ sl v).
-      rewrite !interp_rels_clauses_sem //.
-    - intros ve S s v.
-      move: (ve S s v).
-      now rewrite //= !interp_rels_clauses_sem.
-  Qed.
-
-  Lemma check_clauses_Z_positive_complete m cls :
-    check_model_clauses m cls <-> valid_clauses (clauses m) cls.
-  Proof.
-    split.
-    - rewrite check_model_clauses_entails.
+    move=> vr v.
+    red in vr.
+    move: (vr (option Z) Zopt_semi v).
+    rewrite !interp_rels_clauses_sem //.
+  - intros sem. unfold check_entails_model_clauses.
+    eapply Clauses.for_all_spec. tc.
+    move=> cl /sem => semcl.
+    unfold check_entailsb.
+    destruct check_entails eqn:hc => //.
+    * move/check_entails_entails_looping : hc.
+      rewrite -to_entails_all.
       rewrite -entails_L_entails_ℋ_equiv.
       rewrite -entails_L_rels_entails_L_clauses.
-      rewrite -completeness_all.
-      move=> vr v.
-      red in vr.
-      move: (vr (option Z) Zopt_semi v).
-      rewrite !interp_rels_clauses_sem //.
-    - intros sem. unfold check_model_clauses.
-      eapply Clauses.for_all_spec. tc.
-      move=> cl /sem => semcl.
-      unfold check_genb.
-      destruct check_gen eqn:hc => //.
-      * move/check_gen_entails_looping : hc.
-        rewrite -to_entails_all.
-        rewrite -entails_L_entails_ℋ_equiv.
-        rewrite -entails_L_rels_entails_L_clauses.
-        rewrite -ISL.completeness_all.
-        move/(_ Z _ (Z_valuation_of_model m)).
-        rewrite -interp_rels_clauses_sem.
-        move/(_ (model_valuation m)).
-        rewrite -interp_rels_clauses_sem.
-        rewrite clauses_sem_leq. cbn.
-        rewrite interp_add_prems //=. lia.
-      * move/check_invalid_valuation: hc.
-        move=> [hpos semcls def ncl]. specialize (semcl _ hpos semcls).
-        now elim ncl.
-  Qed.
+      rewrite -ISL.completeness_all.
+      move/(_ Z _ (Z_valuation_of_model m)).
+      rewrite -interp_rels_clauses_sem.
+      move/(_ (model_valuation m)).
+      rewrite -interp_rels_clauses_sem.
+      rewrite clauses_sem_leq. cbn.
+      rewrite interp_add_prems //=. lia.
+    * move/check_invalid_valuation: hc.
+      move=> [hpos semcls def ncl]. specialize (semcl _ hpos semcls).
+      now elim ncl.
+Qed.
 
-  Lemma check_clauses_Z_complete m cls :
-    check_model_clauses m cls <-> valid_semilattice_entailments Zopt_semi (clauses m) cls.
-  Proof.
-    split.
-    - rewrite check_model_clauses_entails.
+Lemma check_entails_clauses_Z_complete m cls :
+  check_entails_model_clauses m cls <-> valid_semilattice_entailments Zopt_semi (clauses m) cls.
+Proof.
+  split.
+  - rewrite check_entails_model_clauses_entails.
+    rewrite -entails_L_entails_ℋ_equiv.
+    rewrite -entails_L_rels_entails_L_clauses.
+    rewrite -completeness_all.
+    move=> vr v.
+    red in vr.
+    move: (vr (option Z) Zopt_semi v).
+    rewrite !interp_rels_clauses_sem //.
+  - intros sem. unfold check_entails_model_clauses, check_entails_clauses.
+    eapply Clauses.for_all_spec. tc.
+    move=> cl /sem => semcl.
+    unfold check_entailsb; destruct check_entails eqn:hc => //.
+    * move/check_entails_entails_looping : hc.
+      rewrite -to_entails_all.
       rewrite -entails_L_entails_ℋ_equiv.
       rewrite -entails_L_rels_entails_L_clauses.
-      rewrite -completeness_all.
-      move=> vr v.
-      red in vr.
-      move: (vr (option Z) Zopt_semi v).
-      rewrite !interp_rels_clauses_sem //.
-    - intros sem. unfold check_model_clauses, check_clauses.
-      eapply Clauses.for_all_spec. tc.
-      move=> cl /sem => semcl.
-      unfold check_genb; destruct check_gen eqn:hc => //.
-      * move/check_gen_entails_looping : hc.
-        rewrite -to_entails_all.
-        rewrite -entails_L_entails_ℋ_equiv.
-        rewrite -entails_L_rels_entails_L_clauses.
-        rewrite -ISL.completeness_all.
-        move/(_ Z _ (Z_valuation_of_model m)).
-        rewrite -interp_rels_clauses_sem.
-        move/(_ (model_valuation m)).
-        rewrite -interp_rels_clauses_sem.
-        rewrite clauses_sem_leq. cbn.
-        rewrite interp_add_prems //=. lia.
-      * move/check_invalid_valuation: hc.
-        move=> [_ semcls def ncl]. specialize (semcl (opt_valuation_of_model m0)). elim ncl; now apply semcl.
-  Qed.
+      rewrite -ISL.completeness_all.
+      move/(_ Z _ (Z_valuation_of_model m)).
+      rewrite -interp_rels_clauses_sem.
+      move/(_ (model_valuation m)).
+      rewrite -interp_rels_clauses_sem.
+      rewrite clauses_sem_leq. cbn.
+      rewrite interp_add_prems //=. lia.
+    * move/check_invalid_valuation: hc.
+      move=> [_ semcls def ncl]. specialize (semcl (opt_valuation_of_model m0)). elim ncl; now apply semcl.
+Qed.
 
-  Definition pred (le : LevelExpr.t) := (le.1, le.2 - 1).
+Definition pred (le : LevelExpr.t) := (le.1, le.2 - 1).
 
-  Lemma nRopt {A} (x y : A) : ~ R_opt Logic.eq (Some x) (Some y) -> x <> y.
-  Proof.
-    intros hr heq. apply hr. now cbn.
-  Qed.
+Lemma nRopt {A} (x y : A) : ~ R_opt Logic.eq (Some x) (Some y) -> x <> y.
+Proof.
+  intros hr heq. apply hr. now cbn.
+Qed.
 
 End Abstract.
 End Deciders.
@@ -3558,26 +3613,26 @@ Module LoopChecking (LS : LevelSets).
      Returns false if the constraint results in an inconsistent set of constraints or it simply
      is not valid. *)
   Definition check m c :=
-    check_model_clauses m (to_clauses c).
+    check_entails_model_clauses m (to_clauses c).
 
   (* Checking corresponds to entailment in the free semilattice *)
   Lemma check_spec {m c} :
     check m c <-> entails_clauses (clauses m) (to_clauses c).
-  Proof. apply check_model_clauses_entails. Qed.
+  Proof. apply check_entails_model_clauses_entails. Qed.
 
   (* Checking corresponds to validity in *all* semilattices, including degenerate ones. *)
   Lemma check_complete m c :
     check m c <-> valid_entailments (clauses m) (to_clauses c).
-  Proof. apply check_clauses_complete. Qed.
+  Proof. apply check_entails_clauses_complete. Qed.
 
   (* Checking corresponds to validity in the lifted Z semilattice. *)
   Lemma check_Z_complete m c :
     check m c <-> valid_semilattice_entailments Zopt_semi (clauses m) (to_clauses c).
-  Proof. apply check_clauses_Z_complete. Qed.
+  Proof. apply check_entails_clauses_Z_complete. Qed.
 
   Lemma check_Z_complete_positive m c :
     check m c <-> valid_clauses (clauses m) (to_clauses c).
-  Proof. apply check_clauses_Z_positive_complete. Qed.
+  Proof. apply check_entails_clauses_Z_positive_complete. Qed.
 
   Lemma zero_declared m : Impl.zero_declared (model m).
   Proof. eapply zero_declared. Qed.
