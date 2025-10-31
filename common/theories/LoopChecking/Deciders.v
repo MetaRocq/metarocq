@@ -1224,10 +1224,46 @@ Module CorrectModel.
 
  *)
 
+  Lemma clauses_For_all_union f cls cls' :
+    Clauses.For_all f (Clauses.union cls cls') <->
+    Clauses.For_all f cls /\ Clauses.For_all f cls'.
+  Proof.
+    split.
+    - move=> hf. split.
+      all:move=> cl hin; move: (hf cl) => /fwd //; clsets.
+    - move=> -[] ha hb cl /Clauses.union_spec.
+      firstorder.
+  Qed.
+
+  Lemma clauses_for_all_union f cls cls' :
+    Clauses.for_all f (Clauses.union cls cls') <->
+    Clauses.for_all f cls /\ Clauses.for_all f cls'.
+  Proof.
+    rewrite ![is_true _]Clauses.for_all_spec.
+    apply clauses_For_all_union.
+  Qed.
+
   Lemma enabled_clauses_union {m cls cls'} :
-    enabled_clauses m cls /\ enabled_clauses m cls' <->
-    enabled_clauses m (Clauses.union cls cls').
-  Proof. Admitted.
+    enabled_clauses m (Clauses.union cls cls') <->
+    enabled_clauses m cls /\ enabled_clauses m cls'.
+  Proof.
+    unfold enabled_clauses. now apply clauses_For_all_union.
+  Qed.
+
+  Lemma is_model_union m cls cls' :
+    is_model m (Clauses.union cls cls') <-> is_model m cls /\ is_model m cls'.
+  Proof.
+    unfold is_model. now rewrite clauses_for_all_union.
+  Qed.
+
+  Lemma is_total_model_union m cls cls' :
+    is_total_model m (Clauses.union cls cls') <->
+    is_total_model m cls /\ is_total_model m cls'.
+  Proof.
+    unfold is_total_model.
+    rewrite enabled_clauses_union is_model_union.
+    firstorder.
+  Qed.
 
   Lemma declared_pos_enabled {m V cls} :
     clauses_levels cls ⊂_lset V ->
@@ -1302,7 +1338,7 @@ Module CorrectModel.
       eapply declared_pos_ext; tea.
     - eapply enabled_clauses_ext.
       have mupd := I.model_updates m. eapply is_update_of_ext in mupd. exact mupd.
-      rewrite -enabled_clauses_union; split => //.
+      rewrite enabled_clauses_union; split => //.
       red in hdeclp.
       red in hdecla.
       eapply declared_pos_enabled; tea.
@@ -1816,6 +1852,7 @@ Module Abstract.
         + right; lsets.
       * apply LevelSetFact.not_mem_iff in hneq.
         rewrite ClausesProp.add_union_singleton is_model_union //.
+        split => //.
         rewrite is_model_valid.
         intros cl; rsets. subst cl.
         rewrite /init_clause_of_level.
@@ -4018,12 +4055,11 @@ Proof.
   intros hs. now rewrite clause_levels_inverse.
 Qed.
 
-Search inverse_clauses.
 Equations check_clause_enf m cl (wf : clause_levels cl ⊂_lset levels m) : bool :=
   check_clause_enf m cl wf with enforce_dec m (inverse_clauses cl) (inverse_clauses_levels wf) :=
   | left con => false
   | right incon => true.
-Print inverse_clauses.
+
 Lemma check_clause_enf_invalid m cl wf :
   check_clause_enf m cl wf = false -> ~ valid_clause_Z (clauses m) cl.
 Proof.
@@ -4034,28 +4070,6 @@ Proof.
   apply clauses_sem_union in csem as [csem clsem].
   apply inv in csem.
   apply neg_inverse_Z in clsem. contradiction.
-Qed.
-
-Lemma is_model_union m cls cls' :
-  is_model m (Clauses.union cls cls') <->
-  is_model m cls /\ is_model m cls'.
-Proof.
-  unfold is_model.
-  split.
-  - move/Clauses.for_all_spec => hf. split; apply Clauses.for_all_spec; tc.
-    all:move=> cl hin; move: (hf cl) => /fwd //; clsets.
-  - move=> -[] /Clauses.for_all_spec ha /Clauses.for_all_spec hb.
-    apply Clauses.for_all_spec; tc => cl /Clauses.union_spec.
-    firstorder.
-Qed.
-
-Lemma is_total_model_union m cls cls' :
-  is_total_model m (Clauses.union cls cls') <->
-  is_total_model m cls /\ is_total_model m cls'.
-Proof.
-  unfold is_total_model.
-  rewrite -enabled_clauses_union is_model_union.
-  firstorder.
 Qed.
 
 Lemma ntot_forall {m cl} :
@@ -4100,80 +4114,6 @@ Proof.
     apply check_clause_enf_invalid in ec.
     contradiction.
 Qed.
-
-Lemma check_clauseZ_invalid m cl :
-  check_clauseZ m cl = false -> ~ valid_clause_Z (thin_clauses m) cl.
-Proof.
-  unfold check_clauseZ => ec inv.
-  move/negP: ec.
-  unfold check_genb.
-  destruct check_gen eqn:ec => //.
-  now eapply check_gen_thin_model_looping in ec.
-  intros _.
-  move: ec => /[dup]/check_invalid_entails ne.
-  move/check_invalid => [ism mof hmin en inva].
-  have tm := total_model_thin m.
-  specialize (hmin (model m)).
-  (* specialize (inv (Z_valuation_of_model m0)). forward inv. admit. *)
-  destruct (enforce_dec m (inverse_clauses cl)).
-  * admit.
-  * red in c. admit.
-  * red in i. red in i.
-    destruct i as [loop [hincl hloop]].
-    have hloop' : Clauses.union (thin_clauses m) (inverse_clauses cl) ⊢ℋ succ loop ⋞ loop.
-    eapply entails_clauses_trans; tea. admit.
-    have nem : ~ exists m', is_total_model m' (Clauses.union (thin_clauses m) (inverse_clauses cl)).
-    intros [m' istm].
-    eapply entails_clauses_completeness in hloop'.
-    red in hloop'.
-    move: (hloop' (Z_valuation_of_model m')) => /fwd.
-    apply valuation_of_model_pos.
-    move/(_ (total_model_sem istm)).
-    move/clauses_sem_clauses_of_le; rewrite interp_add_prems. cbn. lia.
-    apply valid_total_models_Z_models in inv.
-    red in inv.
-    Search clauses_sem.
-
-
-
-
-  clear hloop.
-  eapply nentails_thin_con in ne => //.
-  now exists loop.
-Qed.
-
-Lemma check_clauseZ_valid m cl :
-  check_clauseZ m cl <-> valid_clause_Z (thin_clauses m) cl.
-Proof.
-  rewrite /check_clauseZ.
-  split.
-  - move/checkb_thin_entails => ent.
-    eapply entails_completeness in ent.
-    move=> v posv csem.
-    specialize (ent Z _ v csem).
-    exact ent.
-  - intros valid.
-    rewrite valid_total_models_Z_models in valid.
-    red in valid.
-    specialize (valid (model m)).
-    forward valid. apply is_total_model_thin.
-    split. apply (model_enabled m).
-    apply m.(model_valid).(model_ok).
-    forward valid. admit.
-    unfold check_genb.
-    destruct check_gen eqn:ec => //.
-    now eapply check_gen_thin_model_looping in ec.
-    have inv : is_model m0 (inverse_clauses cl). admit.
-    eapply check_invalid in ec.
-    destruct ec.
-    red in H1. specialize (H1 (model m)).
-    forward H1. admit. forward H1. admit.
-    specialize (valid (Z_valuation_of_model m)).
-    eapply entails_completeness.
-    intros v.
-    Search entails.
-    destruct (entails_dec (thin_clauses ))
-
 
 Lemma check_clause_valid_Z m cl :
   check_clause m cl -> valid_clause_Z (clauses m) cl.
