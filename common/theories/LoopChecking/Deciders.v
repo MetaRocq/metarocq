@@ -3382,11 +3382,30 @@ Proof.
   apply consistent_model.
 Qed.
 
+
+Equations? check_clauses_wf m cls (wf : clauses_levels cls ⊂_lset levels m) : bool :=
+  check_clauses_wf m cls wf with inspect (check_clauses m cls) :=
+    | exist None heq := False_rect _ _
+    | exist (Some b) heq => b.
+Proof.
+  move: heq; elim: check_clausesP => //.
+Qed.
+
+Lemma check_clauses_spec m cls (wf : clauses_levels cls ⊂_lset (levels m)) :
+  check_clauses_wf m cls wf <-> valid_clauses_Z (clauses m) cls.
+Proof.
+  funelim (check_clauses_wf m cls wf) => //.
+  clear H Heqcall.
+  move: heq; elim: check_clausesP => //.
+  - intros vc [= <-]. split => //.
+  - intros inv [= <-]. split => //.
+  - bang.
+Qed.
+
 Theorem check_entailsb_spec m cl :
-  clause_levels cl ⊂_lset levels m ->
   check_entailsb (clauses m) cl -> valid_clause_Z (clauses m) cl.
 Proof.
-  move=> hwf; apply check_entails_valid_Z.
+  apply check_entails_valid_Z.
 Qed.
 
 Definition valid_clauses_inf cls cls' :=
@@ -3602,36 +3621,63 @@ Module LoopChecking (LS : LevelSets).
   Definition valid_entailments cls cls' :=
     forall S (SL : Semilattice.Semilattice S Q.t) (V : Level.t -> S), clauses_sem V cls -> clauses_sem V cls'.
 
-  (* Definition check m c :
-    clause_levels (to_clauses c) ⊂_lset levels m ->
-    { valid_clauses_Z (clauses m) (to_clauses c) } + { ~ valid_clauses_Z (clauses m) (to_clauses c) } :=
-    Impl.check m.(Impl.Abstract.clauses) (to_clauses c). *)
+  Definition check_wf m cls (wf : clauses_levels cls ⊂_lset levels m) :=
+    check_clauses_wf m cls wf.
 
+  Lemma check_wfP m c wf : check_wf m c wf <-> valid_clauses_Z (clauses m) c.
+  Proof.
+    apply check_clauses_spec.
+  Qed.
 
+  Definition check m cls :=
+    match check_clauses m cls with
+    | None => false
+    | Some b => b
+    end.
+
+  Lemma check_spec m cls :
+    clauses_levels cls ⊂_lset levels m ->
+    check m cls <-> valid_clauses_Z (clauses m) cls.
+  Proof.
+    intros hwf.
+    rewrite /check.
+    elim: check_clausesP; intuition.
+  Qed.
+
+  Definition check_constraint m c := check m (to_clauses c).
+
+  Lemma check_constraintS m c :
+    clauses_levels (to_clauses c) ⊂_lset levels m ->
+    check_constraint m c <-> valid_clauses_Z (clauses m) (to_clauses c).
+  Proof.
+    apply check_spec.
+  Qed.
+
+  (** Entailment is weaker than validity in Z: it is equivalent to validity in Z^∞ *)
 
   (* Returns true is the constraint is valid in the model and all its possible consistent extensions.
      Returns false if the constraint results in an inconsistent set of constraints or it simply
      is not valid. *)
-  Definition check m c :=
+  Definition check_entails m c :=
     check_entails_model_clauses m (to_clauses c).
 
   (* Checking corresponds to entailment in the free semilattice *)
-  Lemma check_spec {m c} :
-    check m c <-> entails_clauses (clauses m) (to_clauses c).
+  Lemma check_entails_spec {m c} :
+    check_entails m c <-> entails_clauses (clauses m) (to_clauses c).
   Proof. apply check_entails_model_clauses_entails. Qed.
 
   (* Checking corresponds to validity in *all* semilattices, including degenerate ones. *)
-  Lemma check_complete m c :
-    check m c <-> valid_entailments (clauses m) (to_clauses c).
+  Lemma check_entails_complete m c :
+    check_entails m c <-> valid_entailments (clauses m) (to_clauses c).
   Proof. apply check_entails_clauses_complete. Qed.
 
-  (* Checking corresponds to validity in the lifted Z semilattice. *)
-  Lemma check_Z_complete m c :
-    check m c <-> valid_semilattice_entailments Zopt_semi (clauses m) (to_clauses c).
+  (* Checking corresponds to validity in the Z^∞ semilattice. *)
+  Lemma check_entails_Z_complete m c :
+    check_entails m c <-> valid_semilattice_entailments Zopt_semi (clauses m) (to_clauses c).
   Proof. apply check_entails_clauses_Z_complete. Qed.
 
   Lemma check_Z_complete_positive m c :
-    check m c <-> valid_clauses (clauses m) (to_clauses c).
+    check_entails m c <-> valid_clauses_inf (clauses m) (to_clauses c).
   Proof. apply check_entails_clauses_Z_positive_complete. Qed.
 
   Lemma zero_declared m : Impl.zero_declared (model m).

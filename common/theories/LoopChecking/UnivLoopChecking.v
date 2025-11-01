@@ -1645,10 +1645,8 @@ End ZUnivConstraint.
     - intros x y. rewrite interp_nes_union; cbn. lia.
   Qed.
 
-
-
   Definition check (m : univ_model) (c : UnivConstraint.t) : bool :=
-    LoopCheck.check m.(UnivLoopChecking.model) (to_constraint c).
+    LoopCheck.check_constraint m.(UnivLoopChecking.model) (to_constraint c).
   Derive Signature for satisfies0.
 
 
@@ -1793,23 +1791,95 @@ End ZUnivConstraint.
   Instance nat_opt_semi : Semilattice (option nat) nat := opt_semi Natsemilattice.
 
   Definition valid_Z_model m c :=
-    (forall (v : Level.t -> option Z), positive_opt_valuation v -> interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c).
+    forall (v : Level.t -> Z),
+      positive_valuation v ->
+      interp_univ_cstrs v (constraints m) -> interp_univ_cstr v c.
 
   Infix "⊩Z" := valid_Z_model (at level 70, no associativity).
+
+  Definition to_nat_val (v : Level.t -> Z) :=
+    fun l => Z.to_nat (v l).
+
+  Definition valid_nat_model m c :=
+    forall (v : Level.t -> nat),
+    interp_cstrs v (constraints m) -> interp_nat_cstr v c.
+
+  Infix "⊩𝐍" := valid_nat_model (at level 70, no associativity).
+
+  Section InterpNatZ.
+    Context (v : Level.t -> Z).
+    Context (v' : Level.t -> nat).
+    Context (hv : forall l, v l = Z.of_nat (v' l)).
+Print interp_z_cstr.
+
+    Lemma interp_nes_equiv u : interp_nes v (to_atoms u) = Z.of_nat (Universe.interp_nes v' u).
+    Proof.
+      move: u; apply: Universe.elim.
+      - intros [l k]. rewrite to_atoms_singleton
+          interp_nes_singleton Universe.interp_nes_singleton /interp_expr //=.
+        rewrite (hv l). lia.
+      - intros [l k] u he hnin.
+        rewrite to_atoms_add
+          interp_nes_add Universe.interp_nes_add /interp_expr //= he.
+        rewrite (hv l). lia.
+    Qed.
+
+    Lemma interp_cstr_to_nat c :
+      interp_nat_cstr v' c <-> interp_univ_cstr v c.
+    Proof.
+      destruct c as [[l []] r]; cbn;
+      rewrite !interp_nes_equiv; lia.
+    Qed.
+
+    Lemma interp_cstrs_to_nat cstrs :
+      interp_cstrs v' cstrs <-> interp_univ_cstrs v cstrs.
+    Proof.
+      rewrite /interp_cstrs /interp_univ_cstrs.
+      split; now move=> hf c /hf /interp_cstr_to_nat.
+    Qed.
+  End InterpNatZ.
+
+  Lemma valid_Z_valid_nat_model m c :
+    valid_nat_model m c <-> valid_Z_model m c.
+  Proof.
+    split; intros hv v.
+    - intros vpos.
+      specialize (hv (to_nat_val v)).
+      rewrite -(interp_cstrs_to_nat v (to_nat_val v)).
+      rewrite /to_nat_val. intros l.
+      specialize (vpos l). lia.
+      rewrite -(interp_cstr_to_nat v (to_nat_val v)).
+      rewrite /to_nat_val. intros l.
+      specialize (vpos l). lia.
+      exact hv.
+    - rewrite (interp_cstrs_to_nat (to_Z_val v)) //.
+      rewrite (interp_cstr_to_nat (to_Z_val v)) //.
+      move: (hv (to_Z_val v)) => /fwd //.
+      intros l; rewrite /to_Z_val. lia.
+  Qed.
 
   Definition defined_valuation_of V (v : Level.t -> option nat) :=
     forall l, LevelSet.In l V -> exists x, v l = Some x.
 
-  Definition valid_nat_model m c :=
-    (forall (v : Level.t -> option nat), defined_valuation_of (UnivLoopChecking.levels m ∪ univ_constraint_levels c) v ->
-      interp_cstrs v (constraints m) -> interp_nat_cstr v c).
-
-  Theorem check_completeness {m c} :
+  Theorem check_completeness {m : univ_model} {c} :
+    declared_univ_cstr_levels (levels m) c ->
     check m c <-> m ⊩Z c.
   Proof.
-    rewrite LoopCheck.check_Z_complete_positive /valid_Z_model.
+    intros hwf.
+    rewrite check_constraintS.
+    now eapply ndecl_nin_levels in hwf.
+    rewrite /valid_clauses_Z /valid_Z_model.
     setoid_rewrite interp_cstrs_clauses_sem; setoid_rewrite interp_cstr_clauses_sem.
     rewrite /valid_clauses. reflexivity.
+  Qed.
+
+  Theorem check_nat_completeness {m : univ_model} {c} :
+    declared_univ_cstr_levels (levels m) c ->
+    check m c <-> m ⊩𝐍 c.
+  Proof.
+    intros hwf.
+    rewrite check_completeness //.
+    now rewrite valid_Z_valid_nat_model.
   Qed.
 
   Lemma interp_univ_cstrs_of_m m :
@@ -1833,10 +1903,10 @@ End ZUnivConstraint.
 
   Infix "⊩" := valid_model (at level 70, no associativity).
 
-  Theorem check_any_completeness {m c} :
-    check m c <-> m ⊩ c.
+  Theorem check_any_completeness {m : univ_model} {c} :
+    check_entails (model m) (to_constraint c) <-> m ⊩ c.
   Proof.
-    rewrite LoopCheck.check_complete /LoopCheck.valid_entailments /valid_model.
+    rewrite LoopCheck.check_entails_complete /LoopCheck.valid_entailments /valid_model.
     setoid_rewrite interp_cstrs_clauses_sem.
     split.
     - intros hv S s v hp.
@@ -1892,11 +1962,8 @@ End ZUnivConstraint.
     apply constraint_levels_declared.
   Qed.
 
-  Definition to_nat_val (v : Level.t -> option Z) :=
-    fun l => Z.to_nat (option_get 0%Z (v l)).
-
-  Theorem check_valid_nat {m c} :
-    check m c -> (forall (v : Level.t -> nat), wf_valuation (levels m ∪ univ_constraint_levels c) v -> interp_cstrs v (constraints m) -> interp_nat_cstr v c).
+  Theorem check_valid_nat {m : univ_model} {c} :
+    check_entails (model m) (to_constraint c) -> (forall (v : Level.t -> nat), wf_valuation (levels m ∪ univ_constraint_levels c) v -> interp_cstrs v (constraints m) -> interp_nat_cstr v c).
   Proof.
     rewrite check_any_completeness.
     intros hv v wfv hp.

@@ -2088,3 +2088,21 @@ Proof.
   - move/check_invalid_entails: ch. intros ne. now right.
   - move/check_gen_entails: ch. now left.
 Qed.
+
+Definition valid_total_models cls cl :=
+  forall m : Model.model, is_total_model m cls ->
+  defined_model_of (clause_levels cl) m -> valid_clause m cl.
+
+Lemma valid_total_models_Z_models cls cl : valid_clause_Z cls cl <-> valid_total_models cls cl.
+Proof.
+  split.
+  - intros H m istot encl.
+    move: (H (Z_valuation_of_model m)) => /fwd.
+    destruct istot. move/is_modelP: H1 => H1.
+    move=> cl' /[dup] /H0 en /H1.
+    now eapply valid_clause_model.
+    intros cs.
+    rewrite -def_clause_sem_valid //.
+  - intros vm v vpos csem. red in vm. todo "admit".
+Qed.
+
