@@ -209,48 +209,189 @@ Section CheckLeq.
     forall c, declared_univ_cstr_levels uctx.1 c ->
     check c <-> valid0_cstr uctx.2 c.
 
-  Lemma contra_prop_bool (P : Prop) (b : bool) :
-    (~~ b -> ~ P) -> (P -> b).
-  Proof.
-    destruct b => //.
-    intros f p. elim f. reflexivity.
-    exact p.
-  Qed.
-
-  Definition to_opt_val (v : Level.t -> Z) : Level.t -> option Z :=
-    fun l => Some (v l).
-
-  Lemma posv v : LoopCheck.Impl.I.Model.Model.positive_opt_valuation (to_opt_val (valuation_to_Z v)).
-  Proof.
-    red. intros l. unfold valuation_to_Z, to_opt_val. intros k [=]. lia.
-  Qed.
-
-  Lemma interp_univ_cstr_to_opt_val v c :
-    interp_univ_cstr (to_opt_val v) c <-> interp_univ_cstr v c.
-  Proof.
-    destruct c as [[l []] r]; cbn -[SemiLattice.Semilattice.eq].
-  Admitted.
-
-  Lemma interp_univ_cstrs_to_opt_val v c :
-    interp_univ_cstrs (to_opt_val v) c <-> interp_univ_cstrs v c.
-  Proof.
-  Admitted.
-
   Import C (clauses_sem).
 
-  Lemma clauses_sem_to_opt_val v c :
-    clauses_sem (to_opt_val v) c <-> clauses_sem v c.
+  Lemma declared_incl c :
+    declared_univ_cstr_levels uctx.1 c ->
+    declared_univ_cstr_levels (levels m) c.
+  Proof.
+    destruct c as [[l d] r].
+    move=> [hl hr]; cbn; split.
+    - setoid_rewrite hl.
+      rewrite (proj1 HG). lsets.
+    - setoid_rewrite hr.
+      rewrite (proj1 HG); lsets.
+  Qed.
+
+  Lemma interp_cstrs_union (v : Level.t -> nat) cstrs cstrs' :
+    interp_cstrs v (UnivConstraintSet.union cstrs cstrs') <->
+    interp_cstrs v cstrs /\ interp_cstrs v cstrs'.
   Proof.
   Admitted.
+
+  Lemma interp_nes_val (v : valuation) (u : Universe.t) :
+    Universe.interp_nes (val v) u = Universes.val v u.
+  Proof.
+    move: u. refine (Universe.interp_nes_elim (val v) (fun u i => i = val v u) _ _ _).
+    - intros [l k]; rewrite val_singleton //= /val; cbn in *.
+    - move=>[l k] u k' ih hnin.
+      cbn. rewrite val_add //=. cbn. subst k'. cbn.
+      reflexivity.
+  Qed.
+
+  Lemma satisfies0_interp_cstr (v : valuation) c :
+    satisfies0 v c <-> interp_nat_cstr (val v) c.
+  Proof.
+    destruct c as [[l []] r]; cbn -[SemiLattice.Semilattice.le].
+    split.
+    - intros sat. depelim sat.
+      rewrite !interp_nes_val. cbn. lia.
+    - rewrite !interp_nes_val. cbn. constructor. lia.
+    - split.
+      * intros sat. depelim sat.
+        rewrite !interp_nes_val. cbn. lia.
+      * rewrite !interp_nes_val. cbn. constructor. lia.
+  Qed.
+
+
+  Lemma satisfies0_interp_cstr_inv V (v : Level.t -> nat) c :
+    wf_valuation V v ->
+    LevelSet.Subset (univ_constraint_levels c) V ->
+    satisfies0 (to_valuation v) c <-> interp_nat_cstr v c.
+  Proof.
+    intros hwf hs.
+    destruct c as [[l []] r]; cbn -[SemiLattice.Semilattice.le].
+    - split.
+      * intros sat. depelim sat.
+        rewrite -!(@UnivLoopChecking.interp_nes_val V) in H => //.
+        1-2:cbn in hs; lsets.
+        cbn. lia.
+      * intros hle. constructor.
+        rewrite -!(@UnivLoopChecking.interp_nes_val V) //.
+        1-2:cbn in hs; lsets.
+        cbn in hle. lia.
+    - split.
+      * intros sat. depelim sat.
+        rewrite -!(@UnivLoopChecking.interp_nes_val V) in H => //.
+        1-2:cbn in hs; lsets.
+      * intros hle. constructor.
+        rewrite -!(@UnivLoopChecking.interp_nes_val V) //.
+        1-2:cbn in hs; lsets.
+  Qed.
+
+  Lemma satisfies_interp_cstr (v : valuation) c :
+    satisfies v c <-> interp_cstrs (val v) c.
+  Proof.
+    now split; move=> hf cs /hf /satisfies0_interp_cstr.
+  Qed.
+
+  Lemma satisfies_interp_cstr_inv V (v : Level.t -> nat) c :
+    wf_valuation V v ->
+    LevelSet.Subset (univ_constraints_levels c) V ->
+    satisfies (to_valuation v) c <-> interp_cstrs v c.
+  Proof.
+    intros wf hs; split; move=> hf cs /[dup] hin /hf; eapply satisfies0_interp_cstr_inv; tea.
+    intros h hin'. apply (hs h).
+    rewrite univ_constraints_levels_spec. exists cs. split => //.
+    move=> l hin'; apply hs, univ_constraints_levels_spec.
+    now exists cs; split => //.
+  Qed.
+
+  Definition shift_valuation (v : Level.t -> nat) : Level.t -> nat :=
+    fun l => v l - v Level.lzero.
+
+  Lemma wf_shift_valuation v :
+    interp_cstrs v (init_constraints_of_levels uctx.1) ->
+    wf_valuation uctx.1 (shift_valuation v).
+  Proof.
+    intros hi l hin. unfold LS.Level.zero.
+    change (l == Level.lzero) with (eqb l Level.lzero).
+    have he : shift_valuation v Level.lzero = 0.
+    rewrite /shift_valuation //. lia.
+    destruct (eqb_spec l Level.lzero).
+    - now subst l.
+    - destruct LS.Level.is_global eqn:isg.
+      unfold shift_valuation.
+      specialize (hi (U1, Le, Universe.singleton (l,0))).
+      forward hi.
+      eapply init_constraints_of_levels_spec; tea.
+      rewrite /init_constraint_of_level. destruct l => //.
+      destruct l as [|g|i]=> //.
+      cbn -[Pos.to_nat] in hi.
+      destruct (v (Level.level g)) eqn:hv => //. noconf hi. lia.
+      lia.
+  Qed.
+  Lemma interp_nes_shift V (v : Level.t -> nat) (u : Universe.t) :
+    interp_cstrs v (init_constraints_of_levels uctx.1) ->
+    wf_valuation V (shift_valuation v) ->
+    LevelSet.Subset (Universe.levels u) V ->
+    Universe.interp_nes v u - v Level.lzero = Universe.interp_nes (shift_valuation v) u.
+  Proof.
+    move: u. refine (Universe.interp_nes_elim v (fun u i => _ -> _ -> _ -> i - v Level.lzero = Universe.interp_nes (shift_valuation v) u) _ _ _).
+    - intros [l k] whi wf hsub. rewrite /Universe.interp_expr //=
+        Universe.interp_nes_singleton /val; cbn in *.
+
+      specialize (wf l). forward wf. admit.
+      rewrite /shift_valuation in wf |- *.
+      move: wf. unfold LS.Level.zero.
+      change (l == Level.lzero) with (eqb l Level.lzero).
+      destruct (eqb_spec l Level.lzero) => //=. subst. lia.
+      destruct l; cbn. congruence. lia.
+      cbn. intros.
+    - move=>[l k] u k' ih hnin.
+      cbn. rewrite val_add //=. cbn. subst k'. cbn.
+      reflexivity.
+  Qed. *)
+  Lemma interp_cstr_shift V v c :
+    wf_valuation V (shift_valuation v) ->
+    declared_univ_cstr_levels V c ->
+    interp_nat_cstr v c -> interp_nat_cstr (shift_valuation v) c.
+  Proof.
+    intros hfw hdecl.
+    destruct c as [[l d] r]; cbn.
+    destruct d.
+    intros hi. *)
+
 
   Lemma checkb_spec : check_spec checkb.
   Proof.
     intros c decl.
     rewrite /checkb.
-    split.
-    - rewrite check_completeness.
-      intros mc. intros v sat.
-      apply clauses_sem_satisfies0_equiv.
+    rewrite check_nat_completeness.
+    now apply declared_incl.
+    split; intros hv.
+    - intros v sat.
+      specialize (hv (val v)).
+      destruct HG.
+      rewrite H0 in hv.
+      forward hv.
+      { apply interp_cstrs_union.
+        split; [apply satisfies_interp_cstr, satisfies_init|now apply satisfies_interp_cstr]. }
+      now apply satisfies0_interp_cstr.
+    - intros v.
+      rewrite (proj2 HG) interp_cstrs_union.
+      intros [ii iu].
+      specialize (hv (to_valuation (shift_valuation v))).
+      rewrite (satisfies_interp_cstr_inv uctx.1) in hv.
+      apply wf_shift_valuation. exact ii. admit.
+      forward hv.
+
+
+
+      red.
+      Print init_constraint_of_level.
+
+      red in hv. About to_val.
+      rewrite inte
+      rewrite interp_
+      rewrite -satisfies_interp_cstr.
+      apply clauses_sem_satisfies_equiv in sat.
+
+      have hi := interp_cstr_clauses_sem.
+      red in sat.
+      apply satisfies_clauses_sem_to_Z in sat.
+      rewrite interp_univ_cstr_to_opt_val.
+      rewrite interp_univ_cstrs_nat.
       red in mc.
       setoid_rewrite interp_cstrs_clauses_sem in mc.
       specialize (mc (to_opt_val (valuation_to_Z v))).

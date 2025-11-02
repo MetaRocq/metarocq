@@ -1810,7 +1810,6 @@ End ZUnivConstraint.
     Context (v : Level.t -> Z).
     Context (v' : Level.t -> nat).
     Context (hv : forall l, v l = Z.of_nat (v' l)).
-Print interp_z_cstr.
 
     Lemma interp_nes_equiv u : interp_nes v (to_atoms u) = Z.of_nat (Universe.interp_nes v' u).
     Proof.
