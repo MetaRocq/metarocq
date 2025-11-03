@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         coq_version:
-          - 'dev'
+          - '9.1.0'
         ocaml_version:
           - '4.14-flambda'
         target: [ local, opam ]
