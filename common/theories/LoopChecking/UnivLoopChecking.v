@@ -112,7 +112,7 @@ End LevelExprZSet.
 Module LevelExprZSetFacts := WFactsOn LevelExprZ LevelExprZSet.
 Module LevelExprZSetProp := MSetProperties.OrdProperties LevelExprZSet.
 
-Module LS <: LevelSets.
+Module LS (* <: LevelSets *).
   Module Level := MoreLevel.
   Module LevelSet := LevelSet.
   Module LevelExpr := LevelExprZ.
@@ -1023,7 +1023,11 @@ End ZUnivConstraint.
   Definition declared_univ_cstrs_levels levels cstrs := UnivConstraintSet.For_all (declared_univ_cstr_levels levels) cstrs.
 
   Lemma satisfies_singleton v x : satisfies v (UnivConstraintSet.singleton x) <-> satisfies0 v x.
-  Proof. Admitted.
+  Proof.
+    split.
+    - move=>/(_ x) => /fwd //. ucsets.
+    - move=> sat cl. now rewrite UnivConstraintSet.singleton_spec => ->.
+  Qed.
 
   Lemma enforce_constraints_aux_spec m cstrs :
     match enforce_constraints_aux m cstrs with

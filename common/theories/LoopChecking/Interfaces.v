@@ -98,6 +98,7 @@ Bind Scope levels_scope with LevelSet.t.
 Ltac lsets := LevelSetDecide.fsetdec.
 Notation "(=_lset)" := LevelSet.Equal (at level 0) : levels_scope.
 Infix "=_lset" := LevelSet.Equal (at level 70) : levels_scope.
+Notation "(⊂_lset)" := LevelSet.Subset (at level 0) : levels_scope.
 Infix "⊂_lset" := LevelSet.Subset (at level 70) : levels_scope.
 Infix "∪" := LevelSet.union (at level 60) : levels_scope.
 Infix "=m" := LevelMap.Equal (at level 50) : levels_scope.

@@ -7,22 +7,16 @@ From Equations Require Import Equations.
 Import ConstraintType.
 Set Equations Transparent.
 
+Import UnivLoopChecking.
+
 Definition universe_model := UnivLoopChecking.univ_model.
 Definition init_model : universe_model := UnivLoopChecking.init_model.
 
 Definition uctx_invariants (uctx : ContextSet.t)
-  := UnivLoopChecking.declared_univ_cstrs_levels uctx.1 uctx.2.
+  := UnivLoopChecking.declared_univ_cstrs_levels (LevelSet.add Level.lzero uctx.1) uctx.2.
 
 Definition global_uctx_invariants (uctx : ContextSet.t)
   := ~ LevelSet.In Level.lzero uctx.1 /\ uctx_invariants uctx.
-
-Section Push.
-  Import UnivLoopChecking.
-
-Equations push_uctx (g : universe_model) (uctx : ContextSet.t) : option universe_model :=
-push_uctx g uctx with UnivLoopChecking.declare_levels g uctx.1 :=
-  | Some g' => enforce_constraints g' uctx.2
-  | None => None.
 
 Instance declared_univ_cstrs_levels_proper : Proper (LevelSet.Equal ==> UnivConstraintSet.Equal ==> iff)
   declared_univ_cstrs_levels.
@@ -30,7 +24,15 @@ Proof.
   move=> ?? e ?? e'.
   rewrite /declared_univ_cstrs_levels.
   rewrite e'. rewrite /UnivConstraintSet.For_all /declared_univ_cstr_levels.
-Admitted.
+  split; move=> ha [[l d] r] /ha. now rewrite -e. now rewrite e.
+Qed.
+
+Section Push.
+
+Equations push_uctx (g : universe_model) (uctx : ContextSet.t) : option universe_model :=
+push_uctx g uctx with UnivLoopChecking.declare_levels g uctx.1 :=
+  | Some g' => enforce_constraints g' uctx.2
+  | None => None.
 
 Definition push_uctx_precond g uctx :=
   let allcstrs := UnivConstraintSet.union uctx.2 (UnivConstraintSet.union (init_constraints_of_levels uctx.1) (constraints g)) in
@@ -76,10 +78,6 @@ End Push.
 
 Import UnivLoopChecking.
 
-Definition is_model_of_uctx m uctx :=
-  levels m =_lset LevelSet.union uctx.1 (LevelSet.singleton Universes.Level.lzero) /\
-  constraints m =_ucset UnivConstraintSet.union uctx.2 (init_constraints_of_levels uctx.1).
-
 (** ** Check of consistency ** *)
 
 Equations is_consistent (uctx : ContextSet.t) : bool :=
@@ -110,7 +108,7 @@ Proof.
     { elim h. red in ho. move=> c /ho.
       rewrite declared_univ_cstr_levels_spec. intros cdecl.
       rewrite declared_univ_cstr_levels_spec.
-      lsets. }
+      now rewrite (init_model_levels) -LevelSetProp.add_union_singleton /LS.Level.zero. }
     { elim h. destruct hc as [v hv].
       exists v. eapply satisfies_union. split => //.
       eapply satisfies_union; split => //.
@@ -155,9 +153,9 @@ Section CheckLeqProcedure.
 
 End CheckLeqProcedure.
 
-Definition model_of_uctx (m : universe_model) uctx :=
-  LevelSet.Equal (levels m) (LevelSet.add Level.lzero uctx.1) /\
-  UnivConstraintSet.Equal (constraints m) (UnivConstraintSet.union (init_constraints_of_levels uctx.1) uctx.2).
+Definition model_of_uctx m uctx :=
+  levels m =_lset LevelSet.union uctx.1 (LevelSet.singleton Universes.Level.lzero) /\
+  constraints m =_ucset UnivConstraintSet.union uctx.2 (init_constraints_of_levels uctx.1).
 
 Definition leq0_universe ctrs (u u' : Universe.t) :=
   forall v, satisfies v ctrs -> val v u <= val v u'.
@@ -183,31 +181,28 @@ Definition valid0_cstrs φ (c : UnivConstraintSet.t) :=
 Definition valid_cstrs {cf : checker_flags} φ (c : UnivConstraintSet.t) :=
   if check_univs then valid0_cstrs φ c else True.
 
+Lemma levelset_add_union l ls ls' : LevelSet.add l (LevelSet.union ls ls') =_lset LevelSet.union (LevelSet.add l ls) (LevelSet.add l ls').
+Proof.
+  lsets.
+Qed.
+
 (* This section: specif in term of gc_uctx *)
 Section CheckLeq.
-  Context {cf:checker_flags}.
-
   Context (m : universe_model)
           uctx (Huctx: global_uctx_invariants uctx)
           (HG : model_of_uctx m uctx).
-
-  Definition on_inl {A B : Type} (P : A -> Prop) (x : A + B) :=
-    match x with
-    | inl x0 => P x0
-    | inr _ => True
-    end.
 
   Definition level_declared l := LevelSet.In l uctx.1.
 
   Lemma level_declared_model (l : Level.t) :
     level_declared l -> LevelSet.In l (levels m).
   Proof using HG.
-    intros Hl;subst. apply HG. clear cf.
+    intros Hl;subst. apply HG.
     red in Hl; lsets.
   Qed.
 
   Definition expr_declared (e : LevelExpr.t)
-    := LevelSet.In e.1 uctx.1.
+    := LevelSet.In e.1 (LevelSet.add Level.lzero uctx.1).
 
   Definition levels_declared (u : Universe.t)
     := LevelExprSet.For_all expr_declared u.
@@ -221,13 +216,13 @@ Section CheckLeq.
   Definition checkb := check m.
 
   Definition check_spec (check: UnivConstraint.t -> bool) :=
-    forall c, declared_univ_cstr_levels uctx.1 c ->
+    forall c, declared_univ_cstr_levels (LevelSet.add Level.lzero uctx.1) c ->
     check c <-> valid0_cstr uctx.2 c.
 
   Import C (clauses_sem).
 
   Lemma declared_incl c :
-    declared_univ_cstr_levels uctx.1 c ->
+    declared_univ_cstr_levels (LevelSet.add Level.lzero uctx.1) c ->
     declared_univ_cstr_levels (levels m) c.
   Proof.
     destruct c as [[l d] r].
@@ -333,9 +328,11 @@ Section CheckLeq.
 
   Lemma wf_zero_valuation_init v :
     interp_cstrs v (init_constraints_of_levels uctx.1) ->
-    wf_zero_valuation uctx.1 v.
+    wf_zero_valuation (LevelSet.add Level.lzero uctx.1) v.
   Proof.
     intros hi l hin. unfold LS.Level.zero.
+    apply LevelSet.add_spec in hin as [->|hin].
+    { rewrite eqb_refl //. }
     change (l == Level.lzero) with (eqb l Level.lzero).
     destruct (eqb_spec l Level.lzero) => //.
     destruct LS.Level.is_global eqn:isg.
@@ -444,7 +441,7 @@ Section CheckLeq.
   Qed.
 
   Lemma uctx_subset :
-    LevelSet.Subset (univ_constraints_levels uctx.2) uctx.1.
+    LevelSet.Subset (univ_constraints_levels uctx.2) (LevelSet.add Level.lzero uctx.1).
   Proof.
     red in Huctx. destruct Huctx. red in H0. intros l hin. red in H0.
     apply univ_constraints_levels_spec in hin as [cl [hin hincl]].
@@ -465,13 +462,13 @@ Section CheckLeq.
       rewrite H0 in hv.
       forward hv.
       { apply interp_cstrs_union.
-        split; [apply satisfies_interp_cstr, satisfies_init|now apply satisfies_interp_cstr]. }
+        split; revgoals; [apply satisfies_interp_cstr, satisfies_init|now apply satisfies_interp_cstr]. }
       now apply satisfies0_interp_cstr.
     - intros v.
       rewrite (proj2 HG) interp_cstrs_union.
-      intros [ii iu].
+      intros [iu ii].
       specialize (hv (to_valuation (shift_valuation v))).
-      rewrite (satisfies_interp_cstr_inv uctx.1) in hv.
+      rewrite (satisfies_interp_cstr_inv (LevelSet.add Level.lzero uctx.1)) in hv.
       { apply wf_shift_valuation. apply wf_zero_valuation_init. exact ii. }
       apply uctx_subset.
       forward hv.
@@ -488,13 +485,16 @@ Section CheckLeq.
   Lemma fold_right_xpred0 {A} (l : list A) : fold_right (fun _ => xpred0) false l = false.
   Proof using Type. induction l; simpl; auto. Qed.
 
+  Section CheckerFlags.
+  Context {cf : checker_flags}.
+
   Definition check_leqb_universe := (check_leqb_universe_gen checkb).
   Definition check_eqb_universe := (check_eqb_universe_gen checkb).
 
   Lemma check_leqb_universe_spec_gen check
      (check_correct : check_spec check)
      (l l' : Universe.t)
-     (Hu1  : declared_univ_cstr_levels uctx.1 (l, Le, l'))
+     (Hu1  : declared_univ_cstr_levels (LevelSet.add Level.lzero uctx.1) (l, Le, l'))
     : check_leqb_universe_gen check l l' <-> valid_cstr uctx.2 (l, Le, l').
   Proof using HG Huctx.
     specialize (check_correct _ Hu1).
@@ -509,7 +509,7 @@ Section CheckLeq.
   Lemma check_eqb_universe_spec_gen check
      (check_correct : check_spec check)
      (l l' : Universe.t)
-     (Hu1  : declared_univ_cstr_levels uctx.1 (l, Eq, l'))
+     (Hu1  : declared_univ_cstr_levels (LevelSet.add Level.lzero uctx.1) (l, Eq, l'))
     : check_eqb_universe_gen check l l' <-> valid_cstr uctx.2 (l, Eq, l').
   Proof using HG Huctx.
     specialize (check_correct _ Hu1).
@@ -548,7 +548,7 @@ Section CheckLeq.
   (* Let levels_declared_sort (s : Sort.t) :=
     Sort.on_sort gc_levels_declared True s. *)
 
-  Lemma levels_declared_uctx u : levels_declared u -> LevelSet.Subset (Universe.levels u) uctx.1.
+  Lemma levels_declared_uctx u : levels_declared u -> LevelSet.Subset (Universe.levels u) (LevelSet.add Level.lzero uctx.1).
   Proof.
     move=> hu l. hnf in hu.
     rewrite Universe.levels_spec.
@@ -592,6 +592,27 @@ Section CheckLeq.
 
   Definition check_eqb_sort_spec := check_eqb_sort_spec_gen _ checkb_spec.
 
+  Lemma check_constraints_spec_gen checkb
+    (checkb_correct : check_spec checkb) ctrs
+    : global_uctx_invariants (uctx.1, ctrs) ->
+      check_constraints_gen checkb ctrs <-> valid_constraints uctx.2 ctrs.
+  Proof using Type.
+    unfold check_constraints_gen, valid_constraints.
+    destruct check_univs => //=.
+    intros inv. rewrite [is_true _]UnivConstraintSet.for_all_spec.
+    split.
+    - move=> ha c sat cstr /[dup] hin /ha.
+      move: (checkb_correct cstr) => /fwd.
+      { now apply inv. }
+      now move=> [hl hr] /hl /(_ c sat).
+    - move=> ha cstr /[dup] hin /ha.
+      move: (checkb_correct cstr) => /fwd.
+      { now apply inv. }
+      move=> [hl hr]; apply hr.
+  Qed.
+
+  Definition check_constraints_spec := check_constraints_spec_gen _ checkb_spec.
+  End CheckerFlags.
 End CheckLeq.
 
 (*
@@ -649,19 +670,168 @@ Qed.
 Lemma init_constraints_of_levels_union ls ls' :
   UnivConstraintSet.Equal (init_constraints_of_levels (LevelSet.union ls ls'))
     (UnivConstraintSet.union (init_constraints_of_levels ls) (init_constraints_of_levels ls')).
-Proof. Admitted.
+Proof.
+  intros c.
+  split.
+  - move/init_constraints_of_levels_spec_inv => -[] l.
+    rewrite LevelSet.union_spec UnivConstraintSet.union_spec.
+    move=> [[hin|hin] /init_constraints_of_levels_spec]; firstorder.
+  - rewrite UnivConstraintSet.union_spec => -[] /init_constraints_of_levels_spec_inv -[] l [] hin he;
+    eapply (init_constraints_of_levels_spec _ l); tea; lsets.
+Qed.
 
-Lemma is_graph_of_uctx_add `{cf : checker_flags} [m uctx uctx' m'] :
+Lemma push_uctx_model `{cf : checker_flags} [m uctx uctx' m'] :
   push_uctx m uctx' = Some m' ->
-  is_model_of_uctx m uctx ->
-  is_model_of_uctx m' (ContextSet.union uctx' uctx).
+  model_of_uctx m uctx ->
+  model_of_uctx m' (ContextSet.union uctx' uctx).
 Proof.
   move=> he; have := push_uctx_spec m uctx'. rewrite he.
-  move=> [hlev hcstrs]. unfold is_model_of_uctx.
+  move=> [hlev hcstrs]. unfold model_of_uctx.
   move=> [hl hr]. rewrite hlev hl.
   rewrite LevelSetProp.union_assoc. split. lsets.
   rewrite hcstrs hr.
   rewrite init_constraints_of_levels_union /ContextSet.levels.
   rewrite UnivConstraintSetProp.union_assoc /ContextSet.constraints.
   ucsets.
+Qed.
+
+Lemma is_model_init : model_of_uctx init_model (LevelSet.singleton Level.lzero, UnivConstraintSet.empty).
+Proof.
+  red; cbn. split; unfold LS.Level.zero.
+  - intros l. lsets.
+  - ucsets.
+Qed.
+
+Lemma init_constraints_of_levels_None ls :
+  (forall l, LevelSet.In l ls -> init_constraint_of_level l = None) <-> UnivConstraintSet.Empty (init_constraints_of_levels ls).
+Proof.
+  unfold init_constraints_of_levels.
+  apply (LevelSetProp.fold_rec).
+  - intros. split => //.
+    intros hl e hin. ucsets.
+    intros _. lsets.
+  - intros. split => //.
+    * move=>/[dup] hin' /(_ x) => /fwd. apply H1. now left.
+      intros ->. rewrite -H2.
+      intros. apply hin'. apply H1; now right.
+    * destruct init_constraint_of_level eqn:hi => //.
+      intros he. specialize (he p). elim he; ucsets.
+      move=> ha l /H1 -[]. now intros; subst.
+      rewrite -H2 in ha. apply ha.
+Qed.
+
+Lemma init_constraints_of_levels_singleton_zero : init_constraints_of_levels (LevelSet.singleton Level.lzero) =_ucset UnivConstraintSet.empty.
+Proof.
+  have hi := init_constraints_of_levels_None (LevelSet.singleton Level.lzero).
+  destruct hi.
+  forward H. intros l; rewrite LevelSet.singleton_spec. intros -> => //.
+  ucsets.
+Qed.
+
+Lemma push_uctx_init_model_sat `{cf : checker_flags} [m uctx] :
+  push_uctx init_model uctx = Some m -> model_of_uctx m uctx.
+Proof.
+  move/push_uctx_model/(_ is_model_init).
+  rewrite /model_of_uctx. cbn -[init_constraints_of_levels].
+  intros [hl hc].
+  split. rewrite hl. lsets.
+  rewrite hc. cbn -[init_constraints_of_levels].
+  rewrite /ContextSet.constraints init_constraints_of_levels_union /ContextSet.levels.
+  rewrite init_constraints_of_levels_singleton_zero. ucsets.
+Qed.
+
+Lemma push_uctx_init_model_unsat `{cf : checker_flags} [uctx] :
+  global_uctx_invariants uctx ->
+  push_uctx init_model uctx = None <->
+  let allcstrs := (UnivConstraintSet.union uctx.2 (init_constraints_of_levels uctx.1)) in
+  (~ exists v, satisfies v allcstrs).
+Proof.
+  move=> inv.
+  set cstrs := UnivConstraintSet.union _ _.
+  cbn; destruct push_uctx eqn:hp.
+  - destruct (push_uctx_init_model_sat hp) as [hl hc]. split => //.
+    elim. exists (to_valuation (model_val u)).
+    destruct inv as [nz hd]. red in hd.
+    subst cstrs. rewrite -hc.
+    eapply model_satisfies.
+  - split => //. intros _ [v sat].
+    have := push_uctx_spec init_model uctx.
+    cbn. rewrite hp.
+    intros [[l [hin hsing]]|[ndecl|nsat]].
+    * eapply LevelSet.singleton_spec in hsing. subst l.
+      destruct inv => //.
+    * destruct inv. red in H0.
+      rewrite LevelSetProp.add_union_singleton in H0. contradiction.
+    * apply nsat. exists v.
+      rewrite -UnivConstraintSetProp.union_assoc. eapply satisfies_union. split => //.
+      intros c; ucsets.
+Qed.
+
+Instance levelset_sub : RewriteRelation LevelSet.Subset := {}.
+
+Instance declared_univ_cstr_levels_subset :
+  Morphisms.Proper (LevelSet.Subset ==> Logic.eq ==> Basics.impl) declared_univ_cstr_levels.
+Proof.
+  intros ?? eq ? [[l d] r] -> hd.
+  unfold declared_univ_cstr_levels in *.
+  destruct hd as [h h']. now rewrite -eq.
+Qed.
+
+Instance declared_univ_cstrs_levels_subset :
+  Morphisms.Proper (LevelSet.Subset ==> UnivConstraintSet.Equal ==> Basics.impl) declared_univ_cstrs_levels.
+Proof.
+  move=> ?? eq ?? eq' hi cl.
+  rewrite -eq' => /hi.
+  now rewrite -eq.
+Qed.
+
+Instance levelset_in_subset' l :
+  Morphisms.Proper (LevelSet.Subset ==> Basics.impl) (LevelSet.In l).
+Proof.
+  intros s s' hs hin. now apply hs.
+Qed.
+Instance not_impl_proper :
+  Morphisms.Proper (Basics.impl --> Basics.impl) not.
+Proof.
+  intros P Q hp hnq p. firstorder.
+Qed.
+
+Instance not_impl_proper' :
+  Morphisms.Proper (Basics.impl ==> Basics.flip Basics.impl) not.
+Proof.
+  intros P Q hp hnq p. firstorder.
+Qed.
+
+Instance union_subset_proper :
+  Proper (LevelSet.Subset ==> LevelSet.Subset ==> LevelSet.Subset) LevelSet.union.
+Proof.
+  solve_proper.
+Qed.
+
+
+
+(* Lemma push_uctx_correct m uctx :
+  global_uctx_invariants uctx ->
+  let allcstrs := (UnivConstraintSet.union uctx.2 (UnivConstraintSet.union (init_constraints_of_levels uctx.1) (constraints m))) in
+  { ~ exists v, satisfies v allcstrs } +
+  { exists m', push_uctx m uctx = Some m' /\ model_of_uctx m' (LevelSet.union (levels m) uctx.1, allcstrs) }.
+Proof.
+  intros hp. have := push_uctx_spec m uctx.
+  set allcstrs := UnivConstraintSet.union _ _.
+  cbn. destruct push_uctx.
+  - move=> -[] hl hc. right. exists u. split => //.
+    red. rewrite hc. split. cbn. rewrite hl.
+    rewrite levelset_add_union.
+ *)
+
+Import Clauses.FLS.
+Open Scope levels_scope.
+
+Lemma global_uctx_invariants_union_or lvls1 lvls2 cs
+  : declared_univ_cstrs_levels lvls1 cs \/ declared_univ_cstrs_levels lvls2 cs
+    -> declared_univ_cstrs_levels (LevelSet.union lvls1 lvls2) cs.
+Proof.
+  have hl : lvls1 ⊂_lset LevelSet.union lvls1 lvls2 by lsets.
+  have hr : lvls2 ⊂_lset LevelSet.union lvls1 lvls2 by lsets.
+  intros [hd|hd]; [now rewrite -hl|now rewrite -hr].
 Qed.

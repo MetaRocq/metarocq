@@ -2,7 +2,6 @@
 
 theories/Primitive.v
 theories/UnivConstraintType.v
-# theories/uGraph.v
 theories/config.v
 theories/Kernames.v
 theories/Universes.v
@@ -26,3 +25,4 @@ theories/LoopChecking/Models.v
 theories/LoopChecking/PartialLoopChecking.v
 theories/LoopChecking/Deciders.v
 theories/LoopChecking/UnivLoopChecking.v
+theories/uGraph.v

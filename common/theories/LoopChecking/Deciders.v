@@ -3307,7 +3307,7 @@ Proof.
   clear H Heqcall. intros b [= <-].
    apply check_clause_wf_spec.
 Qed.
-Print reflect.
+
 Inductive reflect_opt (PN PS : Prop) : option bool -> Prop :=
   | ReflectNone : PN -> reflect_opt PN PS None
   | ReflectSomeT : PS -> reflect_opt PN PS (Some true)

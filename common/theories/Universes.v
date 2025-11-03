@@ -1364,9 +1364,19 @@ Qed. *)
 
   (** **** Lemmas about eq and leq **** *)
 
+  Global Instance eq0_universe_refl φ : Reflexive (eq0_universe φ).
+  Proof using Type.
+    intros u v. reflexivity.
+  Qed.
+
   Global Instance eq_universe_refl φ : Reflexive (eq_universe φ).
   Proof using Type.
     intros u; unfold_univ_rel.
+  Qed.
+
+  Global Instance leq0_universe_refl φ : Reflexive (leq0_universe φ).
+  Proof using Type.
+    intros u v; reflexivity.
   Qed.
 
   Global Instance leq_universe_refl φ : Reflexive (leq_universe φ).
@@ -1374,9 +1384,21 @@ Qed. *)
     intros u; unfold_univ_rel.
   Qed.
 
+  Global Instance eq0_universe_sym φ : Symmetric (eq0_universe φ).
+  Proof using Type.
+    intros u u' H; unfold_univ_rel0.
+    lia.
+  Qed.
+
   Global Instance eq_universe_sym φ : Symmetric (eq_universe φ).
   Proof using Type.
     intros u u' H; unfold_univ_rel.
+    lia.
+  Qed.
+
+  Global Instance eq0_universe_trans φ : Transitive (eq0_universe φ).
+  Proof using Type.
+    intros u u' u'' H1 H2; unfold_univ_rel0.
     lia.
   Qed.
 
@@ -1386,19 +1408,50 @@ Qed. *)
     lia.
   Qed.
 
+  Global Instance leq0_universe_trans φ : Transitive (leq0_universe φ).
+  Proof using Type.
+    intros u u' u'' H1 H2; unfold_univ_rel0.
+    lia.
+  Qed.
+
   Global Instance leq_universe_trans φ : Transitive (leq_universe φ).
   Proof using Type.
     intros u u' u'' H1 H2; unfold_univ_rel.
     lia.
   Qed.
 
+  Global Instance leq0_universe_preorder ϕ : PreOrder (leq0_universe ϕ) := {}.
+
+  Global Instance eq0_universe_equivalence ϕ : Equivalence (eq0_universe ϕ) := {}.
+
+  Lemma eq0_universe_leq0_universe φ u u' :
+    eq0_universe φ u u' <-> leq0_universe φ u u' /\ leq0_universe φ u' u.
+  Proof using Type.
+    split.
+    - intros H. split; unfold_univ_rel0; lia.
+    - intros [H1 H2]; unfold_univ_rel0; lia.
+  Qed.
+
+  Global Instance leq0_universe_partial_order ϕ : PartialOrder (eq0_universe ϕ) (leq0_universe ϕ).
+  Proof.
+    intros x; cbn. apply eq0_universe_leq0_universe.
+  Qed.
+
+  Global Instance leq_universe_preorder ϕ : PreOrder (leq_universe ϕ) := {}.
+
+  Global Instance eq_universe_equivalence ϕ : Equivalence (eq_universe ϕ) := {}.
+
   Lemma eq_universe_leq_universe φ u u' :
     eq_universe φ u u' <-> leq_universe φ u u' /\ leq_universe φ u' u.
   Proof using Type.
-    unfold_univ_rel => //.
-    split.
-    - intros H. split; unfold_univ_rel0; lia.
-    - intros [H1 H2]. unfold_univ_rel0; lia.
+    unfold eq_universe, leq_universe.
+    destruct check_univs => //.
+    apply eq0_universe_leq0_universe.
+  Qed.
+
+  Global Instance leq_universe_partial_order ϕ : PartialOrder (eq_universe ϕ) (leq_universe ϕ).
+  Proof.
+    intros x; cbn. apply eq_universe_leq_universe.
   Qed.
 
   Lemma leq_universe_sup_l φ u1 u2 : leq_universe φ u1 (Universe.sup u1 u2).
@@ -1418,10 +1471,6 @@ Qed. *)
   Proof using Type.
     intros u u'. apply eq_universe_leq_universe.
   Qed.
-
-  Global Instance eq_universe_equivalence φ : Equivalence (eq_universe φ) := Build_Equivalence _ _ _ _.
-
-  Global Instance leq_universe_preorder φ : PreOrder (leq_universe φ) := Build_PreOrder _ _ _.
 
   Global Instance lt_universe_irrefl {c: check_univs} φ (H: consistent φ) : Irreflexive (lt_universe φ).
   Proof using Type.
@@ -1450,13 +1499,6 @@ Qed. *)
 
   Global Instance leq_universe_antisym φ : Antisymmetric _ (eq_universe φ) (leq_universe φ).
   Proof using Type. intros t u tu ut. now apply eq_universe_leq_universe. Qed.
-
-  Global Instance leq_universe_partial_order φ
-    : PartialOrder (eq_universe φ) (leq_universe φ).
-  Proof.
-    intros x y; split; apply eq_universe_leq_universe.
-  Defined.
-
 
   Global Instance compare_universe_subrel φ pb : subrelation (eq_universe φ) (compare_universe φ pb).
   Proof using Type.
