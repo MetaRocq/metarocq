@@ -37,11 +37,11 @@
   # The name of the bundle should finish with the coq version to use
   # cachedMake.sh
   bundles."rocq-9.1" = {
-    rocqPackages.rocq-core.override.version = "9.1.0";
-    rocqPackages.stdlib.override.version = "9.0.0";
-    coqPackages.equations.override.version = "1.3.1-9.1";
-    coqPackages.coq.override.version = "9.1.0";
-    coqPackages.stdlib.override.version = "9.0.0";
+    rocqPackages.rocq-core.override.version = "9.1";
+    # rocqPackages.stdlib.override.version = "9.0.0";
+    coqPackages.equations.override.version = "1.3.1+9.1";
+    coqPackages.coq.override.version = "9.1";
+    # coqPackages.stdlib.override.version = "9.0.0";
 
     push-branches = ["9.1"];
   };
