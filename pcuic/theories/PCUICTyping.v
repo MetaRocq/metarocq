@@ -34,7 +34,7 @@ Fixpoint isArity T :=
   | _ => false
   end.
 
-Definition type_of_constructor mdecl (cdecl : constructor_body) (c : inductive * nat) (u : list Level.t) :=
+Definition type_of_constructor mdecl (cdecl : constructor_body) (c : inductive * nat) (u : Instance.t) :=
   let mind := inductive_mind (fst c) in
   subst0 (inds mind u mdecl.(ind_bodies)) (subst_instance u (cstr_type cdecl)).
 
@@ -181,8 +181,8 @@ Variant primitive_typing_hyps `{checker_flags}
 | prim_float_hyps f : primitive_typing_hyps typing Σ Γ (primFloat; primFloatModel f)
 | prim_string_hyps s : primitive_typing_hyps typing Σ Γ (primString; primStringModel s)
 | prim_array_hyps a
-  (wfl : wf_universe Σ (Universe.of_level a.(array_level)))
-  (hty : typing Σ Γ a.(array_type) (tSort (sType (Universe.of_level a.(array_level)))))
+  (wfl : wf_universe Σ a.(array_universe))
+  (hty : typing Σ Γ a.(array_type) (tSort (sType a.(array_universe))))
   (hdef : typing Σ Γ a.(array_default) a.(array_type))
   (hvalue : All (fun x => typing Σ Γ x a.(array_type)) a.(array_value)) :
   primitive_typing_hyps typing Σ Γ (primArray; primArrayModel a).
@@ -192,7 +192,7 @@ Equations prim_type (p : prim_val term) (cst : kername) : term :=
 prim_type (primInt; _) cst := tConst cst [];
 prim_type (primFloat; _) cst := tConst cst [];
 prim_type (primString; _) cst := tConst cst [];
-prim_type (primArray; primArrayModel a) cst := tApp (tConst cst [a.(array_level)]) a.(array_type).
+prim_type (primArray; primArrayModel a) cst := tApp (tConst cst [a.(array_universe)]) a.(array_type).
 Transparent prim_type.
 
 Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term -> term -> Type :=

@@ -3273,10 +3273,10 @@ Equations (noeqns) isconv_array_values_aux
       hx aux pre1 pre2 (t1 :: post1) (t2 :: post2) eq1 eq2
       with isconv_red_raw
            Conv
-           t1 (PrimArray_val a1.(array_level)
+           t1 (PrimArray_val a1.(array_universe)
                 pre1 post1
                 a1.(array_default) a1.(array_type) :: π1)
-           t2 (PrimArray_val a2.(array_level)
+           t2 (PrimArray_val a2.(array_universe)
                 pre2 post2
                 a2.(array_default) a2.(array_type) :: π2) aux := {
 
@@ -3590,12 +3590,12 @@ Equations (noeqns) isconv_array_values_aux
           { | @exist true eqf := yes
             | @exist false neqf := no (DistinctPrimValues (Γ ,,, stack_context π1) p (Γ ,,, stack_context π2) p') }
         | (primArray; primArrayModel a) | (primArray; primArrayModel a')
-          with inspect (abstract_env_compare_universe X Conv (Universe.of_level (array_level a)) (Universe.of_level (array_level a'))) :=
+          with inspect (abstract_env_compare_universe X Conv (Universe.of_level (array_universe a)) (Universe.of_level (array_universe a'))) :=
           { | @exist false neql := no (ArrayNotConvertibleLevels (Γ ,,, stack_context π1) a (Γ ,,, stack_context π2) a')
-            | @exist true eql with isconv_red_raw Conv (array_type a) (PrimArray_ty a.(array_level) a.(array_value) a.(array_default) :: π1)
-                (array_type a') (PrimArray_ty a'.(array_level) a'.(array_value) a'.(array_default) :: π2) aux := {
-              | Success convdiscrty with isconv_red_raw Conv (array_default a) (PrimArray_def a.(array_level) a.(array_value) a.(array_type) :: π1)
-                  (array_default a') (PrimArray_def a'.(array_level) a'.(array_value) a'.(array_type) :: π2) aux := {
+            | @exist true eql with isconv_red_raw Conv (array_type a) (PrimArray_ty a.(array_universe) a.(array_value) a.(array_default) :: π1)
+                (array_type a') (PrimArray_ty a'.(array_universe) a'.(array_value) a'.(array_default) :: π2) aux := {
+              | Success convdiscrty with isconv_red_raw Conv (array_default a) (PrimArray_def a.(array_universe) a.(array_value) a.(array_type) :: π1)
+                  (array_default a') (PrimArray_def a'.(array_universe) a'.(array_value) a'.(array_type) :: π2) aux := {
                 | Success convdiscrdef with isconv_array_values Γ a π1 _ a' π2 _ hx aux := {
                   | Success convdiscrval := yes
                   | Error e h := no (ArrayNotConvertibleValues (Γ ,,, stack_context π1) a (Γ ,,, stack_context π2) a' e)

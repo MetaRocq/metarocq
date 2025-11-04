@@ -79,7 +79,7 @@ Notation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
 Fixpoint eqb_term_upto_univ_napp
   (cmpu : conv_pb -> Universe.t -> Universe.t -> bool)
   (cmps : conv_pb -> sort -> sort -> bool)
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp (u v : term) : bool :=
   match u, v with
   | tRel n, tRel m =>
@@ -450,7 +450,7 @@ Qed.
 Transparent eqb_prim_val eqb_prim_model.
 
 Lemma reflect_eq_term_upto_univ Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
@@ -531,7 +531,7 @@ Proof.
 Qed.
 
 Lemma eqb_term_upto_univ_impl Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
@@ -567,7 +567,7 @@ Proof.
 Defined.
 
 Definition eqb_term_upto_univ_proper Σ cmpu cmpu' cmps cmps'
-  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp (t u : term) :
   (forall pb u u', wf_universe Σ u -> wf_universe Σ u' -> cmpu pb u u' = cmpu' pb u u') ->
   (forall pb s s', wf_sort Σ s -> wf_sort Σ s' -> cmps pb s s' = cmps' pb s s') ->
@@ -720,7 +720,7 @@ Proof. case: eqb_annot_reflect => //. Qed.
 
 Section reflectContext.
   Context Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb
   (hu : forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u'))
   (hu' : forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u'))
@@ -765,7 +765,7 @@ Section reflectContext.
 End reflectContext.
 
 Definition eqb_ctx_gen_proper Σ cmpu cmpu' cmps cmps'
-  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb :
   (forall pb u u', wf_universe Σ u -> wf_universe Σ u' -> cmpu pb u u' = cmpu' pb u u') ->
   (forall pb s s', wf_sort Σ s -> wf_sort Σ s' -> cmps pb s s' = cmps' pb s s') ->

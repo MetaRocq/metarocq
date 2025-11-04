@@ -3,24 +3,13 @@ From Equations Require Import Equations.
 From MetaRocq.Utils Require Import MRList MROption MRUtils.
 From MetaRocq.Common Require Import uGraph.
 From MetaRocq.Common Require Import Universes.
-(* Import wGraph. *)
+
 Import UnivLoopChecking.UnivLoopChecking.
+Import UnivConstraintType.ConstraintType.
+Import Clauses.FLS.
 
 Definition levels_of_cs (cs : UnivConstraintSet.t) : LevelSet.t :=
   LevelSet.remove Level.lzero (univ_constraints_levels cs).
-
-Lemma levelset_add_remove {l s} : LevelSet.add l (LevelSet.remove l s) =_lset LevelSet.add l s.
-Proof.
-  intros l'. split. lsets.
-  destruct (Classes.eq_dec l l'). subst.
-  - move/LevelSet.add_spec => -[heq|hin] //; lsets.
-  - move/LevelSet.add_spec => -[heq|hin] //; lsets.
-Qed.
-
-Lemma levelset_subset_add {ls ls' l} : LevelSet.Subset ls ls' -> LevelSet.Subset ls (LevelSet.add l ls').
-Proof.
-  intros l' hin. lsets.
-Qed.
 
 Lemma levels_of_cs_spec cstr (lvls := levels_of_cs cstr)
   : uGraph.global_uctx_invariants (lvls, cstr).
@@ -134,9 +123,6 @@ Proof.
     admit.
   - admit.
 Admitted.
-
-Import Clauses.FLS.
-Import UnivConstraintType.ConstraintType.
 
 Lemma declared_univ_cstrs_levels_spec cstrs : declared_univ_cstrs_levels (univ_constraints_levels cstrs) cstrs.
 Proof.

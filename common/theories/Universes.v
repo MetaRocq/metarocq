@@ -233,6 +233,20 @@ Section LevelSetMoreFacts.
   Proof.
     intros x; rewrite LevelSet.union_spec. lsets.
   Qed.
+
+  Lemma levelset_add_remove {l s} : LevelSet.add l (LevelSet.remove l s) =_lset LevelSet.add l s.
+  Proof.
+    intros l'. split. lsets.
+    destruct (Classes.eq_dec l l'). subst.
+    - move/LevelSet.add_spec => -[heq|hin] //; lsets.
+    - move/LevelSet.add_spec => -[heq|hin] //; lsets.
+  Qed.
+
+  Lemma levelset_subset_add {ls ls' l} : LevelSet.Subset ls ls' -> LevelSet.Subset ls (LevelSet.add l ls').
+  Proof.
+    intros l' hin. lsets.
+  Qed.
+
 End LevelSetMoreFacts.
 
 (* prop level is Prop or SProp *)
@@ -1264,27 +1278,40 @@ Section Univ.
     rewrite Universe.map_spec. reflexivity.
   Qed.
 
-  Lemma val_succ v l : val v (LevelExpr.succ l) = val v l + 1.
+  Lemma spec_plus l n x :
+    LevelExprSet.In x (Universe.plus n l) <->
+    exists x', LevelExprSet.In x' l /\ x = LevelExpr.add n x'.
+  Proof using Type.
+    rewrite Universe.map_spec. reflexivity.
+  Qed.
+
+  Lemma val_levelexpr_succ v l : val v (LevelExpr.succ l) = val v l + 1.
   Proof using Type.
     destruct l as []; simpl. cbn. lia.
   Qed.
 
-  Lemma val_map_succ v l : val v (Universe.succ l) = val v l + 1.
+  Lemma val_levelexpr_plus v n l : val v (LevelExpr.add n l) = val v l + n.
   Proof using Type.
-    pose proof (spec_map_succ l).
-    set (n := Universe.succ l) in *.
+    destruct l as []; simpl. cbn. lia.
+  Qed.
+
+  Lemma val_plus v n l : val v (Universe.plus n l) = val v l + n.
+  Proof using Type.
+    pose proof (spec_plus l n).
+    set (un := Universe.plus n l) in *.
     destruct (val_In_max l v) as [max [inmax eqv]]. rewrite <-eqv.
     rewrite val_caract. split.
     intros.
     specialize (proj1 (H _) H0) as [x' [inx' eq]]. subst e.
-    rewrite val_succ. eapply (val_In_le _ v) in inx'. rewrite <- eqv in inx'.
+    rewrite val_levelexpr_plus. eapply (val_In_le _ v) in inx'. rewrite <- eqv in inx'.
     simpl in *. unfold LevelExprSet.elt, LevelExpr.t in *. lia.
-    exists (LevelExpr.succ max). split. apply H.
+    exists (LevelExpr.add n max). split. apply H.
     exists max; split; auto.
-    now rewrite val_succ.
+    now rewrite val_levelexpr_plus.
   Qed.
 
-
+  Lemma val_succ v l : val v (Universe.succ l) = val v l + 1.
+  Proof. by rewrite (val_plus v 1). Qed.
 
   (* Lemma consistent_extension_on_union X cstrs
   (wfX : forall c, UCS.In c X.2 -> LS.Subset (Universe.levels c.1.1) X.1 /\ LS.Subset (Universe.levels c.2) X.1) :
@@ -1486,7 +1513,7 @@ Qed. *)
     intro u. unfold complement.
     unfold_univ_rel => //.
     destruct H as [v Hv]; intros nH. specialize (nH v Hv).
-    rewrite val_map_succ in nH. lia.
+    rewrite val_succ in nH. lia.
   Qed.
 
   Global Instance lt_universe_trans {c: check_univs} φ : Transitive (lt_universe φ).
@@ -1496,7 +1523,7 @@ Qed. *)
     move => v1 v2 v Hv.
     specialize (v1 v Hv).
     specialize (v2 v Hv).
-    rewrite !val_map_succ in v1, v2 |- *. lia.
+    rewrite !val_succ in v1, v2 |- *. lia.
   Qed.
 
   Global Instance lt_universe_str_order {c: check_univs} φ (H: consistent φ) : StrictOrder (lt_universe φ).
@@ -2499,7 +2526,7 @@ Section no_prop_leq_type.
   Proof using Type.
     destruct s as [| | u1], s' as [| | u1']; cbnr; try absurd;
     intros H; unfold_univ_rel;
-    rewrite !val_map_succ; lia.
+    rewrite !val_succ; lia.
   Qed.
 
   Lemma leq_sort_prop_no_prop_sub_type s1 s2 :
@@ -2579,7 +2606,7 @@ Definition subst_instance_level_expr (u : Instance.t) (l : LevelExpr.t) : Univer
   | (Level.lvar n, k) =>
     match nth_error u n with
     | Some l => Universe.plus k l
-    | None => Universe.zero
+    | None => Universe.plus k Universe.zero
     end
   end.
 

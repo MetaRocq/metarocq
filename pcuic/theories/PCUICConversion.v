@@ -850,7 +850,7 @@ Section ConvCongruences.
     (∑ s, p = (primString; primStringModel s) /\ T = tPrim p) +
     ∑ a a',
       [× p = (primArray; primArrayModel a), T = tPrim (primArray; primArrayModel a'),
-        a.(array_level) = a'.(array_level),
+        a.(array_universe) = a'.(array_universe),
         Σ ;;; Γ ⊢ a.(array_default) ⇝ a'.(array_default),
         Σ ;;; Γ ⊢ a.(array_type) ⇝ a'.(array_type) &
         All2 (fun x y => Σ ;;; Γ ⊢ x ⇝ y) a.(array_value) a'.(array_value)].
@@ -3909,8 +3909,8 @@ Proof.
   eapply ws_cumul_pb_alt_closed in w as [def [def' []]].
   eapply ws_cumul_pb_alt_closed in w0 as [ty [ty' []]].
   eapply ws_cumul_pb_alt.
-  exists (tPrim (primArray; primArrayModel {| array_level := array_level a; array_default := def; array_type := ty; array_value := args0 |})).
-  exists (tPrim (primArray; primArrayModel {| array_level := array_level a'; array_default := def'; array_type := ty'; array_value := args0' |})).
+  exists (tPrim (primArray; primArrayModel {| array_universe := array_universe a; array_default := def; array_type := ty; array_value := args0 |})).
+  exists (tPrim (primArray; primArrayModel {| array_universe := array_universe a'; array_default := def'; array_type := ty'; array_value := args0' |})).
   split; eauto; pcuic; cbn; rtoProp; intuition eauto; fvs.
   + eapply closed_red_terms_open_left in Hargs0. solve_all.
   + eapply closed_red_terms_open_left in Hargs0'. solve_all.

@@ -104,18 +104,25 @@ Section DeclaredInv.
 
 End DeclaredInv.
 
+From MetaRocq.Common Require Import UniversesDec.
+
+Definition clean_uctx (uctx : ContextSet.t) :=
+  (LevelSet.remove Level.lzero uctx.1, uctx.2).
+
 Definition wf_global_uctx_invariants {cf:checker_flags} {P} Σ :
   on_global_env cumulSpec0 P Σ ->
-  global_uctx_invariants (global_uctx Σ).
+  global_uctx_invariants (clean_uctx (global_uctx Σ)).
 Proof.
  intros HΣ. split.
- - cbn. apply global_levels_InSet.
+ - cbn. lsets.
  - unfold global_uctx.
    simpl. intros [[l ct] l'] Hctr. simpl in *.
+   rewrite levelset_add_remove.
    induction Σ in HΣ, l, ct, l', Hctr |- *.
    destruct HΣ. cbn in *.
    destruct o as [decls cu].
-   now specialize (decls _ Hctr).
+   specialize (decls _ Hctr).
+   split; apply levelset_subset_add, decls.
 Qed.
 
 Lemma LevelSet_in_union_global Σ l ls :
@@ -129,10 +136,10 @@ Qed.
 
 Definition wf_ext_global_uctx_invariants {cf:checker_flags} {P} Σ :
   on_global_env_ext cumulSpec0 P Σ ->
-  global_uctx_invariants (global_ext_uctx Σ).
+  global_uctx_invariants (clean_uctx (global_ext_uctx Σ)).
 Proof.
  intros HΣ. split.
- - apply global_ext_levels_InSet.
+ - cbn. lsets.
  - destruct Σ as [Σ φ]. destruct HΣ as [HΣ Hφ].
    destruct (wf_global_uctx_invariants _ HΣ) as [_ XX].
    unfold global_ext_uctx, global_ext_levels, global_ext_constraints.
@@ -140,8 +147,13 @@ Proof.
    destruct Hctr as [Hctr|Hctr].
    + destruct Hφ as [_ [HH _]]. specialize (HH _ Hctr). cbn in HH.
      intuition auto using LevelSet_in_union_global.
-   + specialize (XX _ Hctr).
-     split; apply LevelSet.union_spec; right; apply XX.
+     rewrite levelset_add_remove. lsets.
+     rewrite levelset_add_remove. lsets.
+   + specialize (XX _ Hctr). cbn in XX.
+     rewrite !levelset_add_remove in XX. destruct XX as [Xl Xr].
+     rewrite !levelset_add_remove.
+     rewrite levelset_add_union.
+     split; lsets.
 Qed.
 
 Lemma wf_consistent {cf:checker_flags} Σ {P} :

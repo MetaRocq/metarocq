@@ -507,7 +507,7 @@ Section Rho.
     let ty := rho Γ a.(array_type) _ in
     let value := map_terms rho Γ a.(array_value) _ in
     let a' := {|
-        array_level := array_level a;
+        array_universe := array_universe a;
         array_type := ty;
         array_default := default;
         array_value := value

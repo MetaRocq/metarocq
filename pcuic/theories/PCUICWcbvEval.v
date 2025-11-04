@@ -209,8 +209,8 @@ Section Wcbv.
     | evalPrimArray  u v def ty v' def'
       (ev : All2 eval v v')
       (ed : eval def def') :
-      let a := {| array_level := u; array_default := def; array_value := v; array_type := ty |} in
-      let a' := {| array_level := u; array_default := def'; array_value := v'; array_type := ty |} in
+      let a := {| array_universe := u; array_default := def; array_value := v; array_type := ty |} in
+      let a' := {| array_universe := u; array_default := def'; array_value := v'; array_type := ty |} in
       eval_primitive eval (prim_array a) (prim_array a').
   Derive Signature for eval_primitive.
 
@@ -222,8 +222,8 @@ Section Wcbv.
     (ev : All2 eval v v')
     (ed : eval def def') :
     All2_dep P ev -> P _ _ ed ->
-    let a := {| array_level := u; array_default := def; array_value := v; array_type := ty |} in
-    let a' := {| array_level := u; array_default := def'; array_value := v'; array_type := ty |} in
+    let a := {| array_universe := u; array_default := def; array_value := v; array_type := ty |} in
+    let a' := {| array_universe := u; array_default := def'; array_value := v'; array_type := ty |} in
     eval_primitive_ind eval P (prim_array a) (prim_array a') (evalPrimArray eval u v def ty v' def' ev ed).
   Derive Signature for eval_primitive_ind.
 

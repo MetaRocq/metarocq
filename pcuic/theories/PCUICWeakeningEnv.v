@@ -37,7 +37,7 @@ Ltac rename_hyp h ht ::= my_rename_hyp h ht.
 
 (** ** Constraints *)
 
-Lemma weakening_env_global_ext_levels Σ Σ' φ (H : extends Σ Σ') l
+Lemma weakening_env_global_ext_level Σ Σ' φ (H : extends Σ Σ') l
   : LevelSet.In l (global_ext_levels (Σ, φ))
     -> LevelSet.In l (global_ext_levels (Σ', φ)).
 Proof.
@@ -49,14 +49,29 @@ Proof.
   apply LevelSet.union_spec in Hl.
   apply LevelSet.union_spec; intuition auto.
 Qed.
+#[global] Hint Resolve weakening_env_global_ext_level : extends.
+
+Lemma weakening_env_global_ext_levels Σ Σ' φ (H : extends Σ Σ') ls
+  : LevelSet.Subset ls (global_ext_levels (Σ, φ))
+    -> LevelSet.Subset ls (global_ext_levels (Σ', φ)).
+Proof.
+  move=> hs l /hs. now apply weakening_env_global_ext_level.
+Qed.
 #[global] Hint Resolve weakening_env_global_ext_levels : extends.
 
-Lemma weakening_env_global_ext_levels' Σ Σ' φ (H : extends Σ Σ') l
+Lemma weakening_env_global_ext_level_mem Σ Σ' φ (H : extends Σ Σ') l
   : LevelSet.mem l (global_ext_levels (Σ, φ))
     -> LevelSet.mem l (global_ext_levels (Σ', φ)).
 Proof.
   intro HH. apply LevelSet.mem_spec in HH.
   now eapply LevelSet.mem_spec, weakening_env_global_ext_levels.
+Qed.
+
+Lemma weakening_env_global_ext_levels_subset Σ Σ' φ (H : extends Σ Σ') l
+  : LevelSet.subset l (global_ext_levels (Σ, φ))
+    -> LevelSet.subset l (global_ext_levels (Σ', φ)).
+Proof.
+  rewrite ![is_true _]LevelSet.subset_spec. now apply weakening_env_global_ext_levels.
 Qed.
 
 Lemma weakening_env_global_ext_constraints Σ Σ' φ (H : extends Σ Σ')
@@ -165,7 +180,7 @@ Proof.
     destruct ctrs; tas.
     destruct X as (H0 & H1 & H2); repeat split; tas.
     - eapply forallb_Forall in H0; eapply forallb_Forall, Forall_impl; tea.
-      intros x ?; now eapply weakening_env_global_ext_levels'.
+      intros x ?; now eapply weakening_env_global_ext_levels_subset.
     - eapply valid_subset; tea;
       now eapply weakening_env_global_ext_constraints.
 Qed.
@@ -237,7 +252,7 @@ Lemma declared_cstr_levels_sub l l' c :
   declared_univ_cstr_levels l c -> declared_univ_cstr_levels l' c.
 Proof.
   intros sub; unfold declared_univ_cstr_levels.
-  destruct c as [[l1 eq] l2]. intuition auto.
+  destruct c as [[l1 eq] l2]. firstorder.
 Qed.
 
 Lemma on_udecl_on_udecl_prop (Σ : global_env) ctx :
@@ -369,6 +384,7 @@ Qed. *)
 
 (** ** Back to universes *)
 
+Instance hr : RelationClasses.RewriteRelation LevelSet.Subset := {}.
 
 Lemma weaken_lookup_on_global_env' Σ c decl :
   wf Σ ->
@@ -386,59 +402,16 @@ Proof using P Pcmp cf.
     destruct o as [H1 [H2 [H3 H4]]]. repeat split.
     clear -H2. intros [[? ?] ?] Hc. specialize (H2 _ Hc).
     destruct H2 as [H H']. simpl. split.
-    * apply LevelSet.union_spec in H. apply LevelSet.union_spec.
-      destruct H; [now left|right]; auto.
-    * apply LevelSet.union_spec in H'. apply LevelSet.union_spec.
-      destruct H'; [now left|right]; auto.
-    (*+ revert H3. case_eq (universes_decl_of_decl d); trivial.
-      intros ctx eq Hctx. repeat split.
-      * auto.
-      * intros l Hl. simpl. replace (monomorphic_levels_decl d) with ctx.1.
-        -- apply in_global_levels. apply LevelSet.union_spec; now left.
-        -- clear -eq. destruct d as [c|c]; cbn in *.
-           all: destruct c; cbn in *; now rewrite eq.
-      * simpl. replace (monomorphic_constraints_decl d) with ctx.2.
-        -- intros c Hc; apply UnivConstraintSet.union_spec; now left.
-        -- clear -eq. destruct d as [c|c]; cbn in *.
-           all: destruct c; cbn in *; now rewrite eq.
-      * clear -eq H4. destruct H4 as [v Hv]. exists v.
-      intros c Hc; apply (Hv c).
-      apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      2: apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      -- apply UnivConstraintSet.union_spec. simpl in *. left; now rewrite eq.
-      -- apply UnivConstraintSet.union_spec; left. simpl.
-         destruct d as [[? ? []]|[? ? ? ? []]]; simpl in *; tas;
-           now apply UnivConstraintSet.empty_spec in Hc.
-      -- apply UnivConstraintSet.union_spec; now right.*)
+    * rewrite H. lsets.
+    * rewrite H'. lsets.
   - specialize (IHwfΣ HH). revert IHwfΣ o; clear.
     generalize (universes_decl_of_decl decl); intros d' HH Hd.
     unfold on_udecl_prop in *.
     intros [[? ?] ?] Hc. specialize (HH _ Hc).
     destruct HH as [H' H'']. simpl. split.
-    * apply LevelSet.union_spec in H'. apply LevelSet.union_spec.
-      destruct H'; [now left|right]; auto.
-    * apply LevelSet.union_spec in H''. apply LevelSet.union_spec.
-      destruct H''; [now left|right]; auto.
-
-    (*+ destruct d'; trivial. repeat split.
-      * destruct H2; auto.
-      * intros l Hl. apply H2 in Hl.
-        apply LevelSet.union_spec; now right.
-      * intros c Hc. apply H2 in Hc.
-        apply UnivConstraintSet.union_spec; now right.
-      * destruct Hd as [_ [_ [_ Hd]]]; cbn in Hd.
-        destruct Hd as [v Hv]. exists v. intros c Hc; apply Hv; clear v Hv.
-          apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc]; simpl in *.
-          2: apply UnivConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc];
-            simpl in *.
-          -- apply H2 in Hc. apply UnivConstraintSet.union_spec; now right.
-          -- clear -Hc. destruct d as [[? ? []]|[? ? ? ? []]]; cbn in *.
-             all: try (apply UnivConstraintSet.empty_spec in Hc; contradiction).
-             all: apply UnivConstraintSet.union_spec; now left.
-          -- apply UnivConstraintSet.union_spec; now right.*)
+    * rewrite H'. lsets.
+    * rewrite H''; lsets.
 Qed.
-
-
 
 Definition weaken_env_prop_full_gen
              (R : global_env_ext -> global_env_ext -> Type)
