@@ -43,9 +43,11 @@
     coqPackages.metarocq.override.version = "9.1";
     # rocqPackages.stdlib.override.version = "9.0.0";
     coqPackages.equations.override.version = "v1.3.1-9.1";
+    coqPackages.equations.job = false;
     coqPackages.coq.override.version = "9.1";
     coqPackages.stdlib.override.version = "9.0.0";
-
+    coqPackages.stdlib.job = false;
+    
     push-branches = ["9.1"];
   };
 
