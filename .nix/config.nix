@@ -9,6 +9,8 @@
   ## Will determine the default main-job of the bundles defined below
   attribute = "metarocq";
 
+  no-rocq-yet = true;
+
   ## If you want to select a different attribute (to build from the local sources as well)
   ## when calling `nix-shell` and `nix-build` without the `--argstr job` argument
   # shell-attribute = "{{nix_name}}";
@@ -38,7 +40,7 @@
   # cachedMake.sh
   bundles."rocq-9.1" = {
     rocqPackages.rocq-core.override.version = "9.1";
-    coqPackages.metarocq.override.version = "1.4-9.1";
+    coqPackages.metarocq.override.version = "9.1";
     # rocqPackages.stdlib.override.version = "9.0.0";
     coqPackages.equations.override.version = "v1.3.1-9.1";
     coqPackages.coq.override.version = "9.1";
