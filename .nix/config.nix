@@ -38,10 +38,11 @@
   # cachedMake.sh
   bundles."rocq-9.1" = {
     rocqPackages.rocq-core.override.version = "9.1";
+    coqPackages.metarocq.override.version = "1.4-9.1";
     # rocqPackages.stdlib.override.version = "9.0.0";
-    coqPackages.equations.override.version = "1.3.1+9.1";
+    coqPackages.equations.override.version = "v1.3.1-9.1";
     coqPackages.coq.override.version = "9.1";
-    # coqPackages.stdlib.override.version = "9.0.0";
+    coqPackages.stdlib.override.version = "9.0.0";
 
     push-branches = ["9.1"];
   };

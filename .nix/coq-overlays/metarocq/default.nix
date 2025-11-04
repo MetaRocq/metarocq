@@ -1,8 +1,8 @@
 {
   lib,
-  mkRocqDerivation,
+  mkCoqDerivation,
+  coq,
   single ? false,
-  rocq-core,
   equations,
   stdlib,
   version ? null,
@@ -11,7 +11,7 @@
 let
   repo = "metarocq";
   owner = "MetaRocq";
-  defaultVersion = lib.switch rocq-core.rocq-version [
+  defaultVersion = lib.switch coq.coq-version [
     { case = "9.0"; out = "1.4-9.0"; }
     { case = "9.1"; out = "1.4-9.1"; }
   ] null;
@@ -72,7 +72,7 @@ let
         echo "install:" >> all/Makefile
       '';
       derivation =
-        (mkRocqDerivation (
+        (mkCoqDerivation (
           {
             inherit
               version
@@ -88,8 +88,8 @@ let
             propagatedBuildInputs = [
               equations
               stdlib
-              rocq-core.ocamlPackages.zarith
-              rocq-core.ocamlPackages.stdlib-shims
+              # rocq-core.ocamlPackages.zarith
+              # rocq-core.ocamlPackages.stdlib-shims
             ] ++ metarocq-deps;
 
             patchPhase =
@@ -119,7 +119,7 @@ let
                     "translations"
                   ])
                   ''
-                    echo  "-I ${template-rocq}/lib/coq/${rocq-core.rocq-version}/user-contrib/MetaRocq/Template/" > ${pkgpath}/metarocq-config
+                    echo  "-I ${template-rocq}/lib/coq/${coq.coq-version}/user-contrib/MetaRocq/Template/" > ${pkgpath}/metarocq-config
                   ''
               + lib.optionalString (package == "single") ''
                 ./configure.sh local
