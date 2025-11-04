@@ -29,7 +29,7 @@ Fixpoint isArity T :=
   | _ => false
   end.
 
-Definition type_of_constructor mdecl cdecl (c : inductive * nat) (u : list Level.t) :=
+Definition type_of_constructor mdecl cdecl (c : inductive * nat) (u : Instance.t) :=
   let mind := inductive_mind (fst c) in
   subst0 (inds mind u mdecl.(ind_bodies)) (subst_instance u cdecl.(cstr_type)).
 
@@ -893,7 +893,7 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     primitive_constant Σ primArray = Some prim_ty ->
     declared_constant Σ prim_ty cdecl ->
     primitive_invariants primArray cdecl ->
-    let s := sType (Universe.make' u) in
+    let s := sType u in
     Σ ;;; Γ |- ty : tSort s ->
     Σ ;;; Γ |- def : ty ->
     All (fun t => Σ ;;; Γ |- t : ty) arr ->
@@ -1309,7 +1309,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
         primitive_constant Σ primArray = Some prim_ty ->
         declared_constant Σ prim_ty cdecl ->
         primitive_invariants primArray cdecl ->
-        let s := sType (Universe.make' u) in
+        let s := sType u in
         Σ ;;; Γ |- ty : tSort s ->
         P Σ Γ ty (tSort s) ->
         Σ ;;; Γ |- def : ty ->

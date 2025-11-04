@@ -379,10 +379,10 @@ Inductive T : Type :=
 MetaRocq Quote Recursively Definition TT := T.
 
 Unset MetaRocq Strict Unquote Universe Mode.
-MetaRocq Unquote Definition t := (tSort (sType (Universe.make' (Level.level "Top.20000")))).
+MetaRocq Unquote Definition t := (tSort (sType (Universe.of_level (Level.level "Top.20000")))).
 MetaRocq Unquote Definition t' := (tSort (sType fresh_universe)).
 MetaRocq Unquote Definition myProp := (tSort sProp).
-MetaRocq Unquote Definition mySet := (tSort (sType (Universe.make' Level.lzero))).
+MetaRocq Unquote Definition mySet := (tSort (sType (Universe.of_level Level.lzero))).
 
 (** Cofixpoints *)
 CoInductive streamn : Set :=

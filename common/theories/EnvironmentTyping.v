@@ -2,7 +2,7 @@
 From Stdlib Require Import ssreflect ssrbool.
 From Stdlib Require CMorphisms CRelationClasses.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import config BasicAst Universes Environment Primitive.
+From MetaRocq.Common Require Import config BasicAst UnivConstraintType Universes Environment Primitive.
 From Equations Require Import Equations.
 
 Module Lookup (T : Term) (E : EnvironmentSig T).
@@ -261,7 +261,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     | Monomorphic_ctx => List.length u = 0
     | Polymorphic_ctx c =>
       (* levels of the instance already declared *)
-      forallb (fun l => LevelSet.mem l lvs) u /\
+      forallb (fun l : Universe.t => LevelSet.subset (Universe.levels l) lvs) u /\
       List.length u = List.length c.1 /\
       valid_constraints φ (subst_instance_cstrs u c.2)
     end.
@@ -288,7 +288,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
 
   Definition wf_universe_dec Σ u : {wf_universe Σ u} + {~wf_universe Σ u}.
   Proof.
-    cbv [wf_universe LevelExprSet.In LevelExprSet.this LevelExprSet.t_set].
+    cbv [wf_universe LevelExprSet.In LevelExprSet.this Universe.t_set].
     destruct u as [[t _] _].
     induction t as [|t ts [IHt|IHt]]; [ left | | right ].
     { inversion 1. }
@@ -1417,12 +1417,17 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       | Level.lvar k => Level.lvar (n + k)
       end.
 
+    Definition on_fst {A B} (f : A -> A) (x : A * B) : A * B := (f x.1, x.2).
+
+    Definition lift_universe n u :=
+      Universe.map (on_fst (lift_level n)) u.
+
     Definition lift_instance n l :=
       map (lift_level n) l.
 
-    Definition lift_constraint n (c : Level.t * ConstraintType.t * Level.t) :=
+    Definition lift_constraint n (c : Universe.t * ConstraintType.t * Universe.t) :=
       let '((l, r), l') := c in
-      ((lift_level n l, r), lift_level n l').
+      ((lift_universe n l, r), lift_universe n l').
 
     Definition lift_constraints n cstrs :=
       UnivConstraintSet.fold (fun elt acc => UnivConstraintSet.add (lift_constraint n elt) acc)
@@ -1431,14 +1436,14 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     Definition level_var_instance n (inst : list name) :=
       mapi_rec (fun i _ => Level.lvar i) inst n.
 
-    Fixpoint variance_cstrs (v : list Variance.t) (u u' : Instance.t) :=
+    Fixpoint variance_cstrs (v : list Variance.t) (u u' : LevelInstance.t) :=
       match v, u, u' with
       | _, [], [] => UnivConstraintSet.empty
       | v :: vs, u :: us, u' :: us' =>
         match v with
         | Variance.Irrelevant => variance_cstrs vs us us'
-        | Variance.Covariant => UnivConstraintSet.add (u, ConstraintType.Le 0, u') (variance_cstrs vs us us')
-        | Variance.Invariant => UnivConstraintSet.add (u, ConstraintType.Eq, u') (variance_cstrs vs us us')
+        | Variance.Covariant => UnivConstraintSet.add (Universe.of_level u, ConstraintType.Le, Universe.of_level u') (variance_cstrs vs us us')
+        | Variance.Invariant => UnivConstraintSet.add (Universe.of_level u, ConstraintType.Eq, Universe.of_level u') (variance_cstrs vs us us')
         end
       | _, _, _ => (* Impossible due to on_variance invariant *) UnivConstraintSet.empty
       end.
@@ -1457,7 +1462,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         let cstrs := UnivConstraintSet.union cstrs (lift_constraints #|inst| cstrs) in
         let cstrv := variance_cstrs v u u' in
         let auctx' := (inst ++ inst, UnivConstraintSet.union cstrs cstrv) in
-        Some (Polymorphic_ctx auctx', u, u')
+        Some (Polymorphic_ctx auctx', Instance.of_level_instance u, Instance.of_level_instance u')
       end.
 
     (** A constructor type respects the given variance [v] if each constructor
@@ -1568,7 +1573,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
               type substituted along with the previous arguments replaced by projections. *)
           let u := abstract_instance mdecl.(ind_universes) in
           let ind := {| inductive_mind := mind; inductive_ind := i |} in
-          p.(proj_type) = subst (inds mind u mdecl.(ind_bodies)) (S (ind_npars mdecl))
+          p.(proj_type) = subst (inds mind (Instance.of_level_instance u) mdecl.(ind_bodies)) (S (ind_npars mdecl))
             (subst (projs ind mdecl.(ind_npars) k) 0
               (lift 1 k (decl_type decl)));
         on_proj_relevance : p.(proj_relevance) = decl.(decl_name).(binder_relevance) }.
@@ -1799,14 +1804,14 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       intro H; split => //.
       unfold empty_ext, snd. repeat split.
       - unfold levels_of_udecl. intros x e. lsets.
-      - unfold constraints_of_udecl. intros x e. csets.
+      - unfold constraints_of_udecl. intros x e. ucsets.
       - unfold satisfiable_udecl, univs_ext_constraints, constraints_of_udecl, fst_ctx, fst => //.
         destruct H as ((cstrs & _ & consistent) & decls).
         destruct consistent; eexists.
         intros v e. specialize (H v e); tea.
       - unfold valid_on_mono_udecl, constraints_of_udecl, consistent_extension_on.
         intros v sat; exists v; split.
-        + intros x e. csets.
+        + intros x e. ucsets.
         + intros x e => //.
     Qed.
 

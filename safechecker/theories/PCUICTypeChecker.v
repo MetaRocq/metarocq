@@ -1390,7 +1390,7 @@ Section Typecheck.
       check_eq_true (eqb decl.(cst_type) (tSort Sort.type0)) (Msg "primitive type for strings is registered to an axiom whose type is not the sort Set") ;;
       ret _
    | primArray | decl :=
-      let s := sType (Universe.make' (Level.lvar 0)) in
+      let s := sType (Universe.of_level (Level.lvar 0)) in
       check_eq_true (eqb decl.(cst_body) None) (Msg "primitive type is registered to a defined constant") ;;
       check_eq_true (eqb decl.(cst_universes) (Polymorphic_ctx array_uctx)) (Msg "primitive type is registered to a monomorphic constant") ;;
       check_eq_true (eqb decl.(cst_type) (tImpl (tSort s) (tSort s))) (Msg "primitive type for arrays is registered to an axiom whose type is not of shape Type -> Type") ;;
@@ -1427,8 +1427,8 @@ Section Typecheck.
       | (primFloat; primFloatModel f) := ret _
       | (primString; primStringModel f) := ret _
       | (primArray; primArrayModel a) :=
-        check_eq_true (abstract_env_ext_wf_universeb X (Universe.make' a.(array_level))) (Msg "primitive array level is not well-formed") ;;
-        check_type <- bdcheck infer Γ wfΓ a.(array_type) (tSort (sType (Universe.make' a.(array_level)))) _ ;;
+        check_eq_true (abstract_env_ext_wf_universeb X (Universe.of_level a.(array_level))) (Msg "primitive array level is not well-formed") ;;
+        check_type <- bdcheck infer Γ wfΓ a.(array_type) (tSort (sType (Universe.of_level a.(array_level)))) _ ;;
         check_default <- bdcheck infer Γ wfΓ a.(array_default) a.(array_type) _ ;;
         check_values <- make_All (fun x => bdcheck infer Γ wfΓ x a.(array_type) _) a.(array_value) ;;
         ret _.
@@ -1453,7 +1453,7 @@ Section Typecheck.
         now move/@wf_universe_reflect: i.
       - specialize (check_type _ wfΣ) as [].
         specialize (check_default _ wfΣ) as [].
-        assert (∥ Σ;;; Γ |- array_type a : tSort (sType (Universe.make' (array_level a))) ∥) as [].
+        assert (∥ Σ;;; Γ |- array_type a : tSort (sType (Universe.of_level (array_level a))) ∥) as [].
         { sq. eapply checking_typing in X0; eauto.
           erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
           eapply has_sort_isType; eapply type_Sort; eauto. now move/@wf_universe_reflect: i. }

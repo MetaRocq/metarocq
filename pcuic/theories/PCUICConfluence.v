@@ -2203,7 +2203,7 @@ Section PredRed.
     - depelim X1; try solve [repeat constructor]; eauto.
       depelim X2; cbn in H0; rtoProp.
       eapply red_primArray_congr; eauto.
-      + now eapply Universe.make'_inj in e.
+      + now eapply Universe.of_level_inj in e.
       + solve_all.
   Qed.
 

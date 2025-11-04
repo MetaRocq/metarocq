@@ -122,8 +122,8 @@ Lemma subst_instance_universe_make' (l : LevelExpr.t) u :
 Proof. reflexivity. Qed.
 
 Lemma subst_instance_universe_make l u :
-  subst_instance_universe u (Universe.make' l)
-  = Universe.make' (subst_instance u l).
+  subst_instance_universe u (Universe.of_level l)
+  = Universe.of_level (subst_instance u l).
 Proof.
   destruct l; cbnr. rewrite nth_nth_error.
   destruct nth_error; cbnr.
@@ -142,7 +142,7 @@ Lemma subst_equal_inst_inst Re Re' :
 Proof.
   intros hRe u. induction u; cbnr; try now constructor.
   intros u1 u2; unfold cmp_universe_instance; cbn; constructor.
-  - pose proof (hRe (Universe.make' a) u1 u2 H) as HH.
+  - pose proof (hRe (Universe.of_level a) u1 u2 H) as HH.
     now rewrite /subst_instance !subst_instance_universe_make in HH.
   - exact (IHu u1 u2 H).
 Qed.
@@ -2094,14 +2094,14 @@ Section SubstIdentity.
     - eapply nth_error_all in X0 as (_ & X0 & _); tea.
     - destruct p as [? []]; cbnr. do 2 f_equal.
       depelim X0. specialize (hty X1); specialize (hdef X1).
-      unfold mapu_array_model; destruct a; cbn -[Universe.make'] in *.
+      unfold mapu_array_model; destruct a; cbn -[Universe.of_level] in *.
       f_equal; intuition eauto.
       * rewrite /subst_instance subst_instance_universe_make in b.
         now injection b as e.
       * solve_all.
     - depelim X0; cbn => //=. depelim X. simp prim_type. cbn. f_equal; intuition eauto.
       do 2 f_equal.
-      cbn -[Universe.make'] in b.
+      cbn -[Universe.of_level] in b.
       rewrite /subst_instance subst_instance_universe_make in b.
       now injection b as e.
   Qed.

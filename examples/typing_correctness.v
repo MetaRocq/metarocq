@@ -145,7 +145,7 @@ Ltac fill_inh t :=
   | [ |- inh _ ?Γ _ ] => fail "Missing local wellformedness assumption for" Γ
   end.
 
-(* Lemma identity_typing (s := sType (Universe.make' univ)): inh gctx_wf_env [] (tImpl (tSort s) (tSort s)).
+(* Lemma identity_typing (s := sType (Universe.of_level univ)): inh gctx_wf_env [] (tImpl (tSort s) (tSort s)).
 Proof.
   set (impl := tLambda (bNamed "s") (tSort s) (tRel 0)).
   assert (wfΓ : forall Σ0 : global_env_ext,
@@ -156,7 +156,7 @@ Proof.
 Time Qed. *)
 
 
-Lemma identity_typing (s := sType (Universe.make' univ)):
+Lemma identity_typing (s := sType (Universe.of_level univ)):
      (∑ t : term,
         forall Σ0 : global_env_ext,
         Σ0 =

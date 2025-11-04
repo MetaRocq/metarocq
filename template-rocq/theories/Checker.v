@@ -128,11 +128,11 @@ Section Lookups.
     | _ => raise (UndeclaredInductive (mkInd ind i))
     end.
 
-  Definition lookup_ind_type ind i (u : list Level.t) :=
+  Definition lookup_ind_type ind i (u : Instance.t) :=
     res <- lookup_ind_decl ind i ;;
     ret (subst_instance u (snd res).(ind_type)).
 
-  Definition lookup_ind_type_cstrs ind i (u : list Level.t) :=
+  Definition lookup_ind_type_cstrs ind i (u : Instance.t) :=
     res <- lookup_ind_decl ind i ;;
     let '(mib, body) := res in
     let uctx := mib.(ind_universes) in
@@ -296,7 +296,7 @@ Inductive conv_pb :=
 Definition eq_case_info (ci ci' : case_info) :=
   eq_inductive ci.(ci_ind) ci'.(ci_ind) && Nat.eqb ci.(ci_npar) ci'.(ci_npar). (* FIXME relevance check *)
 
-Fixpoint eq_term `{checker_flags} (φ : universes_graph) (t u : term) {struct t} :=
+Fixpoint eq_term `{checker_flags} (φ : universe_model) (t u : term) {struct t} :=
   match t, u with
   | tRel n, tRel n' => Nat.eqb n n'
   | tEvar ev args, tEvar ev' args' => Nat.eqb ev ev' && forallb2 (eq_term φ) args args'
@@ -328,7 +328,7 @@ Fixpoint eq_term `{checker_flags} (φ : universes_graph) (t u : term) {struct t}
   end.
 
 
-Fixpoint leq_term `{checker_flags} (φ : universes_graph) (t u : term) {struct t} :=
+Fixpoint leq_term `{checker_flags} (φ : universe_model) (t u : term) {struct t} :=
   match t, u with
   | tRel n, tRel n' => Nat.eqb n n'
   | tEvar ev args, tEvar ev' args' => Nat.eqb ev ev' && forallb2 (eq_term φ) args args'
@@ -361,7 +361,7 @@ Fixpoint leq_term `{checker_flags} (φ : universes_graph) (t u : term) {struct t
 Section Conversion.
 
   Context `{checker_flags} (flags : RedFlags.t).
-  Context (Σ : global_env) (G : universes_graph).
+  Context (Σ : global_env) (G : universe_model).
 
   Definition nodelta_flags := RedFlags.mk true true true false true true.
 
@@ -546,7 +546,7 @@ Definition check_conv `{checker_flags} {F:Fuel} := check_conv_gen Conv.
 
 
 Definition is_graph_of_global_env_ext `{checker_flags} Σ G :=
-  is_graph_of_uctx G (global_ext_uctx Σ).
+  model_of_uctx G (global_ext_uctx Σ).
 
 Section Typecheck.
   Context {F : Fuel}.
@@ -587,7 +587,7 @@ Section Typecheck.
     end.
 
   Definition reduce_to_ind Γ (t : term) :
-    typing_result (inductive * list Level.t * list term) :=
+    typing_result (inductive * Instance.t * list term) :=
     match decompose_app t with
     | (tInd i u, l) => ret (i, u, l)
     | _ => t' <- hnf_stack Γ t ;;
@@ -600,7 +600,7 @@ End Typecheck.
 
 Section Typecheck.
   Context {cf : checker_flags} {F : Fuel}.
-  Context (Σ : global_env) (G : universes_graph).
+  Context (Σ : global_env) (G : universe_model).
 
   Definition convert_leq Γ (t u : term) : typing_result unit :=
     if eq_term G t u then ret ()
@@ -821,12 +821,10 @@ Section Checker.
       else ret ()
     end.
 
-  Definition add_gc_constraints ctrs  (G : universes_graph) : universes_graph
-    := (G.1.1,  GoodUnivConstraintSet.fold
-                  (fun ctr => wGraph.EdgeSet.add (edge_of_constraint ctr)) ctrs G.1.2,
-        G.2).
+  Definition add_constraints ctrs (G : universe_model) : option universe_model
+    := push_uctx G (LevelSet.empty, ctrs).
 
-  Fixpoint check_wf_declarations (univs : ContextSet.t) (retro : Retroknowledge.t) (G : universes_graph) (g : global_declarations)
+  Fixpoint check_wf_declarations (univs : ContextSet.t) (retro : Retroknowledge.t) (G : universe_model) (g : global_declarations)
     : EnvCheck () :=
     match g with
     | [] => ret tt
@@ -840,16 +838,12 @@ Section Checker.
   Definition typecheck_program (p : program) : EnvCheck term :=
     let Σ := fst p in
     let '(univs, decls, retro) := (Σ.(universes), Σ.(declarations), Σ.(retroknowledge)) in
-    match gc_of_constraints (snd univs) with
+    match push_uctx init_model univs with
     | None => EnvError (IllFormedDecl "toplevel"
         (UnsatisfiableConstraints univs.2))
-    | Some ctrs =>
-      let G := add_gc_constraints ctrs init_graph in
-      if wGraph.is_acyclic G then
-        check_wf_declarations univs retro G decls ;;
-        infer_term Σ G (snd p)
-      else EnvError (IllFormedDecl "toplevel"
-        (UnsatisfiableConstraints univs.2))
+    | Some G =>
+      check_wf_declarations univs retro G decls ;;
+      infer_term Σ G (snd p)
     end.
 
 End Checker.
@@ -857,8 +851,8 @@ End Checker.
 (* for compatibility, will go away *)
 Definition infer' `{checker_flags} `{Fuel} (Σ : global_env_ext) Γ t
   := let uctx := (global_ext_uctx Σ) in
-    match gc_of_uctx uctx with
+    match push_uctx init_model uctx with
      | None => raise (UnsatisfiableConstraints uctx.2)
-     | Some uctx => infer (fst Σ) (make_graph uctx) Γ t
+     | Some m => infer (fst Σ) m Γ t
      end.
 

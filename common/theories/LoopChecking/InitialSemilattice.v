@@ -14,6 +14,7 @@ Module InitialSemilattice (LS : LevelSets).
   Existing Instance comm_monoid.
   Existing Instance add_inj_eq.
   Export LS.
+
   Import NES.OfQ.
   Local Open Scope quantity.
   Import NES.

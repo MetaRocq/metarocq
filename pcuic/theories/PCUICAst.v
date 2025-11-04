@@ -426,7 +426,7 @@ Instance subst_instance_constr : UnivSubst term :=
   | tCoFix mfix idx =>
     let mfix' := List.map (map_def (subst_instance_constr u) (subst_instance_constr u)) mfix in
     tCoFix mfix' idx
-  | tPrim p => tPrim (mapu_prim (subst_instance_level u) (subst_instance_constr u) p)
+  | tPrim p => tPrim (mapu_prim (subst_instance_universe u) (subst_instance_constr u) p)
   end.
 
 (** Tests that the term is closed over [k] universe variables *)
@@ -450,7 +450,7 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
     forallb (test_def (closedu k) (closedu k)) mfix
   | tCoFix mfix idx =>
     forallb (test_def (closedu k) (closedu k)) mfix
-  | tPrim p => test_primu (closedu_level k) (closedu k) p
+  | tPrim p => test_primu (closedu_universe k) (closedu k) p
   | _ => true
   end.
 
@@ -951,14 +951,14 @@ Proof.
   destruct p as [? []] => //.
 Qed.
 
-Lemma mapu_array_model_proper {term term'} (l l' : Level.t -> Level.t) (f g : term -> term') a :
+Lemma mapu_array_model_proper {term term'} (l l' : Universe.t -> Universe.t) (f g : term -> term') a :
   l ≐1 l' -> f ≐1 g ->
   mapu_array_model l f a = mapu_array_model l' g a.
 Proof.
   destruct a; cbn ; rewrite /mapu_array_model /=. intros; f_equal; eauto. now eapply map_ext.
 Qed.
 
-Lemma mapu_array_model_proper_cond {term term'} (P : term -> Type) (l l' : Level.t -> Level.t) (f g : term -> term') a :
+Lemma mapu_array_model_proper_cond {term term'} (P : term -> Type) (l l' : Universe.t -> Universe.t) (f g : term -> term') a :
   l ≐1 l' -> (forall x, P x -> f x = g x) ->
   P a.(array_type) × P a.(array_default) × All P a.(array_value) ->
   mapu_array_model l f a = mapu_array_model l' g a.
@@ -1043,7 +1043,7 @@ Proof.
   eapply All_map_id, All_impl; tea. intuition eauto. apply hg; intuition auto.
 Qed.
 
-Lemma test_primu_test_primu_tPrimProp {P : term -> Type} {pu put} {pu' : Level.t -> bool} {put' : term -> bool} p f g :
+Lemma test_primu_test_primu_tPrimProp {P : term -> Type} {pu put} {pu' : Universe.t -> bool} {put' : term -> bool} p f g :
   tPrimProp P p -> test_primu pu put p ->
   (forall u, pu u -> pu' (f u)) ->
   (forall t, P t -> put t -> put' (g t)) ->

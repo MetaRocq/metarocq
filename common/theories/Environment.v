@@ -908,7 +908,7 @@ Module Environment (T : Term).
      [/\ cdecl.(cst_type) = tSort Sort.type0, cdecl.(cst_body) = None &
           cdecl.(cst_universes) = Monomorphic_ctx]
     | primArray =>
-      let s := sType (Universe.make' (Level.lvar 0)) in
+      let s := sType (Universe.of_level (Level.lvar 0)) in
       [/\ cdecl.(cst_type) = tImpl (tSort s) (tSort s), cdecl.(cst_body) = None &
         cdecl.(cst_universes) = Polymorphic_ctx array_uctx]
     end.

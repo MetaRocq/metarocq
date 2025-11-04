@@ -17,7 +17,7 @@ MetaRocq Quote Definition a_random_univ := Type.
 
 Example a_random_univ_ex :
   exists l, a_random_univ =
-            tSort (sType (Universe.make' (Level.level l))).
+            tSort (sType (Universe.of_level (Level.level l))).
 Proof. eexists. reflexivity. Qed.
 
 (* Back and forth *)
@@ -30,18 +30,18 @@ MetaRocq Unquote Definition univ_foo_back := univ_foo_syn.
 
 (* Print univ_foo_back. *)
 
-Fail MetaRocq Unquote Definition t1 := (tSort (sType (Universe.make' (Level.level "Top.400")))).
+Fail MetaRocq Unquote Definition t1 := (tSort (sType (Universe.of_level (Level.level "Top.400")))).
 (* Fails with "Level Top.<something> not a declared level and you are in Strict Unquote Universe Mode." *)
 
 Unset MetaRocq Strict Unquote Universe Mode.
 MetaRocq Unquote Definition t2 := (tSort (sType fresh_universe)).
-MetaRocq Unquote Definition t3 := (tSort (sType (Universe.make' (Level.level "Top.400")))).
+MetaRocq Unquote Definition t3 := (tSort (sType (Universe.of_level (Level.level "Top.400")))).
 
 Monomorphic Universe i j.
 
 Set MetaRocq Strict Unquote Universe Mode.
 MetaRocq Quote Definition testij := (Type@{j} -> Type@{i}).
-MetaRocq Unquote Definition T'' := (tSort (sType (Universe.make' (Level.level "j")))).
+MetaRocq Unquote Definition T'' := (tSort (sType (Universe.of_level (Level.level "j")))).
 Unset MetaRocq Strict Unquote Universe Mode.
 
 
@@ -195,7 +195,7 @@ Definition nNamedR (s : string) := mkBindAnn (nNamed s) Relevant.
 Definition nAnonR := mkBindAnn nAnon Relevant.
 
 Unset MetaRocq Strict Unquote Universe Mode.
-MetaRocq Unquote Definition bla' := (tLambda (nNamedR "T") (tSort (sType (Universe.make' (Level.level "Top.46")))) (tLambda (nNamedR "T2") (tSort (sType (Universe.make' (Level.level "Top.477")))) (tProd nAnonR (tRel 1) (tRel 1)))).
+MetaRocq Unquote Definition bla' := (tLambda (nNamedR "T") (tSort (sType (Universe.of_level (Level.level "Top.46")))) (tLambda (nNamedR "T2") (tSort (sType (Universe.of_level (Level.level "Top.477")))) (tProd nAnonR (tRel 1) (tRel 1)))).
 
 (*
 Set Printing Universes.

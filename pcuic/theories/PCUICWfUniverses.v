@@ -306,7 +306,7 @@ Section CheckerFlags.
       | tLambda _ t u => on_universes fu fc t && on_universes fu fc u
       | tCase _ p c brs =>
         [&&
-        forallb fu (map Universe.make' p.(puinst)) ,
+        forallb fu (map Universe.of_level p.(puinst)) ,
         forallb (on_universes fu fc) p.(pparams) ,
         test_context (fc #|p.(puinst)|) p.(pcontext) ,
         on_universes fu fc p.(preturn) ,
@@ -318,9 +318,9 @@ Section CheckerFlags.
       | tFix mfix _ | tCoFix mfix _ =>
         forallb (fun d => on_universes fu fc d.(dtype) && on_universes fu fc d.(dbody)) mfix
       | tConst _ u | tInd _ u | tConstruct _ _ u =>
-          forallb fu (map Universe.make' u)
+          forallb fu (map Universe.of_level u)
       | tEvar _ args => forallb (on_universes fu fc) args
-      | tPrim p => test_primu (fun x => fu (Universe.make' x)) (on_universes fu fc) p
+      | tPrim p => test_primu (fun x => fu (Universe.of_level x)) (on_universes fu fc) p
       | _ => true
       end.
 
@@ -335,7 +335,7 @@ Section CheckerFlags.
     Qed.
 
     Lemma wf_universeb_instance_forall u :
-      forallb wf_universeb (map Universe.make' u) = wf_instanceb Σ u.
+      forallb wf_universeb (map Universe.of_level u) = wf_instanceb Σ u.
     Proof using Type.
       induction u => //=.
       rewrite IHu.
@@ -460,7 +460,7 @@ Qed.
     induction t using term_forall_list_ind; simpl in *; auto; try to_prop;
       try apply /andP; intuition eauto 4.
 
-    all:cbn -[Universe.make'] in * ; to_wfu; autorewrite with map; repeat (f_equal; solve_all).
+    all:cbn -[Universe.of_level] in * ; to_wfu; autorewrite with map; repeat (f_equal; solve_all).
 
     - destruct Σ as [Σ univs']. simpl in *.
       eapply (wf_sort_subst_instance_sort (Σ, univs)); auto.
@@ -544,7 +544,7 @@ Qed.
     intros. now eapply weaken_wf_level.
   Qed.
 
-  Arguments Universe.make' : simpl never.
+  Arguments Universe.of_level : simpl never.
   Lemma test_primu_test_primu_tPrimProp {P : term -> Type} {pu put} {pu' : Level.t -> bool} {put' : term -> bool} p :
     tPrimProp P p -> test_primu pu put p ->
     (forall u, pu u -> pu' u) ->
@@ -961,7 +961,7 @@ Qed.
     now eapply wf_level_closed.
   Qed.
 
-  Lemma wf_universe_make Σ u : wf_universe Σ (Universe.make' u) -> wf_level Σ u.
+  Lemma wf_universe_make Σ u : wf_universe Σ (Universe.of_level u) -> wf_level Σ u.
   Proof.
     rewrite /wf_universe /= => hl; rewrite /wf_level.
     apply (hl (u, 0)). lsets.

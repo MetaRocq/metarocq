@@ -122,6 +122,8 @@ gen-src/logic1.ml
 gen-src/logic1.mli
 gen-src/logic2.ml
 gen-src/logic2.mli
+gen-src/mRClasses.mli
+gen-src/mRClasses.ml
 gen-src/mRCompare.ml
 gen-src/mRCompare.mli
 gen-src/mRFSets.ml
@@ -156,6 +158,8 @@ gen-src/mSetInterface.ml
 gen-src/mSetInterface.mli
 gen-src/mSetProperties.ml
 gen-src/mSetProperties.mli
+gen-src/mRInstances.mli
+gen-src/mRInstances.ml
 gen-src/monad_utils.ml
 gen-src/monad_utils.mli
 gen-src/nat0.ml
@@ -233,6 +237,13 @@ gen-src/typing0.ml
 gen-src/typing0.mli
 gen-src/uint63Axioms.ml
 gen-src/uint63Axioms.mli
+
+gen-src/semiLattice.mli
+gen-src/semiLattice.ml
+gen-src/univConstraintType.mli
+gen-src/univConstraintType.ml
+gen-src/nonEmptyLevelExprSet.mli
+gen-src/nonEmptyLevelExprSet.ml
 gen-src/universes0.ml
 gen-src/universes0.mli
 gen-src/wf.ml

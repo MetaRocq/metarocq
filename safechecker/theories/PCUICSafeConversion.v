@@ -1351,8 +1351,8 @@ Section Conversion.
 
   Lemma eqb_universe_instance_spec :
     forall u v Σ (wfΣ : abstract_env_ext_rel X Σ),
-      forallb (wf_universeb Σ) (map Universe.make' u) ->
-      forallb (wf_universeb Σ) (map Universe.make' v) ->
+      forallb (wf_universeb Σ) (map Universe.of_level u) ->
+      forallb (wf_universeb Σ) (map Universe.of_level v) ->
       eqb_universe_instance u v ->
       cmp_universe_instance (eq_universe (global_ext_constraints Σ)) u v.
   Proof using Type.
@@ -1385,8 +1385,8 @@ Qed.
   Lemma compare_universeb_make_complete Σ (wfΣ : abstract_env_ext_rel X Σ) pb x y :
     wf_level Σ x ->
     wf_level Σ y ->
-    compare_universe (global_ext_constraints Σ) pb (Universe.make' x) (Universe.make' y) ->
-    abstract_env_compare_universe X pb (Universe.make' x) (Universe.make' y).
+    compare_universe (global_ext_constraints Σ) pb (Universe.of_level x) (Universe.of_level y) ->
+    abstract_env_compare_universe X pb (Universe.of_level x) (Universe.of_level y).
   Proof using Type.
     intros wfx wfy r.
     eapply compare_universeb_complete; eauto.
@@ -3040,8 +3040,8 @@ Qed.
   (hp : ∥ ws_cumul_pb_terms Σ (Γ,,, stack_context π) (pparams p) (pparams p') ∥) :
   ∥ ∑ mdecl idecl,
     [× declared_inductive Σ ci mdecl idecl,
-      forallb (wf_universeb Σ) (map Universe.make' (puinst p)),
-      forallb (wf_universeb Σ) (map Universe.make' (puinst p')),
+      forallb (wf_universeb Σ) (map Universe.of_level (puinst p)),
+      forallb (wf_universeb Σ) (map Universe.of_level (puinst p')),
        #|pparams p| = ind_npars mdecl,
        #|pparams p'| = ind_npars mdecl,
        eq_context_upto_names p.(pcontext) p'.(pcontext),
@@ -3590,7 +3590,7 @@ Equations (noeqns) isconv_array_values_aux
           { | @exist true eqf := yes
             | @exist false neqf := no (DistinctPrimValues (Γ ,,, stack_context π1) p (Γ ,,, stack_context π2) p') }
         | (primArray; primArrayModel a) | (primArray; primArrayModel a')
-          with inspect (abstract_env_compare_universe X Conv (Universe.make' (array_level a)) (Universe.make' (array_level a'))) :=
+          with inspect (abstract_env_compare_universe X Conv (Universe.of_level (array_level a)) (Universe.of_level (array_level a'))) :=
           { | @exist false neql := no (ArrayNotConvertibleLevels (Γ ,,, stack_context π1) a (Γ ,,, stack_context π2) a')
             | @exist true eql with isconv_red_raw Conv (array_type a) (PrimArray_ty a.(array_level) a.(array_value) a.(array_default) :: π1)
                 (array_type a') (PrimArray_ty a'.(array_level) a'.(array_value) a'.(array_default) :: π2) aux := {
@@ -6225,8 +6225,8 @@ match
            declarations := []
          |}, Monomorphic_ctx);
       referenced_impl_ext_wf := TODO "foo"
-    |} [] Cumul (tSort (Universe.lType (Universe.make' (Level.lzero, 0))))
-    (TODO "") (tSort (Universe.lType (Universe.make' (Level.lzero, 0))))
+    |} [] Cumul (tSort (Universe.lType (Universe.of_level (Level.lzero, 0))))
+    (TODO "") (tSort (Universe.lType (Universe.of_level (Level.lzero, 0))))
     (TODO "")
 with
 | ConvSuccess => "success"

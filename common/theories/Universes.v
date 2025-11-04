@@ -422,7 +422,7 @@ Module Universe.
     Definition eq_leibniz x y : eq x y -> x = y := fun e => e.
   End Q.
 
-  Module NES := NonEmptyLevelExprSet Level Q LevelSet LevelExpr LevelExprSet.
+  Module NES := NonEmptyLevelExprSet Level Level Q LevelSet LevelExpr LevelExprSet.
   Include NES.
 
   #[global] Instance eq_dec_univ0 : EqDec t := eq_dec.
@@ -430,9 +430,13 @@ Module Universe.
   Definition eqb : t -> t -> bool := eqb.
 
   Definition make (e: LevelExpr.t) : t := singleton e.
-  Definition make' (l: Level.t) : t := singleton (LevelExpr.make l).
 
-  Lemma make'_inj l l' : make' l = make' l' -> l = l'.
+  Definition of_level (l: Level.t) : t := singleton (LevelExpr.make l).
+
+  #[deprecated(since = "1.4", note="use of_level instead")]
+  Notation make' := of_level.
+
+  Lemma make'_inj l l' : of_level l = of_level l' -> l = l'.
   Proof.
     destruct l, l' => //=; now inversion 1.
   Qed.
@@ -459,7 +463,7 @@ Module Universe.
   Definition is_level (u : t) : bool :=
     (LevelExprSet.cardinal u =? 1)%nat && is_levels u.
 
-  Definition zero := make' Level.lzero.
+  Definition zero := of_level Level.lzero.
 
   Definition succ : t -> t := map LevelExpr.succ.
 
@@ -481,7 +485,7 @@ Module Universe.
   Proof. reflexivity. Qed.
 
   Lemma val_make' v l
-    : val v (make' l) = val v l.
+    : val v (of_level l) = val v l.
   Proof. reflexivity. Qed.
 
   Definition lt : t -> t -> Prop := LevelExprSet.lt.
@@ -758,7 +762,7 @@ Qed.
 
 
 Lemma universe_get_is_level_correct u l :
-  Universe.get_is_level u = Some l -> u = Universe.make' l.
+  Universe.get_is_level u = Some l -> u = Universe.of_level l.
 Proof.
   intro H.
   unfold Universe.get_is_level in *.
@@ -923,7 +927,7 @@ End LevelInstance.
 
 Module Instance.
 
-  (** A universe instance represents a vector of argument concrete_sort
+  (** A universe instance represents a vector of arguments
       to a polymorphic definition (constant, inductive or constructor). *)
   Definition t := list Universe.t.
 
@@ -937,7 +941,12 @@ Module Instance.
   Definition eqb (i j : t) :=
     forallb2 Universe.eqb i j.
 
+
+  Definition of_level_instance : LevelInstance.t -> t := map Universe.of_level.
+
 End Instance.
+
+Coercion Instance.of_level_instance : LevelInstance.t >-> Instance.t.
 
 Module UContext.
   Definition t := list name × (LevelInstance.t × UnivConstraintSet.t).
@@ -1662,7 +1671,7 @@ Module Sort.
     match l with
     | inl PropLevel.lSProp => sSProp
     | inl PropLevel.lProp => sProp
-    | inr l => sType (Universe.make' l)
+    | inr l => sType (Universe.of_level l)
     end.
 
   (** The universe strictly above FOR TYPING (not cumulativity) *)
@@ -1857,7 +1866,7 @@ Proof.
 Qed.
 
 Lemma get_is_level_correct s l :
-  Sort.get_is_level s = Some l -> s = sType (Universe.make' l).
+  Sort.get_is_level s = Some l -> s = sType (Universe.of_level l).
 Proof.
   intro H; destruct s => //=.
   f_equal; now apply universe_get_is_level_correct.
@@ -2523,7 +2532,7 @@ End no_prop_leq_type.
 (* This level is a hack used in plugings to generate fresh levels *)
 Definition fresh_level : Level.t := Level.level     "__metarocq_fresh_level__".
 (* This universe is a hack used in plugins to generate fresh universes *)
-Definition fresh_universe : Universe.t := Universe.make' fresh_level.
+Definition fresh_universe : Universe.t := Universe.of_level fresh_level.
 
 (** * Universe substitution
 
@@ -2938,15 +2947,19 @@ Hint Resolve subst_instance_level_expr_closedu
 
 Definition string_of_level (l : Level.t) : string :=
   match l with
-  | Level.lzero => "Set"
+  | Level.lzero => "0"
   | Level.level     s => s
-  | Level.lvar n => "lvar" ^ string_of_nat n
+  | Level.lvar n => "(lvar " ^ string_of_nat n ^ ")"
   end.
 
 Definition string_of_level_expr (e : LevelExpr.t) : string :=
-  let '(l, n) := e in string_of_level l ^ (if n is 0 then "" else "+" ^ string_of_nat n).
+  let '(l, n) := e in
+  match l with
+  | Level.lzero => string_of_nat n
+  | _ => string_of_level l ^ (if n is 0 then "" else "+" ^ string_of_nat n)
+  end.
 
-Definition string_of_universe (e : LevelExprSet.t) : string :=
+Definition string_of_universe (e : Universe.t) : string :=
   string_of_list string_of_level_expr (LevelExprSet.elements e).
 
 Definition string_of_sort (u : Sort.t) :=
@@ -2956,8 +2969,11 @@ Definition string_of_sort (u : Sort.t) :=
   | Sort.sType l => "Type(" ^ string_of_universe l ^ ")"
   end.
 
-Definition string_of_universe_instance u :=
+Definition string_of_universe_level_instance (u : LevelInstance.t) :=
   string_of_list string_of_level u.
+
+Definition string_of_universe_instance (u : Instance.t) :=
+  string_of_list string_of_universe u.
 
 Inductive universes_entry :=
 | Monomorphic_entry (ctx : ContextSet.t)
@@ -2985,7 +3001,7 @@ Definition abstract_instance decl :=
 Definition print_universe_instance u :=
   match u with
   | [] => ""
-  | _ => "@{" ^ print_list string_of_level " " u ^ "}"
+  | _ => "@{" ^ print_list string_of_universe " " u ^ "}"
   end.
 
 Definition print_lset t :=

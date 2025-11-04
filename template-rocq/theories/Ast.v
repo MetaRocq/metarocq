@@ -417,7 +417,7 @@ Inductive term : Type :=
 | tInt (i : PrimInt63.int)
 | tFloat (f : PrimFloat.float)
 | tString (s : PrimString.string)
-| tArray (u : Level.t) (arr : list term) (default : term) (type : term).
+| tArray (u : Universe.t) (arr : list term) (default : term) (type : term).
 
 (** This can be used to represent holes, that, when unquoted, turn into fresh existential variables.
     The fresh evar will depend on the whole context at this point in the term, despite the empty instance.
@@ -567,7 +567,7 @@ Fixpoint noccur_between k n (t : term) : bool :=
   match c with
   | tRel _ | tVar _ => c
   | tInt _ | tFloat _ | tString _ => c
-  | tArray u' arr def ty => tArray (subst_instance_level u u') (List.map (subst_instance_constr u) arr)
+  | tArray u' arr def ty => tArray (subst_instance_universe u u') (List.map (subst_instance_constr u) arr)
     (subst_instance_constr u def) (subst_instance_constr u ty)
   | tEvar ev args => tEvar ev (List.map (subst_instance_constr u) args)
   | tSort s => tSort (subst_instance_sort u s)
@@ -616,7 +616,7 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | tCoFix mfix idx =>
     forallb (test_def (closedu k) (closedu k)) mfix
   | tArray u arr def ty =>
-    closedu_level k u && forallb (closedu k) arr && closedu k def && closedu k ty
+    closedu_universe k u && forallb (closedu k) arr && closedu k def && closedu k ty
   | _ => true
   end.
 
@@ -779,7 +779,7 @@ Qed.
 
 Definition ind_predicate_context ind mdecl idecl : context :=
   let ictx := (expand_lets_ctx mdecl.(ind_params) idecl.(ind_indices)) in
-  let indty := mkApps (tInd ind (abstract_instance mdecl.(ind_universes)))
+  let indty := mkApps (tInd ind (Instance.of_level_instance (abstract_instance mdecl.(ind_universes))))
     (to_extended_list (smash_context [] mdecl.(ind_params) ,,, ictx)) in
   let inddecl :=
     {| decl_name :=

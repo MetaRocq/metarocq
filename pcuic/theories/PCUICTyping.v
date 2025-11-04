@@ -181,8 +181,8 @@ Variant primitive_typing_hyps `{checker_flags}
 | prim_float_hyps f : primitive_typing_hyps typing Σ Γ (primFloat; primFloatModel f)
 | prim_string_hyps s : primitive_typing_hyps typing Σ Γ (primString; primStringModel s)
 | prim_array_hyps a
-  (wfl : wf_universe Σ (Universe.make' a.(array_level)))
-  (hty : typing Σ Γ a.(array_type) (tSort (sType (Universe.make' a.(array_level)))))
+  (wfl : wf_universe Σ (Universe.of_level a.(array_level)))
+  (hty : typing Σ Γ a.(array_type) (tSort (sType (Universe.of_level a.(array_level)))))
   (hdef : typing Σ Γ a.(array_default) a.(array_type))
   (hvalue : All (fun x => typing Σ Γ x a.(array_type)) a.(array_value)) :
   primitive_typing_hyps typing Σ Γ (primArray; primArrayModel a).

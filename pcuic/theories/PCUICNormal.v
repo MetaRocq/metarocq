@@ -1049,7 +1049,7 @@ Proof.
     eauto.
   - depelim o. 1-3: reflexivity.
     eapply red_primArray_congr; eauto.
-    now eapply Universe.make'_inj in e.
+    now eapply Universe.of_level_inj in e.
 Qed.
 
 #[global]

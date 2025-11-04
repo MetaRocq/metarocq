@@ -102,12 +102,11 @@ Register MetaRocq.Common.Universes.IntoPropSProp as metarocq.ast.IntoPropSProp.
 Register MetaRocq.Common.Universes.IntoSetPropSProp as metarocq.ast.IntoSetPropSProp.
 Register MetaRocq.Common.Universes.IntoAny as metarocq.ast.IntoAny.
 (* We convert from simple constraints to ones in Z *)
-Register MetaRocq.Common.Universes.ConstraintType.Lt as metarocq.ast.constraints.Lt.
-Register MetaRocq.Common.Universes.ConstraintType.Le0 as metarocq.ast.constraints.Le0.
-Register MetaRocq.Common.Universes.ConstraintType.Le as metarocq.ast.constraints.Le.
-Register MetaRocq.Common.Universes.ConstraintType.Eq as metarocq.ast.constraints.Eq.
+Register MetaRocq.Common.UnivConstraintType.ConstraintType.Le as metarocq.ast.constraints.Le.
+Register MetaRocq.Common.UnivConstraintType.ConstraintType.Eq as metarocq.ast.constraints.Eq.
 Register MetaRocq.Common.Universes.Universe.t as metarocq.ast.universe.t.
-Register MetaRocq.Common.Universes.Universe.make' as metarocq.ast.universe.make_of_level.
+Register MetaRocq.Common.Universes.Universe.of_level as metarocq.ast.universe.make_of_level.
+Register MetaRocq.Common.Universes.Universe.succ as metarocq.ast.universe.succ.
 Register MetaRocq.Common.Universes.Universe.from_kernel_repr as metarocq.ast.universe.from_kernel_repr.
 Register MetaRocq.Common.Universes.LevelSetProp.of_list as metarocq.ast.universe.of_list.
 Register MetaRocq.Common.Universes.Level.t as metarocq.ast.level.t.
@@ -119,7 +118,7 @@ Register MetaRocq.Common.Universes.Level.lzero as metarocq.ast.level.lzero.
 Register MetaRocq.Common.Universes.Level.lvar as metarocq.ast.level.Var.
 
 Register MetaRocq.Common.Universes.LevelExprSet.Mkt as metarocq.ast.levelexprset.mkt.
-Register MetaRocq.Common.Universes.LevelExprSet.Build_nonEmptyLevelExprSet as metarocq.ast.universe.build0.
+Register MetaRocq.Common.Universes.Universe.NES.Build_t as metarocq.ast.universe.build0.
 Register MetaRocq.Common.Universes.Sort.sSProp as metarocq.ast.sort.sprop.
 Register MetaRocq.Common.Universes.Sort.sProp as metarocq.ast.sort.prop.
 Register MetaRocq.Common.Universes.Sort.sType as metarocq.ast.sort.type.
@@ -148,9 +147,9 @@ Register MetaRocq.Common.Universes.LevelSet.t_ as metarocq.ast.LevelSet.t.
 Register MetaRocq.Common.Universes.LevelSet.elements as metarocq.ast.LevelSet.elements.
 Register MetaRocq.Common.Universes.UnivConstraint.make as metarocq.ast.make_univ_constraint.
 
-Register MetaRocq.Common.uGraph.init_graph as metarocq.ast.graph.init.
+Register MetaRocq.Common.uGraph.init_model as metarocq.ast.graph.init.
 (* FIXME wrong! *)
-Register MetaRocq.Common.uGraph.gc_of_constraints as metarocq.ast.graph.add_global_constraints.
+Register MetaRocq.Common.uGraph.push_uctx as metarocq.ast.graph.add_global_constraints.
 
 (* Terms *)
 

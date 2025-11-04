@@ -106,7 +106,7 @@ Module Clauses (LS : LevelSets).
 
   Definition t := clause.
 
-  Definition eq : t -> t -> Prop := eq.
+  Definition eq : t -> t -> Prop := Logic.eq.
 
   Definition eq_equiv : RelationClasses.Equivalence eq := _.
 
@@ -178,7 +178,7 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Local Instance proper_fold_transpose {A} (f : Clauses.elt -> A -> A) :
-    transpose eq f ->
+    transpose Logic.eq f ->
     Proper (Clauses.Equal ==> eq ==> eq) (Clauses.fold f).
   Proof.
     intros hf s s' Hss' x ? <-.

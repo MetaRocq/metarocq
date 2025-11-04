@@ -883,7 +883,7 @@ Section Alpha.
         eapply eq_term_upto_univ_cumulSpec.
         eapply eq_term_leq_term. eapply e1.
       * eapply eq_context_conversion in Hs; eauto.
-      * simp prim_type. eapply Universe.make'_inj in e. rewrite e.
+      * simp prim_type. eapply Universe.of_level_inj in e. rewrite e.
         eapply eq_term_upto_univ_cumulSpec.
         eapply upto_names_impl_leq_term.
         constructor. constructor. reflexivity. now symmetry.

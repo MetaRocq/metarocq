@@ -136,7 +136,7 @@ Proof.
   - f_equal.
     destruct o; auto.
     f_equal. f_equal. cbn in X, hu, hv. rtoProp.
-    destruct X as (hty & hdef & harr). eapply Universe.make'_inj in e.
+    destruct X as (hty & hdef & harr). eapply Universe.of_level_inj in e.
     destruct a, a'; cbn in *. f_equal; intuition eauto.
     apply All2_eq. solve_all.
 Qed.
