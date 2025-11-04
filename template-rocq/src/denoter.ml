@@ -23,12 +23,13 @@ sig
   val unquote_proj : quoted_proj -> (quoted_inductive * quoted_int * quoted_int)
   (* val unquote_universe : Evd.evar_map -> quoted_universe -> Evd.evar_map * Univ.Universe.t *)
   val unquote_universe_level : Evd.evar_map -> quoted_univ_level -> Evd.evar_map * Univ.Level.t
+  val unquote_universe : Evd.evar_map -> quoted_universe -> Evd.evar_map * Univ.Universe.t
   val unquote_universe_instance: Evd.evar_map -> quoted_univ_instance -> Evd.evar_map * UVars.Instance.t
   val unquote_sort : Evd.evar_map -> quoted_sort -> Evd.evar_map * Sorts.t
   (* val unquote_sort_family : quoted_sort_family -> Sorts.family *)
   (* val representsIndConstuctor : quoted_inductive -> Term.constr -> bool *)
   val inspect_term : t -> (t, quoted_int, quoted_ident, quoted_aname, quoted_sort, quoted_cast_kind,
-    quoted_kernel_name, quoted_inductive, quoted_relevance, quoted_univ_level, quoted_univ_instance, quoted_proj,
+    quoted_kernel_name, quoted_inductive, quoted_relevance, quoted_universe, quoted_univ_instance, quoted_proj,
     quoted_int63, quoted_float64, quoted_pstring) structure_of_term
 
 end
@@ -168,10 +169,14 @@ struct
       | ACoq_tFloat x -> evm, Constr.mkFloat (D.unquote_float64 x)
       | ACoq_tString x -> evm, Constr.mkString (D.unquote_pstring x)
       | ACoq_tArray (u, arr, def, ty) ->
-          let evm, u = D.unquote_universe_level evm u in
+          let evm, u = D.unquote_universe evm u in
           let evm, arr = CArray.fold_left_map (fun evm a -> aux env evm a) evm arr in
           let evm, def = aux env evm def in
           let evm, ty = aux env evm ty in
+          let u = match Univ.Universe.level u with
+            | Some u -> u
+            | None -> CErrors.user_err Pp.(str "Array universe is not a level.")
+          in
           evm, Constr.mkArray (UVars.Instance.of_array ([||], [|u|]), arr, def, ty)
 
     in aux env evm trm

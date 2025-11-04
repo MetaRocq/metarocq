@@ -422,7 +422,7 @@ Module Universe.
     Definition eq_leibniz x y : eq x y -> x = y := fun e => e.
   End Q.
 
-  Module NES := NonEmptyLevelExprSet Level Level Q LevelSet LevelExpr LevelExprSet.
+  Module NES := NonEmptyLevelExprSet Level Q LevelSet LevelExpr LevelExprSet.
   Include NES.
 
   #[global] Instance eq_dec_univ0 : EqDec t := eq_dec.

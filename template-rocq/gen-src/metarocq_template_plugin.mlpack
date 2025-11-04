@@ -68,6 +68,7 @@ MRRelations
 MROption
 MRProd
 MRCompare
+MRClasses
 Bytestring
 Caml_bytestring
 Monad_utils
@@ -93,7 +94,10 @@ MRMSets
 Config0
 Kernames
 Primitive
+UnivConstraintType
+SemiLattice
 BasicAst
+NonEmptyLevelExprSet
 Universes0
 Environment
 EnvironmentTyping

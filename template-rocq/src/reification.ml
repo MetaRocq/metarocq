@@ -9,6 +9,7 @@ sig
   type quoted_name
   type quoted_aname
   type quoted_relevance
+  type quoted_universe
   type quoted_sort
   type quoted_cast_kind
   type quoted_kernel_name
@@ -26,6 +27,7 @@ sig
   type quoted_univ_constraints
   type quoted_univ_level
   type quoted_univ_instance
+  type quoted_univ_level_instance
   type quoted_univ_context
   type quoted_univ_contextset
   type quoted_abstract_univ_context

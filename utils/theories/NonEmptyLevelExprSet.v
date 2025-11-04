@@ -64,8 +64,9 @@ Module Type LevelExprT (Level : OrderedTypeWithLeibniz) (Q : Quantity).
   Parameter eq_leibniz : forall (x y : t), eq x y -> x = y.
 End LevelExprT.
 
-Module Type LevelSet_fun (Level : UsualOrderedType).
-  Include S with Module E := Level.
+Module Type LevelSet_fun (Level : OrderedType).
+  Include S with Definition E.t := Level.t
+    with Definition E.eq := @Logic.eq Level.t.
 End LevelSet_fun.
 
 Module Type LevelExprSet_fun (Level : OrderedTypeWithLeibniz) (Q : Quantity)

@@ -205,11 +205,11 @@ struct
          | Some x -> constr_mkApp (tLevelVar, [| quote_int x |])
          | None -> constr_mkApp (tLevel, [| string_of_level l |])
 
-  let of_level l = constr_mkApp (tof_level, [| l |])
+  let universe_of_level l = constr_mkApp (tof_level, [| l |])
 
   let quote_universe s =
     match Univ.Universe.level s with
-      Some l -> of_level (quote_level l)
+      Some l -> universe_of_level (quote_level l)
     | _ -> let levels = List.map (fun (l,i) -> pairl tlevel tnat (quote_level l) (quote_int i)) (Universe.repr s) in
            let hd = List.hd levels in
            let tl = to_coq_list (prodl tlevel tnat) (List.tl levels) in
@@ -229,9 +229,9 @@ struct
   let quote_univ_constraint ((l1, ct, l2) : Univ.univ_constraint) =
     let l1 = quote_level l1 in
     let l2 = quote_level l2 in
-    let u1 = if ct == Lt then constr_mkApp (tsucc, [| of_level l1 |]) else of_level l1 in
+    let u1 = if ct == Lt then constr_mkApp (tsucc, [| universe_of_level l1 |]) else universe_of_level l1 in
     let ct = quote_constraint_type ct in
-    constr_mkApp (tmake_univ_constraint, [| u1; ct; of_level l2 |])
+    constr_mkApp (tmake_univ_constraint, [| u1; ct; universe_of_level l2 |])
 
   let quote_univ_level u = quote_level u
   (* todo : can be deduced from quote_level, hence shoud be in the Reify module *)

@@ -158,8 +158,6 @@ gen-src/mSetInterface.ml
 gen-src/mSetInterface.mli
 gen-src/mSetProperties.ml
 gen-src/mSetProperties.mli
-gen-src/mRInstances.mli
-gen-src/mRInstances.ml
 gen-src/monad_utils.ml
 gen-src/monad_utils.mli
 gen-src/nat0.ml

@@ -19,6 +19,7 @@ struct
   type quoted_name = BasicAst.name
   type quoted_aname = BasicAst.aname
   type quoted_relevance = BasicAst.relevance
+  type quoted_universe = Universes0.Universe.t
   type quoted_sort = Universes0.Sort.t
   type quoted_cast_kind = cast_kind
   type quoted_kernel_name = Kernames.kername
@@ -27,10 +28,11 @@ struct
   type quoted_global_reference = global_reference
 
   type quoted_sort_family = Universes0.allowed_eliminations
-  type quoted_constraint_type = Universes0.ConstraintType.t
-  type quoted_univ_constraint = Universes0.LevelConstraint.t
+  type quoted_constraint_type = UnivConstraintType.ConstraintType.t
+  type quoted_univ_constraint = Universes0.UnivConstraint.t
   type quoted_univ_constraints = Universes0.UnivConstraintSet.t
   type quoted_univ_level = Universes0.Level.t
+  type quoted_univ_level_instance = Universes0.LevelInstance.t
   type quoted_univ_instance = Universes0.Instance.t
   type quoted_univ_context = Universes0.UContext.t
   type quoted_univ_contextset = Universes0.ContextSet.t
@@ -93,7 +95,7 @@ struct
 
   let quote_universe u : Universes0.Universe.t =
     match Univ.Universe.level u with
-      Some l -> Universes0.Universe.make' (quote_level l)
+      Some l -> Universes0.Universe.of_level (quote_level l)
     | _ ->
       let levels = Univ.Universe.repr u |> List.map quote_level_expr in
       Universes0.Universe.from_kernel_repr (List.hd levels) (List.tl levels)
@@ -136,11 +138,6 @@ struct
   let quote_inductive (kn, i) = { inductive_mind = kn ; inductive_ind = i }
   let quote_proj ind p a = { proj_ind = ind; proj_npars = p; proj_arg = a }
 
-  let quote_constraint_type = function
-    | Univ.Lt -> Universes0.ConstraintType.Le BinNums.(Zpos Coq_xH)
-    | Univ.Le -> Universes0.ConstraintType.Le BinNums.Z0
-    | Univ.Eq -> Universes0.ConstraintType.Eq
-
   let is_Lt = function
     | Univ.Lt -> true
     | _ -> false
@@ -153,11 +150,30 @@ struct
     | Univ.Eq -> true
     | _ -> false
 
-  let quote_univ_constraint ((l, ct, l') : Univ.univ_constraint) : quoted_univ_constraint =
-    try ((quote_level l, quote_constraint_type ct), quote_level l')
-    with e -> assert false
+  let universe_of_level = Universes0.Universe.of_level
+
+  let quote_univ_constraint ((l, ct, r) : Univ.univ_constraint) : quoted_univ_constraint =
+    let ql = quote_level l in
+    let qr = quote_level r in
+    let ul = Universes0.Universe.of_level ql in
+    let ur = Universes0.Universe.of_level qr in
+    let open UnivConstraintType.ConstraintType in
+    match ct with
+    | Univ.Lt -> ((Universes0.Universe.succ ul, Le), ur)
+    | Univ.Le -> ((ul, Le), ur)
+    | Univ.Eq -> ((ul, Eq), ur)
 
   let quote_univ_level = quote_level
+
+  let quote_univ_level_instance (i : UVars.Instance.t) : quoted_univ_level_instance =
+    let qarr, uarr = UVars.Instance.to_array i in
+    let () = if not (CArray.is_empty qarr) then
+        CErrors.user_err Pp.(str "Quoting sort polymorphic instances not yet supported.")
+    in
+    (* we assume that valid instances do not contain [Prop] or [SProp] *)
+    try CArray.map_to_list quote_level uarr
+    with e -> assert false
+
 
   let quote_univ_instance (i : UVars.Instance.t) : quoted_univ_instance =
     let qarr, uarr = UVars.Instance.to_array i in
@@ -165,7 +181,7 @@ struct
         CErrors.user_err Pp.(str "Quoting sort polymorphic instances not yet supported.")
     in
     (* we assume that valid instances do not contain [Prop] or [SProp] *)
-    try CArray.map_to_list quote_level uarr
+    try CArray.map_to_list (Universes0.Universe.of_level $ quote_level) uarr
     with e -> assert false
 
    (* (Prop, Le | Lt, l),  (Prop, Eq, Prop) -- trivial, (l, c, Prop)  -- unsatisfiable  *)
@@ -193,7 +209,7 @@ struct
     let names = CArray.map_to_list quote_name uarr  in
     let levels = UVars.UContext.instance uctx  in
     let constraints = UVars.UContext.constraints uctx in
-    (names, (quote_univ_instance levels, quote_univ_constraints constraints))
+    (names, (quote_univ_level_instance levels, quote_univ_constraints constraints))
 
   let quote_univ_contextset (uctx : Univ.ContextSet.t) : quoted_univ_contextset =
     let levels = List.map quote_level (Univ.Level.Set.elements (Univ.ContextSet.levels uctx)) in
