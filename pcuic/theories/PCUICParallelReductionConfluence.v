@@ -1177,7 +1177,6 @@ Section Rho.
     destruct H as [b' [Hb Heq']].
     exists b'; intuition auto.
     rewrite -ren_shiftn. autorewrite with sigma in Heq' |- *.
-    rewrite Nat.sub_0_r.
     rewrite -?subst_compose_assoc -inst_assoc.
     rewrite -[b.[_]]inst_assoc. rewrite Heq'.
     now sigma.

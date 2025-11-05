@@ -158,6 +158,11 @@ Section Validity.
       exists xs; cbn. split; auto.
   Qed.
 
+  Lemma subst_instance_level_expr_0 u : subst_instance_level_expr [u] (LevelExpr.make (Level.lvar 0)) = u.
+  Proof.
+    now rewrite /subst_instance_level_expr //= plus_0.
+  Qed.
+
   Import PCUICOnFreeVars.
 
   Theorem validity_env :
@@ -335,13 +340,14 @@ Section Validity.
       depelim X0; depelim X1; simp prim_type; cbn in *.
       1-3:destruct H1 as [hty hbod huniv]; eapply has_sort_isType with (s := _@[[]]); change (tSort ?s@[[]]) with (tSort s)@[[]];
           rewrite <- hty; refine (type_Const _ _ _ [] _ wfΓ H0 _); rewrite huniv //.
-      set (s := sType (Universe.of_level (array_universe a))).
+      set (s := sType (array_universe a)).
       destruct H1 as [hty' hbod huniv].
       eapply has_sort_isType with s.
       eapply (type_App _ _ _ _ (tSort s) (tSort s)); tea; cycle 1.
-      + eapply (type_Const _ _ _ [array_universe a]) in H0; tea. rewrite hty' in H0. cbn in H0. exact H0.
-        red. rewrite huniv. simpl. rtoProp; intuition eauto. eapply LevelSet.mem_spec. eapply (wfl (array_universe a, 0)). cbn. lsets.
-        cbn. red. destruct check_univs => //. red. red. intros v H c. csets.
+      + eapply (type_Const _ _ _ [array_universe a]) in H0; tea. rewrite hty' in H0. cbn in H0.
+        rewrite subst_instance_level_expr_0 in H0. exact H0.
+        red. rewrite huniv. simpl. rtoProp; intuition eauto. eapply LevelSet.subset_spec, subset_levels. eapply wfl.
+        cbn. red. destruct check_univs => //. red. red. intros v H c. ucsets.
       + econstructor. 2: econstructor; eauto. 2: constructor; tas.
         all: repeat (eexists; tea; cbn).
         1,3: econstructor; eauto.

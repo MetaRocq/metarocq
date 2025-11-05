@@ -2202,9 +2202,7 @@ Section PredRed.
     - eapply red_evar; eauto with fvs. solve_all.
     - depelim X1; try solve [repeat constructor]; eauto.
       depelim X2; cbn in H0; rtoProp.
-      eapply red_primArray_congr; eauto.
-      + now eapply Universe.of_level_inj in e.
-      + solve_all.
+      eapply red_primArray_congr; eauto. solve_all.
   Qed.
 
   Lemma pred1_red_r_gen P Γ Γ' Δ Δ' : forall M N,

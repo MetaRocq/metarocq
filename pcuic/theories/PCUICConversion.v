@@ -404,8 +404,7 @@ Section ConvCongruences.
     eapply on_free_vars_impl.
     2:eapply on_free_vars_subst_gen; tea.
     intros i.
-    rewrite /substP /shiftnP !orb_false_r.
-    repeat nat_compare_specs => //. cbn.
+    rewrite /substP /shiftnP /strengthenP !orb_false_r.
     repeat nat_compare_specs => //.
   Qed.
 
