@@ -2599,16 +2599,20 @@ fun u e => match e with
           end
         end.
 
-Definition subst_instance_level_expr (u : Instance.t) (l : LevelExpr.t) : Universe.t :=
+Definition subst_instance_level (u : Instance.t) (l : Level.t) : Universe.t :=
   match l with
-  | (Level.lzero, _)
-  | (Level.level _, _) => Universe.make l
-  | (Level.lvar n, k) =>
+  | Level.lzero
+  | Level.level _ => Universe.of_level l
+  | Level.lvar n =>
     match nth_error u n with
-    | Some l => Universe.plus k l
-    | None => Universe.plus k Universe.zero
+    | Some u => u
+    | None => Universe.zero
     end
   end.
+
+
+Definition subst_instance_level_expr (u : Instance.t) (l : LevelExpr.t) : Universe.t :=
+  Universe.plus l.2 (subst_instance_level u l.1).
 
 #[global] Instance subst_level_instance_universe : UnivLevelSubst Universe.t :=
   fun u => Universe.map (subst_level_instance_level_expr u).
@@ -2717,6 +2721,12 @@ Section UniverseClosedSubst.
     destruct l; cbnr. discriminate.
   Qed.
 
+  Lemma closedu_subst_instance_level u e
+    : closedu_level 0 e -> subst_instance_level u e = Universe.of_level e.
+  Proof.
+    destruct e; cbn => //.
+  Qed.
+
   Lemma closedu_subst_level_instance_level_expr u e
     : closedu_level_expr 0 e -> subst_level_instance_level_expr u e = e.
   Proof.
@@ -2727,8 +2737,15 @@ Section UniverseClosedSubst.
   Lemma closedu_subst_instance_level_expr u e
     : closedu_level_expr 0 e -> subst_instance_level_expr u e = Universe.make e.
   Proof.
-    intros.
-    destruct e as [t b]. destruct t;cbnr. discriminate.
+    destruct e as [t b]. move/(closedu_subst_instance_level u); cbn.
+    rewrite /subst_instance_level_expr => ->. cbn.
+    rewrite /Universe.plus /Universe.of_level. cbn.
+    apply Universe.equal_exprsets => l. cbn.
+    rewrite LevelExprSet.add_spec LevelExprSet.singleton_spec.
+    split.
+    * intros [->|le]; cbn. rewrite /LevelExpr.add /LevelExpr.make. cbn. now rewrite Nat.add_0_r.
+      now apply LevelExprSet.empty_spec in le.
+    * intros ->. left. rewrite /LevelExpr.add /LevelExpr.make. cbn. now rewrite Nat.add_0_r.
   Qed.
 
   Lemma closedu_subst_level_instance_universe u e
@@ -2928,9 +2945,12 @@ Section SubstInstanceClosed.
     case_eq (nth_error u n); cbnr. intros u' Hl; cbnr.
     apply nth_error_In in Hl. cbn in Hl.
     intros hn.
-    unfold closedu_instance in Hcl.
-    red in Hcl; rewrite -> forallb_forall in Hcl. specialize (Hcl _ Hl).
-    now rewrite -closedu_universe_plus.
+    rewrite -closedu_universe_plus. cbn.
+    destruct nth_error eqn:hnth => //.
+    eapply forallb_forall in Hcl; tea.
+    now eapply nth_error_In.
+    unfold subst_instance_level_expr. cbn.
+    intros ->. now cbn.
   Qed.
 
   Lemma subst_instance_universe_closedu s

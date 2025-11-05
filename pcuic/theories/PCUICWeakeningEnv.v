@@ -537,7 +537,7 @@ Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
 #[warnings="-ambiguous-paths"]
 Global Coercion weaken_env_prop_strictly_on_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_strictly_on_decls_prop cf Pcmp P P0 -> @weaken_env_strictly_decls_prop cf Pcmp P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
-#[export] Set Warnings Append "ambiguous-paths".
+(* #[export] Set Warnings Append "ambiguous-paths". *)
 
 #[global] Hint Resolve weaken_env_prop_full_to_decls : extends.
 #[global] Hint Resolve weaken_env_prop_full_to_strictly_on_decls : extends.
