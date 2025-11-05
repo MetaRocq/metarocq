@@ -121,8 +121,7 @@ Proof.
     cbn; intros; intuition eauto.
     rewrite -> subst_instance_app, fix_context_subst_instance in *; eauto.
   - eapply cumul_Prim. depelim e0; depelim X; cbn in H; cbn; noconf H; cbn in H; constructor; cbn -[Universe.make]; eauto.
-    + rewrite -!subst_instance_universe_make.
-      eapply eq_universe_subst_instance; tea.
+    + eapply eq_universe_subst_instance; tea.
     + solve_all.
  - repeat rewrite subst_instance_mkApps. eapply cumul_Ind.
     * apply precompose_subst_instance_global.
@@ -195,13 +194,13 @@ Proof using Type.
   now eapply cumul_decls_subst_instance.
 Qed.
 
-Lemma subst_instance_prim_type p prim_ty u : (prim_type p prim_ty)@[u] = prim_type (mapu_prim (subst_instance_level u) (subst_instance u) p) prim_ty.
+Lemma subst_instance_prim_type p prim_ty u : (prim_type p prim_ty)@[u] = prim_type (mapu_prim (subst_instance_universe u) (subst_instance u) p) prim_ty.
 Proof.
   destruct p as [? []]; simp prim_type => //=.
 Qed.
 
 Lemma subst_instance_prim_val_tag (p : PCUICPrimitive.prim_val term) u :
-  prim_val_tag (mapu_prim (subst_instance_level u) (subst_instance u) p) =
+  prim_val_tag (mapu_prim (subst_instance_universe u) (subst_instance u) p) =
   prim_val_tag p.
 Proof.
   destruct p as [? []] => //=.
@@ -397,10 +396,7 @@ Proof using Type.
     + exact H0.
     + now rewrite subst_instance_prim_val_tag.
     + destruct p as [? []]; depelim X1; constructor; eauto.
-      * rewrite -subst_instance_universe_make. eapply wf_universe_subst_instance => //.
-      * cbn -[Universe.of_level] in hty.
-        specialize (hty u univs).
-        rewrite /subst_instance subst_instance_universe_make in hty. now eapply hty.
+      * eapply wf_universe_subst_instance => //.
       * cbn. solve_all.
 
   - intros t0 A B X X0 X1 X2 X3 X4 cum u univs wfΣ' H.

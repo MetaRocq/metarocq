@@ -145,7 +145,7 @@ Proof.
     now eapply declared_projection_closed_ind in H.
 Qed.
 
-
+Arguments Nat.ltb : simpl never.
 
 Lemma typecheck_closed `{cf : checker_flags} :
   env_prop (fun Σ Γ t T =>
@@ -167,7 +167,8 @@ Proof.
   - pose proof (nth_error_Some_length H).
     elim (Nat.ltb_spec n #|Γ|); intuition auto. all: try lia. clear H1.
 
-    induction Γ in n, H, H0, H2 |- *. rewrite nth_error_nil in H. discriminate.
+    induction Γ in n, H, H0, H2 |- *.
+    { rewrite nth_error_nil in H. cbn in *. discriminate. }
     destruct n.
     simpl in H. noconf H. simpl.
     rewrite -Nat.add_1_r. apply closedn_lift.

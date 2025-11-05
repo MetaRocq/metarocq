@@ -1073,7 +1073,7 @@ Qed.
 
 Lemma LevelIn_subst_instance {cf : checker_flags} Σ l u univs :
   LS.In l (global_ext_levels Σ) ->
-  consistent_instance_ext (Σ.1, univs) Σ.2 u ->
+  forallb (fun l : Universe.t => LS.subset (Universe.levels l) (global_ext_levels (Σ.1, univs))) u ->
   LS.Subset (levels (subst_instance_level u l)) (global_ext_levels (Σ.1, univs)).
 Proof.
   intros H H'. destruct l.
@@ -1083,8 +1083,7 @@ Proof.
    apply LS.union_spec in H; destruct H as [H|H]; simpl in *.
     + now apply monomorphic_level_notin_levels_of_udecl in H.
     + apply LS.union_spec; now right.
-  - apply consistent_instance_declared in H'.
-    cbn.
+  - cbn.
     destruct nth_error eqn:hnth.
     + solve_all. eapply nth_error_all in hnth; tea.
       now apply LevelSet.subset_spec in hnth.
