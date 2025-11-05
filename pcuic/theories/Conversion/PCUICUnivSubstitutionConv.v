@@ -1,5 +1,5 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect CRelationClasses.
+From Stdlib Require Import ssreflect ssrbool ssrfun CRelationClasses.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Universes uGraph.
 From MetaRocq.PCUIC Require Import PCUICAst PCUICOnOne PCUICAstUtils PCUICInduction
@@ -25,6 +25,11 @@ Local Ltac aa := rdest; eauto with univ_subst.
 
 Import Universe.NES.
 Import Universes.
+
+Lemma subset_levels l s : LevelSet.Subset (levels l) s <-> (forall lk, LevelExprSet.In lk l -> LevelSet.In lk.1 s).
+Proof. rewrite /LevelSet.Subset. setoid_rewrite levels_spec. firstorder.
+  apply H. exists lk.2; destruct lk => //.
+Qed.
 
 Lemma subst_instance_level_expr_val {u l v} v'
       (H1 : forall s, valuation_mono v s = valuation_mono v' s)
@@ -463,6 +468,41 @@ Proof.
         -- right. exists c'. intuition.
   - rewrite UnivConstraintSetFact.empty_iff.
     transitivity (exists c', c = subst_instance_univ_cstr u c'
+                        /\ In c' (UCS.elements ctrs)).
+    1: intuition.
+    apply iff_ex; intro. apply and_iff_compat_l. symmetry.
+    etransitivity. 1: symmetry; apply UCS.elements_spec1.
+    etransitivity. 1: eapply SetoidList.InA_alt.
+    split; intro; eauto.
+    now destruct H as [? [[] ?]].
+Qed.
+
+Lemma In_subst_level_instance_cstrs u c ctrs :
+  UCS.In c (subst_level_instance_cstrs u ctrs)
+  <-> exists c', c = subst_level_instance_univ_cstr u c' /\ UCS.In c' ctrs.
+Proof.
+  unfold subst_level_instance_cstrs.
+  rewrite UCS.fold_spec.
+  transitivity (UCS.In c UCS.empty \/
+                exists c', c = subst_level_instance_univ_cstr u c'
+                      /\ In c' (UCS.elements ctrs)).
+  - generalize (UCS.elements ctrs), UCS.empty.
+    induction l; cbn.
+    + pcuicfo. now destruct H0 as [? ?].
+    + intros t. etransitivity. 1: eapply IHl.
+      split; intros [HH|HH].
+      * destruct a as [[l1 a] l2]. apply UCS.add_spec in HH.
+        destruct HH as [HH|HH]. 2: now left.
+        right; eexists. split; [|left; reflexivity]. assumption.
+      * destruct HH as [c' ?]. right; exists c'; intuition.
+      * left. destruct a as [[l1 a] l2]. apply UCS.add_spec.
+        now right.
+      * destruct HH as [c' [HH1 [?|?]]]; subst.
+        -- left. destruct c' as [[l1 c'] l2];
+           apply UCS.add_spec; now left.
+        -- right. exists c'. intuition.
+  - rewrite UnivConstraintSetFact.empty_iff.
+    transitivity (exists c', c = subst_level_instance_univ_cstr u c'
                         /\ In c' (UCS.elements ctrs)).
     1: intuition.
     apply iff_ex; intro. apply and_iff_compat_l. symmetry.
@@ -1007,28 +1047,9 @@ Lemma subst_instance_univ_super l u
   : subst_instance_sort u (Sort.super l) = Sort.super (subst_instance u l).
 Proof.
   destruct l; cbnr.
-  3:{ cbn. }
-   f_equal.
-  apply eq_univ'.
-  intros x.
-  rewrite In_subst_instance.
-  rewrite spec_map_succ. split.
-  * intros [x' [hin eq]].
-    subst.
-    apply spec_map_succ in hin as [y [int eq]].
-    subst x'. exists (subst_instance u y).
-    split; auto.
-    - rewrite In_subst_instance. exists y; split; auto.
-    - destruct y as [[] ?]; simpl; cbn; auto.
-      now destruct nth_error.
-  * intros [x' [hin eq]]. subst x.
-    apply In_subst_instance in hin as [y [hin eq]].
-    subst x'.
-    exists (LevelExpr.succ y); cbn.
-    rewrite spec_map_succ. split.
-    - exists y; auto.
-    - destruct y as [[] ?]; cbn; auto.
-      now destruct nth_error.
+  - rewrite closedu_subst_instance_level_expr //=.
+  - rewrite closedu_subst_instance_level_expr //=.
+  - now rewrite [_@[u]](subst_instance_universe_plus _ 1).
 Qed.
 
 Lemma monomorphic_level_notin_levels_of_udecl s udecl :
@@ -1039,21 +1060,36 @@ Proof.
   - apply monomorphic_level_notin_AUContext.
 Qed.
 
+Lemma levels_zero : levels Universe.zero =_lset LevelSet.singleton Level.lzero.
+Proof.
+  now intros l; rewrite levels_singleton.
+Qed.
+
+Lemma subset_singleton x s : LevelSet.Subset (LevelSet.singleton x) s <-> LevelSet.In x s.
+Proof.
+  rewrite /LevelSet.Subset. setoid_rewrite LevelSet.singleton_spec.
+  now firstorder subst.
+Qed.
+
 Lemma LevelIn_subst_instance {cf : checker_flags} Σ l u univs :
   LS.In l (global_ext_levels Σ) ->
   consistent_instance_ext (Σ.1, univs) Σ.2 u ->
-  LS.In (subst_instance_level u l) (global_ext_levels (Σ.1, univs)).
+  LS.Subset (levels (subst_instance_level u l)) (global_ext_levels (Σ.1, univs)).
 Proof.
-  intros H H'. destruct l; simpl.
-  - apply global_ext_levels_InSet.
-  - apply LS.union_spec in H; destruct H as [H|H]; simpl in *.
+  intros H H'. destruct l.
+  - cbn -[levels]. rewrite levels_zero subset_singleton.
+    apply global_ext_levels_InSet.
+  - move=> l; rewrite levels_singleton LevelSet.singleton_spec => ->.
+   apply LS.union_spec in H; destruct H as [H|H]; simpl in *.
     + now apply monomorphic_level_notin_levels_of_udecl in H.
     + apply LS.union_spec; now right.
   - apply consistent_instance_declared in H'.
-    apply (forallb_nth' n Level.lzero) in H'.
-    destruct H' as [[? [eq ?]]|eq]; rewrite eq.
-    + now apply LS.mem_spec.
-    + apply global_ext_levels_InSet.
+    cbn.
+    destruct nth_error eqn:hnth.
+    + solve_all. eapply nth_error_all in hnth; tea.
+      now apply LevelSet.subset_spec in hnth.
+    + rewrite levels_zero subset_singleton.
+      apply global_ext_levels_InSet.
 Qed.
 
 
@@ -1696,7 +1732,7 @@ Proof.
   rewrite app_context_nil_l in decomp.
   injection decomp; intros -> ->; clear decomp.
   simpl.
-  destruct (decompose_app t) eqn:Happ.
+  destruct (decompose_app t0) eqn:Happ.
   rewrite <- subst_instance_decompose_app, Happ. simpl.
   rewrite destInd_subst_instance.
   destruct destInd as [[i u']|]; simpl; auto.
@@ -1744,33 +1780,95 @@ Proof.
   - apply hin.
 Qed.
 
+Lemma add_make l n : LevelExpr.add n (LevelExpr.make l) = (l, n).
+Proof.
+  rewrite /LevelExpr.add //=; lia_f_equal.
+Qed.
+
+Lemma subst_instance_level_spec x i l :
+  LevelExprSet.In x (subst_instance_level i l) <->
+  (~ Level.is_var l /\ x = LevelExpr.make l) \/ exists n, l = Level.lvar n /\
+  if nth_error i n is (Some u) then LevelExprSet.In x u
+  else x = (Level.lzero, 0).
+Proof.
+  destruct l.
+  - cbn. setoid_rewrite LevelExprSet.singleton_spec. firstorder.
+    congruence.
+  - cbn; rewrite LevelExprSet.singleton_spec. firstorder congruence.
+  - cbn. destruct nth_error eqn:hnth => //.
+    * firstorder subst; auto => //.
+      + right. exists n; split => //. now rewrite hnth.
+      + now noconf H; rewrite hnth in H0.
+    * rewrite LevelExprSet.singleton_spec. firstorder subst.
+      + right. exists n. split => //; rewrite hnth. reflexivity.
+      + now elim H.
+      + noconf H. rewrite hnth in H0. subst. reflexivity.
+Qed.
+
+Lemma subst_instance_level_expr_spec x i le :
+  LevelExprSet.In x (subst_instance_level_expr i le) <->
+  (~ Level.is_var le.1 /\ x = le) \/ exists n k, le = (Level.lvar n, k) /\
+   if nth_error i n is (Some u) then LevelExprSet.In x (Universe.plus k u)
+  else x = (Level.lzero, k).
+Proof.
+  destruct le as [l k].
+  cbn -[subst_instance_level].
+  rewrite Universe.map_spec.
+  setoid_rewrite subst_instance_level_spec.
+  split.
+  - move=> -[] e.
+    firstorder subst.
+    * left. now rewrite add_make.
+    * right. exists x0, k. split => //. destruct nth_error => //.
+      + rewrite Universe.map_spec. exists e; split => //.
+      + subst. now rewrite add_make.
+  - move=> -[] h.
+    * destruct h as []. subst x. exists (l, 0). rewrite add_make; split => //.
+      left. split => //.
+    * destruct h as [n [k' [heq hnth]]].
+      destruct nth_error eqn:hnth'.
+      + noconf heq.
+        apply Universe.map_spec in hnth as [? []]. subst x.
+        exists x0; split => //.
+        right. exists n; split => //.
+        now rewrite hnth'.
+      + noconf heq. subst x. exists (LevelExpr.make Level.lzero).
+        rewrite add_make. split => //. right. eexists; split; trea.
+        now rewrite hnth'.
+Qed.
+
 Lemma wf_universe_subst_instance {cf : checker_flags} (Σ : global_env_ext) univs ui u :
    wf Σ ->
    wf_universe Σ u ->
    consistent_instance_ext (Σ.1, univs) Σ.2 ui ->
    wf_universe (Σ.1, univs) (subst_instance ui u).
 Proof.
-  intros wfΣ Hl Hu e [[l n] [inl ->]]%In_subst_instance.
-  destruct l as [|s|n']; simpl; auto.
-  - apply global_ext_levels_InSet.
-  - specialize (Hl (Level.level s, n) inl).
-    simpl in Hl. apply monomorphic_level_in_global_ext in Hl.
-    eapply LS.union_spec. now right.
-  - specialize (Hl (Level.lvar n', n) inl).
-    eapply LS.union_spec in Hl as [Hl|Hl].
-    + red in Hu.
-      unfold levels_of_udecl in Hl.
-      destruct Σ.2.
-      * simpl in Hu.
-        destruct u; try discriminate. lsets.
-      * destruct Hu as [declu [us vc]].
-        unfold subst_instance. simpl.
-        destruct (nth_error ui n') eqn:hnth.
-        2: simpl; apply global_ext_levels_InSet.
-        eapply forallb_Forall in declu.
-        eapply nth_error_forall in declu; eauto.
-        simpl in declu. now eapply LS.mem_spec in declu.
-    + now apply not_var_global_levels in Hl.
+  intros wfΣ Hl Hu e [[l n] [inl eq]]%In_subst_instance.
+  apply subst_instance_level_expr_spec in eq as [H|H].
+  - cbn in H. destruct H as [nvar ->].
+    specialize (Hl (l, n) inl).
+    destruct l => //.
+    + cbn. eapply global_ext_levels_InSet.
+    + cbn. apply monomorphic_level_in_global_ext in Hl.
+      now eapply LS.union_spec.
+  - destruct H as [n' [k [heq hnth]]].
+    noconf heq.
+    destruct nth_error eqn:hnth'.
+    * eapply Universe.map_spec in hnth as [? []]; subst e.
+      cbn.
+      specialize (Hl (Level.lvar n', n) inl).
+      eapply LS.union_spec in Hl as [Hl|Hl].
+      + red in Hu. unfold levels_of_udecl in Hl.
+        destruct Σ.2.
+        { simpl in Hu. apply nth_error_Some_length in hnth'.
+          destruct ui; try discriminate. lsets. }
+        { destruct Hu as [declu [us vc]].
+          eapply forallb_Forall in declu.
+          eapply nth_error_forall in declu; eauto.
+          simpl in declu. now eapply LS.subset_spec, subset_levels in declu. }
+      + now apply not_var_global_levels in Hl.
+   * subst e.
+    now apply global_ext_levels_InSet.
 Qed.
 
 Lemma wf_sort_subst_instance {cf : checker_flags} (Σ : global_env_ext) univs ui s :
@@ -1793,7 +1891,7 @@ Proof.
     unfold global_levels.
     intros x hin. apply LevelSet.union_spec; right.
     now apply LevelSet.union_spec; left.
-  - apply ConstraintSetProp.union_subset_2.
+  - apply UnivConstraintSetProp.union_subset_2.
 Qed.
 
 Definition wf_global_ext {cf : checker_flags} Σ ext := wf_ext_wk (Σ, ext).
@@ -1802,12 +1900,39 @@ From Stdlib Require Import Morphisms.
 From Stdlib Require Import ssreflect.
 Set SimplIsCbn.
 
+Infix "$" := Basics.compose (at level 20).
+Infix "@@" := Basics.apply (at level 20).
+
+Lemma unfold_eq {A} (f : nat -> A) n x :
+  (#|x| = n /\ forall i, i < n -> nth_error x i = Some (f i)) ->
+  unfold n f = x.
+Proof.
+  intros hf.
+  induction n in x, hf |- *; cbn.
+  - destruct hf as [hl hf]. destruct x => //.
+  - destruct x using rev_ind; destruct hf as [hl hf] => //.
+    have he : #|x0| = n.
+    { rewrite length_app //= in hl. lia. }
+    f_equal.
+    + eapply IHn.
+      split => //.
+      move=> i hlt; rewrite -hf; try lia.
+      rewrite nth_error_app.
+      destruct (Nat.ltb_spec i #|x0|) => //. lia.
+    + f_equal. move: (hf n) => /fwd //.
+      rewrite nth_error_app.
+      destruct (Nat.ltb_spec n #|x0|) => //.
+      * lia.
+      * subst n. rewrite Nat.sub_diag nth_error_0 //=.
+        now intros [= ->].
+Qed.
+
 Section SubstIdentity.
   Context `{cf:checker_flags}.
 
   Lemma subst_instance_id_mdecl Σ u mdecl :
     consistent_instance_ext Σ (ind_universes mdecl) u ->
-    subst_instance u (abstract_instance (ind_universes mdecl)) = u.
+    subst_instance u (Instance.of_level_instance @@ abstract_instance (ind_universes mdecl)) = u.
   Proof using Type.
     intros cu.
     red in cu. red in cu.
@@ -1815,9 +1940,15 @@ Section SubstIdentity.
     - destruct u; simpl in cu; try discriminate.
       reflexivity.
     - simpl. destruct cst as [univs csts]. simpl.
-      rewrite map_mapi. simpl. simpl in cu.
+      rewrite map_map map_mapi. simpl. simpl in cu.
       destruct cu as [Hu [sizeu vu]].
-      now rewrite mapi_nth.
+      rewrite mapi_unfold.
+      set (f := fun i : nat => _).
+      apply unfold_eq. split => //.
+      move=> i h.
+      subst f. cbn.
+      rewrite subst_instance_level_expr_make //=.
+      rewrite plus_0. elim: nth_error_spec => //. lia.
   Qed.
 
   Lemma declared_inductive_wf_ext_wk Σ mdecl mind :
@@ -1849,7 +1980,7 @@ Section SubstIdentity.
     LevelSet.In l (LevelSet.union
      (fold_right LevelSet.add LevelSet.empty
         (unfold n Level.lvar)) (global_levels Σ)) ->
-    subst_instance_level (unfold n Level.lvar) l = l.
+    subst_level_instance_level (unfold n Level.lvar) l = l.
   Proof using Type.
     intros wfΣ lin.
     eapply LevelSet.union_spec in lin.
@@ -1864,6 +1995,123 @@ Section SubstIdentity.
       destruct l => //.
   Qed.
 
+  Lemma subst_instance_universe_abs (l : Universe.t) n Σ :
+    wf Σ ->
+    LevelSet.Subset (Universe.levels l) (LevelSet.union
+     (fold_right LevelSet.add LevelSet.empty
+        (unfold n Level.lvar)) (global_levels Σ)) ->
+    l@@[unfold n Level.lvar] = l.
+  Proof using Type.
+    intros wfΣ lin.
+    apply equal_exprsets => l'.
+    rewrite /subst_level_instance_universe.
+    rewrite Universe.map_spec.
+    rewrite /subst_level_instance_level_expr.
+    split.
+    - move=> -[e [hin hs]]. subst l'. rewrite subst_instance_level_abs.
+      * apply lin. apply levels_spec. exists e.2. now destruct e.
+      * destruct e => //.
+    - move=> hin. exists l'. split => //. rewrite subst_instance_level_abs.
+      * apply lin, levels_spec. exists l'.2; now destruct l'.
+      * destruct l' => //.
+  Qed.
+
+  Lemma map_singleton f le : Universe.map f (singleton le) = singleton (f le).
+  Proof.
+    apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
+    * apply LevelExprSet.singleton_spec. now apply LevelExprSet.singleton_spec in H; subst.
+    * apply LevelExprSet.singleton_spec in H. subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
+  Qed.
+
+  Lemma map_add f le u : Universe.map f (add le u) = add (f le) (Universe.map f u).
+  Proof using Type.
+    clear cf.
+    apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
+    * apply LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H]; subst; auto.
+      right. apply map_spec. now exists x.
+    * setoid_rewrite LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H].
+      + subst l. now exists le; split.
+      + apply map_spec in H as [e []]. exists e. split => //. now right.
+  Qed.
+
+  Lemma subst_level_instance_level_instance_level {i} {l : Level.t} :
+    Universe.of_level (subst_level_instance_level i l) = subst_instance_level i l.
+  Proof.
+    destruct l => //=.
+    rewrite (nth_nth_error n i).
+    rewrite nth_error_map.
+    destruct nth_error => //=.
+  Qed.
+
+  Lemma plus_of_level n l : Universe.plus n (Universe.of_level l) = Universe.make (l, n).
+  Proof using Type.
+    clear cf.
+    apply equal_exprsets => lk.
+    rewrite Universe.map_spec /Universe.make singleton_spec /Universe.of_level.
+    setoid_rewrite singleton_spec. firstorder subst.
+    - now rewrite add_make.
+    - exists (l, 0). split => //; rewrite /LevelExpr.add //= Nat.add_0_r //.
+  Qed.
+
+  Lemma subst_level_instance_singleton {i le} :
+    (singleton le)@@[i] = Universe.singleton (subst_level_instance_level_expr i le).
+  Proof. rewrite /subst_level_instance /subst_instance_level_expr; cbn.
+    rewrite /subst_level_instance_universe map_singleton.
+    rewrite /subst_level_instance_level_expr. destruct le as [l k]; cbn.
+    reflexivity.
+  Qed.
+
+  Lemma subst_level_instance_singleton_level_expr {i le} :
+    (singleton le)@@[i] = subst_instance_level_expr i le.
+  Proof. rewrite /subst_level_instance /subst_instance_level_expr; cbn.
+    rewrite /subst_level_instance_universe map_singleton.
+    rewrite /subst_level_instance_level_expr. destruct le as [l k]; cbn.
+    now rewrite -subst_level_instance_level_instance_level plus_of_level.
+  Qed.
+
+  Lemma subst_level_instance_add {i le u} :
+    (add le u)@@[i] = (subst_instance_level_expr i le ∪ u@@[i])%nes.
+  Proof. rewrite /subst_level_instance; cbn.
+    rewrite [subst_level_instance_universe _ _]map_add.
+    rewrite -subst_level_instance_singleton_level_expr.
+    rewrite -Universe.union_add_singleton union_comm.
+    now rewrite subst_level_instance_singleton.
+  Qed.
+
+  Lemma subst_level_instance_subst_instance_univ {u : Universe.t} {i} :
+    u@@[i] = u@[i].
+  Proof.
+    apply equal_exprsets => l.
+    move: u; apply elim.
+    - move=> le. now rewrite subst_level_instance_singleton_level_expr.
+    - move=> le x ih hnin.
+      now rewrite subst_level_instance_add add_subst !LevelExprSet.union_spec ih.
+  Qed.
+
+  Lemma subst_level_instance_subst_instance_instance {u i} :
+    u@@[i] = u@[i].
+  Proof.
+    apply map_ext.
+    intros x.
+    apply subst_level_instance_subst_instance_univ.
+  Qed.
+
+  Lemma subst_level_instance_instance_cstr {u cstr} :
+    subst_level_instance_univ_cstr u cstr = subst_instance_univ_cstr u cstr.
+  Proof.
+    destruct cstr as [[l d] r]; cbn.
+    rewrite /subst_level_instance_univ_cstr /subst_instance_univ_cstr //=.
+    now rewrite !subst_level_instance_subst_instance_univ.
+  Qed.
+
+  Lemma subst_level_instance_instance_cstrs {u cstrs} :
+    subst_level_instance_cstrs u cstrs =_ucset subst_instance_cstrs u cstrs.
+  Proof.
+    intros c.
+    rewrite In_subst_instance_cstrs In_subst_level_instance_cstrs.
+    split => -[cstr [-> hin]]; exists cstr; now rewrite subst_level_instance_instance_cstr.
+  Qed.
+
   Lemma consistent_instance_ext_abstract_instance Σ udecl :
     wf Σ ->
     wf_global_ext Σ udecl ->
@@ -1875,9 +2123,11 @@ Section SubstIdentity.
     { simpl. reflexivity. }
     split; [|split].
     - simpl abstract_instance.
+      rewrite forallb_map.
       eapply forallb_mapi => //.
       intros i Hi. unfold global_ext_levels.
-      apply LevelSet.mem_spec, LevelSet.union_spec. left.
+      apply LevelSet.subset_spec. rewrite levels_singleton subset_singleton //=.
+      apply LevelSet.union_spec. left.
       unfold levels_of_udecl. simpl.
       rewrite (mapi_unfold Level.lvar).
       eapply LevelSet_In_fold_right_add.
@@ -1885,11 +2135,11 @@ Section SubstIdentity.
       simpl. eapply in_or_app. destruct (eq_dec i n).
       * subst. right; simpl; auto.
       * left; apply IHn; lia.
-    - now rewrite mapi_length.
+    - now rewrite length_map mapi_length.
     - simpl. rewrite (mapi_unfold Level.lvar).
-      assert(UCS.Equal (subst_instance_cstrs (unfold #|univs| Level.lvar) cst) cst).
+      assert(UCS.Equal (subst_level_instance_cstrs (unfold #|univs| Level.lvar) cst) cst).
       { unfold UCS.Equal; intros a.
-        unfold subst_instance_cstrs.
+        unfold subst_level_instance_cstrs.
         red in wf_glob_ext.
         destruct wf_glob_ext as [_ wfext].
         unfold on_udecl_prop in wfext.
@@ -1899,7 +2149,7 @@ Section SubstIdentity.
         clear indu.
         simpl fst in wfext.
         revert wfext.
-        eapply ConstraintSetProp.fold_rec_weak; auto.
+        eapply UnivConstraintSetProp.fold_rec_weak; auto.
         2:reflexivity.
         * intros s s' a' eqs H.
           intros Hf.
@@ -1909,16 +2159,18 @@ Section SubstIdentity.
           eapply CS_For_all_add in cadd as [cadd Ps].
           specialize (equiv Ps). clear Ps.
           destruct x as [[l c] r]. destruct cadd as [inl inr].
-          unfold subst_instance_cstr. simpl.
-          eapply subst_instance_level_abs in inl; auto.
-          eapply subst_instance_level_abs in inr; auto.
-          rewrite inl inr.
+          unfold subst_level_instance_univ_cstr. simpl.
+          eapply subst_instance_universe_abs in inl; auto.
+          + eapply subst_instance_universe_abs in inr; auto.
+            rewrite inl inr.
           rewrite !UCS.add_spec.
           intuition auto. }
       unfold valid_constraints. destruct check_univs; auto.
       unfold valid_constraints0. simpl.
       unfold satisfies.
-      intros v. rewrite H.
+      intros v.
+      rewrite subst_level_instance_instance_cstrs in H.
+      rewrite H.
       eapply CS_For_all_union.
   Qed.
 
@@ -1930,73 +2182,69 @@ Section SubstIdentity.
     simpl in lin, onu. lsets.
   Qed.
 
-
-  Lemma consistent_instance_ext_subst_abs_level Σ decl u :
+  Lemma subst_abs_level Σ u :
     wf_ext_wk Σ ->
-    consistent_instance_ext Σ decl [u] ->
-    subst_instance_level (abstract_instance Σ.2) u = u.
+    LevelSet.In u (global_ext_levels Σ) ->
+    subst_instance_level (abstract_instance Σ.2) u = Universe.of_level u.
   Proof using Type.
-    intros [wfΣ onu] cu.
-    destruct decl.
-    - simpl in cu. destruct u; simpl in *; try discriminate; auto.
-    - destruct cu as [decl' [sizeu vc]].
-      clear sizeu vc.
-      destruct u; simpl; auto. cbn -[global_ext_levels] in decl'.
-      rewrite andb_true_r in decl'.
-      eapply LevelSet.mem_spec in decl'.
-      eapply in_var_global_ext in decl'; auto.
-      destruct (udecl_prop_in_var_poly onu decl') as [[univs csts] eq].
-      rewrite eq in decl' |- *. simpl in *.
-      rewrite mapi_unfold in decl' |- *.
-      eapply LevelSet_In_fold_right_add in decl'.
-      eapply In_unfold_inj in decl'; try congruence.
-      eapply (nth_error_unfold Level.lvar) in decl'.
-      now rewrite (nth_error_nth _ _ _ decl').
+    intros [wfΣ onu] decl'.
+    destruct u; simpl; auto. cbn -[LevelSet.subset global_ext_levels] in decl'.
+    eapply in_var_global_ext in decl'; auto.
+    destruct (udecl_prop_in_var_poly onu decl') as [[univs csts] eq].
+    rewrite eq in decl' |- *. simpl in *.
+    rewrite mapi_unfold in decl' |- *.
+    eapply LevelSet_In_fold_right_add in decl'.
+    eapply In_unfold_inj in decl'; try congruence.
+    eapply (nth_error_unfold Level.lvar) in decl'.
+    rewrite nth_error_map decl' //=.
   Qed.
+
+  Lemma subst_abs_level_expr Σ (u : LevelExpr.t) :
+    wf_ext_wk Σ ->
+    LevelSet.In u.1 (global_ext_levels Σ) ->
+    subst_instance_level_expr (abstract_instance Σ.2) u = Universe.make u.
+  Proof using Type.
+    intros [wfΣ onu] decl'.
+    destruct u; simpl; auto. cbn -[LevelSet.subset global_ext_levels] in decl'.
+    rewrite /subst_instance_level_expr subst_abs_level //=.
+    now rewrite plus_of_level.
+  Qed.
+
+  Lemma subst_abs_universe Σ u :
+    wf_ext_wk Σ ->
+    LevelSet.Subset (levels u) (global_ext_levels Σ) ->
+    subst_instance (abstract_instance Σ.2) u = u.
+  Proof using Type.
+    intros [wfΣ onu] decl'.
+    apply equal_exprsets => l.
+    rewrite In_subst_instance.
+    split.
+    + intros [x' [hin hin']].
+      rewrite subst_abs_level_expr in hin' => //.
+      * apply decl', levels_spec. exists x'.2; now destruct x'.
+      * apply LevelExprSet.singleton_spec in hin'. now subst.
+    + intros hin. exists l. split => //.
+      rewrite subst_abs_level_expr //.
+      * apply decl', levels_spec. now exists l.2; destruct l.
+      * now apply LevelExprSet.singleton_spec.
+  Qed.
+
 
   Lemma consistent_instance_ext_subst_abs Σ decl u :
     wf_ext_wk Σ ->
     consistent_instance_ext Σ decl u ->
     subst_instance (abstract_instance Σ.2) u = u.
-  Proof using Type.
+  Proof.
     intros [wfΣ onu] cu.
     destruct decl.
     - simpl in cu. destruct u; simpl in *; try discriminate; auto.
     - destruct cu as [decl' [sizeu vc]].
       clear sizeu vc.
-      induction u; simpl; auto.
+      induction u; simpl; auto. cbn in decl'.
       move/andb_and: decl' => [ina au]. specialize (IHu au).
-      rewrite [List.map _ u]IHu. f_equal. clear au.
-      destruct a; simpl; auto.
-      eapply LevelSet.mem_spec in ina.
-      eapply in_var_global_ext in ina; auto.
-      destruct (udecl_prop_in_var_poly onu ina) as [[univs csts] eq].
-      rewrite eq in IHu, ina |- *. simpl in *.
-      rewrite mapi_unfold in IHu, ina |- *.
-      eapply LevelSet_In_fold_right_add in ina.
-      eapply In_unfold_inj in ina; try congruence.
-      eapply (nth_error_unfold Level.lvar) in ina.
-      now rewrite (nth_error_nth _ _ _ ina).
-  Qed.
-
-  Lemma in_global_ext_subst_abs_level Σ l :
-    wf_ext_wk Σ ->
-    LevelSet.In (LevelExpr.get_level l) (global_ext_levels Σ) ->
-    subst_instance (abstract_instance Σ.2) l = l.
-  Proof using Type.
-    intros [wfΣ onu] cu.
-    destruct l; auto.
-    destruct t; auto.
-    eapply in_var_global_ext in cu; eauto.
-    eapply udecl_prop_in_var_poly in onu as [[ctx cstrs] eq]; eauto.
-    rewrite eq. simpl.
-    rewrite eq in cu. simpl in cu.
-    apply LevelSet_In_fold_right_add in cu.
-    unfold AUContext.repr in *. rewrite (mapi_unfold Level.lvar) in cu |- *.
-    destruct nth_error eqn:hnth.
-    * apply nth_error_unfold_inv in hnth. subst; auto.
-    * apply nth_error_None in hnth. rewrite unfold_length in hnth.
-      apply In_unfold_inj in cu; try lia. congruence.
+      rewrite [subst_instance_universe _ _]subst_abs_universe //.
+      * now apply LevelSet.subset_spec in ina.
+      * now rewrite [ListDef.map _ _]IHu.
   Qed.
 
   Lemma consistent_instance_ext_subst_abs_univ Σ u :
@@ -2006,19 +2254,8 @@ Section SubstIdentity.
   Proof using Type.
     intros wf cu.
     destruct u; simpl; auto. f_equal.
-    apply eq_univ'.
-    simpl in cu.
-    intros l.
-    rewrite In_subst_instance.
-    split.
-    - intros [x [inx ->]].
-      specialize (cu _ inx).
-      unfold subst_instance.
-      apply in_global_ext_subst_abs_level in cu; eauto.
-      unfold subst_instance in cu. now rewrite cu.
-    - intros inl.
-      specialize (cu _ inl). exists l; split; auto.
-      now rewrite in_global_ext_subst_abs_level.
+    rewrite subst_abs_universe //. cbn in cu.
+    move=> l /levels_spec -[] k; apply cu.
   Qed.
 
   Lemma consistent_instance_ext_subst_abs_inds Σ decl ind u bodies :
@@ -2030,6 +2267,7 @@ Section SubstIdentity.
     intros wf cu.
     unfold inds. generalize #|bodies|.
     induction n; simpl; auto. rewrite IHn; f_equal.
+    f_equal.
     now rewrite [subst_instance_instance _ _](consistent_instance_ext_subst_abs _ _ _ wf cu).
   Qed.
 
@@ -2156,14 +2394,14 @@ Section SubstIdentity.
       depelim X0. specialize (hty X1); specialize (hdef X1).
       unfold mapu_array_model; destruct a; cbn -[Universe.of_level] in *.
       f_equal; intuition eauto.
-      * rewrite /subst_instance subst_instance_universe_make in b.
-        now injection b as e.
+      * rewrite [subst_instance_universe _ _]subst_abs_universe //.
+        eapply subset_levels, wfl.
       * solve_all.
     - depelim X0; cbn => //=. depelim X. simp prim_type. cbn. f_equal; intuition eauto.
       do 2 f_equal.
       cbn -[Universe.of_level] in b.
-      rewrite /subst_instance subst_instance_universe_make in b.
-      now injection b as e.
+      rewrite [subst_instance_universe _ _]subst_abs_universe //.
+      apply subset_levels, wfl.
   Qed.
 
   Lemma typed_subst_abstract_instance Σ Γ t T :

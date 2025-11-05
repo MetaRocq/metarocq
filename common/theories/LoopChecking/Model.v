@@ -1497,14 +1497,6 @@ Module Model (LS : LevelSets).
     setoid_rewrite eqcl. now setoid_rewrite eqm; setoid_rewrite eqs.
   Qed.
 
-  #[export] Instance proper_levelexprset_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)
-    levels.
-  Proof.
-    intros s s' eq l.
-    rewrite !levels_spec.
-    firstorder eauto.
-  Qed.
-
   Lemma min_premise_spec' {m prems z} : min_premise m prems = Some z ->
     (forall l k, LevelExprSet.In (l, k) prems ->
     exists v, level_value m l = Some v /\ z <= (v - k))%Z.

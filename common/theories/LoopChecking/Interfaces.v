@@ -137,11 +137,14 @@ Qed.
 Lemma in_singleton l : LevelSet.In l (LevelSet.singleton l).
 Proof. lsets. Qed.
 
-Lemma in_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
+Lemma in_leset_levels le prems : LevelExprSet.In le prems -> LevelSet.In le.1 (leset_levels prems).
 Proof.
   destruct le. intros hin.
-  apply levels_spec. now exists z.
+  apply leset_levels_spec. now exists z.
 Qed.
+
+Lemma in_levels le (prems : NES.t) : LevelExprSet.In le prems -> LevelSet.In le.1 (levels prems).
+Proof. apply in_leset_levels. Qed.
 
 Lemma not_in_union_inv l ls ls' :
   ~ LevelSet.In l (LevelSet.union ls ls') ->
@@ -206,10 +209,10 @@ Lemma non_W_atoms_subset W l : non_W_atoms W l ⊂_leset l.
 Proof. intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec. Qed.
 
 Lemma levels_exprs_non_W_atoms {W prem} :
-  LevelSet.Equal (levels (non_W_atoms W prem)) (LevelSet.diff (levels prem) W).
+  LevelSet.Equal (leset_levels (non_W_atoms W prem)) (LevelSet.diff (leset_levels prem) W).
 Proof.
   intros e. unfold non_W_atoms.
-  rewrite levels_spec LevelSet.diff_spec levels_spec.
+  rewrite leset_levels_spec LevelSet.diff_spec leset_levels_spec.
   firstorder eauto.
   rewrite LevelExprSet.filter_spec in H. now exists x.
   rewrite LevelExprSet.filter_spec in H. destruct H.
@@ -220,13 +223,13 @@ Proof.
   rewrite LevelSetFact.not_mem_iff in H0. now rewrite H0.
 Qed.
 
-Lemma levelexprset_empty_levels x : LevelExprSet.Empty x <-> LevelSet.Empty (levels x).
+Lemma levelexprset_empty_levels x : LevelExprSet.Empty x <-> LevelSet.Empty (leset_levels x).
 Proof.
   split.
   - intros he.
     intros l hin.
-    eapply levels_spec in hin as [k hin]. lesets.
-  - intros emp l hin. eapply emp. eapply (levels_spec l.1). exists l.2.
+    eapply leset_levels_spec in hin as [k hin]. lesets.
+  - intros emp l hin. eapply emp. eapply (leset_levels_spec l.1). exists l.2.
     now destruct l.
 Qed.
 

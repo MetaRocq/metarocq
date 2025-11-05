@@ -713,7 +713,7 @@ Definition checking_clause (cl : clause) :=
     destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
     rewrite /clause_levels. cbn. unfold pred_expr; cbn.
     intros l; firstorder. lsets. rsets.
-    rewrite NES.levels_spec. exists (k - 1). lsets.
+    rewrite NES.levels_spec //=. exists (k - 1). lsets.
   Qed.
 
   Lemma checking_clause_levels cl :
@@ -721,7 +721,7 @@ Definition checking_clause (cl : clause) :=
   Proof.
     destruct cl as [prems [concl k]]; rewrite /clause_premises_levels /checking_clause //=.
     rewrite /clause_levels. cbn. unfold pred_expr; cbn.
-    intros l. rewrite LevelSet.union_spec NES.levels_spec.
+    intros l. rewrite LevelSet.union_spec NES.levels_spec //=.
     setoid_rewrite LevelExprSet.union_spec; rewrite LevelSet.union_spec.
     setoid_rewrite NES.levels_spec. firstorder rsets. noconf H.
     now right.
@@ -2474,7 +2474,7 @@ Lemma opt_valuation_of_model_equiv m l :
       destruct H as [lk [hin eq]]. subst x.
       apply clause_levels_spec in H0.
       destruct H0; cbn in *; firstorder.
-      right. apply NES.levels_spec in H as [].
+      right. apply NES.levels_spec in H as []; cbn in H.
       rsets. subst. left.
       apply In_add_prems in hin as [le' []]. subst lk.
       cbn. apply levels_spec. exists le'.2. destruct le' => //.

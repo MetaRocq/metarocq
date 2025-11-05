@@ -448,7 +448,7 @@ Module Universe.
   Definition of_level (l: Level.t) : t := singleton (LevelExpr.make l).
 
   #[deprecated(since = "1.4", note="use of_level instead")]
-  Notation make' := of_level.
+  Notation make' := of_level (only parsing).
 
   Lemma make'_inj l l' : of_level l = of_level l' -> l = l'.
   Proof.
@@ -1194,7 +1194,7 @@ Section Univ.
     intros hs e hin.
     destruct e as [l k].
     apply (hs l). clear hs.
-    unfold Universe.levels.
+    unfold Universe.levels, Universe.leset_levels.
     revert hin.
     eapply LevelExprSetProp.fold_rec.
     - intros s' emp hin. now specialize (emp _ hin).
@@ -2589,15 +2589,7 @@ Notation "x @[ u ]" := (subst_instance u x) (at level 3,
   fun u l => map (subst_level_instance_level u) l.
 
 #[global] Instance subst_level_instance_level_expr : UnivLevelSubst LevelExpr.t :=
-fun u e => match e with
-        | (Level.lzero, _)
-        | (Level.level _, _) => e
-        | (Level.lvar n, b) =>
-          match nth_error u n with
-          | Some l => (l,b)
-          | None => (Level.lzero, b)
-          end
-        end.
+fun u e => (subst_level_instance_level u e.1, e.2).
 
 Definition subst_instance_level (u : Instance.t) (l : Level.t) : Universe.t :=
   match l with
@@ -2866,11 +2858,9 @@ Section SubstLevelInstanceClosed.
   Lemma subst_level_instance_level_expr_closedu e :
     closedu_level_expr #|u| e -> closedu_level_expr 0 (subst_level_instance_level_expr u e).
   Proof using Hcl.
-    destruct e as [l b]. destruct l;cbnr.
-    case_eq (nth_error u n); cbnr. intros [] Hl X; cbnr.
-    apply nth_error_In in Hl.
-    eapply forallb_forall in Hcl; tea.
-    discriminate.
+    destruct e as [l b].
+    move/subst_level_instance_level_closedu. cbn.
+    destruct l => //.
   Qed.
 
   Lemma subst_level_instance_universe_closedu s

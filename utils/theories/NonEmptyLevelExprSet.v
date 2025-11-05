@@ -106,7 +106,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
 
   Definition level : LevelExpr.t -> Level.t := fst.
 
-  Definition levels (e : t) :=
+  Definition leset_levels (e : t) :=
     fold (fun le => LevelSet.add (level le)) e LevelSet.empty.
 
   Lemma In_elements {x} {s : LevelExprSet.t} : LevelExprSet.In x s <-> List.In x (LevelExprSet.elements s).
@@ -118,6 +118,8 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Record t :=
     { t_set :> LevelExprSet.t ;
       t_ne : is_empty t_set = false }.
+
+  Definition levels (e : t) := leset_levels e.
 
   Declare Scope nes_scope.
   Bind Scope nes_scope with t.
@@ -465,12 +467,17 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
         + right. intuition auto.
   Qed.
 
-  Lemma levels_spec l (e : LevelExprSet.t) :
-    LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
+  Lemma leset_levels_spec l (e : LevelExprSet.t) :
+    LevelSet.In l (leset_levels e) <-> exists k, LevelExprSet.In (l, k) e.
   Proof.
     rewrite levels_spec_aux. intuition auto. lsets.
   Qed.
 
+  Lemma levels_spec l (e : t) :
+    LevelSet.In l (levels e) <-> exists k, LevelExprSet.In (l, k) e.
+  Proof.
+    rewrite levels_spec_aux. intuition auto. lsets.
+  Qed.
 
   Lemma levelexprset_singleton {l le} : (exists k : Q.t, LevelExprSet.In (l, k) (singleton le)) <-> (l, le.2) = le.
   Proof.
@@ -479,12 +486,15 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     - intros <-. now exists le.2; apply LevelExprSet.singleton_spec.
   Qed.
 
-  Lemma levels_singleton le : levels (LevelExprSet.singleton le) =_lset LevelSet.singleton le.1.
+  Lemma leset_levels_singleton le : leset_levels (LevelExprSet.singleton le) =_lset LevelSet.singleton le.1.
   Proof.
-    intros l; rewrite levels_spec.
+    intros l; rewrite leset_levels_spec.
     rewrite LevelSet.singleton_spec; setoid_rewrite LevelExprSet.singleton_spec.
     rewrite /E.eq /LevelSet.E.eq. firstorder. now subst. subst. exists le.2; now destruct le.
   Qed.
+
+  Lemma levels_singleton le : levels (singleton le) =_lset LevelSet.singleton le.1.
+  Proof. apply leset_levels_singleton. Qed.
 
   Lemma levels_union {u u'} : levels (u ∪ u') =_lset LevelSet.union (levels u) (levels u').
   Proof.
@@ -497,11 +507,11 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     rewrite -union_add_singleton levels_union levels_singleton; lsets.
   Qed.
 
-  #[export] Instance proper_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)
-    levels.
+  #[export] Instance proper_leset_levels : Proper (LevelExprSet.Equal ==> LevelSet.Equal)
+    leset_levels.
   Proof.
     intros s s' eq l.
-    rewrite !levels_spec.
+    rewrite !leset_levels_spec.
     firstorder eauto.
   Qed.
 

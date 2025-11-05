@@ -352,7 +352,7 @@ Proof.
   { have vm := v_minus_w_bound_spec W m exmax.1. unfold levelexpr_value in eqmaxpre.
     rewrite -eqmaxpre in vm.
     have := (@levels_exprs_non_W_atoms W prem (level exmax)).
-    rewrite levels_spec => -[] /fwd.
+    rewrite leset_levels_spec => -[] /fwd.
     { exists exmax.2. now destruct exmax. }
     rewrite LevelSet.diff_spec => [] [_ nw] _.
     specialize (vm nw). depelim vm. lia. }
