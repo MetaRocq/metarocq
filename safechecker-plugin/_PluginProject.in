@@ -9,20 +9,34 @@ src/META.rocq-metarocq-safechecker
 # From template
 src/ssrbool.ml
 src/ssrbool.mli
-src/uGraph0.mli
-src/uGraph0.ml
+src/mRInstances.mli
+src/mRInstances.ml
+
+# Universe checking algorithm
+src/common1.mli
+src/common1.ml
+src/interfaces.mli
+src/interfaces.ml
 src/hornClauses.mli
 src/hornClauses.ml
+src/initialSemilattice.mli
+src/initialSemilattice.ml
+src/hornSemilatticeEquiv.mli
+src/hornSemilatticeEquiv.ml
 src/model.mli
 src/model.ml
+src/models.mli
+src/models.ml
 src/partialLoopChecking.mli
 src/partialLoopChecking.ml
 src/univLoopChecking.mli
 src/univLoopChecking.ml
 src/deciders.mli
 src/deciders.ml
-src/wGraph.ml
-src/wGraph.mli
+src/uGraph0.mli
+src/uGraph0.ml
+# src/wGraph.ml
+# src/wGraph.mli
 
 # From PCUIC
 src/pCUICPrimitive.mli
@@ -49,6 +63,8 @@ src/pCUICPretty.mli
 src/pCUICPretty.ml
 src/pCUICProgram.mli
 src/pCUICProgram.ml
+src/pCUICGlobalEnv.mli
+src/pCUICGlobalEnv.ml
 
 # From SafeChecker
 src/pCUICErrors.mli

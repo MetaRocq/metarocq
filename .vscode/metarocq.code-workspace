@@ -113,7 +113,7 @@
 		"**/Thumbs.db": true,
 		"**/CVS": true
 	},
-	"coq-lsp.check_only_on_request": false,
+	"coq-lsp.check_only_on_request": true,
 	"coqtop.binPath": "_opam/bin",
 	"coqtop.coqtopExe": "coqtop",
 	"coqtop.coqidetopExe": "coqidetop",

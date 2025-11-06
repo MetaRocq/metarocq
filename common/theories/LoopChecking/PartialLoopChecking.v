@@ -624,19 +624,6 @@ Proof.
   apply restrict_with_concl_subset.
 Qed.
 
-(* Lemma not_model_valid {m cls cl} : ~~ is_model m cls -> valid_clause m cl -> Clauses.In cl cls  *)
-Lemma invalid_clauses_restrict {cls cls' W m} : cls ⊂_clset (cls' ⇂ W) ->
-  invalid_clauses (restrict_model W m) cls ->
-  invalid_clauses m cls.
-Proof.
-  move=> hincl ha cl /[dup] hin /ha.
-  destruct cl as [prems [concl k]].
-  rewrite /valid_clause. cbn.
-  destruct min_premise eqn:hmin => //.
-  move/min_premise_restrict: hmin => ->.
-
-Admitted.
-
 Lemma is_model_restrict_valid_noop {cls cls' W m} : cls ⊂_clset (cls' ⇂ W) ->
   forall cl, Clauses.In cl cls -> valid_clause m cl -> valid_clause (restrict_model W m) cl.
 Proof.
