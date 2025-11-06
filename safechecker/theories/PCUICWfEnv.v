@@ -110,7 +110,7 @@ Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_i
   abstract_env_is_consistent_correct X Σ udecl :
     abstract_env_rel X Σ ->
     UnivConstraintSet.For_all (declared_univ_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
-    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X (global_uctx Σ);
+    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X udecl;
 
   abstract_env_guard_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) fix_cofix Γ mfix :
       guard fix_cofix Σ Γ mfix <-> abstract_env_guard X fix_cofix Γ mfix;

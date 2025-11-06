@@ -1035,6 +1035,31 @@ Section Typecheck.
     * clear. intros h l [k h']. move/h: h' => //=.
   Qed.
 
+  Lemma eq_false_true b : b = false ->
+    b -> False.
+  Proof. destruct b => //. Qed.
+
+  Equations declared_universe u : typing_result_comp (forall Σ (wfΣ : abstract_env_ext_rel X Σ), wf_universe Σ u) :=
+  declared_universe u with inspect (LevelSet.for_all (abstract_env_level_mem X) @@ Universe.levels u) := {
+        | exist false e2 := raise (Msg "undeclared level in universe")
+        | exist true e2 := ret _ }.
+  Next Obligation.
+    pose proof (heΣ _ wfΣ) as [[_wfΣ s]]. specialize_Σ wfΣ.
+    symmetry in e2. eapply LevelSet.for_all_spec in e2.
+    specialize (e2 l.1).
+    move: e2 => /fwd. apply Universe.levels_spec. now exists l.2; destruct l.
+    move/(abstract_env_level_mem_correct X wfΣ). destruct l => //. tc.
+  Qed.
+  Next Obligation.
+    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]]; specialize_Σ wfΣ;
+    pose proof (heΣ _ wfΣ) as [heΣ].
+    symmetry in e2; move: e2.
+    move/eq_false_true; apply.
+    apply LevelSet.for_all_spec; tc => l.
+    move/Universe.levels_spec => -[k] /H //=.
+    now rewrite abstract_env_level_mem_correct; tea.
+  Qed.
+
   Equations check_consistent_instance  uctx (wfg : forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ global_uctx_invariants (clean_uctx (global_ext_uctx (Σ.1, uctx))) ∥)
     u
     : typing_result_comp (forall Σ (wfΣ : abstract_env_ext_rel X Σ), consistent_instance_ext Σ uctx u) :=

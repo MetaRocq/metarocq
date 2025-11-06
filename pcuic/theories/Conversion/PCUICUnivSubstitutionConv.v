@@ -26,6 +26,23 @@ Local Ltac aa := rdest; eauto with univ_subst.
 Import Universe.NES.
 Import Universes.
 
+Lemma map_singleton f le : Universe.map f (singleton le) = singleton (f le).
+Proof.
+  apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
+  * apply LevelExprSet.singleton_spec. now apply LevelExprSet.singleton_spec in H; subst.
+  * apply LevelExprSet.singleton_spec in H. subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
+Qed.
+
+Lemma map_add f le u : Universe.map f (add le u) = add (f le) (Universe.map f u).
+Proof using Type.
+  apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
+  * apply LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H]; subst; auto.
+    right. apply map_spec. now exists x.
+  * setoid_rewrite LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H].
+    + subst l. now exists le; split.
+    + apply map_spec in H as [e []]. exists e. split => //. now right.
+Qed.
+
 Lemma subset_levels l s : LevelSet.Subset (levels l) s <-> (forall lk, LevelExprSet.In lk l -> LevelSet.In lk.1 s).
 Proof. rewrite /LevelSet.Subset. setoid_rewrite levels_spec. firstorder.
   apply H. exists lk.2; destruct lk => //.
@@ -2015,24 +2032,6 @@ Section SubstIdentity.
     - move=> hin. exists l'. split => //. rewrite subst_instance_level_abs.
       * apply lin, levels_spec. exists l'.2; now destruct l'.
       * destruct l' => //.
-  Qed.
-
-  Lemma map_singleton f le : Universe.map f (singleton le) = singleton (f le).
-  Proof.
-    apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
-    * apply LevelExprSet.singleton_spec. now apply LevelExprSet.singleton_spec in H; subst.
-    * apply LevelExprSet.singleton_spec in H. subst l. exists le. split => //. now apply LevelExprSet.singleton_spec.
-  Qed.
-
-  Lemma map_add f le u : Universe.map f (add le u) = add (f le) (Universe.map f u).
-  Proof using Type.
-    clear cf.
-    apply equal_exprsets=> l; rewrite Universe.map_spec. firstorder subst.
-    * apply LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H]; subst; auto.
-      right. apply map_spec. now exists x.
-    * setoid_rewrite LevelExprSet.add_spec. apply LevelExprSet.add_spec in H as [H|H].
-      + subst l. now exists le; split.
-      + apply map_spec in H as [e []]. exists e. split => //. now right.
   Qed.
 
   Lemma subst_level_instance_level_instance_level {i} {l : Level.t} :

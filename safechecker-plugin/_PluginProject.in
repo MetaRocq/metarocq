@@ -9,8 +9,18 @@ src/META.rocq-metarocq-safechecker
 # From template
 src/ssrbool.ml
 src/ssrbool.mli
-src/uGraph0.ml
 src/uGraph0.mli
+src/uGraph0.ml
+src/hornClauses.mli
+src/hornClauses.ml
+src/model.mli
+src/model.ml
+src/partialLoopChecking.mli
+src/partialLoopChecking.ml
+src/univLoopChecking.mli
+src/univLoopChecking.ml
+src/deciders.mli
+src/deciders.ml
 src/wGraph.ml
 src/wGraph.mli
 
