@@ -9,6 +9,9 @@ From MetaRocq.Erasure Require Import EInduction ELiftSubst ESpineView ECSubst EP
 Set Default Proof Using "Type*".
 
 Local Arguments eval : clear implicits.
+Arguments Nat.leb : simpl never.
+Arguments Nat.eqb : simpl never.
+Arguments Nat.ltb : simpl never.
 
 Lemma eval_app_cong_tApp fl Σ t v args res :
   eval (switch_unguarded_fix fl) Σ t v ->
@@ -380,8 +383,8 @@ Section isEtaExp.
     destruct v using rev_case; simp_eta.
     - destruct expanded_head_viewc; rewrite ? andb_true_r //. cbn. unfold isEtaExp_fixapp. now destruct (nth_error); cbn.
       cbn.
-      destruct (nth_error Γ n) as [m | ]; cbn; try reflexivity.
-      destruct (Nat.eqb_spec 0 m), (Nat.leb_spec m 0); try reflexivity; lia.
+      destruct (nth_error Γ n) as [m | ]; try reflexivity.
+      destruct (Nat.eqb_spec 0 m), (Nat.leb_spec m 0); try reflexivity; subst; cbn; lia.
     - rewrite isEtaExp_mkApps_nonnil //.
   Qed.
 

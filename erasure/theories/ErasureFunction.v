@@ -1469,11 +1469,12 @@ Proof.
 Qed.
 
 From Stdlib Require Import Morphisms.
-Global Instance proper_pair_levels_gcs : Proper ((=_lset) ==> GoodUnivConstraintSet.Equal ==> (=_gcs)) (@pair LevelSet.t GoodUnivConstraintSet.t).
+
+(* Global Instance proper_pair_levels_gcs : Proper ((=_lset) ==> GoodUnivConstraintSet.Equal ==> (=_gcs)) (@pair LevelSet.t GoodUnivConstraintSet.t).
 Proof.
   intros l l' eq gcs gcs' eq'.
   split; cbn; auto.
-Qed.
+Qed. *)
 
 (* TODO: Should this live elsewhere? *)
 Definition iter {A} (f : A -> A) : nat -> (A -> A)

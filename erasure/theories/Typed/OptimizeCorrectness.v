@@ -4717,11 +4717,13 @@ Proof.
            unfold dearg_case_branch,dearg_branch_body;cbn.
            destruct (_ <=? _);cbn; reflexivity.
         ** subst ctx_mask;cbn in *;f_equal.
-           unfold complete_ctx_mask;cbn.
-           rewrite app_nil_r.
+           unfold complete_ctx_mask, dearg_case_branch, leb;cbn.
+           rewrite app_nil_r. simpl.
            rewrite masked_all_zeros.
            change (fold_left _ ?m (?i,?x)) with (dearg_branch_body_rec i m x).
-           now rewrite dearg_branch_body_rec_all_zeros.
+          unfold dearg_case_branch; cbn. unfold Nat.leb; cbn. f_equal.
+          unfold complete_ctx_mask. cbn.
+          now rewrite dearg_branch_body_rec_all_zeros.
       * unfold valid_case_masks in *. cbn in valid_brs_masks.
         remember (if #|get_branch_mask mm (inductive_ind ind) 0| <=? #|n| then masked ctx_mask n else n) as masked_n.
         replace (repeat tBox _) with (masked ctx_mask (repeat tBox #|n|)); cycle 1.
@@ -4768,6 +4770,8 @@ Proof.
            *** apply is_expanded_substl;eauto with dearg.
            *** lia.
         ** subst mm. cbn -[dearg_branch_body_rec] in *.
+           unfold leb, complete_ctx_mask; cbn.
+           unfold leb, complete_ctx_mask; cbn.
            rewrite app_nil_r.
            rewrite dearg_branch_body_rec_all_zeros;cbn.
            subst ctx_mask. unfold complete_ctx_mask.

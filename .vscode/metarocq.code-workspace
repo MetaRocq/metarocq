@@ -128,5 +128,33 @@
 	"coq-lsp.send_perf_data": false,
 	"coq-lsp.admit_on_bad_qed": false,
 	"coq-lsp.max_errors": 1,
+	"vsrocq.args": [
+
+		// "-bt", // get backtraces from Rocq on errors
+		"-Q", "utils/theories", "MetaRocq.Utils",
+		"-Q", "common/theories", "MetaRocq.Common",
+		"-Q", "template-rocq/theories", "MetaRocq.Template",
+		"-I", "template-rocq",
+		"-I", "template-rocq/src",
+		"-Q", "pcuic/theories", "MetaRocq.PCUIC",
+		"-I", "pcuic",
+		"-I", "pcuic/src",
+		"-Q", "template-pcuic/theories", "MetaRocq.TemplatePCUIC",
+		"-Q", "safechecker/theories", "MetaRocq.SafeChecker",
+		"-Q", "safechecker-plugin/theories", "MetaRocq.SafeCheckerPlugin",
+		"-I", "safechecker-plugin",
+		"-I", "safechecker-plugin/src",
+		"-Q", "erasure/theories", "MetaRocq.Erasure",
+		"-Q", "erasure-plugin/theories", "MetaRocq.ErasurePlugin",
+		"-I", "erasure-plugin",
+		"-I", "erasure-plugin/src",
+		"-Q", "translations", "MetaRocq.Translations",
+		"-Q", "quotation/theories", "MetaRocq.Quotation",
+		"-Q", "test-suite", "MetaRocq.TestSuite",
+		"-Q", "test-suite/plugin-demo/theories", "MetaRocq.ExtractedPluginDemo",
+		"-I", "test-suite/plugin-demo",
+		"-I", "test-suite/plugin-demo/src",
+		"-Q", "examples", "MetaRocq.Examples",
+	],
   }
 }
