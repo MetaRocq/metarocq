@@ -1728,7 +1728,7 @@ Section Betweenu.
     end.
 
   Definition betweenu_instance (u : Instance.t) :=
-    forallb betweenu_level u.
+    forallb betweenu_universe u.
 
 End Betweenu.
 
@@ -1739,7 +1739,27 @@ Section UniverseClosedSubst.
   Proof.
     destruct l; cbnr.
     intros Hn % Nat.ltb_lt.
-    rewrite app_nth1 //.
+    rewrite nth_error_app_lt //.
+  Qed.
+
+  Lemma closedu_subst_instance_level_expr_app u u' e
+    : closedu_level_expr #|u'| e -> subst_instance_level_expr (u' ++ u) e = subst_instance_level_expr u' e.
+  Proof.
+    destruct e as [l b]; unfold subst_instance_level_expr; cbn.
+    move/(@closedu_subst_instance_level_app u u' l) => -> //.
+  Qed.
+
+  Lemma closedu_subst_instance_universe_app u u' (e : Universe.t)
+    : closedu_universe #|u'| e -> subst_instance (u' ++ u) e = subst_instance u' e.
+  Proof.
+    rewrite /subst_instance //= => hc.
+    apply Universe.equal_exprsets => l.
+    rewrite !In_subst_instance. firstorder. exists x; split => //.
+    - rewrite closedu_subst_instance_level_expr_app in H0 => //.
+      now move/LevelExprSet.for_all_spec: hc => /(_ x H).
+    - exists x; split => //.
+      rewrite closedu_subst_instance_level_expr_app //.
+      now move/LevelExprSet.for_all_spec: hc => /(_ x H).
   Qed.
 
   Lemma closedu_subst_instance_level_lift u u' l
@@ -1747,32 +1767,60 @@ Section UniverseClosedSubst.
   Proof.
     destruct l; cbnr.
     intros Hn % Nat.ltb_lt.
-    rewrite app_nth2; try lia.
-    lia_f_equal.
+    rewrite nth_error_app_ge. lia.
+    now have -> : #|u'| + n - #|u'| = n by lia.
   Qed.
 
-  Lemma closedu_subst_instance_level_expr_app u u' e
-    : closedu_level_expr #|u'| e -> subst_instance_level_expr (u' ++ u) e = subst_instance_level_expr u' e.
+  Notation lift_level_expr n e := (lift_level n e.1, e.2).
+
+  Lemma closedu_subst_instance_level_expr_lift u u' e
+    : closedu_level_expr #|u| e -> subst_instance_level_expr (u' ++ u) (lift_level_expr #|u'| e) = subst_instance_level_expr u e.
   Proof.
-    destruct e as [[] b]; cbnr.
-    intros Hn % Nat.ltb_lt.
-    rewrite nth_error_app_lt //.
+    destruct e as [l b]; cbnr.
+    move/closedu_subst_instance_level_lift => /(_ u').
+    rewrite /subst_instance_level_expr //= => -> //.
   Qed.
 
-
-  (* Lemma closedu_subst_instance_level_expr_lilft u u' e
-    : closedu_level_expr #|u| e -> subst_instance_level_expr (u' ++ u) (lift_expr e = subst_instance_level_expr u' e.
+  Lemma subst_instance_universe_eq i (u v : Universe.t) :
+    (forall le, LevelExprSet.In le u -> LevelExprSet.Subset (subst_instance_level_expr i le) v) ->
+    (forall le, LevelExprSet.In le v -> exists le', LevelExprSet.In le' u /\ LevelExprSet.In le (subst_instance_level_expr i le')) ->
+    u@[i] = v.
   Proof.
-    destruct e as [|[[] b]]; cbnr.
-    intros Hn % Nat.ltb_lt.
-    rewrite nth_error_app_lt //.
-  Qed. *)
+    intros h h'.
+    apply Universe.equal_exprsets => l.
+    split.
+    - move/In_subst_instance => -[] x' [] hin heq.
+      eapply h; tea.
+    - move/h' => -[] le' [] hin hs.
+      apply In_subst_instance. exists le'. split => //.
+  Qed.
+
+  Lemma In_lift_universe le n u : LevelExprSet.In le (lift_universe n u) <->
+    exists le', LevelExprSet.In le' u /\ le = lift_level_expr n le'.
+  Proof.
+    rewrite Universe.map_spec. firstorder.
+  Qed.
+
+  Lemma closedu_subst_instance_universe_lift u u' e
+    : closedu_universe #|u| e -> subst_instance_universe (u' ++ u) (lift_universe #|u'| e) = subst_instance_universe u e.
+  Proof.
+    move/LevelExprSet.for_all_spec => hf.
+    apply subst_instance_universe_eq.
+    - move=> le /In_lift_universe -[] lel [] hin eq inl. subst le.
+      rewrite closedu_subst_instance_level_expr_lift. now apply hf.
+      move=> hin'; apply In_subst_instance. exists lel => //.
+    - move=> le /In_subst_instance -[] x' [] hin.
+      erewrite <- (closedu_subst_instance_level_expr_lift _ u'). 2:{ now apply hf. }
+      destruct x'. cbn -[subst_instance_level_expr].
+      exists (lift_level #|u'| t, n). split => //.
+      eapply Universe.map_spec. eexists; split; trea. unfold on_fst. cbn. reflexivity.
+  Qed.
 
   Lemma closedu_subst_instance_app u u' t
     : closedu_instance #|u'| t -> subst_instance (u' ++ u) t = subst_instance u' t.
   Proof.
     intro H. eapply forallb_All in H. apply All_map_eq.
-    solve_all. now eapply closedu_subst_instance_level_app.
+    solve_all. now eapply closedu_subst_instance_universe_app.
   Qed.
 
   Lemma closedu_subst_instance_lift u u' t
@@ -1780,7 +1828,7 @@ Section UniverseClosedSubst.
   Proof.
     intro H. eapply forallb_All in H.
     rewrite /subst_instance /subst_instance_instance /lift_instance map_map_compose. apply All_map_eq.
-    solve_all. now eapply closedu_subst_instance_level_lift.
+    solve_all. now eapply closedu_subst_instance_universe_lift.
   Qed.
 
 End UniverseClosedSubst.
@@ -1821,8 +1869,8 @@ Proof.
   do 3 eexists; split. trea. all:eauto. 1-3:len.
   repeat match goal with H : _ |- _ => progress len in H end.
   len.
-  rewrite /closedu_instance /level_var_instance forallb_mapi //.
-  intros i hi. simpl. now eapply Nat.ltb_lt.
+  rewrite /closedu_instance /level_var_instance forallb_map forallb_mapi //.
+  intros i hi. simpl. now elim: Nat.ltb_spec.
   now len.
 Qed.
 
@@ -1842,9 +1890,9 @@ Proof. rewrite /consistent_instance_ext /=; intros [_ [_ v]] cu.
     red in v. now rewrite cu in v.
 Qed.
 
-Definition closedu_cstr k (cstr : (Level.t * ConstraintType.t * Level.t)) :=
+Definition closedu_cstr k (cstr : UnivConstraint.t) :=
   let '(l1, p, l2) := cstr in
-  closedu_level k l1 && closedu_level k l2.
+  closedu_universe k l1 && closedu_universe k l2.
 
 Definition closedu_cstrs k (cstrs : UCS.t) :=
   UCS.For_all (closedu_cstr k) cstrs.
@@ -1864,6 +1912,14 @@ Proof.
   specialize (IHinst _ H). now rewrite Nat.add_succ_r.
 Qed.
 
+Lemma bounded_poly_levels ls inst cstrs : LevelSet.Subset (Universe.levels ls) (levels_of_udecl (Polymorphic_ctx (inst, cstrs))) ->
+  closedu_universe #|inst| ls.
+Proof.
+  move=> /subset_levels hs.
+  apply LevelExprSet.for_all_spec; tc.
+  move=> [l k] /hs. apply LSet_in_poly_bounded.
+Qed.
+
 Lemma LSet_in_global_bounded {cf:checker_flags} {Σ : global_env} {l} k :
   wf Σ -> LevelSet.In l (global_levels Σ) ->
   closedu_level k l.
@@ -1872,6 +1928,29 @@ Proof.
   intros wf. eapply not_var_global_levels in wf.
   intros hin. specialize (wf _ hin). simpl in wf.
   destruct l; simpl in *; congruence.
+Qed.
+
+Lemma bounded_global_levels {cf:checker_flags} {Σ : global_env} {ls} k :
+  wf Σ -> LevelSet.Subset (Universe.levels ls) (global_levels Σ) ->
+  closedu_universe k ls.
+Proof.
+  move=> wf /subset_levels hs.
+  apply LevelExprSet.for_all_spec; tc.
+  move=> [l k'] /hs. now apply LSet_in_global_bounded.
+Qed.
+
+Lemma bounded_poly_global_levels {cf:checker_flags} {Σ : global_env} {ls} inst cstrs :
+  wf Σ -> LevelSet.Subset (Universe.levels ls) (LevelSet.union (levels_of_udecl (Polymorphic_ctx (inst, cstrs))) (global_levels Σ)) ->
+  closedu_universe #|inst| ls.
+Proof.
+  move=> wf.
+  move=> /subset_levels hs.
+  apply LevelExprSet.for_all_spec; tc.
+  move=> [l k'] /hs.
+  rewrite LevelSet.union_spec => -[H|H].
+  - rewrite /closedu_level_expr //=.
+    eapply LSet_in_poly_bounded; tea.
+  - eapply LSet_in_global_bounded; tea.
 Qed.
 
 Lemma on_udecl_prop_poly_bounded {cf:checker_flags} Σ inst cstrs :
@@ -1887,16 +1966,8 @@ Proof.
   specialize (nlevs x incstrs).
   destruct x as [[l1 p] l2].
   destruct nlevs.
-  apply LevelSetProp.Dec.F.union_1 in H.
-  apply LevelSetProp.Dec.F.union_1 in H0.
-  destruct H. eapply LSet_in_poly_bounded in H.
-  destruct H0. eapply LSet_in_poly_bounded in H0. simpl. now rewrite H H0.
-  eapply (LSet_in_global_bounded #|inst|) in H0 => //. simpl.
-  now rewrite H H0.
-  eapply (LSet_in_global_bounded #|inst|) in H => //. simpl.
-  destruct H0. eapply LSet_in_poly_bounded in H0. simpl. now rewrite H H0.
-  eapply (LSet_in_global_bounded #|inst|) in H0 => //. simpl.
-  now rewrite H H0.
+  unfold closedu_cstr. toProp;
+  eapply bounded_poly_global_levels; tea.
 Qed.
 
 Lemma closedu_subst_instance_cstrs_app u u' cstrs :
@@ -1910,16 +1981,16 @@ Proof.
   subst c; exists x; split; auto.
   specialize (clcstra _ H0).
   simpl in *.
-  destruct x as [[l c] r]; rewrite /subst_instance_cstr; simpl.
+  destruct x as [[l c] r]; rewrite /subst_instance_univ_cstr; simpl.
   move/andb_and: clcstra => [cll clr].
-  rewrite !closedu_subst_instance_level_app //.
+  rewrite !closedu_subst_instance_universe_app //.
 
   subst c; exists x; split; auto.
   specialize (clcstra _ H0).
   simpl in *.
-  destruct x as [[l c] r]; rewrite /subst_instance_cstr; simpl.
+  destruct x as [[l c] r]; rewrite /subst_instance_univ_cstr; simpl.
   move/andb_and: clcstra => [cll clr].
-  rewrite !closedu_subst_instance_level_app //.
+  rewrite !closedu_subst_instance_universe_app //.
 Qed.
 
 
@@ -1947,7 +2018,7 @@ Proof.
         -- left. destruct c' as [[l1 c'] l2];
            apply UCS.add_spec; now left.
         -- right. exists c'. intuition.
-  - rewrite ConstraintSetFact.empty_iff.
+  - rewrite UnivConstraintSetFact.empty_iff.
     transitivity (exists c', c = lift_constraint u c'
                         /\ In c' (UCS.elements ctrs)).
     1: intuition.
@@ -1973,9 +2044,9 @@ Proof.
     exists c'. split; auto.
     specialize (clcstra _ inc').
     simpl in *.
-    destruct c' as [[l c] r]; rewrite /subst_instance_cstr; simpl.
+    destruct c' as [[l c] r]; rewrite /subst_instance_univ_cstr; simpl.
     move/andb_and: clcstra => [cll clr].
-    rewrite !closedu_subst_instance_level_lift //.
+    rewrite ![_@[_ ++ _]]closedu_subst_instance_universe_lift //.
 
   - subst c.
     exists (lift_constraint #|u| x).
@@ -1983,29 +2054,29 @@ Proof.
     pcuicfo eauto.
     specialize (clcstra _ H0).
     simpl in *.
-    destruct x as [[l c] r]; rewrite /subst_instance_cstr; simpl.
+    destruct x as [[l c] r]; rewrite /subst_instance_univ_cstr; simpl.
     move/andb_and: clcstra => [cll clr].
-    rewrite !closedu_subst_instance_level_lift //.
+    rewrite ![_@[_ ++ _]]closedu_subst_instance_universe_lift //.
 Qed.
 
 Lemma subst_instance_cstrs_add u x c :
   UCS.Equal (subst_instance_cstrs u (UnivConstraintSet.add x c))
-    (UnivConstraintSet.add (subst_instance_cstr u x) (subst_instance_cstrs u c)).
+    (UnivConstraintSet.add (subst_instance_univ_cstr u x) (subst_instance_cstrs u c)).
 Proof.
   intros cc.
-  rewrite ConstraintSetFact.add_iff.
+  rewrite UnivConstraintSetFact.add_iff.
   rewrite !In_subst_instance_cstrs.
   intuition auto.
   destruct H as [c' [-> inc']].
-  rewrite -> ConstraintSetFact.add_iff in inc'.
+  rewrite -> UnivConstraintSetFact.add_iff in inc'.
   destruct inc'; subst; intuition auto.
   right. eexists; intuition eauto.
   subst.
   exists x; intuition eauto.
-  now rewrite ConstraintSetFact.add_iff.
+  now rewrite UnivConstraintSetFact.add_iff.
   destruct H0 as [c' [-> ?]].
   eexists c'; split; firstorder eauto.
-  now rewrite ConstraintSetFact.add_iff.
+  now rewrite UnivConstraintSetFact.add_iff.
 Qed.
 
 Lemma subst_instance_variance_cstrs l u i i' :
@@ -2053,7 +2124,9 @@ Proof.
   subst i.
   pose proof (consistent_instance_length cu).
   pose proof (consistent_instance_length cu').
-  rewrite -eqi' in H, H0.
+  have he : #|abstract_instance (ind_universes mdecl)| = #|i'|.
+  { len. subst i'. len. }
+  rewrite he in H H0.
   rewrite -H0 in cum.
   assert (subst_instance (u' ++ u) (lift_instance #|u'| i') = u) as subsu.
   { rewrite closedu_subst_instance_lift //.
@@ -2106,18 +2179,18 @@ Proof.
     assert (#|l| = #|u|) as lenlu. now rewrite len1 H.
     clear -checku Ru sat lenu lenlu.
     induction l in u, u', Ru, lenu, lenlu |- *. simpl in *. destruct u, u';
-    intro; rewrite ConstraintSetFact.empty_iff //.
+    intro; rewrite UnivConstraintSetFact.empty_iff //.
     destruct u, u' => //; simpl in *.
     depelim Ru. rename H into Ra.
     specialize (IHl u u' Ru). do 2 forward IHl by lia.
-    destruct a => //; intros x; rewrite ConstraintSetFact.add_iff;
+    destruct a => //; intros x; rewrite UnivConstraintSetFact.add_iff;
     intros [<-|inx]; auto.
-    + do 5 red in Ra; rewrite checku in Ra;
+    + do 3 red in Ra. rewrite checku in Ra;
       specialize (Ra _ sat); simpl in Ra.
       constructor. lia.
-    + do 4 red in Ra. rewrite checku in Ra.
+    + do 3 red in Ra. rewrite checku in Ra.
       specialize  (Ra _ sat).
-      constructor. now rewrite !Universes.Universe.val_make in Ra.
+      now constructor.
 Qed.
 
 Lemma All2_fold_inst {cf} {le} {Σ} {wfΣ : wf Σ} mdecl l v i i' u u' Γ' Γ :

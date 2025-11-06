@@ -1423,7 +1423,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       Universe.map (on_fst (lift_level n)) u.
 
     Definition lift_instance n l :=
-      map (lift_level n) l.
+      map (lift_universe n) l.
 
     Definition lift_constraint n (c : Universe.t * ConstraintType.t * Universe.t) :=
       let '((l, r), l') := c in
@@ -1433,17 +1433,17 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       UnivConstraintSet.fold (fun elt acc => UnivConstraintSet.add (lift_constraint n elt) acc)
         cstrs UnivConstraintSet.empty.
 
-    Definition level_var_instance n (inst : list name) :=
+    Definition level_var_instance n (inst : list name) : LevelInstance.t :=
       mapi_rec (fun i _ => Level.lvar i) inst n.
 
-    Fixpoint variance_cstrs (v : list Variance.t) (u u' : LevelInstance.t) :=
+    Fixpoint variance_cstrs (v : list Variance.t) (u u' : Instance.t) :=
       match v, u, u' with
       | _, [], [] => UnivConstraintSet.empty
       | v :: vs, u :: us, u' :: us' =>
         match v with
         | Variance.Irrelevant => variance_cstrs vs us us'
-        | Variance.Covariant => UnivConstraintSet.add (Universe.of_level u, ConstraintType.Le, Universe.of_level u') (variance_cstrs vs us us')
-        | Variance.Invariant => UnivConstraintSet.add (Universe.of_level u, ConstraintType.Eq, Universe.of_level u') (variance_cstrs vs us us')
+        | Variance.Covariant => UnivConstraintSet.add (u, ConstraintType.Le, u') (variance_cstrs vs us us')
+        | Variance.Invariant => UnivConstraintSet.add (u, ConstraintType.Eq, u') (variance_cstrs vs us us')
         end
       | _, _, _ => (* Impossible due to on_variance invariant *) UnivConstraintSet.empty
       end.
@@ -1457,12 +1457,12 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       | Monomorphic_ctx => None
       | Polymorphic_ctx auctx =>
         let (inst, cstrs) := auctx in
-        let u' := level_var_instance 0 inst in
+        let u' : Instance.t := level_var_instance 0 inst in
         let u := lift_instance #|inst| u' in
         let cstrs := UnivConstraintSet.union cstrs (lift_constraints #|inst| cstrs) in
         let cstrv := variance_cstrs v u u' in
         let auctx' := (inst ++ inst, UnivConstraintSet.union cstrs cstrv) in
-        Some (Polymorphic_ctx auctx', Instance.of_level_instance u, Instance.of_level_instance u')
+        Some (Polymorphic_ctx auctx', u, u')
       end.
 
     (** A constructor type respects the given variance [v] if each constructor

@@ -1041,7 +1041,9 @@ Lemma In_subst_instance x u (l : Universe.t) :
 Proof.
   unfold subst_instance; cbn.
   unfold subst_instance_universe.
-Admitted.
+  rewrite Universe.fold_union_spec.
+  firstorder.
+Qed.
 
 Lemma subst_instance_univ_super l u
   : subst_instance_sort u (Sort.super l) = Sort.super (subst_instance u l).
