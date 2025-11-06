@@ -1049,7 +1049,6 @@ Proof.
     eauto.
   - depelim o. 1-3: reflexivity.
     eapply red_primArray_congr; eauto.
-    now eapply Universe.of_level_inj in e.
 Qed.
 
 #[global]
@@ -1407,7 +1406,7 @@ Proof.
     apply fix_context_pres_let_bodies.
     now apply All2_length in a.
   - constructor. depelim o; depelim o0; constructor; eauto.
-    * rewrite -x //.
+    * etransitivity; tea.
     * etransitivity; tea.
     * etransitivity; tea.
     * eapply All2_trans; eauto.

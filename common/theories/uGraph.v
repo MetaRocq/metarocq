@@ -590,6 +590,33 @@ Section CheckLeq.
         move=> hv v /hv. now constructor.
   Qed.
 
+
+  Lemma check_leqb_sort_spec_gen check
+      (leqb_correct : check_spec check)
+      (u1 u2 : Sort.t)
+      (Hu1 : levels_declared_sort u1)
+      (Hu2 : levels_declared_sort u2)
+    : check_leqb_sort_gen check u1 u2 <-> leq_sort uctx.2 u1 u2.
+  Proof.
+    unfold check_leqb_sort_gen, leq_sort.
+    destruct u1, u2; cbnr; split; intuition auto.
+    - toProp. destruct H.
+      apply (@elimP _ _ (eqb_spec _ _)) in H. noconf H.
+      reflexivity.
+      apply (check_leqb_universe_spec_gen _ leqb_correct) in H.
+      unfold valid_cstr, valid0_cstr in H.
+      unfold Universes.leq_universe, Universes.leq0_universe;
+      destruct check_univs => //.
+      now move=> v /H; intros s; depelim s.
+      all:split; now apply levels_declared_uctx.
+    - toProp; right.
+      apply/(check_leqb_universe_spec_gen _ leqb_correct).
+      * split; now apply levels_declared_uctx.
+      * move: H; rewrite /Universes.leq_universe /Universes.leq0_universe.
+        unfold valid_cstr, valid0_cstr. destruct check_univs => //.
+        move=> hv v /hv. now constructor.
+  Qed.
+
   Definition check_eqb_sort_spec := check_eqb_sort_spec_gen _ checkb_spec.
 
   Lemma check_constraints_spec_gen checkb

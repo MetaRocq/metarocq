@@ -147,7 +147,7 @@ Qed.
 
 Lemma incl_cs_refl cs : cs ⊂_cs cs.
 Proof.
-  split; [lsets|csets].
+  split; [lsets|ucsets].
 Qed.
 
 Lemma extends_trans_global_decls_acc (Σ' : global_env_map) (Σ : Ast.Env.global_declarations) :
@@ -2528,7 +2528,7 @@ Proof.
     + constructor; eauto. cbn [array_universe a]. eapply validity in X1; eauto.
       eapply PCUICWfUniverses.isType_wf_universes in X1. cbn [trans PCUICWfUniverses.wf_universes] in X1.
       unfold PCUICWfUniverses.wf_universes in X1. cbn [PCUICWfUniverses.on_universes Sort.on_sort s] in X1.
-      move: X1. case: PCUICWfUniverses.wf_universe_reflect => //; eauto. eauto.
+      move: X1. case: PCUICWfUniverses.wf_universeP => //; eauto. eauto.
       cbn [a array_value]. solve_all.
   - assert (WfAst.wf Σ B).
     { now apply typing_wf in X2. }

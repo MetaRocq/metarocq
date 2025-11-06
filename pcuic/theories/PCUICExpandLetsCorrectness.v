@@ -2903,9 +2903,8 @@ Lemma on_free_vars_subst_k s k t :
 Proof.
   intros ons ont.
   eapply on_free_vars_impl; [|eapply on_free_vars_subst_gen]; tea.
-  intros i. rewrite /substP /shiftnP.
+  intros i. rewrite /substP /shiftnP /strengthenP.
   repeat nat_compare_specs; cbn; auto.
-  nat_compare_specs => //.
 Qed.
 
 Lemma on_free_vars_expand_lets_k P Γ k t :
@@ -4614,7 +4613,7 @@ Lemma sub_context_set_empty s : sub_context_set ContextSet.empty s.
 Proof.
   red. split.
   intros x hin. cbn in hin. now eapply LevelSetFact.empty_iff in hin.
-  intros x hin. cbn in hin. now eapply ConstraintSetFact.empty_iff in hin.
+  intros x hin. cbn in hin. now eapply UnivConstraintSetFact.empty_iff in hin.
 Qed.
 
 Lemma wt_subst_instance {cf} {Σ : global_env} {ϕ : universes_decl} {Γ T u univs} :

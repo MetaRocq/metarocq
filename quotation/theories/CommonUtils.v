@@ -298,7 +298,8 @@ Module WithTemplate.
     End LevelExprSet.
 
     Module nonEmptyLevelExprSet.
-      Definition prefix_with (prefix : string) (l : nonEmptyLevelExprSet) : nonEmptyLevelExprSet
+      Import Universe.NES.
+      Definition prefix_with (prefix : string) (l : Universe.t) : Universe.t
         := {| t_set := LevelExprSet.prefix_with prefix l.(t_set)
            ; t_ne := eq_trans LevelExprSet.is_empty_prefix_with l.(t_ne) |}.
     End nonEmptyLevelExprSet.

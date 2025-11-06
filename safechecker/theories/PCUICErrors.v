@@ -165,15 +165,10 @@ Definition print_level := string_of_level.
 Definition string_of_Z z :=
   if (z <=? 0)%Z then "-" ^ string_of_nat (Z.to_nat (- z)) else string_of_nat (Z.to_nat z).
 
-Definition print_edge '(l1, n, l2)
-  := "(" ^ print_level l1 ^ ", " ^ string_of_Z n ^ ", "
-         ^ print_level l2 ^ ")".
-
-Definition print_universes_graph (G : universes_graph) :=
-  let levels := LevelSet.elements G.1.1 in
-  let edges := wGraph.EdgeSet.elements G.1.2 in
+Definition print_universes_graph (G : universe_model) :=
+  let levels := LevelSet.elements (UnivLoopChecking.UnivLoopChecking.levels G) in
   string_of_list print_level levels
-  ^ nl ^ string_of_list print_edge edges.
+  ^ nl ^ print_univ_constraint_set G.(UnivLoopChecking.UnivLoopChecking.constraints).
 
 Definition string_of_conv_pb (c : conv_pb) : string :=
   match c with
