@@ -1812,25 +1812,11 @@ Module Abstract.
   Definition enables_clauses val cls := Clauses.For_all (enables_clause val) cls.
 
   Definition consistent_opt_val (val : Level.t -> option Z) (cls : Clauses.t) :=
-    (* enables_clauses val cls /\  *)
+
     clauses_sem val cls.
 
   Definition consistent_opt cls :=
     exists val : Level.t -> option Z, consistent_opt_val val cls.
-
-  (*
-Lemma opt_valuation_of_model_equiv m l :
-    option_get 0%Z (opt_valuation_of_model m l) = valuation_of_model m l.
-  Proof.
-    rewrite /opt_valuation_of_model /to_Z_val /to_val.
-    case: find_spec.
-    * move=> k hm.
-      destruct k => //.
-      have he := valuation_of_model_spec m l _ hm.
-      apply LevelMap.find_1 in he. rewrite he. todo "bounds".
-      apply LevelMap.find_1 in hm. cbn. todo "zero".
-    * move=> hnin. cbn. todo "zero".
-  Qed. *)
 
   Lemma min_atom_value_mapsto {m le k} : min_atom_value m le = Some k ->
     LevelMap.MapsTo le.1 (Some (k + le.2)) m.
@@ -2605,29 +2591,6 @@ Proof.
     move/entails_models=> vm. now apply vm.
 Qed.
 
-(*
-  - move=> hv cl ha. rewrite entails_models => m' ism en.
-    red in hv.
-    apply h; tea. apply
-
-
-  intros; red; eauto.
-  now rewrite -checkb_entails check_entails_model.
-Qed. *)
-
-Lemma check_entails_exists_model m cl :
-  check_entailsb (clauses m) cl -> exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & valid_clause m' cl].
-Proof.
-  unfold check_entailsb.
-  funelim (check_entails (clauses m) cl) => // _.
-  clear H H0. symmetry in Heqcall.
-  move/check_entails_entails: Heqcall => ent.
-  exists v.(model_model). split. apply model_ok. todo "enabled".
-  eapply entails_model_valid; tea.
-  apply model_ok.
-Qed.
-
-
 Lemma check_entails_neg_exists_model m cl :
   check_entailsb (clauses m) cl = false <->
   exists m', [/\ is_model m' (clauses m), enabled_clause m' cl & ~ valid_clause m' cl].
@@ -2663,7 +2626,7 @@ Definition consistent_clauses cls :=
   - clauses max (∞, ...) >= x are trivially valid.
   - clauses max ... >= ∞ are invalid.
 
-  This corresponds to the fact that validity checking does compute
+  This corresponds  the fact that validity checking does compute
   all the "downward" consequences of its premises (say [x, y]),
   but will not consider unrelated max(v, x) expressions if [v] is
   not entailed by [x] or [y].
@@ -2817,20 +2780,17 @@ Definition valid_total_models cls cl :=
   forall m : Model.model, is_total_model m cls ->
   defined_model_of (clause_levels cl) m -> valid_clause m cl.
 
-Lemma valid_total_models_Z_models cls cl : valid_clause_Z cls cl <-> valid_total_models cls cl.
+Lemma valid_total_models_Z_models cls cl : valid_clause_Z cls cl -> valid_total_models cls cl.
 Proof.
-  split.
-  - intros H m istot encl.
-    move: (H (Z_valuation_of_model m)) => /fwd.
-    eapply valuation_of_model_pos.
-    move=> /fwd. destruct istot. move/is_modelP: H1 => H1.
-    move=> cl' /[dup] /H0 en /H1.
-    now eapply valid_clause_model.
-    intros cs.
-    rewrite -def_clause_sem_valid //.
-  - intros vm v vpos csem. red in vm. todo "admit".
+  intros H m istot encl.
+  move: (H (Z_valuation_of_model m)) => /fwd.
+  eapply valuation_of_model_pos.
+  move=> /fwd. destruct istot. move/is_modelP: H1 => H1.
+  move=> cl' /[dup] /H0 en /H1.
+  now eapply valid_clause_model.
+  intros cs.
+  rewrite -def_clause_sem_valid //.
 Qed.
-
 
 Instance incl_leset_preorder : PartialOrder LevelExprSet.Equal LevelExprSet.Subset.
 Proof.
