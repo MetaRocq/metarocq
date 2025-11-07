@@ -1284,11 +1284,6 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     Definition satisfiable_udecl (univs : ContextSet.t) φ
       := consistent (univs_ext_constraints (ContextSet.constraints univs) φ).
 
-    (* Constraints from udecl between *global* universes
-       are implied by the constraints in univs *)
-    Definition valid_on_mono_udecl (univs : ContextSet.t) ϕ :=
-      consistent_extension_on univs (constraints_of_udecl ϕ).
-
     (* Check that: *)
     (*   - declared levels are fresh *)
     (*   - all levels used in constraints are declared *)
@@ -1298,8 +1293,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         let all_levels := LevelSet.union levels global_levels in
         LevelSet.For_all (fun l => ~ LevelSet.In l global_levels) levels
         /\ UnivConstraintSet.For_all (declared_univ_cstr_levels all_levels) (constraints_of_udecl udecl)
-        /\ satisfiable_udecl univs udecl
-        /\ valid_on_mono_udecl univs udecl.
+        /\ satisfiable_udecl univs udecl.
 
     (** Positivity checking of the inductive, ensuring that the inductive itself
       can only appear at the right of an arrow in each argument's types. *)
@@ -1809,10 +1803,6 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         destruct H as ((cstrs & _ & consistent) & decls).
         destruct consistent; eexists.
         intros v e. specialize (H v e); tea.
-      - unfold valid_on_mono_udecl, constraints_of_udecl, consistent_extension_on.
-        intros v sat; exists v; split.
-        + intros x e. ucsets.
-        + intros x e => //.
     Qed.
 
   End GlobalMaps.

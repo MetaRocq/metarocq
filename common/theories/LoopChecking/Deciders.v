@@ -3510,6 +3510,34 @@ Module LoopChecking (LS : LevelSets).
       firstorder.
   Qed.
 
+  Lemma zero_declared_in_levels m : LevelSet.In Level.zero (levels m).
+  Proof.
+    have [k hm] := zero_declared m.
+    apply model_levels. eexists; tea.
+  Qed.
+
+  Lemma declared_init_clauses {m} : forall l,
+    LevelSet.In l (levels m) <->
+    l = Level.zero \/ Clauses.In (Impl.init_clause_of_level l) (clauses m).
+  Proof.
+    move=> l.
+    move: (above_zero_declared m l).
+    rewrite /Impl.declared_init_clause_of_level /Impl.init_clause_of_level => ab.
+    split.
+    - move: ab; case: (eqb_spec l Level.zero) => //.
+      * now left.
+      * move=> eq hin.
+        right. destruct Level.is_global eqn:isg => //.
+        apply (hin H).
+        apply (hin H).
+    - move=> [h|h].
+      * subst l. apply zero_declared_in_levels.
+      * apply (clauses_levels_declared m).
+        apply clauses_levels_spec. eexists; split; tea. cbn.
+        apply clause_levels_spec. left. cbn.
+        apply levels_spec. exists 0%Z. now apply LevelExprSet.singleton_spec.
+  Qed.
+
   Definition init_model := Impl.Abstract.init_model.
 
   (* Returns None if already declared *)

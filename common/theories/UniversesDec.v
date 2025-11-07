@@ -89,41 +89,6 @@ Proof.
   apply Universe.levels_spec. now exists le.2; destruct le.
 Qed.
 
-(* Lemma invalid_cstr cs c : ~ valid0_cstrs cs c <-> ~ (forall v, exists v,  *)
-
-Definition consistent_extension_on_dec (cf := config.default_checker_flags) cs cstr : {@consistent_extension_on cs cstr} + {~@consistent_extension_on cs cstr}.
-Proof.
-  unfold consistent_extension_on.
-  have hp := push_uctx_spec init_model cs.
-  cbn in hp.
-  destruct (push_uctx init_model cs).
-  - destruct hp as [ul uc]. destruct (check_constraints u cstr) eqn:hc.
-    unfold check_constraints, check_constraints_gen in hc. cbn in hc.
-    left.
-    intros v hsat.
-    apply UnivConstraintSet.for_all_spec in hc.
-    exists v. split. move=> c /hc.
-    have hs := checkb_spec u cs.
-    forward hs. red. admit. forward hs. red. admit.
-    red in hs. specialize (hs c). forward hs. admit. rewrite [_ = true]hs.
-    now move/(_ v hsat).
-    intros hl. reflexivity. tc.
-    right.
-    intros hv.
-    have [c [hin hc']] : exists c, UnivConstraintSet.In c cstr /\ @check_constraint_gen config.default_checker_flags (checkb u) c = false.
-      admit.
-    unfold check_constraint_gen in hc'. cbn in hc'.
-    have hs := checkb_spec u cs.
-    forward hs. red. admit. forward hs. red. admit.
-    red in hs.
-    specialize (hs c). forward hs. admit. rewrite hc' in hs.
-    destruct hs => //. forward H0 => //.
-    intros v' hs. specialize (hv v' hs).
-    destruct hv as [v'0 [hsat heq]].
-    admit.
-  - admit.
-Admitted.
-
 Lemma declared_univ_cstrs_levels_spec cstrs : declared_univ_cstrs_levels (univ_constraints_levels cstrs) cstrs.
 Proof.
   intros cl hin. apply declared_univ_cstr_levels_spec.
@@ -153,10 +118,7 @@ Proof.
     cbn. red. red in leq.
     move=> v /leq. now constructor.
   * apply push_uctx_init_model_unsat in eqp => //.
-    left. intros v hv. elim eqp.
-    exists v. eapply satisfies_union. split.
-    2:{ apply satisfies_init. }
-    exact hv.
+    left. intros v hv. elim eqp. now exists v.
 Qed.
 
 Definition leq_universe_dec cf ϕ u u' : {@leq_universe cf ϕ u u'} + {~@leq_universe cf ϕ u u'}.
@@ -211,10 +173,7 @@ Proof.
     * move=> _ hv; right => leq. forward hv => //.
   - apply push_uctx_init_model_unsat in eqp => //.
     left. red. destruct config.check_univs => //.
-    intros v sat. elim eqp.
-    exists v. eapply satisfies_union. split.
-    2:{ apply satisfies_init. }
-    exact sat.
+    intros v sat. elim eqp. now exists v.
 Qed.
 
 Definition valid_constraints0_dec ϕ ctrs : {@valid_constraints0 ϕ ctrs} + {~@valid_constraints0 ϕ ctrs}

@@ -156,5 +156,6 @@
 		"-I", "test-suite/plugin-demo/src",
 		"-Q", "examples", "MetaRocq.Examples",
 	],
+	"vsrocq.completion.enable": true,
   }
 }

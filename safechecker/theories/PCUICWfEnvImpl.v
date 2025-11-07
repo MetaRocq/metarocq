@@ -38,7 +38,7 @@ end.
 Next Obligation.
 destruct Σ.(reference_impl_wf). sq.
 destruct X as [onu ond]; split => //. rewrite <- Heq_anonymous in ond.
-now depelim ond.
+depelim ond. apply ond.
 Qed.
 
 Program Definition make_wf_env_ext {cf:checker_flags} {guard : abstract_guard_impl}
@@ -278,6 +278,8 @@ Section GraphSpec.
 
 End GraphSpec.
 
+Import UnivLoopChecking.UnivLoopChecking.
+
 Program Global Instance canonical_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
   @abstract_env_prop _ _ _ canonical_abstract_env_struct :=
      {| abstract_env_ext_exists := fun Σ => sq (reference_impl_env_ext Σ ; eq_refl); |}.
@@ -305,13 +307,33 @@ Next Obligation.
   + reflexivity.
 Qed.
 Next Obligation. pose (reference_impl_ext_wf X). sq. symmetry; apply LevelSet.Raw.mem_spec. typeclasses eauto. Defined.
-Next Obligation. todo "consistent extension on". Qed.
-  (* pose (reference_impl_wf X). sq.
-  rename H0 into Hudecl. rename H1 into Hudecl'.
-  assert (H0 : global_uctx_invariants (global_uctx X)).
+Next Obligation.
+  pose (reference_impl_wf X). sq.
+  rename H0 into Hudecl.
+  assert (H0 : global_uctx_invariants (clean_uctx (global_uctx X))).
   { eapply wf_global_uctx_invariants; eauto. }
   set (udecl := (t , t0)).
-  assert (H1 : global_uctx_invariants (ContextSet.union udecl (global_uctx X))).
+  destruct (push_uctx _ udecl) eqn:hp.
+  - split => // _.
+    subst udecl.
+    intros v sat.
+    pose proof (reference_impl_graph_wf X) as HG.
+    set (gph := (graph_of_wf X).π1) in *. simpl in HG.
+    eapply push_uctx_model in hp; tea.
+    exists (to_valuation (LoopCheck.valuation u.(model))).
+    split.
+    destruct hp as [hl hc].
+    have hv := model_satisfies u. rewrite hc in hv.
+    apply satisfies_union in hv as [hv hv'].
+    apply satisfies_union in hv as [ht hg].
+    now cbn in ht.
+    todo "Valuation does not change for globals".
+  - split=> // hcon.
+    have hs := push_uctx_spec (reference_impl_graph X) udecl.
+    rewrite hp in hs. cbn in hs.
+    Search push_uctx. in hp.
+
+  (* assert (H1 : global_uctx_invariants (ContextSet.union udecl (global_uctx X))).
   { split => //.
     - apply LevelSet.union_spec; right ; now destruct H0.
     - intros [[l ct] l'] [Hl|Hl]%UCS.union_spec.
@@ -319,11 +341,9 @@ Next Obligation. todo "consistent extension on". Qed.
       + destruct H0 as [_ H0]. specialize (H0 _ Hl).
         split; apply LevelSet.union_spec; right;
         now cbn in H0.
-     }
-  unfold reference_impl_graph; rewrite andb_and.
-  pose proof (reference_impl_graph_wf X) as HG.
-  set (gph := (graph_of_wf X).π1) in *. clearbody gph. simpl in HG.
-  pose proof (HG' := is_graph_of_uctx_add Hudecl' HG).
+     } *)
+  (* unfold reference_impl_graph; rewrite andb_and. *)
+  pose proof (HG' := model_of_uctx_add Hudecl' HG).
   pose (global_ext_uctx := ContextSet.union udecl (global_uctx X)).
   pose (wf_consistent_extension_on_consistent udecl.2 s).
   assert (reorder : forall a a' b c : Prop, (b -> a) -> (a /\ b <-> a' /\ c) -> b <-> a' /\ c) by intuition; eapply reorder; try eassumption; clear reorder.
@@ -336,7 +356,8 @@ Next Obligation. todo "consistent extension on". Qed.
   change (UCS.union _ _) with global_ext_uctx.2.
   apply: consistent_ext_on_full_ext=> //.
   apply: add_uctx_subgraph.
-Qed. *)
+Qed.
+
 Next Obligation. apply guard_correct. Qed.
 
 

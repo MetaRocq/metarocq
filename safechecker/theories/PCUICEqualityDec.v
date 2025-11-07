@@ -835,9 +835,7 @@ Proof.
     * exfalso. destruct HΣ. apply hp.
       assert (consistent (global_uctx Σ).2) as HC.
       { sq; apply (wf_consistent _ X). }
-      destruct HC as [v sat].
-      exists v. apply satisfies_union. split => //.
-      apply satisfies_init.
+      destruct HC as [v sat]. now exists v.
     * destruct HΣ. eapply wf_global_uctx_invariants. exact X.
 Qed.
 
@@ -851,9 +849,7 @@ Proof.
     * exfalso. destruct HΣ. apply hp.
       assert (consistent (global_ext_uctx Σ).2) as HC.
       { sq. now apply (wf_ext_consistent _ X). }
-      destruct HC as [v sat].
-      exists v. apply satisfies_union. split => //.
-      apply satisfies_init.
+      destruct HC as [v sat]. now exists v.
     * destruct HΣ. eapply wf_ext_global_uctx_invariants. exact X.
 Qed.
 

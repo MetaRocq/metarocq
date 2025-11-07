@@ -168,7 +168,7 @@ Definition global_ext_uctx_consistent {cf:checker_flags} {P} Σ
 Proof.
   intros HΣ. cbn. unfold global_ext_constraints.
   unfold wf_ext, on_global_env_ext in HΣ.
-  destruct HΣ as (_ & _ & _ & HH & _). apply HH.
+  destruct HΣ as (_ & _ & _ & HH). apply HH.
 Qed.
 
 

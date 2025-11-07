@@ -767,31 +767,71 @@ Proof.
   rewrite init_constraints_of_levels_singleton_zero. ucsets.
 Qed.
 
-Lemma push_uctx_init_model_unsat `{cf : checker_flags} [uctx] :
-  global_uctx_invariants uctx ->
-  push_uctx init_model uctx = None <->
-  let allcstrs := (UnivConstraintSet.union uctx.2 (init_constraints_of_levels uctx.1)) in
+Lemma is_model_of_uctx m : model_of_uctx m (levels m, constraints m).
+Proof.
+  split.
+  - cbn => l. rewrite LevelSet.union_spec LevelSet.singleton_spec. firstorder. subst.
+    have hd := LoopCheck.zero_declared m.
+    have hm := LoopCheck.Impl.Abstract.model_levels m.(model) Level.lzero.
+    apply hm. destruct hd as [n hm']. now exists (Z.of_nat (S n)).
+  - cbn.
+    have hs := init_constraints_subset m. ucsets.
+Qed.
+
+Definition wf_uctx_ext (m : univ_model) (uctx : ContextSet.t) :=
+  (forall l, LevelSet.In l uctx.1 -> ~ LevelSet.In l (levels m)) /\
+  declared_univ_cstrs_levels (LevelSet.union uctx.1 (levels m)) uctx.2.
+
+(* Instance declared_univ_cstrs_levels_proper *)
+
+Lemma push_uctx_model_unsat `{cf : checker_flags} [m uctx] :
+  wf_uctx_ext m uctx ->
+  push_uctx m uctx = None <->
+  let allcstrs := (UnivConstraintSet.union (constraints m) uctx.2) in
   (~ exists v, satisfies v allcstrs).
 Proof.
   move=> inv.
   set cstrs := UnivConstraintSet.union _ _.
   cbn; destruct push_uctx eqn:hp.
-  - destruct (push_uctx_init_model_sat hp) as [hl hc]. split => //.
+  - have hm := is_model_of_uctx m.
+    eapply push_uctx_model in hp; tea.
+    split => //.
     elim. exists (to_valuation (model_val u)).
-    destruct inv as [nz hd]. red in hd.
-    subst cstrs. rewrite -hc.
-    eapply model_satisfies.
+    subst cstrs. have hs := model_satisfies u.
+    destruct hp as [hl hc].
+    rewrite hc in hs. cbn -[init_constraints_of_levels] in hs.
+    apply satisfies_union in hs as [h h'].
+    apply satisfies_union in h as [].
+    rewrite init_constraints_of_levels_union in h'.
+    apply satisfies_union in h' as [].
+    now apply satisfies_union.
   - split => //. intros _ [v sat].
-    have := push_uctx_spec init_model uctx.
+    have hm := is_model_of_uctx m.
+    have := push_uctx_spec m uctx.
     cbn. rewrite hp.
     intros [[l [hin hsing]]|[ndecl|nsat]].
-    * eapply LevelSet.singleton_spec in hsing. subst l.
-      destruct inv => //.
-    * destruct inv. red in H0.
-      rewrite LevelSetProp.add_union_singleton in H0. contradiction.
+    * now apply (proj1 inv l).
+    * destruct inv. rewrite LevelSetProp.union_sym in ndecl. contradiction.
     * apply nsat. exists v.
-      rewrite -UnivConstraintSetProp.union_assoc. eapply satisfies_union. split => //.
-      intros c; ucsets.
+      rewrite -UnivConstraintSetProp.union_assoc.
+      apply satisfies_union in sat as [].
+      eapply satisfies_union. split => //.
+      subst cstrs.
+      apply satisfies_union; split => //.
+      apply satisfies_init.
+Qed.
+
+Lemma push_uctx_init_model_unsat `{cf : checker_flags} [uctx] :
+  global_uctx_invariants uctx ->
+  push_uctx init_model uctx = None <->
+  (~ exists v, satisfies v uctx.2).
+Proof.
+  move=> inv.
+  rewrite push_uctx_model_unsat //.
+  destruct inv; split.
+  intros l hin h. eapply LevelSet.singleton_spec in h. subst. contradiction.
+  cbn. rewrite LevelSetProp.union_sym -LevelSetProp.add_union_singleton.
+  exact H0.
 Qed.
 
 Instance levelset_sub : RewriteRelation LevelSet.Subset := {}.

@@ -880,6 +880,8 @@ Ltac ucsets := UnivConstraintSetDecide.fsetdec.
 
 Notation "(=_ucset)" := UnivConstraintSet.Equal (at level 0).
 Infix "=_ucset" := UnivConstraintSet.Equal (at level 30).
+Notation "(⊂_ucset)" := UnivConstraintSet.Subset (at level 0).
+Infix "⊂_ucset" := UnivConstraintSet.Subset (at level 30).
 Notation "(==_ucset)" := UnivConstraintSet.equal (at level 0).
 Infix "==_ucset" := UnivConstraintSet.equal (at level 30).
 
@@ -1169,17 +1171,6 @@ Section Univ.
 
   Definition consistent ctrs := exists v, satisfies v ctrs.
 
-  Definition consistent_extension_on cs cstr :=
-    forall v, satisfies v (ContextSet.constraints cs) -> exists v',
-        satisfies v' cstr /\
-          LevelSet.For_all (fun l => val v l = val v' l) (ContextSet.levels cs).
-
-  Lemma consistent_extension_on_empty Σ :
-    consistent_extension_on Σ UCS.empty.
-  Proof.
-    move=> v hv; exists v; split; [move=> ? /UCS.empty_spec[]| move=> ??//].
-  Qed.
-
   Lemma fold_right_ext {A B} (f g : B -> A -> A) acc acc' l l' :
     (forall x y, f x y = g x y) -> acc = acc' -> l = l' ->
     fold_right f acc l = fold_right g acc' l'.
@@ -1312,38 +1303,6 @@ Section Univ.
 
   Lemma val_succ v l : val v (Universe.succ l) = val v l + 1.
   Proof. by rewrite (val_plus v 1). Qed.
-
-  (* Lemma consistent_extension_on_union X cstrs
-  (wfX : forall c, UCS.In c X.2 -> LS.Subset (Universe.levels c.1.1) X.1 /\ LS.Subset (Universe.levels c.2) X.1) :
-  consistent_extension_on X cstrs ->
-  consistent_extension_on X (UCS.union cstrs X.2).
-Proof.
-  move=> hext v /[dup] vsat /hext [v' [v'sat v'eq]].
-  exists v'; split=> //.
-  apply/satisfies_union; split=> //.
-  move=> c hc. destruct (wfX c hc).
-  destruct (vsat c hc); constructor; cbn in *.
-  2:{ rewrite -(val_eq_levels_alg v v' _ v'eq l) //.
-      rewrite -(val_eq_levels_alg v v' _ v'eq l') //. }
-  rewrite -(val_eq_levels_alg v v' _ v'eq l) //.
-  rewrite -(val_eq_levels_alg v v' _ v'eq l') //.
-Qed. *)
-
-  Lemma consistent_extension_on_union X cstrs
-    (wfX : forall c, UCS.In c X.2 -> LS.Subset (Universe.levels c.1.1) X.1 /\ LS.Subset (Universe.levels c.2) X.1) :
-    consistent_extension_on X cstrs ->
-    consistent_extension_on X (UCS.union cstrs X.2).
-  Proof.
-    move=> hext v /[dup] vsat /hext [v' [v'sat v'eq]].
-    exists v'; split=> //.
-    apply/satisfies_union; split=> //.
-    move=> c hc. destruct (wfX c hc).
-    destruct (vsat c hc); constructor; cbn in *.
-    2:{ rewrite -(val_eq_levels_alg v v' _ v'eq l) //.
-        rewrite -(val_eq_levels_alg v v' _ v'eq l') //. }
-    rewrite -(val_eq_levels_alg v v' _ v'eq l) //.
-    rewrite -(val_eq_levels_alg v v' _ v'eq l') //.
-  Qed.
 
   Definition leq0_universe φ (u u' : Universe.t) :=
     forall v, satisfies v φ -> val v u <= val v u'%Z.
