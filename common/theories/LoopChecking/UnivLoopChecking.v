@@ -1160,35 +1160,80 @@ End ZUnivConstraint.
 
   Lemma init_constraints_of_levels_spec ls :
     forall l, LevelSet.In l ls -> forall c, init_constraint_of_level l = Some c -> UnivConstraintSet.In c (init_constraints_of_levels ls).
-  Proof. Admitted.
+  Proof.
+    unfold init_constraints_of_levels.
+    set fn := (fun (l0 : LevelSet.elt) (cstrs : UnivConstraintSet.t) =>
+    match init_constraint_of_level l0 with
+    | Some c0 => UnivConstraintSet.add c0 cstrs
+    | None => cstrs
+    end).
+    pose P := fun ls f => forall l : LevelSet.elt,
+      LevelSet.In l ls ->
+      forall c : (Universe.t × ConstraintType.t_) × Universe.t,
+      init_constraint_of_level l = Some c -> UnivConstraintSet.In c f.
+    change (P ls (LevelSet.fold fn ls UnivConstraintSet.empty)).
+    eapply LevelSetProp.fold_rec; subst P; cbn in *.
+    - move=> s' he l hin. lsets.
+    - move=> x a s' s'' hin hnin hadd ih l hinl c hinit.
+      unfold fn.
+      destruct (Classes.eq_dec l x).
+      * subst. rewrite hinit. ucsets.
+      * destruct (init_constraint_of_level x) eqn:ix.
+        eapply UnivConstraintSet.add_spec. right.
+        eapply ih; tea. move: (hadd l).
+        move=> [] /(_ hinl) [] //=. congruence.
+        eapply ih; tea.
+        move: (hadd l).
+        move=> [] /(_ hinl) [] //=. congruence.
+  Qed.
 
   Lemma init_constraints_of_levels_spec_inv ls :
     forall c, UnivConstraintSet.In c (init_constraints_of_levels ls) ->
     exists l, LevelSet.In l ls /\ init_constraint_of_level l = Some c.
-  Proof. Admitted.
+  Proof.
+    unfold init_constraints_of_levels.
+    eapply LevelSetProp.fold_rec.
+    - ucsets.
+    - move=> x a s' s'' hin hnin hadd ih c.
+      destruct init_constraint_of_level eqn:hi.
+      * move/UnivConstraintSet.add_spec => [->|].
+        { exists x. split => //. now apply hadd. }
+        case/ih => l -[] hin' hinit. exists l. split => //.
+        apply hadd. now right.
+      * case/ih => l -[] hin' hinit. exists l. split => //.
+        apply hadd. now right.
+  Qed.
 
   Instance init_constraints_of_levels_proper : Proper (LevelSet.Equal ==> UnivConstraintSet.Equal) (init_constraints_of_levels).
   Proof.
     intros l l' eqll' cl.
-    rewrite /init_constraints_of_levels.
-  Admitted.
+    split.
+    - move/init_constraints_of_levels_spec_inv=> -[] i [].
+      rewrite eqll' => hin hinit.
+      eapply init_constraints_of_levels_spec; tea.
+    - move/init_constraints_of_levels_spec_inv=> -[] i [].
+      rewrite -eqll' => hin hinit.
+      eapply init_constraints_of_levels_spec; tea.
+  Qed.
 
   Lemma init_constraints_of_levels_add l c ls :
     init_constraint_of_level l = Some c ->
     init_constraints_of_levels (LevelSet.add l ls) =_ucset UnivConstraintSet.add c (init_constraints_of_levels ls).
-  Proof. Admitted.
-
-  (* Lemma clauses_constraints m :
-    forall l, Clauses.In (Impl.init_clause_of_level l) (LoopCheck.clauses m) ->
-    exists c, init_constraint_of_level l = Some c /\ UnivConstraintSet.In c (constraints m).
-
-    exists c Clauses.Subset (LoopCheck.to_clauses (to_constraint c)) (LoopCheck.clauses m).
   Proof.
-    move=> c.
-    move/repr_constraints => //.
-  Qed. *)
-
-  (* Lemma in_singleton_to_clauses {le concl} c : Clauses.In (singleton le, concl) (to_clauses c) <-> c . *)
+    move=> hc cl.
+    split.
+    - move/init_constraints_of_levels_spec_inv=> -[] i [] /LevelSet.add_spec hin hinit.
+      destruct hin; subst.
+      * rewrite hc in hinit; noconf hinit.
+        ucsets.
+      * apply UnivConstraintSet.add_spec. right.
+        eapply init_constraints_of_levels_spec; tea.
+    - move/UnivConstraintSet.add_spec => [eq|hin].
+      * subst. eapply init_constraints_of_levels_spec. apply LevelSet.add_spec. now left. exact hc.
+      * apply init_constraints_of_levels_spec_inv in hin as [l0 []].
+        eapply init_constraints_of_levels_spec; tea.
+        now apply LevelSet.add_spec; right.
+  Qed.
 
   Lemma declared_init_constraints {m} : forall l,
     LevelSet.In l (levels m) ->

@@ -212,7 +212,11 @@ Section CheckerFlags.
     Forall (wf_universe (Σ, Monomorphic_ctx)) u ->
     forallb (fun x => LevelSet.for_all (negb $ Level.is_var) (Universe.levels x)) u.
   Proof using Type.
-  Admitted.
+    move=> wf onu hf.
+    rewrite All_forallb => //. solve_all.
+    apply/LevelSet.for_all_spec => l /Universe.levels_spec [k] /H //=.
+    destruct l => // /in_var_global_ext //=. lsets.
+  Qed.
 
   Lemma wf_level_sub Σ univs u :
     wf_level (Σ, Monomorphic_ctx) u ->
