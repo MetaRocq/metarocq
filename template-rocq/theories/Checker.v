@@ -835,10 +835,12 @@ Section Checker.
       ret tt
     end.
 
+  Definition clean_uctx (uctx : ContextSet.t) := (LevelSet.remove Level.lzero (fst uctx), snd uctx).
+
   Definition typecheck_program (p : program) : EnvCheck term :=
     let Σ := fst p in
     let '(univs, decls, retro) := (Σ.(universes), Σ.(declarations), Σ.(retroknowledge)) in
-    match push_uctx init_model univs with
+    match push_uctx init_model (clean_uctx univs) with
     | None => EnvError (IllFormedDecl "toplevel"
         (UnsatisfiableConstraints univs.2))
     | Some G =>
@@ -851,7 +853,7 @@ End Checker.
 (* for compatibility, will go away *)
 Definition infer' `{checker_flags} `{Fuel} (Σ : global_env_ext) Γ t
   := let uctx := (global_ext_uctx Σ) in
-    match push_uctx init_model uctx with
+    match push_uctx init_model (clean_uctx uctx) with
      | None => raise (UnsatisfiableConstraints uctx.2)
      | Some m => infer (fst Σ) m Γ t
      end.
