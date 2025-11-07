@@ -55,16 +55,6 @@ Definition cs_equal (x y : ContextSet.t) : Prop :=
   Qed.*)
   Require Import SetoidTactics.
 
-  Global Instance model_of_uctx_proper {cf} G : Proper (cs_equal ==> iff) (model_of_uctx G).
-  Proof.
-    intros [l c] [l' c'] [eql eqc]; cbn.
-    unfold model_of_uctx; cbn. cbn in *.
-    split. intros []; split. now rewrite -eql.
-    rewrite -eqc.
-
-  Admitted.
-
-
 (** It otherwise tries [auto with *], very bad idea. *)
 Ltac Corelib.Program.Tactics.program_solve_wf ::=
   match goal with
@@ -145,7 +135,31 @@ Section OnUdecl.
   Lemma subst_instance_universe_lift inst l :
     closedu_universe #|inst| l ->
     subst_instance (lift_instance #|inst| (Instance.of_level_instance (level_var_instance 0 inst))) l = lift_universe #|inst| l.
-  Proof. Admitted.
+  Proof.
+    intros cl.
+    apply Universe.equal_exprsets => le.
+    rewrite In_subst_instance.
+    rewrite In_lift_universe.
+    rewrite /subst_instance_level_expr.
+    split.
+    - case=> x' [] hin hin'.
+      eapply Universe.map_spec in hin' as [e' [hin' heq]].
+      subst le. rewrite subst_instance_level_lift in hin'.
+      now move/LevelExprSet.for_all_spec: cl => /(_ _ hin).
+      apply LevelExprSet.singleton_spec in hin'. subst e'.
+      exists x'; split => //.
+      rewrite /LevelExpr.add /LevelExpr.make. cbn.
+      now rewrite Nat.add_0_r.
+    - case=> le' [hin ->].
+      exists le'; split => //.
+      apply Universe.map_spec. exists (lift_level #|inst| le'.1, 0).
+      split => //.
+      rewrite subst_instance_level_lift.
+      now move/LevelExprSet.for_all_spec: cl => /(_ _ hin).
+      now apply LevelExprSet.singleton_spec.
+      rewrite /LevelExpr.add /LevelExpr.make. cbn.
+      now rewrite Nat.add_0_r.
+  Qed.
 
   Lemma subst_instance_level_var_instance inst l :
     closedu_level #|inst| l ->
@@ -156,15 +170,41 @@ Section OnUdecl.
     now rewrite /level_var_instance [mapi_rec _ _ _]mapi_unfold (proj1 (nth_error_unfold _ _ _) ltn).
   Qed.
 
-
   Lemma subst_instance_universe_var_instance inst l :
     closedu_universe #|inst| l ->
     subst_instance (level_var_instance 0 inst) l = l.
   Proof using Type.
-  Admitted.
+    clear cf.
+    intros cl.
+    apply Universe.equal_exprsets => le.
+    rewrite In_subst_instance.
+    rewrite /subst_instance_level_expr.
+    setoid_rewrite Universe.map_spec.
+    split.
+    - case=> x' [] hin.
+      setoid_rewrite subst_instance_level_var_instance; revgoals.
+      { now move/LevelExprSet.for_all_spec: cl => /(_ _ hin). }
+      case=> x0 [] /LevelExprSet.singleton_spec -> ->.
+      now rewrite add_make; destruct x'.
+    - move=> hin. exists le; split => //.
+      setoid_rewrite subst_instance_level_var_instance; revgoals.
+      { now move/LevelExprSet.for_all_spec: cl => /(_ _ hin). }
+      eexists; split; trea.
+      apply LevelExprSet.singleton_spec; trea.
+      now rewrite add_make; destruct le.
+  Qed.
+
+  Ltac rw l := rewrite_strat (topdown l).
+  Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
   Lemma lift_universe_singleton n n' : lift_universe n (Universe.of_level (Level.lvar n')) = Universe.of_level (Level.lvar (n + n')).
-  Proof. Admitted.
+  Proof.
+    apply Universe.equal_exprsets=> l.
+    rw In_lift_universe; rw LevelExprSet.singleton_spec.
+    split.
+    - case=> le' [] -> -> //=.
+    - move=> ->. eexists; split; trea.
+  Qed.
 
   Lemma variance_universes_spec Σ ctx v univs u u' :
     wf_ext (Σ, ctx) ->
