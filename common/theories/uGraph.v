@@ -13,7 +13,7 @@ Definition universe_model := UnivLoopChecking.univ_model.
 Definition init_model : universe_model := UnivLoopChecking.init_model.
 
 Definition uctx_invariants (uctx : ContextSet.t)
-  := UnivLoopChecking.declared_univ_cstrs_levels (LevelSet.add Level.lzero uctx.1) uctx.2.
+  := declared_univ_cstrs_levels (LevelSet.add Level.lzero uctx.1) uctx.2.
 
 Definition global_uctx_invariants (uctx : ContextSet.t)
   := ~ LevelSet.In Level.lzero uctx.1 /\ uctx_invariants uctx.
@@ -778,14 +778,14 @@ Proof.
     have hs := init_constraints_subset m. ucsets.
 Qed.
 
-Definition wf_uctx_ext (m : univ_model) (uctx : ContextSet.t) :=
-  (forall l, LevelSet.In l uctx.1 -> ~ LevelSet.In l (levels m)) /\
-  declared_univ_cstrs_levels (LevelSet.union uctx.1 (levels m)) uctx.2.
+Definition wf_uctx_ext (ctx : LevelSet.t) (uctx : ContextSet.t) :=
+  (forall l, LevelSet.In l uctx.1 -> ~ LevelSet.In l ctx) /\
+  declared_univ_cstrs_levels (LevelSet.union uctx.1 ctx) uctx.2.
 
 (* Instance declared_univ_cstrs_levels_proper *)
 
 Lemma push_uctx_model_unsat `{cf : checker_flags} [m uctx] :
-  wf_uctx_ext m uctx ->
+  wf_uctx_ext (levels m) uctx ->
   push_uctx m uctx = None <->
   let allcstrs := (UnivConstraintSet.union (constraints m) uctx.2) in
   (~ exists v, satisfies v allcstrs).

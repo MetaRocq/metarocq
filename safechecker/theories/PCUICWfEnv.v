@@ -109,8 +109,8 @@ Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_i
     LevelSet.In l (global_ext_levels Σ) <-> abstract_env_level_mem X l;
   abstract_env_is_consistent_correct X Σ udecl :
     abstract_env_rel X Σ ->
-    UnivConstraintSet.For_all (declared_univ_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
-    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X udecl;
+    wf_uctx_ext (global_levels Σ) udecl ->
+    consistent (UnivConstraintSet.union (global_uctx Σ).2 udecl.2) <-> abstract_env_is_consistent X udecl;
 
   abstract_env_guard_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) fix_cofix Γ mfix :
       guard fix_cofix Σ Γ mfix <-> abstract_env_guard X fix_cofix Γ mfix;
@@ -178,7 +178,6 @@ Proof.
   - red. rewrite /univs_ext_constraints /=.
     rewrite CS_union_empty.
     apply wfΣ.
-  - apply consistent_extension_on_empty.
 Qed.
 
 Program Definition abstract_env_empty_ext {cf:checker_flags} {X_type : abstract_env_impl}
@@ -308,24 +307,6 @@ Proof.
   now rewrite LevelSet.mem_spec.
 Qed.
 
-Lemma wf_consistent_extension_on_consistent {cf:checker_flags} {Σ} udecl :
-  wf Σ -> consistent_extension_on (global_uctx Σ) udecl ->
-  consistent (UnivConstraintSet.union udecl (global_constraints Σ)).
-Proof.
-  intros s Hext. pose proof (wf_consistent _ s).
-  destruct H as [val Hval].
-  destruct (Hext val Hval) as [val' [Hval' Hval'']]. exists val'.
-  intros [[l ct] l'] [Hl|Hl]%UCS.union_spec; eauto.
-  destruct (Hval _ Hl); cbn; econstructor.
-Admitted.
-  (* - erewrite <- (Hval'' l0). erewrite <- (Hval'' l'0) => //.
-    + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-    - erewrite <- (Hval'' l0). erewrite <- (Hval'' l'0) => //.
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl). *)
-(* Qed. *)
-
 Lemma abstract_env_lookup_correct' {cf:checker_flags} {X_type : abstract_env_impl}
 ( X:X_type.π2.π1) {Σ} kn : abstract_env_ext_rel X Σ ->
   lookup_env Σ kn = abstract_env_lookup X kn.
@@ -339,4 +320,3 @@ Proof.
     intros decl Hdecl. eapply abstract_env_lookup_correct in Hdecl; eauto.
     destruct Hnotin. apply in_map_iff. now exists (kn,decl).
 Qed.
-

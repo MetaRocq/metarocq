@@ -1020,8 +1020,6 @@ End ZUnivConstraint.
 
   Definition enforce_constraints g cstrs := enforce_constraints_aux (Some g) cstrs.
 
-  Definition declared_univ_cstrs_levels levels cstrs := UnivConstraintSet.For_all (declared_univ_cstr_levels levels) cstrs.
-
   Lemma satisfies_singleton v x : satisfies v (UnivConstraintSet.singleton x) <-> satisfies0 v x.
   Proof.
     split.

@@ -889,6 +889,8 @@ Definition declared_univ_cstr_levels levels (cstr : UnivConstraint.t) :=
   let '(l1,_,l2) := cstr in
   LevelSet.Subset (Universe.levels l1) levels /\ LevelSet.Subset (Universe.levels l2) levels.
 
+Definition declared_univ_cstrs_levels levels cstrs := UnivConstraintSet.For_all (declared_univ_cstr_levels levels) cstrs.
+
 Definition is_declared_univ_cstr_levels levels (cstr : UnivConstraint.t) : bool :=
   let '(l1,_,l2) := cstr in
   LevelSet.subset (Universe.levels l1) levels && LevelSet.subset (Universe.levels l2) levels.

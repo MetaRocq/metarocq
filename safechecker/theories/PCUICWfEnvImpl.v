@@ -280,6 +280,14 @@ End GraphSpec.
 
 Import UnivLoopChecking.UnivLoopChecking.
 
+From Stdlib Require Import Morphisms.
+
+Instance wf_uctx_ext_proper : Morphisms.Proper (LevelSet.Equal ==> eq ==> iff) wf_uctx_ext.
+Proof.
+  intros ? ? ls ? ? ->.
+  rewrite /wf_uctx_ext. now setoid_rewrite ls.
+Qed.
+
 Program Global Instance canonical_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
   @abstract_env_prop _ _ _ canonical_abstract_env_struct :=
      {| abstract_env_ext_exists := fun Σ => sq (reference_impl_env_ext Σ ; eq_refl); |}.
@@ -312,54 +320,43 @@ Next Obligation.
   rename H0 into Hudecl.
   assert (H0 : global_uctx_invariants (clean_uctx (global_uctx X))).
   { eapply wf_global_uctx_invariants; eauto. }
-  set (udecl := (t , t0)).
   destruct (push_uctx _ udecl) eqn:hp.
   - split => // _.
-    subst udecl.
-    intros v sat.
-    pose proof (reference_impl_graph_wf X) as HG.
-    set (gph := (graph_of_wf X).π1) in *. simpl in HG.
+    have h := is_model_of_uctx (reference_impl_graph X). cbn in h.
+    pose proof (reference_impl_graph_wf X) as HG. simpl in HG.
+    unfold reference_impl_graph in hp.
     eapply push_uctx_model in hp; tea.
     exists (to_valuation (LoopCheck.valuation u.(model))).
-    split.
     destruct hp as [hl hc].
     have hv := model_satisfies u. rewrite hc in hv.
     apply satisfies_union in hv as [hv hv'].
     apply satisfies_union in hv as [ht hg].
-    now cbn in ht.
-    todo "Valuation does not change for globals".
+    apply satisfies_union => //.
   - split=> // hcon.
+    pose proof (reference_impl_graph_wf X) as HG. simpl in HG.
     have hs := push_uctx_spec (reference_impl_graph X) udecl.
     rewrite hp in hs. cbn in hs.
-    Search push_uctx. in hp.
-
-  (* assert (H1 : global_uctx_invariants (ContextSet.union udecl (global_uctx X))).
-  { split => //.
-    - apply LevelSet.union_spec; right ; now destruct H0.
-    - intros [[l ct] l'] [Hl|Hl]%UCS.union_spec.
-      + now specialize (Hudecl _ Hl).
-      + destruct H0 as [_ H0]. specialize (H0 _ Hl).
-        split; apply LevelSet.union_spec; right;
-        now cbn in H0.
-     } *)
-  (* unfold reference_impl_graph; rewrite andb_and. *)
-  pose proof (HG' := model_of_uctx_add Hudecl' HG).
-  pose (global_ext_uctx := ContextSet.union udecl (global_uctx X)).
-  pose (wf_consistent_extension_on_consistent udecl.2 s).
-  assert (reorder : forall a a' b c : Prop, (b -> a) -> (a /\ b <-> a' /\ c) -> b <-> a' /\ c) by intuition; eapply reorder; try eassumption; clear reorder.
-  rewrite - (is_consistent_spec global_ext_uctx) (is_consistent_spec2 HG').
-  assert (reorder : forall a b c : Prop, (a -> b <-> c) -> a /\ b <-> a /\ c) by intuition; apply reorder.
-  move=> ?; rewrite consistent_extension_on_union.
-  1:{ pose proof (reference_impl_wf X); sq.
-      apply: PCUICUnivSubstitutionConv.levels_global_constraint. }
-  cbn.
-  change (UCS.union _ _) with global_ext_uctx.2.
-  apply: consistent_ext_on_full_ext=> //.
-  apply: add_uctx_subgraph.
+    apply push_uctx_model_unsat in hp.
+    * exfalso; apply hp.
+      destruct hcon as [v h]. exists v. apply satisfies_union in h as [].
+      apply satisfies_union => //. split => //.
+      unfold reference_impl_graph. unfold global_constraints in H.
+      destruct HG as [hl hc]. rewrite hc.
+      apply satisfies_union. split => //. apply satisfies_init.
+    * clear H. move: Hudecl.
+      destruct HG as [hl hc].
+      move=> [hl' hc'].
+      rewrite /reference_impl_graph hl. cbn.
+      split.
+      { move=> l hin hin'. specialize (hl' l hin).
+        apply hl'. apply LevelSet.union_spec in hin' as [] => //.
+        apply LevelSet.singleton_spec in H. subst l.
+        apply global_levels_InSet. }
+      { move=> cl /hc'.
+        eapply declared_univ_cstr_levels_subset. lsets. reflexivity. }
 Qed.
 
 Next Obligation. apply guard_correct. Qed.
-
 
 Program Global Instance optimized_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
   @abstract_env_prop _ _ _ optimized_abstract_env_struct :=
@@ -392,7 +389,7 @@ Next Obligation.
   now erewrite (abstract_env_level_mem_correct X.(wf_env_ext_reference)).
 Qed.
 Next Obligation.
-  now erewrite (abstract_env_is_consistent_correct X.(wf_env_reference)) with (udecl := (t,t0)); eauto.
+  rewrite (abstract_env_is_consistent_correct X.(wf_env_reference)) //.
 Qed.
 Next Obligation. eapply guard_correct. Qed.
 
