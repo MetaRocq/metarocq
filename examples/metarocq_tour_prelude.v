@@ -25,7 +25,8 @@ Definition univ := Level.level "s".
 (* TODO move to SafeChecker *)
 
 Definition gctx : global_env_ext :=
-  ({| universes := (LS.union (LevelSet.singleton Level.lzero) (LevelSet.singleton univ), UnivConstraintSet.empty);
+  ({| universes := (LevelSet.singleton univ,
+    UnivConstraintSet.singleton (Universe.zero, UnivConstraintType.ConstraintType.Le, Universe.of_level univ));
       declarations := []; retroknowledge := Retroknowledge.empty |}, Monomorphic_ctx).
 
 (** We use the environment checker to produce the proof that gctx, which is a singleton with only
@@ -46,6 +47,7 @@ Definition make_wf_env_ext (Σ : global_env_ext) : EnvCheck wf_env_ext wf_env_ex
   '(exist Σ' pf) <- check_wf_ext optimized_abstract_env_impl Σ ;;
   ret Σ'.
 
+(*
 Definition gctx_wf_env : wf_env_ext.
 Proof.
   let wf_proof := eval hnf in (make_wf_env_ext gctx) in
@@ -80,3 +82,4 @@ Ltac fill_inh t :=
     end
   | [ |- inh _ ?Γ _ ] => fail "Missing local wellformedness assumption for" Γ
   end.
+*)

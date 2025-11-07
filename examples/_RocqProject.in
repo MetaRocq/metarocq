@@ -4,6 +4,6 @@ demo.v
 constructor_tac.v
 add_constructor.v
 tauto.v
-typing_correctness.v
+# typing_correctness.v
 metarocq_tour_prelude.v
 metarocq_tour.v

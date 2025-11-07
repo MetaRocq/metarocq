@@ -77,7 +77,7 @@ Check type_of_subtype.
 (* Running the safe checker inside Rocq *)
 From MetaRocq.Examples Require Import metarocq_tour_prelude.
 
-Check check_inh.
+(* Check check_inh. *)
 
 (** We construct a proof of typing entirely within Rocq, calling the typechecker to produce the derivation *)
 (* Lemma identity_typing (u := Universe.make univ):

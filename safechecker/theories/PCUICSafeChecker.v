@@ -2336,7 +2336,7 @@ End monad_Alli_nth_forall.
     let id := "toplevel" in
     let levels := ContextSet.levels univs in
     check_eq_true_lazy (~~ (LevelSet.mem Level.lzero levels))
-       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Level zero is not declared in the global levels " ^ print_lset levels))));;
+       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Level zero is declared in the global levels " ^ print_lset levels))));;
     check_eq_true_lazy (LevelSet.for_all (fun l => negb (Level.is_var l)) levels)
        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Variable level in the global levels " ^ print_lset levels))));;
     check_eq_true_lazy (UnivConstraintSet.for_all (fun c => declared_universe (LevelSet.add Level.lzero levels) c.1.1 && declared_universe (LevelSet.add Level.lzero levels) c.2) (ContextSet.constraints univs))
