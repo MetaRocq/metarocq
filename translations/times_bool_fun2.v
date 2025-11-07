@@ -79,6 +79,7 @@ Defined.
 
 Definition UA := forall A B, isequiv (id2equiv A B).
 
+(*
 MetaRocq Run (TC <- Translate eqTC "isequiv" ;;
                      TC <- Translate TC "equiv" ;;
                      TC <- ImplementExisting TC "eq" ;;
@@ -185,3 +186,4 @@ Definition αequiv_weakfunext : contr_isequivα -> weakFunext.
   2: exact (equiv_contrfib _ (Hα A P H) idmap).
   exact (contr_retract_α A P H).
 Defined.
+*)

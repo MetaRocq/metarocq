@@ -111,7 +111,7 @@ Definition combine' {A B} (p : list A * list B) : list (A * B)
 
 
 Fixpoint replace pat u t {struct t} :=
-  if eq_term uGraph.init_graph t pat then u else
+  if eq_term uGraph.init_model t pat then u else
     match t with
     | tCast t c A => tCast (replace pat u t) c (replace pat u A)
     | tProd n A B => tProd n (replace pat u A) (replace (up pat) (up u) B)
@@ -339,6 +339,7 @@ Next Obligation.
   tIntro y. tIntro p. destruct p. exact t.
 Defined.
 
+(*
 MetaRocq Run (TC <- TranslateRec eqTC'' wUnivalence ;;
                      tmDefinition "eqTC3" TC).
 
@@ -405,3 +406,4 @@ Next Obligation.
   apply (f_equal bool_of_Equivᵗ) in X. cbn in X.
   inversion X.
 Defined.
+*)
