@@ -206,6 +206,7 @@ ci-quick:
 
 ci-opam:
 # Use -v so that regular output is produced
+	rm -f rocq-metarocq-quotation.opam
 	opam pin add -y .
 	opam install --with-test -v -y rocq-metarocq
 	opam remove -y rocq-metarocq rocq-metarocq-template
