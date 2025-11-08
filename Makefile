@@ -206,7 +206,7 @@ ci-quick:
 
 ci-opam:
 # Use -v so that regular output is produced
-	opam pin add .
+	opam pin add -y .
 	opam install --with-test -v -y rocq-metarocq
 	opam remove -y rocq-metarocq rocq-metarocq-template
 
