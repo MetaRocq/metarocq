@@ -301,6 +301,7 @@ test-suite/plugin-demo/Makefile.plugin
 template-rocq/Makefile.plugin-e
 template-rocq/Makefile.template-e
 template-rocq/src/g_template_coq.ml
+template-rocq/src/g_template_rocq.ml
 pcuic/Makefile.plugin-e
 erasure/Makefile.plugin-e
 safechecker/Makefile.plugin-e
