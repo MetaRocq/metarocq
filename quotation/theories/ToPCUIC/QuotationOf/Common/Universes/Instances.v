@@ -10,7 +10,7 @@ From MetaRocq.Quotation.ToPCUIC.QuotationOf.Common.Universes Require Export
   LevelExprSetOrdProp.Instances
   LevelExprSetExtraOrdProp.Instances
   UnivConstraint.Instances
-  UnivConstraintSet.Instances
+  ConstraintSet.Instances
   ConstraintSetOrdProp.Instances
   ConstraintSetExtraOrdProp.Instances
   ConstraintSetExtraDecide.Instances

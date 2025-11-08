@@ -17,8 +17,8 @@ Module QuoteLevelSet := MSets.QuoteMSetAVL Level LevelSet LevelSetOrdProp LevelS
 Export (hints) QuoteLevelSet.
 Module QuoteLevelExprSet := MSets.QuoteMSetListWithLeibniz LevelExpr LevelExprSet LevelExprSetOrdProp LevelExprSetExtraOrdProp qLevelExpr qLevelExprSet qLevelExprSetOrdProp qLevelExprSetExtraOrdProp.
 Export (hints) QuoteLevelExprSet.
-Module QuoteConstraintSet := MSets.QuoteMSetAVL UnivConstraint ConstraintSet ConstraintSetOrdProp ConstraintSetExtraOrdProp ConstraintSetExtraDecide qUnivConstraint qConstraintSet qConstraintSetOrdProp qConstraintSetExtraOrdProp qConstraintSetExtraDecide.
-Export (hints) QuoteUnivConstraintSet.
+Module QuoteConstraintSet := MSets.QuoteMSetAVL UnivConstraint UnivConstraintSet UnivConstraintSetOrdProp UnivConstraintSetExtraOrdProp UnivConstraintSetExtraDecide qUnivConstraint qConstraintSet qConstraintSetOrdProp qConstraintSetExtraOrdProp qConstraintSetExtraDecide.
+Export (hints) QuoteConstraintSet.
 
 Module QuoteUniverses1.
   Module Import Level.
@@ -58,7 +58,6 @@ End QuoteUniverses1.
 Export (hints) QuoteUniverses1.
 
 #[export] Hint Unfold
-  Universe.t
   Instance.t
   UContext.t
   AUContext.t
@@ -68,7 +67,6 @@ Export (hints) QuoteUniverses1.
   : quotation.
 
 #[export] Typeclasses Transparent
-  Universe.t
   Instance.t
   UContext.t
   AUContext.t
@@ -86,16 +84,9 @@ Module QuoteUniverses2.
   Export (hints) Universe.
 
   Module Import ConstraintType.
-    #[export] Instance quote_t_ : ground_quotable ConstraintType.t_ := ltac:(destruct 1; exact _).
-    #[export] Hint Unfold ConstraintType.t : quotation.
-    #[export] Typeclasses Transparent ConstraintType.t.
-    #[export] Instance quote_lt_ {x y} : ground_quotable (ConstraintType.lt_ x y).
-    Proof.
-      destruct x, y;
-        solve [ intro pf; exfalso; inversion pf
-              | adjust_ground_quotable_by_econstructor_inversion () ].
-    Defined.
-    #[export] Hint Unfold ConstraintType.lt : quotation.
+    #[export] Instance quote_t_ : ground_quotable UnivConstraintType.ConstraintType.t_ := ltac:(destruct 1; exact _).
+    #[export] Hint Unfold UnivConstraintType.ConstraintType.t : quotation.
+    #[export] Typeclasses Transparent UnivConstraintType.ConstraintType.t.
   End ConstraintType.
   Export (hints) ConstraintType.
 

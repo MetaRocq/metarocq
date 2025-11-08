@@ -16,7 +16,7 @@ Import MRMonadNotation.
 Class quotation_of {T} (t : T) := quoted_term_of : Ast.term.
 #[global] Arguments quoted_term_of {T} t {_}.
 Class ground_quotable T := quote_ground : forall t : T, quotation_of t.
-Class inductive_quotation_of {T} (t : T) : Set
+Class inductive_quotation_of {T} (t : T)
   := { qinductive : inductive
      ; qinst : Instance.t
      ; qquotation : quotation_of t := tInd qinductive qinst }.
