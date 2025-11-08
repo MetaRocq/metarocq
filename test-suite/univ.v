@@ -57,7 +57,7 @@ MetaRocq Quote Definition selfpidq := @selfpid.
 Constraint i < j.
 
 MetaRocq Unquote Definition yuyu :=
-  (tConst (cp "selfpid") [Level.level "j"; Level.level "i"]).
+  (tConst (cp "selfpid") (Instance.of_level_instance [Level.level "j"; Level.level "i"])).
 
 
 MetaRocq Quote Definition t0 := nat.

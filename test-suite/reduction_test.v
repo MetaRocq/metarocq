@@ -67,19 +67,19 @@ MetaRocq Quote Recursively Definition foo :=
 Definition default_normal : @normalizing_flags default_checker_flags.
 now econstructor.
 Defined.
-
-Time Definition bar := Eval lazy in @typecheck_template default_normal foo.
-
 Unset MetaRocq Strict Unquote Universe Mode.
-MetaRocq Unquote Definition unbar := (PCUICToTemplate.trans bar).
+
+(* Time Definition bar := Eval lazy in @typecheck_template default_normal foo. *)
+
+(* MetaRocq Unquote Definition unbar := (PCUICToTemplate.trans bar). *)
 
 Program Definition eval_compute (cf := default_checker_flags)
 (nor : normalizing_flags)
 (p : Ast.Env.program) φ  : Ast.term + string
 := match infer_template_program (cf:=cf) p φ return Ast.term + string with
 | CorrectDecl A =>
-  let p' := trans_program p in
-  let Σ' := TemplateToPCUIC.trans_global_env p.1 in
+  let p' := trans_program (clean_program p) in
+  let Σ' := TemplateToPCUIC.trans_global_env (clean_program p).1 in
   let redtm := reduce_term RedFlags.default
     optimized_abstract_env_impl (proj1_sig A.π2)
     [] p'.2 _ in
@@ -97,7 +97,7 @@ Qed.
 Program Definition eval_compute_cheat (cf := default_checker_flags)
 (nor : normalizing_flags)
 (p : Ast.Env.program) φ  : Ast.term
-:= let p' := trans_program p in
+:= let p' := trans_program (clean_program p) in
   let tm := reduce_term RedFlags.default
      canonical_abstract_env_impl
     {| reference_impl_env_ext := (p'.1 , φ);
@@ -105,6 +105,6 @@ Program Definition eval_compute_cheat (cf := default_checker_flags)
     [] p'.2 (todo "welltyped") in
     PCUICToTemplate.trans tm.
 
-Time Definition bar'' := Eval lazy in eval_compute default_normal foo Monomorphic_ctx.
+Time Definition bar'' := Eval lazy in eval_compute_cheat default_normal foo Monomorphic_ctx.
 
-MetaRocq Unquote Definition bar''' := (match bar'' with inl x => x | inr  _ => todo "" end).
+MetaRocq Unquote Definition bar''' := bar''.

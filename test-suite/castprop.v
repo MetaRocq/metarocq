@@ -14,7 +14,7 @@ Definition f (x : nat) (p : True) (y : nat) := y.
 Definition fapp (x : nat) := f 0 I x.
 MetaRocq Quote Recursively Definition q_fapp := @fapp.
 
-Definition setprop : { x : nat | x = 0 } := exist _ 0 eq_refl.
+Definition setprop : { x : nat | x = 0 } := exist 0 eq_refl.
 MetaRocq Quote Recursively Definition q_setprop := setprop.
 
 Notation proof t :=

@@ -19,9 +19,9 @@ Environment is well-formed and Construct(Stdlib.Init.Datatypes.bool,0,0,[]) eras
 Construct(Stdlib.Init.Datatypes.bool,0,0)
 *)
 
-MetaRocq Erase (exist (fun x => x = 0) 0 (eq_refl)).
+MetaRocq Erase (@exist _ (fun x => x = 0) 0 (eq_refl)).
 
-Definition test := (proj1_sig (exist (fun x => x = 0) 0 (eq_refl))).
+Definition test := (proj1_sig (@exist _ (fun x => x = 0) 0 (eq_refl))).
 
 MetaRocq Erase -typed test.
 
