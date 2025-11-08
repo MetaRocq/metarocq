@@ -24,7 +24,7 @@ depends: [
   "rocq-metarocq-safechecker-plugin" {= version}
   "rocq-metarocq-erasure-plugin" {= version}
   "rocq-metarocq-translations" {= version}
-  "rocq-metarocq-quotation" {= version}
+#  "rocq-metarocq-quotation" {= version}
 ]
 build: [
   ["bash" "./configure.sh" ] {with-test}
