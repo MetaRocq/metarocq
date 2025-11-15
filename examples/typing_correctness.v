@@ -91,7 +91,7 @@ Definition univ := Level.level "s".
 (* TODO move to SafeChecker *)
 
 Definition gctx : global_env_ext :=
-  ({| universes := (LS.union (LevelSet.singleton Level.lzero) (LevelSet.singleton univ), UnivConstraintSet.empty); declarations := []
+  ({| universes := (LevelSet.singleton univ, UnivConstraintSet.empty); declarations := []
     ; retroknowledge := Retroknowledge.empty |}, Monomorphic_ctx).
 
 (** We use the environment checker to produce the proof that gctx, which is a singleton with only
@@ -159,14 +159,7 @@ Time Qed. *)
 Lemma identity_typing (s := sType (Universe.of_level univ)):
      (∑ t : term,
         forall Σ0 : global_env_ext,
-        Σ0 =
-        ({|
-           universes :=
-             (LS.union (LevelSet.singleton Level.lzero)
-                (LevelSet.singleton univ), UnivConstraintSet.empty);
-           declarations := [];
-           retroknowledge := Retroknowledge.empty
-         |}, Monomorphic_ctx) ->
+        Σ0 = gctx_wf_env ->
         ∥ Σ0;;; [] |- t
           : tProd (bNamed "s") (tSort s) (tImpl (tRel 0) (tRel 0)) ∥).
 (* inh gctx_wf_env [] (tProd (bNamed "s") (tSort u) (tImpl (tRel 0) (tRel 0))). *)
