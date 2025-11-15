@@ -1,6 +1,6 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config.
-From MetaRocq.Template Require Import All.
+From MetaRocq.Template Require Import Loader.
 From MetaRocq.Template Require Import TemplateMonad.
 From MetaRocq.PCUIC Require Import PCUICAst PCUICReduction PCUICCumulativity PCUICTyping PCUICSafeLemmata.
 
@@ -79,19 +79,31 @@ From MetaRocq.Examples Require Import metarocq_tour_prelude.
 
 Check check_inh.
 
+Ltac set_head_match c :=
+  let c := eval cbn delta [c] in c in
+  match c with
+    | match ?d with _ => _ end =>
+      set_head_match d || (let head := fresh in set (head := d))
+  end.
+
+Arguments infer_type {cf nor X_type X normalization_in infer}.
+About Checked_comp.
+
 (** We construct a proof of typing entirely within Rocq, calling the typechecker to produce the derivation *)
-(* Lemma identity_typing (u := Universe.make univ):
-  inh gctx_wf_env [] (tProd (bNamed "s") (tSort u) (tImpl (tRel 0) (tRel 0))).
+Lemma identity_typing (u := Universe.of_level univ):
+  inh gctx_wf_env [] (tProd (bNamed "s") (tSort (sType u)) (tImpl (tRel 0) (tRel 0))).
 Proof.
   (* We construct a term *)
-  set (impl := tLambda (bNamed "s") (tSort u) (tLambda bAnon (tRel 0) (tRel 0))).
+  set (impl := tLambda (bNamed "s") (tSort (sType u)) (tLambda bAnon (tRel 0) (tRel 0))).
   (* Show that the empty context is well-formed  *)
   assert (wfΓ : forall Σ0 : global_env_ext, abstract_env_ext_rel gctx_wf_env Σ0 -> ∥ wf_local Σ0 [] ∥) by do 2 constructor.
+  (** And build the typing derivation reflexively using the type checker *)
   fill_inh impl.
-Qed. *)
+Qed.
 
 (** The extracted typechecker also runs in OCaml *)
-(* MetaRocq SafeCheck (fun x : nat => x + 1). *)
+MetaRocq SafeCheck (fun x : nat => x + 1).
+MetaRocq SafeCheck (forall x : Set, x -> x).
 
 (** Erasure *)
 From MetaRocq.ErasurePlugin Require Import Erasure Loader.
@@ -121,8 +133,7 @@ MetaRocq Erase singleton_elim.
 
   - All metatheory proofs are finished. Compared to Rocq's implementation:
 
-    - full (max (i + k, j + l)) universe support (including a naïve acyclicity checking
-      algorithm)
+    - full (max (i + k, j + l)) universe support including an efficient loop checker.
 
     - partial support for SProp (in programs but not yet formalized typing rules)
 
@@ -141,12 +152,10 @@ MetaRocq Erase singleton_elim.
   - Relation to CertiRocq: fast and verified correct erasure, not depending on type-checking
     (only retyping).
 
-    + CertiRocq needs to have all constructors eta-expanded, a proof of the
-      syntactic translation expanding constructors is in progress.
-
-    + Otherwise the front-end part of CertiRocq is complete with proofs.
+    + Eta-expansion and let-expansion proofs are part of MetaRocq
 
     + Future work: handling of primitive types (ints, floats, arrays, ...)
+    at the level of the specification
 
 *)
 
