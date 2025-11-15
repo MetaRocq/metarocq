@@ -94,56 +94,28 @@ Definition of_level (l : Level.t_) : Universe.t := Universe.of_level l.
 Coercion of_level : Level.t_ >-> Universe.t.
 Coercion Universe.of_level : Level.t >-> Universe.t.
 
-Definition test_model : bool :=
+Definition test_model : option universe_model :=
   let la := Level.level "a" in
   let lb := Level.level "b" in
-  let ls := levels_of_list [la; lb] in
-  let cs := constraints_of_list [(la <= lb)%cstr] in
-  match push_uctx init_model (ls, cs) with
-  | Some m => true
+  let lc := Level.level "c" in
+  let ls := levels_of_list [la; lb; lc] in
+  let cs := constraints_of_list [la <= lb; lb <= lc]%cstr in
+  push_uctx init_model (ls, cs).
+
+Lemma test_model_spec : (if test_model is Some _ then true else false) = true.
+Proof.
+  reflexivity.
+Qed.
+Search UnivLoopChecking.univ_model.
+Definition check_model c :=
+  match test_model with
+  | Some m => check m c
   | None => false
   end.
 
-Lemma test_model_spec : test_model = true.
-Proof.
-  rewrite /test_model.
-  set ls := levels_of_list _.
-  set cs := constraints_of_list _.
-  rewrite /push_uctx /push_uctx_clause_1.
-  set m := UnivLoopChecking.declare_levels init_model ls.
-  rewrite /enforce_constraints /enforce_constraints_aux.
-  cbn -[enforce].
-  set m' := {| model := _ |}.
-  unfold enforce.
-  set ef := LoopCheck.enforce m' _.
-  cbn -[LoopCheck.enforce] in ef.
-  unfold to_atoms in ef.
-  cbn -[LoopCheck.enforce] in ef.
-  unfold LoopCheck.enforce in ef.
-  unfold LoopCheck.Impl.Abstract.enforce_clauses in ef.
-  hnf in ef.
-  unfold LoopCheck.Impl.CorrectModel.infer_extension_correct in ef.
-  unfold LoopCheck.Impl.CorrectModel.infer_extension_correct_clause_1 in ef.
-  unfold LoopCheck.Impl.infer_extension in ef.
-  unfold LoopCheck.Impl.infer_model_extension in ef.
-  hnf in ef.
-  set (l := LoopCheck.Impl.I.loop _ _ _ _ _ _) in *.
-  match goal with
-  | [ l := LoopCheck.Impl.I.loop _ _ _ _ _ ?pre |- _ ] =>
-    set (precond := pre) in *
-  end.
-  clearbody precond.
-
-
-  lazy in ef.
-  unfold LoopCheck.Impl.I.loop in ef.
-  hnf in ef.
-  set ()
-  unfold FixWf in ef.
-
-  hnf in ef.
-  Eval compute in test_model.
-
+Example check_model_impl : check_model (Level.level "a" <= Level.level "b")%cstr = true := eq_refl.
+Example check_model_impl_trans : check_model (Level.level "a" <= Level.level "c")%cstr = true := eq_refl.
+Example check_model_nimpl : check_model (Level.level "b" <= Level.level "a")%cstr = false := eq_refl.
 
 Import UnivLoopChecking.
 

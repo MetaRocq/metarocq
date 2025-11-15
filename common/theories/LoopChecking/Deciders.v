@@ -1045,7 +1045,8 @@ Module CorrectModel.
   init_model := {|
       initial_model := LevelMap.add Level.zero (Some 1) (LevelMap.empty _);
       only_model_of_V := _;
-      model_updates := LevelSet.empty; |}.
+      model_updates := LevelSet.empty;
+      model_valid := {| model_model := LevelMap.add Level.zero (Some 1) (LevelMap.empty _) |} |}.
   Proof.
     - exists 0%nat. rsets. left; auto.
     - exists 1%nat. rsets.
@@ -1055,12 +1056,11 @@ Module CorrectModel.
       * intros ->. exists (Some 1). rsets. now left.
       * move=> [] k'. rsets. destruct p; intuition auto.
     - lsets.
-    - refine {| model_model := LevelMap.add Level.zero (Some 1) (LevelMap.empty _) |}.
-      * red. rsets. exists (Some 1). rsets; firstorder.
-      * red. now rsets.
-      * now rsets.
-      * rewrite /is_model. eapply Clauses.for_all_spec. tc. now rsets.
+    - red. rsets. exists (Some 1). rsets; firstorder.
+    - red. now rsets.
+    - cbn in H. lsets.
   Qed.
+
   Record loop {cls} :=
     { loop_univ : premises;
       loop_incl : NES.levels loop_univ ⊂_lset clauses_levels cls;
@@ -1547,14 +1547,66 @@ Module Abstract.
     intros ?; rewrite clause_levels_spec; rsets; cbn; rsets; cbn. firstorder.
   Qed.
 
+  #[tactic="program_simpl"]
+  Equations? declare_valid_model {V W init cls}
+    (m : valid_model V W init cls)
+    (l : Level.t)
+    (hl : LevelSet.mem l V = false)
+    (hnin : ~ LevelSet.In l (clauses_levels cls))
+    (hz : LevelSet.In Level.zero V)
+    (hzd : Deciders.zero_declared init) :
+    valid_model (LevelSet.add l V) W
+      (LevelMap.add l (Some (if Level.is_global l then 0 else 1)) init)
+      (Clauses.add (init_clause_of_level l) cls) :=
+  @declare_valid_model V W init cls m l hl hnin hz zerod := {|
+      model_model := LevelMap.add l (Some (if Level.is_global l then 0 else 1)) m.(model_model) |}.
+  Proof.
+    all:destruct m as [M mofV mupd mcls mok]. cbn in *.
+    * intros k. rewrite LevelSet.add_spec LevelMapFact.F.add_in_iff. firstorder. now left.
+    * move: mupd; rewrite /is_update_of //=.
+      destruct (LevelSet.is_empty) eqn:hw.
+      { now intros ->. }
+      { eapply levelset_not_Empty_is_empty in hw.
+        apply LevelSetFact.not_mem_iff in hl.
+        intros s. eapply strictly_updates_weaken; revgoals.
+        eapply strictly_updates_add; tea. now clsets. }
+    * rewrite clauses_conclusions_add. cbn. rsets.
+    * apply LevelSetFact.not_mem_iff in hl.
+      rewrite ClausesProp.add_union_singleton is_model_union //.
+      split => //.
+      rewrite is_model_valid.
+      intros cl; rsets. subst cl.
+      rewrite /init_clause_of_level.
+      rewrite /valid_clause. cbn. rewrite min_premise_singleton //=.
+      rewrite level_value_add /level_value_above.
+      set value := Some _.
+      have hleq : (Some 1 ≤ level_value (LevelMap.add l value M) Level.zero)%opt.
+      { rewrite level_value_add_other. intros ->. now apply hl.
+        eapply is_update_of_ext in mupd.
+        eapply zero_declared_ext in zerod; tea.
+        destruct zerod as [k hzero]. rewrite (level_value_MapsTo hzero).
+        subst value. constructor. lia. }
+      depelim hleq. rewrite H0.
+      apply Z.leb_le. cbn. destruct Level.is_global; lia.
+      apply is_model_add => //.
+  Qed.
+
+  #[tactic="program_simpl"]
   Equations? declare_level (m : t) (l : Level.t) : option t :=
   declare_level m l with inspect (LevelSet.mem l m.(levels)) :=
     | exist true _ => None
-    | exist false hneq => Some {| levels := LevelSet.add l m.(levels); clauses := Clauses.add (init_clause_of_level l) m.(clauses) |}.
+    | exist false hneq =>
+      Some {|
+        levels := LevelSet.add l m.(levels);
+        clauses := Clauses.add (init_clause_of_level l) m.(clauses);
+        correct_model :=
+          {| initial_model := LevelMap.add l (Some (if Level.is_global l then 0 else 1)) m.(initial_model);
+             only_model_of_V := _;
+             model_updates := m.(model_updates);
+             model_valid := declare_valid_model m.(model_valid) l hneq _ _ _
+          |}
+      |}.
   Proof.
-    refine {| initial_model := LevelMap.add l (Some (if Level.is_global l then 0 else 1)) m.(initial_model);
-      only_model_of_V := _;
-      model_updates := m.(model_updates); |}.
     - have hv := only_model_of_V m.
       eapply zero_declared_ext. apply m.(correct_model). eapply update_model_monotone.
       rsets; rewrite level_value_None.
@@ -1595,39 +1647,13 @@ Module Abstract.
       * move: b => [] cl [] hin. right.
         apply (clauses_levels_declared m a). rsets. firstorder.
     - destruct m as [levels clauses vm]; cbn in *.
+      apply LevelSetFact.not_mem_iff in hneq; lsets.
+    - destruct m as [levels clauses vm]; cbn in *.
       destruct vm as [init zerod azerod dpos en omofV W incl vm].
-      destruct vm as [M mofV mupd mcls mok]. cbn in *.
-      refine {| model_model := LevelMap.add l (Some (if Level.is_global l then 0 else 1)) M |}.
-      * intros k. rewrite LevelSet.add_spec LevelMapFact.F.add_in_iff. firstorder. now left.
-      * move: mupd; rewrite /is_update_of.
-        destruct (LevelSet.is_empty) eqn:hw.
-        { now intros ->. }
-        { eapply levelset_not_Empty_is_empty in hw.
-          apply LevelSetFact.not_mem_iff in hneq.
-          intros s. eapply strictly_updates_weaken; revgoals.
-          now eapply strictly_updates_add. now clsets. }
-      * rewrite clauses_conclusions_add. cbn. rsets. destruct H; subst.
-        + right. apply omofV. now apply zero_declared_in.
-        + right; lsets.
-      * apply LevelSetFact.not_mem_iff in hneq.
-        rewrite ClausesProp.add_union_singleton is_model_union //.
-        split => //.
-        rewrite is_model_valid.
-        intros cl; rsets. subst cl.
-        rewrite /init_clause_of_level.
-        rewrite /valid_clause. cbn. rewrite min_premise_singleton //=.
-        rewrite level_value_add /level_value_above.
-        set value := Some _.
-        have hl : (Some 1 ≤ level_value (LevelMap.add l value M) Level.zero)%opt.
-        { rewrite level_value_add_other. intros ->. apply hneq.
-          { now apply omofV, zero_declared_in. }
-          eapply is_update_of_ext in mupd.
-          eapply zero_declared_ext in zerod; tea.
-          destruct zerod as [k hzero]. rewrite (level_value_MapsTo hzero).
-          subst value. constructor. lia. }
-        depelim hl. rewrite H0.
-        apply Z.leb_le. cbn. destruct Level.is_global; lia.
-        apply is_model_add => //. lsets => //.
+      apply zero_declared_in in zerod.
+      now apply omofV.
+    - destruct m as [levels clauses vm]; cbn in *.
+      apply (declared_zero vm).
   Qed.
 
   Lemma declare_level_clauses {m l m'} :
@@ -2098,21 +2124,17 @@ Module Abstract.
   Definition inconsistent_ext m cls :=
     forall v : Level.t -> option Z, positive_opt_valuation v -> clauses_sem v (clauses m) -> ~ clauses_sem v cls.
 
-  Lemma enforce_dec m cls :
-    clauses_levels cls ⊂_lset levels m ->
+  Equations? enforce_dec m cls (wf : clauses_levels cls ⊂_lset levels m) :
     { consistent (Clauses.union (clauses m) cls) } +
-    { inconsistent_opt_ext m cls }.
+    { inconsistent_opt_ext m cls } :=
+    enforce_dec m cls wf with inspect (enforce_clauses m cls) :=
+    | exist None ec => !%prg (* impossible by wf *)
+    | exist (Some (inl model)) ec => in_left
+    | exist (Some (inr loop)) ec => in_right.
   Proof.
-    intros hm.
-    destruct (enforce_clauses m cls) eqn:ec.
-    destruct s as [model|loop].
-    - left. move/enforce_clauses_clauses: ec.
+    - move/enforce_clauses_clauses: ec.
       intros <-. apply clauses_consistent.
-    - right. now move/enforce_clauses_inconsistent_opt: ec.
-      (* intros he v semcs semc. red in he.
-      specialize (he )
-       apply he. red. exists v. split => //.
-      apply clauses_sem_union. split => //. *)
+    - now move/enforce_clauses_inconsistent_opt: ec.
     - move/enforce_clauses_None: ec. contradiction.
   Qed.
 
