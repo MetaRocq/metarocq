@@ -376,14 +376,15 @@ End LevelExpr.
 Module LevelExprSet.
   Include MSetList.MakeWithLeibniz LevelExpr.
 
-  Lemma reflect_eq : ReflectEq t.
-  Proof.
-    refine {| eqb := equal |}.
-    intros x y. have := (equal_spec x y).
+  #[program] Instance reflect_eq : ReflectEq t :=
+    {| eqb := equal |}.
+  Next Obligation.
+    have := (equal_spec x y).
     destruct equal => //; constructor.
     now apply eq_leibniz, H.
     intros ->. destruct H. now forward H0 by reflexivity.
   Qed.
+
 End LevelExprSet.
 
 Module LevelExprSetFact := WFactsOn LevelExpr LevelExprSet.

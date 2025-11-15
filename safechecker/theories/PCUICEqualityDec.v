@@ -9,6 +9,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive PCUICTa
 
 From Equations.Prop Require Import DepElim.
 From Equations Require Import Equations.
+Set Equations Transparent.
 
 Local Set Keyed Unification.
 
@@ -825,25 +826,27 @@ Proof.
     rewrite -init_constraints_of_clean_uctx. reflexivity.
 Qed.
 
-Lemma graph_of_wf {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥)
-: ∑ G, model_of_uctx G (global_uctx Σ).
+Equations? graph_of_wf {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥) : ∑ G, model_of_uctx G (global_uctx Σ) :=
+  graph_of_wf HΣ with inspect (push_uctx init_model (clean_uctx (global_uctx Σ))) :=
+  | exist (Some u) hp := existT _ u _
+  | exist None hp => False_rect _ _.
 Proof.
-  destruct (push_uctx init_model (clean_uctx (global_uctx Σ))) eqn:hp.
-  - exists u. apply push_uctx_init_model_sat in hp.
+  - apply push_uctx_init_model_sat in hp.
     now apply model_of_clean_uctx.
   - apply push_uctx_init_model_unsat in hp; tea.
-    * exfalso. destruct HΣ. apply hp.
+    * destruct HΣ. apply hp.
       assert (consistent (global_uctx Σ).2) as HC.
       { sq; apply (wf_consistent _ X). }
       destruct HC as [v sat]. now exists v.
     * destruct HΣ. eapply wf_global_uctx_invariants. exact X.
 Qed.
 
-Lemma graph_of_wf_ext {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥)
-: ∑ G, model_of_uctx G (global_ext_uctx Σ).
+Equations? graph_of_wf_ext {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥) : ∑ G, model_of_uctx G (global_ext_uctx Σ) :=
+  graph_of_wf_ext HΣ with inspect (push_uctx init_model (clean_uctx (global_ext_uctx Σ))) :=
+  | exist (Some u) hp := existT _ u _
+  | exist None hp => False_rect _ _.
 Proof.
-  destruct (push_uctx init_model (clean_uctx (global_ext_uctx Σ))) eqn:hp.
-  - exists u. apply push_uctx_init_model_sat in hp.
+  - apply push_uctx_init_model_sat in hp.
     now apply model_of_clean_uctx.
   - apply push_uctx_init_model_unsat in hp; tea.
     * exfalso. destruct HΣ. apply hp.

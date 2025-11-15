@@ -370,7 +370,7 @@ Definition lexprod_rel := lexprod lt lt.
 
 #[local] Instance lexprod_rel_wf : WellFounded lexprod_rel.
 Proof.
-  eapply (Acc_intro_generator 2). unfold lexprod_rel. eapply wf_lexprod, lt_wf. eapply lt_wf.
+  eapply (Acc_intro_generator 1000). unfold lexprod_rel. eapply wf_lexprod, lt_wf. eapply lt_wf.
 Defined.
 
 Lemma model_incl {V W m cls} : valid_model V W m cls -> W ⊂_lset V.
