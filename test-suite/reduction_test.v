@@ -105,6 +105,5 @@ Program Definition eval_compute_cheat (cf := default_checker_flags)
     [] p'.2 (todo "welltyped") in
     PCUICToTemplate.trans tm.
 
-Time Definition bar'' := Eval lazy in eval_compute_cheat default_normal foo Monomorphic_ctx.
-
-MetaRocq Unquote Definition bar''' := bar''.
+Time Definition bar'' := Eval lazy in eval_compute default_normal foo Monomorphic_ctx.
+MetaRocq Unquote Definition bar''' := (match bar'' with inl x => x | inr  _ => todo "" end).

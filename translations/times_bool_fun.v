@@ -339,7 +339,6 @@ Next Obligation.
   tIntro y. tIntro p. destruct p. exact t.
 Defined.
 
-(*
 MetaRocq Run (TC <- TranslateRec eqTC'' wUnivalence ;;
                      tmDefinition "eqTC3" TC).
 
@@ -406,4 +405,3 @@ Next Obligation.
   apply (f_equal bool_of_Equivᵗ) in X. cbn in X.
   inversion X.
 Defined.
-*)
