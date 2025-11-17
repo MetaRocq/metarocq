@@ -84,39 +84,6 @@ Definition constraints_of_list (l : list UnivConstraint.t) : UnivConstraintSet.t
 
 Import MRMonadNotation.
 
-Declare Scope cstr_scope.
-Delimit Scope cstr_scope with cstr.
-Bind Scope cstr_scope with UnivConstraint.t.
-Notation " x <= y " := (@pair (Universe.t * UnivConstraintType.ConstraintType.t) Universe.t
-  (@pair Universe.t _ x Le) y) : cstr_scope.
-
-Definition of_level (l : Level.t_) : Universe.t := Universe.of_level l.
-Coercion of_level : Level.t_ >-> Universe.t.
-Coercion Universe.of_level : Level.t >-> Universe.t.
-
-Definition test_model : option universe_model :=
-  let la := Level.level "a" in
-  let lb := Level.level "b" in
-  let lc := Level.level "c" in
-  let ls := levels_of_list [la; lb; lc] in
-  let cs := constraints_of_list [la <= lb; lb <= lc]%cstr in
-  push_uctx init_model (ls, cs).
-
-Lemma test_model_spec : (if test_model is Some _ then true else false) = true.
-Proof.
-  reflexivity.
-Qed.
-Search UnivLoopChecking.univ_model.
-Definition check_model c :=
-  match test_model with
-  | Some m => check m c
-  | None => false
-  end.
-
-Example check_model_impl : check_model (Level.level "a" <= Level.level "b")%cstr = true := eq_refl.
-Example check_model_impl_trans : check_model (Level.level "a" <= Level.level "c")%cstr = true := eq_refl.
-Example check_model_nimpl : check_model (Level.level "b" <= Level.level "a")%cstr = false := eq_refl.
-
 Import UnivLoopChecking.
 
 (** ** Check of consistency ** *)
