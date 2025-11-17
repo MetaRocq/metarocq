@@ -34,11 +34,11 @@ let
       "safechecker"
       "template-pcuic"
     ];
-    # "quotation" = [
-    #   "template-rocq"
-    #   "pcuic"
-    #   "template-pcuic"
-    # ];
+    "quotation" = [
+      "template-rocq"
+      "pcuic"
+      "template-pcuic"
+    ];
     "safechecker-plugin" = [
       "template-pcuic"
       "safechecker"
@@ -52,7 +52,7 @@ let
       "safechecker-plugin"
       "erasure-plugin"
       "translations"
-      # "quotation"
+      "quotation"
     ];
   };
 
@@ -111,7 +111,7 @@ let
                   (lib.elem package [
                     "erasure"
                     "template-pcuic"
-                    # "quotation"
+                    "quotation"
                     "safechecker-plugin"
                     "erasure-plugin"
                     "translations"
