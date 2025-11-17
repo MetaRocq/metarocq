@@ -1,10 +1,10 @@
-From MetaRocq.Template Require Import Ast ReflectAst Induction.
 From MetaRocq.Quotation.ToTemplate Require Import Init.
 From MetaRocq.Quotation.ToTemplate Require Import (hints) Stdlib.Init Stdlib.Lists Stdlib.Numbers Stdlib.Floats.
 From MetaRocq.Quotation.ToTemplate.Common Require Import (hints) Universes BasicAst Kernames.
 From MetaRocq.Quotation.ToTemplate.Common Require Import Environment EnvironmentTyping.
 From MetaRocq.Quotation.ToTemplate.QuotationOf.Common Require Import Environment.Sig EnvironmentTyping.Sig.
 From MetaRocq.Quotation.ToTemplate.QuotationOf.Template Require Import Ast.Instances ReflectAst.Instances.
+From MetaRocq.Template Require Import Ast ReflectAst Induction.
 
 #[export] Instance quote_pstring : ground_quotable PrimString.string := fun s => Ast.tString s.
 

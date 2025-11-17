@@ -5,7 +5,7 @@ From MetaRocq.Quotation.ToTemplate.QuotationOf.Stdlib.MSets Require Import MSetP
 Import List.ListNotations.
 Local Open Scope list_scope.
 
-Module qConstraintSetOrdProp <: QuotationOfOrdProperties UnivConstraintSet UnivConstraintSetOrdProp.
+Module qUnivConstraintSetOrdProp <: QuotationOfOrdProperties UnivConstraintSet UnivConstraintSetOrdProp.
   Module qME <: QuotationOfOrderedTypeFacts UnivConstraintSet.E UnivConstraintSetOrdProp.ME.
     MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetOrdProp.ME").
   End qME.
@@ -22,4 +22,4 @@ Module qConstraintSetOrdProp <: QuotationOfOrdProperties UnivConstraintSet UnivC
     MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["Dec"]; ["FM"]]%bs) None "UnivConstraintSetOrdProp.P").
   End qP.
   MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["ME"]; ["ML"]; ["P"]]%bs) None "UnivConstraintSetOrdProp").
-End qConstraintSetOrdProp.
+End qUnivConstraintSetOrdProp.

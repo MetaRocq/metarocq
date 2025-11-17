@@ -4,9 +4,9 @@ From MetaRocq.Quotation.ToTemplate.QuotationOf.Utils Require Import MRMSets.Sig.
 Import List.ListNotations.
 Local Open Scope list_scope.
 
-Module qConstraintSetExtraOrdProp <: QuotationOfExtraOrdProperties UnivConstraintSet UnivConstraintSetOrdProp UnivConstraintSetExtraOrdProp.
+Module qUnivConstraintSetExtraOrdProp <: QuotationOfExtraOrdProperties UnivConstraintSet UnivConstraintSetOrdProp UnivConstraintSetExtraOrdProp.
   Module qP <: QuotationOfWExtraPropertiesOn UnivConstraintSet.E UnivConstraintSet UnivConstraintSetOrdProp.P UnivConstraintSetExtraOrdProp.P.
     MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetExtraOrdProp.P").
   End qP.
   MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["P"]]%bs) None "UnivConstraintSetExtraOrdProp").
-End qConstraintSetExtraOrdProp.
+End qUnivConstraintSetExtraOrdProp.

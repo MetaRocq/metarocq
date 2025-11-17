@@ -683,6 +683,31 @@ Section CheckLeq.
   End CheckerFlags.
 End CheckLeq.
 
+
+Definition satisfies_cstr v (c : UnivConstraint.t) : bool :=
+  match c with
+  | (l, Eq, r) => val v l =? val v r
+  | (l, Le, r) => val v l <=? val v r
+  end.
+
+Definition satisfiesb v : UnivConstraintSet.t -> bool :=
+  UnivConstraintSet.for_all (satisfies_cstr v).
+
+Lemma satisfies_dec {cf : checker_flags} ctrs v :
+  { satisfies v ctrs } + { ~ satisfies v ctrs }.
+Proof.
+  rewrite /satisfies.
+  destruct (satisfiesb v ctrs) eqn:hsat.
+  - left. move:hsat => /UnivConstraintSet.for_all_spec ha c /ha.
+    destruct c as [[l []] r]; cbn in *.
+    + constructor; lia.
+    + constructor; lia.
+  - right. move=> ha.
+    move/negbT/negP: hsat; apply.
+     apply UnivConstraintSet.for_all_spec; tc.
+     move=> c /ha. intros []; cbn; lia.
+Qed.
+
 (*
 Lemma consistent_ext_on_full_ext0 `{cf: checker_flags} [uctx G uctx' G']
       `{wGraph.invariants G, wGraph.invariants G', wGraph.acyclic_no_loop G'} :

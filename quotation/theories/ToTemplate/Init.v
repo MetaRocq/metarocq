@@ -1,12 +1,12 @@
 From MetaRocq.Utils Require Export bytestring.
 From MetaRocq.Utils Require Import utils MRList.
 From MetaRocq.Common Require Import MonadBasicAst.
-From MetaRocq.Template Require Import MonadAst TemplateMonad Ast Loader.
 From MetaRocq.Quotation Require Export CommonUtils.
 From Equations.Prop Require Import Classes.
 From Stdlib Require Import Lists.List.
 Export TemplateMonad.Common (export, local, global).
 Import ListNotations.
+From MetaRocq.Template Require Import MonadAst TemplateMonad Ast Loader.
 
 Local Set Primitive Projections.
 Local Unset Universe Minimization ToSet.
