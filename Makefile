@@ -1,5 +1,5 @@
 
-all: printconf template-rocq pcuic safechecker erasure erasure-plugin safechecker-plugin
+all: printconf template-rocq pcuic safechecker erasure erasure-plugin safechecker-plugin quotation
 
 -include Makefile.conf
 
@@ -33,7 +33,7 @@ install: all
 	$(MAKE) -C pcuic install
 	$(MAKE) -C safechecker install
 	$(MAKE) -C template-pcuic install
-# 	$(MAKE) -C quotation install
+	$(MAKE) -C quotation install
 	$(MAKE) -C safechecker-plugin install
 	$(MAKE) -C erasure install
 	$(MAKE) -C erasure-plugin install
@@ -45,7 +45,7 @@ uninstall:
 	$(MAKE) -C pcuic uninstall
 	$(MAKE) -C safechecker uninstall
 	$(MAKE) -C template-pcuic uninstall
-# 	$(MAKE) -C quotation uninstall
+	$(MAKE) -C quotation uninstall
 	$(MAKE) -C safechecker-plugin uninstall
 	$(MAKE) -C erasure uninstall
 	$(MAKE) -C erasure-plugin uninstall
@@ -65,6 +65,7 @@ html: all
 		-R safechecker-plugin/theories MetaRocq.SafeCheckerPlugin \
 		-R erasure/theories MetaRocq.Erasure \
 		-R erasure-plugin/theories MetaRocq.ErasurePlugin \
+		-R quotation/theories MetaRocq.Quotation \
 		-R translations MetaRocq.Translations \
 		-R examples MetaRocq.Examples \
 		-d html */theories/*.v */theories/*/*.v translations/*.v examples/*.v
@@ -79,7 +80,7 @@ clean:
 	$(MAKE) -C safechecker clean
 	$(MAKE) -C safechecker-plugin clean
 	$(MAKE) -C template-pcuic clean
-# 	$(MAKE) -C quotation clean
+	$(MAKE) -C quotation clean
 	$(MAKE) -C erasure clean
 	$(MAKE) -C erasure-plugin clean
 	$(MAKE) -C examples clean
@@ -94,7 +95,7 @@ vos:
 	$(MAKE) -C safechecker vos
 	$(MAKE) -C safechecker-plugin vos
 	$(MAKE) -C template-pcuic vos
-# 	$(MAKE) -C quotation vos
+	$(MAKE) -C quotation vos
 	$(MAKE) -C erasure vos
 	$(MAKE) -C erasure-plugin vos
 	$(MAKE) -C translations vos
@@ -107,7 +108,7 @@ quick:
 	$(MAKE) -C safechecker quick
 	$(MAKE) -C safechecker-plugin quick
 	$(MAKE) -C template-pcuic quick
-# 	$(MAKE) -C quotation vos # quick # we cannot unset universe checking in 8.16 due to COQBUG(https://github.com/coq/coq/issues/17361), and quick does not buy much in quotation anyway, where almost everything is transparent
+	$(MAKE) -C quotation vos # quick # we cannot unset universe checking in 8.16 due to COQBUG(https://github.com/coq/coq/issues/17361), and quick does not buy much in quotation anyway, where almost everything is transparent
 	$(MAKE) -C erasure quick
 	$(MAKE) -C erasure-plugin quick
 	$(MAKE) -C translations quick
@@ -120,7 +121,7 @@ mrproper:
 	$(MAKE) -C safechecker mrproper
 	$(MAKE) -C safechecker-plugin mrproper
 	$(MAKE) -C template-pcuic mrproper
-# 	$(MAKE) -C quotation mrproper
+	$(MAKE) -C quotation mrproper
 	$(MAKE) -C erasure mrproper
 	$(MAKE) -C erasure-plugin mrproper
 	$(MAKE) -C examples mrproper
@@ -135,7 +136,7 @@ mrproper:
 	$(MAKE) -C safechecker .merlin
 	$(MAKE) -C safechecker-plugin .merlin
 	$(MAKE) -C template-pcuic .merlin
-# 	$(MAKE) -C quotation .merlin
+	$(MAKE) -C quotation .merlin
 	$(MAKE) -C erasure .merlin
 	$(MAKE) -C erasure-plugin .merlin
 
@@ -157,8 +158,8 @@ safechecker: pcuic
 template-pcuic: template-rocq pcuic
 	$(MAKE) -C template-pcuic
 
-# quotation: template-rocq pcuic template-pcuic
-# 	$(MAKE) -C quotation
+quotation: template-rocq pcuic template-pcuic
+	$(MAKE) -C quotation
 
 safechecker-plugin: safechecker template-pcuic
 	$(MAKE) -C safechecker-plugin
@@ -206,9 +207,7 @@ ci-quick:
 
 ci-opam:
 # Use -v so that regular output is produced
-	rm -f rocq-metarocq-quotation.opam
-	opam pin add -y .
-	opam install --with-test -v -y rocq-metarocq
+	opam install --with-test -v -y .
 	opam remove -y rocq-metarocq rocq-metarocq-template
 
 checktodos:
