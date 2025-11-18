@@ -950,7 +950,6 @@ Module CorrectModel.
     enabled_model : enabled_clauses initial_model cls;
     only_model_of_V : only_model_of V initial_model;
     model_updates : LevelSet.t;
-    clauses_declared : clauses_levels cls ⊂_lset V;
     model_valid : valid_model V model_updates initial_model cls
      }.
   Arguments t : clear implicits.
@@ -1015,6 +1014,33 @@ Module CorrectModel.
     unfold is_model. now rewrite clauses_for_all_union.
   Qed.
 
+  Definition valid_non_vacuous m cl :=
+    exists minp value,
+      [/\ min_premise m (premise cl) = Some minp,
+        level_value m (concl cl).1 = Some value &
+        minp + (concl cl).2 <= value].
+
+  Definition is_total_model_alt m cls :=
+    forall cl, Clauses.In cl cls -> valid_non_vacuous m cl.
+
+  Lemma is_total_model_altP m cls :
+    is_total_model m cls <-> is_total_model_alt m cls.
+  Proof.
+    split.
+    - move=> -[] en /is_modelP ism.
+      move=> [prems [concl k]] /[dup] /en [minp hmin] /ism.
+      move/valid_clause_elim/(_ _ hmin).
+      move/Some_leq => -[] z' [] hl hleq.
+      exists minp, z'. split => //.
+    - move=> ism; split.
+      * now move=> cl /ism -[] minp [] value [] => //; exists minp.
+      * apply/is_modelP => cl /ism -[] minp [] value [] => // hmin hl hle.
+        destruct cl as [prems [concl k]].
+        apply valid_clause_intro => z hz.
+        rewrite hmin in hz. noconf hz.
+        rewrite hl; constructor. exact hle.
+  Qed.
+
   Lemma is_total_model_union m cls cls' :
     is_total_model m (Clauses.union cls cls') <->
     is_total_model m cls /\ is_total_model m cls'.
@@ -1041,6 +1067,52 @@ Module CorrectModel.
     eapply level_value_MapsTo in hm. congruence.
   Qed.
 
+  Lemma model_ext {V cls} (m : t V cls) : initial_model m ⩽ model_of m.
+  Proof.
+    have hupd := I.model_updates m.(model_valid).
+    now move/is_update_of_ext: hupd => ext.
+  Qed.
+
+  Lemma enabled_model_clauses {V cls} (m : t V cls) : enabled_clauses m cls.
+  Proof.
+    have he := enabled_model m.
+    have hext := model_ext m.
+    eapply enabled_clauses_ext in he; tea.
+  Qed.
+
+  Lemma total_model {V cls} (m : t V cls) : is_total_model (model_of m) cls.
+  Proof.
+    split; [apply enabled_model_clauses|apply is_model_of].
+  Qed.
+
+  Lemma only_model_of_V_model {V cls} (m : t V cls) : only_model_of V (model_of m).
+  Proof.
+    eapply (valid_model_only_model V _ _ _ m.(model_valid)), only_model_of_V.
+  Qed.
+
+  Lemma clauses_declared {V cls} (m : t V cls) : clauses_levels cls ⊂_lset V.
+  Proof.
+    have hm := only_model_of_V_model m.
+    have hen := enabled_model m.
+    move: (total_model m) => /is_total_model_altP ist.
+    move=> l; rewrite (hm l).
+    red in ist.
+    case/clauses_levels_spec => [] cl [] /ist hin /clause_levels_spec.
+    destruct cl as [prems [concl k]].
+    destruct hin as [minp [value [hmin hl _]]].
+    cbn in *.
+    case=> [/levels_spec [k' hin]|heq].
+    have [hlt [minpl [hinm hs]]] := min_premise_spec_aux _ _ _ hmin.
+    specialize (hlt _ hin).
+    rewrite /min_atom_value in hlt.
+    destruct (level_value m l) eqn:hminp.
+    eapply level_value_MapsTo' in hminp.
+    now exists (Some z).
+    depelim hlt. subst.
+    apply level_value_MapsTo' in hl.
+    now exists (Some value).
+  Qed.
+
   Equations? init_model : t (LevelSet.singleton Level.zero) Clauses.empty :=
   init_model := {|
       initial_model := LevelMap.add Level.zero (Some 1) (LevelMap.empty _);
@@ -1055,7 +1127,6 @@ Module CorrectModel.
     - rsets. split.
       * intros ->. exists (Some 1). rsets. now left.
       * move=> [] k'. rsets. destruct p; intuition auto.
-    - lsets.
     - red. rsets. exists (Some 1). rsets; firstorder.
     - red. now rsets.
     - cbn in H. lsets.
@@ -1087,7 +1158,7 @@ Module CorrectModel.
       inl {|
         initial_model := m.(model_model);
         only_model_of_V := _;
-        model_updates := w; clauses_declared := _;
+        model_updates := w;
         model_valid := {| model_model := m'.(model_model) |} |}.
   Proof.
     - have mupd := I.model_updates m. eapply is_update_of_ext in mupd.
@@ -1102,9 +1173,6 @@ Module CorrectModel.
       red in hdecla.
       eapply declared_pos_enabled; tea.
     - exact: (valid_model_only_model _ _ _ _ m hincl).
-    - intros x; rewrite clauses_levels_spec; rw Clauses.union_spec.
-      intros [cl [[hin|hin] incl]]. apply hs. apply clauses_levels_spec. clear -hin incl; firstorder.
-      apply hs'. apply clauses_levels_spec. clear -hin incl; firstorder.
     - have vm := model_of_V m'. eapply model_of_subset; tea. lsets.
     - apply m'.
     - intros ?; rewrite clauses_conclusions_spec.
@@ -1121,7 +1189,7 @@ Module CorrectModel.
   Proof.
     - apply enabled_model.
     - apply only_model_of_V.
-    - now apply m.
+    - now apply (clauses_declared m).
     - now apply LevelSet.subset_spec in heq.
     - now apply m.
     - apply LevelSet.subset_spec in heq.
@@ -1371,7 +1439,7 @@ Module Abstract.
 
   Lemma clauses_levels_declared m : clauses_levels (clauses m) ⊂_lset levels m.
   Proof.
-    exact m.(correct_model).(CorrectModel.clauses_declared).
+    exact (CorrectModel.clauses_declared m.(correct_model)).
   Qed.
 
   Lemma init_model_levels :
@@ -1637,19 +1705,11 @@ Module Abstract.
       * now eexists.
       * exists x. right; split => //. intros ->.
         apply LevelSetFact.not_mem_iff in hneq. contradiction.
-    - have hyp := m.(correct_model).(clauses_declared).
-      rsets. rewrite clause_levels_init_constraint in H.
-      move: H => []; rsets. destruct a0; subst.
-      * right.
-        have hd := declared_zero m.(correct_model). apply m.(only_model_of_V).
-        now apply zero_declared_in.
-      * now left.
-      * move: b => [] cl [] hin. right.
-        apply (clauses_levels_declared m a). rsets. firstorder.
-    - destruct m as [levels clauses vm]; cbn in *.
+    - have hyp := clauses_declared m.(correct_model).
+      rewrite hyp.
       apply LevelSetFact.not_mem_iff in hneq; lsets.
     - destruct m as [levels clauses vm]; cbn in *.
-      destruct vm as [init zerod azerod dpos en omofV W incl vm].
+      destruct vm as [init zerod azerod dpos en omofV W vm].
       apply zero_declared_in in zerod.
       now apply omofV.
     - destruct m as [levels clauses vm]; cbn in *.
@@ -3063,33 +3123,6 @@ Proof.
   * now move=> hv cl' /Clauses.singleton_spec ->.
 Qed.
 
-Definition valid_non_vacuous m cl :=
-  exists minp value,
-    [/\ min_premise m (premise cl) = Some minp,
-       level_value m (concl cl).1 = Some value &
-       minp + (concl cl).2 <= value].
-
-Definition is_total_model_alt m cls :=
-  forall cl, Clauses.In cl cls -> valid_non_vacuous m cl.
-
-Lemma is_total_model_altP m cls :
-  is_total_model m cls <-> is_total_model_alt m cls.
-Proof.
-  split.
-  - move=> -[] en /is_modelP ism.
-    move=> [prems [concl k]] /[dup] /en [minp hmin] /ism.
-    move/valid_clause_elim/(_ _ hmin).
-    move/Some_leq => -[] z' [] hl hleq.
-    exists minp, z'. split => //.
-  - move=> ism; split.
-    * now move=> cl /ism -[] minp [] value [] => //; exists minp.
-    * apply/is_modelP => cl /ism -[] minp [] value [] => // hmin hl hle.
-      destruct cl as [prems [concl k]].
-      apply valid_clause_intro => z hz.
-      rewrite hmin in hz. noconf hz.
-      rewrite hl; constructor. exact hle.
-Qed.
-
 Lemma min_premise_union m prems prems' :
   min_premise m (prems ∨ prems') = min_opt (min_premise m prems) (min_premise m prems').
 Proof.
@@ -3134,11 +3167,6 @@ Proof.
     destruct le as [le lek]; move/valid_clause_elim/(_ _ minp) => /Some_leq.
     apply min_atom_value_mapsto in hat. rewrite (level_value_MapsTo hat).
     move=> -[y'] [] [=] <-. lia.
-Qed.
-
-Lemma total_model m : is_total_model (model m) (clauses m).
-Proof.
-  split. apply model_enabled. apply model_ok.
 Qed.
 
 Lemma entails_clauses_completeness cls cls' :
@@ -3289,12 +3317,6 @@ Proof.
   clear H Heqcall. intros b [= <-].
    apply check_clause_wf_spec.
 Qed.
-
-Inductive reflect_opt (PN PS : Prop) : option bool -> Prop :=
-  | ReflectNone : PN -> reflect_opt PN PS None
-  | ReflectSomeT : PS -> reflect_opt PN PS (Some true)
-  | ReflectSomeF : ~ PS -> reflect_opt PN PS (Some false).
-Derive Signature for reflect_opt.
 
 Lemma check_clauseP {m cl} : reflect_opt
   (~ clause_levels cl ⊂_lset (levels m))
