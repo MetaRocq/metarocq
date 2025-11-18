@@ -2,12 +2,19 @@
 (* This module provides an instantiation of the deciders for universe checking,
   i.e. for constraints on non-empty level expressions (l, k) where k ∈ 𝐍, by embedding
   into constraints on expressions where k ∈ 𝐙.
-  The checking algorithm is sound and complete for entailment in the Horn Clauses system, which
-  is equivalent to the equational theory of the free semilattice (InitialSemilattice) which itself
-  is equivalent to validity of le/eq constraints over universes in Z.
-  For the nat case, we simply get that checking implies validity for any valuation in natural numbers,
-  losing the converse, simply because we didn't generalize the initial semilattice dev to support a restricted
-  interface.  *)
+  The checking algorithm on partial models is sound and complete for
+  entailment in the Horn Clauses system, which is equivalent to the equational theory
+  of the free semilattice (InitialSemilattice) which itself implies validity
+  of le/eq constraints over universes in [𝐙+∞] and [𝐙], but is *not* equivalent to
+  it (see counterexamples in [Deciders]).
+  To get a sound and complete algorithm for [𝐙], we use satisfiability checking of
+  the inverse clause.
+  For [(𝐍, 0, S, Nat.max)], we impose invariants on constraints and the model so that
+  it always includes the distinguished [0] level and each other level is bounded below
+  by [0] (1 for global levels). One can shift valuations from [𝐙] to [𝐍], with the guarantee
+  that the [0] level is always mapped to [0%nat].
+  The same checking algorithm as for [𝐙] provides decidable entailment for
+  the [𝐍] theory. *)
 
 From Stdlib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Import Program RelationClasses Morphisms.
