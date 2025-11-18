@@ -1,4 +1,3 @@
-From MetaRocq.Template Require Import Ast Typing.
 From MetaRocq.Quotation.ToTemplate Require Import Init.
 From MetaRocq.Quotation.ToTemplate Require Import (hints) Stdlib.Init Stdlib.Lists Stdlib.Numbers Stdlib.Floats.
 From MetaRocq.Quotation.ToTemplate.Utils Require Import (hints) utils All_Forall (* MRProd*).
@@ -9,6 +8,7 @@ From MetaRocq.Quotation.ToTemplate.Common Require Import Environment Environment
 From MetaRocq.Quotation.ToTemplate.Template Require Import Ast.
 From MetaRocq.Quotation.ToTemplate.QuotationOf.Common Require Import EnvironmentTyping.Sig.
 From MetaRocq.Quotation.ToTemplate.QuotationOf.Template Require Import Ast.Instances Typing.Instances.
+From MetaRocq.Template Require Import Ast Typing.
 
 #[export] Instance quote_instantiate_params_subst_spec {params pars s pty s' pty'} : ground_quotable (@instantiate_params_subst_spec params pars s pty s' pty').
 Proof.

@@ -716,7 +716,7 @@ Proof.
   intros.
   eapply eq_term_upto_univ_trans with (subst_instance u2 x); tc.
   now eapply eq_term_upto_univ_subst_instance.
-  eapply (eq_term_upto_univ_subst_preserved Σ (fun _ => cmp_universe) (fun _ => cmp_sort) pb napp ConstraintSet.empty ConstraintSet.empty u2).
+  eapply (eq_term_upto_univ_subst_preserved Σ (fun _ => cmp_universe) (fun _ => cmp_sort) pb napp UnivConstraintSet.empty UnivConstraintSet.empty u2).
   red. destruct check_univs => //.
   assumption.
 Qed.
@@ -762,7 +762,7 @@ Proof.
   eapply eq_context_upto_univ_subst_instance; tc. tea.
   eapply eq_context_upto_univ_subst_preserved with (cmp_universe := fun _ => cmp_universe) (cmp_sort := fun _ => cmp_sort); tea; tc.
   unfold_univ_rel eqn:He.
-  instantiate (1 := CS.empty). instantiate (1 := CS.empty) in Hv.
+  instantiate (1 := UCS.empty). instantiate (1 := UCS.empty) in Hv.
   apply Hv.
 Qed.
 
@@ -2202,9 +2202,7 @@ Section PredRed.
     - eapply red_evar; eauto with fvs. solve_all.
     - depelim X1; try solve [repeat constructor]; eauto.
       depelim X2; cbn in H0; rtoProp.
-      eapply red_primArray_congr; eauto.
-      + now eapply Universe.make'_inj in e.
-      + solve_all.
+      eapply red_primArray_congr; eauto. solve_all.
   Qed.
 
   Lemma pred1_red_r_gen P Γ Γ' Δ Δ' : forall M N,

@@ -145,7 +145,7 @@ Proof.
     now eapply declared_projection_closed_ind in H.
 Qed.
 
-
+Arguments Nat.ltb : simpl never.
 
 Lemma typecheck_closed `{cf : checker_flags} :
   env_prop (fun Σ Γ t T =>
@@ -167,7 +167,8 @@ Proof.
   - pose proof (nth_error_Some_length H).
     elim (Nat.ltb_spec n #|Γ|); intuition auto. all: try lia. clear H1.
 
-    induction Γ in n, H, H0, H2 |- *. rewrite nth_error_nil in H. discriminate.
+    induction Γ in n, H, H0, H2 |- *.
+    { rewrite nth_error_nil in H. cbn in *. discriminate. }
     destruct n.
     simpl in H. noconf H. simpl.
     rewrite -Nat.add_1_r. apply closedn_lift.
@@ -857,9 +858,9 @@ Lemma term_closedn_list_ind :
     (forall k (n : aname) (t : term),
         P k t -> forall t0 : term, P k t0 -> forall t1 : term, P (S k) t1 -> P k (tLetIn n t t0 t1)) ->
     (forall k (t u : term), P k t -> P k u -> P k (tApp t u)) ->
-    (forall k s (u : list Level.t), P  k (tConst s u)) ->
-    (forall k (i : inductive) (u : list Level.t), P k (tInd i u)) ->
-    (forall k (i : inductive) (n : nat) (u : list Level.t), P k (tConstruct i n u)) ->
+    (forall k s (u : Instance.t), P  k (tConst s u)) ->
+    (forall k (i : inductive) (u : Instance.t), P k (tInd i u)) ->
+    (forall k (i : inductive) (n : nat) (u : Instance.t), P k (tConstruct i n u)) ->
     (forall k (ci : case_info) (p : predicate term),
         tCasePredProp_k P k p ->
         forall t0 : term, P k t0 -> forall l : list (branch term),
@@ -975,9 +976,9 @@ Lemma term_noccur_between_list_ind :
     (forall k n (na : aname) (t : term),
         P k n t -> forall t0 : term, P k n t0 -> forall t1 : term, P (S k) n t1 -> P k n (tLetIn na t t0 t1)) ->
     (forall k n (t u : term), P k n t -> P k n u -> P k n (tApp t u)) ->
-    (forall k n s (u : list Level.t), P k n (tConst s u)) ->
-    (forall k n (i : inductive) (u : list Level.t), P k n (tInd i u)) ->
-    (forall k n (i : inductive) (c : nat) (u : list Level.t), P k n (tConstruct i c u)) ->
+    (forall k n s (u : Instance.t), P k n (tConst s u)) ->
+    (forall k n (i : inductive) (u : Instance.t), P k n (tInd i u)) ->
+    (forall k n (i : inductive) (c : nat) (u : Instance.t), P k n (tConstruct i c u)) ->
     (forall k n (ci : case_info) (p : predicate term),
         tCasePredProp_k (fun k' => P k' n) k p -> forall t0 : term, P k n t0 ->
         forall l : list (branch term),

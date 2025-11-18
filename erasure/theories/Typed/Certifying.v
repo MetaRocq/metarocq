@@ -131,7 +131,7 @@ Definition traverse_env (mpath : modpath) (suffix : string) (Σ1 Σ2 : global_de
                 (Build_constant_body ty2 (Some body2) _ _ ) =>
                   new_body2 <- tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) body2);;
                   new_ty2 <-tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) ty2);;
-                  if @Checker.eq_term config.default_checker_flags init_graph body1 new_body2 then
+                  if @Checker.eq_term config.default_checker_flags init_model body1 new_body2 then
                     go affected Σtail dΣ2
                   else
                     gen_prog new_ty2 new_body2 (mpath, get_def_name kn ++ suffix);;

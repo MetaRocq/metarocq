@@ -71,7 +71,7 @@ Module string_of_term_tree.
   | tInt i => "Int(" ^ string_of_prim_int i ^ ")"
   | tFloat f => "Float(" ^ string_of_float f ^ ")"
   | tString s => "String(" ^ string_of_pstring s ^ ")"
-  | tArray u arr def ty => "Array(" ^ string_of_level u ^ "," ^
+  | tArray u arr def ty => "Array(" ^ string_of_universe u ^ "," ^
     string_of_list string_of_term arr ^ "," ^ string_of_term def ^ "," ^ string_of_term ty ^ ")"
   end.
 End string_of_term_tree.
@@ -732,7 +732,7 @@ Section Lookups.
 
   Definition polymorphic_constraints u :=
     match u with
-    | Monomorphic_ctx => ConstraintSet.empty
+    | Monomorphic_ctx => UnivConstraintSet.empty
     | Polymorphic_ctx ctx => (AUContext.repr ctx).2.2
     end.
 
@@ -761,14 +761,14 @@ Section Lookups.
     | _ => None
     end.
 
-  Definition lookup_ind_type ind i (u : list Level.t) :=
+  Definition lookup_ind_type ind i (u : Instance.t) :=
     match lookup_ind_decl ind i with
     |None => None
     |Some res =>
        Some (subst_instance u (snd res).(ind_type))
     end.
 
-  Definition lookup_ind_type_cstrs ind i (u : list Level.t) :=
+  Definition lookup_ind_type_cstrs ind i (u : Instance.t) :=
     match lookup_ind_decl ind i with
     |None => None
     |Some res =>

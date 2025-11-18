@@ -304,8 +304,8 @@ Proof.
 Qed.
 
 Lemma trans_constraintSet_in x Σ:
-  ConstraintSet.In x (S.global_ext_constraints Σ) ->
-  ConstraintSet.In x (T.global_ext_constraints (trans_global Σ)).
+  UnivConstraintSet.In x (S.global_ext_constraints Σ) ->
+  UnivConstraintSet.In x (T.global_ext_constraints (trans_global Σ)).
 Proof.
   rewrite trans_global_ext_constraints.
   trivial.
@@ -363,7 +363,7 @@ Proof.
 Qed.
 
 Lemma expand_lets_subst_comm Γ k s :
-  expand_lets (subst_context s k Γ) ∘ subst s (#|Γ| + k) =1
+  expand_lets (subst_context s k Γ) ∘ subst s (#|Γ| + k) ≐1
   subst s (context_assumptions Γ + k) ∘ expand_lets Γ.
 Proof.
   unfold expand_lets, expand_lets_k; simpl; intros x. len.
@@ -2903,9 +2903,8 @@ Lemma on_free_vars_subst_k s k t :
 Proof.
   intros ons ont.
   eapply on_free_vars_impl; [|eapply on_free_vars_subst_gen]; tea.
-  intros i. rewrite /substP /shiftnP.
+  intros i. rewrite /substP /shiftnP /strengthenP.
   repeat nat_compare_specs; cbn; auto.
-  nat_compare_specs => //.
 Qed.
 
 Lemma on_free_vars_expand_lets_k P Γ k t :
@@ -3908,7 +3907,7 @@ Proof.
 Qed.
 
 Lemma fold_right_ext {A B} {f g : B -> A -> A} {acc l} :
-  f =2 g ->
+  f ≐2 g ->
   fold_right f acc l = fold_right g acc l.
 Proof.
   induction l; cbn; auto => Hfg. now rewrite IHl.
@@ -4614,7 +4613,7 @@ Lemma sub_context_set_empty s : sub_context_set ContextSet.empty s.
 Proof.
   red. split.
   intros x hin. cbn in hin. now eapply LevelSetFact.empty_iff in hin.
-  intros x hin. cbn in hin. now eapply ConstraintSetFact.empty_iff in hin.
+  intros x hin. cbn in hin. now eapply UnivConstraintSetFact.empty_iff in hin.
 Qed.
 
 Lemma wt_subst_instance {cf} {Σ : global_env} {ϕ : universes_decl} {Γ T u univs} :

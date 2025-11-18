@@ -28,7 +28,7 @@ Local Ltac term_dec_tac term_dec :=
          | u : sort, u' : sort |- _ => fcase (eq_dec u u')
          | x : Instance.t, y : Instance.t |- _ =>
            fcase (eq_dec x y)
-         | x : list Level.t, y : Instance.t |- _ =>
+         | x : Instance.t, y : Instance.t |- _ =>
            fcase (eq_dec x y)
          | x : list aname, y : list aname |- _ => fcase (eq_dec x y)
          | n : nat, m : nat |- _ => fcase (Nat.eq_dec n m)

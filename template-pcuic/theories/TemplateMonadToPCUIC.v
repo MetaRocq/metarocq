@@ -168,7 +168,7 @@ Section with_tc.
             v' <- monad_map@{t u t t} monad_trans' v ;;
             d' <- monad_trans' d ;;
             ty' <- monad_trans' ty ;;
-            ret (tPrim ((primArray; primArrayModel {| array_level := l; array_value := v'; array_default := d'; array_type := ty' |})))
+            ret (tPrim ((primArray; primArrayModel {| array_universe := l; array_value := v'; array_default := d'; array_type := ty' |})))
       end.
   End with_helper.
 End with_tc.

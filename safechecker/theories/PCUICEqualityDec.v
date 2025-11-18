@@ -9,6 +9,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive PCUICTa
 
 From Equations.Prop Require Import DepElim.
 From Equations Require Import Equations.
+Set Equations Transparent.
 
 Local Set Keyed Unification.
 
@@ -18,13 +19,13 @@ Set Default Goal Selector "!".
 
 Lemma consistent_instance_wf_sort `{checker_flags} Σ uctx u :
   consistent_instance_ext Σ uctx u ->
-  Forall (wf_universe Σ) (map Universe.make' u).
+  Forall (wf_universe Σ) u.
 Proof.
   move => /consistent_instance_ext_wf /wf_instanceP.
   rewrite -wf_universeb_instance_forall.
   move => /forallb_Forall ?.
   eapply Forall_impl ; tea.
-  move => ? /wf_universe_reflect //.
+  move => ? /wf_universeP //.
 Qed.
 
 Lemma ctx_inst_on_universes Σ Γ ts Ts :
@@ -42,12 +43,12 @@ Qed.
 Definition compare_universe_variance (cmpu : conv_pb -> Universe.t -> Universe.t -> bool) pb v u u' :=
   match v with
   | Variance.Irrelevant => true
-  | Variance.Covariant => cmpu pb (Universe.make' u) (Universe.make' u')
-  | Variance.Invariant => cmpu Conv (Universe.make' u) (Universe.make' u')
+  | Variance.Covariant => cmpu pb u u'
+  | Variance.Invariant => cmpu Conv u u'
   end.
 
-Definition compare_universe_instance equ u u' :=
-  forallb2 (fun u u' => equ (Universe.make' u) (Universe.make' u')) u u'.
+Definition compare_universe_instance equ (u u' : Instance.t) :=
+  forallb2 equ u u'.
 
 Definition compare_universe_instance_variance cmpu pb v u u' :=
   forallb3 (compare_universe_variance cmpu pb) v u u'.
@@ -79,7 +80,7 @@ Notation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
 Fixpoint eqb_term_upto_univ_napp
   (cmpu : conv_pb -> Universe.t -> Universe.t -> bool)
   (cmps : conv_pb -> sort -> sort -> bool)
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp (u v : term) : bool :=
   match u, v with
   | tRel n, tRel m =>
@@ -190,8 +191,8 @@ Qed.
 
 Lemma reflect_cmp_universe_instance (p : Universe.t -> bool) cmpu cmp_universe ui ui' :
   (forall u u', p u -> p u' -> reflect (cmp_universe u u') (cmpu u u')) ->
-  forallb p (map Universe.make' ui) ->
-  forallb p (map Universe.make' ui') ->
+  forallb p ui ->
+  forallb p ui' ->
   reflect (cmp_universe_instance cmp_universe ui ui') (compare_universe_instance cmpu ui ui').
 Proof.
   intros he hui hui'.
@@ -205,8 +206,8 @@ Qed.
 Lemma reflect_cmp_universe_instance_variance (p : Universe.t -> bool) cmpu cmp_universe pb v ui ui' :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
-  forallb p (map Universe.make' ui) ->
-  forallb p (map Universe.make' ui') ->
+  forallb p ui ->
+  forallb p ui' ->
   reflect (cmp_universe_instance_variance cmp_universe pb v ui ui') (compare_universe_instance_variance cmpu pb v ui ui').
 Proof.
   intros he hle hui hui'.
@@ -230,8 +231,8 @@ Qed.
 Lemma reflect_cmp_global_instance' lookup (p : Universe.t -> bool) cmpu cmp_universe pb gr napp ui ui' :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
-  forallb p (map Universe.make' ui) ->
-  forallb p (map Universe.make' ui') ->
+  forallb p ui ->
+  forallb p ui' ->
   reflect (cmp_global_instance_gen lookup cmp_universe pb gr napp ui ui')
     (compare_global_instance lookup cmpu pb gr napp ui ui').
 Proof.
@@ -253,8 +254,8 @@ Lemma reflect_cmp_global_instance Σ lookup (p : Universe.t -> bool) cmpu cmp_un
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
   (forall kn, lookup_env Σ kn = lookup kn) ->
-  forallb p (map Universe.make' ui) ->
-  forallb p (map Universe.make' ui') ->
+  forallb p ui ->
+  forallb p ui' ->
   reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui')
     (compare_global_instance lookup cmpu pb gr napp ui ui').
 Proof.
@@ -450,14 +451,14 @@ Qed.
 Transparent eqb_prim_val eqb_prim_model.
 
 Lemma reflect_eq_term_upto_univ Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort Conv s s') (cmps Conv s s')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort pb s s') (cmps pb s s')) ->
-  (forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
-  (forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
+  (forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
+  (forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
   forall t t',
     on_universes p q t ->
     on_universes p q t' ->
@@ -531,14 +532,14 @@ Proof.
 Qed.
 
 Lemma eqb_term_upto_univ_impl Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp :
   (forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u')) ->
   (forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort Conv s s') (cmps Conv s s')) ->
   (forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort pb s s') (cmps pb s s')) ->
-  (forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
-  (forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
+  (forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
+  (forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
   forall t t', on_universes p q t -> on_universes p q t' ->
     eqb_term_upto_univ_napp cmpu cmps gen_compare_global_instance pb napp t t' ->
     eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp t t'.
@@ -567,7 +568,7 @@ Proof.
 Defined.
 
 Definition eqb_term_upto_univ_proper Σ cmpu cmpu' cmps cmps'
-  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb napp (t u : term) :
   (forall pb u u', wf_universe Σ u -> wf_universe Σ u' -> cmpu pb u u' = cmpu' pb u u') ->
   (forall pb s s', wf_sort Σ s -> wf_sort Σ s' -> cmps pb s s' = cmps' pb s s') ->
@@ -588,7 +589,7 @@ Proof.
   1-4: apply idP.
   1-2: rewrite -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
   1-2: rewrite Hequ; eauto using idP.
-  1-4: now apply/wf_universe_reflect.
+  1-4: now apply/wf_universeP.
   1-2: rewrite Heqs; eauto using idP.
   1-4: now apply/wf_sort_reflect.
   1-2: rewrite -Hgen_compare -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
@@ -624,18 +625,18 @@ Qed.
 
 Lemma cmp_universe_instance_refl_wf Σ (cmp_universe : Universe.t -> Universe.t -> Prop) l :
   (forall u, wf_universe Σ u -> cmp_universe u u) ->
-  forallb (wf_universeb Σ) (map Universe.make' l)  ->
+  forallb (wf_universeb Σ) l  ->
   cmp_universe_instance cmp_universe l l.
 Proof.
   intros rRE Hl.
   unfold cmp_universe_instance. solve_all.
   eapply All_All2; tea. intros. apply rRE.
-  now apply/wf_universe_reflect.
+  now apply/wf_universeP.
 Qed.
 
 Lemma cmp_global_instance_refl_wf Σ (cmp_universe : conv_pb -> Universe.t -> Universe.t -> Prop) gr pb napp l :
   (forall u, wf_universe Σ u -> cmp_universe Conv u u) ->
-  forallb (wf_universeb Σ) (map Universe.make' l)  ->
+  forallb (wf_universeb Σ) l  ->
   cmp_global_instance Σ cmp_universe pb gr napp l l.
 Proof.
   intros rRE Hl.
@@ -675,8 +676,8 @@ Proof.
   - eapply forallb_All in wt; eapply All_mix in X; try apply wt; clear wt.
     eapply All_All2; eauto; simpl; intuition eauto;
     apply andb_and in a as [? ?]; eauto.
-  - destruct p as [? []]; cbn -[Universe.make'] in X, wt; rtoProp; intuition eauto; constructor; eauto.
-    + eapply hU. now move/wf_universe_reflect: H.
+  - destruct p as [? []]; cbn -[Universe.of_level] in X, wt; rtoProp; intuition eauto; constructor; eauto.
+    + eapply hU. now move/wf_universeP: H.
     + solve_all. eapply All_All2; eauto; simpl; intuition eauto.
 Defined.
 
@@ -684,8 +685,8 @@ Lemma eqb_term_upto_univ_refl Σ (cmpu : forall _ _ _, bool) (cmps : forall _ _ 
     (forall u, wf_universe Σ u -> cmpu Conv u u) ->
     (forall s, wf_sort Σ s -> cmps Conv s s) ->
     (forall s, wf_sort Σ s -> cmps pb s s) ->
-    (forall gr napp ui ui', forallb (wf_universeb Σ) (map Universe.make' ui) -> forallb (wf_universeb Σ) (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmpu Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
-    (forall gr napp ui ui', forallb (wf_universeb Σ) (map Universe.make' ui) -> forallb (wf_universeb Σ) (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmpu pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
+    (forall gr napp ui ui', forallb (wf_universeb Σ) ui -> forallb (wf_universeb Σ) ui' -> reflect (cmp_global_instance Σ cmpu Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui')) ->
+    (forall gr napp ui ui', forallb (wf_universeb Σ) ui -> forallb (wf_universeb Σ) ui' -> reflect (cmp_global_instance Σ cmpu pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')) ->
     wf_universes Σ t ->
     eqb_term_upto_univ_napp cmpu cmps gen_compare_global_instance pb napp t t.
 Proof.
@@ -720,14 +721,14 @@ Proof. case: eqb_annot_reflect => //. Qed.
 
 Section reflectContext.
   Context Σ (p : Universe.t -> bool) (q : nat -> term -> bool) cmpu cmps cmp_universe cmp_sort
-  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb
   (hu : forall u u', p u -> p u' -> reflect (cmp_universe Conv u u') (cmpu Conv u u'))
   (hu' : forall u u', p u -> p u' -> reflect (cmp_universe pb u u') (cmpu pb u u'))
   (hs : forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort Conv s s') (cmps Conv s s'))
   (hs' : forall s s', Sort.on_sort p true s -> Sort.on_sort p true s' -> reflect (cmp_sort pb s s') (cmps pb s s'))
-  (hglobal : forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui'))
-  (hglobal' : forall gr napp ui ui', forallb p (map Universe.make' ui) -> forallb p (map Universe.make' ui') -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')).
+  (hglobal : forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe Conv gr napp ui ui') (gen_compare_global_instance Conv gr napp ui ui'))
+  (hglobal' : forall gr napp ui ui', forallb p ui -> forallb p ui' -> reflect (cmp_global_instance Σ cmp_universe pb gr napp ui ui') (gen_compare_global_instance pb gr napp ui ui')).
 
   Lemma reflect_eqb_decl_gen :
     forall d d',
@@ -765,7 +766,7 @@ Section reflectContext.
 End reflectContext.
 
 Definition eqb_ctx_gen_proper Σ cmpu cmpu' cmps cmps'
-  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> list Level.t -> list Level.t -> bool)
+  (gen_compare_global_instance gen_compare_global_instance' : conv_pb -> global_reference -> nat -> Instance.t -> Instance.t -> bool)
   pb :
   (forall pb u u', wf_universe Σ u -> wf_universe Σ u' -> cmpu pb u u' = cmpu' pb u u') ->
   (forall pb s s', wf_sort Σ s -> wf_sort Σ s' -> cmps pb s s' = cmps' pb s s') ->
@@ -787,9 +788,9 @@ Proof.
 Defined.
 
 (** Checking equality *)
-
+(*
 Lemma wf_gc_of_uctx {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥)
-: ∑ uctx', gc_of_uctx (global_uctx Σ) = Some uctx'.
+: ∑ uctx', push_uctx (global_uctx Σ) = Some uctx'.
 Proof.
 assert (consistent (global_uctx Σ).2) as HC.
 { sq; apply (wf_consistent _ HΣ). }
@@ -798,48 +799,64 @@ apply gc_consistent_iff in HC.
 destruct (gc_of_constraints (global_constraints Σ)).
 - eexists; reflexivity.
 - contradiction HC.
-Defined.
+Defined. *)
 
-Lemma graph_of_wf {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥)
-: ∑ G, is_graph_of_uctx G (global_uctx Σ).
-Proof.
-destruct (wf_gc_of_uctx HΣ) as [uctx Huctx].
-exists (make_graph uctx). unfold is_graph_of_uctx. now rewrite Huctx.
-Defined.
+Import UnivLoopChecking.UnivLoopChecking.
 
-Lemma wf_ext_gc_of_uctx {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥)
-: ∑ uctx', gc_of_uctx (global_ext_uctx Σ) = Some uctx'.
+Lemma init_constraints_of_clean_uctx uctx : init_constraints_of_levels (uctx.1) =_ucset init_constraints_of_levels (clean_uctx uctx).1.
 Proof.
-assert (consistent (global_ext_uctx Σ).2) as HC.
-  { sq; apply (global_ext_uctx_consistent _ HΣ). }
-destruct Σ as [Σ φ].
-simpl in HC.
-unfold gc_of_uctx; simpl in *.
-apply gc_consistent_iff in HC.
-destruct (gc_of_constraints (global_ext_constraints (Σ, φ))).
-- eexists; reflexivity.
-- contradiction HC.
-Defined.
-
-Lemma wf_ext_gc_of_uctx_irr {cf:checker_flags} {Σ : global_env_ext} (HΣ HΣ' : ∥ wf_ext Σ ∥) :
-  wf_ext_gc_of_uctx HΣ = wf_ext_gc_of_uctx HΣ'.
-Proof.
-  unfold wf_ext_gc_of_uctx. Opaque gc_of_constraints.
-  destruct Σ; cbn.
-  match goal with | |- _ ?X = _ ?Y => set (prf := X) ; set (prf' := Y) end.
-  clearbody prf prf'. cbn in *. revert prf prf'.
-  set (gc_of_constraints ((g, u):global_env_ext)) in *.
-  now destruct o.
+  destruct uctx; cbn -[init_constraints_of_levels].
+  intros cl.
+  split.
+  - move/init_constraints_of_levels_spec_inv => [l [hin heq]].
+    eapply init_constraints_of_levels_spec; tea.
+    apply LevelSet.remove_spec. split => //.
+    destruct l; noconf heq; intros eq; congruence.
+  - move/init_constraints_of_levels_spec_inv => [l [hin heq]].
+    eapply init_constraints_of_levels_spec; tea.
+    now apply LevelSet.remove_spec in hin as [].
 Qed.
 
-Lemma graph_of_wf_ext {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥)
-: ∑ G, is_graph_of_uctx G (global_ext_uctx Σ).
+Lemma model_of_clean_uctx m uctx : model_of_uctx m (clean_uctx uctx) <-> model_of_uctx m uctx.
 Proof.
-destruct (wf_ext_gc_of_uctx HΣ) as [uctx Huctx].
-exists (make_graph uctx). unfold is_graph_of_uctx. now rewrite Huctx.
-Defined.
+  unfold model_of_uctx. cbn -[init_constraints_of_levels].
+  rewrite [LevelSet.union (LevelSet.remove _ _) _]LevelSetProp.union_sym.
+    rewrite -LevelSetProp.add_union_singleton levelset_add_remove LevelSetProp.add_union_singleton
+      LevelSetProp.union_sym.
+    rewrite -init_constraints_of_clean_uctx. reflexivity.
+Qed.
 
-Lemma uctx'_eq {cf:checker_flags} {Σ} (wfΣ : ∥ wf_ext Σ ∥) :
+Equations? graph_of_wf {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥) : ∑ G, model_of_uctx G (global_uctx Σ) :=
+  graph_of_wf HΣ with inspect (push_uctx init_model (clean_uctx (global_uctx Σ))) :=
+  | exist (Some u) hp := existT _ u _
+  | exist None hp => False_rect _ _.
+Proof.
+  - apply push_uctx_init_model_sat in hp.
+    now apply model_of_clean_uctx.
+  - apply push_uctx_init_model_unsat in hp; tea.
+    * destruct HΣ. apply hp.
+      assert (consistent (global_uctx Σ).2) as HC.
+      { sq; apply (wf_consistent _ X). }
+      destruct HC as [v sat]. now exists v.
+    * destruct HΣ. eapply wf_global_uctx_invariants. exact X.
+Qed.
+
+Equations? graph_of_wf_ext {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥) : ∑ G, model_of_uctx G (global_ext_uctx Σ) :=
+  graph_of_wf_ext HΣ with inspect (push_uctx init_model (clean_uctx (global_ext_uctx Σ))) :=
+  | exist (Some u) hp := existT _ u _
+  | exist None hp => False_rect _ _.
+Proof.
+  - apply push_uctx_init_model_sat in hp.
+    now apply model_of_clean_uctx.
+  - apply push_uctx_init_model_unsat in hp; tea.
+    * exfalso. destruct HΣ. apply hp.
+      assert (consistent (global_ext_uctx Σ).2) as HC.
+      { sq. now apply (wf_ext_consistent _ X). }
+      destruct HC as [v sat]. now exists v.
+    * destruct HΣ. eapply wf_ext_global_uctx_invariants. exact X.
+Qed.
+
+(* Lemma uctx'_eq {cf:checker_flags} {Σ} (wfΣ : ∥ wf_ext Σ ∥) :
   let G := graph_of_wf_ext wfΣ in
   (wf_ext_gc_of_uctx wfΣ).π1 = uctx' G.π1 (global_ext_uctx Σ) G.π2.
 Proof.
@@ -852,6 +869,65 @@ Proof.
   Transparent gc_of_constraints.
   set (gc_of_constraints ((g, u):global_env_ext)) in *.
   now destruct o.
+Qed. *)
+
+Lemma valid_cstr_eq {cf : config.checker_flags} cstrs u v : valid_cstr cstrs (u, UnivConstraintType.ConstraintType.Eq, v) <-> eq_universe cstrs u v.
+Proof.
+  unfold valid_cstr, eq_universe.
+  cbn; split.
+  - destruct check_univs => //=.
+    move=> val hval /val he; now depelim he.
+  - destruct check_univs => //=.
+    move=> val hval /val he; now constructor.
+Qed.
+
+Lemma valid_cstr_le {cf : config.checker_flags} cstrs u v : valid_cstr cstrs (u, UnivConstraintType.ConstraintType.Le, v) <-> leq_universe cstrs u v.
+Proof.
+  unfold valid_cstr, leq_universe.
+  cbn; split.
+  - destruct check_univs => //=.
+    move=> val hval /val he; now depelim he.
+  - destruct check_univs => //=.
+    move=> val hval /val he; now constructor.
+Qed.
+
+Lemma wf_universe_declared {cf : checker_flags} Σ u :
+  wf_universe Σ u ->
+  levels_declared (clean_uctx (global_ext_uctx Σ)) u.
+Proof.
+  move=> wf l /wf.
+  rewrite /expr_declared //= levelset_add_remove.
+  destruct l; cbn. lsets.
+Qed.
+
+Lemma wf_universe_subset {cf : checker_flags} Σ u :
+  wf_universe Σ u ->
+  LevelSet.Subset (Universe.levels u) (LevelSet.add Level.lzero (clean_uctx (global_ext_uctx Σ)).1).
+Proof.
+  move=> wf. now apply levels_declared_uctx, wf_universe_declared.
+Qed.
+
+Lemma wf_sort_declared {cf : checker_flags} Σ u :
+  wf_sort Σ u ->
+  levels_declared_sort (clean_uctx (global_ext_uctx Σ)) u.
+Proof.
+  destruct u; cbn => //.
+  move/wf_universe_declared.
+  move=> le hin le'. red.
+  now apply le in le'.
+Qed.
+
+Lemma check_spec_clean uctx check : check_spec (clean_uctx uctx) check <-> check_spec uctx check.
+Proof.
+  split.
+  - unfold check_spec.
+    intros. apply H.
+    rewrite /clean_uctx //=. red. destruct c as [[l d] r]. rewrite levelset_add_remove.
+    apply H0.
+  - unfold check_spec.
+    intros. apply H.
+    rewrite /clean_uctx //=. red. destruct c as [[l d] r]. cbn in H0. rewrite levelset_add_remove in H0.
+    apply H0.
 Qed.
 
 Section EqualityDecGen.
@@ -865,146 +941,144 @@ Section EqualityDecGen.
 
   Let HG := (graph_of_wf_ext hΣ).π2.
 
-  Let uctx' : VSet.t × GoodConstraintSet.t.
-    fold G uctx in HG. clearbody G HG. cbn in *.
-    unfold is_graph_of_uctx, gc_of_uctx in HG.
-    destruct (gc_of_constraints uctx.2) as [ctrs|].
-    - exact (uctx.1, ctrs).
-    - contradiction HG.
-  Defined.
-
-  Lemma eq_universeP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen)
+  Lemma eq_universeP_gen checkb
+    (check_correct : check_spec uctx checkb)
     u u' :
     wf_universe Σ u ->
     wf_universe Σ u' ->
-    reflect (eq_universe Σ u u') (check_eqb_universe_gen leqb_level_n_gen u u').
+    reflect (eq_universe Σ u u') (check_eqb_universe_gen checkb u u').
   Proof using hΣ.
     intros. destruct Σ as [Σ' φ].
-    apply (equivP idP); split; sq.
-    all: pose proof hΣ as hΣ' ; sq.
-    - intros e.
-      eapply check_eqb_universe_spec_gen'
-         with (uctx := global_ext_uctx (Σ', φ)) in e ; eauto.
-      + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
-    - intros e.
-      eapply check_eqb_universe_complete_gen
-        with (uctx := global_ext_uctx (Σ', φ)); eauto.
-      + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+    apply (equivP idP).
+    rewrite -valid_cstr_eq.
+     pose proof hΣ as hΣ' ; sq.
+    eapply check_eqb_universe_spec_gen
+         with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) ; eauto.
+    + now eapply wf_ext_global_uctx_invariants.
+    + eapply model_of_clean_uctx. apply HG.
+    + now apply check_spec_clean.
+    + split; eapply wf_universe_subset; tea.
   Qed.
 
-  Lemma leq_universeP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) u u' :
+  Lemma leq_universeP_gen checkb
+    (check_correct : check_spec uctx checkb)
+    u u' :
     wf_universe Σ u ->
     wf_universe Σ u' ->
-    reflect (leq_universe Σ u u') (check_leqb_universe_gen leqb_level_n_gen u u').
+    reflect (leq_universe Σ u u') (check_leqb_universe_gen checkb u u').
   Proof using hΣ.
-    intros.
-    apply (equivP idP) ; split.
-    all: pose proof hΣ as hΣ' ; sq.
-    - intros e.
-      eapply check_leqb_universe_spec_gen'
-        with (uctx := global_ext_uctx Σ) in e ; eauto.
-      + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
-    - intros e.
-      eapply check_leqb_universe_complete_gen
-        with (uctx := global_ext_uctx Σ); eauto.
-      + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+    intros. destruct Σ as [Σ' φ].
+    apply (equivP idP).
+    rewrite -valid_cstr_le.
+     pose proof hΣ as hΣ' ; sq.
+    eapply check_leqb_universe_spec_gen
+         with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) ; eauto.
+    + now eapply wf_ext_global_uctx_invariants.
+    + eapply model_of_clean_uctx. apply HG.
+    + now apply check_spec_clean.
+    + split; eapply wf_universe_subset; tea.
   Qed.
 
-  Definition check_cmpb_universe_gen leqb_level_n_gen :=
-    (conv_pb_relb_gen (check_eqb_universe_gen leqb_level_n_gen) (check_leqb_universe_gen leqb_level_n_gen)).
+  Definition check_cmpb_universe_gen checkb :=
+    (conv_pb_relb_gen (check_eqb_universe_gen checkb) (check_leqb_universe_gen checkb)).
 
-  Lemma compare_universeP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) pb u u' :
+  Lemma compare_universeP_gen checkb
+    (check_correct : check_spec uctx checkb) pb u u' :
     wf_universe Σ u ->
     wf_universe Σ u' ->
-    reflect (compare_universe Σ pb u u') (check_cmpb_universe_gen leqb_level_n_gen pb u u').
+    reflect (compare_universe Σ pb u u') (check_cmpb_universe_gen checkb pb u u').
   Proof.
     destruct pb.
     - now apply eq_universeP_gen.
     - now apply leq_universeP_gen.
   Qed.
 
-  Lemma eq_sortP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen)
+  Lemma eq_sortP_gen checkb
+    (check_correct : check_spec uctx checkb)
     s s' :
     wf_sort Σ s ->
     wf_sort Σ s' ->
-    reflect (eq_sort Σ s s') (check_eqb_sort_gen leqb_level_n_gen s s').
+    reflect (eq_sort Σ s s') (check_eqb_sort_gen checkb s s').
   Proof using hΣ.
+    apply check_spec_clean in check_correct.
     intros. destruct Σ as [Σ' φ].
     apply (equivP idP); split; sq.
     all: pose proof hΣ as hΣ' ; sq.
     - intros e.
-      eapply check_eqb_sort_spec_gen'
-        with (uctx := global_ext_uctx (Σ', φ)) in e ; eauto.
+      eapply check_eqb_sort_spec_gen
+        with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) in e ; eauto.
       + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+      + eapply model_of_clean_uctx. apply HG.
+      + now apply wf_sort_declared in H.
+      + now apply wf_sort_declared in H0.
     - intros e.
-      eapply check_eqb_sort_complete_gen
-        with (uctx := global_ext_uctx (Σ', φ)); eauto.
+      eapply check_eqb_sort_spec_gen
+        with (uctx := clean_uctx (global_ext_uctx (Σ', φ))); eauto.
       + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+      + eapply model_of_clean_uctx. apply HG.
+      + now apply wf_sort_declared in H.
+      + now apply wf_sort_declared in H0.
   Qed.
 
-  Lemma leq_sortP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) s s' :
+  Lemma leq_sortP_gen checkb
+    (check_correct : check_spec uctx checkb)
+    s s' :
     wf_sort Σ s ->
     wf_sort Σ s' ->
-    reflect (leq_sort Σ s s') (check_leqb_sort_gen leqb_level_n_gen s s').
+    reflect (leq_sort Σ s s') (check_leqb_sort_gen checkb s s').
   Proof using hΣ.
-    intros.
-    apply (equivP idP) ; split.
+    apply check_spec_clean in check_correct.
+    intros. destruct Σ as [Σ' φ].
+    apply (equivP idP); split; sq.
     all: pose proof hΣ as hΣ' ; sq.
     - intros e.
-      eapply check_leqb_sort_spec_gen'
-        with (uctx := global_ext_uctx Σ) in e ; eauto.
+      eapply check_leqb_sort_spec_gen
+        with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) in e ; eauto.
       + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+      + eapply model_of_clean_uctx. apply HG.
+      + now apply wf_sort_declared in H.
+      + now apply wf_sort_declared in H0.
     - intros e.
-      eapply check_leqb_sort_complete_gen
-        with (uctx := global_ext_uctx Σ); eauto.
+      eapply check_leqb_sort_spec_gen
+        with (uctx := clean_uctx (global_ext_uctx (Σ', φ))); eauto.
       + now eapply wf_ext_global_uctx_invariants.
-      + now eapply global_ext_uctx_consistent.
+      + eapply model_of_clean_uctx. apply HG.
+      + now apply wf_sort_declared in H.
+      + now apply wf_sort_declared in H0.
   Qed.
 
-  Definition check_cmpb_sort_gen leqb_level_n_gen :=
-    (conv_pb_relb_gen (check_eqb_sort_gen leqb_level_n_gen) (check_leqb_sort_gen leqb_level_n_gen)).
+  Definition check_cmpb_sort_gen checkb :=
+    (conv_pb_relb_gen (check_eqb_sort_gen checkb) (check_leqb_sort_gen checkb)).
 
-  Lemma compare_sortP_gen leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) pb s s' :
+  Lemma compare_sortP_gen checkb
+    (check_correct : check_spec uctx checkb) pb s s' :
     wf_sort Σ s ->
     wf_sort Σ s' ->
-    reflect (compare_sort Σ pb s s') (check_cmpb_sort_gen leqb_level_n_gen pb s s').
+    reflect (compare_sort Σ pb s s') (check_cmpb_sort_gen checkb pb s s').
   Proof.
     destruct pb.
     - now apply eq_sortP_gen.
     - now apply leq_sortP_gen.
   Qed.
 
-  Definition eqb_ctx leqb_level_n_gen :=
-      eqb_ctx_upto (check_cmpb_universe_gen leqb_level_n_gen) (check_cmpb_sort_gen leqb_level_n_gen)
-        (compare_global_instance (lookup_env Σ) (check_cmpb_universe_gen leqb_level_n_gen)).
+  Definition eqb_ctx checkb :=
+      eqb_ctx_upto (check_cmpb_universe_gen checkb) (check_cmpb_sort_gen checkb)
+        (compare_global_instance (lookup_env Σ) (check_cmpb_universe_gen checkb)).
 
-  Definition eqb_termp_napp leqb_level_n_gen :=
-    eqb_term_upto_univ_napp (check_cmpb_universe_gen leqb_level_n_gen) (check_cmpb_sort_gen leqb_level_n_gen)
-    (compare_global_instance (lookup_env Σ) (check_cmpb_universe_gen leqb_level_n_gen)).
+  Definition eqb_termp_napp checkb :=
+    eqb_term_upto_univ_napp (check_cmpb_universe_gen checkb) (check_cmpb_sort_gen checkb)
+    (compare_global_instance (lookup_env Σ) (check_cmpb_universe_gen checkb)).
 
-  Lemma reflect_eqb_termp_napp pb leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) napp t u :
+  Lemma reflect_eqb_termp_napp pb checkb
+    (check_correct : check_spec uctx checkb) napp t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (eq_termp_napp Σ pb napp t u) (eqb_termp_napp leqb_level_n_gen pb napp t u).
+    reflectT (eq_termp_napp Σ pb napp t u) (eqb_termp_napp checkb pb napp t u).
   Proof using hΣ.
     apply reflect_eq_term_upto_univ.
-    - move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+    - move => ? ? /wf_universeP ? - /wf_universeP ?.
       now apply compare_universeP_gen.
-    - move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+    - move => ? ? /wf_universeP ? - /wf_universeP ?.
       now apply compare_universeP_gen.
     - move => ? ? /wf_sort_reflect ? - /wf_sort_reflect ?.
       now apply compare_sortP_gen.
@@ -1012,23 +1086,23 @@ Section EqualityDecGen.
       now apply compare_sortP_gen.
     - intros.
       eapply reflect_cmp_global_instance; eauto.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
     - intros.
       eapply reflect_cmp_global_instance; eauto.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
   Qed.
 
-  Lemma eqb_termp_napp_spec pb leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) napp t u :
+  Lemma eqb_termp_napp_spec pb checkb
+  (check_correct : check_spec uctx checkb) napp t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    eqb_termp_napp leqb_level_n_gen pb napp t u ->
+    eqb_termp_napp checkb pb napp t u ->
     eq_termp_napp Σ pb napp t u.
   Proof using hΣ.
     intros.
@@ -1040,32 +1114,32 @@ Section EqualityDecGen.
   Definition eqb_term := (eqb_termp Conv).
   Definition leqb_term := (eqb_termp Cumul).
 
-  Lemma eqb_term_spec leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+  Lemma eqb_term_spec checkb
+    (check_correct : check_spec uctx checkb) t u :
     wf_universes Σ t -> wf_universes Σ u ->
-    eqb_term leqb_level_n_gen t u ->
+    eqb_term checkb t u ->
     eq_term Σ Σ t u.
   Proof using hΣ.
     intros.
     eapply (eqb_termp_napp_spec Conv) ; tea.
   Qed.
 
-  Lemma leqb_term_spec leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen)
+  Lemma leqb_term_spec checkb
+    (check_correct : check_spec uctx checkb)
     t u :
     wf_universes Σ t -> wf_universes Σ u ->
-    leqb_term leqb_level_n_gen t u ->
+    leqb_term checkb t u ->
     leq_term Σ Σ t u.
   Proof using hΣ.
     intros.
     eapply (eqb_termp_napp_spec Cumul) ; tea.
   Qed.
 
-  Lemma reflect_leq_term leqb_level_n_gen
-    (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+  Lemma reflect_leq_term checkb
+    (check_correct : check_spec uctx checkb) t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (leq_term Σ Σ t u) (leqb_term leqb_level_n_gen t u).
+    reflectT (leq_term Σ Σ t u) (leqb_term checkb t u).
   Proof using hΣ.
     intros.
     now eapply (reflect_eqb_termp_napp Cumul).
@@ -1073,19 +1147,19 @@ Section EqualityDecGen.
 
   Notation eq_term Σ t u := (eq_term Σ Σ t u).
 
-  Lemma reflect_eq_term leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
+  Lemma reflect_eq_term checkb
+  (check_correct : check_spec uctx checkb) t u :
     wf_universes Σ t ->
     wf_universes Σ u ->
-    reflectT (eq_term Σ t u) (eqb_term leqb_level_n_gen t u).
+    reflectT (eq_term Σ t u) (eqb_term checkb t u).
   Proof using hΣ.
     intros.
     now eapply (reflect_eqb_termp_napp Conv).
   Qed.
 
-  Lemma eqb_term_refl leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) :
-    forall t, wf_universes Σ t -> eqb_term leqb_level_n_gen t t.
+  Lemma eqb_term_refl checkb
+  (check_correct : check_spec uctx checkb) :
+    forall t, wf_universes Σ t -> eqb_term checkb t t.
   Proof using hΣ.
     intro t. eapply eqb_term_upto_univ_refl.
     4,5: intros; eapply reflect_cmp_global_instance; tea; intros; cbnr; try apply idP.
@@ -1094,18 +1168,18 @@ Section EqualityDecGen.
     - intros. eapply check_eqb_sort_refl_gen; eauto.
   Qed.
 
-  Lemma eqb_ctx_spec leqb_level_n_gen
-  (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) :
+  Lemma eqb_ctx_spec checkb
+  (check_correct : check_spec uctx checkb) :
     forall pb Γ Δ,
       wf_ctx_universes Σ Γ ->
       wf_ctx_universes Σ Δ ->
-      eqb_ctx leqb_level_n_gen pb Γ Δ ->
+      eqb_ctx checkb pb Γ Δ ->
       eq_context_upto Σ (compare_universe Σ) (compare_sort Σ) pb Γ Δ.
   Proof using hΣ.
     intros pb Γ Δ hΓ hΔ h. eapply elimT. 1: eapply reflect_eqb_ctx_gen; eauto. 7: tea.
-    - move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+    - move => ? ? /wf_universeP ? - /wf_universeP ?.
       now apply compare_universeP_gen.
-    - move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+    - move => ? ? /wf_universeP ? - /wf_universeP ?.
       now apply compare_universeP_gen.
     - move => ? ? /wf_sort_reflect ? - /wf_sort_reflect ?.
       now apply compare_sortP_gen.
@@ -1113,15 +1187,15 @@ Section EqualityDecGen.
       now apply compare_sortP_gen.
     - intros.
       eapply reflect_cmp_global_instance; eauto.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
     - intros.
       eapply reflect_cmp_global_instance; eauto.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
-      + move => ? ? /wf_universe_reflect ? - /wf_universe_reflect ?.
+      + move => ? ? /wf_universeP ? - /wf_universeP ?.
         now apply compare_universeP_gen.
   Qed.
 

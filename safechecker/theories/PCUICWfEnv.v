@@ -36,9 +36,9 @@ Class abstract_env_struct {cf:checker_flags} (abstract_env_impl abstract_env_ext
 
   (* Primitive decision procedures *)
   abstract_env_level_mem : abstract_env_ext_impl -> Level.t -> bool;
-  abstract_env_leqb_level_n : abstract_env_ext_impl -> Z -> Level.t -> Level.t -> bool;
+  abstract_env_check : abstract_env_ext_impl -> UnivConstraint.t -> bool;
   abstract_env_guard : abstract_env_ext_impl -> FixCoFix -> context -> mfixpoint term -> bool;
-  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * GoodConstraintSet.t -> bool ;
+  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * UnivConstraintSet.t -> bool ;
 
 }.
 
@@ -50,15 +50,15 @@ Definition abstract_env_cofixguard  {cf:checker_flags} {abstract_env_impl abstra
 
 Definition abstract_env_compare_universe {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
 (X:abstract_env_ext_impl) : conv_pb -> Universe.t -> Universe.t -> bool :=
-  check_cmpb_universe_gen (abstract_env_leqb_level_n X).
+  check_cmpb_universe_gen (abstract_env_check X).
 
 Definition abstract_env_compare_sort {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
   (X:abstract_env_ext_impl) : conv_pb -> sort -> sort -> bool :=
-    check_cmpb_sort_gen (abstract_env_leqb_level_n X).
+    check_cmpb_sort_gen (abstract_env_check X).
 
 Definition abstract_env_check_constraints {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
-  (X:abstract_env_ext_impl) : ConstraintSet.t -> bool :=
-    check_constraints_gen (abstract_env_leqb_level_n X).
+  (X:abstract_env_ext_impl) : UnivConstraintSet.t -> bool :=
+    check_constraints_gen (abstract_env_check X).
 
 Definition abstract_env_ext_wf_universeb {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
 (X:abstract_env_ext_impl) : Universe.t -> bool :=
@@ -103,16 +103,14 @@ Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_i
   abstract_env_lookup_correct X {Σ} kn decl : abstract_env_ext_rel X Σ ->
       In (kn, decl) (declarations Σ) <-> abstract_env_lookup X kn = Some decl ;
 
-  abstract_env_leqb_level_n_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ):
-    let uctx := (wf_ext_gc_of_uctx (abstract_env_ext_wf X wfΣ)).π1 in
-    leqb_level_n_spec_gen uctx (abstract_env_leqb_level_n X);
+  abstract_env_check_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ):
+    check_spec (global_ext_uctx Σ) (abstract_env_check X);
   abstract_env_level_mem_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) l:
     LevelSet.In l (global_ext_levels Σ) <-> abstract_env_level_mem X l;
-  abstract_env_is_consistent_correct X Σ uctx udecl :
+  abstract_env_is_consistent_correct X Σ udecl :
     abstract_env_rel X Σ ->
-    ConstraintSet.For_all (declared_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
-    gc_of_uctx udecl = Some uctx ->
-    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X uctx ;
+    wf_uctx_ext (global_levels Σ) udecl ->
+    consistent (UnivConstraintSet.union (global_uctx Σ).2 udecl.2) <-> abstract_env_is_consistent X udecl;
 
   abstract_env_guard_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) fix_cofix Γ mfix :
       guard fix_cofix Σ Γ mfix <-> abstract_env_guard X fix_cofix Γ mfix;
@@ -166,7 +164,7 @@ From Stdlib Require Import MSetFacts.
 
 From Stdlib Require Import Morphisms.
 
-Global Instance consistent_proper : Proper (CS.Equal ==> iff) consistent.
+Global Instance consistent_proper : Proper (UCS.Equal ==> iff) consistent.
 Proof.
   intros c c' eq. rewrite /consistent.
   now setoid_rewrite eq.
@@ -176,11 +174,10 @@ Lemma on_udecl_mono {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} : on_ude
 Proof.
   repeat split; cbn.
   - intros i; rewrite LevelSetFact.empty_iff //.
-  - intros i; rewrite ConstraintSetFact.empty_iff //.
+  - intros i; rewrite UnivConstraintSetFact.empty_iff //.
   - red. rewrite /univs_ext_constraints /=.
     rewrite CS_union_empty.
     apply wfΣ.
-  - apply consistent_extension_on_empty.
 Qed.
 
 Program Definition abstract_env_empty_ext {cf:checker_flags} {X_type : abstract_env_impl}
@@ -200,7 +197,7 @@ Proof.
 Defined.
 
 Program Definition abstract_env_empty {cf:checker_flags} {X_type : abstract_env_impl} : X_type.π1
-  := abstract_env_init (LS.singleton Level.lzero , CS.empty) Retroknowledge.empty _.
+  := abstract_env_init (LS.singleton Level.lzero , UCS.empty) Retroknowledge.empty _.
 Next Obligation.
   repeat split.
   - intros x Hx; cbn in *. inversion Hx.
@@ -211,7 +208,7 @@ Next Obligation.
 Defined.
 
 Definition abstract_env_is_consistent_empty {cf:checker_flags} {X_type : abstract_env_impl}
-  : VSet.t * GoodConstraintSet.t -> bool :=
+  : ContextSet.t -> bool :=
   fun uctx => abstract_env_is_consistent (@abstract_env_empty cf X_type) uctx.
 
 Lemma abstract_env_compare_universe_correct {cf:checker_flags} {X_type : abstract_env_impl}
@@ -221,14 +218,13 @@ Lemma abstract_env_compare_universe_correct {cf:checker_flags} {X_type : abstrac
         abstract_env_compare_universe X conv_pb u u'.
 Proof.
   intros wfu wfu'. pose proof (abstract_env_ext_wf X wfΣ). sq.
-  pose (Hleq := abstract_env_leqb_level_n_correct X wfΣ).
-  erewrite uctx'_eq in Hleq.
+  pose (Hleq := abstract_env_check_correct X wfΣ).
   eapply compare_universeP_gen with (pb := conv_pb) in Hleq.
   apply reflect_reflectT in Hleq.
   split.
   1: now eapply introT.
   1: now eapply elimT.
-  all: tea.
+  all: tea. now constructor.
 Qed.
 
 Lemma abstract_env_compare_sort_correct {cf:checker_flags} {X_type : abstract_env_impl}
@@ -238,49 +234,42 @@ Lemma abstract_env_compare_sort_correct {cf:checker_flags} {X_type : abstract_en
         abstract_env_compare_sort X conv_pb s s'.
 Proof.
   intros wfu wfu'. pose proof (abstract_env_ext_wf X wfΣ). sq.
-  pose (Hleq := abstract_env_leqb_level_n_correct X wfΣ).
-  erewrite uctx'_eq in Hleq.
+  pose (Hleq := abstract_env_check_correct X wfΣ).
   eapply compare_sortP_gen with (pb := conv_pb) in Hleq.
   apply reflect_reflectT in Hleq.
   split.
   1: now eapply introT.
   1: now eapply elimT.
-  all: tea.
+  all: tea. now constructor.
 Qed.
 
 Lemma check_constraints_spec {cf:checker_flags} {X_type : abstract_env_impl}
      (X:X_type.π2.π1)  {Σ} (wfΣ : abstract_env_ext_rel X Σ) ctrs :
-     uctx_invariants ((global_ext_uctx Σ).1, ctrs) ->
+     uctx_invariants ((clean_uctx (global_ext_uctx Σ)).1, ctrs) ->
      abstract_env_check_constraints X ctrs -> valid_constraints (global_ext_constraints Σ) ctrs.
 Proof.
     intros Huctx HH. pose proof (abstract_env_ext_wf X wfΣ). sq.
-    pose (Hleq := abstract_env_leqb_level_n_correct X wfΣ).
-    erewrite uctx'_eq in Hleq.
-    eapply (check_constraints_spec_gen _ (global_ext_uctx Σ)); eauto.
-    - now eapply wf_ext_global_uctx_invariants.
-    - now eapply global_ext_uctx_consistent.
-    - pose proof (wf_ext_global_uctx_invariants Σ H) as [H1 H2].
-      split; eauto.
+    pose (Hleq := abstract_env_check_correct X wfΣ).
+    eapply (check_constraints_spec_gen (clean_uctx (global_ext_uctx Σ))); eauto.
+    - apply check_spec_clean, Hleq.
+    - split. rewrite /clean_uctx //=. lsets. exact Huctx.
 Defined.
 
 Lemma check_constraints_complete {cf:checker_flags} {X_type : abstract_env_impl}
     (X:X_type.π2.π1)  {Σ} (wfΣ : abstract_env_ext_rel X Σ) ctrs (H : check_univs) :
-    uctx_invariants ((global_ext_uctx Σ).1, ctrs) ->
+    uctx_invariants ((clean_uctx (global_ext_uctx Σ)).1, ctrs) ->
     valid_constraints (global_ext_constraints Σ) ctrs -> abstract_env_check_constraints X ctrs.
 Proof.
     intros Huctx HH. pose proof (abstract_env_ext_wf X wfΣ). sq.
-    pose (Hleq := abstract_env_leqb_level_n_correct X wfΣ).
-    erewrite uctx'_eq in Hleq.
-    eapply (check_constraints_complete_gen _ (global_ext_uctx Σ)); eauto.
-    - now eapply wf_ext_global_uctx_invariants.
-    - now eapply global_ext_uctx_consistent.
-    - pose proof (wf_ext_global_uctx_invariants Σ H0) as [H1 H2].
-      split; eauto.
+    pose (Hleq := abstract_env_check_correct X wfΣ).
+    eapply (check_constraints_spec_gen (clean_uctx (global_ext_uctx Σ))); eauto.
+    - apply check_spec_clean, Hleq.
+    - split. rewrite /clean_uctx //=. lsets. exact Huctx.
 Qed.
 
 Lemma abstract_env_check_constraints_correct {cf:checker_flags} {X_type : abstract_env_impl}
     (X:X_type.π2.π1) {Σ} (wfΣ : abstract_env_ext_rel X Σ) ctrs :
-    check_univs -> uctx_invariants ((global_ext_uctx Σ).1, ctrs) ->
+    check_univs -> uctx_invariants ((clean_uctx (global_ext_uctx Σ)).1, ctrs) ->
     valid_constraints Σ ctrs <-> abstract_env_check_constraints X ctrs.
 Proof.
   split; intros.
@@ -312,29 +301,10 @@ Lemma abstract_env_level_mem_correct' {cf:checker_flags} {X_type : abstract_env_
 ( X:X_type.π2.π1) {Σ} (wfΣ : abstract_env_ext_rel X Σ) levels u :
   LevelSet.mem u (LevelSet.union levels (global_ext_levels Σ)) = abstract_env_level_mem' X levels u.
 Proof.
-  unfold abstract_env_level_mem'. rewrite wGraph.VSetProp.Dec.F.union_b.
-  set (b0 := LevelSet.mem _ _). set (b := LevelSet.mem _ _). set (b' := abstract_env_level_mem _ _).
-  assert (Hbb' : b = b').
-  { unfold b'. apply eq_true_iff_eq. rewrite <- (abstract_env_level_mem_correct X wfΣ u).
-    unfold LevelSet.In. now erewrite <- (LevelSet.Raw.mem_spec _ u). }
-  destruct Hbb' => //.
-Qed.
-
-Lemma wf_consistent_extension_on_consistent {cf:checker_flags} {Σ} udecl :
-  wf Σ -> consistent_extension_on (global_uctx Σ) udecl ->
-  consistent (ConstraintSet.union udecl (global_constraints Σ)).
-Proof.
-  intros s Hext. pose proof (wf_consistent _ s).
-  destruct H as [val Hval].
-  destruct (Hext val Hval) as [val' [Hval' Hval'']]. exists val'.
-  intros [[l ct] l'] [Hl|Hl]%CS.union_spec; eauto.
-  destruct (Hval _ Hl); cbn; econstructor.
-  - erewrite <- (Hval'' l0). erewrite <- (Hval'' l'0) => //.
-    + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-    - erewrite <- (Hval'' l0). erewrite <- (Hval'' l'0) => //.
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
-      + destruct s as [[Hs _] _]. now destruct (Hs _ Hl).
+  unfold abstract_env_level_mem'. rewrite LevelSetProp.Dec.F.union_b. f_equal.
+  have h := (abstract_env_level_mem_correct X wfΣ u).
+  apply eqb_iff. rewrite -[abstract_env_level_mem _ _ = true]h.
+  now rewrite LevelSet.mem_spec.
 Qed.
 
 Lemma abstract_env_lookup_correct' {cf:checker_flags} {X_type : abstract_env_impl}
@@ -350,4 +320,3 @@ Proof.
     intros decl Hdecl. eapply abstract_env_lookup_correct in Hdecl; eauto.
     destruct Hnotin. apply in_map_iff. now exists (kn,decl).
 Qed.
-

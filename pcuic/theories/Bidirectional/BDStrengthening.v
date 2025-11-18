@@ -21,7 +21,7 @@ Ltac case_inequalities :=
     destruct (Nat.ltb_spec x y)
   end.
 
-Lemma shiftnP_shiftn P f i : (shiftnP i P) ∘ (shiftn i f) =1 shiftnP i (P ∘ f).
+Lemma shiftnP_shiftn P f i : (shiftnP i P) ∘ (shiftn i f) ≐1 shiftnP i (P ∘ f).
 Proof.
   intros k.
   rewrite !/shiftnP /shiftn.
@@ -94,7 +94,7 @@ Qed.
 Lemma addnP_strengthen_lift i k k' :
   i <= k' ->
   (addnP (S i) (strengthenP k' k xpredT)) ∘ (lift_renaming k (Nat.pred k' - i))
-    =1 xpredT.
+    ≐1 xpredT.
 Proof.
   intros l ?.
   rewrite /addnP /strengthenP /lift_renaming.
@@ -210,7 +210,7 @@ Proof.
 Qed.
 
 Lemma substP_shiftnP k n p :
-  substP k n p (shiftnP (k+n) p) =1 (shiftnP k p).
+  substP k n p (shiftnP (k+n) p) ≐1 (shiftnP k p).
 Proof.
   intros i; rewrite /shiftnP /substP /= /strengthenP /=.
   do 2 case_inequalities => //=.
@@ -316,7 +316,7 @@ Qed.
 Definition unlift_renaming n k i := if i <? k then i else i - n.
 Definition unlift n k := rename (unlift_renaming n k).
 
-Lemma lift_unlift n k : (unlift_renaming n k) ∘ (lift_renaming n k) =1 ren_id.
+Lemma lift_unlift n k : (unlift_renaming n k) ∘ (lift_renaming n k) ≐1 ren_id.
 Proof.
   intros i.
   rewrite /unlift_renaming /lift_renaming /ren_id.

@@ -554,7 +554,7 @@ Section WfAst.
   Qed.
 
   Lemma declared_constructor_wf
-    (ind : inductive) (i : nat) (u : list Level.t)
+    (ind : inductive) (i : nat)
           (mdecl : mutual_inductive_body) (idecl : one_inductive_body) (cdecl : constructor_body) :
       on_global_env cumul_gen wf_decl_pred Σ ->
       declared_constructor Σ (ind, i) mdecl idecl cdecl ->

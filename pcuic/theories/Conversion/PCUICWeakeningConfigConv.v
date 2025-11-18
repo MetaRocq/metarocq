@@ -33,7 +33,8 @@ Lemma compare_decl_config_impl {cf1 cf2} pb Σ φ d d'
   : config.impl cf1 cf2
     -> @compare_decl cf1 pb Σ φ d d' -> @compare_decl cf2 pb Σ φ d d'.
 Proof.
-  intros Hcf []; constructor; eauto using (@compare_term_config_impl cf1 cf2).
+  have hc := (@compare_term_config_impl cf1 cf2).
+  intros Hcf []; constructor; eauto.
 Qed.
 
 Lemma compare_context_config_impl {cf1 cf2} pb Σ φ Γ Γ'

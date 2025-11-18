@@ -1,0 +1,9 @@
+-R ../../template-rocq/theories MetaCoq.Template
+-I ../../template-rocq/gen-src
+-R theories MetaRocq.LoopChecking
+
+theories/LoopCheckingPlugin.v
+theories/Extraction.v
+
+# For testing
+theories/all_stdlib.v

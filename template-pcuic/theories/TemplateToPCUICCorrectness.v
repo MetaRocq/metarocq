@@ -147,7 +147,7 @@ Qed.
 
 Lemma incl_cs_refl cs : cs ⊂_cs cs.
 Proof.
-  split; [lsets|csets].
+  split; [lsets|ucsets].
 Qed.
 
 Lemma extends_trans_global_decls_acc (Σ' : global_env_map) (Σ : Ast.Env.global_declarations) :
@@ -2513,7 +2513,7 @@ Proof.
       intros []; split => //;
       destruct cdecl as [ty [?|] ?]; cbn in *; subst; auto => //.
     + constructor.
-  - cbn. set (a := {| array_level := _ |}).
+  - cbn. set (a := {| array_universe := _ |}).
     replace (tApp (tConst prim_ty [u]) (trans (trans_global_env Σ.1) ty)) with (prim_type (primArray; primArrayModel a) prim_ty) by now simp prim_type.
     econstructor; cbn; eauto.
     + rewrite trans_env_retroknowledge //.
@@ -2525,10 +2525,10 @@ Proof.
         now rewrite H1 H2 H3 /= in H0 |- *.
       * rewrite /trans_constant_body in H0 |- *.
         now rewrite H1 H2 H3 /= in H0 |- *.
-    + constructor; eauto. cbn [array_level a]. eapply validity in X1; eauto.
+    + constructor; eauto. cbn [array_universe a]. eapply validity in X1; eauto.
       eapply PCUICWfUniverses.isType_wf_universes in X1. cbn [trans PCUICWfUniverses.wf_universes] in X1.
       unfold PCUICWfUniverses.wf_universes in X1. cbn [PCUICWfUniverses.on_universes Sort.on_sort s] in X1.
-      move: X1. case: PCUICWfUniverses.wf_universe_reflect => //; eauto. eauto.
+      move: X1. case: PCUICWfUniverses.wf_universeP => //; eauto. eauto.
       cbn [a array_value]. solve_all.
   - assert (WfAst.wf Σ B).
     { now apply typing_wf in X2. }

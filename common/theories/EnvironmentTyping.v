@@ -2,7 +2,7 @@
 From Stdlib Require Import ssreflect ssrbool.
 From Stdlib Require CMorphisms CRelationClasses.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import config BasicAst Universes Environment Primitive.
+From MetaRocq.Common Require Import config BasicAst UnivConstraintType Universes Environment Primitive.
 From Equations Require Import Equations.
 
 Module Lookup (T : Term) (E : EnvironmentSig T).
@@ -226,7 +226,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
       be ensured if we added [global_constraints] as well as a coercion, as it
       would forget the extension's constraints. *)
 
-  Definition global_constraints (Σ : global_env) : ConstraintSet.t :=
+  Definition global_constraints (Σ : global_env) : UnivConstraintSet.t :=
     snd Σ.(universes).
 
   Definition global_uctx (Σ : global_env) : ContextSet.t :=
@@ -235,12 +235,12 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
   Definition global_ext_levels (Σ : global_env_ext) : LevelSet.t :=
     LevelSet.union (levels_of_udecl (snd Σ)) (global_levels Σ.1.(universes)).
 
-  Definition global_ext_constraints (Σ : global_env_ext) : ConstraintSet.t :=
-    ConstraintSet.union
+  Definition global_ext_constraints (Σ : global_env_ext) : UnivConstraintSet.t :=
+    UnivConstraintSet.union
       (constraints_of_udecl (snd Σ))
       (global_constraints Σ.1).
 
-  Coercion global_ext_constraints : global_env_ext >-> ConstraintSet.t.
+  Coercion global_ext_constraints : global_env_ext >-> UnivConstraintSet.t.
 
   Definition global_ext_uctx (Σ : global_env_ext) : ContextSet.t :=
     (global_ext_levels Σ, global_ext_constraints Σ).
@@ -256,12 +256,12 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
   (** Check that [uctx] instantiated at [u] is consistent with
     the current universe graph. *)
 
-  Definition consistent_instance `{checker_flags} (lvs : LevelSet.t) (φ : ConstraintSet.t) uctx (u : Instance.t) :=
+  Definition consistent_instance `{checker_flags} (lvs : LevelSet.t) (φ : UnivConstraintSet.t) uctx (u : Instance.t) :=
     match uctx with
     | Monomorphic_ctx => List.length u = 0
     | Polymorphic_ctx c =>
       (* levels of the instance already declared *)
-      forallb (fun l => LevelSet.mem l lvs) u /\
+      forallb (fun l : Universe.t => LevelSet.subset (Universe.levels l) lvs) u /\
       List.length u = List.length c.1 /\
       valid_constraints φ (subst_instance_cstrs u c.2)
     end.
@@ -288,7 +288,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
 
   Definition wf_universe_dec Σ u : {wf_universe Σ u} + {~wf_universe Σ u}.
   Proof.
-    cbv [wf_universe LevelExprSet.In LevelExprSet.this t_set].
+    cbv [wf_universe LevelExprSet.In LevelExprSet.this Universe.t_set].
     destruct u as [[t _] _].
     induction t as [|t ts [IHt|IHt]]; [ left | | right ].
     { inversion 1. }
@@ -1279,15 +1279,10 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     Open Scope type_scope.
 
     Definition univs_ext_constraints univs φ :=
-      ConstraintSet.union (constraints_of_udecl φ) univs.
+      UnivConstraintSet.union (constraints_of_udecl φ) univs.
 
     Definition satisfiable_udecl (univs : ContextSet.t) φ
       := consistent (univs_ext_constraints (ContextSet.constraints univs) φ).
-
-    (* Constraints from udecl between *global* universes
-       are implied by the constraints in univs *)
-    Definition valid_on_mono_udecl (univs : ContextSet.t) ϕ :=
-      consistent_extension_on univs (constraints_of_udecl ϕ).
 
     (* Check that: *)
     (*   - declared levels are fresh *)
@@ -1297,9 +1292,8 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         let global_levels := global_levels univs in
         let all_levels := LevelSet.union levels global_levels in
         LevelSet.For_all (fun l => ~ LevelSet.In l global_levels) levels
-        /\ ConstraintSet.For_all (declared_cstr_levels all_levels) (constraints_of_udecl udecl)
-        /\ satisfiable_udecl univs udecl
-        /\ valid_on_mono_udecl univs udecl.
+        /\ UnivConstraintSet.For_all (declared_univ_cstr_levels all_levels) (constraints_of_udecl udecl)
+        /\ satisfiable_udecl univs udecl.
 
     (** Positivity checking of the inductive, ensuring that the inductive itself
       can only appear at the right of an arrow in each argument's types. *)
@@ -1417,30 +1411,35 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       | Level.lvar k => Level.lvar (n + k)
       end.
 
-    Definition lift_instance n l :=
-      map (lift_level n) l.
+    Definition on_fst {A B} (f : A -> A) (x : A * B) : A * B := (f x.1, x.2).
 
-    Definition lift_constraint n (c : Level.t * ConstraintType.t * Level.t) :=
+    Definition lift_universe n u :=
+      Universe.map (on_fst (lift_level n)) u.
+
+    Definition lift_instance n l :=
+      map (lift_universe n) l.
+
+    Definition lift_constraint n (c : Universe.t * ConstraintType.t * Universe.t) :=
       let '((l, r), l') := c in
-      ((lift_level n l, r), lift_level n l').
+      ((lift_universe n l, r), lift_universe n l').
 
     Definition lift_constraints n cstrs :=
-      ConstraintSet.fold (fun elt acc => ConstraintSet.add (lift_constraint n elt) acc)
-        cstrs ConstraintSet.empty.
+      UnivConstraintSet.fold (fun elt acc => UnivConstraintSet.add (lift_constraint n elt) acc)
+        cstrs UnivConstraintSet.empty.
 
-    Definition level_var_instance n (inst : list name) :=
+    Definition level_var_instance n (inst : list name) : LevelInstance.t :=
       mapi_rec (fun i _ => Level.lvar i) inst n.
 
     Fixpoint variance_cstrs (v : list Variance.t) (u u' : Instance.t) :=
       match v, u, u' with
-      | _, [], [] => ConstraintSet.empty
+      | _, [], [] => UnivConstraintSet.empty
       | v :: vs, u :: us, u' :: us' =>
         match v with
         | Variance.Irrelevant => variance_cstrs vs us us'
-        | Variance.Covariant => ConstraintSet.add (u, ConstraintType.Le 0, u') (variance_cstrs vs us us')
-        | Variance.Invariant => ConstraintSet.add (u, ConstraintType.Eq, u') (variance_cstrs vs us us')
+        | Variance.Covariant => UnivConstraintSet.add (u, ConstraintType.Le, u') (variance_cstrs vs us us')
+        | Variance.Invariant => UnivConstraintSet.add (u, ConstraintType.Eq, u') (variance_cstrs vs us us')
         end
-      | _, _, _ => (* Impossible due to on_variance invariant *) ConstraintSet.empty
+      | _, _, _ => (* Impossible due to on_variance invariant *) UnivConstraintSet.empty
       end.
 
     (** This constructs a duplication of the polymorphic universe context of the inductive,
@@ -1452,11 +1451,11 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       | Monomorphic_ctx => None
       | Polymorphic_ctx auctx =>
         let (inst, cstrs) := auctx in
-        let u' := level_var_instance 0 inst in
+        let u' : Instance.t := level_var_instance 0 inst in
         let u := lift_instance #|inst| u' in
-        let cstrs := ConstraintSet.union cstrs (lift_constraints #|inst| cstrs) in
+        let cstrs := UnivConstraintSet.union cstrs (lift_constraints #|inst| cstrs) in
         let cstrv := variance_cstrs v u u' in
-        let auctx' := (inst ++ inst, ConstraintSet.union cstrs cstrv) in
+        let auctx' := (inst ++ inst, UnivConstraintSet.union cstrs cstrv) in
         Some (Polymorphic_ctx auctx', u, u')
       end.
 
@@ -1568,7 +1567,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
               type substituted along with the previous arguments replaced by projections. *)
           let u := abstract_instance mdecl.(ind_universes) in
           let ind := {| inductive_mind := mind; inductive_ind := i |} in
-          p.(proj_type) = subst (inds mind u mdecl.(ind_bodies)) (S (ind_npars mdecl))
+          p.(proj_type) = subst (inds mind (Instance.of_level_instance u) mdecl.(ind_bodies)) (S (ind_npars mdecl))
             (subst (projs ind mdecl.(ind_npars) k) 0
               (lift 1 k (decl_type decl)));
         on_proj_relevance : p.(proj_relevance) = decl.(decl_name).(binder_relevance) }.
@@ -1783,7 +1782,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     Definition on_global_univs (c : ContextSet.t) :=
       let levels := global_levels c in
       let cstrs := ContextSet.constraints c in
-      ConstraintSet.For_all (declared_cstr_levels levels) cstrs /\
+      UnivConstraintSet.For_all (declared_univ_cstr_levels levels) cstrs /\
       LS.For_all (negb ∘ Level.is_var) levels /\
       consistent cstrs.
 
@@ -1799,15 +1798,11 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       intro H; split => //.
       unfold empty_ext, snd. repeat split.
       - unfold levels_of_udecl. intros x e. lsets.
-      - unfold constraints_of_udecl. intros x e. csets.
+      - unfold constraints_of_udecl. intros x e. ucsets.
       - unfold satisfiable_udecl, univs_ext_constraints, constraints_of_udecl, fst_ctx, fst => //.
         destruct H as ((cstrs & _ & consistent) & decls).
         destruct consistent; eexists.
         intros v e. specialize (H v e); tea.
-      - unfold valid_on_mono_udecl, constraints_of_udecl, consistent_extension_on.
-        intros v sat; exists v; split.
-        + intros x e. csets.
-        + intros x e => //.
     Qed.
 
   End GlobalMaps.

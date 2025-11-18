@@ -248,7 +248,7 @@ Section MkApps_rec.
     (plazy : forall t, P t -> P (tLazy t))
     (pforce : forall t, P t -> P (tForce t)).
 
-  Definition inspect {A} (x : A) : { y : A | x = y } := exist _ x eq_refl.
+  Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
 
   Import EqNotations.
 
@@ -260,7 +260,7 @@ Section MkApps_rec.
     | tLambda n1 t => plam n1 t (rec t)
     | tLetIn n2 t0 t1 => plet n2 t0 (rec t0) t1 (rec t1)
     | tApp t2 t3 with inspect (decompose_app (tApp t2 t3)) :=
-      { | exist _ (t, l) da :=
+      { | exist (t, l) da :=
         let napp := decompose_app_notApp _ _ _ da in
         let nonnil := decompose_app_app _ _ _ _ da in
         let pt := rec t in
@@ -326,7 +326,7 @@ Section MkApps_rec.
     | tLambda n1 t => plam n1 t
     | tLetIn n2 t0 t1 => plet n2 t0 t1
     | tApp t2 t3 with inspect (decompose_app (tApp t2 t3)) :=
-      { | exist _ (t, l) da :=
+      { | exist (t, l) da :=
         let napp := decompose_app_notApp _ _ _ da in
         let nonnil := decompose_app_app _ _ _ _ da in
         rew [P] (eq_sym (decompose_app_inv da)) in papp t l napp nonnil }

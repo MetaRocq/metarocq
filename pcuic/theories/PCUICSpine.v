@@ -1772,6 +1772,8 @@ Section WfEnv.
     eapply (PCUICSubstitution.substitution (Δ := [])) in Hs; tea.
   Qed.
 
+  Arguments Nat.leb : simpl never.
+
   Lemma lift_to_extended_list_k n Γ : map (lift n #|Γ|) (to_extended_list_k Γ 0) =
     to_extended_list_k Γ 0.
   Proof using Type.
@@ -1788,7 +1790,7 @@ Section WfEnv.
     now rewrite Nat.add_1_r IHΓ.
     specialize (IHΓ (tRel n' :: l) (S n')).
     rewrite Nat.add_succ_r in IHΓ.
-    rewrite Nat.add_1_r IHΓ. simpl.
+    rewrite Nat.add_1_r IHΓ. cbn -[leb].
     destruct (leb_spec_Set (S (#|Γ| + n')) n'). lia.
     reflexivity.
   Qed.
@@ -2206,7 +2208,7 @@ Section WfEnv.
     assumption.
   Qed.
 
-  Lemma shift_subst_consn_tip t : ↑ ∘s ([t] ⋅n ids) =1 ids.
+  Lemma shift_subst_consn_tip t : ↑ ∘s ([t] ⋅n ids) ≐1 ids.
   Proof using Type.
     rewrite /subst_consn; intros [|i] => /= //.
   Qed.
@@ -2519,7 +2521,7 @@ Section WfEnv.
 
   Local Set SimplIsCbn.
 
-  Lemma subst_lift1 x s : (subst0 (x :: s) ∘ lift0 1) =1 subst0 s.
+  Lemma subst_lift1 x s : (subst0 (x :: s) ∘ lift0 1) ≐1 subst0 s.
   Proof using Type.
     intros t. erewrite <- PCUICParallelReduction.subst_skipn'.
     rewrite lift0_id. simpl. now rewrite skipn_S skipn_0.

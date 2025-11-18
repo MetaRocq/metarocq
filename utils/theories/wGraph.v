@@ -992,7 +992,7 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     destruct (g a) => //=.
   Qed.
 
-  #[global] Instance fold_left_proper {A B} : Proper (`=2` ==> `=2`) (@fold_left A B).
+  #[global] Instance fold_left_proper {A B} : Proper (`≐2` ==> `≐2`) (@fold_left A B).
   Proof using Type.
     intros f g hfg x acc.
     induction x in acc |- * => //.

@@ -11,13 +11,13 @@ Set Default Goal Selector "!".
 Implicit Types (cf : checker_flags).
 
 Lemma global_ext_constraints_app Σ Σ' φ
-  : ConstraintSet.Subset (universes Σ).2 (universes Σ').2 ->
-    ConstraintSet.Subset (global_ext_constraints (Σ, φ))
+  : UnivConstraintSet.Subset (universes Σ).2 (universes Σ').2 ->
+    UnivConstraintSet.Subset (global_ext_constraints (Σ, φ))
                          (global_ext_constraints (Σ', φ)).
 Proof.
   unfold global_ext_constraints; simpl.
-  intros sub ctr Hc. apply ConstraintSet.union_spec in Hc.
-  apply ConstraintSet.union_spec.
+  intros sub ctr Hc. apply UnivConstraintSet.union_spec in Hc.
+  apply UnivConstraintSet.union_spec.
   destruct Hc as [Hc|Hc]; [now left|right]. clear φ.
   unfold global_constraints in Hc.
   apply (sub _ Hc).
@@ -37,7 +37,7 @@ Ltac rename_hyp h ht ::= my_rename_hyp h ht.
 
 (** ** Constraints *)
 
-Lemma weakening_env_global_ext_levels Σ Σ' φ (H : extends Σ Σ') l
+Lemma weakening_env_global_ext_level Σ Σ' φ (H : extends Σ Σ') l
   : LevelSet.In l (global_ext_levels (Σ, φ))
     -> LevelSet.In l (global_ext_levels (Σ', φ)).
 Proof.
@@ -49,9 +49,17 @@ Proof.
   apply LevelSet.union_spec in Hl.
   apply LevelSet.union_spec; intuition auto.
 Qed.
+#[global] Hint Resolve weakening_env_global_ext_level : extends.
+
+Lemma weakening_env_global_ext_levels Σ Σ' φ (H : extends Σ Σ') ls
+  : LevelSet.Subset ls (global_ext_levels (Σ, φ))
+    -> LevelSet.Subset ls (global_ext_levels (Σ', φ)).
+Proof.
+  move=> hs l /hs. now apply weakening_env_global_ext_level.
+Qed.
 #[global] Hint Resolve weakening_env_global_ext_levels : extends.
 
-Lemma weakening_env_global_ext_levels' Σ Σ' φ (H : extends Σ Σ') l
+Lemma weakening_env_global_ext_level_mem Σ Σ' φ (H : extends Σ Σ') l
   : LevelSet.mem l (global_ext_levels (Σ, φ))
     -> LevelSet.mem l (global_ext_levels (Σ', φ)).
 Proof.
@@ -59,8 +67,15 @@ Proof.
   now eapply LevelSet.mem_spec, weakening_env_global_ext_levels.
 Qed.
 
+Lemma weakening_env_global_ext_levels_subset Σ Σ' φ (H : extends Σ Σ') l
+  : LevelSet.subset l (global_ext_levels (Σ, φ))
+    -> LevelSet.subset l (global_ext_levels (Σ', φ)).
+Proof.
+  rewrite ![is_true _]LevelSet.subset_spec. now apply weakening_env_global_ext_levels.
+Qed.
+
 Lemma weakening_env_global_ext_constraints Σ Σ' φ (H : extends Σ Σ')
-  : ConstraintSet.Subset (global_ext_constraints (Σ, φ))
+  : UnivConstraintSet.Subset (global_ext_constraints (Σ, φ))
                          (global_ext_constraints (Σ', φ)).
 Proof.
   destruct H as [sub _].
@@ -165,7 +180,7 @@ Proof.
     destruct ctrs; tas.
     destruct X as (H0 & H1 & H2); repeat split; tas.
     - eapply forallb_Forall in H0; eapply forallb_Forall, Forall_impl; tea.
-      intros x ?; now eapply weakening_env_global_ext_levels'.
+      intros x ?; now eapply weakening_env_global_ext_levels_subset.
     - eapply valid_subset; tea;
       now eapply weakening_env_global_ext_constraints.
 Qed.
@@ -216,11 +231,11 @@ Definition on_udecl_prop (Σ : global_env) (udecl : universes_decl)
   := let levels := levels_of_udecl udecl in
      let global_levels := global_levels Σ.(universes) in
      let all_levels := LevelSet.union levels global_levels in
-     ConstraintSet.For_all (declared_cstr_levels all_levels) (constraints_of_udecl udecl).
+     UnivConstraintSet.For_all (declared_univ_cstr_levels all_levels) (constraints_of_udecl udecl).
      (* /\ match udecl with
        | Monomorphic_ctx ctx => LevelSet.for_all (negb ∘ Level.is_var) ctx.1
                                /\ LevelSet.Subset ctx.1 global_levels
-                               /\ ConstraintSet.Subset ctx.2 (global_constraints Σ)
+                               /\ UnivConstraintSet.Subset ctx.2 (global_constraints Σ)
                                /\ satisfiable_udecl Σ.(universes) udecl
        | _ => True
        end. *)
@@ -234,10 +249,10 @@ Qed.
 
 Lemma declared_cstr_levels_sub l l' c :
   LevelSet.Subset l l' ->
-  declared_cstr_levels l c -> declared_cstr_levels l' c.
+  declared_univ_cstr_levels l c -> declared_univ_cstr_levels l' c.
 Proof.
-  intros sub; unfold declared_cstr_levels.
-  destruct c as [[l1 eq] l2]. intuition auto.
+  intros sub; unfold declared_univ_cstr_levels.
+  destruct c as [[l1 eq] l2]. firstorder.
 Qed.
 
 Lemma on_udecl_on_udecl_prop (Σ : global_env) ctx :
@@ -369,6 +384,7 @@ Qed. *)
 
 (** ** Back to universes *)
 
+Instance hr : RelationClasses.RewriteRelation LevelSet.Subset := {}.
 
 Lemma weaken_lookup_on_global_env' Σ c decl :
   wf Σ ->
@@ -386,59 +402,16 @@ Proof using P Pcmp cf.
     destruct o as [H1 [H2 [H3 H4]]]. repeat split.
     clear -H2. intros [[? ?] ?] Hc. specialize (H2 _ Hc).
     destruct H2 as [H H']. simpl. split.
-    * apply LevelSet.union_spec in H. apply LevelSet.union_spec.
-      destruct H; [now left|right]; auto.
-    * apply LevelSet.union_spec in H'. apply LevelSet.union_spec.
-      destruct H'; [now left|right]; auto.
-    (*+ revert H3. case_eq (universes_decl_of_decl d); trivial.
-      intros ctx eq Hctx. repeat split.
-      * auto.
-      * intros l Hl. simpl. replace (monomorphic_levels_decl d) with ctx.1.
-        -- apply in_global_levels. apply LevelSet.union_spec; now left.
-        -- clear -eq. destruct d as [c|c]; cbn in *.
-           all: destruct c; cbn in *; now rewrite eq.
-      * simpl. replace (monomorphic_constraints_decl d) with ctx.2.
-        -- intros c Hc; apply ConstraintSet.union_spec; now left.
-        -- clear -eq. destruct d as [c|c]; cbn in *.
-           all: destruct c; cbn in *; now rewrite eq.
-      * clear -eq H4. destruct H4 as [v Hv]. exists v.
-      intros c Hc; apply (Hv c).
-      apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      2: apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc].
-      -- apply ConstraintSet.union_spec. simpl in *. left; now rewrite eq.
-      -- apply ConstraintSet.union_spec; left. simpl.
-         destruct d as [[? ? []]|[? ? ? ? []]]; simpl in *; tas;
-           now apply ConstraintSet.empty_spec in Hc.
-      -- apply ConstraintSet.union_spec; now right.*)
+    * rewrite H. lsets.
+    * rewrite H'. lsets.
   - specialize (IHwfΣ HH). revert IHwfΣ o; clear.
     generalize (universes_decl_of_decl decl); intros d' HH Hd.
     unfold on_udecl_prop in *.
     intros [[? ?] ?] Hc. specialize (HH _ Hc).
     destruct HH as [H' H'']. simpl. split.
-    * apply LevelSet.union_spec in H'. apply LevelSet.union_spec.
-      destruct H'; [now left|right]; auto.
-    * apply LevelSet.union_spec in H''. apply LevelSet.union_spec.
-      destruct H''; [now left|right]; auto.
-
-    (*+ destruct d'; trivial. repeat split.
-      * destruct H2; auto.
-      * intros l Hl. apply H2 in Hl.
-        apply LevelSet.union_spec; now right.
-      * intros c Hc. apply H2 in Hc.
-        apply ConstraintSet.union_spec; now right.
-      * destruct Hd as [_ [_ [_ Hd]]]; cbn in Hd.
-        destruct Hd as [v Hv]. exists v. intros c Hc; apply Hv; clear v Hv.
-          apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc]; simpl in *.
-          2: apply ConstraintSet.union_spec in Hc; destruct Hc as [Hc|Hc];
-            simpl in *.
-          -- apply H2 in Hc. apply ConstraintSet.union_spec; now right.
-          -- clear -Hc. destruct d as [[? ? []]|[? ? ? ? []]]; cbn in *.
-             all: try (apply ConstraintSet.empty_spec in Hc; contradiction).
-             all: apply ConstraintSet.union_spec; now left.
-          -- apply ConstraintSet.union_spec; now right.*)
+    * rewrite H'. lsets.
+    * rewrite H''; lsets.
 Qed.
-
-
 
 Definition weaken_env_prop_full_gen
              (R : global_env_ext -> global_env_ext -> Type)
@@ -564,7 +537,7 @@ Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
 #[warnings="-ambiguous-paths"]
 Global Coercion weaken_env_prop_strictly_on_decls_to_strictly_decls {cf Pcmp P P0} : @weaken_env_strictly_on_decls_prop cf Pcmp P P0 -> @weaken_env_strictly_decls_prop cf Pcmp P P0.
 Proof. eapply weaken_env_prop_gen_impl; repeat intro; tc; reflexivity. Qed.
-#[export] Set Warnings Append "ambiguous-paths".
+(* #[export] Set Warnings Append "ambiguous-paths". *)
 
 #[global] Hint Resolve weaken_env_prop_full_to_decls : extends.
 #[global] Hint Resolve weaken_env_prop_full_to_strictly_on_decls : extends.

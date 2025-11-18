@@ -276,12 +276,12 @@ Proof.
   now rewrite (H t).
 Qed.
 
-#[global] Instance map_decl_proper {term term'} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_decl term term').
+#[global] Instance map_decl_proper {term term'} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_decl term term').
 Proof.
   intros f g Hfg x y ->. now apply map_decl_ext.
 Qed.
 
-#[global] Instance map_decl_pointwise {term term'} : Proper (`=1` ==> `=1`) (@map_decl term term').
+#[global] Instance map_decl_pointwise {term term'} : Proper (`≐1` ==> `≐1`) (@map_decl term term').
 Proof. intros f g Hfg x. rewrite /map_decl.
   destruct x => /=. f_equal.
   - now rewrite Hfg.
@@ -289,12 +289,12 @@ Proof. intros f g Hfg x. rewrite /map_decl.
 Qed.
 (*
 
-#[global] Instance pointwise_subrelation {A B} : subrelation (`=1`) (@Logic.eq A ==> @Logic.eq B)%signature.
+#[global] Instance pointwise_subrelation {A B} : subrelation (`≐1`) (@Logic.eq A ==> @Logic.eq B)%signature.
 Proof.
   intros f g Hfg x y ->. now rewrite Hfg.
 Qed.
 
-#[global] Instance pointwise_subrelation_inv {A B} : subrelation (@Logic.eq A ==> @Logic.eq B)%signature  (`=1`).
+#[global] Instance pointwise_subrelation_inv {A B} : subrelation (@Logic.eq A ==> @Logic.eq B)%signature  (`≐1`).
 Proof.
   intros f g Hfg x. now specialize (Hfg x x eq_refl).
 Qed.*)
@@ -302,7 +302,7 @@ Qed.*)
 Definition map_context {term term'} (f : term -> term') (c : list (context_decl term)) :=
   List.map (map_decl f) c.
 
-#[global] Instance map_context_proper {term term'} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_context term term').
+#[global] Instance map_context_proper {term term'} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_context term term').
 Proof.
   intros f g Hfg x y ->.
   now rewrite /map_context Hfg.
@@ -315,7 +315,7 @@ Proof. now unfold map_context; rewrite length_map. Qed.
 Definition test_decl {term} (f : term -> bool) (d : context_decl term) : bool :=
   option_default f d.(decl_body) true && f d.(decl_type).
 
-#[global] Instance test_decl_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@test_decl term).
+#[global] Instance test_decl_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@test_decl term).
 Proof.
   intros f g Hfg [na [b|] ty] ? <- => /=; rewrite /test_decl /=;
   now rewrite Hfg.
@@ -378,7 +378,7 @@ Section ContextMap.
   end.
 End ContextMap.
 
-#[global] Instance mapi_context_proper {term term'} : Proper (`=2` ==> Logic.eq ==> Logic.eq) (@mapi_context term term').
+#[global] Instance mapi_context_proper {term term'} : Proper (`≐2` ==> Logic.eq ==> Logic.eq) (@mapi_context term term').
 Proof.
   intros f g Hfg Γ ? <-.
   induction Γ as [|[na [b|] ty] Γ]; simpl; auto; f_equal; auto; now rewrite Hfg.
@@ -400,7 +400,7 @@ Section ContextTest.
     end.
 End ContextTest.
 
-#[global] Instance test_context_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@test_context term).
+#[global] Instance test_context_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@test_context term).
 Proof.
   intros f g Hfg Γ ? <-.
   induction Γ as [|[na [b|] ty] Γ]; simpl; auto; f_equal; auto; now rewrite Hfg.
@@ -416,7 +416,7 @@ Section ContextTestK.
     end.
 End ContextTestK.
 
-#[global] Instance test_context_k_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq ==> Logic.eq) (@test_context_k term).
+#[global] Instance test_context_k_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq ==> Logic.eq) (@test_context_k term).
 Proof.
   intros f g Hfg k ? <- Γ ? <-.
   induction Γ as [|[na [b|] ty] Γ]; simpl; auto; f_equal; auto; now rewrite Hfg.
@@ -466,7 +466,7 @@ Section Contexts.
   Lemma map_decl_body (f : term -> term') decl : option_map f (decl_body decl) = decl_body (map_decl f decl).
   Proof using Type. destruct decl; reflexivity. Qed.
 
-  Lemma map_decl_id : @map_decl term term id =1 id.
+  Lemma map_decl_id : @map_decl term term id ≐1 id.
   Proof using Type. intros d; now destruct d as [? [] ?]. Qed.
 
   Lemma option_map_decl_body_map_decl (f : term -> term') x :
@@ -575,7 +575,7 @@ Section Contexts.
   Qed.
 
   #[global]
-  Instance fold_context_Proper : Proper (`=2` ==> `=1`) fold_context.
+  Instance fold_context_Proper : Proper (`≐2` ==> `≐1`) fold_context.
   Proof using Type.
     intros f f' Hff' x.
     funelim (fold_context f x); simpl; auto. simp fold_context.
@@ -616,7 +616,7 @@ Section Contexts.
   Qed.
 
   Lemma fold_context_k_ext (f g : nat -> term' -> term) Γ :
-    f =2 g ->
+    f ≐2 g ->
     fold_context_k f Γ = fold_context_k g Γ.
   Proof using Type.
     intros hfg.

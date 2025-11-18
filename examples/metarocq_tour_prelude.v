@@ -25,7 +25,8 @@ Definition univ := Level.level "s".
 (* TODO move to SafeChecker *)
 
 Definition gctx : global_env_ext :=
-  ({| universes := (LS.union (LevelSet.singleton Level.lzero) (LevelSet.singleton univ), ConstraintSet.empty);
+  ({| universes := (LevelSet.singleton univ,
+    UnivConstraintSet.singleton (Universe.zero, UnivConstraintType.ConstraintType.Le, Universe.of_level univ));
       declarations := []; retroknowledge := Retroknowledge.empty |}, Monomorphic_ctx).
 
 (** We use the environment checker to produce the proof that gctx, which is a singleton with only
@@ -46,16 +47,40 @@ Definition make_wf_env_ext (Σ : global_env_ext) : EnvCheck wf_env_ext wf_env_ex
   '(exist Σ' pf) <- check_wf_ext optimized_abstract_env_impl Σ ;;
   ret Σ'.
 
+(* These tactics can be useful to debug an opaque function blocking reduction of the
+  safe checker *)
+
+Ltac abs_checked_comp H :=
+    let t := eval cbv delta [H] in H in
+    match t with
+    | Checked_comp ((?t; ?prf)) =>
+      let Hc := fresh in set (Hc := prf) in H; clearbody Hc; cbn in H, Hc
+    end.
+
+Ltac set_head_match_aux H c :=
+  match c with
+    | match ?d with _ => _ end =>
+      set_head_match_aux H d || (let head := fresh in set (head := d) in H)
+  end.
+
+Ltac set_head_match c := let t := eval cbv delta [c] in c in
+  set_head_match_aux c t.
+
+Ltac hnf_head_match c :=
+  let c := eval hnf in c in
+  match c with
+    | match ?d with _ => _ end => let head := fresh in set (head := d)
+    | match ?d with _ => _ end eq_refl => let head := fresh in set (head := d)
+  end.
+
 Definition gctx_wf_env : wf_env_ext.
 Proof.
   let wf_proof := eval hnf in (make_wf_env_ext gctx) in
   match wf_proof with
   | CorrectDecl _ ?x => exact x
-  | _ => fail "Couldn't prove the global environment is well-formed"
+  | ?h => fail "Couldn't prove the global environment is well-formed" h
   end.
 Defined.
-
-
 
 (** There is always a proof of `forall x : Sort s, x -> x` *)
 
@@ -70,7 +95,7 @@ Ltac fill_inh t :=
   lazymatch goal with
   [ wfΓ : forall _ _ , ∥ wf_local _ ?Γ ∥ |- inh ?Σ ?Γ ?T ] =>
     let t := uconstr:(check_inh Σ Γ wfΓ t (T:=T)) in
-    let proof := eval cbn in t in
+    let proof := eval hnf in t in
     match proof with
     | Checked ?d => exact_no_check d
     | TypeError ?e =>

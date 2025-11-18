@@ -25,12 +25,14 @@ struct
   type quoted_proj = projection
   type quoted_global_reference = global_reference
 
+  type quoted_universe = Universes0.Universe.t
   type quoted_sort_family = Universes0.allowed_eliminations
-  type quoted_constraint_type = Universes0.ConstraintType.t
+  type quoted_constraint_type = UnivConstraintType.ConstraintType.t
   type quoted_univ_constraint = Universes0.UnivConstraint.t
-  type quoted_univ_constraints = Universes0.ConstraintSet.t
+  type quoted_univ_constraints = Universes0.UnivConstraintSet.t
   type quoted_univ_level = Universes0.Level.t
   type quoted_univ_instance = Universes0.Instance.t
+  type quoted_univ_level_instance = Universes0.LevelInstance.t
   type quoted_univ_context = Universes0.UContext.t
   type quoted_univ_contextset = Universes0.ContextSet.t
   type quoted_abstract_univ_context = Universes0.AUContext.t
@@ -104,7 +106,7 @@ struct
       aci_relevance = x.ci_relevance }
 
   let inspect_term (tt: t):(t, quoted_int, quoted_ident, quoted_aname, quoted_sort, quoted_cast_kind,
-    quoted_kernel_name, quoted_inductive, quoted_relevance, quoted_univ_level, quoted_univ_instance, quoted_proj,
+    quoted_kernel_name, quoted_inductive, quoted_relevance, quoted_universe, quoted_univ_instance, quoted_proj,
     quoted_int63, quoted_float64, quoted_pstring) structure_of_term =
     match tt with
     | Coq_tRel n -> ACoq_tRel n
@@ -214,26 +216,32 @@ struct
     let u = Univ.Universe.make l in
     Caml_nat.iter_nat Univ.Universe.super u (snd trm)
 
-  let unquote_universe evm (trm : Universes0.Universe.t) =
-    let u = Universes0.t_set trm in
+  let unquote_universe (trm : Universes0.Universe.t) =
+    let u = Universes0.Universe.t_set trm in
     let ux_list = Universes0.LevelExprSet.elements u in
     let l = List.map unquote_level_expr ux_list in
     let u = List.fold_left Univ.Universe.sup (List.hd l) (List.tl l) in
-    evm, u
+    u
 
   let unquote_sort evm trm =
     match trm with
     | Universes0.Sort.Coq_sSProp -> evm, Sorts.sprop
     | Universes0.Sort.Coq_sProp -> evm, Sorts.prop
     | Universes0.Sort.Coq_sType u ->
-      let evm, u = unquote_universe evm u in
+      let u = unquote_universe u in
       evm, Sorts.sort_of_univ u
 
   let unquote_universe_level evm l = evm, unquote_level l
+  let universe_to_level u =
+    match Univ.Universe.level u with
+    | Some l -> l
+    | None -> CErrors.user_err Pp.(str"universe_to_level: not a level " ++ Univ.Universe.pr Univ.Level.raw_pr u)
+
 
   let unquote_universe_instance(evm: Evd.evar_map) (l: quoted_univ_instance): Evd.evar_map * UVars.Instance.t
-  = (evm,  UVars.Instance.of_array ([||], Array.of_list (List.map unquote_level l)))
+  = (evm,  UVars.Instance.of_array ([||], Array.of_list (List.map (universe_to_level $ unquote_universe) l))) (* FIXME: algebraics *)
 
+  let unquote_universe evm trm = evm, unquote_universe trm
 
   let unquote_global_reference (trm : Kernames.global_reference) : GlobRef.t =
     let open GlobRef in

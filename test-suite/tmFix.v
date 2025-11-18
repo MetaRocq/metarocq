@@ -112,10 +112,10 @@ Module Unquote.
     := f (fun a
           => (bind@{t u} (tmQuote@{t u} A) (fun qA =>
               bind@{t u} (tmQuote@{t u} B) (fun qB =>
-              bind@{t u} tmQuoteLevel@{a t u} (fun qa =>
-              bind@{t u} tmQuoteLevel@{b t u} (fun qb =>
-              bind@{t u} tmQuoteLevel@{t t u} (fun qt =>
-              bind@{t u} tmQuoteLevel@{u t u} (fun qu =>
+              bind@{t u} tmQuoteUniverse@{a t u} (fun qa =>
+              bind@{t u} tmQuoteUniverse@{b t u} (fun qb =>
+              bind@{t u} tmQuoteUniverse@{t t u} (fun qt =>
+              bind@{t u} tmQuoteUniverse@{u t u} (fun qu =>
               let self := tConst (self, "tmFix'"%bs) [qa;qb;qt;qu] in
               @tmFix'@{a b t u} A B (mkApps self [qA; qB]) f a)))))))).
   (* reference that uses the constant in Core, for equality comparison *)
@@ -123,10 +123,10 @@ Module Unquote.
     := f (fun a =>
             bind@{t u} (tmQuote@{t u} A) (fun qA =>
             bind@{t u} (tmQuote@{t u} B) (fun qB =>
-            bind@{t u} tmQuoteLevel@{a t u} (fun qa =>
-            bind@{t u} tmQuoteLevel@{b t u} (fun qb =>
-            bind@{t u} tmQuoteLevel@{t t u} (fun qt =>
-            bind@{t u} tmQuoteLevel@{u t u} (fun qu =>
+            bind@{t u} tmQuoteUniverse@{a t u} (fun qa =>
+            bind@{t u} tmQuoteUniverse@{b t u} (fun qb =>
+            bind@{t u} tmQuoteUniverse@{t t u} (fun qt =>
+            bind@{t u} tmQuoteUniverse@{u t u} (fun qu =>
             let self := tConst (MPfile ["Core"; "TemplateMonad"; "Template"; "MetaRocq"], "tmFix'")%bs [qa;qb;qt;qu] in
             @tmFix'@{a b t u} A B (mkApps self [qA; qB]) f a))))))).
   Definition six := tmFix (fun f a => if (6 <? a) then ret 6 else f (S a))%nat 0%nat.

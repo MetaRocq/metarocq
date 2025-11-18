@@ -137,7 +137,7 @@ Definition mut_i : mutual_inductive_entry :=
   mind_entry_finite := Finite;
   mind_entry_params := [];
   mind_entry_inds := [one_i; one_i2];
-  mind_entry_universes := Monomorphic_entry (LevelSet.empty, ConstraintSet.empty);
+  mind_entry_universes := Monomorphic_entry (LevelSet.empty, UnivConstraintSet.empty);
   mind_entry_template := false;
   mind_entry_variance := None;
   mind_entry_private := None;
@@ -168,7 +168,7 @@ Definition mut_list_i : mutual_inductive_entry :=
   mind_entry_params := [{| decl_name := bnamed "A"; decl_body := None;
                          decl_type := (tSort Sort.type0) |}];
   mind_entry_inds := [one_list_i];
-  mind_entry_universes := Monomorphic_entry (LevelSet.empty, ConstraintSet.empty);
+  mind_entry_universes := Monomorphic_entry (LevelSet.empty, UnivConstraintSet.empty);
   mind_entry_template := false;
   mind_entry_variance := None;
   mind_entry_private := None;
@@ -379,10 +379,10 @@ Inductive T : Type :=
 MetaRocq Quote Recursively Definition TT := T.
 
 Unset MetaRocq Strict Unquote Universe Mode.
-MetaRocq Unquote Definition t := (tSort (sType (Universe.make' (Level.level "Top.20000")))).
+MetaRocq Unquote Definition t := (tSort (sType (Universe.of_level (Level.level "Top.20000")))).
 MetaRocq Unquote Definition t' := (tSort (sType fresh_universe)).
 MetaRocq Unquote Definition myProp := (tSort sProp).
-MetaRocq Unquote Definition mySet := (tSort (sType (Universe.make' Level.lzero))).
+MetaRocq Unquote Definition mySet := (tSort (sType (Universe.of_level Level.lzero))).
 
 (** Cofixpoints *)
 CoInductive streamn : Set :=

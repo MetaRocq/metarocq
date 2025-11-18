@@ -4,8 +4,19 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICInduction.
 
 #[global]
+Instance subst_level_instance_list A `{UnivLevelSubst A} : UnivLevelSubst (list A) :=
+  fun u => List.map (subst_level_instance u).
+
+#[global]
 Instance subst_instance_list A `{UnivSubst A} : UnivSubst (list A) :=
   fun u => List.map (subst_instance u).
+
+Lemma subst_level_instance_length (u1 : LevelInstance.t) u2 :
+  #|subst_level_instance u2 u1| = #|u1|.
+Proof.
+  unfold subst_level_instance.
+  now rewrite length_map.
+Qed.
 
 Lemma subst_instance_instance_length (u1 : Instance.t) u2 :
   #|subst_instance u2 u1| = #|u1|.
@@ -14,7 +25,15 @@ Proof.
   now rewrite length_map.
 Qed.
 #[global]
-Hint Rewrite subst_instance_instance_length : len.
+Hint Rewrite subst_level_instance_length subst_instance_instance_length : len.
+
+Lemma subst_level_instance_nil {A} {ua : UnivSubst A} u (xs : list A) :
+  subst_level_instance u [] = [].
+Proof. reflexivity. Qed.
+
+Lemma subst_level_instance_cons {A} {ua : UnivLevelSubst A} u x (xs : list A) :
+  subst_level_instance u (x :: xs) = subst_level_instance u x :: subst_level_instance u xs.
+Proof. reflexivity. Qed.
 
 Lemma subst_instance_nil {A} {ua : UnivSubst A} u (xs : list A) :
   subst_instance u [] = [].

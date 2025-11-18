@@ -546,7 +546,7 @@ Section Conversion.
   Definition wf_universe_iff  Σ u :
     wf_universeb Σ u <-> wf_universe Σ u.
   Proof using Type.
-    symmetry; apply reflect_iff. eapply wf_universe_reflect.
+    symmetry; apply reflect_iff. eapply wf_universeP.
   Qed.
 
   Definition wf_sort_iff Σ s :
@@ -1351,8 +1351,8 @@ Section Conversion.
 
   Lemma eqb_universe_instance_spec :
     forall u v Σ (wfΣ : abstract_env_ext_rel X Σ),
-      forallb (wf_universeb Σ) (map Universe.make' u) ->
-      forallb (wf_universeb Σ) (map Universe.make' v) ->
+      forallb (wf_universeb Σ) u ->
+      forallb (wf_universeb Σ) v ->
       eqb_universe_instance u v ->
       cmp_universe_instance (eq_universe (global_ext_constraints Σ)) u v.
   Proof using Type.
@@ -1383,15 +1383,13 @@ Qed.
   Proof using Type. now destruct l. Qed.
 
   Lemma compare_universeb_make_complete Σ (wfΣ : abstract_env_ext_rel X Σ) pb x y :
-    wf_level Σ x ->
-    wf_level Σ y ->
-    compare_universe (global_ext_constraints Σ) pb (Universe.make' x) (Universe.make' y) ->
-    abstract_env_compare_universe X pb (Universe.make' x) (Universe.make' y).
+    wf_universe Σ x ->
+    wf_universe Σ y ->
+    compare_universe (global_ext_constraints Σ) pb x y ->
+    abstract_env_compare_universe X pb x y.
   Proof using Type.
     intros wfx wfy r.
     eapply compare_universeb_complete; eauto.
-    - intros ? ->%LevelExprSet.singleton_spec; auto.
-    - intros ? ->%LevelExprSet.singleton_spec; auto.
   Qed.
 
   Lemma eqb_universe_instance_complete Σ (wfΣ : abstract_env_ext_rel X Σ) u u' :
@@ -1406,12 +1404,12 @@ Qed.
     eapply reflect_reflectT, reflect_cmp_universe_instance with (p := wf_universeb Σ); tea.
     1: intros ????; eapply iff_reflect, abstract_env_compare_universe_correct with (conv_pb := Conv); tea.
     1,2: now eapply wf_universe_iff.
-    all: solve_all; eapply wf_universe_iff; intros ? ->%LevelExprSet.singleton_spec; auto.
+    all: solve_all; eapply wf_universe_iff => //.
   Qed.
 
   Lemma compare_universe_variance_complete Σ (wfΣ : abstract_env_ext_rel X Σ) pb v u u' :
-    wf_level Σ u ->
-    wf_level Σ u' ->
+    wf_universe Σ u ->
+    wf_universe Σ u' ->
     cmp_universe_variance (compare_universe Σ) pb v u u' ->
     compare_universe_variance (abstract_env_compare_universe X) pb v u u'.
   Proof using Type.
@@ -1451,7 +1449,7 @@ Qed.
       apply forallb_Forall in mems.
       eapply Forall_impl; eauto.
       cbn.
-      intros ? ?%LevelSet.mem_spec; auto.
+      now move=> x /LevelSet.subset_spec /PCUICUnivSubstitutionConv.subset_levels.
   Qed.
 
   Lemma welltyped_zipc_tConst_inv Σ (wfΣ : abstract_env_ext_rel X Σ) Γ c u π :
@@ -3040,8 +3038,8 @@ Qed.
   (hp : ∥ ws_cumul_pb_terms Σ (Γ,,, stack_context π) (pparams p) (pparams p') ∥) :
   ∥ ∑ mdecl idecl,
     [× declared_inductive Σ ci mdecl idecl,
-      forallb (wf_universeb Σ) (map Universe.make' (puinst p)),
-      forallb (wf_universeb Σ) (map Universe.make' (puinst p')),
+      forallb (wf_universeb Σ) (puinst p),
+      forallb (wf_universeb Σ) (puinst p'),
        #|pparams p| = ind_npars mdecl,
        #|pparams p'| = ind_npars mdecl,
        eq_context_upto_names p.(pcontext) p'.(pcontext),
@@ -3273,10 +3271,10 @@ Equations (noeqns) isconv_array_values_aux
       hx aux pre1 pre2 (t1 :: post1) (t2 :: post2) eq1 eq2
       with isconv_red_raw
            Conv
-           t1 (PrimArray_val a1.(array_level)
+           t1 (PrimArray_val a1.(array_universe)
                 pre1 post1
                 a1.(array_default) a1.(array_type) :: π1)
-           t2 (PrimArray_val a2.(array_level)
+           t2 (PrimArray_val a2.(array_universe)
                 pre2 post2
                 a2.(array_default) a2.(array_type) :: π2) aux := {
 
@@ -3590,12 +3588,12 @@ Equations (noeqns) isconv_array_values_aux
           { | @exist true eqf := yes
             | @exist false neqf := no (DistinctPrimValues (Γ ,,, stack_context π1) p (Γ ,,, stack_context π2) p') }
         | (primArray; primArrayModel a) | (primArray; primArrayModel a')
-          with inspect (abstract_env_compare_universe X Conv (Universe.make' (array_level a)) (Universe.make' (array_level a'))) :=
+          with inspect (abstract_env_compare_universe X Conv (array_universe a) (array_universe a')) :=
           { | @exist false neql := no (ArrayNotConvertibleLevels (Γ ,,, stack_context π1) a (Γ ,,, stack_context π2) a')
-            | @exist true eql with isconv_red_raw Conv (array_type a) (PrimArray_ty a.(array_level) a.(array_value) a.(array_default) :: π1)
-                (array_type a') (PrimArray_ty a'.(array_level) a'.(array_value) a'.(array_default) :: π2) aux := {
-              | Success convdiscrty with isconv_red_raw Conv (array_default a) (PrimArray_def a.(array_level) a.(array_value) a.(array_type) :: π1)
-                  (array_default a') (PrimArray_def a'.(array_level) a'.(array_value) a'.(array_type) :: π2) aux := {
+            | @exist true eql with isconv_red_raw Conv (array_type a) (PrimArray_ty a.(array_universe) a.(array_value) a.(array_default) :: π1)
+                (array_type a') (PrimArray_ty a'.(array_universe) a'.(array_value) a'.(array_default) :: π2) aux := {
+              | Success convdiscrty with isconv_red_raw Conv (array_default a) (PrimArray_def a.(array_universe) a.(array_value) a.(array_type) :: π1)
+                  (array_default a') (PrimArray_def a'.(array_universe) a'.(array_value) a'.(array_type) :: π2) aux := {
                 | Success convdiscrdef with isconv_array_values Γ a π1 _ a' π2 _ hx aux := {
                   | Success convdiscrval := yes
                   | Error e h := no (ArrayNotConvertibleValues (Γ ,,, stack_context π1) a (Γ ,,, stack_context π2) a' e)
@@ -4862,11 +4860,11 @@ Qed.
     2:{ destruct h1 as [? ty]; eapply typing_wf_universes in ty; eauto.
         move/andP: ty => []. rewrite H0 /=. cbn -[wf_universeb].
         rtoProp; intuition auto.
-        now move/wf_universe_reflect: H3. }
+        now move/wf_universeP: H3. }
     2:{ destruct h2 as [? ty]; eapply typing_wf_universes in ty; eauto.
         move/andP: ty => []. rewrite H1 /=. cbn -[wf_universeb].
         rtoProp; intuition auto.
-        now move/wf_universe_reflect: H3. }
+        now move/wf_universeP: H3. }
     constructor. eapply ws_cumul_pb_Prim; eauto; fvs.
     constructor; eauto.
   Qed.
@@ -4948,11 +4946,11 @@ Qed.
     - rewrite H0 in h1. destruct h1 as [? wt].
       eapply typing_wf_universes in wt; eauto.
       move/andP: wt => []. cbn -[wf_universeb wf_universe]. rtoProp; intuition auto.
-      now move/wf_universe_reflect: H2.
+      now move/wf_universeP: H2.
     - rewrite H1 in h2. destruct h2 as [? wt].
       eapply typing_wf_universes in wt; eauto.
       move/andP: wt => []. cbn -[wf_universeb wf_universe]. rtoProp; intuition auto.
-      now move/wf_universe_reflect: H2.
+      now move/wf_universeP: H2.
   Qed.
 
   Next Obligation.
@@ -6221,12 +6219,12 @@ match
       referenced_impl_env_ext :=
         ({|
            universes :=
-             (LevelSet.add Level.lzero LevelSet.empty, ConstraintSet.empty);
+             (LevelSet.add Level.lzero LevelSet.empty, UnivConstraintSet.empty);
            declarations := []
          |}, Monomorphic_ctx);
       referenced_impl_ext_wf := TODO "foo"
-    |} [] Cumul (tSort (Universe.lType (Universe.make' (Level.lzero, 0))))
-    (TODO "") (tSort (Universe.lType (Universe.make' (Level.lzero, 0))))
+    |} [] Cumul (tSort (Universe.lType (Universe.of_level (Level.lzero, 0))))
+    (TODO "") (tSort (Universe.lType (Universe.of_level (Level.lzero, 0))))
     (TODO "")
 with
 | ConvSuccess => "success"

@@ -253,7 +253,7 @@ Module PrintTermTree.
   | tInt i => "Int(" ^ string_of_prim_int i ^ ")"
   | tFloat f => "Float(" ^ string_of_float f ^ ")"
   | tString s => "Float(" ^ string_of_pstring s ^ ")"
-  | tArray u arr def ty => "Array(" ^ string_of_level u ^ "," ^
+  | tArray u arr def ty => "Array(" ^ string_of_universe u ^ "," ^
     string_of_list string_of_term arr ^ "," ^ string_of_term def ^ "," ^ string_of_term ty ^ ")"
   end.
 
