@@ -131,8 +131,7 @@ let tmLemma (nm : ident) ?poly:(poly=false)(ty : term) : kername tm =
     let cinfo = Declare.CInfo.make ~name:nm ~typ:cty () in
     let info = Declare.Info.make ~poly ~kind () in
     (* This should register properly with the interpretation extension *)
-    let pm, _ = Declare.Obls.add_definition ~pm:st ~cinfo ~info ~body:c ~uctx:ctx ~obl_hook ~opaque:false obls in
-    pm
+    Declare.Obls.add_definition ~pm:st ~cinfo ~info ~body:c ~uctx:ctx ~obl_hook ~opaque:false obls
 
 let tmFreshName (nm : ident) : ident tm =
   fun ~st env evd success _fail ->

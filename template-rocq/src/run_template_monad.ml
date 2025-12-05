@@ -446,8 +446,7 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
         k ~st:pm env evm (EConstr.to_constr evm t)) in  (* todo better *)
     let cinfo = Declare.CInfo.make ~name:ident ~typ:cty () in
     let info = Declare.Info.make ~poly ~kind () in
-    let pm, _ = Declare.Obls.add_definition ~pm:st ~cinfo ~info ~body:c ~uctx ~obl_hook ~opaque:false obls in
-    pm
+    Declare.Obls.add_definition ~pm:st ~cinfo ~info ~body:c ~uctx ~obl_hook ~opaque:false obls
 
   | TmQuote trm ->
     (* user should do the reduction (using tmEval) if they want *)
