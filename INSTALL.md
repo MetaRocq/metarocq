@@ -66,10 +66,10 @@ to have a dedicated `opam` switch (see below).
 To get the source code:
 
     # git clone https://github.com/MetaRocq/metarocq.git
-    # git checkout -b coq-8.20 origin/coq-8.20
+    # git checkout -b 9.1 origin/9.1
     # git status
 
-This checks that you are indeed on the `coq-8.20` branch.
+This checks that you are indeed on the `9.1` branch.
 
 ### Setting up an `opam` switch
 
@@ -78,11 +78,11 @@ To setup a fresh `opam` installation, you might want to create a
 one yet. You need to use **opam 2** to obtain the right version of
 `Equations`.
 
-    # opam switch create coq.8.20 --packages="ocaml-variants.4.14.0+options,ocaml-option-flambda"
+    # opam switch create rocq.9.1 --packages="ocaml-variants.4.14.0+options,ocaml-option-flambda"
     # eval $(opam env)
 
-This creates the `coq.8.20` switch which initially contains only the
-basic `OCaml` `4.13.1` compiler with the `flambda` option enabled,
+This creates the `rocq.9.1` switch which initially contains only the
+basic `OCaml` `4.14.0` compiler with the `flambda` option enabled,
 and puts you in the right environment (check with `ocamlc -v`).
 
 Once in the right switch, you can install `Rocq` and the `Equations` package using:
@@ -128,3 +128,11 @@ For faster development one can use:
 
 - `make quick` is a synonymous for `make vos` with the addition of a global `Unset Universe Checking` option, i.e.
 universes are not checked anywhere.
+
+### Develop with Vs Code
+
+There is a workspace file directly available with the project.
+To use it:
+1. Run `opam switch link name_switch`
+2. Open vscode with `code .vscode/metarocq.code-workspace`
+
