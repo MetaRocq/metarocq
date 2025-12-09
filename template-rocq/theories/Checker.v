@@ -50,6 +50,8 @@ Inductive type_error :=
 | NotEnoughFuel (n : nat)
 | NotSupported (s : string).
 
+
+
 Definition string_of_type_error (e : type_error) : string :=
   match e with
   | UnboundRel n => "Unboound rel " ^ string_of_nat n
@@ -106,27 +108,23 @@ Section Lookups.
     end.
 
   Definition lookup_constant_type cst u :=
-    match lookup_env Σ cst with
-    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
-      ret (subst_instance u ty)
+    match lookup_constant_type Σ cst u with
+    | Some res =>
+        ret res
     |  _ => raise (UndeclaredConstant cst)
     end.
 
   Definition lookup_constant_type_cstrs cst u :=
-    match lookup_env Σ cst with
-    | Some (ConstantDecl {| cst_type := ty; cst_universes := uctx |}) =>
-      let cstrs := polymorphic_constraints uctx in
-      ret (subst_instance u ty, subst_instance_cstrs u cstrs)
-      |  _ => raise (UndeclaredConstant cst)
+    match lookup_constant_type_cstrs Σ cst u with
+    | Some res =>
+        ret res
+    |  _ => raise (UndeclaredConstant cst)
     end.
 
   Definition lookup_ind_decl ind i :=
-    match lookup_env Σ ind with
-    | Some (InductiveDecl mdecl) =>
-      match nth_error mdecl.(ind_bodies) i with
-      | Some body => ret (mdecl, body)
-      | None => raise (UndeclaredInductive (mkInd ind i))
-      end
+    match lookup_ind_decl Σ ind i with
+    | Some res =>
+        ret res
     | _ => raise (UndeclaredInductive (mkInd ind i))
     end.
 
@@ -262,80 +260,13 @@ Section Reduce.
     res <- reduce_stack Γ n c [] ;;
     ret (zip res).
 
-  Definition fix_decls (l : mfixpoint term) :=
-    let fix aux acc ds :=
-        match ds with
-        | nil => acc
-        | d :: ds => aux (vass d.(dname) d.(dtype) :: acc) ds
-        end
-    in aux [] l.
-
-  Definition rebuild_case_predicate_ctx ind (p : predicate term) : context :=
-    match lookup_ind_decl Σ (inductive_mind ind) (inductive_ind ind) with
-    | TypeError _ => []
-    | Checked (mib, oib) => case_predicate_context ind mib oib p
-    end.
-
-  Definition map_context_with_binders (f : context -> term -> term) (c : context) Γ : context :=
-    fold_left (fun acc decl => map_decl (f (Γ ,,, acc)) decl :: acc) (List.rev c) [].
-
-  Definition map_predicate_with_binders (f : context -> term -> term) Γ ind (p : predicate term) :=
-    let pctx := rebuild_case_predicate_ctx ind p in
-    let Γparams := map_context_with_binders f pctx Γ in
-    {| pparams := map (f Γ) p.(pparams);
-       puinst := p.(puinst);
-       pcontext := p.(pcontext);
-       preturn := f (Γparams  ++ Γ) (preturn p) |}.
-
-  Definition rebuild_case_branch_ctx ind i p br :=
-    match lookup_constructor_decl Σ (inductive_mind ind) (inductive_ind ind) i with
-    | TypeError _ => []
-    | Checked (mib, cdecl) => case_branch_context ind mib cdecl p br
-    end.
-
-  Definition map_case_branch_with_binders ind i (f : context -> term -> term) Γ p br :=
-    let ctx := rebuild_case_branch_ctx ind i p br in
-    map_branch (f (Γ ,,, ctx)) br.
-  
-  Definition map_constr_with_binders (f : context -> term -> term) Γ (t : term) : term :=
-    match t with
-    | tRel i => t
-    | tEvar ev args => tEvar ev (List.map (f Γ) args)
-    | tLambda na T M =>
-        let T' := f Γ T in
-        tLambda na T' (f (Γ,, vass na T') M)
-    | tApp u v => tApp (f Γ u) (List.map (f Γ) v)
-    | tProd na A B =>
-      let A' := f Γ A in
-      tProd na A' (f (Γ ,, vass na A') B)
-    | tCast c kind t => tCast (f Γ c) kind (f Γ t)
-    | tLetIn na b t c =>
-      let b' := f Γ b in
-      let t' := f Γ t in
-      tLetIn na b' t' (f (Γ ,, vdef na b' t') c)
-    | tCase ci p c brs =>
-      let p' := map_predicate_with_binders f Γ ci.(ci_ind) p in
-      let brs' := mapi (fun i x => map_case_branch_with_binders ci.(ci_ind) i f Γ p' x) brs in
-      tCase ci p' (f Γ c) brs'
-    | tProj p c => tProj p (f Γ c)
-    | tFix mfix idx =>
-      let Γ' := fix_decls mfix ++ Γ in
-      let mfix' := List.map (map_def (f Γ) (f Γ')) mfix in
-      tFix mfix' idx
-    | tCoFix mfix k =>
-      let Γ' := fix_decls mfix ++ Γ in
-      let mfix' := List.map (map_def (f Γ) (f Γ')) mfix in
-      tCoFix mfix' k
-    | x => x
-    end.
-
   Fixpoint reduce_opt Γ n c :=
     match n with
     | 0 => None
     | S n =>
       match reduce_stack_term Γ n c with
       | Some c' =>
-        Some (map_constr_with_binders
+          Some (map_term_with_context Σ
                 (fun Γ t => match reduce_opt Γ n t with
                             | Some t => t
                             | None => t end) Γ c')
@@ -776,7 +707,7 @@ Section Typecheck.
       (** TODO check branches *)
       let '(ind, u, args) := indargs in
       if eq_inductive ind ci.(ci_ind) then
-        let pctx := rebuild_case_predicate_ctx Σ ind p in
+        let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
         let ptm := it_mkLambda_or_LetIn pctx p.(preturn) in
         ret (tApp ptm (List.skipn ci.(ci_npar) args ++ [c]))
       else
