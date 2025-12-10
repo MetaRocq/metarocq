@@ -61,7 +61,7 @@ Definition no_unsafe_passes := make_unsafe_passes false.
 Definition all_unsafe_passes := make_unsafe_passes true.
 
 (* This runs the cofix -> fix/lazy translation as well as inlining and
-  beta-redex simplification,  which are not verified. It does do unboxing. *)
+  beta-redex simplification,  which are not verified. It does not do unboxing. *)
 
 Definition default_unsafe_passes :=
   {| cofix_to_lazy := true;
