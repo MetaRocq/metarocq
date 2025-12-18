@@ -81,7 +81,7 @@ Module PrintTermTree.
                     ^ " := " ^ nl ^ f (dbody def).
 
     Definition print_defs (print_term : context -> bool -> bool -> term -> t) Γ (defs : mfixpoint term) :=
-      let ctx' := List.map (fun d => {| decl_name := dname d; decl_body := None |}) defs in
+      let ctx' := MRList.rev_map (fun d => {| decl_name := dname d; decl_body := None |}) defs in
       print_list (print_def (print_term (ctx' ++ Γ)%list true false)) (nl ^ " with ") defs.
 
     Definition print_prim (soft : EAst.term -> Tree.t) (p : @prim_val EAst.term) : Tree.t :=
