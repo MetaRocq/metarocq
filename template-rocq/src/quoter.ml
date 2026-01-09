@@ -437,17 +437,17 @@ struct
           let projs, acc =
             match mib.Declarations.mind_packets with
             (* TODO handle mutual records *)
-            | [| { mind_record = PrimRecord (id, csts, relevance, ps) } |] ->
+            | [| { mind_record = PrimRecord { id; projections ; relevances; tys ; has_eta = _ } } |] ->
                 let ctxwolet = Vars.smash_rel_context mib.mind_params_ctxt in
                 let indty = Constr.mkApp (Constr.mkIndU ((t,0),inst),
                                         Context.Rel.instance Constr.mkRel 0 ctxwolet) in
                 let indbinder = Context.Rel.Declaration.LocalAssum (Context.annotR (Names.Name id),indty) in
                 let envpars = push_rel_context (indbinder :: ctxwolet) env in
-                let ps, acc = CArray.fold_right3 (fun cst pb rel (ls,acc) ->
-                  let (ty, acc) = quote_term acc envpars sigma pb in
-                  let na = Q.quote_ident (Names.Label.to_id cst) in
+                let ps, acc = CArray.fold_right3 (fun proj ty rel (ls,acc) ->
+                  let (ty, acc) = quote_term acc envpars sigma ty in
+                  let na = Q.quote_ident (Names.Label.to_id proj) in
                   let rel = Q.quote_relevance rel in
-                  ((na, rel, ty) :: ls, acc)) csts ps relevance ([],acc)
+                  ((na, rel, ty) :: ls, acc)) projections tys relevances ([],acc)
                 in ps, acc
             | _ -> [], acc
           in
