@@ -79,7 +79,7 @@ Proof.
          => is_var l; clear -H IH; induction H as [|???? IH']; constructor;
             [eapply @lift_typing_size_impl with (Psize := @typing_size _ _ _) (tu := p); unfold lift_sorting_size, on_def_body_sorting_size in *; cbn; intros|]
        | [ H : case_side_conditions _ _ _ _ _ _ _ _ _ _ _ |- case_side_conditions _ _ _ _ _ _ _ _ _ _ _ ] => destruct H; constructor
-       | [ H : case_branch_typing _ _ _ _ _ _ _ _ _ _ _ |- case_branch_typing _ _ _ _ _ _ _ _ _ _ _ ] => destruct H; constructor
+       | [ H : case_branch_typing _ _ _ _ _ _ _ _ _ _ |- case_branch_typing _ _ _ _ _ _ _ _ _ _ ] => destruct H; constructor
        | _ => idtac
        end.
   all: unfold wf_branches in *.

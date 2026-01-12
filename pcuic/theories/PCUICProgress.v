@@ -265,8 +265,8 @@ forall (P : global_env_ext -> context -> term -> term -> Type)
       primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
       declared_constant Σ prim_ty cdecl ->
       primitive_invariants (prim_val_tag p) cdecl ->
-      primitive_typing_hyps typing Σ Γ p ->
-      primitive_typing_hyps P Σ Γ p ->
+      primitive_typing_hyps (typing Σ) Σ Γ p ->
+      primitive_typing_hyps (P Σ) Σ Γ p ->
       P Σ Γ (tPrim p) (prim_type p prim_ty)) ->
 
   (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (t A B : term) s,
@@ -453,8 +453,8 @@ Lemma typing_ind_env `{cf : checker_flags} :
       primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
       declared_constant Σ prim_ty cdecl ->
       primitive_invariants (prim_val_tag p) cdecl ->
-      primitive_typing_hyps typing Σ Γ p ->
-      primitive_typing_hyps P Σ Γ p ->
+      primitive_typing_hyps (typing Σ) Σ Γ p ->
+      primitive_typing_hyps (P Σ) Σ Γ p ->
       P Σ Γ (tPrim p) (prim_type p prim_ty)) ->
 
 

@@ -124,7 +124,7 @@ Inductive infering `{checker_flags} (Σ : global_env_ext) (Γ : context) : term 
    primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
    declared_constant Σ prim_ty cdecl ->
    primitive_invariants (prim_val_tag p) cdecl ->
-   primitive_typing_hyps checking Σ Γ p ->
+   primitive_typing_hyps (checking Σ) Σ Γ p ->
    Σ ;;; Γ |- tPrim p ▹ prim_type p prim_ty
 
 with infering_sort `{checker_flags} (Σ : global_env_ext) (Γ : context) : term -> sort -> Type :=
@@ -467,8 +467,8 @@ Section BidirectionalInduction.
       primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
       declared_constant Σ prim_ty cdecl ->
       primitive_invariants (prim_val_tag p) cdecl ->
-      primitive_typing_hyps checking Σ Γ p ->
-      primitive_typing_hyps (fun _ => Pcheck) Σ Γ p ->
+      primitive_typing_hyps (checking Σ) Σ Γ p ->
+      primitive_typing_hyps Pcheck Σ Γ p ->
       Pinfer Γ (tPrim p) (prim_type p prim_ty)) ->
 
     (forall (Γ : context) (t T : term) (u : sort),

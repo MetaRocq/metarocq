@@ -15,12 +15,24 @@ From MetaRocq.Quotation.ToPCUIC.QuotationOf.PCUIC Require Import PCUICAst.Instan
 
 #[export] Instance quote_FixCoFix : ground_quotable FixCoFix := ltac:(destruct 1; exact _).
 
-#[export] Instance quote_case_side_conditions {cf wf_local_fun typing Σ Γ ci p ps mdecl idecl indices predctx} {qwf_local_fun : quotation_of wf_local_fun} {qtyping : quotation_of typing} {quote_wf_local_fun : forall Γ, ground_quotable (@wf_local_fun Σ Γ)} {quote_typing : forall i t, ground_quotable (typing Σ Γ i t)} : ground_quotable (@case_side_conditions cf wf_local_fun typing Σ Γ ci p ps mdecl idecl indices predctx) := ltac:(destruct 1; exact _).
+#[export] Instance quote_case_side_conditions {cf wf_local_funΣ typingΣ Σ Γ ci p ps mdecl idecl indices predctx}
+  {qwf_local_fun : quotation_of wf_local_funΣ} {qtyping : quotation_of typingΣ}
+  {quote_wf_local_fun : forall Γ, ground_quotable (@wf_local_funΣ Γ)}
+  {quote_typing : forall i t, ground_quotable (typingΣ Γ i t)} :
+  ground_quotable (@case_side_conditions cf (wf_local_funΣ) (typingΣ) Σ Γ ci p ps mdecl idecl indices predctx) :=
+  ltac:(destruct 1; exact _).
 
-#[export] Instance quote_case_branch_typing {cf wf_local_fun typing Σ Γ ci p ps mdecl idecl ptm brs} {qwf_local_fun : quotation_of wf_local_fun} {qtyping : quotation_of typing} {quote_wf_local_fun : forall Γ, ground_quotable (@wf_local_fun Σ Γ)} {quote_typing : forall Γ i t, ground_quotable (typing Σ Γ i t)} : ground_quotable (@case_branch_typing cf wf_local_fun typing Σ Γ ci p ps mdecl idecl ptm brs)
+#[export] Instance quote_case_branch_typing {cf wf_local_funΣ typingΣ Γ ci p ps mdecl idecl ptm brs}
+  {qwf_local_fun : quotation_of wf_local_funΣ}
+  {qtyping : quotation_of typingΣ}
+  {quote_wf_local_fun : forall Γ, ground_quotable (@wf_local_funΣ Γ)}
+  {quote_typing : forall Γ i t, ground_quotable (typingΣ Γ i t)} :
+  ground_quotable (@case_branch_typing cf wf_local_funΣ typingΣ Γ ci p ps mdecl idecl ptm brs)
   := ltac:(destruct 1; exact _).
 
-#[export] Instance quote_primitive_typing_hyps {cf typing Σ Γ p} {qtyping : quotation_of typing} {quote_typing : forall x y, ground_quotable (typing Σ Γ x y)} : ground_quotable (@primitive_typing_hyps cf typing Σ Γ p)
+#[export] Instance quote_primitive_typing_hyps {cf typingΣ Σ Γ p} {qtyping : quotation_of typingΣ}
+  {quote_typing : forall x y, ground_quotable (typingΣ Γ x y)} :
+  ground_quotable (@primitive_typing_hyps cf (typingΣ) Σ Γ p)
   := ltac:(destruct 1; exact _).
 
 (* So long as pcuic does axiomatic guard checking, we can't do better than axiomatizing it here *)
