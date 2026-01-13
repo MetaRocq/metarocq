@@ -1422,7 +1422,8 @@ Section Typecheck.
        (Γ : context) (wfΓ : forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ wf_local Σ Γ ∥).
 
     Local Obligation Tactic := idtac.
-    Equations? check_primitive_typing (p : prim_val) : typing_result_comp (forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ primitive_typing_hyps checking Σ Γ p ∥) :=
+    Equations? check_primitive_typing (p : prim_val) : typing_result_comp
+      (forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ primitive_typing_hyps (checking Σ) Σ Γ p ∥) :=
       | (primInt; primIntModel i) := ret _
       | (primFloat; primFloatModel f) := ret _
       | (primString; primStringModel f) := ret _

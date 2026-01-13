@@ -144,23 +144,23 @@ Reserved Notation "'wf_local' Σ Γ " (at level 9, Σ, Γ at next level).
 
 Reserved Notation " Σ ;;; Γ |- t : T " (at level 50, Γ, t, T at next level).
 
-Variant case_side_conditions `{checker_flags} wf_local_fun typing Σ Γ ci p ps mdecl idecl indices predctx :=
+Variant case_side_conditions `{checker_flags} wf_local_funΣ typingΣ Σ Γ ci p ps mdecl idecl indices predctx :=
 | case_side_info
     (eq_npars : mdecl.(ind_npars) = ci.(ci_npar))
     (wf_pred : wf_predicate mdecl idecl p)
     (cons : consistent_instance_ext Σ (ind_universes mdecl) p.(puinst))
-    (wf_pctx : wf_local_fun Σ (Γ ,,, predctx))
+    (wf_pctx : wf_local_funΣ (Γ ,,, predctx))
     (* The predicate context is fixed, it is only used as a cache for information from the
       global environment *)
     (conv_pctx : eq_context_upto_names p.(pcontext) (ind_predicate_context ci.(ci_ind) mdecl idecl))
     (allowed_elim : is_allowed_elimination Σ idecl.(ind_kelim) ps)
     (elim_relevance : isSortRel ps ci.(ci_relevance))
-    (ind_inst : ctx_inst (typing Σ) Γ (p.(pparams) ++ indices)
+    (ind_inst : ctx_inst typingΣ Γ (p.(pparams) ++ indices)
                          (List.rev (subst_instance p.(puinst)
                                                    (ind_params mdecl ,,, ind_indices idecl : context))))
     (not_cofinite : isCoFinite mdecl.(ind_finite) = false).
 
-Variant case_branch_typing `{checker_flags} wf_local_fun typing Σ Γ (ci:case_info) p ps mdecl idecl ptm  brs :=
+Variant case_branch_typing `{checker_flags} wf_local_funΣ typingΣ Γ (ci:case_info) p ps mdecl idecl ptm  brs :=
 | case_branch_info
     (wf_brs : wf_branches idecl brs)
     (brs_ty :
@@ -169,23 +169,23 @@ Variant case_branch_typing `{checker_flags} wf_local_fun typing Σ Γ (ci:case_i
            parameters and universe instance  *)
                 eq_context_upto_names br.(bcontext) (cstr_branch_context ci mdecl cdecl) ×
                 let brctxty := case_branch_type ci.(ci_ind) mdecl idecl p br ptm i cdecl in
-                (wf_local_fun Σ (Γ ,,, brctxty.1) ×
-                ((typing Σ (Γ ,,, brctxty.1) br.(bbody) (brctxty.2)) ×
-                (typing Σ (Γ ,,, brctxty.1) brctxty.2 (tSort ps)))))
+                (wf_local_funΣ (Γ ,,, brctxty.1) ×
+                ((typingΣ (Γ ,,, brctxty.1) br.(bbody) (brctxty.2)) ×
+                (typingΣ (Γ ,,, brctxty.1) brctxty.2 (tSort ps)))))
              0 idecl.(ind_ctors) brs).
 
 Variant primitive_typing_hyps `{checker_flags}
-  (typing : forall (Σ : global_env_ext) (Γ : context), term -> term -> Type)
+  (typingΣ : forall (Γ : context), term -> term -> Type)
   Σ Γ : prim_val term -> Type :=
-| prim_int_hyps i : primitive_typing_hyps typing Σ Γ (primInt; primIntModel i)
-| prim_float_hyps f : primitive_typing_hyps typing Σ Γ (primFloat; primFloatModel f)
-| prim_string_hyps s : primitive_typing_hyps typing Σ Γ (primString; primStringModel s)
+| prim_int_hyps i : primitive_typing_hyps typingΣ Σ Γ (primInt; primIntModel i)
+| prim_float_hyps f : primitive_typing_hyps typingΣ Σ Γ (primFloat; primFloatModel f)
+| prim_string_hyps s : primitive_typing_hyps typingΣ Σ Γ (primString; primStringModel s)
 | prim_array_hyps a
   (wfl : wf_universe Σ (Universe.make' a.(array_level)))
-  (hty : typing Σ Γ a.(array_type) (tSort (sType (Universe.make' a.(array_level)))))
-  (hdef : typing Σ Γ a.(array_default) a.(array_type))
-  (hvalue : All (fun x => typing Σ Γ x a.(array_type)) a.(array_value)) :
-  primitive_typing_hyps typing Σ Γ (primArray; primArrayModel a).
+  (hty : typingΣ Γ a.(array_type) (tSort (sType (Universe.make' a.(array_level)))))
+  (hdef : typingΣ Γ a.(array_default) a.(array_type))
+  (hvalue : All (fun x => typingΣ Γ x a.(array_type)) a.(array_value)) :
+  primitive_typing_hyps typingΣ Σ Γ (primArray; primArrayModel a).
 Derive Signature for primitive_typing_hyps.
 
 Equations prim_type (p : prim_val term) (cst : kername) : term :=
@@ -253,9 +253,9 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     declared_inductive Σ ci.(ci_ind) mdecl idecl ->
     Σ ;;; Γ ,,, predctx |- p.(preturn) : tSort ps ->
     Σ ;;; Γ |- c : mkApps (tInd ci.(ci_ind) p.(puinst)) (p.(pparams) ++ indices) ->
-    case_side_conditions (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps
+    case_side_conditions (fun Γ => wf_local Σ Γ) (typing Σ) Σ Γ ci p ps
                          mdecl idecl indices predctx  ->
-    case_branch_typing (fun Σ Γ => wf_local Σ Γ) typing Σ Γ ci p ps
+    case_branch_typing (fun Γ => wf_local Σ Γ) (typing Σ) Γ ci p ps
                         mdecl idecl ptm brs ->
     Σ ;;; Γ |- tCase ci p c brs : mkApps ptm (indices ++ [c])
 
@@ -288,7 +288,7 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
     declared_constant Σ prim_ty cdecl ->
     primitive_invariants (prim_val_tag p) cdecl ->
-    primitive_typing_hyps typing Σ Γ p ->
+    primitive_typing_hyps (typing Σ) Σ Γ p ->
     Σ ;;; Γ |- tPrim p : prim_type p prim_ty
 
 | type_Cumul : forall t A B s,
@@ -422,7 +422,7 @@ Section PrimitiveSize.
   Context {cf} (typing : global_env_ext -> context -> term -> term -> Type)
   (typing_size : forall {Σ Γ t T}, typing Σ Γ t T -> size).
 
-  Definition primitive_typing_hyps_size Σ Γ p (h : primitive_typing_hyps typing Σ Γ p) : size.
+  Definition primitive_typing_hyps_size Σ Γ p (h : primitive_typing_hyps (typing Σ) Σ Γ p) : size.
     destruct h.
     - exact 0.
     - exact 0.
@@ -805,8 +805,8 @@ Lemma typing_ind_env_app_size `{cf : checker_flags} :
       primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
       declared_constant Σ prim_ty cdecl ->
       primitive_invariants (prim_val_tag p) cdecl ->
-      primitive_typing_hyps typing Σ Γ p ->
-      primitive_typing_hyps P Σ Γ p ->
+      primitive_typing_hyps (typing Σ) Σ Γ p ->
+      primitive_typing_hyps (P Σ) Σ Γ p ->
       P Σ Γ (tPrim p) (prim_type p prim_ty)) ->
 
    (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (t A B : term) s,
@@ -1268,8 +1268,8 @@ Lemma typing_ind_env `{cf : checker_flags} :
         primitive_constant Σ (prim_val_tag p) = Some prim_ty ->
         declared_constant Σ prim_ty cdecl ->
         primitive_invariants (prim_val_tag p) cdecl ->
-        primitive_typing_hyps typing Σ Γ p ->
-        primitive_typing_hyps P Σ Γ p ->
+        primitive_typing_hyps (typing Σ) Σ Γ p ->
+        primitive_typing_hyps (P Σ) Σ Γ p ->
         P Σ Γ (tPrim p) (prim_type p prim_ty)) ->
 
     (forall Σ (wfΣ : wf Σ.1) (Γ : context) (wfΓ : wf_local Σ Γ) (t A B : term) s,

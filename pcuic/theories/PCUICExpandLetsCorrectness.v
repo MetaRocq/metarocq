@@ -932,7 +932,7 @@ Section wtsub.
       All (fun d => wt Γ d.(dtype) × wt (Γ ,,, fix_context mfix) d.(dbody)) mfix
     | tEvar _ l => False
     | tRel i => wf_local Σ Γ
-    | tPrim p => primitive_typing_hyps (fun Σ Γ t T => wt Γ t) Σ Γ p
+    | tPrim p => primitive_typing_hyps (fun Γ t T => wt Γ t) Σ Γ p
     | _ => unit
     end.
   Import PCUICGeneration PCUICInversion.
