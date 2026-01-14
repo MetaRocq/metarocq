@@ -1,0 +1,29 @@
+name: Nix Makes CI
+permissions: read-all
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.actor }}
+
+on:
+  push:
+    branches:
+      - main
+      - coq-8.17
+  pull_request:
+    paths:
+    - .github/workflows/**
+  pull_request_target:
+    types:
+    - opened
+    - synchronize
+    - reopened
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker://ghcr.io/fluidattacks/makes/amd64:24.02
+      with:
+        args: sh -c "chown -R root:root /github/workspace && m . /build"
