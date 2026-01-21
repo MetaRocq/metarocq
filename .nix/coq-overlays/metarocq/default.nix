@@ -11,14 +11,7 @@
 let
   repo = "metarocq";
   owner = "MetaRocq";
-  defaultVersion = lib.switch coq.coq-version [
-    { case = "9.0"; out = "1.4-9.0"; }
-    { case = "9.1"; out = "1.4-9.1"; }
-  ] null;
-  release = {
-    "1.4-9.0".sha256 = "sha256-5QecDAMkvgfDPZ7/jDfnOgcE+Eb1LTAozP7nz6nkuxg=";
-    "1.4-9.1".sha256 = "";
-  };
+  defaultVersion = null;
   releaseRev = v: "v${v}";
 
   # list of core MetaRocq packages and their dependencies
@@ -78,7 +71,6 @@ let
               version
               pname
               defaultVersion
-              release
               releaseRev
               repo
               owner

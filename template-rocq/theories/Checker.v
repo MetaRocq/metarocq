@@ -50,6 +50,8 @@ Inductive type_error :=
 | NotEnoughFuel (n : nat)
 | NotSupported (s : string).
 
+
+
 Definition string_of_type_error (e : type_error) : string :=
   match e with
   | UnboundRel n => "Unboound rel " ^ string_of_nat n
@@ -258,14 +260,13 @@ Section Reduce.
     res <- reduce_stack Γ n c [] ;;
     ret (zip res).
 
-
   Fixpoint reduce_opt Γ n c :=
     match n with
     | 0 => None
     | S n =>
       match reduce_stack_term Γ n c with
       | Some c' =>
-        Some (map_term_with_context Σ
+          Some (map_term_with_context Σ
                 (fun Γ t => match reduce_opt Γ n t with
                             | Some t => t
                             | None => t end) Γ c')
