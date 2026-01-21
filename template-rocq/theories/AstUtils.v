@@ -714,6 +714,7 @@ Definition fold_term {Acc} (f : Acc -> term -> Acc) (acc : Acc) (t : term) : Acc
 Definition fold_termM {M} `{Monad M} {Acc} (f : Acc -> term -> M Acc) (acc : Acc) (t : term) : M Acc :=
   @fold_term_with_bindersM M _ Acc unit tt (fun _ _ => ret tt) (fun _ => f) acc t.
 
+
 (** * Traversal functions with a context*)
 
 
@@ -815,7 +816,6 @@ Definition rebuild_case_predicate_ctx_with_context (Σ : global_env) ind (p : pr
 
 Definition map_context_with_context (f : context -> term -> term) (c : context) Γ : context :=
 fold_right (fun (decl : context_decl) (acc : list context_decl) => map_decl (f (Γ,,, acc)) decl :: acc) c [].
-
 
 Definition map_predicate_with_context (Σ : global_env) (f : context -> term -> term) Γ ind (p : predicate term) :=
   let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
