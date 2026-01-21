@@ -815,7 +815,7 @@ Definition rebuild_case_predicate_ctx_with_context (Σ : global_env) ind (p : pr
   end.
 
 Definition map_context_with_context (f : context -> term -> term) (c : context) Γ : context :=
-fold_left (fun acc decl => map_decl (f (Γ ,,, acc)) decl :: acc) (List.rev c) [].
+fold_right (fun (decl : context_decl) (acc : list context_decl) => map_decl (f (Γ,,, acc)) decl :: acc) c [].
 
 Definition map_predicate_with_context (Σ : global_env) (f : context -> term -> term) Γ ind (p : predicate term) :=
   let pctx := rebuild_case_predicate_ctx_with_context Σ ind p in
