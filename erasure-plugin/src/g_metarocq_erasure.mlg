@@ -58,7 +58,8 @@ let make_erasure_config config =
   { enable_unsafe = if config.unsafe then all_unsafe_passes else no_unsafe_passes ;
     enable_typed_erasure = config.typed;
     dearging_config = default_dearging_config;
-    inlined_constants = Kernames.KernameSet.empty }
+    inlined_constants = Kernames.KernameSet.empty;
+    extracted_inductives = [] }
 
 let time_opt config str fn arg =
   if config.time then

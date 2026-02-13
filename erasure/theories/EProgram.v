@@ -21,6 +21,12 @@ Import EGlobalEnv EWellformed.
 Definition inductive_mapping : Set := Kernames.inductive * (bytestring.string * list nat).
 Definition inductives_mapping := list inductive_mapping.
 
+Record extract_inductive :=
+  { cstrs : list kername; (* One constant for each constructor *)
+    elim : kername } (* The new eliminator *).
+
+Definition extract_inductives := list (inductive * extract_inductive).
+
 Definition eprogram := (EAst.global_context * EAst.term).
 Definition eprogram_env := (EEnvMap.GlobalContextMap.t * EAst.term).
 
