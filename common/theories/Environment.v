@@ -689,13 +689,13 @@ Module Environment (T : Term).
   #[global] Instance strictly_extends_decls_extends_strictly_on_decls Σ Σ' : strictly_extends_decls Σ Σ' -> extends_strictly_on_decls Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_decls_extends Σ Σ' : extends_decls Σ Σ' -> extends Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_strictly_on_decls_extends Σ Σ' : extends_strictly_on_decls Σ Σ' -> extends Σ Σ'.
@@ -900,7 +900,7 @@ Module Environment (T : Term).
     tProd {| binder_name := nAnon; binder_relevance := rel_of_Type |}
       dom (lift 1 0 codom).
 
-  Definition array_uctx := ([nAnon], ConstraintSet.empty).
+  Definition array_uctx := ([nAnon], UnivConstraintSet.empty).
 
   Definition primitive_invariants (p : prim_tag) (cdecl : constant_body) :=
     match p with
@@ -908,7 +908,7 @@ Module Environment (T : Term).
      [/\ cdecl.(cst_type) = tSort Sort.type0, cdecl.(cst_body) = None &
           cdecl.(cst_universes) = Monomorphic_ctx]
     | primArray =>
-      let s := sType (Universe.make' (Level.lvar 0)) in
+      let s := sType (Universe.of_level (Level.lvar 0)) in
       [/\ cdecl.(cst_type) = tImpl (tSort s) (tSort s), cdecl.(cst_body) = None &
         cdecl.(cst_universes) = Polymorphic_ctx array_uctx]
     end.

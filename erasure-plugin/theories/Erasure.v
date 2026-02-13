@@ -781,7 +781,7 @@ Qed.
 
 Next Obligation.
   unfold optional_unsafe_transforms. cbn.
-  destruct enable_unsafe as [[] ? ? ? ?]=> //.
+  destruct enable_unsafe as [[] ? ? ?]=> //.
 Qed.
 
 Local Obligation Tactic := intros; eauto.
@@ -1112,7 +1112,7 @@ Program Definition run_erase_program {guard : abstract_guard_impl} econf :=
 Next Obligation.
 Proof.
   unfold optional_unsafe_transforms; cbn.
-  destruct enable_unsafe as [[] ? ? ? ?]=> //.
+  destruct enable_unsafe as [[] ? ? ?]=> //.
 Qed.
 
 Program Definition erase_and_print_template_program econf (m : inductives_mapping) (p : Ast.Env.program) : string :=

@@ -25,7 +25,7 @@ theories/MRPred.v
 theories/MRRelations.v
 theories/MRSquash.v
 theories/MRString.v
-theories/wGraph.v
+# theories/wGraph.v
 theories/MRUtils.v
 theories/MR_ExtrOCamlInt63.v
 theories/MR_ExtrOCamlZPosInt.v
@@ -33,6 +33,11 @@ theories/ReflectEq.v
 theories/monad_utils.v
 theories/Show.v
 theories/utils.v
+theories/MRClasses.v
+theories/SemiLattice.v
+theories/MRInstances.v
+
+theories/NonEmptyLevelExprSet.v
 
 # extra tactics
 theories/MRTactics/DestructHead.v

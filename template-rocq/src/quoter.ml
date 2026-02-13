@@ -86,7 +86,7 @@ sig
   val mkInt : quoted_int63 -> t
   val mkFloat : quoted_float64 -> t
   val mkString : quoted_pstring -> t
-  val mkArray : quoted_univ_level -> t array -> default:t -> ty:t -> t
+  val mkArray : quoted_universe -> t array -> default:t -> ty:t -> t
 
   val mkBindAnn : quoted_name -> quoted_relevance -> quoted_aname
   val mkName : quoted_ident -> quoted_name
@@ -110,7 +110,6 @@ sig
   val quote_float64 : Float64.t -> quoted_float64
   val quote_pstring : Pstring.t -> quoted_pstring
 
-  val quote_constraint_type : Univ.constraint_type -> quoted_constraint_type
   val quote_univ_constraint : Univ.univ_constraint -> quoted_univ_constraint
   val quote_univ_level : Univ.Level.t -> quoted_univ_level
   val quote_univ_instance : UVars.Instance.t -> quoted_univ_instance
@@ -183,6 +182,8 @@ sig
 
   val mk_global_env : quoted_univ_contextset -> quoted_global_declarations -> quoted_retroknowledge -> quoted_global_env
   val mk_program : quoted_global_env -> t -> quoted_program
+
+  val universe_of_level : quoted_univ_level -> quoted_universe
 end
 
 
@@ -208,35 +209,9 @@ struct
     | Polymorphic ctx -> Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context ctx)
 
   let quote_ugraph ?kept (g : UGraph.t) =
-    debug Pp.(fun () -> str"Quoting ugraph");
-    let levels, cstrs, eqs =
-      match kept with
-      | None ->
-        let cstrs, eqs = UGraph.constraints_of_universes g in
-        UGraph.domain g, cstrs, eqs
-      | Some l ->
-        debug Pp.(fun () -> str"Quoting graph restricted to: " ++ Univ.Level.Set.pr Univ.Level.raw_pr l);
-        (* Feedback.msg_debug Pp.(str"Graph is: "  ++ UGraph.pr_universes Univ.Level.raw_pr (UGraph.repr g)); *)
-        let dom = UGraph.domain g in
-        let kept = Univ.Level.Set.inter dom l in
-        let kept = Univ.Level.Set.remove Univ.Level.set kept in
-        let cstrs = time Pp.(str"Computing graph restriction") (UGraph.constraints_for ~kept) g in
-        l, cstrs, []
-    in
-    let levels, cstrs =
-      List.fold_right (fun eqs acc ->
-        match Univ.Level.Set.elements eqs with
-        | [] -> acc
-        | x :: [] -> acc
-        | x :: rest ->
-          List.fold_right (fun p (levels, cstrs) ->
-            (Univ.Level.Set.add p levels, Univ.Constraints.add (x, Univ.Eq, p) cstrs)) rest acc)
-        eqs (levels, cstrs)
-    in
-    let levels = Univ.Level.Set.add Univ.Level.set levels in
-    debug Pp.(fun () -> str"Universe context: " ++ Univ.pr_universe_context_set Univ.Level.raw_pr (levels, cstrs));
+    let uctx = ugraph_contextset ?kept g in
     time (Pp.str"Quoting universe context")
-      (fun uctx -> Q.quote_univ_contextset uctx) (levels, cstrs)
+    (fun uctx -> Q.quote_univ_contextset uctx) uctx
 
   let quote_inductive' (ind, i) : Q.quoted_inductive =
     Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical ind), Q.quote_int i)
@@ -369,7 +344,7 @@ struct
         let def', acc = quote_term acc env sigma def in
         let ty', acc = quote_term acc env sigma ty in
         let acc, arr' = CArray.fold_left_map (fun acc t -> let t', acc = quote_term acc env sigma t in acc, t') acc ar in
-        Q.mkArray (Q.quote_univ_level u) arr' ~default:def' ~ty:ty', acc
+        Q.mkArray (Q.universe_of_level (Q.quote_univ_level u)) arr' ~default:def' ~ty:ty', acc
       in
       aux acc env trm
     and quote_recdecl (acc : 'a) env sigma b (ns,ts,ds) =

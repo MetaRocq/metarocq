@@ -1,0 +1,7 @@
+gen-src/*.ml*
+Makefile.plugin.conf
+src/g_demo_plugin.ml
+Makefile.plugin
+Makefile.coq
+Makefile.coq.conf
+src/g_metacoq_loop_checking_plugin.ml

@@ -43,7 +43,7 @@ Fixpoint tsl_rec1 (n : nat) (t : term) {struct t} : term :=
   end.
 
 
-Fixpoint tsl_rec2 (fuel : nat) (Σ : global_env) (G : universes_graph) (E : tsl_table) (Γ : context) (t : term) {struct fuel}
+Fixpoint tsl_rec2 (fuel : nat) (Σ : global_env) (G : universe_model) (E : tsl_table) (Γ : context) (t : term) {struct fuel}
   : tsl_result term :=
   match fuel with
   | O => raise translation_utils.NotEnoughFuel
@@ -81,7 +81,7 @@ Fixpoint tsl_rec2 (fuel : nat) (Σ : global_env) (G : universes_graph) (E : tsl_
   | _ => raise TranslationNotHandeled
   end
   end
-with tsl_term  (fuel : nat) (Σ : global_env) (G : universes_graph) (E : tsl_table) (Γ : context) (t : term) {struct fuel}
+with tsl_term  (fuel : nat) (Σ : global_env) (G : universe_model) (E : tsl_table) (Γ : context) (t : term) {struct fuel}
   : tsl_result term :=
   match fuel with
   | O => raise translation_utils.NotEnoughFuel
@@ -144,16 +144,16 @@ Fixpoint replace t k u {struct u} :=
   | x => x
   end.
 
+Definition clean_uctx (uctx : ContextSet.t) := (LevelSet.remove Level.lzero (fst uctx), snd uctx).
 
 Definition tsl_mind_body (ΣE : tsl_context) (mp : modpath)
            (kn : kername) (mind : mutual_inductive_body)
   : tsl_result (tsl_table * list mutual_inductive_body).
   refine (
       let Σ := fst (fst ΣE) in
-      match gc_of_uctx (global_ext_uctx (fst ΣE)) with
+      match push_uctx init_model (clean_uctx (global_ext_uctx (fst ΣE))) with
       | None => raise (TypingError (UnsatisfiableConstraints (snd (global_ext_uctx (fst ΣE)))))
-      | Some ctrs =>
-        let G := make_graph ctrs in
+      | Some G =>
         let E := snd ΣE in
         let tsl_ty' := tsl_ty_param fuel Σ G E [] in
         let tsl2' := tsl_rec2 fuel Σ G E [] in
@@ -224,14 +224,14 @@ Defined.
 #[export] Instance tsl_param : Translation
   := {| tsl_id := tsl_ident ;
         tsl_tm := fun ΣE t =>
-      match gc_of_uctx (global_ext_uctx (fst ΣE)) with
+      match push_uctx init_model (global_ext_uctx (fst ΣE)) with
       | None => raise (TypingError (UnsatisfiableConstraints (snd (global_ext_uctx (fst ΣE)))))
-      | Some ctrs => tsl_term fuel (fst (fst ΣE)) (make_graph ctrs) (snd ΣE) [] t
+      | Some M => tsl_term fuel (fst (fst ΣE)) M (snd ΣE) [] t
       end;
         tsl_ty := Some (fun ΣE t =>
-      match gc_of_uctx (global_ext_uctx (fst ΣE)) with
+      match push_uctx init_model (global_ext_uctx (fst ΣE)) with
       | None => raise (TypingError (UnsatisfiableConstraints (snd (global_ext_uctx (fst ΣE)))))
-      | Some ctrs => tsl_ty_param fuel (fst (fst ΣE)) (make_graph ctrs) (snd ΣE) [] t
+      | Some M => tsl_ty_param fuel (fst (fst ΣE)) M (snd ΣE) [] t
       end);
         tsl_ind := tsl_mind_body |}.
 

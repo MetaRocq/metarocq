@@ -2146,7 +2146,7 @@ Proof.
 Qed.
 
 Lemma subst_let_expand_k_0 s Γ :
-  subst_let_expand_k s Γ 0 =1 subst_let_expand s Γ.
+  subst_let_expand_k s Γ 0 ≐1 subst_let_expand s Γ.
 Proof. reflexivity. Qed.
 
 

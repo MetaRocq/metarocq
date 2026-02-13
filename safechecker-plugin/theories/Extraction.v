@@ -13,7 +13,7 @@ From MetaRocq.SafeCheckerPlugin Require Import SafeTemplateChecker.
 (** Here we could extract uint63_from/to_model to the identity *)
 
 Extraction Blacklist Classes config uGraph Universes Ast String List Nat Int Init
-           UnivSubst Typing Checker Retyping OrderedType Logic Common Equality Classes
+           UnivSubst Typing Checker Retyping OrderedType Logic Common Common0 Equality Classes
            Uint63 Induction.
 Set Warnings "-extraction-opaque-accessed".
 Set Warnings "-extraction-reserved-identifier".

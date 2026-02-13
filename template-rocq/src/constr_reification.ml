@@ -10,7 +10,7 @@ struct
   type quoted_name = Constr.t (* of type BasicAst.name *)
   type quoted_aname = Constr.t (* of type BasicAst.aname (names with relevance) *)
   type quoted_relevance = Constr.t (* of type BasicAst.relevance *)
-  type quoted_sort = Constr.t (* of type Ast.universe *)
+  type quoted_sort = Constr.t (* of type Universes.sort *)
   type quoted_cast_kind = Constr.t  (* of type Ast.cast_kind *)
   type quoted_kernel_name = Constr.t (* of type Ast.kername *)
   type quoted_inductive = Constr.t (* of type Ast.inductive *)
@@ -24,8 +24,11 @@ struct
   type quoted_constraint_type = Constr.t (* of type Universes.constraint_type *)
   type quoted_univ_constraint = Constr.t (* of type Universes.univ_constraint *)
   type quoted_univ_constraints = Constr.t (* of type Universes.constraints *)
+  type quoted_universe = Constr.t (* of type Universes.Universe.t *)
+
   type quoted_univ_level = Constr.t (* of type Universes.Level.t *)
-  type quoted_univ_instance = Constr.t (* of type Universes.universe_instance *)
+  type quoted_univ_level_instance = Constr.t (* of type Universes.LevelInstance.t *)
+  type quoted_univ_instance = Constr.t (* of type Universes.Instance.t *)
   type quoted_univ_context = Constr.t (* of type Universes.UContext.t *)
   type quoted_univ_contextset = Constr.t (* of type Universes.ContextSet.t *)
   type quoted_abstract_univ_context = Constr.t (* of type Universes.AUContext.t *)
@@ -172,14 +175,13 @@ struct
   let tLevel = ast "level.Level"
   let tLevelVar = ast "level.Var"
   let tunivLe = ast "constraints.Le"
-  let tunivLe0 = ast "constraints.Le0"
-  let tunivLt = ast "constraints.Lt"
   let tunivEq = ast "constraints.Eq"
   let tMktLevelExprSet = ast "levelexprset.mkt"
   let tBuild_Universe = ast "universe.build0"
   let tfrom_kernel_repr = ast "universe.from_kernel_repr"
   (* let tto_kernel_repr = ast "universe.to_kernel_repr" *)
   let tof_level = ast "universe.make_of_level"
+  let tsucc = ast "universe.succ"
   let tLevelSet_of_list = ast "universe.of_list"
   let noprop_tSet = ast "noproplevel.lzero"
   let noprop_tLevel = ast "noproplevel.Level"
@@ -198,10 +200,10 @@ struct
   let tAUContext = ast "AUContext.t"
   let tUContextmake = ast "UContext.make"
   let tAUContextmake = ast "AUContext.make"
-  let tConstraintSet = ast "ConstraintSet.t_"
-  let tConstraintSetempty = ast "ConstraintSet.empty"
-  let tConstraintSetadd = ast "ConstraintSet.add"
-  let tConstraintSet_elements = ast "ConstraintSet.elements"
+  let tConstraintSet = ast "UnivConstraintSet.t_"
+  let tConstraintSetempty = ast "UnivConstraintSet.empty"
+  let tConstraintSetadd = ast "UnivConstraintSet.add"
+  let tConstraintSet_elements = ast "UnivConstraintSet.elements"
   let tLevelSet = ast "LevelSet.t"
   let tLevelSet_elements = ast "LevelSet.elements"
   let tmake_univ_constraint = ast "make_univ_constraint"

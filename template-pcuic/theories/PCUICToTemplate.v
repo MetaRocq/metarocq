@@ -18,7 +18,7 @@ Definition trans_prim (trans : PCUICAst.term -> Ast.term) (t : prim_val) : Ast.t
   | primIntModel i => Ast.tInt i
   | primFloatModel f => Ast.tFloat f
   | primStringModel s => Ast.tString s
-  | primArrayModel a => Ast.tArray (array_level a) (map trans (array_value a)) (trans (array_default a)) (trans (array_type a))
+  | primArrayModel a => Ast.tArray (array_universe a) (map trans (array_value a)) (trans (array_default a)) (trans (array_type a))
   end.
 
 Definition trans_predicate (t : PCUICAst.predicate Ast.term) : predicate Ast.term :=

@@ -2,6 +2,8 @@ open Pp
 
 let contrib_name = "template-rocq"
 
+let ($) f g = fun x -> f (g x)
+
 let gen_constant_in_modules s =
   lazy (
     let tm_ref = Rocqlib.lib_ref s in
@@ -292,6 +294,39 @@ module RetypeMindEntry =
     in ctx, mind
 end
 
+let ugraph_contextset ?kept (g : UGraph.t) =
+  debug Pp.(fun () -> str"Turning universe graph into universe context set");
+  let levels, cstrs, eqs =
+    match kept with
+    | None ->
+      let cstrs, eqs = UGraph.constraints_of_universes g in
+      UGraph.domain g, cstrs, eqs
+    | Some l ->
+      debug Pp.(fun () -> str"Graph restricted to: " ++ Univ.Level.Set.pr Univ.Level.pr l);
+      (* Feedback.msg_debug Pp.(str"Graph is: "  ++ UGraph.pr_universes Univ.Level.pr (UGraph.repr g)); *)
+      let dom = UGraph.domain g in
+      let kept = Univ.Level.Set.inter dom l in
+      let kept = Univ.Level.Set.remove Univ.Level.set kept in
+      let cstrs = time Pp.(str"Computing graph restriction") (UGraph.constraints_for ~kept) g in
+      l, cstrs, []
+  in
+  let levels, cstrs =
+    List.fold_right (fun eqs acc ->
+      match Univ.Level.Set.elements eqs with
+      | [] -> acc
+      | x :: [] -> acc
+      | x :: rest ->
+        List.fold_right (fun p (levels, cstrs) ->
+          (Univ.Level.Set.add p levels, Univ.Constraints.add (x, Univ.Eq, p) cstrs)) rest acc)
+      eqs (levels, cstrs)
+  in
+  let levels = Univ.Level.Set.add Univ.Level.set levels in
+  (* let levels = Univ.Level.Set.remove Univ.Level.prop levels in
+  let levels = Univ.Level.Set.remove Univ.Level.sprop levels in *)
+  (* let cstrs = Univ.Constraint.remove (Univ.Level.prop, Univ.Lt, Univ.Level.set) cstrs in *)
+  debug Pp.(fun () -> str"Universe context: " ++ Univ.pr_universe_context_set Univ.Level.pr (levels, cstrs));
+  (levels, cstrs)
+
 type ('term, 'name, 'nat) adef = { adname : 'name; adtype : 'term; adbody : 'term; rarg : 'nat }
 
 type ('term, 'name, 'nat) amfixpoint = ('term, 'name, 'nat) adef list
@@ -311,7 +346,7 @@ type ('nat, 'inductive, 'relevance) acase_info =
     aci_npar : 'nat;
     aci_relevance : 'relevance }
 
-type ('term, 'nat, 'ident, 'name, 'quoted_sort, 'cast_kind, 'kername, 'inductive, 'relevance, 'universe_level, 'universe_instance, 'projection, 'int63, 'float64, 'pstring) structure_of_term =
+type ('term, 'nat, 'ident, 'name, 'quoted_sort, 'cast_kind, 'kername, 'inductive, 'relevance, 'universe, 'universe_instance, 'projection, 'int63, 'float64, 'pstring) structure_of_term =
   | ACoq_tRel of 'nat
   | ACoq_tVar of 'ident
   | ACoq_tEvar of 'nat * 'term list
@@ -333,5 +368,5 @@ type ('term, 'nat, 'ident, 'name, 'quoted_sort, 'cast_kind, 'kername, 'inductive
   | ACoq_tInt of 'int63
   | ACoq_tFloat of 'float64
   | ACoq_tString of 'pstring
-  | ACoq_tArray of 'universe_level * 'term array * 'term * 'term
+  | ACoq_tArray of 'universe * 'term array * 'term * 'term
 

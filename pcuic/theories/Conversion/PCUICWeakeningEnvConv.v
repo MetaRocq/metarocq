@@ -13,7 +13,7 @@ Set Default Goal Selector "!".
 Implicit Types (cf : checker_flags).
 
 Lemma compare_term_subset {cf} pb Σ φ φ' t t'
-  : ConstraintSet.Subset φ φ'
+  : UnivConstraintSet.Subset φ φ'
     -> compare_term Σ φ pb t t' -> compare_term Σ φ' pb t t'.
 Proof.
   intro H. apply eq_term_upto_univ_impl; auto.
@@ -22,22 +22,22 @@ Proof.
 Qed.
 
 Lemma eq_term_subset {cf} Σ φ φ' t t'
-  : ConstraintSet.Subset φ φ' -> eq_term Σ φ t t' -> eq_term Σ φ' t t'.
+  : UnivConstraintSet.Subset φ φ' -> eq_term Σ φ t t' -> eq_term Σ φ' t t'.
 Proof. apply compare_term_subset with (pb := Conv). Qed.
 
 Lemma leq_term_subset {cf:checker_flags} Σ ctrs ctrs' t u
-  : ConstraintSet.Subset ctrs ctrs' -> leq_term Σ ctrs t u -> leq_term Σ ctrs' t u.
+  : UnivConstraintSet.Subset ctrs ctrs' -> leq_term Σ ctrs t u -> leq_term Σ ctrs' t u.
 Proof. apply compare_term_subset with (pb := Cumul). Qed.
 
 Lemma compare_decl_subset {cf} pb Σ φ φ' d d'
-  : ConstraintSet.Subset φ φ'
+  : UnivConstraintSet.Subset φ φ'
     -> compare_decl Σ φ pb d d' -> compare_decl Σ φ' pb d d'.
 Proof.
   intros Hφ []; constructor; eauto using compare_term_subset.
 Qed.
 
 Lemma compare_context_subset {cf} pb Σ φ φ' Γ Γ'
-  : ConstraintSet.Subset φ φ'
+  : UnivConstraintSet.Subset φ φ'
     -> compare_context Σ φ pb Γ Γ' ->  compare_context Σ φ' pb Γ Γ'.
 Proof.
   intros Hφ. induction 1; constructor; auto; eapply compare_decl_subset; eassumption.

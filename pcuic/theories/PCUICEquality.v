@@ -21,7 +21,7 @@ Instance All2_fold_len {A} P (Γ Δ : list A) : HasLen (All2_fold P Γ Δ) #|Γ|
 Implicit Types (cf : checker_flags).
 
 Definition cmp_universe_instance (cmp_univ : Universe.t -> Universe.t -> Prop) : Instance.t -> Instance.t -> Prop :=
-  Forall2 (on_rel cmp_univ Universe.make').
+  Forall2 cmp_univ.
 
 Definition cmp_universe_instance_dep cmp_univ P' :=
   fun {u u'} (H : cmp_universe_instance cmp_univ u u') => Forall2_dep P' H.
@@ -36,8 +36,8 @@ Definition cmp_universe_instance_dep cmp_univ P' :=
 Definition cmp_universe_variance (cmp_univ : conv_pb -> Universe.t -> Universe.t -> Prop) pb v u u' :=
   match v with
   | Variance.Irrelevant => True
-  | Variance.Covariant => on_rel (cmp_univ pb) Universe.make' u u'
-  | Variance.Invariant => on_rel (cmp_univ Conv) Universe.make' u u'
+  | Variance.Covariant => cmp_univ pb u u'
+  | Variance.Invariant => cmp_univ Conv u u'
   end.
 
 Definition cmp_universe_instance_variance cmp_univ pb v u u' :=
@@ -84,7 +84,7 @@ Definition cmp_opt_variance cmp_univ pb v :=
 
 Lemma cmp_universe_universe_variance (cmp_univ : conv_pb -> Universe.t -> Universe.t -> Prop) pb v u u' :
   RelationClasses.subrelation (cmp_univ Conv) (cmp_univ pb) ->
-  on_rel (cmp_univ Conv) Universe.make' u u' -> cmp_universe_variance cmp_univ pb v u u'.
+  cmp_univ Conv u u' -> cmp_universe_variance cmp_univ pb v u u'.
 Proof.
   destruct v => //=.
   intros H H1; apply H, H1.

@@ -2,10 +2,12 @@ CAMLFLAGS :=-thread -bin-annot -strict-sequence -w -a+1..3-4+5..8-9+10..26-27+28
 CAMLFLAGS+=-open Metarocq_template_plugin
 CAMLFLAGS+=-w -8 # Non-exhaustive matches due to translation of comparison to int
 CAMLFLAGS+=-w -20 # Unused arguments
+CAMLFLAGS+=-w -26 # Unused variables
 CAMLFLAGS+=-w -33 # Unused opens
 CAMLFLAGS+=-w -32 # Unused values
 CAMLFLAGS+=-w -34 # Unused types
 CAMLFLAGS+=-w -39 # Unused rec flags
+CAMLFLAGS+=-w -56 # Unreachable case
 CAMLFLAGS+=-w -60 # Unused module in functor
 CAMLPKGS+=-package rocq-metarocq-template-ocaml.plugin
 

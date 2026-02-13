@@ -1,12 +1,12 @@
 From MetaRocq.Utils Require Export bytestring.
 From MetaRocq.Utils Require Import utils MRList.
 From MetaRocq.Common Require Import MonadBasicAst.
-From MetaRocq.Template Require Import MonadAst TemplateMonad Ast Loader.
 From MetaRocq.Quotation Require Export CommonUtils.
 From Equations.Prop Require Import Classes.
 From Stdlib Require Import Lists.List.
 Export TemplateMonad.Common (export, local, global).
 Import ListNotations.
+From MetaRocq.Template Require Import MonadAst TemplateMonad Ast Loader.
 
 Local Set Primitive Projections.
 Local Unset Universe Minimization ToSet.
@@ -16,7 +16,7 @@ Import MRMonadNotation.
 Class quotation_of {T} (t : T) := quoted_term_of : Ast.term.
 #[global] Arguments quoted_term_of {T} t {_}.
 Class ground_quotable T := quote_ground : forall t : T, quotation_of t.
-Class inductive_quotation_of {T} (t : T) : Set
+Class inductive_quotation_of {T} (t : T)
   := { qinductive : inductive
      ; qinst : Instance.t
      ; qquotation : quotation_of t := tInd qinductive qinst }.

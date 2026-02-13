@@ -300,7 +300,7 @@ Qed.
 Lemma to_extended_list_set_binder_name brctx Γ :
   All2 (fun (x : binder_annot name) (y : context_decl) =>
     eq_binder_annot x (decl_name y)) brctx Γ ->
-  to_extended_list_k (map2 set_binder_name brctx Γ) =1 to_extended_list_k Γ.
+  to_extended_list_k (map2 set_binder_name brctx Γ) ≐1 to_extended_list_k Γ.
 Proof.
   now intros hl x; eapply reln_set_binder_name.
 Qed.
@@ -1207,7 +1207,7 @@ Proof.
   now apply onParams in onmind.
 Qed.
 
-Lemma closedP_shiftnP_eq k : closedP k xpredT =1 shiftnP k xpred0.
+Lemma closedP_shiftnP_eq k : closedP k xpredT ≐1 shiftnP k xpred0.
 Proof.
   rewrite /closedP /shiftnP. intros i; nat_compare_specs => //.
 Qed.

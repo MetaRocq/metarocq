@@ -143,7 +143,7 @@ Proof.
 Qed.
 #[global] Hint Resolve map_predicate_id_spec : all.
 
-#[global] Instance map_predicate_proper {term} : Proper (`=1` ==> `=1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
+#[global] Instance map_predicate_proper {term} : Proper (`≐1` ==> `≐1` ==> Logic.eq ==> Logic.eq)%signature (@map_predicate term term id).
 Proof.
   intros eqf0 eqf1 eqf.
   intros eqf'0 eqf'1 eqf'.
@@ -152,7 +152,7 @@ Proof.
   now apply map_ext => x.
 Qed.
 
-#[global] Instance map_predicate_proper' {term} f : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_predicate term term id f).
+#[global] Instance map_predicate_proper' {term} f : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_predicate term term id f).
 Proof.
   intros eqf0 eqf1 eqf.
   intros x y ->.
@@ -261,7 +261,7 @@ Proof.
 Qed.
 #[global] Hint Resolve map_branch_eq_spec : all.
 
-#[global] Instance map_branch_proper {term} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@map_branch term term).
+#[global] Instance map_branch_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@map_branch term term).
 Proof.
   intros eqf0 eqf1 eqf.
   intros x y ->.
@@ -417,7 +417,7 @@ Inductive term : Type :=
 | tInt (i : PrimInt63.int)
 | tFloat (f : PrimFloat.float)
 | tString (s : PrimString.string)
-| tArray (u : Level.t) (arr : list term) (default : term) (type : term).
+| tArray (u : Universe.t) (arr : list term) (default : term) (type : term).
 
 (** This can be used to represent holes, that, when unquoted, turn into fresh existential variables.
     The fresh evar will depend on the whole context at this point in the term, despite the empty instance.
@@ -567,7 +567,7 @@ Fixpoint noccur_between k n (t : term) : bool :=
   match c with
   | tRel _ | tVar _ => c
   | tInt _ | tFloat _ | tString _ => c
-  | tArray u' arr def ty => tArray (subst_instance_level u u') (List.map (subst_instance_constr u) arr)
+  | tArray u' arr def ty => tArray (subst_instance_universe u u') (List.map (subst_instance_constr u) arr)
     (subst_instance_constr u def) (subst_instance_constr u ty)
   | tEvar ev args => tEvar ev (List.map (subst_instance_constr u) args)
   | tSort s => tSort (subst_instance_sort u s)
@@ -616,7 +616,7 @@ Fixpoint closedu (k : nat) (t : term) : bool :=
   | tCoFix mfix idx =>
     forallb (test_def (closedu k) (closedu k)) mfix
   | tArray u arr def ty =>
-    closedu_level k u && forallb (closedu k) arr && closedu k def && closedu k ty
+    closedu_universe k u && forallb (closedu k) arr && closedu k def && closedu k ty
   | _ => true
   end.
 
@@ -779,7 +779,7 @@ Qed.
 
 Definition ind_predicate_context ind mdecl idecl : context :=
   let ictx := (expand_lets_ctx mdecl.(ind_params) idecl.(ind_indices)) in
-  let indty := mkApps (tInd ind (abstract_instance mdecl.(ind_universes)))
+  let indty := mkApps (tInd ind (Instance.of_level_instance (abstract_instance mdecl.(ind_universes))))
     (to_extended_list (smash_context [] mdecl.(ind_params) ,,, ictx)) in
   let inddecl :=
     {| decl_name :=
