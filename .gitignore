@@ -413,3 +413,4 @@ template-rocq/_TemplateRocqProject
 .gitignore
 template-rocq/_PluginProject
 template-rocq/_RocqProject
+template-rocq/Makefile.template.conf

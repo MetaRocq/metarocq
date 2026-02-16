@@ -65,7 +65,7 @@ Section Remap.
     match lookup_inductive_assoc mapping (fst i) with
     | None => tCase i c brs
     | Some tr =>
-        mkApps (tConst tr.(elim)) (map make_branch brs)
+        mkApps (tConst tr.(elim)) (c :: map make_branch brs)
     end.
 
   Equations remap (t : term) : term :=
