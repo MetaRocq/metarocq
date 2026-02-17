@@ -25,7 +25,8 @@ Record extract_inductive :=
   { cstrs : list kername; (* One constant for each constructor *)
     elim : kername } (* The new eliminator *).
 
-Definition extract_inductives := list (inductive * extract_inductive).
+(** Association from one mutual inductive block to the translations of each of its components *)
+Definition extract_inductives := list (kername * list extract_inductive).
 
 Definition eprogram := (EAst.global_context * EAst.term).
 Definition eprogram_env := (EEnvMap.GlobalContextMap.t * EAst.term).
