@@ -112,7 +112,7 @@ struct
       | ACoq_tCase (ci, p, c, brs) ->
         let ind = D.unquote_inductive ci.aci_ind in
         let relevance = D.unquote_relevance ci.aci_relevance in
-        let ci = Inductiveops.make_case_info (Global.env ()) ind Constr.RegularStyle in
+        let ci = Inductiveops.make_case_info (Global.env ()) ind Constr.MatchStyle in
         let evm, puinst = D.unquote_universe_instance evm p.auinst in
         let evm, pars = map_evm (aux env) evm p.apars in
         let pars = Array.of_list pars in
