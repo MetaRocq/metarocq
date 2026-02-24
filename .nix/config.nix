@@ -59,7 +59,7 @@
     rocqPackages.rocq-core.override.version = "master";
     rocqPackages.stdlib.override.version = "master";
     coqPackages.equations.override.version = "main";
-    coqPackages.ExtLib.override.version = "main";
+    coqPackages.ExtLib.override.version = "master";
     coqPackages.coq.override.version = "master";
     coqPackages.stdlib.override.version = "master";
 
