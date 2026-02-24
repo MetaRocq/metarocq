@@ -4,6 +4,7 @@
   single ? false,
   coq,
   equations,
+  ExtLib,
   stdlib,
   version ? null,
 }@args:
@@ -85,6 +86,7 @@ let
             mlPlugin = true;
             propagatedBuildInputs = [
               equations
+              ExtLib
               stdlib
               coq.ocamlPackages.zarith
               coq.ocamlPackages.stdlib-shims
