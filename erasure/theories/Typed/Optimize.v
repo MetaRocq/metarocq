@@ -2,7 +2,7 @@ From Stdlib Require Import List.
 From MetaRocq.Erasure.Typed Require Import ClosedAux.
 From MetaRocq.Erasure.Typed Require Import ExAst.
 From MetaRocq.Erasure.Typed Require Import Transform.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure Require Import EPrimitive ELiftSubst.
 From MetaRocq.Utils Require Import utils.

@@ -13,7 +13,7 @@ From MetaRocq.Template Require Import All.
 From MetaRocq.Erasure.Typed Require Import Erasure.
 From MetaRocq.Erasure.Typed Require Import Optimize.
 From MetaRocq.Erasure.Typed Require Import Utils.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Extraction.
 From MetaRocq.Erasure.Typed Require Import Certifying.
 

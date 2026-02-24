@@ -8,7 +8,7 @@ From MetaRocq.Erasure.Typed Require OptimizePropDiscr.
 From MetaRocq.Erasure.Typed Require Import Transform.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import Certifying.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Common Require Import Kernames.
 From MetaRocq.Common Require Import config.
 From MetaRocq.PCUIC Require Import PCUICAst.
