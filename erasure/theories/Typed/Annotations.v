@@ -2,7 +2,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import ExAst.
 From MetaRocq.Erasure.Typed Require Import Transform.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure Require Import ELiftSubst.
 
 Module Ex := ExAst.

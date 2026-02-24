@@ -5,7 +5,7 @@ From MetaRocq.Erasure.Typed Require Import Extraction.
 From MetaRocq.Erasure.Typed Require Import Optimize.
 From MetaRocq.Erasure.Typed Require Import OptimizeCorrectness.
 From MetaRocq.Erasure.Typed Require Import OptimizePropDiscr.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import WcbvEvalAux.
 From Equations Require Import Equations.
 From MetaRocq.Erasure Require Import ErasureCorrectness.

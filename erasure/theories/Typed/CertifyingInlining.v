@@ -7,7 +7,7 @@ From Stdlib Require Import String.
 From Stdlib Require Import Bool.
 From MetaRocq.Erasure.Typed Require Import Transform.
 From MetaRocq.Erasure.Typed Require Import CertifyingBeta.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import Certifying.
 From MetaRocq.Template Require Import All.
