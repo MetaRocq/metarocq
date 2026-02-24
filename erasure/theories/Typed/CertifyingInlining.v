@@ -13,7 +13,7 @@ From MetaRocq.Erasure.Typed Require Import Certifying.
 From MetaRocq.Template Require Import All.
 From MetaRocq.Common Require Import Kernames.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Section inlining.
   Context (should_inline : kername -> bool).

@@ -2,7 +2,7 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 (* **************************************************** *)
 (* In this file we define a small plugin which allow to *)

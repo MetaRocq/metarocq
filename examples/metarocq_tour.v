@@ -4,7 +4,7 @@ From MetaRocq.Template Require Import All.
 From MetaRocq.Template Require Import TemplateMonad.
 From MetaRocq.PCUIC Require Import PCUICAst PCUICReduction PCUICCumulativity PCUICTyping PCUICSafeLemmata.
 
-Import MRMonadNotation.
+Import MonadNotation.
 Local Open Scope bs_scope.
 
 (** MetaRocq is:
@@ -150,6 +150,3 @@ MetaRocq Erase singleton_elim.
     + Future work: handling of primitive types (ints, floats, arrays, ...)
 
 *)
-
-
-

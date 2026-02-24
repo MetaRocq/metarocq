@@ -4,7 +4,7 @@ From MetaRocq.Erasure.Typed Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import WcbvEvalAux.
 
 Import MRString.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition Transform (A : Type) := A -> result A string.
 

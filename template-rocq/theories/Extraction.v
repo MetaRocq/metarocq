@@ -19,7 +19,7 @@ Extraction Inline Equations.Init.pr1 Equations.Init.pr2.
 
 Extraction Blacklist Classes config uGraph Universes Ast String List Nat Int
            UnivSubst Typing Checker Retyping OrderedType Logic Common Equality UnivSubst Numeral
-           Uint63 Induction.
+           Uint63 Induction Monad.
 Set Warnings "-extraction-opaque-accessed".
 Set Warnings "-extraction-reserved-identifier".
 

@@ -755,7 +755,7 @@ Definition trim_mib_masks (mm : mib_masks) :=
 Definition trim_ind_masks (im : list (kername × mib_masks)) :=
   map (on_snd trim_mib_masks) im.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition throwIf (b : bool) (err : string) : (fun x => result x string) unit :=
   if b then Err err else Ok tt.

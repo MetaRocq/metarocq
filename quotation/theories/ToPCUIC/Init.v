@@ -15,7 +15,7 @@ Set Warnings "+notation-overridden".
 Local Set Primitive Projections.
 Local Unset Universe Minimization ToSet.
 Local Open Scope bs.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Class quotation_of {T} (t : T) := quoted_term_of : PCUICAst.term.
 #[global] Arguments quoted_term_of {T} t {_}.
@@ -185,6 +185,8 @@ Proof.
           end
      end);
     try exact _.
+    Unshelve.
+    all: exact TemplateMonad_Monad.
 Defined.
 
 Polymorphic Definition replace_quotation_of {debug : debug_opt} {T} (t : T) : TemplateMonad term
@@ -232,6 +234,8 @@ Proof.
        | tCoFix mfix idx => tmFail "CoFix not yet handled"
        end);
     exact _.
+    Unshelve.
+    all: exact TemplateMonad_Monad.
 Defined.
 
 Ltac replace_quotation_of_goal _ :=

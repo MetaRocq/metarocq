@@ -1,6 +1,6 @@
 From MetaRocq.Template Require Import All.
 From Stdlib Require Import List Arith.
-Import ListNotations MRMonadNotation.
+Import ListNotations MonadNotation.
 Open Scope bs_scope.
 
 Notation "'unfolded' d" :=
@@ -148,7 +148,7 @@ Polymorphic Inductive foo3@{i j k l} (A : Type@{i}) (B : Type@{j}) : Type@{k} :=
 MetaRocq Quote Recursively Definition qfoo3 := foo3.
 (* Compute qfoo3. *)
 
-From MetaRocq Require Import Utils.monad_utils. Import MRMonadNotation.
+From MetaRocq Require Import Utils.monad_utils. Import MonadNotation.
 From MetaRocq Require Import Template.TemplateMonad.Core.
 
 (* MetaRocq Run (tmQuoteInductive (cp "foo") >>= tmPrint).
@@ -255,4 +255,3 @@ MetaRocq Quote Recursively Definition ff := f'.
 (*          Checked (tSort (Universe.from_kernel_repr (Level.level _, true) [(Level.level _, true)]))). *)
 (* Open Scope string_scope. *)
 (* Check (eq_refl : infer [] init_graph [] ((tProd (nNamed "A") (tSort (Universe.make (Level.level _))) (tProd (nNamed "B") (tSort (Universe.make (Level.level _))) (tProd nAnon (tRel 1) (tProd nAnon (tRel 1) (tRel 3)))))) = Checked (tSort _)). *)
-

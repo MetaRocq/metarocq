@@ -2,7 +2,7 @@
 From MetaRocq.Utils Require Import utils.
 
 From MetaRocq.Template Require Import Checker All.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Set Universe Checking.
 

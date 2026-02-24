@@ -2,7 +2,7 @@ From MetaRocq Require Import Template.All Utils.bytestring Template.Pretty.
 From Stdlib Require Export List.
 Open Scope bs_scope.
 Import ListNotations.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Inductive test (X : Type) := test_T : test X -> test X.
 
