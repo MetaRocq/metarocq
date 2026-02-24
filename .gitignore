@@ -21,8 +21,8 @@ Makefile.rocq.conf
 *.d
 .merlin
 html/*.html
-.lia.cache
-*/.nia.cache
+**/.lia.cache
+**/.nia.cache
 .hidden
 _opam/
 .vscode/settings.json
