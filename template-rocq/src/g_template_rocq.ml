@@ -59,6 +59,7 @@ let fresh_env () =
 
 let to_constr_evars sigma c = EConstr.to_constr ~abort_on_undefined_evars:false sigma c
 
+# 63 "src/g_template_rocq.ml"
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Test_Quote" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_query) ?entry:None 
          [(Vernacextend.TyML
@@ -84,7 +85,8 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
             coqpp_body def (Attributes.parse 
 # 66 "src/g_template_rocq.mlg"
                  polymorphic
-               atts)),
+# 90 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Quote_Definition" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -110,11 +112,14 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0;
           to_constr_evars evm def|]) in
         run_template_program ~pm env evm ~poly pgm 
-            ) ~pm) in fun name def ?loc ~atts () ->
+# 117 "src/g_template_rocq.ml"
+) ~pm) in
+            fun name def ?loc ~atts () ->
             coqpp_body name def (Attributes.parse 
 # 76 "src/g_template_rocq.mlg"
                  polymorphic
-               atts)),
+# 123 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Quote_Definition_Eval" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -147,11 +152,14 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmQuoteDefinition) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0; def|]) in
         run_template_program ~pm env evm ~poly pgm 
-            ) ~pm) in fun name rd def ?loc ~atts () ->
+# 157 "src/g_template_rocq.ml"
+) ~pm) in
+            fun name rd def ?loc ~atts () ->
             coqpp_body name rd def (Attributes.parse 
 # 86 "src/g_template_rocq.mlg"
                polymorphic
-               atts)),
+# 163 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Quote_Recursively_Definition" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -179,11 +187,14 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0;
           to_constr_evars evm def|]) in
         run_template_program ~pm env evm ~poly pgm 
-            ) ~pm) in fun name def ?loc ~atts () ->
+# 192 "src/g_template_rocq.ml"
+) ~pm) in
+            fun name def ?loc ~atts () ->
             coqpp_body name def (Attributes.parse 
 # 98 "src/g_template_rocq.mlg"
                polymorphic
-               atts)),
+# 198 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Test_Unquote" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_query) ?entry:None 
@@ -210,7 +221,8 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
             coqpp_body def (Attributes.parse 
 # 108 "src/g_template_rocq.mlg"
                  polymorphic
-               atts)),
+# 227 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Make_Definition" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -237,11 +249,14 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
           [|Constr_quoter.quote_ident name;
             to_constr_evars evm def|]) in
         run_template_program ~pm env evm ~poly pgm 
-            ) ~pm) in fun name def ?loc ~atts () ->
+# 255 "src/g_template_rocq.ml"
+) ~pm) in
+            fun name def ?loc ~atts () ->
             coqpp_body name def (Attributes.parse 
 # 118 "src/g_template_rocq.mlg"
                polymorphic
-               atts)),
+# 261 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Make_Inductive" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -268,7 +283,8 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
             coqpp_body def (Attributes.parse 
 # 129 "src/g_template_rocq.mlg"
                polymorphic
-               atts)),
+# 290 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template-rocq.plugin") ~command:"TemplateRocq_Run_Template_Program" ~classifier:(fun ~atts:_ _ -> Vernacextend.classify_as_sideeff) ?entry:None 
@@ -292,7 +308,8 @@ let () = Vernacextend.static_vernac_extend ~plugin:(Some "rocq-metarocq-template
             coqpp_body def (Attributes.parse 
 # 139 "src/g_template_rocq.mlg"
                polymorphic
-               atts)),
+# 316 "src/g_template_rocq.ml"
+ atts)),
           None))]
 
 let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "TemplateRocq_quote_term" ~level:0 
@@ -311,7 +328,8 @@ let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "Template
           let c = Constr_quoter.quote_term env sigma c in
           ltac_apply tac (List.map to_ltac_val [EConstr.of_constr c])
   end 
-           )))]
+# 336 "src/g_template_rocq.ml"
+)))]
 
 let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "TemplateRocq_denote_term" ~level:0 
          [(Tacentries.TyML (Tacentries.TyIdent ("denote_term", Tacentries.TyArg (
@@ -329,7 +347,8 @@ let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "Template
          Proofview.tclTHEN (Proofview.Unsafe.tclEVARS evm)
 	   (ltac_apply tac (List.map to_ltac_val [EConstr.of_constr c]))
       end) 
-           )))]
+# 355 "src/g_template_rocq.ml"
+)))]
 
 let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "TemplateRocq_run_template_program" ~level:0 
          [(Tacentries.TyML (Tacentries.TyIdent ("run_template_program", 
@@ -356,5 +375,6 @@ let () = Tacentries.tactic_extend "rocq-metarocq-template-rocq.plugin" "Template
               (ltac_apply tac (List.map to_ltac_val [EConstr.of_constr t]))
          | None -> Proofview.tclUNIT ()
        end) 
-                                                 )))]
+# 383 "src/g_template_rocq.ml"
+)))]
 

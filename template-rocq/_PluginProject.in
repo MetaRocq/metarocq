@@ -8,6 +8,8 @@ META.rocq-metarocq-template-ocaml
 
 gen-src/all_Forall.ml
 gen-src/all_Forall.mli
+gen-src/applicative.ml
+gen-src/applicative.mli
 gen-src/ascii.ml
 gen-src/ascii.mli
 gen-src/ast0.ml
@@ -98,6 +100,8 @@ gen-src/floatClass.ml
 gen-src/floatClass.mli
 gen-src/floatOps.ml
 gen-src/floatOps.mli
+gen-src/functor.ml
+gen-src/functor.mli
 gen-src/hexadecimal.ml
 gen-src/hexadecimal.mli
 gen-src/induction0.ml
@@ -156,8 +160,22 @@ gen-src/mSetList.ml
 gen-src/mSetList.mli
 gen-src/mSetProperties.ml
 gen-src/mSetProperties.mli
+gen-src/monad0.ml
+gen-src/monad0.mli
+gen-src/monadExc.ml
+gen-src/monadExc.mli
+gen-src/monadPlus.ml
+gen-src/monadPlus.mli
+gen-src/monadReader.ml
+gen-src/monadReader.mli
+gen-src/monadState.ml
+gen-src/monadState.mli
+gen-src/monadTrans.ml
+gen-src/monadTrans.mli
 gen-src/monad_utils.ml
 gen-src/monad_utils.mli
+gen-src/monadZero.ml
+gen-src/monadZero.mli
 gen-src/nat0.ml
 gen-src/nat0.mli
 gen-src/natDef.ml
@@ -166,6 +184,8 @@ gen-src/noConfusion.ml
 gen-src/noConfusion.mli
 gen-src/number.ml
 gen-src/number.mli
+gen-src/optionMonad.ml
+gen-src/optionMonad.mli
 gen-src/orderedType0.ml
 gen-src/orderedType0.mli
 gen-src/orderedTypeAlt.ml

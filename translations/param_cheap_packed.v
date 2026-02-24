@@ -3,7 +3,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All Checker.
 From MetaRocq.Translations Require Import translation_utils sigma.
 
-Import MRMonadNotation.
+Import MonadNotation.
 Local Existing Instance config.default_checker_flags.
 Local Existing Instance default_fuel.
 

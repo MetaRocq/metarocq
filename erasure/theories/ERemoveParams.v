@@ -8,7 +8,7 @@ From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EInduction EAriti
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
-Import MRMonadNotation.
+Import MonadNotation.
 
 From Equations Require Import Equations.
 Set Equations Transparent.

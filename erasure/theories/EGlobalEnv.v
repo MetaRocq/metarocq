@@ -4,7 +4,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config BasicAst Reflect.
 From MetaRocq.Erasure Require Import EAst EAstUtils ELiftSubst EReflect ECSubst.
 From Stdlib Require Import ssreflect.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (** * Global environments
 

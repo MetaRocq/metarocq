@@ -8,7 +8,7 @@ Definition banon := {| binder_name := nAnon; binder_relevance := Relevant |}.
 Definition bnamed n := {| binder_name := nNamed n; binder_relevance := Relevant |}.
 
 Local Existing Instance config.default_checker_flags.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition var := nat.
 

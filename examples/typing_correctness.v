@@ -45,7 +45,7 @@ Global Program Instance fake_guard_impl : abstract_guard_impl :=
 Next Obligation. Admitted.
 
 Local Existing Instance PCUICSN.default_normalizing.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition make_wf_env_ext (Σ : global_env_ext) : EnvCheck wf_env_ext wf_env_ext :=
   '(exist Σ' pf) <- check_wf_ext optimized_abstract_env_impl Σ ;;
@@ -74,7 +74,7 @@ From Equations Require Import Equations.
 Local Existing Instance default_checker_flags.
 Local Existing Instance PCUICSN.default_normalizing.
 Local Existing Instance PCUICSN.normalization.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (* ********************************************************* *)
 (* In this file we define a small plugin which proves        *)

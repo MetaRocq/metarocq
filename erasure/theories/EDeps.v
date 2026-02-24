@@ -1,5 +1,6 @@
 From Stdlib Require Import Arith List.
 From Equations Require Import Equations.
+From MetaRocq.Utils Require Import utils.
 From MetaRocq.PCUIC Require Import
      PCUICPrimitive PCUICAst PCUICAstUtils PCUICTyping PCUICInversion PCUICWeakeningEnv PCUICWeakeningEnvTyp.
 Set Warnings "-notation-overridden".
@@ -7,7 +8,6 @@ From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils ECSubst EInductio
   ELiftSubst EGlobalEnv EWcbvEval Extract ESubstitution.
 From MetaRocq.Erasure Require EExtends.
 Set Warnings "+notation-overridden".
-From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config.
 
 Derive NoConfusion for term.

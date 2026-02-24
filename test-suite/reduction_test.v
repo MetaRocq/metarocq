@@ -10,7 +10,7 @@ Local Open Scope string_scope.
 From MetaRocq.Utils Require Import utils bytestring.
 From MetaRocq.Common Require Import config.
 
-Import MRMonadNotation.
+Import MonadNotation.
 Unset MetaRocq Debug.
 (* We're doing erasure assuming no Prop <= Type rule and lets can appear in constructor types. *)
 #[local] Existing Instance extraction_checker_flags.

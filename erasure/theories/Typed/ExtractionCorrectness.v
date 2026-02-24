@@ -582,7 +582,7 @@ Qed.
 From Stdlib Require Import String.
 Local Open Scope string_scope.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition compute_masks overridden_masks do_trim_const_masks do_trim_ctor_masks Σ : result dearg_set bytestring.string :=
   let (const_masks, ind_masks) := Utils.timed "Dearg analysis" (fun _ => analyze_env overridden_masks Σ) in

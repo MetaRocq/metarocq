@@ -1,19 +1,21 @@
 (** This file provides the main function for invoking our extraction. *)
 From Stdlib Require Import String.
+From MetaRocq.Utils Require Import utils.
+From MetaRocq.Template Require Import TemplateMonad.
 From MetaRocq.Erasure.Typed Require Import Erasure.
 From MetaRocq.Erasure.Typed Require Import Optimize.
 From MetaRocq.Erasure.Typed Require OptimizePropDiscr.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Transform.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import Certifying.
-From MetaRocq.Utils Require Import utils.
+From MetaRocq.Erasure.Typed Require Import ResultMonad.
 From MetaRocq.Common Require Import Kernames.
 From MetaRocq.Common Require Import config.
-From MetaRocq.Template Require Import TemplateMonad.
 From MetaRocq.PCUIC Require Import PCUICAst.
 From MetaRocq.PCUIC Require Import PCUICTyping.
 From MetaRocq.TemplatePCUIC Require Import TemplateToPCUIC.
+
+Import MonadNotation.
 
 #[export]
 Existing Instance extraction_checker_flags.
@@ -116,10 +118,9 @@ Record extract_template_env_params :=
     check_wf_env_func : forall Σ, result (∥wf Σ∥) string;
     pcuic_args : extract_pcuic_params }.
 
-Import MRMonadNotation.
-
 Definition check_wf_and_extract (params : extract_template_env_params)
-           (Σ : global_env) (seeds : KernameSet.t) (ignore : kername -> bool) :=
+           (Σ : global_env) (seeds : KernameSet.t) (ignore : kername -> bool)
+           : (fun T => result T string) ExAst.global_env :=
   wfΣ <- check_wf_env_func params Σ;;
   extract_pcuic_env (pcuic_args params) Σ wfΣ seeds ignore.
 
@@ -133,7 +134,8 @@ Definition extract_template_env_general
   Σ <- pcuic_trans (PCUICProgram.trans_env_env Σ) ;;
   check_wf_and_extract params Σ seeds ignore.
 
-Definition extract_template_env := extract_template_env_general ret.
+Definition extract_template_env :=
+  extract_template_env_general (@ret (fun T => result T string) _ _).
 
 Definition run_transforms_list (Σ : Ast.Env.global_env) (ts : list TemplateTransform) : TemplateMonad Ast.Env.global_env :=
   res <- tmEval lazy (compose_transforms ts Σ) ;;

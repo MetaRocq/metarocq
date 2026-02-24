@@ -4,7 +4,7 @@ Set Warnings "-notation-overridden".
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All Checker.
 From MetaRocq.Translations Require Import translation_utils MiniHoTT.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Unset MetaRocq Strict Unquote Universe Mode.
 

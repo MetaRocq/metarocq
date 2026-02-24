@@ -7,7 +7,7 @@ From MetaRocq.Common Require Import Kernames.
 From MetaRocq.Template Require Import Ast Checker All.
 
 Open Scope bs.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (* TODO: at some point we should provide StringExtra for byte strings *)
 Definition replace_char (orig : ascii) (new : ascii) : String.string -> String.string :=
