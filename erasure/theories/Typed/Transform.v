@@ -1,10 +1,10 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Erasure.Typed Require Import ExAst.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import WcbvEvalAux.
 
 Import MRString.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition Transform (A : Type) := A -> result A string.
 

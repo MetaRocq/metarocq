@@ -5,7 +5,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All.
 Unset Universe Checking.
 From MetaRocq.Translations Require Import translation_utils times_bool_fun MiniHoTT.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Unset MetaRocq Strict Unquote Universe Mode.
 

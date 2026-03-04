@@ -5,7 +5,7 @@ From MetaRocq.Erasure.Typed Require Import Extraction.
 From MetaRocq.Erasure.Typed Require Import Optimize.
 From MetaRocq.Erasure.Typed Require Import OptimizeCorrectness.
 From MetaRocq.Erasure.Typed Require Import OptimizePropDiscr.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import WcbvEvalAux.
 From Equations Require Import Equations.
 From MetaRocq.Erasure Require Import ErasureCorrectness.
@@ -582,7 +582,7 @@ Qed.
 From Stdlib Require Import String.
 Local Open Scope string_scope.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition compute_masks overridden_masks do_trim_const_masks do_trim_ctor_masks Σ : result dearg_set bytestring.string :=
   let (const_masks, ind_masks) := Utils.timed "Dearg analysis" (fun _ => analyze_env overridden_masks Σ) in

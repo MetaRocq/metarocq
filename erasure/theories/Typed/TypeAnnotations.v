@@ -5,7 +5,7 @@ From MetaRocq.Erasure.Typed Require Import ExAst.
 From MetaRocq.Erasure.Typed Require Import Extraction.
 From MetaRocq.Erasure.Typed Require Import Optimize.
 From MetaRocq.Erasure.Typed Require Import Transform.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 Local Set Warnings "-warn-library-file-stdlib-vector".
 From Stdlib Require Import VectorDef.
 From Equations Require Import Equations.

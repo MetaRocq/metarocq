@@ -1,6 +1,6 @@
 From Stdlib Require Import String List.
 From MetaRocq Require Import Template.All.
-Import ListNotations MRMonadNotation.
+Import ListNotations MonadNotation.
 
 Open Scope bs.
 

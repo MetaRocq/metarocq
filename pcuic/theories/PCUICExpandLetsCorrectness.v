@@ -20,7 +20,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICOnOne PCUICCases 
 From MetaRocq.PCUIC Require Import PCUICExpandLets.
 Set Warnings "+notation-overridden".
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Implicit Types (cf : checker_flags) (Σ : global_env_ext). (* Use {cf} to parameterize by checker_flags where needed *)
 

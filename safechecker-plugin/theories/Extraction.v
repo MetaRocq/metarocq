@@ -14,7 +14,7 @@ From MetaRocq.SafeCheckerPlugin Require Import SafeTemplateChecker.
 
 Extraction Blacklist Classes config uGraph Universes Ast String List Nat Int Init
            UnivSubst Typing Checker Retyping OrderedType Logic Common Equality Classes
-           Uint63 Induction.
+           Uint63 Induction Monad.
 Set Warnings "-extraction-opaque-accessed".
 Set Warnings "-extraction-reserved-identifier".
 

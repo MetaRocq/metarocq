@@ -2,7 +2,7 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All.
 From MetaRocq.Translations Require Import translation_utils.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Local Infix "<=" := Nat.leb.
 
