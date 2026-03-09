@@ -135,12 +135,13 @@ Program Definition optional_unsafe_transforms econf :=
   ETransform.optional_self_transform passes.(unboxing)
     (rebuild_wf_env_transform (efl := efl) false false ▷
       unbox_transformation efl final_wcbv_flags) ▷
+  ETransform.optional_self_transform passes.(inductives_extraction)
+    (rebuild_wf_env_transform (efl := efl) false false ▷
+       extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives) ▷
+       forget_inductive_extraction_info_transformation efl final_wcbv_flags) ▷
   ETransform.optional_self_transform passes.(inlining)
       (inline_transformation efl final_wcbv_flags econf.(inlined_constants) ▷
        forget_inlining_info_transformation efl final_wcbv_flags) ▷
-  ETransform.optional_self_transform passes.(inductives_extraction)
-      (extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives) ▷
-       forget_inductive_extraction_info_transformation efl final_wcbv_flags) ▷
   (* Heuristically do it twice for more beta-normal terms *)
   ETransform.optional_self_transform passes.(betared)
     (betared_transformation efl final_wcbv_flags ▷
