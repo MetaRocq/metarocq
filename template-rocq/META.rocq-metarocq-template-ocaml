@@ -2,12 +2,12 @@
 
 package "plugin" (
     description = "The MetaRocq Template Library"
-    version = "8.20"
     directory = "gen-src"
     archive(byte) = "metarocq_template_plugin.cma"
     archive(native) = "metarocq_template_plugin.cmxa"
     plugin(byte) = "metarocq_template_plugin.cma"
     plugin(native) = "metarocq_template_plugin.cmxs"
+    requires = "rocq-runtime.vernac"
 )
 
 directory = "."

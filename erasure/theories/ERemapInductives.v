@@ -5,7 +5,7 @@ Set Equations Transparent.
 
 From MetaRocq.PCUIC Require Import PCUICAstUtils.
 From MetaRocq.Utils Require Import MRList bytestring utils monad_utils.
-From MetaRocq.Erasure Require Import EProgram EPrimitive EAst ESpineView EEtaExpanded EInduction EGlobalEnv
+From MetaRocq.Erasure Require Import EEnvMap EProgram EPrimitive EAst ESpineView EEtaExpanded EInduction EGlobalEnv
   EAstUtils ELiftSubst EWellformed ECSubst EWcbvEval.
 
 Import Kernames.
@@ -36,7 +36,7 @@ Equations filter_map {A B} (f : A -> option B) (l : list A) : list B :=
     | Some x' => x' :: filter_map f xs }.
 
 Section Remap.
-  Context (Σ : global_declarations).
+  Context (Σ : GlobalContextMap.t).
   Context (mapping : extract_inductives).
 
   Definition lookup_inductive_assoc i : option extract_inductive :=
@@ -97,10 +97,11 @@ Section Remap.
     Definition remap_constant_decl cb :=
       {| cst_body := option_map remap cb.(cst_body) |}.
 
-    Definition axiom (kn : kername) := (kn, ConstantDecl {| cst_body := None |}).
+    Definition axiom (kn : kername) :=
+      if GlobalContextMap.lookup_env Σ kn is None then Some (kn, ConstantDecl {| cst_body := None |}) else None.
+
     Definition remapping_decls tr :=
-      let cstrs := map axiom tr.(cstrs) in
-      axiom tr.(elim) :: cstrs.
+      filter_map axiom (tr.(elim) :: tr.(cstrs)).
 
     Definition remap_inductive_decl kn idecl :=
       match lookup_kername_assoc mapping kn with
@@ -120,8 +121,8 @@ Section Remap.
 
 End Remap.
 
-Definition remap_program mapping (p : program) : program :=
-  (remap_env mapping p.1, remap mapping p.2).
+Definition remap_program mapping (p : eprogram_env) : program :=
+  (remap_env p.1 mapping (GlobalContextMap.global_decls p.1), remap mapping p.2).
 
 From MetaRocq.Erasure Require Import EProgram EWellformed EWcbvEval.
 From MetaRocq.Common Require Import Transform.
@@ -134,8 +135,8 @@ Definition inductives_extraction_program_inlinings (pr : inductives_extraction_p
 
 Coercion inductives_extraction_program_inlinings : inductives_extraction_program >-> extract_inductives.
 
-Definition extract_inductive_program mapping (p : program) : inductives_extraction_program :=
-  let Σ' := remap_env mapping p.1 in
+Definition extract_inductive_program mapping (p : eprogram_env) : inductives_extraction_program :=
+  let Σ' := remap_env p.1 mapping (GlobalContextMap.global_decls p.1) in
   (Σ', mapping, remap mapping p.2).
 
 Definition forget_inductive_extraction_info (pr : inductives_extraction_program) : eprogram :=
@@ -151,12 +152,12 @@ Axiom trust_inductive_extraction_wf :
   WcbvFlags ->
   forall inductive_extraction : extract_inductives,
   forall (input : Transform.program _ term),
-  wf_eprogram efl input -> wf_eprogram efl (extract_inductive_program inductive_extraction input).
+  wf_eprogram_env efl input -> wf_eprogram efl (extract_inductive_program inductive_extraction input).
 Axiom trust_inductive_extraction_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction (p : Transform.program _ term)
   (v : term),
-  wf_eprogram efl p ->
-  eval_eprogram wfl p v ->
+  wf_eprogram_env efl p ->
+  eval_eprogram_env wfl p v ->
   exists v' : term,
   let ip := extract_inductive_program inductive_extraction p in
   eval_eprogram wfl ip v' /\ v' = remap ip v.
@@ -165,10 +166,10 @@ Import Transform.
 
 Program Definition extract_inductive_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction :
   Transform.t _ _ EAst.term EAst.term _ _
-    (eval_eprogram wfl) (eval_inductives_extraction_program wfl) :=
+    (eval_eprogram_env wfl) (eval_inductives_extraction_program wfl) :=
   {| name := "inductive_extraction ";
     transform p _ := extract_inductive_program inductive_extraction p ;
-    pre p := wf_eprogram efl p ;
+    pre p := wf_eprogram_env efl p ;
     post (p : inductives_extraction_program) := wf_eprogram efl p ;
     obseq p hp (p' : inductives_extraction_program) v v' := v' = remap p' v |}.
 
@@ -192,7 +193,7 @@ Definition extends_inductives_extraction_eprogram (p q : inductives_extraction_p
 Axiom trust_inline_transformation_ext' :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction,
   TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction)
-    extends_eprogram extends_inductives_extraction_eprogram.
+    extends_eprogram_env extends_inductives_extraction_eprogram.
 
 
 Program Definition forget_inductive_extraction_info_transformation (efl : EEnvFlags) (wfl : WcbvFlags) :
