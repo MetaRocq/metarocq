@@ -2,7 +2,7 @@
 
 ## Branches and compatibility
 
-**tl;dr** You should do your PRs against [9.0](https://github.com/MetaRocq/metarocq/tree/9.1).
+**tl;dr** You should do your PRs against [9.1](https://github.com/MetaRocq/metarocq/tree/9.1).
 
 Rocq's kernel API is not stable yet, and changes there are reflected in MetaRocq's reified structures,
 so we do not ensure any compatibility from version to version. There is one branch for each Rocq version.
@@ -10,7 +10,7 @@ so we do not ensure any compatibility from version to version. There is one bran
 The *main branch* or *current branch* is the one which appers when you go on
 [https://github.com/MetaRocq/metarocq](https://github.com/MetaRocq/metarocq).
 Currently (unless you are reading the README of an outdated branch),
-it is the [9.0](https://github.com/MetaRocq/metarocq/tree/9.1).
+it is the [9.1](https://github.com/MetaRocq/metarocq/tree/9.1).
 You should use it both for usage of MetaRocq and development of MetaRocq.
 
 The [main](https://github.com/MetaRocq/metarocq/tree/main) branch is following Rocq's master

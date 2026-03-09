@@ -52,8 +52,10 @@ uninstall:
 	$(MAKE) -C translations uninstall
 
 html: all
-	"coqdoc" --multi-index -toc -utf8 -html \
+	"rocq doc" --multi-index -toc -utf8 -html \
     --with-header ./html/resources/header.html --with-footer ./html/resources/footer.html \
+    --coqlib_url https://rocq-prover.org/doc/V9.0.0/corelib \
+    --external https://rocq-prover.org/doc/V9.0.0/stdlib Stdlib \
 		-R utils/theories MetaRocq.Utils \
 		-R common/theories MetaRocq.Common \
 		-R template-rocq/theories MetaRocq.Template \
@@ -67,6 +69,8 @@ html: all
 		-R translations MetaRocq.Translations \
 		-R examples MetaRocq.Examples \
 		-d html */theories/*.v */theories/*/*.v translations/*.v examples/*.v
+	# Overwritten by rocq doc
+	git co html/coqdoc.css
 
 clean:
 	$(MAKE) -C utils clean
