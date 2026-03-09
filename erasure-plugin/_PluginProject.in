@@ -126,6 +126,8 @@ src/eCoInductiveToInductive.mli
 src/eCoInductiveToInductive.ml
 src/eReorderCstrs.mli
 src/eReorderCstrs.ml
+src/eRemapInductives.mli
+src/eRemapInductives.ml
 src/eUnboxing.mli
 src/eUnboxing.ml
 src/eTransform.mli
