@@ -43,6 +43,7 @@ theories/EWcbvEvalCstrsAsBlocksFixLambdaInd.v
 theories/ECoInductiveToInductive.v
 theories/EUnboxing.v
 theories/EReorderCstrs.v
+theories/ERemapInductives.v
 theories/EImplementBox.v
 
 theories/Typed/Annotations.v

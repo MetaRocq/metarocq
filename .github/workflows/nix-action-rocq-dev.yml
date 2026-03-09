@@ -1168,6 +1168,8 @@ on:
   pull_request:
     paths:
     - .github/workflows/nix-action-rocq-dev.yml
+    branches:
+    - main
   pull_request_target:
     paths-ignore:
     - .github/workflows/nix-action-rocq-dev.yml
@@ -1175,6 +1177,8 @@ on:
     - opened
     - synchronize
     - reopened
+    branches:
+    - main
   push:
     branches:
     - main

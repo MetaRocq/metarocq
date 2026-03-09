@@ -9,11 +9,11 @@
   ## Will determine the default main-job of the bundles defined below
   attribute = "metarocq";
 
+  no-rocq-yet = true;
+
   ## If you want to select a different attribute (to build from the local sources as well)
   ## when calling `nix-shell` and `nix-build` without the `--argstr job` argument
   shell-attribute = "equations";
-
-  no-rocq-yet = true;
 
   ## Maybe the shortname of the library is different from
   ## the name of the nixpkgs attribute, if so, set it here:
@@ -35,7 +35,7 @@
 
   ## select an entry to build in the following `bundles` set
   ## defaults to "default"
-  default-bundle = "rocq-dev";
+  default-bundle = "rocq-9.1";
 
   # MetaRocq is expected to be compatible with a single coq version
   # The name of the bundle should finish with the coq version to use
