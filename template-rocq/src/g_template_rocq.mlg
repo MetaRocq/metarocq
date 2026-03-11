@@ -49,8 +49,8 @@ let ltac_apply (f : Value.t) (args: Tacinterp.Value.t list) =
 
 let to_ltac_val c = Tacinterp.Value.of_constr c
 
-let run_template_program ~pm env evm ~poly pgm =
-  Run_template_monad.run_template_program_rec ~poly (fun ~st _ _ _ -> st) ~st:pm env (evm, pgm)
+let run_template_program ~opaque_access ~pm env evm ~poly pgm =
+  Run_template_monad.run_template_program_rec opaque_access ~poly (fun ~st _ _ _ -> st) ~st:pm env (evm, pgm)
 
 let fresh_env () =
   let env = Global.env () in
@@ -58,90 +58,104 @@ let fresh_env () =
   env, sigma
 
 let to_constr_evars sigma c = EConstr.to_constr ~abort_on_undefined_evars:false sigma c
+
+let vtopaqueaccessprog f =
+  let open Vernactypes in
+  typed_vernac { ignore_state with opaque_access = Access; prog = Modify }
+    (fun {opaque_access; prog} -> let prog = f ~opaque_access ~pm:prog in {no_state with prog})
+
 }
 
 (** ********* Commands ********* *)
 
-VERNAC COMMAND EXTEND TemplateRocq_Test_Quote CLASSIFIED AS QUERY STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Test_Quote CLASSIFIED AS QUERY STATE CUSTOM
     | #[ poly = polymorphic ] [ "MetaRocq" "Test" "Quote" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
-        let (evm, def) = Constrintern.interp_open_constr env evm def in
-        let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmTestQuote) in
-        let pgm = Constr.mkApp (EConstr.to_constr evm pgm,
-          [|Constr.mkRel 0; to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+       { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+             let (env, evm) = fresh_env () in
+             let (evm, def) = Constrintern.interp_open_constr env evm def in
+             let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmTestQuote) in
+             let pgm = Constr.mkApp (EConstr.to_constr evm pgm,
+                                     [|Constr.mkRel 0; to_constr_evars evm def|]) in
+             run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Quote_Definition CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Quote_Definition CLASSIFIED AS SIDEFF STATE CUSTOM
     | #[ poly = polymorphic ] [ "MetaRocq" "Quote" "Definition" ident(name) ":=" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmQuoteDefinition) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0;
           to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Quote_Definition_Eval CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Quote_Definition_Eval CLASSIFIED AS SIDEFF STATE CUSTOM
   | #[ poly = polymorphic ] [ "MetaRocq" "Quote" "Definition" ident(name) ":=" "Eval" red_expr(rd) "in" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         (* TODO : implem quoting of tactic reductions so that we can use ptmQuoteDefinitionRed *)
         let (evm, rd) = Redexpr.interp_redexp_no_ltac env evm rd in
 	      let (evm, def) = Plugin_core.reduce env evm rd (to_constr_evars evm def) in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmQuoteDefinition) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0; def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Quote_Recursively_Definition CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Quote_Recursively_Definition CLASSIFIED AS SIDEFF STATE CUSTOM
   | #[ poly = polymorphic ] [ "MetaRocq" "Quote" "Recursively" "Definition" ident(name) ":=" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmQuoteRecDefinition) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm, [|Constr_quoter.quote_ident name; Constr.mkRel 0;
           to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Test_Unquote CLASSIFIED AS QUERY STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Test_Unquote CLASSIFIED AS QUERY STATE CUSTOM
     | #[ poly = polymorphic ] [ "MetaRocq" "Test" "Unquote" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmTestUnquote) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm,
           [|to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Make_Definition CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Make_Definition CLASSIFIED AS SIDEFF STATE CUSTOM
   | #[ poly = polymorphic ] [ "MetaRocq" "Unquote" "Definition" ident(name) ":=" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmMkDefinition) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm,
           [|Constr_quoter.quote_ident name;
             to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Make_Inductive CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Make_Inductive CLASSIFIED AS SIDEFF STATE CUSTOM
   | #[ poly = polymorphic ] [ "MetaRocq" "Unquote" "Inductive" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (evm, def) = Constrintern.interp_open_constr env evm def in
         let (evm, pgm) = EConstr.fresh_global env evm (Lazy.force Template_monad.ptmMkInductive) in
         let pgm = Constr.mkApp (EConstr.to_constr evm pgm,
           [|Constr_quoter.quote_bool false; to_constr_evars evm def|]) in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
-VERNAC COMMAND EXTEND TemplateRocq_Run_Template_Program CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND TemplateRocq_Run_Template_Program CLASSIFIED AS SIDEFF STATE CUSTOM
   | #[ poly = polymorphic ] [ "MetaRocq" "Run" constr(def) ] ->
-      { fun ~pm -> let (env, evm) = fresh_env () in
+      { vtopaqueaccessprog (fun ~opaque_access ~pm ->
+        let (env, evm) = fresh_env () in
         let (pgm, ctx) = Constrintern.interp_constr env evm def in
         let evm = Evd.from_ctx ctx in
         let pgm = EConstr.to_constr ~abort_on_undefined_evars:true evm pgm in
-        run_template_program ~pm env evm ~poly pgm }
+        run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
 
 
@@ -182,6 +196,7 @@ TACTIC EXTEND TemplateRocq_run_template_program
          (* We don't allow opening obligations / updating the vernacular inside proofs / as tactics *)
          let pm = Declare.OblState.empty in
          let _pm = Run_template_monad.run_template_program_rec
+             Library.indirect_accessor
              ~poly ~intactic:true ~st:pm (fun ~st env evm t -> ret := Some (env,evm,t); st)
              env (evm, to_constr_evars evm c)
          in
