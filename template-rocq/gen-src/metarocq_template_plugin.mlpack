@@ -70,11 +70,15 @@ MRProd
 MRCompare
 Bytestring
 Caml_bytestring
+Functor
+Applicative
 MonadExc
 Monad0
 MonadReader
+MonadState
 MonadTrans
 MonadZero
+MonadPlus
 OptionMonad
 Monad_utils
 Sumbool
