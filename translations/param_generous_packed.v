@@ -4,7 +4,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import Checker All.
 From MetaRocq.Translations Require Import translation_utils MiniHoTT_paths.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Reserved Notation "'tsl_ty_param'".
 

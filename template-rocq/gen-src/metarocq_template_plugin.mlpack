@@ -70,6 +70,12 @@ MRProd
 MRCompare
 Bytestring
 Caml_bytestring
+MonadExc
+Monad0
+MonadReader
+MonadTrans
+MonadZero
+OptionMonad
 Monad_utils
 Sumbool
 Zeven

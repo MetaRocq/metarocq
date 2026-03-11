@@ -6,7 +6,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping PCUICSN PC
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl PCUICTypeChecker PCUICSafeChecker.
 From Equations Require Import Equations.
 
-Import MRMonadNotation.
+Import MonadNotation.
 Global Existing Instance default_checker_flags.
 Global Existing Instance default_normalizing.
 

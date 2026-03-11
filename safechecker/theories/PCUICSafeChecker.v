@@ -26,7 +26,7 @@ From Stdlib Require Import ssreflect ssrbool.
 Local Set Keyed Unification.
 Set Equations Transparent.
 
-Import MRMonadNotation.
+Import MonadNotation.
 From Stdlib Require Import Morphisms.
 
 Implicit Types (cf : checker_flags).

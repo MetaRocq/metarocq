@@ -10,7 +10,7 @@ Set Warnings "+notation-overridden".
 
 Local Set Universe Polymorphism.
 Local Unset Universe Minimization ToSet.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Notation eval_pcuic_quotation := eval_pcuic_quotation (only parsing).
 #[export] Existing Instance default_eval_pcuic_quotation.

@@ -8,7 +8,7 @@ From MetaRocq.Utils Require Import MRList bytestring utils monad_utils.
 From MetaRocq.Erasure Require Import EPrimitive EAst EEnvMap EInduction EGlobalEnv.
 
 Import Kernames.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (* Inlining hints *)
 Definition inlining := KernameSet.t.
@@ -173,4 +173,3 @@ Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
   now rewrite /extends_inlined_eprogram /extends_eprogram /=.
 Qed.
-

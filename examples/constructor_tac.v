@@ -1,6 +1,6 @@
 From Stdlib Require Import List.
 From MetaRocq.Template Require Import All Loader.
-Import MRMonadNotation.
+Import MonadNotation.
 Open Scope bs.
 
 Definition constructor (goal : Ast.term): TemplateMonad typed_term :=
@@ -40,4 +40,3 @@ Qed.
 Goal True + False.
   repeat constructor_tac.
 Qed.
-

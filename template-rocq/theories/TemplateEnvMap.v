@@ -3,7 +3,7 @@ From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Kernames EnvMap.
 From MetaRocq.Template Require Import Ast Typing.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Lemma fresh_globals_cons_inv {Σ : global_declarations} {d} : EnvMap.fresh_globals (d :: Σ) -> EnvMap.fresh_globals Σ.
 Proof. intros H; now depelim H. Qed.

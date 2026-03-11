@@ -9,7 +9,7 @@ From MetaRocq.Template Require Import TemplateMonad.
 From MetaRocq.Template Require Import Typing.
 From MetaRocq.Utils Require Import utils.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Derive Signature for Alli.
 Derive Signature for Forall.

@@ -4,7 +4,7 @@ From Stdlib.Numbers.Cyclic Require Import PrimInt63 Sint63.
 
 Local Open Scope string_scope.
 Local Open Scope sint63_scope.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Definition bigint : PrimInt63.int := 542985047%int63.
 

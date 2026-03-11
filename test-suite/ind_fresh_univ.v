@@ -1,7 +1,7 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All.
 From MetaRocq.Template Require Import Checker.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (** MWE du bug sur les niveaux d'univers frais.*)
 

@@ -19,7 +19,7 @@ Set Warnings "notation-overridden".
 From MetaRocq.PCUIC Require Import PCUICEquality.
 From MetaRocq.TemplatePCUIC Require Import PCUICToTemplate.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Implicit Types cf : checker_flags. (* Use {cf} to parameterize by checker_flags where needed *)
 Set Default Proof Using "Type*".

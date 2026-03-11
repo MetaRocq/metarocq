@@ -2,7 +2,7 @@
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Environment uGraph.
 From MetaRocq.Template Require Import Ast AstUtils LiftSubst UnivSubst Typing.
-Import MRMonadNotation.
+Import MonadNotation.
 
 (** * Rocq type-checker for kernel terms
 
@@ -861,4 +861,3 @@ Definition infer' `{checker_flags} `{Fuel} (Σ : global_env_ext) Γ t
      | None => raise (UnsatisfiableConstraints uctx.2)
      | Some uctx => infer (fst Σ) (make_graph uctx) Γ t
      end.
-
