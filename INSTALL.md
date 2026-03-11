@@ -88,7 +88,7 @@ and puts you in the right environment (check with `ocamlc -v`).
 Once in the right switch, you can install `Rocq` and the `Equations` package.
 For that, you need to first add the Rocq packages repository, using:
 
-    # opam repo add rocq-released https://rocq-prover.org/opam/release, using:
+    # opam repo add rocq-released https://rocq-prover.org/opam/released
 
 Then, to install the dependencies, it suffices to do:
 
