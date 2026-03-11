@@ -14,18 +14,19 @@ DECLARE PLUGIN "rocq-metarocq-demo-plugin.plugin"
 
 VERNAC COMMAND EXTEND Make_vernac CLASSIFIED AS QUERY STATE CUSTOM
    | [ "Showoff" ] ->
-     { Run_extractable.run_vernac showoff }
+     { vtopaqueaccessprog (Run_extractable.run_vernac showoff) }
 END
 
 
 VERNAC COMMAND EXTEND Make_lens_vernac CLASSIFIED AS SIDEFF STATE CUSTOM
 | [ "Make" "Lens" ident(name) ] ->
-     { Run_extractable.run_vernac (genLensN (Caml_bytestring.bytestring_of_caml_string (Names.Id.to_string name))) }
+   { vtopaqueaccessprog
+        (Run_extractable.run_vernac (genLensN (Caml_bytestring.bytestring_of_caml_string (Names.Id.to_string name)))) }
 END
 
 
 VERNAC COMMAND EXTEND Unquote_vernac CLASSIFIED AS SIDEFF STATE CUSTOM
 | [ "LookupPrint" ident(name) ] ->
-     { let nstr = Names.Id.to_string name in
-       Run_extractable.run_vernac (lookupPrint (Caml_bytestring.bytestring_of_caml_string nstr)) }
+   { let nstr = Names.Id.to_string name in
+     vtopaqueaccessprog (Run_extractable.run_vernac (lookupPrint (Caml_bytestring.bytestring_of_caml_string nstr))) }
 END
