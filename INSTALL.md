@@ -94,7 +94,7 @@ Then, to install the dependencies, it suffices to do:
 
     # opam install . --deps-only
 
-If the commands are successful you should have `rocq` available (check with `rocq -v**).
+If the commands are successful you should have `rocq` available (check with `rocq -v`).
 
 
 **Remark:** You can create a [local switch](https://opam.ocaml.org/blog/opam-20-tips/#Local-switches) for
