@@ -1,25 +1,31 @@
 {
 open Stdarg
 open MyPlugin
+
+
+let vtopaqueaccessprog f =
+  let open Vernactypes in
+  typed_vernac { ignore_state with opaque_access = Access; prog = Modify }
+    (fun {opaque_access; prog} -> let prog = f ~opaque_access ~pm:prog in {no_state with prog})
+
 }
 
 DECLARE PLUGIN "rocq-metarocq-demo-plugin.plugin"
 
-VERNAC COMMAND EXTEND Make_vernac CLASSIFIED AS QUERY STATE program
+VERNAC COMMAND EXTEND Make_vernac CLASSIFIED AS QUERY STATE CUSTOM
    | [ "Showoff" ] ->
-     { (* FIXME: indirect_accessor used in place of a STATE opaque_access *)
-     Run_extractable.run_vernac ~opaque_access:Library.indirect_accessor showoff }
+     { Run_extractable.run_vernac showoff }
 END
 
 
-VERNAC COMMAND EXTEND Make_lens_vernac CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND Make_lens_vernac CLASSIFIED AS SIDEFF STATE CUSTOM
 | [ "Make" "Lens" ident(name) ] ->
-     { Run_extractable.run_vernac ~opaque_access:Library.indirect_accessor (genLensN (Caml_bytestring.bytestring_of_caml_string (Names.Id.to_string name))) }
+     { Run_extractable.run_vernac (genLensN (Caml_bytestring.bytestring_of_caml_string (Names.Id.to_string name))) }
 END
 
 
-VERNAC COMMAND EXTEND Unquote_vernac CLASSIFIED AS SIDEFF STATE program
+VERNAC COMMAND EXTEND Unquote_vernac CLASSIFIED AS SIDEFF STATE CUSTOM
 | [ "LookupPrint" ident(name) ] ->
      { let nstr = Names.Id.to_string name in
-       Run_extractable.run_vernac ~opaque_access:Library.indirect_accessor (lookupPrint (Caml_bytestring.bytestring_of_caml_string nstr)) }
+       Run_extractable.run_vernac (lookupPrint (Caml_bytestring.bytestring_of_caml_string nstr)) }
 END

@@ -501,7 +501,7 @@ struct
           univsty oib.mind_user_lc)
         univs mib.mind_packets
 
-  let quote_term_rec ~bypass ?(with_universes=true) ?(with_restriction=true) env sigma trm =
+  let quote_term_rec ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
     let visited_terms = ref Names.KNset.empty in
     let visited_types = ref Mindset.empty in
     let universes = ref Univ.Level.Set.empty in
@@ -542,7 +542,7 @@ struct
               | Def cs -> Some cs
               | OpaqueDef lc ->
                 if bypass then
-                  let c, univs = Global.force_proof Library.indirect_accessor lc in
+                  let c, univs = Global.force_proof opaque_access lc in
                   match univs with
                   | Opaqueproof.PrivateMonomorphic () -> Some c
                   | Opaqueproof.PrivatePolymorphic csts ->
@@ -658,7 +658,7 @@ struct
     let variance = Option.map (CArray.map_to_list Q.quote_variance) t.mind_entry_variance in
     Q.quote_mutual_inductive_entry (mf, mp, is, uctx, variance) *)
 
-  let quote_constant_body_aux bypass env evm (cd : constant_body) =
+  let quote_constant_body_aux bypass opaque_access env evm (cd : constant_body) =
     let ty = quote_term env evm cd.const_type in
     let body =
       match cd.const_body with
@@ -666,20 +666,20 @@ struct
       | Def cs -> Some (quote_term env evm cs)
       | OpaqueDef cs ->
         if bypass
-        then Some (quote_term env evm (fst (Global.force_proof Library.indirect_accessor cs)))
+        then Some (quote_term env evm (fst (Global.force_proof opaque_access cs)))
         else None
       | Primitive _ -> failwith "Primitive types not supported by TemplateRocq"
       | Symbol _ -> failwith "Symbols are not supported by TemplateRocq"
     in
     (ty, body)
 
-  let quote_constant_body bypass env evm cd =
-    let ty, body = quote_constant_body_aux bypass env evm cd in
+  let quote_constant_body bypass opaque_access env evm cd =
+    let ty, body = quote_constant_body_aux bypass opaque_access env evm cd in
     Q.mk_constant_body ty body (quote_universes_decl cd.const_universes None)
       (Q.quote_relevance cd.const_relevance)
 
-  let quote_constant_entry bypass env evm cd =
-    let (ty, body) = quote_constant_body_aux bypass env evm cd in
+  let quote_constant_entry bypass opaque_access env evm cd =
+    let (ty, body) = quote_constant_body_aux bypass opaque_access env evm cd in
     let uctx = match cd.const_universes with
       | Polymorphic auctx -> Polymorphic_entry (UVars.AbstractContext.repr auctx)
       | Monomorphic -> Monomorphic_entry

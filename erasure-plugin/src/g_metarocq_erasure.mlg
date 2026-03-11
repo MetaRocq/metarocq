@@ -65,10 +65,13 @@ let time_opt config str fn arg =
     time str fn arg
   else fn arg
 
-let check config env evm c =
+let check ~opaque_access config env evm c =
   debug (fun () -> str"Quoting");
   let time str f arg = time_opt config str f arg in
-  let term = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:config.bypass_qeds env evm) (EConstr.to_constr evm c) in
+  let term =
+    time (str"Quoting")
+      (Ast_quoter.quote_term_rec
+         ~bypass:config.bypass_qeds ~opaque_access env evm) (EConstr.to_constr evm c) in
   let erasure_config = make_erasure_config config in
   let mapping = [] in
   let erase =
@@ -76,7 +79,7 @@ let check config env evm c =
   in
   Feedback.msg_notice (pr_char_list erase)
 
-let interp_erase args env evm c =
+let interp_erase ~opaque_access args env evm c =
   let open Erasure0 in
   let config =
     let rec aux config = function
@@ -89,7 +92,7 @@ let interp_erase args env evm c =
         | BypassQeds -> aux {config with bypass_qeds = true} args
     in aux default_config args
   in
-  check config env evm c
+  check ~opaque_access config env evm c
 
 let help_msg : string =
   "Usage:\n\
@@ -120,7 +123,7 @@ ARGUMENT EXTEND erase_args
 END
 
 VERNAC COMMAND EXTEND MetaRocqErase CLASSIFIED AS QUERY
-| [ "MetaRocq" "Erase" erase_args_list(l) constr(c) ] -> {
+| ![ opaque_access ] [ "MetaRocq" "Erase" erase_args_list(l) constr(c) ] -> {
     let env = Global.env () in
     let evm = Evd.from_env env in
     let (c, _) = Constrintern.interp_constr env evm c in
