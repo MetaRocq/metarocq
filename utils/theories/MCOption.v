@@ -70,6 +70,27 @@ Fixpoint map_option_out {A} (l : list (option A)) : option (list A) :=
                 end
   end.
 
+Lemma map_option_out_Some_spec {A}
+  : forall l l', @map_option_out A l = Some l' <-> l = map Some l'.
+Proof.
+  induction l as [|[?|]? IH], l' as [|? l'] => //=; try specialize (IH l').
+  all: destruct map_option_out => //=.
+  all: split; inversion 1; subst.
+  all: intuition (congruence || subst).
+Qed.
+
+Lemma map_option_out_None_spec {A}
+  : forall l, @map_option_out A l = None <-> (exists n, nth_error l n = Some None).
+Proof.
+  induction l as [|[?|]? IH] => //=.
+  all: try destruct map_option_out => //=.
+  all: split; [ inversion 1 | case; case; intros * => //= ]; subst.
+  all: try now (exists 0).
+  all: destruct IH as [IH0 IH1]; specialize (fun n pf => IH1 (ex_intro _ n pf)); cbn in *.
+  all: firstorder (congruence || eauto).
+  eexists (S _); cbn; tea.
+Qed.
+
 Lemma map_option_out_map_option_map {A} (l : list (option A)) (f : A -> A) :
   map_option_out (map (option_map f) l) =
   option_map (map f) (map_option_out l).
