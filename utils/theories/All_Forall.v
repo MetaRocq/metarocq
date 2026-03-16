@@ -3,6 +3,10 @@ From MetaCoq.Utils Require Import MCPrelude MCReflect MCList MCRelations MCProd 
 From Equations Require Import Equations.
 Import ListNotations.
 
+Local Set Universe Polymorphism.
+Local Set Polymorphic Inductive Cumulativity.
+Local Unset Universe Minimization ToSet.
+
 Derive Signature for Forall Forall2.
 
 (** Combinators *)
