@@ -139,32 +139,6 @@ Proof.
   induction 1 using red1_ind_all; simpl; try discriminate; auto.
 Qed.
 
-Lemma OnOne2_All_All {A} {P Q} {l l' : list A} :
-  OnOne2 P l l' ->
-  (forall x y, P x y -> Q x -> Q y) ->
-  All Q l -> All Q l'.
-Proof. intros Hl H. induction Hl; intros H'; inv H'; constructor; eauto. Qed.
-
-Lemma All_mapi {A B} (P : B -> Type) (l : list A) (f : nat -> A -> B) :
-  Alli (fun i x => P (f i x)) 0 l -> All P (mapi f l).
-Proof.
-  unfold mapi. generalize 0.
-  induction 1; constructor; auto.
-Qed.
-
-Lemma Alli_id {A} (P : nat -> A -> Type) n (l : list A) :
-  (forall n x, P n x) -> Alli P n l.
-Proof.
-  intros H. induction l in n |- *; constructor; auto.
-Qed.
-
-
-Lemma All_Alli {A} {P : A -> Type} {Q : nat -> A -> Type} {l n} :
-  All P l ->
-  (forall n x, P x -> Q n x) ->
-  Alli Q n l.
-Proof. intro H. revert n. induction H; constructor; eauto. Qed.
-
 
 Ltac wf := intuition try (eauto with wf || congruence || solve [constructor]).
 #[global]
@@ -726,20 +700,6 @@ Section WfLookup.
 
 End WfLookup.
 
-Lemma OnOne2All_All2_All2 (A B C : Type) (P : B -> A -> A -> Type) (Q : C -> A -> Type)
-	(i : list B) (j : list C) (R : B -> Type) (l l' : list A) :
-  OnOne2All P i l l' ->
-  All2 Q j l ->
-  All R i ->
-  (forall x y a b, R x -> P x a b -> Q y a -> Q y b) ->
-  All2 Q j l'.
-Proof.
-  induction 1 in j |- *; intros.
-  depelim X. depelim X0. constructor; eauto.
-  depelim X0. depelim X1.
-  constructor; auto.
-Qed.
-
 Section WfRed.
   Context {cf:checker_flags}.
   Context {Σ : global_env}.
@@ -936,14 +896,6 @@ End WfRed.
 
 #[global]
 Hint Resolve wf_extends strictly_extends_decls_extends_decls strictly_extends_decls_extends_strictly_on_decls extends_decls_extends extends_strictly_on_decls_extends : wf.
-
-Lemma All2i_All2 {A B} {P : nat -> A -> B -> Type} {Q : A -> B -> Type} n l l' :
-  All2i P n l l' ->
-  (forall i x y, P i x y -> Q x y) ->
-  All2 Q l l'.
-Proof.
-  induction 1; constructor; eauto.
-Qed.
 
 Lemma cstr_branch_context_length ind mdecl cdecl :
   #|cstr_branch_context ind mdecl cdecl| = #|cdecl.(cstr_args)|.
