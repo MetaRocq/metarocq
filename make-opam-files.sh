@@ -27,12 +27,10 @@ hash=`shasum -a 512 $archive | cut -f 1 -d " "`
 
 echo "Shasum = " $hash
 
-echo "Uploading to release assets"
-
-gh release upload $tag $archive
-
-release=https://github.com/MetaRocq/metarocq/releases/download/$tag/$archive
-
+# echo "Uploading to release assets"
+# gh release upload $tag $archive
+# release=https://github.com/MetaRocq/metarocq/releases/download/$tag/$archive
+release=$4
 skipline=""
 
 for f in *.opam;
