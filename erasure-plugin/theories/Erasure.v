@@ -137,7 +137,8 @@ Program Definition optional_unsafe_transforms econf :=
       unbox_transformation efl final_wcbv_flags) ▷
   ETransform.optional_self_transform passes.(inductives_extraction)
     (rebuild_wf_env_transform (efl := efl) false false ▷
-       extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives) ▷
+       extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives)
+                                                                     econf.(enable_typed_erasure) ▷
        forget_inductive_extraction_info_transformation efl final_wcbv_flags) ▷
   ETransform.optional_self_transform passes.(inlining)
       (inline_transformation efl final_wcbv_flags econf.(inlined_constants) ▷

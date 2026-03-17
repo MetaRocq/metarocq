@@ -38,6 +38,7 @@ Equations filter_map {A B} (f : A -> option B) (l : list A) : list B :=
 Section Remap.
   Context (Σ : GlobalContextMap.t).
   Context (mapping : extract_inductives).
+  Context (dearged : bool).
 
   Definition lookup_inductive_assoc i : option extract_inductive :=
     trs <- lookup_kername_assoc mapping (inductive_mind i) ;;
@@ -69,7 +70,9 @@ Section Remap.
     match lookup_inductive_assoc (fst i) with
     | None => tCase i c brs
     | Some tr =>
-        mkApps (tConst tr.(elim)) (tBox :: c :: map make_branch brs)
+        mkApps (tConst tr.(elim))
+          (if dearged then c :: map make_branch brs
+           else tBox :: c :: map make_branch brs)
     end.
 
   Equations remap (t : term) : term :=
@@ -121,8 +124,8 @@ Section Remap.
 
 End Remap.
 
-Definition remap_program mapping (p : eprogram_env) : program :=
-  (remap_env p.1 mapping (GlobalContextMap.global_decls p.1), remap mapping p.2).
+Definition remap_program mapping dearged (p : eprogram_env) : program :=
+  (remap_env p.1 mapping dearged (GlobalContextMap.global_decls p.1), remap mapping dearged p.2).
 
 From MetaRocq.Erasure Require Import EProgram EWellformed EWcbvEval.
 From MetaRocq.Common Require Import Transform.
@@ -135,9 +138,9 @@ Definition inductives_extraction_program_inlinings (pr : inductives_extraction_p
 
 Coercion inductives_extraction_program_inlinings : inductives_extraction_program >-> extract_inductives.
 
-Definition extract_inductive_program mapping (p : eprogram_env) : inductives_extraction_program :=
-  let Σ' := remap_env p.1 mapping (GlobalContextMap.global_decls p.1) in
-  (Σ', mapping, remap mapping p.2).
+Definition extract_inductive_program mapping dearged (p : eprogram_env) : inductives_extraction_program :=
+  let Σ' := remap_env p.1 mapping dearged (GlobalContextMap.global_decls p.1) in
+  (Σ', mapping, remap mapping dearged p.2).
 
 Definition forget_inductive_extraction_info (pr : inductives_extraction_program) : eprogram :=
   let '((Σ', inls), p) := pr in
@@ -150,28 +153,29 @@ Definition eval_inductives_extraction_program wfl (pr : inductives_extraction_pr
 Axiom trust_inductive_extraction_wf :
   forall efl : EEnvFlags,
   WcbvFlags ->
-  forall inductive_extraction : extract_inductives,
+  forall (inductive_extraction : extract_inductives) dearged,
   forall (input : Transform.program _ term),
-  wf_eprogram_env efl input -> wf_eprogram efl (extract_inductive_program inductive_extraction input).
+  wf_eprogram_env efl input -> wf_eprogram efl (extract_inductive_program inductive_extraction dearged input).
 Axiom trust_inductive_extraction_pres :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction (p : Transform.program _ term)
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction dearged
+         (p : Transform.program _ term)
   (v : term),
   wf_eprogram_env efl p ->
   eval_eprogram_env wfl p v ->
   exists v' : term,
-  let ip := extract_inductive_program inductive_extraction p in
-  eval_eprogram wfl ip v' /\ v' = remap ip v.
+  let ip := extract_inductive_program inductive_extraction dearged p in
+  eval_eprogram wfl ip v' /\ v' = remap ip dearged v.
 
 Import Transform.
 
-Program Definition extract_inductive_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction :
+Program Definition extract_inductive_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction dearged :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram_env wfl) (eval_inductives_extraction_program wfl) :=
   {| name := "inductive_extraction ";
-    transform p _ := extract_inductive_program inductive_extraction p ;
+    transform p _ := extract_inductive_program inductive_extraction dearged p ;
     pre p := wf_eprogram_env efl p ;
     post (p : inductives_extraction_program) := wf_eprogram efl p ;
-    obseq p hp (p' : inductives_extraction_program) v v' := v' = remap p' v |}.
+    obseq p hp (p' : inductives_extraction_program) v v' := v' = remap p' dearged v |}.
 
 Next Obligation.
   now apply trust_inductive_extraction_wf.
@@ -182,8 +186,8 @@ Qed.
 
 #[global]
 Axiom trust_inline_transformation_ext :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction,
-  TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction)
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction dearged,
+  TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction dearged)
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1.1 p'.1.1).
 
 Definition extends_inductives_extraction_eprogram (p q : inductives_extraction_program) :=
@@ -191,8 +195,8 @@ Definition extends_inductives_extraction_eprogram (p q : inductives_extraction_p
 
 #[global]
 Axiom trust_inline_transformation_ext' :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction,
-  TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction)
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction dearged,
+  TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction dearged)
     extends_eprogram_env extends_inductives_extraction_eprogram.
 
 
