@@ -17,7 +17,7 @@ Local Open Scope string_scope.
 Set Asymmetric Patterns.
 Local Set Keyed Unification.
 Set Default Proof Using "Type*".
-Import MRMonadNotation.
+Import MonadNotation.
 
 Implicit Types (cf : checker_flags).
 

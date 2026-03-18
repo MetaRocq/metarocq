@@ -349,16 +349,16 @@ let declare_inductive (env: Environ.env) (evm: Evd.evar_map) (infer_univs : bool
 let not_in_tactic s =
   CErrors.user_err  (str ("You can not use " ^ s ^ " in a tactic."))
 
-let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_core.cont) ~st env ((evm, pgm) : Evd.evar_map * Constr.t) : Plugin_core.coq_state =
+let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Constr.t Plugin_core.cont) ~st env ((evm, pgm) : Evd.evar_map * Constr.t) : Plugin_core.coq_state =
   let (kind, universes) = next_action env evm pgm in
   match kind with
     TmReturn h ->
     let (evm, _) = Typing.type_of env evm (EConstr.of_constr h) in
     k ~st env evm h
   | TmBind (a,f) ->
-    run_template_program_rec ~poly ~intactic:intactic
+    run_template_program_rec opaque_access ~poly ~intactic:intactic
       (fun ~st env evm ar ->
-         run_template_program_rec ~poly ~intactic:intactic k env ~st (evm, Constr.mkApp (f, [|ar|]))) env ~st (evm, a)
+         run_template_program_rec opaque_access ~poly ~intactic:intactic k env ~st (evm, Constr.mkApp (f, [|ar|]))) env ~st (evm, a)
  | TmVariable (name, typ) ->
     if intactic then not_in_tactic "tmVariable"
     else
@@ -454,7 +454,7 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
     in k ~st env evm qt
   | TmQuoteRecTransp  (bypass, trm) ->
     let bypass = unquote_bool (reduce_all env evm bypass) in
-    let qt = quote_term_rec ~bypass ~with_universes:true env evm trm in
+    let qt = quote_term_rec ~bypass ~opaque_access ~with_universes:true env evm trm in
     k ~st env evm qt
   | TmQuoteInd (name, strict) ->
     let kn = unquote_kn (reduce_all env evm name) in
@@ -469,7 +469,7 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
     let name = unquote_kn (reduce_all env evm name) in
     let bypass = unquote_bool (reduce_all env evm bypass) in
     let cd = Environ.lookup_constant (Constant.make1 name) env in
-    let cb = quote_constant_body bypass env evm cd in
+    let cb = quote_constant_body bypass opaque_access env evm cd in
     k ~st env evm cb
   | TmQuoteUnivs ->
     let univs = Environ.universes env in

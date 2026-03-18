@@ -15,14 +15,14 @@ let pr_string l =
   (* We allow utf8 encoding *)
   str (caml_string_of_bytestring l)
 
-let check env evm poly (c, ustate) =
+let check ~opaque_access env evm poly (c, ustate) =
   debug (fun () -> str"Quoting");
   let env = if poly then env else
     let (qs, us), (qcst, ucst) = Evd.sort_context_set evm in
     Environ.push_context_set ~strict:true (us, ucst) @@
     Environ.push_qualities ~rigid:true (qs, qcst) env
   in
-  let prog = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:true ~with_universes:true env evm) (EConstr.to_constr evm c) in
+  let prog = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:true ~opaque_access ~with_universes:true env evm) (EConstr.to_constr evm c) in
   let uctx =
     if poly then
       let uctx = Evd.to_universe_context evm in
@@ -43,7 +43,7 @@ let check env evm poly (c, ustate) =
   | Coq_inr s -> CErrors.user_err (pr_string s)
 }
 
-VERNAC COMMAND EXTEND MetaRocqSafeCheck CLASSIFIED AS QUERY
+VERNAC COMMAND EXTEND MetaRocqSafeCheck CLASSIFIED AS QUERY STATE opaque_access
 | #[ poly = polymorphic ] [ "MetaRocq" "SafeCheck" constr(c) ] -> {
     let env = Global.env () in
     let evm = Evd.from_env env in

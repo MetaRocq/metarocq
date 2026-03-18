@@ -8,7 +8,7 @@ Import ListNotations.
 Local Unset Universe Minimization ToSet.
 Local Set Primitive Projections.
 Local Open Scope bs.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Class debug_opt : Set := debug : bool.
 Class cls_is_true (b : bool) : Set := is_truev : is_true b.

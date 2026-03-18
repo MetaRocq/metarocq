@@ -1,3 +1,5 @@
 Makefile.plugin
 Makefile.plugin.conf
-g_template_rocq.ml
+*.orig
+*.rej
+src/g_template_rocq.ml

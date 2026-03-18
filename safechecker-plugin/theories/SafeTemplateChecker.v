@@ -7,7 +7,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTyping
     PCUICSN BDToPCUIC PCUICProgram.
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICSafeChecker PCUICWfEnv PCUICWfEnvImpl.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 From MetaRocq.TemplatePCUIC Require Import TemplateToPCUIC.
 

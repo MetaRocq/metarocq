@@ -6,7 +6,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive
 From MetaRocq.PCUIC Require Export PCUICCumulativitySpec.
 From MetaRocq.PCUIC Require Export PCUICCases.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 (* TODO: remove this export *)
 From MetaRocq.Utils Require Export LibHypsNaming.

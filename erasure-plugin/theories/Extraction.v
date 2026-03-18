@@ -10,7 +10,7 @@ From MetaRocq.Utils Require Import utils.
 
 Extraction Blacklist Classes config uGraph Universes Ast String List Nat Int
            UnivSubst Typing Checker Retyping OrderedType Logic Common ws_cumul_pb Classes Numeral
-           Uint63 Induction.
+           Uint63 Induction Monad.
 Set Warnings "-extraction-opaque-accessed".
 Set Warnings "-extraction-reserved-identifier".
 
@@ -42,4 +42,3 @@ Set Extraction Output Directory "src".
 Separate Extraction ErasureFunction.erase Erasure
          (* The following directives ensure separate extraction does not produce name clashes *)
          Stdlib.Strings.String utils Template.UnivSubst ELiftSubst EGlobalEnv.
-

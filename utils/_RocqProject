@@ -31,6 +31,7 @@ theories/MR_ExtrOCamlInt63.v
 theories/MR_ExtrOCamlZPosInt.v
 theories/ReflectEq.v
 theories/monad_utils.v
+theories/ResultMonad.v
 theories/Show.v
 theories/utils.v
 

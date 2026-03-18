@@ -1,3 +1,4 @@
+From MetaRocq.Utils Require Import utils.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import ClosedAux.
 From MetaRocq.Erasure.Typed Require Import ExAst.
@@ -18,7 +19,6 @@ From MetaRocq.Erasure Require Import EWcbvEval.
 From MetaRocq.Erasure Require Import EGlobalEnv EWellformed.
 From MetaRocq.Utils Require Import MRList.
 From MetaRocq.Utils Require Import MRPrelude.
-From MetaRocq.Utils Require Import utils.
 From MetaRocq.Utils Require Import All_Forall.
 Require ssreflect.
 
@@ -3750,7 +3750,7 @@ Section dearg.
     destruct block_args => //. intros _ mask getm decli hpars.
     intros etsal etak hml.
     rewrite dearg_single_masked; auto.
-    rewrite isEtaExp_Constructor. rewrite masked_length; auto. bool.
+    rewrite isEtaExp_Constructor. rewrite masked_length; auto. MRUtils.bool.
     2:solve_all.
     move: etsal hml.
     unfold isEtaExp_app. rewrite /get_ctor_mask getm length_app.
@@ -3797,10 +3797,10 @@ Section dearg.
   Proof.
     clear IH.
     apply_funelim (isEtaExp (trans_env Σ) Γ t); intros.
-    all:match goal with H : is_true (valid_cases _) |- _ => cbn in H; bool end; intros; simp_eta.
-    all:cbn; simp_eta; toAll; bool; try rewrite -> forallb_InP_spec in *.
+    all:match goal with H : is_true (valid_cases _) |- _ => cbn in H; MRUtils.bool end; intros; simp_eta.
+    all:cbn; simp_eta; toAll; MRUtils.bool; try rewrite -> forallb_InP_spec in *.
     all:try solve [solve_all].
-    all:try solve [eapply isEtaExp_mkApps_intro; simp_eta; eauto; bool; solve_all].
+    all:try solve [eapply isEtaExp_mkApps_intro; simp_eta; eauto; MRUtils.bool; solve_all].
     - eapply isEtaExp_dearg_single; simp_eta.
     - eapply isEtaExp_dearg_single; simp_eta => //.
       unfold is_nil.
@@ -3821,12 +3821,12 @@ Section dearg.
       eapply Nat.leb_le in H4. assert (ind_npars = 0) by lia. subst ind_npars.
       apply Nat.eqb_eq in Hparams. destruct (param_mask) => //. cbn.
       unfold dearg_ctor. destruct ctor'; cbn in *. destruct p. cbn. assert (n0 = 0) by lia. apply Nat.leb_le. lia.
-    - destruct ind. bool. eapply isEtaExp_mkApps_intro; simp_eta; eauto; bool; solve_all.
-      unfold dearg_case. cbn. simp_eta. bool. solve_all.
+    - destruct ind. MRUtils.bool. eapply isEtaExp_mkApps_intro; simp_eta; eauto; MRUtils.bool; solve_all.
+      unfold dearg_case. cbn. simp_eta. MRUtils.bool. solve_all.
       unfold valid_case_masks in H5. destruct get_mib_masks eqn:cm => //.
       unfold dearg_case_branches. simp_eta. eapply All_mapi, Alli_map.
-      bool. eapply alli_Alli in H5. eapply Alli_All_mix in H5; tea.
-      eapply Alli_impl; tea; cbn. intuition eauto. destruct x. bool. cbn in *.
+      MRUtils.bool. eapply alli_Alli in H5. eapply Alli_All_mix in H5; tea.
+      eapply Alli_impl; tea; cbn. intuition eauto. destruct x. MRUtils.bool. cbn in *.
       unfold dearg_case_branch. cbn. rewrite H6.
       unfold dearg_branch_body. cbn. apply Nat.leb_le in H6.
       rewrite masked_length. rewrite complete_ctx_mask_length //.
@@ -3838,10 +3838,10 @@ Section dearg.
       rewrite complete_ctx_mask_length //.
       unfold dearg_case_branches. solve_all.
       unfold dearg_case_branches. solve_all.
-    - destruct p. eapply isEtaExp_mkApps_intro; simp_eta; eauto; bool; solve_all.
-      bool. unfold dearg_proj. now simp_eta.
+    - destruct p. eapply isEtaExp_mkApps_intro; simp_eta; eauto; MRUtils.bool; solve_all.
+      MRUtils.bool. unfold dearg_proj. now simp_eta.
     - rewrite test_primIn_spec in H1. eapply InPrim_primProp in H.
-      eapply isEtaExp_mkApps_intro; simp_eta; eauto; bool; solve_all.
+      eapply isEtaExp_mkApps_intro; simp_eta; eauto; MRUtils.bool; solve_all.
       solve_all.
       eapply primProp_map, primProp_impl; solve_all.
     - rewrite dearg_aux_mkApps. cbn.
@@ -3862,7 +3862,7 @@ Section dearg.
       eapply isEtaExp_dearg_single_construct; tea.
       + len. unfold isEtaExp_app.
         rewrite /lookup_constructor_pars_args hl' //=. eapply Nat.leb_le in H7. cbn in H7. apply Nat.leb_le. lia.
-      + rewrite forallb_app; bool; solve_all.
+      + rewrite forallb_app; MRUtils.bool; solve_all.
       + len. rewrite /get_ctor_mask Hmask. len. rewrite Hparams.
         move/andP: Hprojs => [] hc _.
         destruct decl_ind. red in H6.
@@ -3882,7 +3882,7 @@ Section dearg.
         replace (rev_map (fun d0 : def term => S (rarg d0)) (map (map_def (dearg_aux [])) mfix) ++ Γ0) with
           (rev_map (fun d0 : def term => S (rarg d0)) mfix ++ Γ0).
         2:{ f_equal. rewrite !rev_map_spec. f_equal. now rewrite map_map_compose /=. }
-        set (rargs := rev_map _ _) in *. clearbody rargs. solve_all. bool. destruct (dbody x) => //.
+        set (rargs := rev_map _ _) in *. clearbody rargs. solve_all. MRUtils.bool. destruct (dbody x) => //.
       + solve_all.
     - rewrite dearg_aux_mkApps /=.
       destruct nth_error eqn:hnth => //=. cbn in H1.
@@ -3893,7 +3893,7 @@ Section dearg.
 
     - apply valid_cases_mkApps_inv in H1 as [].
       specialize (H H1 H2).
-      rewrite dearg_aux_mkApps. eapply H. rewrite forallb_app. bool.
+      rewrite dearg_aux_mkApps. eapply H. rewrite forallb_app. MRUtils.bool.
       solve_all.
   Qed.
 
@@ -5130,7 +5130,7 @@ Proof.
     + depelim ev.
 Qed.
 
-Import MRMonadNotation ResultMonad.
+Import MonadNotation ResultMonad.
 From Stdlib Require Import String.
 Definition compute_masks overridden_masks (do_trim_const_masks do_trim_ctor_masks : bool) Σ : result dearg_set bytestring.string :=
   let (const_masks, ind_masks) := Utils.timed "Dearg analysis" (fun _ => analyze_env overridden_masks Σ) in

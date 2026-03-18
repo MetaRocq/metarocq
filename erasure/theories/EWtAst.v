@@ -7,7 +7,7 @@ From MetaRocq.Erasure Require Import EAst EAstUtils EInduction ECSubst ELiftSubs
 From Equations Require Import Equations.
 Set Equations Transparent.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 (** * Well-scoped and well-formed extracted terms *)
 
@@ -436,5 +436,3 @@ Section test_view.
   Qed.
 
 End test_view.
-
-

@@ -2,7 +2,7 @@ From Stdlib Require Import List.
 From MetaRocq.Template Require Import All.
 
 Import ListNotations.
-Import MRMonadNotation.
+Import MonadNotation.
 Open Scope bs_scope.
 Definition qlist := Eval compute in match <% list %> with
     | tInd ind _ => ind.(inductive_mind)

@@ -9,7 +9,7 @@ From MetaRocq.Erasure Require Import EProgram EPrimitive EAst ESpineView EEtaExp
   EAstUtils ELiftSubst EWellformed ECSubst EWcbvEval.
 
 Import Kernames.
-Import MRMonadNotation.
+Import MonadNotation.
 
 Lemma lookup_declared_constructor {Σ id mdecl idecl cdecl} :
   lookup_constructor Σ id.1 id.2 = Some (mdecl, idecl, cdecl) ->

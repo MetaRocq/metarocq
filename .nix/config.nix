@@ -46,10 +46,12 @@
     # rocqPackages.stdlib.override.version = "9.0.0";
     coqPackages.equations.override.version = "v1.3.1-9.1";
     coqPackages.equations.job = false;
+    coqPackages.ExtLib.override.version = "0.13.0";
+    coqPackages.ExtLib.job = false;
     coqPackages.coq.override.version = "9.1";
     coqPackages.stdlib.override.version = "9.0.0";
     coqPackages.stdlib.job = false;
-    
+
     push-branches = ["9.1"];
   };
 
@@ -57,6 +59,7 @@
     rocqPackages.rocq-core.override.version = "master";
     rocqPackages.stdlib.override.version = "master";
     coqPackages.equations.override.version = "main";
+    coqPackages.ExtLib.override.version = "master";
     coqPackages.coq.override.version = "master";
     coqPackages.stdlib.override.version = "master";
 

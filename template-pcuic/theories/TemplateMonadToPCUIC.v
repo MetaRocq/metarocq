@@ -10,7 +10,7 @@ From MetaRocq.Template Require Import TemplateMonad.Common.
 From MetaRocq.PCUIC Require Import PCUICAst PCUICPrimitive PCUICCases PCUICProgram.
 From MetaRocq.TemplatePCUIC Require Import TemplateToPCUIC.
 
-Import MRMonadNotation.
+Import MonadNotation.
 Local Set Universe Polymorphism.
 Local Unset Universe Minimization ToSet.
 
