@@ -278,7 +278,7 @@ let unquote_mutual_inductive_entry env evm trm (* of type mutual_inductive_entry
        let evm, univs = denote_universes_entry env evm univs in
        let template = unquote_bool template in
        let variance = unquote_map_option
-           (fun v -> CArray.map_of_list (unquote_map_option unquote_variance) (unquote_list v))
+           (fun v -> [||], CArray.map_of_list (unquote_map_option unquote_variance) (unquote_list v))
            variance
        in
        let priv = unquote_map_option unquote_bool priv in
