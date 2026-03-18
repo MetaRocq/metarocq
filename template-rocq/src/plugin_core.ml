@@ -21,10 +21,10 @@ let rs_lazy = Genredexpr.Cbv Redops.all_flags
 let rs_unfold (env : Environ.env) (gr : global_reference) =
   try
     Genredexpr.Unfold [Locus.AllOccurrences,
-                       Tacred.evaluable_of_global_reference gr]
+                       Tacred.evaluable_of_global_reference env gr]
   with
-  | Tacred.NotEvaluableRef _ -> CErrors.user_err
-           Pp.(str "Not a constant: " ++ Printer.pr_global gr ++ str ".")
+  | _ -> CErrors.user_err
+           Pp.(str "Constant not found or not a constant: " ++ Printer.pr_global gr)
 
 (* Rocq state related to vernaculars, needed to declare constants,
    could be a good idea to add the evar_map / env here as a record *)
