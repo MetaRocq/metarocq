@@ -469,7 +469,7 @@ Section wellscoped.
     | Some (ConstantDecl d) => Some d
     | _ => None
     end.
-  Import MRMonadNotation.
+  Import MonadNotation.
 
   Section Def.
   Context (Σ : global_env).
@@ -771,4 +771,3 @@ Proof.
     now econstructor; tea.
   - cbn in i. discriminate.
 Qed.
-

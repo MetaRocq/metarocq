@@ -109,11 +109,11 @@ Notation "f =<< c" :=
   (c >>= f)%tm
   (at level 51, right associativity) : tm_scope.
 
-Notation "'mlet' x <- c1 ;; c2" :=
+Notation "'let*' x <- c1 ;; c2" :=
   (c1 >>= (fun x => c2))%tm
   (at level 100, c1 at next level, right associativity, x pattern) : tm_scope.
 
-Notation "'mlet' ' pat <- c1 ;; c2" :=
+Notation "'let*' ' pat <- c1 ;; c2" :=
   (c1 >>= (fun x => match x with pat => c2 end))%tm
   (at level 100, pat pattern, c1 at next level, right associativity) : tm_scope.
 

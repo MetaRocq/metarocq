@@ -1,13 +1,13 @@
 From Stdlib Require Import List.
 From Stdlib Require Import String.
 From MetaRocq.Erasure.Typed Require Import Transform.
-From MetaRocq.Erasure.Typed Require Import ResultMonad.
+From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure.Typed Require Import Certifying.
 From MetaRocq.Template Require Import All.
 From MetaRocq.Common Require Import Kernames.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 Section betared.
   Context (Σ : global_env).

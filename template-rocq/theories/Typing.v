@@ -7,7 +7,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Environment Primitive EnvironmentTyping Reflect.
 From MetaRocq.Template Require Import Ast AstUtils LiftSubst UnivSubst ReflectAst TermEquality WfAst.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 (** * Typing derivations
 

@@ -60,7 +60,6 @@ theories/Typed/ExtractionCorrectness.v
 theories/Typed/OptimizeCorrectness.v
 theories/Typed/OptimizePropDiscr.v
 theories/Typed/Optimize.v
-theories/Typed/ResultMonad.v
 theories/Typed/Transform.v
 theories/Typed/TypeAnnotations.v
 theories/Typed/Utils.v

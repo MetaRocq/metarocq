@@ -4,9 +4,10 @@ From MetaRocq.Utils Require Import utils wGraph.
 From MetaRocq.Common Require Import config Universes.
 From Equations.Prop Require Import DepElim.
 From Equations Require Import Equations.
+From ExtLib Require Import Monads.
 Import ConstraintType.
 
-Import MRMonadNotation.
+Import MonadNotation.
 
 
 Arguments Z.add : simpl nomatch.

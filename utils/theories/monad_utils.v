@@ -1,71 +1,23 @@
 From Stdlib Require Import Arith List.
 From MetaRocq.Utils Require Import All_Forall MRSquash.
 From Equations Require Import Equations.
+From ExtLib Require Export Monads.
+From ExtLib Require Export OptionMonad.
+
 Coercion is_true : bool >-> Sortclass.
 
+Import MonadNotation.
 Import ListNotations.
 
 Set Universe Polymorphism.
-Set Polymorphic Inductive Cumulativity.
-
-Class Monad@{d c} (m : Type@{d} -> Type@{c}) : Type :=
-{ ret : forall {t : Type@{d}}, t -> m t
-; bind : forall {t u : Type@{d}}, m t -> (t -> m u) -> m u
-}.
-
-Class MonadExc E (m : Type -> Type) : Type :=
-{ raise : forall {T}, E -> m T
-; catch : forall {T}, m T -> (E -> m T) -> m T
-}.
 
 
-Module MRMonadNotation.
-  Declare Scope monad_scope.
-  Delimit Scope monad_scope with monad.
-
-  Notation "c >>= f" := (@bind _ _ _ _ c f) (at level 50, left associativity) : monad_scope.
-  Notation "f =<< c" := (@bind _ _ _ _ c f) (at level 51, right associativity) : monad_scope.
-
-  Notation "'mlet' x <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => c2))
-    (at level 100, c1 at next level, right associativity, x pattern) : monad_scope.
-
-  Notation "'mlet' ' pat <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => match x with pat => c2 end))
-    (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
-
-  Notation "x <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => c2))
-    (at level 100, c1 at next level, right associativity) : monad_scope.
-
-  Notation "' pat <- c1 ;; c2" := (@bind _ _ _ _ c1 (fun x => match x with pat => c2 end))
-    (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
-
-  Notation "e1 ;; e2" := (_ <- e1%monad ;; e2%monad)%monad
-    (at level 100, right associativity) : monad_scope.
-End MRMonadNotation.
-
-Import MRMonadNotation.
-
-#[global] Instance option_monad : Monad option :=
-  {| ret A a := Some a ;
-     bind A B m f :=
-       match m with
-       | Some a => f a
-       | None => None
-       end
-  |}.
 
 #[global] Instance id_monad : Monad (fun x => x) :=
   {| ret A a := a ;
      bind A B m f := f m
   |}.
 
-#[global] Instance option_monad_exc : MonadExc unit option :=
-{| raise T _ := None ;
-    catch T m f :=
-      match m with
-      | Some a => Some a
-      | None => f tt
-      end
-|}.
 
 Open Scope monad.
 

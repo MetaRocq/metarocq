@@ -1,6 +1,6 @@
 From MetaRocq.Template Require Import All.
 From MetaRocq.Utils Require Import utils.
-Import MRMonadNotation.
+Import MonadNotation.
 
 
 Module Type A.

@@ -15,22 +15,22 @@ Abort.
 
 (* Let's compare some timing numbers *)
 Module TCMonomorphic.
-  Import MRMonadNotation.
+  Import MonadNotation.
   Import bytestring.
   Local Unset Universe Polymorphism.
   (* We use monomorphic universes for performance *)
   Monomorphic Universes fixa fixb fixt fixu.
   Monomorphic Class HasFix := tmFix_ : forall {A : Type@{fixa}} {B : Type@{fixb}} (f : (A -> TemplateMonad@{fixt fixu} B) -> (A -> TemplateMonad@{fixt fixu} B)), A -> TemplateMonad@{fixt fixu} B.
   (* idk why this is needed... *)
-  #[local] Hint Extern 1 (Monad _) => refine TemplateMonad_Monad : typeclass_instances.
+  #[local] Hint Extern 1 (Monad TemplateMonad) => refine TemplateMonad_Monad : typeclass_instances.
   Monomorphic Definition tmFix {A : Type@{fixa}} {B : Type@{fixb}} (f : (A -> TemplateMonad@{fixt fixu} B) -> (A -> TemplateMonad@{fixt fixu} B)) : A -> TemplateMonad@{fixt fixu} B
     := f
          (fun a
-          => tmFix <- tmInferInstance None HasFix;;
+          =>  @bind _ TemplateMonad_Monad _ _ (tmInferInstance None HasFix) (fun tmFix =>
              match tmFix with
              | Common.my_Some tmFix => tmFix _ _ f a
              | Common.my_None => tmFail "Internal Error: No tmFix instance"%bs
-             end).
+             end)).
   #[global] Hint Extern 0 HasFix => refine @tmFix : typeclass_instances.
   Definition six := tmFix (fun f a => if (6 <? a) then ret 6 else f (S a))%nat 0%nat.
   Goal True.
@@ -44,17 +44,17 @@ Module TC.
   Class HasFix : Prop := tmFix_ : forall {A B} (f : (A -> TemplateMonad B) -> (A -> TemplateMonad B)), A -> TemplateMonad B.
   (* idk why this is needed... *)
   #[local] Hint Extern 1 (Monad _) => refine TemplateMonad_Monad : typeclass_instances.
-  Import MRMonadNotation.
+  Import MonadNotation.
   Import bytestring.
   Local Unset Universe Checking.
   Definition tmFix {A B} (f : (A -> TemplateMonad B) -> (A -> TemplateMonad B)) : A -> TemplateMonad B
     := f
          (fun a
-          => tmFix <- tmInferInstance None HasFix;;
+          => @bind _ TemplateMonad_Monad _ _ (tmInferInstance None HasFix) (fun tmFix =>
              match tmFix return TemplateMonad B with
              | Common.my_Some tmFix => tmFix _ _ f a
              | Common.my_None => tmFail "Internal Error: No tmFix instance"%bs
-             end).
+             end)).
   #[global] Hint Extern 0 HasFix => refine @tmFix : typeclass_instances.
   Definition six := tmFix (fun f a => if (6 <? a) then ret 6 else f (S a))%nat 0%nat.
   Goal True.
@@ -62,7 +62,7 @@ Module TC.
   Abort.
 End TC.
 Module Unquote.
-  Import MRMonadNotation.
+  Import MonadNotation.
   Import MetaRocq.Common.Universes.
   Import MetaRocq.Template.Ast.
   Import bytestring.
@@ -136,7 +136,7 @@ Module Unquote.
 End Unquote.
 Module NoGuard.
   (* N.B. This version is inconsistent *)
-  Import MRMonadNotation.
+  Import MonadNotation.
   Import MetaRocq.Common.Universes.
   Import MetaRocq.Template.Ast.
   Import bytestring.

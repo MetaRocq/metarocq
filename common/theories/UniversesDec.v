@@ -618,7 +618,7 @@ Lemma consistent_extension_on_iff_subgraph_helper cs cstr G G'
   (HG' : gc_of_uctx (lvls, cstr') = Some G')
   : subgraph (make_graph G) (make_graph G').
 Proof.
-  repeat first [ progress cbv [gc_of_uctx monad_utils.bind monad_utils.ret monad_utils.option_monad] in *
+  repeat first [ progress cbv [gc_of_uctx Monad.bind Monad.ret OptionMonad.Monad_option] in *
                | progress cbn [fst snd] in *
                | progress subst
                | progress destruct ?
@@ -699,7 +699,7 @@ Proof.
                  | [ |- _ <-> is_true true ]
                    => split; [ reflexivity | intros _ ]
                  end
-               | progress cbv [uGraph.is_graph_of_uctx monad_utils.bind monad_utils.ret monad_utils.option_monad] in *
+               | progress cbv [uGraph.is_graph_of_uctx Monad.bind Monad.ret OptionMonad.Monad_option] in *
                | progress cbn [MROption.on_Some fst snd] in *
                | rewrite <- uGraph.is_consistent_spec2
                | progress subst
@@ -819,7 +819,7 @@ Proof.
   { specialize_under_binders_by reflexivity.
     destruct uGraph.check_constraints_gen; specialize_by reflexivity; auto. }
   { rewrite uGraph.gc_consistent_iff in *.
-    cbv [uGraph.gc_of_uctx monad_utils.bind monad_utils.ret monad_utils.option_monad MROption.on_Some] in *; cbn [fst snd] in *.
+    cbv [uGraph.gc_of_uctx Monad.bind Monad.ret OptionMonad.Monad_option MROption.on_Some] in *; cbn [fst snd] in *.
     destruct ?.
     all: try congruence.
     all: exfalso; assumption. }

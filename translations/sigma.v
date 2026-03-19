@@ -3,7 +3,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Template Require Import All.
 
 Local Set Primitive Projections.
-Import MRMonadNotation.
+Import MonadNotation.
 
 #[universes(template)]
 Record sigma A B :=
