@@ -14,7 +14,7 @@ Definition eglobal_env_fragment Σ Σ' :
   (forall kn decl, lookup_env Σ kn = Some decl -> lookup_env Σ' kn = Some decl).
 
 (* we use the [match] trick to get typeclass resolution to pick up the right instances without leaving any evidence in the resulting term, and without having to pass them manually everywhere *)
-Notation NormalizationIn_erase_global_decls X decls
+Abbreviation NormalizationIn_erase_global_decls X decls
   := (match extraction_checker_flags, extraction_normalizing return _ with
       | cf, no
         => forall n,

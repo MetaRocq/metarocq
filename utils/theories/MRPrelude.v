@@ -9,6 +9,9 @@ Global Instance string_eqdec : EqDec string := string_dec.
 Derive NoConfusion for ascii string.
 Derive NoConfusion EqDec for positive Z.
 
+Scheme All for sigT.
+Register Scheme ex_rect as rect_dep for ex.
+
 Declare Scope metarocq_scope.
 
 (** We cannot use ssrbool currently as it breaks extraction. *)
@@ -77,6 +80,7 @@ Create HintDb terms.
 Ltac len := autorewrite with len; cbn.
 Tactic Notation "len" "in" hyp(cl) := autorewrite with len in cl.
 
+Create Rewrite HintDb len.
 #[global] Hint Rewrite Nat.add_0_r : len.
 
 Ltac arith_congr := repeat (try lia; progress f_equal).

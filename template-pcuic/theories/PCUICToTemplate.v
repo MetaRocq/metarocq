@@ -4,7 +4,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICCases.
 Set Warnings "-notation-overridden".
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config BasicAst.
-From MetaRocq.Template Require Import  AstUtils Ast.
+From MetaRocq.Template Require Import AstUtils Ast.
 Set Warnings "+notation-overridden".
 
 Definition uint63_from_model (i : uint63_model) : Uint63.int :=

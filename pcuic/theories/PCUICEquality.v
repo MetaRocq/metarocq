@@ -73,7 +73,7 @@ Definition global_variance_gen lookup gr napp :=
   | _ => AllEqual
   end.
 
-Notation global_variance Σ := (global_variance_gen (lookup_env Σ)).
+Abbreviation global_variance Σ := (global_variance_gen (lookup_env Σ)).
 
 Definition cmp_opt_variance cmp_univ pb v :=
   match v with
@@ -165,7 +165,7 @@ Qed.
 Definition cmp_global_instance_gen Σ cmp_universe pb gr napp :=
   cmp_opt_variance cmp_universe pb (global_variance_gen Σ gr napp).
 
-Notation cmp_global_instance Σ := (cmp_global_instance_gen (lookup_env Σ)).
+Abbreviation cmp_global_instance Σ := (cmp_global_instance_gen (lookup_env Σ)).
 
 Definition cmp_ind_universes {cf:checker_flags} (Σ : global_env_ext) ind n i i' :=
   cmp_global_instance Σ (compare_universe (global_ext_constraints Σ)) Cumul (IndRef ind) n i i'.
@@ -217,7 +217,7 @@ Definition compare_decls cmp_term pb := PCUICConversion.All_decls_alpha_pb pb cm
 
 Abbreviation eq_context_upto_names := (All2 eq_decl_upto_names).
 
-Notation eq_context_gen cmp_term pb :=
+Abbreviation eq_context_gen cmp_term pb :=
   (All2_fold (fun _ _ => compare_decls cmp_term pb)).
 
 Lemma eq_decl_upto_names_gen decl decl' pb : eq_decl_upto_names decl decl' <~> compare_decls (fun _ => eq) pb decl decl'.
@@ -476,7 +476,7 @@ Inductive eq_term_upto_univ_napp Σ
     Σ ⊢ tPrim i <==[ pb , napp ] tPrim i'
 where " Σ ⊢ t <==[ pb , napp ] u " := (eq_term_upto_univ_napp Σ _ _ pb napp t u) : type_scope.
 
-Notation eq_term_upto_univ Σ cmp_universe cmp_sort pb := (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb 0) (only parsing).
+Abbreviation eq_term_upto_univ Σ cmp_universe cmp_sort pb := (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb 0) (only parsing).
 
 (* ** Syntactic conparison up-to universes *)
 
@@ -488,11 +488,11 @@ Definition compare_term `{checker_flags} Σ φ (pb : conv_pb) (t u : term) :=
 
 (* ** Syntactic conversion up-to universes *)
 
-Notation eq_term Σ φ := (compare_term Σ φ Conv).
+Abbreviation eq_term Σ φ := (compare_term Σ φ Conv).
 
 (* ** Syntactic cumulativity up-to universes *)
 
-Notation leq_term Σ φ := (compare_term Σ φ Cumul).
+Abbreviation leq_term Σ φ := (compare_term Σ φ Cumul).
 
 Definition compare_opt_term `{checker_flags} (pb : conv_pb) Σ φ (t u : option term) :=
   match t, u with
@@ -504,16 +504,16 @@ Definition compare_opt_term `{checker_flags} (pb : conv_pb) Σ φ (t u : option 
 Definition compare_decl `{checker_flags} Σ φ pb (d d' : context_decl) :=
   compare_decls (compare_term Σ φ) pb d d'.
 
-Notation eq_decl Σ φ := (compare_decl Σ φ Conv).
-Notation leq_decl Σ φ := (compare_decl Σ φ Cumul).
+Abbreviation eq_decl Σ φ := (compare_decl Σ φ Conv).
+Abbreviation leq_decl Σ φ := (compare_decl Σ φ Cumul).
 
 Definition compare_context `{checker_flags} Σ φ pb (Γ Δ : context) :=
   eq_context_gen (compare_term Σ φ) pb Γ Δ.
 
-Notation eq_context Σ φ := (compare_context Σ φ Conv).
-Notation leq_context Σ φ := (compare_context Σ φ Cumul).
+Abbreviation eq_context Σ φ := (compare_context Σ φ Conv).
+Abbreviation leq_context Σ φ := (compare_context Σ φ Cumul).
 
-Notation eq_context_upto Σ cmp_universe cmp_sort pb :=
+Abbreviation eq_context_upto Σ cmp_universe cmp_sort pb :=
   (eq_context_gen (fun pb0 => eq_term_upto_univ Σ cmp_universe cmp_sort pb0) pb).
 
 (* TODO MOVE *)
@@ -1471,7 +1471,7 @@ Definition upto_names := eq_term_upto_univ empty_global_env (fun _ => eq) (fun _
 Infix "≡" := upto_names (at level 70).
 
 Infix "≡'" := (eq_term_upto_univ empty_global_env (fun _ => eq) (fun _ => eq) Conv) (at level 70).
-Notation upto_names' := (eq_term_upto_univ empty_global_env (fun _ => eq) (fun _ => eq) Conv).
+Abbreviation upto_names' := (eq_term_upto_univ empty_global_env (fun _ => eq) (fun _ => eq) Conv).
 
 #[global]
 Instance upto_names_ref : Reflexive upto_names.
@@ -1938,7 +1938,7 @@ Proof.
 Qed.
 
 (** ws_cumul_pb of binder annotations *)
-Notation eq_annots Γ Δ :=
+Abbreviation eq_annots Γ Δ :=
   (Forall2 (fun na decl => eq_binder_annot na (decl_name decl)) Γ Δ).
 
 Lemma eq_context_upto_names_binder_annot Γ Δ :

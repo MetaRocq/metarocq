@@ -62,7 +62,7 @@ Section Alpha.
   Context {cf : checker_flags} {no : normalizing_flags}.
   Context (Σ : global_env_ext) {normalization : NormalizationIn Σ}.
 
-  Notation eqt u v := (∥ eq u v ∥). (* Can be made into alpha-equality, but not using PCUICEquality.eq_term_upto_univ_napp *)
+  Abbreviation eqt u v := (∥ eq u v ∥). (* Can be made into alpha-equality, but not using PCUICEquality.eq_term_upto_univ_napp *)
 
   Definition cored' Γ u v :=
     exists u' v', cored Σ Γ u' v' /\ eqt u u' /\ eqt v v'.

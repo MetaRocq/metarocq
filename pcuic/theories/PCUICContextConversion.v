@@ -1246,7 +1246,7 @@ Proof.
   exact cum.
 Qed.
 
-Notation open_context Γ := (ws_context (shiftnP #|Γ| xpred0)).
+Abbreviation open_context Γ := (ws_context (shiftnP #|Γ| xpred0)).
 
 Lemma weakening_cumul0 {cf:checker_flags} {Σ} {wfΣ : wf Σ} {Γ : closed_context} {Γ'' : open_context Γ}
   {M N : open_term Γ} n :

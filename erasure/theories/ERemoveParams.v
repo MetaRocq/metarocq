@@ -636,7 +636,7 @@ Module Fast.
 
   End faststrip.
 
-  Notation strip' Σ := (strip Σ []).
+  Abbreviation strip' Σ := (strip Σ []).
 
   Definition strip_constant_decl Σ cb :=
     {| cst_body := option_map (strip' Σ) cb.(cst_body) |}.

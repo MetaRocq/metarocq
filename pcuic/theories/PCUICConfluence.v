@@ -233,12 +233,12 @@ Proof.
   - intros []; eapply OnOne2_impl; tea; eauto.
 Qed.
 
-Notation red1_ctx_rel Σ Δ :=
+Abbreviation red1_ctx_rel Σ Δ :=
   (OnOne2_local_env
     (fun (Γ : context) => on_one_decl
       (fun (t u : term) => red1 Σ (Δ ,,, Γ) t u))).
 
-Notation eq_one_decl Σ cmp_universe cmp_sort pb :=
+Abbreviation eq_one_decl Σ cmp_universe cmp_sort pb :=
   (OnOne2_local_env
     (fun _ => on_one_decl
       (fun (t u : term) =>
@@ -1897,11 +1897,11 @@ Section RedPred.
     - eapply (All2_fold_app (Γ' := [d]) (Γr := [_])); pcuic.
       destruct d as [na [b|] ty]; constructor; pcuic.
       constructor; simpl; subst; auto; intuition pcuic.
-      eapply pred1_refl_gen. eapply All2_fold_app; pcuic. apply IHX.
-      eapply pred1_refl_gen. eapply All2_fold_app; pcuic. apply IHX.
+      eapply pred1_refl_gen. eapply All2_fold_app; pcuic.
+      eapply pred1_refl_gen. eapply All2_fold_app; pcuic.
       simpl; subst; intuition pcuic.
       constructor.
-      eapply pred1_refl_gen. eapply All2_fold_app; pcuic. apply IHX.
+      eapply pred1_refl_gen. eapply All2_fold_app; pcuic.
   Qed.
 
   Lemma prod_ind {A B} : A -> (A -> B) -> A × B.
@@ -1913,7 +1913,7 @@ Section RedPred.
     on_ctx_free_vars xpredT Γ ->
     on_free_vars xpredT M ->
     red1 Σ Γ M N -> pred1 Σ Γ Γ M N.
-  Proof using wfΣ with pcuic.
+  Proof using wfΣ.
     intros onΓ onM r.
     induction r using red1_ind_all; intros; pcuic.
     all:repeat inv_on_free_vars_xpredT.
@@ -1926,7 +1926,7 @@ Section RedPred.
         (PCUICCases.inst_case_predicate_context (set_pparams p params'))).
       eapply OnOne2_pars_pred1_ctx_over => //. eauto with fvs.
       econstructor; pcuic; eauto 6 with fvs.
-      eapply OnOne2_All2...
+      eapply OnOne2_All2; pcuic.
       eapply pred1_refl_gen. eapply All2_fold_app => //; pcuic.
       eapply All_All2_refl; solve_all; repeat inv_on_free_vars_xpredT.
       eapply OnOne2_pars_pred1_ctx_over => //; eauto with fvs; solve_all.
@@ -1935,7 +1935,7 @@ Section RedPred.
     - econstructor; pcuic. solve_all.
       unfold inst_case_branch_context in *.
       eapply OnOne2_All_mix_left in X; tea.
-      eapply OnOne2_All2...
+      eapply OnOne2_All2; pcuic.
       simpl. intros x y [[[? ?] ?]]; unfold on_Trel; intuition pcuic;
         rewrite -?e; solve_all; repeat inv_on_free_vars_xpredT; eauto with fvs.
       eapply pred1_ctx_over_refl. eapply p5; eauto with fvs.
@@ -1944,12 +1944,12 @@ Section RedPred.
       eapply OnOne2_prod_inv in X as [].
       eapply OnOne2_apply in o0 => //.
       eapply OnOne2_apply_All in o0 => //.
-      eapply OnOne2_All2...
+      eapply OnOne2_All2; pcuic.
     - assert (pred1_ctx_over Σ Γ Γ (fix_context mfix0) (fix_context mfix1)).
       { eapply pred1_fix_context; tea. solve_all. pcuic.
         eapply OnOne2_prod_assoc in X as [].
         eapply OnOne2_All_mix_left in o0; tea.
-        eapply OnOne2_All2...
+        eapply OnOne2_All2; pcuic.
         intros.
         simpl in *. intuition auto. noconf b0. inv_on_free_vars_xpredT; eauto with fvs.
         now noconf b0. }
@@ -1959,10 +1959,10 @@ Section RedPred.
       eapply OnOne2_All2; pcuic; simpl;
         unfold on_Trel; simpl; intros; intuition auto; noconf b0; try inv_on_free_vars_xpredT; eauto with fvs.
         rewrite H0. eapply pred1_refl_gen => //.
-        eapply All2_fold_app; pcuic. apply X0. congruence.
+        eapply All2_fold_app; pcuic. congruence.
         eapply pred1_refl.
         apply pred1_refl_gen => //.
-        eapply All2_fold_app; pcuic. apply X0.
+        eapply All2_fold_app; pcuic.
 
     - assert (fix_context mfix0 = fix_context mfix1).
       { clear -X.
@@ -1988,7 +1988,7 @@ Section RedPred.
       { eapply pred1_fix_context; tea. solve_all. pcuic.
         eapply OnOne2_prod_assoc in X as [].
         eapply OnOne2_All_mix_left in o0; tea.
-        eapply OnOne2_All2...
+        eapply OnOne2_All2; pcuic.
         intros.
         simpl in *. intuition auto. noconf b0. inv_on_free_vars_xpredT; eauto with fvs.
         now noconf b0. }
@@ -2537,7 +2537,7 @@ Unset Universe Minimization ToSet.
     we hence develop a higher-level interface on those. *)
 
 (** A well-scoped term is a term with a proof that its free variables obey the predicate P *)
-(** Note, it would be nicer to use SProp here to get more definitional equalities... *)
+(** Note, it would be nicer to use SProp here to get more definitional equalities *)
 Definition ws_term P := { t : term | on_free_vars P t }.
 
 Definition ws_term_proj {P} (t : ws_term P) : term := proj1_sig t.
@@ -2564,7 +2564,7 @@ Definition ws_context P := { t : context | on_free_vars_ctx P t }.
 
 (* The subsect of closed contexts. *)
 Abbreviation closed_context := (ws_context xpred0).
-Notation open_term Γ := (ws_term (shiftnP #|Γ| xpred0)).
+Abbreviation open_term Γ := (ws_term (shiftnP #|Γ| xpred0)).
 
 Definition ws_context_proj {P} (t : ws_context P) : context := proj1_sig t.
 Coercion ws_context_proj : ws_context >-> context.

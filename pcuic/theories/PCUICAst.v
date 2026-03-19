@@ -16,6 +16,8 @@ Declare Scope pcuic.
 Delimit Scope pcuic with pcuic.
 Open Scope pcuic.
 
+Create HintDb pcuic.
+
 (** DO NOT USE firstorder, since the introduction of Ints and Floats, it became unusuable. *)
 Ltac pcuicfo_gen tac :=
   simpl in *; intuition (simpl; intuition tac).
@@ -27,7 +29,7 @@ Tactic Notation "pcuicfo" tactic(tac) := pcuicfo_gen tac.
 Class HasLen (A : Type) (x y : nat) := len : A -> x = y.
 
 (** Note the use of a global reference to avoid capture. *)
-Notation length_of t := ltac:(let lemma := constr:(PCUICAst.len t) in exact lemma) (only parsing).
+Abbreviation length_of t := ltac:(let lemma := constr:(PCUICAst.len t) in exact lemma) (only parsing).
 
 
 (* Defined here since BasicAst does not have access to universe instances.
@@ -39,6 +41,7 @@ Record predicate {term} := mk_predicate {
     (* The predicate context,
     initially built from params and puinst *)
   preturn : term; (* The return type *) }.
+Scheme All for predicate.
 Derive NoConfusion for predicate.
 Arguments predicate : clear implicits.
 Arguments mk_predicate {_}.
@@ -147,6 +150,7 @@ Section Branch.
     test_context_k p #|pred.(pparams)| b.(bcontext) && p (#|b.(bcontext)| + k) b.(bbody).
 
 End Branch.
+Scheme All for branch.
 Arguments branch : clear implicits.
 
 Section map_branch.
@@ -186,10 +190,10 @@ Section map_branch_k.
   Proof using Type. reflexivity. Qed.
 End map_branch_k.
 
-Notation map_branches_k f h k brs :=
+Abbreviation map_branches_k f h k brs :=
   (List.map (map_branch_k f h k) brs).
 
-Notation test_branches_k p test k brs :=
+Abbreviation test_branches_k p test k brs :=
   (List.forallb (test_branch_k p test k) brs).
 
 Inductive term :=
@@ -214,9 +218,9 @@ Derive NoConfusion for term.
 
 Abbreviation prim_val := (prim_val term).
 
-Notation tInt i := (tPrim (_; primIntModel i)) (only parsing).
-Notation tFloat f := (tPrim (_; primFloatModel f)) (only parsing).
-Notation tString s := (tPrim (_; primStringModel s)) (only parsing).
+Abbreviation tInt i := (tPrim (_; primIntModel i)) (only parsing).
+Abbreviation tFloat f := (tPrim (_; primFloatModel f)) (only parsing).
+Abbreviation tString s := (tPrim (_; primStringModel s)) (only parsing).
 
 Fixpoint mkApps t us :=
   match us with
@@ -266,7 +270,7 @@ Fixpoint lift n k t : term :=
   | x => x
   end.
 
-Notation lift0 n := (lift n 0).
+Abbreviation lift0 n := (lift n 0).
 
 (** Parallel substitution: it assumes that all terms in the substitution live in the
     same context *)
@@ -303,9 +307,10 @@ Fixpoint subst s k u :=
   end.
 
 (** Substitutes [t1 ; .. ; tn] in u for [Rel 0; .. Rel (n-1)] *in parallel* *)
-Notation subst0 t := (subst t 0).
+Abbreviation subst0 t := (subst t 0).
 Definition subst1 t k u := subst [t] k u.
-Notation subst10 t := (subst1 t 0).
+Abbreviation subst10 t := (subst1 t 0).
+Set Warnings "-postfix-notation-not-level-1".
 Notation "M { j := N }" := (subst1 N j M) (at level 10, right associativity).
 
 Fixpoint closedn k (t : term) : bool :=
@@ -368,8 +373,8 @@ Fixpoint nlict (t : term) : bool :=
   | _ => true
   end.
 
-Notation closed t := (closedn 0 t).
-Notation closed_decl n := (test_decl (closedn n)).
+Abbreviation closed t := (closedn 0 t).
+Abbreviation closed_decl n := (test_decl (closedn n)).
 Abbreviation closedn_ctx := (test_context_k closedn).
 Abbreviation closed_ctx := (closedn_ctx 0).
 

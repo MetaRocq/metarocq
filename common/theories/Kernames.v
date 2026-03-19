@@ -139,7 +139,7 @@ Module ModPathComp.
     intros; apply PeanoNat.Nat.compare_antisym.
   Qed.
 
-  Lemma compare_eq x y : x ?= y = Eq -> x = y.
+  Lemma compare_eq x y : (x ?= y) = Eq -> x = y.
   Proof.
     induction x in y |- *; destruct y; simpl; auto; try congruence.
     intros c. eapply DirPathOT.compare_eq in c; now subst.

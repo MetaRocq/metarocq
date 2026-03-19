@@ -46,7 +46,7 @@ Hint Resolve eq_leq_sort' : pcuic.
 Derive Signature for assumption_context.
 Derive Signature for clos_refl_trans_1n.
 
-Notation ws_cumul_pb_terms Σ Γ := (All2 (ws_cumul_pb Conv Σ Γ)).
+Abbreviation ws_cumul_pb_terms Σ Γ := (All2 (ws_cumul_pb Conv Σ Γ)).
 
 #[global]
 Instance ws_cumul_pb_terms_Proper {cf:checker_flags} Σ Γ : CMorphisms.Proper (eq ==> eq ==> arrow)%signatureT (ws_cumul_pb_terms Σ Γ).
@@ -910,7 +910,7 @@ Section ConvCongruences.
   Qed.
 End ConvCongruences.
 
-Notation red_terms Σ Γ := (All2 (closed_red Σ Γ)).
+Abbreviation red_terms Σ Γ := (All2 (closed_red Σ Γ)).
 
 Lemma red_terms_ws_cumul_pb_terms {cf} {Σ} {wfΣ : wf Σ} {Γ u u'} :
   red_terms Σ Γ u u' -> ws_cumul_pb_terms Σ Γ u u'.
@@ -1980,12 +1980,12 @@ Section ConvRedConv.
       rewrite !firstn_length_le => //; try lia.
   Qed.*)
 
-  Notation is_open_brs Γ p brs :=
+  Abbreviation is_open_brs Γ p brs :=
     (forallb (fun br : branch term =>
       test_context_k (fun k : nat => on_free_vars (closedP k xpredT)) #|pparams p| (bcontext br) &&
       on_free_vars (shiftnP #|bcontext br| (shiftnP #|Γ| xpred0)) (bbody br)) brs).
 
-  Notation is_open_predicate Γ p :=
+  Abbreviation is_open_predicate Γ p :=
     ([&& forallb (is_open_term Γ) p.(pparams),
     on_free_vars (shiftnP #|p.(pcontext)| (shiftnP #|Γ| xpred0)) p.(preturn) &
     test_context_k (fun k : nat => on_free_vars (closedP k xpredT)) #|p.(pparams)| p.(pcontext)]).
@@ -2357,10 +2357,10 @@ Section ConvRedConv.
     destruct b; constructor; auto.
   Qed.
 
-  Notation is_open_def Γ n :=
+  Abbreviation is_open_def Γ n :=
     (test_def (on_free_vars (shiftnP #|Γ| xpred0)) (on_free_vars (shiftnP n (shiftnP #|Γ| xpred0)))).
 
-  Notation is_open_mfix Γ mfix :=
+  Abbreviation is_open_mfix Γ mfix :=
     (forallb (is_open_def Γ #|mfix|) mfix).
 
   Lemma is_open_fix_or_cofix {b} {Γ : context} {mfix idx} :

@@ -680,7 +680,7 @@ End Translation.
 Section Trans_Global.
   Context {cf : checker_flags}.
   Context (Σ : Ast.Env.global_env).
-  Notation Σ' := (trans_global_env Σ).
+  Abbreviation Σ' := (trans_global_env Σ).
   Context (wfΣ : Typing.wf Σ).
   Context (wfΣ' : wf Σ').
 
@@ -793,7 +793,7 @@ Qed.
 Section Trans_Global.
   Context {cf : checker_flags}.
   Context (Σ : Ast.Env.global_env).
-  Notation Σ' := (trans_global_env Σ).
+  Abbreviation Σ' := (trans_global_env Σ).
   Context (wfΣ : Typing.wf Σ).
   Context (wfΣ' : wf Σ').
 
@@ -1015,7 +1015,7 @@ End Trans_Global.
 Section Trans_Global.
   Context {cf : checker_flags}.
   Context (Σ : Ast.Env.global_env).
-  Notation Σ' := (trans_global_env Σ).
+  Abbreviation Σ' := (trans_global_env Σ).
 
   Lemma trans_nth n l x : trans Σ' (nth n l x) = nth n (List.map (trans Σ') l) (trans Σ' x).
   Proof using Σ.
@@ -1846,7 +1846,7 @@ Axiom cofix_guard_trans :
     let Σ' := trans_global Σ in
     cofix_guard Σ' (trans_local Σ' Γ) (map (map_def (trans Σ') (trans Σ')) mfix).
 
-Notation Swf_fix Σ def := (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)).
+Abbreviation Swf_fix Σ def := (WfAst.wf Σ (dtype def) * WfAst.wf Σ (dbody def)).
 
 Lemma trans_decompose_app {Σ t ind u l} :
   WfAst.wf Σ t ->

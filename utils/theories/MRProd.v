@@ -13,6 +13,7 @@ Open Scope pair_scope.
 Notation "x × y" := (prod x y) (at level 80, right associativity).
 
 Scheme All for prod.
+Scheme All for and.
 
 (* transparent version of [proj1], [proj2] *)
 Definition proj1 {A B} (x : A /\ B) : A := let (a, b) := x in a.

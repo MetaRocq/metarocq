@@ -1538,6 +1538,7 @@ Inductive wf : value -> Type :=
   wf (vRecClos vfix idx E)
 | wf_vPrim p : primProp wf p -> wf (vPrim p)
 | wf_vLazy E t : sunny (map fst E) t -> All (fun v => wf (snd v)) E -> wf (vLazy t E).
+Derive Signature for wf.
 
 Lemma declared_constant_Forall P Σ c decl :
   Forall (P ∘ snd) Σ ->

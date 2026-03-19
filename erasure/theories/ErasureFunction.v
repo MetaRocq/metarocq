@@ -139,7 +139,7 @@ Proof.
 Qed.
 
 
-Notation terms_global_deps l :=
+Abbreviation terms_global_deps l :=
   (fold_left (fun (acc : KernameSet.t) (x : EAst.term) =>
    KernameSet.union (term_global_deps x) acc) l
     KernameSet.empty).
@@ -447,7 +447,7 @@ Proof.
   knset.
 Qed.
 
-Notation terms_global_deps_gen f l :=
+Abbreviation terms_global_deps_gen f l :=
   (fold_left
     (fun (acc : KernameSet.t) (x : _) =>
     KernameSet.union (term_global_deps (f x)) acc) l KernameSet.empty).
@@ -1484,7 +1484,7 @@ Definition iter {A} (f : A -> A) : nat -> (A -> A)
        end.
 
 (* we use the [match] trick to get typeclass resolution to pick up the right instances without leaving any evidence in the resulting term, and without having to pass them manually everywhere *)
-Notation NormalizationIn_erase_global_deps X decls
+Abbreviation NormalizationIn_erase_global_deps X decls
   := (match extraction_checker_flags, extraction_normalizing return _ with
       | cf, no
         => forall n,

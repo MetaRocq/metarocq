@@ -341,7 +341,7 @@ Section Wcbv.
 
 End Wcbv.
 
-Notation atomic Σ := (atomic_value Σ (value Σ)).
+Abbreviation atomic Σ := (atomic_value Σ (value Σ)).
 
 Definition eval_primitive_depth {eval : term -> term -> Set} (size : forall x y, eval x y -> nat) {p p'} (e : eval_primitive eval p p') : nat :=
   match e with
@@ -660,6 +660,9 @@ Section eval_rect.
 
 End eval_rect.
 
+Register Scheme eval_rect as rect_dep for eval.
+Register Scheme eval_rec as rec_dep for eval.
+Register Scheme eval_ind as ind_dep for eval.
 Global Hint Constructors value : value.
 
 Section Wcbv.

@@ -1170,7 +1170,7 @@ Section TypingWf.
     revert l args hd.
     induction f; try discriminate. intros.
     simpl in X.
-    move/wf_inv: X => /= [[[isAppf Hargs] wff] wfargs].
+    move/wf_inv: X0 => /= [[[isAppf Hargs] wff] wfargs].
     rewrite mkApps_tApp ?isAppf in H => //. destruct args => //.
     rewrite -mkApps_app in H.
     rewrite decompose_app_mkApps ?isAppf in H; auto. noconf H.

@@ -203,6 +203,7 @@ Proof.
     clear - H1 f. induction H1; econstructor; eauto.
   - eapply HPrim; eauto. now eapply (map_onPrim _ _ (f Γ)).
 Qed.
+Register Scheme expanded_ind as ind_nodep for expanded.
 
 From MetaRocq.PCUIC Require Import PCUICInductiveInversion PCUICLiftSubst PCUICSigmaCalculus.
 

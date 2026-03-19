@@ -375,7 +375,7 @@ Set SimplIsCbn.
 Definition conv_cum {cf:checker_flags} pb Σ Γ T T' :=
   Σ ;;; Γ |- T <=[pb] T'.
 
-Notation ws_decl Γ d := (on_free_vars_decl (shiftnP #|Γ| xpred0) d).
+Abbreviation ws_decl Γ d := (on_free_vars_decl (shiftnP #|Γ| xpred0) d).
 
 Definition open_decl (Γ : context) := { d : context_decl | ws_decl Γ d }.
 Definition open_decl_proj {Γ : context} (d : open_decl Γ) := proj1_sig d.
@@ -499,8 +499,8 @@ Definition wt_cumul_ctx_pb {cf:checker_flags} (pb : conv_pb) (Σ : global_env_ex
 Notation "Σ ⊢ Γ ≤[ pb ] Δ ✓" := (wt_cumul_ctx_pb pb Σ Γ Δ) (at level 50, Γ, Δ at next level,
   format "Σ  ⊢  Γ  ≤[ pb ]  Δ  ✓") : pcuic.
 
-Notation wt_cumul_context Σ := (wt_cumul_ctx_pb Cumul Σ).
-Notation wt_conv_context Σ := (wt_cumul_ctx_pb Conv Σ).
+Abbreviation wt_cumul_context Σ := (wt_cumul_ctx_pb Cumul Σ).
+Abbreviation wt_conv_context Σ := (wt_cumul_ctx_pb Conv Σ).
 
 Section WtContextConversion.
   Context {cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ}.

@@ -697,8 +697,8 @@ Lemma progress_env_prop `{cf : checker_flags}:
   env_prop (fun Σ Γ t T => axiom_free Σ -> Γ = [] -> Σ ;;; Γ |- t : T -> {t' & Σ ⊢ t ⇝ᵥ t'} + (value Σ t))
            (fun Σ Γ j => axiom_free Σ -> Γ = [] -> lift_typing0 (fun t T => Σ ;;; Γ |- t : T -> {t' & Σ ⊢ t ⇝ᵥ t'} + (value Σ t)) j)
            (fun _ _ => True).
-Proof with eauto with wcbv; try congruence.
-  eapply typing_ind_env...
+Proof.
+  eapply typing_ind_env; eauto with wcbv; try congruence.
   - intros Σ wfΣ Γ j Hj Hax eq.
     apply lift_typing_impl with (1 := Hj) => ?? [] // H IH //. now apply IH.
   - intros Σ wfΣ Γ wfΓ n decl Hdecl _ Hax -> Hty.
@@ -781,7 +781,8 @@ Proof with eauto with wcbv; try congruence.
       eexists. eapply wcbv_red_cofix_proj. unfold cunfold_cofix. rewrite e0. reflexivity.
       eapply value_mkApps_inv in Hval as [[-> ]|[]]; eauto.
   - intros Σ wfΣ Γ _ p c u mdecl idecl cdecl pdecl Hcon args Hargs -> hp.
-    depelim args... 1-2:right; constructor; constructor 2; constructor.
+    depelim args; eauto with wcbv; try congruence.
+    1-2:right; constructor; constructor 2; constructor.
     right. constructor. constructor 2. constructor.
     depelim Hcon.
     destruct hdef; eauto.

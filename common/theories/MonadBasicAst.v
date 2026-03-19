@@ -53,7 +53,7 @@ Section with_monad.
 
   Section Contexts.
     Context {term term' term'' : Type}.
-    Notation context term := (list (context_decl term)).
+    Abbreviation context term := (list (context_decl term)).
 
     Definition monad_fold_context_k (f : nat -> term -> T term') Γ :=
       Γ <- monad_map_i (fun k' decl => monad_map_decl (f k') decl) (rev Γ);; ret (rev Γ).

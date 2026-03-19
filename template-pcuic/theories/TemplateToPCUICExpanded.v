@@ -186,14 +186,14 @@ Lemma trans_expanded {cf : checker_flags} {Σ} {wfΣ :Template.Typing.wf Σ} Γ 
   PCUICEtaExpand.expanded_global_env Σ' ->
   EtaExpand.expanded Σ Γ T ->
   expanded Σ' Γ (trans Σ' T).
-Proof with eauto using expanded.
+Proof.
   intros Σ' wf expΣ' exp. revert wf.
-  induction exp; intros wf; cbn -[Σ']...
+  induction exp; intros wf; cbn -[Σ']; eauto using expanded.
   all: try now (wf_inv wf []; eauto using expanded).
   - wf_inv wf ?. eapply expanded_tRel with (args := []). eauto. lia. econstructor.
   - wf_inv wf [[[]]]. eapply expanded_tRel. eauto. len. solve_all.
   - wf_inv wf [[[]]]. econstructor. solve_all.
-  - wf_inv wf []. cbn. eapply expanded_mkApps with (args := [_]); cbn... econstructor.
+  - wf_inv wf []. cbn. eapply expanded_mkApps with (args := [_]); cbn; eauto using expanded. econstructor.
     eapply expanded_tRel with (args := []). reflexivity. lia. econstructor.
   - try now (wf_inv wf [[]]; eauto using expanded).
   - wf_inv wf [[[]]].

@@ -41,7 +41,7 @@ Fixpoint lift n k t : term :=
   | tForce t => tForce (lift n k t)
   end.
 
-Notation lift0 n := (lift n 0).
+Abbreviation lift0 n := (lift n 0).
 Definition up := lift 1 0.
 
 (** Parallel substitution: it assumes that all terms in the substitution live in the
@@ -82,9 +82,9 @@ Fixpoint subst s k u :=
   end.
 
 (** Substitutes [t1 ; .. ; tn] in u for [Rel 0; .. Rel (n-1)] *in parallel* *)
-Notation subst0 t := (subst t 0).
+Abbreviation subst0 t := (subst t 0).
 Definition subst1 t k u := subst [t] k u.
-Notation subst10 t := (subst1 t 0).
+Abbreviation subst10 t := (subst1 t 0).
 Notation "M { j := N }" := (subst1 N j M) (at level 10, right associativity) : erasure.
 
 Fixpoint closedn k (t : term) : bool :=
@@ -111,9 +111,9 @@ Fixpoint closedn k (t : term) : bool :=
   | _ => true
   end.
 
-Notation closed t := (closedn 0 t).
+Abbreviation closed t := (closedn 0 t).
 
-Notation subst_rec N M k := (subst N k M) (only parsing).
+Abbreviation subst_rec N M k := (subst N k M) (only parsing).
 
 From Stdlib Require Import PeanoNat.
 Import Nat.

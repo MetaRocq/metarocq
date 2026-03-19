@@ -55,7 +55,7 @@ Hint Extern 10 (@eq nat _ _) => lia : terms.
 
 Ltac easy ::= easy0 || solve [intuition eauto 3 with core terms].
 
-Notation subst_rec N M k := (subst N k M) (only parsing).
+Abbreviation subst_rec N M k := (subst N k M) (only parsing).
 
 Lemma lift_rel_ge :
   forall k n p, p <= n -> lift k p (tRel n) = tRel (k + n).

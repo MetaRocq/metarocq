@@ -324,7 +324,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
 
   (** Well-formedness of local environments embeds a sorting for each variable *)
 
-  Notation on_local_decl P Γ d :=
+  Abbreviation on_local_decl P Γ d :=
     (P Γ (j_decl d)) (only parsing).
 
   Definition on_def_type (P : context -> judgment -> Type) Γ d :=
@@ -336,12 +336,12 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
   (* Various kinds of lifts *)
 
   Definition lift_wf_term wf_term (j : judgment) := option_default wf_term (j_term j) (unit : Type) × wf_term (j_typ j).
-  Notation lift_wf_term1 wf_term := (fun (Γ : context) => lift_wf_term (wf_term Γ)).
+  Abbreviation lift_wf_term1 wf_term := (fun (Γ : context) => lift_wf_term (wf_term Γ)).
 
   Definition lift_wfu_term wf_term wf_univ (j : judgment) := option_default wf_term (j_term j) (unit : Type) × wf_term (j_typ j) × option_default wf_univ (j_univ j) (unit : Type).
 
   Definition lift_wfb_term wfb_term (j : judgment) := option_default wfb_term (j_term j) true && wfb_term (j_typ j).
-  Notation lift_wfb_term1 wfb_term := (fun (Γ : context) => lift_wfb_term (wfb_term Γ)).
+  Abbreviation lift_wfb_term1 wfb_term := (fun (Γ : context) => lift_wfb_term (wfb_term Γ)).
 
   Definition lift_wfbu_term wfb_term wfb_univ (j : judgment) := option_default wfb_term (j_term j) true && wfb_term (j_typ j) && option_default wfb_univ (j_univ j) true.
 
@@ -351,19 +351,19 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
                                   option_default (fun u => u = s) (j_univ j) True /\
                                   isSortRelOpt s (j_rel j).
 
-  Notation lift_sorting1 checking sorting := (fun Γ => lift_sorting (checking Γ) (sorting Γ)).
-  Notation lift_sorting2 checking sorting := (fun Σ Γ => lift_sorting (checking Σ Γ) (sorting Σ Γ)).
+  Abbreviation lift_sorting1 checking sorting := (fun Γ => lift_sorting (checking Γ) (sorting Γ)).
+  Abbreviation lift_sorting2 checking sorting := (fun Σ Γ => lift_sorting (checking Σ Γ) (sorting Σ Γ)).
 
-  Notation typing_sort typing := (fun T s => typing T (tSort s)).
-  Notation typing_sort1 typing := (fun Γ T s => typing Γ T (tSort s)).
-  Notation typing_sort2 typing := (fun Σ Γ T s => typing Σ Γ T (tSort s)).
+  Abbreviation typing_sort typing := (fun T s => typing T (tSort s)).
+  Abbreviation typing_sort1 typing := (fun Γ T s => typing Γ T (tSort s)).
+  Abbreviation typing_sort2 typing := (fun Σ Γ T s => typing Σ Γ T (tSort s)).
 
   Definition lift_typing0 typing := lift_sorting typing (typing_sort typing).
-  Notation lift_typing1 typing := (fun Γ => lift_typing0 (typing Γ)).
-  Notation lift_typing typing := (fun Σ Γ => lift_typing0 (typing Σ Γ)).
+  Abbreviation lift_typing1 typing := (fun Γ => lift_typing0 (typing Γ)).
+  Abbreviation lift_typing typing := (fun Σ Γ => lift_typing0 (typing Σ Γ)).
 
-  Notation Prop_local_conj P Q := (fun Γ t T => P Γ t T × Q Γ t T).
-  Notation Prop_conj P Q := (fun Σ Γ t T => P Σ Γ t T × Q Σ Γ t T).
+  Abbreviation Prop_local_conj P Q := (fun Γ t T => P Γ t T × Q Γ t T).
+  Abbreviation Prop_conj P Q := (fun Σ Γ t T => P Σ Γ t T × Q Σ Γ t T).
 
   Definition lift_typing_conj (P Q : context -> _) := lift_typing1 (Prop_local_conj P Q).
 
@@ -683,7 +683,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
 
   Derive Signature NoConfusion for All_local_env.
   End TypeLocal.
-
+  Scheme All for All_local_env.
   Arguments localenv_nil {_}.
   Arguments localenv_cons_def {_ _ _ _ _} _ _.
   Arguments localenv_cons_abs {_ _ _ _} _ _.
@@ -948,6 +948,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
                               (localenv_cons_def all tu).
 
   End TypeLocalOver.
+  Scheme All for All_local_env_over_sorting.
   Derive Signature for All_local_env_over_sorting.
 
   Definition All_local_env_over typing property :=
@@ -1019,6 +1020,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
         ctx_inst Γ inst (vdef na b t :: Δ).
     Derive Signature NoConfusion for ctx_inst.
   End TypeCtxInst.
+  Scheme All for ctx_inst.
 
   Lemma ctx_inst_impl_gen Γ inst Δ args P :
     { P' & ctx_inst P' Γ inst Δ } ->
@@ -1084,14 +1086,14 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
                                       types Γ d (w : on_def_body (lift_sorting1 c s) types Γ d) : size :=
     base + csize _ _ _ w.1 + ssize _ _ _ w.2.π2.1.
 
-  Notation lift_sorting_size csize ssize := (lift_sorting_size_gen csize ssize 1).
-  Notation typing_sort_size typing_size := (fun t s (tu: typing_sort _ t s) => typing_size t (tSort s) tu).
-  Notation lift_typing_size typing_size := (lift_sorting_size_gen typing_size%function (typing_sort_size typing_size%function) 0).
-  Notation typing_sort_size1 typing_size := (fun Γ t s (tu: typing_sort1 _ Γ t s) => typing_size Γ t (tSort s) tu).
-  Notation on_def_type_sorting_size ssize := (on_def_type_size_gen ssize 1).
-  Notation on_def_type_size typing_size := (on_def_type_size_gen (typing_sort_size1 typing_size) 0).
-  Notation on_def_body_sorting_size csize ssize := (on_def_body_size_gen csize ssize 1).
-  Notation on_def_body_size typing_size := (on_def_body_size_gen typing_size%function (typing_sort_size1 typing_size%function) 0).
+  Abbreviation lift_sorting_size csize ssize := (lift_sorting_size_gen csize ssize 1).
+  Abbreviation typing_sort_size typing_size := (fun t s (tu: typing_sort _ t s) => typing_size t (tSort s) tu).
+  Abbreviation lift_typing_size typing_size := (lift_sorting_size_gen typing_size%function (typing_sort_size typing_size%function) 0).
+  Abbreviation typing_sort_size1 typing_size := (fun Γ t s (tu: typing_sort1 _ Γ t s) => typing_size Γ t (tSort s) tu).
+  Abbreviation on_def_type_sorting_size ssize := (on_def_type_size_gen ssize 1).
+  Abbreviation on_def_type_size typing_size := (on_def_type_size_gen (typing_sort_size1 typing_size) 0).
+  Abbreviation on_def_body_sorting_size csize ssize := (on_def_body_size_gen csize ssize 1).
+  Abbreviation on_def_body_size typing_size := (on_def_body_size_gen typing_size%function (typing_sort_size1 typing_size%function) 0).
   (* Will probably not pass the guard checker if in a list, must be unrolled like in on_def_* *)
 
   Lemma lift_sorting_size_impl {checking sorting Qc Qs j} csize ssize :
@@ -1137,7 +1139,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     Qed.
   End All_local_env_size.
 
-  Notation All_local_rel_size_gen c s csize ssize base := (fun Γ Δ (w : All_local_rel (lift_sorting1 c s) Γ Δ) =>
+  Abbreviation All_local_rel_size_gen c s csize ssize base := (fun Γ Δ (w : All_local_rel (lift_sorting1 c s) Γ Δ) =>
     All_local_env_size_gen (fun Δ => csize (Γ ,,, Δ)) (fun Δ => ssize (Γ ,,, Δ)) base Δ w).
 
   Lemma All_local_env_size_app c s csize ssize base Γ Γ' (wfΓ : All_local_env (lift_sorting1 c s) Γ) (wfΓ' : All_local_rel (lift_sorting1 c s) Γ Γ') :
@@ -1202,7 +1204,7 @@ Module Conversion (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : E
     of cumulativity is useless *)
     (eqt : P pb t t') :
     All_decls_alpha_pb (vdef na b t) (vdef na' b' t').
-
+  Scheme All for All_decls_alpha_pb.
   Derive Signature NoConfusion for All_decls_alpha_pb.
 
   Arguments All_decls_alpha_pb pb P : clear implicits.
@@ -1218,13 +1220,13 @@ Module Conversion (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : E
   End Conversion.
 
   Arguments All_decls_alpha_pb pb P : clear implicits.
-  Notation conv cumul_gen Σ Γ := (cumul_gen Σ Γ Conv).
-  Notation cumul cumul_gen Σ Γ := (cumul_gen Σ Γ Cumul).
+  Abbreviation conv cumul_gen Σ Γ := (cumul_gen Σ Γ Conv).
+  Abbreviation cumul cumul_gen Σ Γ := (cumul_gen Σ Γ Cumul).
 
-  Notation conv_decls cumul_gen := (cumul_pb_decls cumul_gen Conv).
-  Notation cumul_decls cumul_gen := (cumul_pb_decls cumul_gen Cumul).
-  Notation conv_context cumul_gen Σ := (cumul_pb_context cumul_gen Conv Σ).
-  Notation cumul_context cumul_gen Σ := (cumul_pb_context cumul_gen Cumul Σ).
+  Abbreviation conv_decls cumul_gen := (cumul_pb_decls cumul_gen Conv).
+  Abbreviation cumul_decls cumul_gen := (cumul_pb_decls cumul_gen Cumul).
+  Abbreviation conv_context cumul_gen Σ := (cumul_pb_context cumul_gen Conv Σ).
+  Abbreviation cumul_context cumul_gen Σ := (cumul_pb_context cumul_gen Cumul Σ).
 
   Lemma All_decls_alpha_pb_impl {pb} {P Q : conv_pb -> term -> term -> Type} {t t'} :
     (forall pb t t', P pb t t' -> Q pb t t') ->
@@ -1359,7 +1361,8 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
        nth_error (List.rev mdecl.(ind_bodies)) (k - #|Γ|) = Some i.
 
     Reserved Notation " mdecl ;;; Γ |arg+> t " (at level 50, Γ, t at next level).
-    Notation subst0 t := (subst t 0).
+    Abbreviation subst0 t := (subst t 0).
+    Set Warnings "-postfix-notation-not-level-1".
     Notation "M { j := N }" := (subst [N] j M) (at level 10, right associativity).
 
     Inductive positive_cstr_arg mdecl Γ : term -> Type :=
@@ -1379,7 +1382,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
 
     | pos_arg_ass na ty ty' :
       closedn #|Γ| ty ->
-      mdecl ;;; vass na ty :: Γ |arg+> ty' ->
+      mdecl ;;; (vass na ty :: Γ) |arg+> ty' ->
       mdecl ;;; Γ |arg+> tProd na ty ty'
 
   where " mdecl ;;; Γ |arg+> t " := (positive_cstr_arg mdecl Γ t) : type_scope.
@@ -1406,7 +1409,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
 
     | pos_ass na ty ty' :
       mdecl ;;; Γ |arg+> ty ->
-      mdecl @ i ;;; vass na ty :: Γ |+> ty' ->
+      mdecl @ i ;;; (vass na ty :: Γ) |+> ty' ->
       mdecl @ i ;;; Γ |+> tProd na ty ty'
 
     where " mdecl @ i ;;; Γ |+> t " := (positive_cstr mdecl i Γ t) : type_scope.
@@ -2248,7 +2251,7 @@ Module Type Typing (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : 
   Notation " Σ ;;; Γ |- t : T " :=
     (typing Σ Γ t T) (at level 50, Γ, t, T at next level) : type_scope.
 
-  Notation wf_local Σ Γ := (All_local_env (lift_typing Σ) Γ).
+  Abbreviation wf_local Σ Γ := (All_local_env (lift_typing Σ) Γ).
 
 End Typing.
 
@@ -2267,7 +2270,6 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E)
 
   Lemma isTypeRel_isType `{checker_flags} (Σ : global_env_ext) (Γ : context) (t : term) (r : relevance) : isTypeRel Σ Γ t r -> isType Σ Γ t.
   Proof. apply lift_sorting_forget_rel. Defined.
-  #[export] Hint Resolve isTypeRel_isType : pcuic.
 
   Coercion isTypeRel_isType : isTypeRel >-> isType.
 

@@ -17,5 +17,5 @@ MetaRocq Quote Recursively Definition q_fapp := @fapp.
 Definition setprop : { x : nat | x = 0 } := exist _ 0 eq_refl.
 MetaRocq Quote Recursively Definition q_setprop := setprop.
 
-Notation proof t :=
+Abbreviation proof t :=
   (Ast.tCast t BasicAst.Cast (Ast.tCast _ BasicAst.Cast (Ast.tSort ((Universes.sProp :: nil)%list; _)))).

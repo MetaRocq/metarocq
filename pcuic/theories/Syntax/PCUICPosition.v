@@ -1379,7 +1379,7 @@ Definition closedn_branches_hole k (pred : predicate term) '((brs1, br, brs2) : 
 Definition test_branch_k_pars ppars (p : nat -> term -> bool) k (b : branch term) :=
   test_context_k p ppars b.(bcontext) && p (#|b.(bcontext)| + k) b.(bbody).
 
-Notation test_branches_k_pars p test k brs :=
+Abbreviation test_branches_k_pars p test k brs :=
   (List.forallb (test_branch_k_pars p test k) brs).
 
 Definition closedn_stack_entry k se :=

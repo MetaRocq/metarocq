@@ -314,15 +314,15 @@ Corollary R_Acc_aux :
     isApp (fst t') = false /\
     (RedFlags.beta flags -> isLambda (fst t') -> isStackApp (snd t') = false).
 
-  Notation givePr' := (conj _ (fun β hl => _)) (only parsing).
+  Abbreviation givePr' := (conj _ (fun β hl => _)) (only parsing).
 
-  Notation rec reduce t π :=
+  Abbreviation rec reduce t π :=
     (let smaller := _ in
      let '(exist res prf_Σ) := reduce t π smaller in
      exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr'))
     ) (only parsing).
 
-  Notation give t π :=
+  Abbreviation give t π :=
     (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr'))) (only parsing).
 
   Tactic Notation "zip" "fold" "in" hyp(h) :=

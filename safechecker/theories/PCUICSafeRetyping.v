@@ -173,7 +173,7 @@ Proof using Type.
     inversion X0'. split; [split|]; econstructor ; [econstructor|..]; eassumption.
 Qed.
 
-  #[local] Notation ret t := (t; _).
+  #[local] Abbreviation ret t := (t; _).
 
   #[local] Definition principal_type Γ t :=
     ∑ T : term, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ |- t ▹ T ∥.

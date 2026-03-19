@@ -27,8 +27,8 @@ where " Σ ;;; Γ |- t <=[ pb ] u " := (cumulAlgo_gen Σ Γ pb t u) : type_scope
 Notation " Σ ;;; Γ |- t = u " := (cumulAlgo_gen Σ Γ Conv t u) (at level 50, Γ, t, u at next level) : type_scope.
 Notation " Σ ;;; Γ |- t <= u " := (cumulAlgo_gen Σ Γ Cumul t u) (at level 50, Γ, t, u at next level) : type_scope.
 
-Notation cumulAlgo Σ Γ := (cumulAlgo_gen Σ Γ Cumul).
-Notation convAlgo Σ Γ := (cumulAlgo_gen Σ Γ Conv).
+Abbreviation cumulAlgo Σ Γ := (cumulAlgo_gen Σ Γ Cumul).
+Abbreviation convAlgo Σ Γ := (cumulAlgo_gen Σ Γ Conv).
 
 #[global]
 Hint Resolve cumul_refl : pcuic.
@@ -249,7 +249,7 @@ Qed.
 Definition eq_termp_napp {cf:checker_flags} (Σ : global_env_ext) (pb: conv_pb) napp :=
   compare_term_napp Σ Σ pb napp.
 
-Notation eq_termp Σ pb := (compare_term Σ Σ pb).
+Abbreviation eq_termp Σ pb := (compare_term Σ Σ pb).
 
 Lemma eq_term_eq_termp {cf:checker_flags} pb (Σ : global_env_ext) x y :
   eq_term Σ Σ x y ->
@@ -281,8 +281,8 @@ Section ContextConversion.
   Context {cf : checker_flags}.
   Context (Σ : global_env_ext).
 
-  Notation conv_context Γ Γ' := (All2_fold (conv_decls cumulAlgo_gen Σ) Γ Γ').
-  Notation cumul_context Γ Γ' := (All2_fold (cumul_decls cumulAlgo_gen Σ) Γ Γ').
+  Abbreviation conv_context Γ Γ' := (All2_fold (conv_decls cumulAlgo_gen Σ) Γ Γ').
+  Abbreviation cumul_context Γ Γ' := (All2_fold (cumul_decls cumulAlgo_gen Σ) Γ Γ').
 
   Global Instance conv_ctx_refl : Reflexive (All2_fold (conv_decls cumulAlgo_gen Σ)).
   Proof using Type.

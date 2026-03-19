@@ -371,7 +371,7 @@ Qed.
 
 
 (* To deprecate *)
-Notation validity_term wf Ht := (validity (wfΣ:=wf) Ht).
+Abbreviation validity_term wf Ht := (validity (wfΣ:=wf) Ht).
 
 (* This corollary relies strongly on validity to ensure
    every type in the derivation is well-typed.

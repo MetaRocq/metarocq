@@ -120,8 +120,8 @@ Definition const {A B} (b : B) := fun x : A => b.
 
 Notation "( x ; y )" := (existT _ x y) : fibration_scope.
 Bind Scope fibration_scope with sigT.
-Notation pr1 := projT1.
-Notation pr2 := projT2.
+Abbreviation pr1 := projT1.
+Abbreviation pr2 := projT2.
 Notation "x .1" := (pr1 x) : fibration_scope.
 Notation "x .2" := (pr2 x) : fibration_scope.
 

@@ -535,6 +535,7 @@ Proof.
     depelim X; constructor. destruct p; split; eauto.
     eapply (make_All_All f a0).
 Qed.
+Register Scheme expanded_ind as ind_nodep for expanded.
 
 Local Hint Constructors expanded : core.
 

@@ -826,7 +826,7 @@ Qed.
 
 Notation "⋆" := ltac:(solve [pcuic]) (only parsing).
 
-Notation decl_ws_cumul_pb Σ Γ := (All_decls_alpha_pb Conv
+Abbreviation decl_ws_cumul_pb Σ Γ := (All_decls_alpha_pb Conv
   (fun pb (x0 y0 : term) => Σ ;;; Γ ⊢ x0 ≤[pb] y0)).
 
 Lemma conv_decls_fix_context_gen {cf:checker_flags} Σ Γ mfix mfix1 :

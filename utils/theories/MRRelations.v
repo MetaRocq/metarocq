@@ -26,13 +26,13 @@ Definition on_rel {A B} (R : A -> A -> Prop) (f : B -> A) : B -> B -> Prop :=
 Definition on_Trel {A B} (R : A -> A -> Type) (f : B -> A) : B -> B -> Type :=
   fun x y => R (f x) (f y).
 
-Notation Trel_conj R S :=
+Abbreviation Trel_conj R S :=
   (fun x y => R x y * S x y)%type.
 
-Notation Trel_sig R S :=
+Abbreviation Trel_sig R S :=
   (fun x y => { r : R x y & S x y r })%type.
 
-Notation on_Trel_eq R f g :=
+Abbreviation on_Trel_eq R f g :=
   (fun x y => (R (f x) (f y) * (g x = g y)))%type.
 
 #[global]
@@ -255,8 +255,8 @@ Proof with auto.
   unfold well_founded. intro wf.
   cut (forall (a: M) (a0: T), m a0 = a -> Acc (precompose R m) a0).
   + intros.
-    apply (H (m a))...
+    now apply (H (m a)).
   + apply (@well_founded_ind M R wf (fun mm => forall a, m a = mm -> Acc _ a)).
     intros. apply Acc_intro.
-    intros. rewrite H0 in H1. apply (H (m y))...
+    intros. rewrite H0 in H1. now apply (H (m y)).
 Defined.

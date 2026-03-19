@@ -159,6 +159,7 @@ Variant case_side_conditions `{checker_flags} wf_local_funΣ typingΣ Σ Γ ci p
                          (List.rev (subst_instance p.(puinst)
                                                    (ind_params mdecl ,,, ind_indices idecl : context))))
     (not_cofinite : isCoFinite mdecl.(ind_finite) = false).
+Scheme All for case_side_conditions.
 
 Variant case_branch_typing `{checker_flags} wf_local_funΣ typingΣ Γ (ci:case_info) p ps mdecl idecl ptm  brs :=
 | case_branch_info
@@ -173,6 +174,7 @@ Variant case_branch_typing `{checker_flags} wf_local_funΣ typingΣ Γ (ci:case_
                 ((typingΣ (Γ ,,, brctxty.1) br.(bbody) (brctxty.2)) ×
                 (typingΣ (Γ ,,, brctxty.1) brctxty.2 (tSort ps)))))
              0 idecl.(ind_ctors) brs).
+Scheme All for case_branch_typing.
 
 Variant primitive_typing_hyps `{checker_flags}
   (typingΣ : forall (Γ : context), term -> term -> Type)
@@ -186,6 +188,7 @@ Variant primitive_typing_hyps `{checker_flags}
   (hdef : typingΣ Γ a.(array_default) a.(array_type))
   (hvalue : All (fun x => typingΣ Γ x a.(array_type)) a.(array_value)) :
   primitive_typing_hyps typingΣ Σ Γ (primArray; primArrayModel a).
+Scheme All for primitive_typing_hyps.
 Derive Signature for primitive_typing_hyps.
 
 Equations prim_type (p : prim_val term) (cst : kername) : term :=
@@ -351,6 +354,7 @@ Module PCUICDeclarationTyping :=
     PCUICLookup
     PCUICGlobalMaps.
 Include PCUICDeclarationTyping.
+#[export] Hint Resolve isTypeRel_isType : pcuic.
 
 Inductive welltyped {cf} Σ Γ t : Prop :=
 | iswelltyped A : Σ ;;; Γ |- t : A -> welltyped Σ Γ t.
@@ -497,8 +501,6 @@ Arguments lexprod [A B].
     globally available. *)
 Definition wf `{checker_flags} := on_global_env cumulSpec0 (lift_typing typing).
 Existing Class wf.
-#[global]
-Hint Mode wf + + : typeclass_intances.
 
 Lemma wf_env_non_var_levels (Σ : global_env) `{checker_flags} (hΣ : ∥ wf Σ ∥) :
   LS.For_all (negb ∘ Level.is_var) (PCUICLookup.global_levels Σ).

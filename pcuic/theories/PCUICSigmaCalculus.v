@@ -94,7 +94,7 @@ Section map_branch_shift.
   Proof using Type. reflexivity. Qed.
 End map_branch_shift.
 
-Notation map_branches_shift ren f :=
+Abbreviation map_branches_shift ren f :=
   (map (map_branch_shift ren shiftn f)).
 
 Fixpoint rename (f : renamingT) t : term :=
@@ -121,7 +121,7 @@ Fixpoint rename (f : renamingT) t : term :=
   end.
 
 Abbreviation rename_predicate := (map_predicate_shift rename shiftn id).
-Notation rename_branches f := (map_branches_shift rename f).
+Abbreviation rename_branches f := (map_branches_shift rename f).
 Definition rename_context f (Γ : context) : context :=
   fold_context_k (fun i => rename (shiftn i f)) Γ.
 Definition rename_decl f d := map_decl (rename f) d.
@@ -590,7 +590,7 @@ Fixpoint inst s u :=
 
 Abbreviation inst_predicate := (map_predicate_shift inst up id).
 Abbreviation inst_branch := (map_branch_shift inst up).
-Notation inst_branches f := (map (inst_branch f)).
+Abbreviation inst_branches f := (map (inst_branch f)).
 
 Definition ren_fn (l : list nat) :=
   fun i =>

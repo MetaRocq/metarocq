@@ -238,7 +238,7 @@ Proof.
       { now rewrite ind_predicate_context_length. }
     + clear H9. solve_all. unfold test_branch_k. clear H7. solve_all.
       * rewrite (closedn_ctx_alpha a1).
-        eapply closed_cstr_branch_context_gen in X0; tea.
+        unshelve eapply closed_cstr_branch_context_gen in X0; tea. exact ci.
         rewrite (wf_predicate_length_pars H1).
         now rewrite (declared_minductive_ind_npars isdecl).
       * rewrite (All2_length a1).

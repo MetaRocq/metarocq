@@ -719,26 +719,26 @@ Section ReductionCongruence.
 
   Section Congruences.
 
-    Notation red1_one_term Γ :=
+    Abbreviation red1_one_term Γ :=
       (@OnOne2 (term × _) (Trel_conj (on_Trel (red1 Σ Γ) fst) (on_Trel eq snd))).
-    Notation red_one_term Γ :=
+    Abbreviation red_one_term Γ :=
       (@OnOne2 (term × _) (Trel_conj (on_Trel (red Σ Γ) fst) (on_Trel eq snd))).
 
-    Notation red1_one_context_decl Γ :=
+    Abbreviation red1_one_context_decl Γ :=
       (@OnOne2 (context × _) (Trel_conj (on_Trel (red1_ctx_rel Σ Γ) fst) (on_Trel eq snd))).
 
     Definition red_one_context_decl_rel Σ Γ :=
       (OnOne2_local_env (fun Δ => on_one_decl (fun t t' => red Σ (Γ ,,, Δ) t t'))).
 
-    Notation red_one_context_decl Γ :=
+    Abbreviation red_one_context_decl Γ :=
       (@OnOne2 (context × _)
       (Trel_conj (on_Trel (red_ctx_rel Σ Γ) fst) (on_Trel eq snd))).
 
-    Notation red1_one_branch p Γ :=
+    Abbreviation red1_one_branch p Γ :=
       (@OnOne2 _ (fun br br' =>
         let ctx := inst_case_context p.(pparams) p.(puinst) (snd br) in
         Trel_conj (on_Trel (red1 Σ (Γ ,,, ctx)) fst) (on_Trel eq snd) br br')).
-    Notation red_one_branch p Γ :=
+    Abbreviation red_one_branch p Γ :=
       (@OnOne2 _ (fun br br' =>
         let ctx := inst_case_context p.(pparams) p.(puinst) (snd br) in
         Trel_conj (on_Trel (red Σ (Γ ,,, ctx)) fst) (on_Trel eq snd) br br')).
@@ -1015,8 +1015,8 @@ Section ReductionCongruence.
 
     Abbreviation decomp_branch := (fun x : branch term => (bbody x, bcontext x)).
     Abbreviation recomp_branch := (fun x : term * context => {| bbody := x.1; bcontext := x.2 |}).
-    Notation decomp_branch' := (fun x : branch term => (bcontext x, bbody x)).
-    Notation recomp_branch' := (fun x : context * term => {| bbody := x.2; bcontext := x.1 |}).
+    Abbreviation decomp_branch' := (fun x : branch term => (bcontext x, bbody x)).
+    Abbreviation recomp_branch' := (fun x : context * term => {| bbody := x.2; bcontext := x.1 |}).
 
     Lemma list_map_swap_eq :
       forall l l',
@@ -2102,6 +2102,8 @@ End ReductionCongruence.
 
 #[global]
 Hint Resolve All_All2 : all.
+
+Create HintDb pred.
 #[global]
 Hint Resolve All2_same : pred.
 
@@ -2221,8 +2223,6 @@ Section Stacks.
         apply OnOne2_app.
         constructor; cbn.
         rewrite -app_assoc in h; auto.
-    - now apply array_red_type; cbn in *.
-    - now apply array_red_def; cbn in *.
     - apply array_red_val; cbn in *.
       eapply OnOne2_app. now constructor.
   Qed.
@@ -2286,4 +2286,3 @@ Section Stacks.
 End Stacks.
 
 Implicit Types (cf : checker_flags).
-

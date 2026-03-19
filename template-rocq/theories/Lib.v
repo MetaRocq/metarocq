@@ -78,15 +78,15 @@ Definition term_eqb (t1 t2 : term) :=
   @eq_term config.default_checker_flags init_graph t1 t2.
 
 (** Short-form notation for [tLambda]. *)
-Notation tLam x A b :=
+Abbreviation tLam x A b :=
   (tLambda {| binder_name := nNamed x; binder_relevance := Relevant |} A b).
 
 (** Short-form notation for [tProd]. *)
-Notation tPro x A b :=
+Abbreviation tPro x A b :=
   (tProd {| binder_name := nNamed x; binder_relevance := Relevant |} A b).
 
 (** Short-form notation for [tLetIn]. *)
-Notation tLet x A t b :=
+Abbreviation tLet x A t b :=
   (tLetIn {| binder_name := nNamed x; binder_relevance := Relevant |} t A b).
 
 Notation "'__'" := (hole) (no associativity, at level 0).

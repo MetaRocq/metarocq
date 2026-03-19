@@ -163,7 +163,7 @@ Proof.
 Qed.
 #[global] Hint Rewrite @has_prim_map_prim : map.
 
-Notation wf_fix Σ := (wf_fix_gen (wellformed Σ)).
+Abbreviation wf_fix Σ := (wf_fix_gen (wellformed Σ)).
 
 Lemma wf_fix_inv {efl : EEnvFlags} Σ k mfix idx : reflect (idx < #|mfix| /\ forallb (test_def (wellformed Σ (#|mfix| + k))) mfix) (wf_fix Σ k mfix idx).
 Proof.

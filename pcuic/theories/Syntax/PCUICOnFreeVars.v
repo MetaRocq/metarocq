@@ -254,8 +254,8 @@ Proof.
   now setoid_rewrite Hfg.
 Qed.
 
-Notation is_open_term Γ := (on_free_vars (shiftnP #|Γ| xpred0)).
-Notation is_open_decl Γ := (on_free_vars_decl (shiftnP #|Γ| xpred0)).
+Abbreviation is_open_term Γ := (on_free_vars (shiftnP #|Γ| xpred0)).
+Abbreviation is_open_decl Γ := (on_free_vars_decl (shiftnP #|Γ| xpred0)).
 Abbreviation is_closed_context := (on_free_vars_ctx xpred0).
 
 

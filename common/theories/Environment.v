@@ -25,7 +25,7 @@ Module Type Term.
   Parameter Inline noccur_between : nat -> nat -> term -> bool.
   Parameter Inline subst_instance_constr : UnivSubst term.
 
-  Notation lift0 n := (lift n 0).
+  Abbreviation lift0 n := (lift n 0).
 End Term.
 
 Module Type TermDecide (Import T : Term).
@@ -523,16 +523,16 @@ Module Environment (T : Term).
 └-----------------------------┴------------------------┴---------------------------┘
 >>>
    *)
-  Notation extends_decls_part_globals Σ Σ'
+  Abbreviation extends_decls_part_globals Σ Σ'
     := (forall c, ∑ decls, lookup_globals Σ' c = decls ++ lookup_globals Σ c)
          (only parsing).
-  Notation strictly_extends_decls_part_globals Σ Σ'
+  Abbreviation strictly_extends_decls_part_globals Σ Σ'
     := (∑ Σ'', Σ' = Σ'' ++ Σ)
          (only parsing).
-  Notation extends_decls_part Σ Σ'
+  Abbreviation extends_decls_part Σ Σ'
     := (forall c, ∑ decls, lookup_envs Σ' c = decls ++ lookup_envs Σ c)
          (only parsing).
-  Notation strictly_extends_decls_part Σ Σ'
+  Abbreviation strictly_extends_decls_part Σ Σ'
     := (strictly_extends_decls_part_globals Σ.(declarations) Σ'.(declarations))
          (only parsing).
   Definition extends (Σ Σ' : global_env) :=
@@ -1224,6 +1224,7 @@ Module Environment (T : Term).
     P b b' ->
     P t t' ->
     All_decls P (vdef na b t) (vdef na b' t').
+  Scheme All for All_decls.
   Derive Signature NoConfusion for All_decls.
 
   (** Allow alpha-renaming of binders *)
@@ -1238,6 +1239,7 @@ Module Environment (T : Term).
     P b b' ->
     P t t' ->
     All_decls_alpha P (vdef na b t) (vdef na' b' t').
+  Scheme All for All_decls_alpha.
   Derive Signature NoConfusion for All_decls_alpha.
 
   Lemma All_decls_impl (P Q : term -> term -> Type) d d' :
@@ -1266,9 +1268,9 @@ Module Environment (T : Term).
   Definition All2_fold_over (P : context -> context -> context_decl -> context_decl -> Type) Γ Γ' :=
     All2_fold (All_over P Γ Γ').
 
-  Notation on_decls P := (fun Γ Γ' => All_decls (P Γ Γ')).
-  Notation on_contexts P := (All2_fold (on_decls P)).
-  Notation on_contexts_over P Γ Γ' := (All2_fold (All_over (on_decls P) Γ Γ')).
+  Abbreviation on_decls P := (fun Γ Γ' => All_decls (P Γ Γ')).
+  Abbreviation on_contexts P := (All2_fold (on_decls P)).
+  Abbreviation on_contexts_over P Γ Γ' := (All2_fold (All_over (on_decls P) Γ Γ')).
 
 End Environment.
 

@@ -799,7 +799,7 @@ Qed.
     intros i hi. cbn; len. now eapply Nat.ltb_lt.
   Qed.
 
-  Notation closedu_ctx k := (test_context (closedu k)).
+  Abbreviation closedu_ctx k := (test_context (closedu k)).
 
   Lemma closedu_lift k n k' t :
     closedu k (lift n k' t) = closedu k t.

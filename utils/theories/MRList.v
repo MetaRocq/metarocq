@@ -6,6 +6,8 @@ Set Equations Transparent.
 
 Export ListNotations.
 
+Scheme All for list.
+
 Arguments firstn : simpl nomatch.
 Arguments skipn : simpl nomatch.
 
@@ -310,6 +312,8 @@ Qed.
 
 Lemma map_nil {A B} (f : A -> B) (l : list A) : l <> [] -> map f l <> [].
 Proof. induction l; simpl; congruence. Qed.
+
+Create HintDb wf.
 #[global]
 Hint Resolve map_nil : wf.
 
@@ -367,7 +371,6 @@ Proof. induction l in n |- *; destruct n; simpl; try congruence. auto. Qed.
 
 Lemma nth_error_nil {A} n : nth_error (nil A) n = None.
 Proof. destruct n; auto. Qed.
-#[global] Hint Rewrite @nth_error_nil.
 
 Fixpoint chop {A} (n : nat) (l : list A) :=
   match n with

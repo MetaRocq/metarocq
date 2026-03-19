@@ -492,7 +492,7 @@ Definition conv_decls_prop (Σ : global_env_ext) (Γ Γ' : context) (c d : conte
   | _, _ => False
   end.
 
-Notation conv_ctx_prop Σ := (All2_fold (conv_decls_prop Σ)).
+Abbreviation conv_ctx_prop Σ := (All2_fold (conv_decls_prop Σ)).
 
 Lemma conv_ctx_prop_refl Σ Γ :
   conv_ctx_prop Σ Γ Γ.
@@ -959,10 +959,10 @@ Proof using Type.
   now intros wf x y; eapply cumul_prop_sym.
 Qed.
 
-Notation eq_term_napp Σ n x y :=
+Abbreviation eq_term_napp Σ n x y :=
   (eq_term_upto_univ_napp Σ (eq_sort Σ) (eq_sort Σ) n x y).
 
-Notation leq_term_napp Σ n x y :=
+Abbreviation leq_term_napp Σ n x y :=
     (eq_term_upto_univ_napp Σ (eq_sort Σ) (leq_sort Σ) n x y).
 
 Lemma cumul_prop_is_open {Σ Γ T U} :

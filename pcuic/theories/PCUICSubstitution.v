@@ -212,7 +212,7 @@ Proof.
   now rewrite Nat.add_comm.
 Qed.
 
-Notation subst_predicate s := (map_predicate_k id (subst s)).
+Abbreviation subst_predicate s := (map_predicate_k id (subst s)).
 
 Lemma subst_iota_red s p k pars args br :
   #|skipn pars args| = context_assumptions br.(bcontext) ->

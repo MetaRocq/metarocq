@@ -278,7 +278,7 @@ Module PrintTermTree.
   Section env.
     Context (Σ : global_env_ext).
     Abbreviation print_context := (print_context_gen Σ (print_term Σ true)).
-    Notation pr_term Γ top := (print_term Σ true Γ top false).
+    Abbreviation pr_term Γ top := (print_term Σ true Γ top false).
 
     Definition print_one_cstr Γ (mib : mutual_inductive_body) (c : constructor_body) : t :=
       let '(Γargs, s) := print_context Γ c.(cstr_args) in

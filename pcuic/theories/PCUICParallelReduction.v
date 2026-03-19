@@ -83,8 +83,8 @@ Defined.
 
 (** Specialization of All2_fold to on_decls / All_decls.
   It compares contexts up to `P` and no alpha-equivalence. *)
-Notation on_decls_over P Γ Γ' := (fun Δ Δ' => P (Γ ,,, Δ) (Γ' ,,, Δ')).
-Notation on_contexts_over P Γ Γ' := (All2_fold (on_decls (on_decls_over P Γ Γ'))).
+Abbreviation on_decls_over P Γ Γ' := (fun Δ Δ' => P (Γ ,,, Δ) (Γ' ,,, Δ')).
+Abbreviation on_contexts_over P Γ Γ' := (All2_fold (on_decls (on_decls_over P Γ Γ'))).
 Abbreviation on_contexts_app := All2_fold_app.
 Abbreviation on_contexts_length := All2_fold_length.
 
@@ -892,8 +892,8 @@ Ltac pcuic_simplify :=
 #[global]
 Hint Extern 10 => progress pcuic_simplify : pcuic.
 
-Notation pred1_ctx Σ Γ Γ' := (All2_fold (on_decls (pred1 Σ)) Γ Γ').
-Notation pred1_ctx_over Σ Γ Γ' := (All2_fold (on_decls (on_decls_over (pred1 Σ) Γ Γ'))).
+Abbreviation pred1_ctx Σ Γ Γ' := (All2_fold (on_decls (pred1 Σ)) Γ Γ').
+Abbreviation pred1_ctx_over Σ Γ Γ' := (All2_fold (on_decls (on_decls_over (pred1 Σ) Γ Γ'))).
 
 #[global]
 Hint Extern 4 (pred1 _ _ _ ?t _) => tryif is_evar t then fail 1 else eapply pred1_refl_gen : pcuic.

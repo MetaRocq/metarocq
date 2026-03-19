@@ -23,11 +23,11 @@ Definition build_wf_env_from_env {cf : checker_flags} (Σ : global_env_map) (wf�
      wf_env_map_repr := Σ.(trans_env_repr);
  |}.
 
-Notation NormalizationIn_erase_pcuic_program_1 p
+Abbreviation NormalizationIn_erase_pcuic_program_1 p
   := (@PCUICTyping.wf_ext config.extraction_checker_flags p -> PCUICSN.NormalizationIn (cf:=config.extraction_checker_flags) (no:=PCUICSN.extraction_normalizing) p)
        (only parsing).
 
-Notation NormalizationIn_erase_pcuic_program_2 p
+Abbreviation NormalizationIn_erase_pcuic_program_2 p
   := (@PCUICTyping.wf_ext config.extraction_checker_flags p -> PCUICWeakeningEnvSN.normalizationInAdjustUniversesIn (cf:=config.extraction_checker_flags) (no:=PCUICSN.extraction_normalizing) p)
        (only parsing).
 
