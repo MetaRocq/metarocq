@@ -35,35 +35,25 @@
 
   ## select an entry to build in the following `bundles` set
   ## defaults to "default"
-  default-bundle = "rocq-9.1";
+  default-bundle = "rocq-9.2";
 
   # MetaRocq is expected to be compatible with a single coq version
   # The name of the bundle should finish with the coq version to use
   # cachedMake.sh
-  bundles."rocq-9.1" = {
-    rocqPackages.rocq-core.override.version = "9.1";
+
+  bundles."rocq-9.2" = {
+    rocqPackages.rocq-core.override.version = "9.2";
     # coqPackages.metarocq.override.version = ;
     # rocqPackages.stdlib.override.version = "9.0.0";
-    coqPackages.equations.override.version = "v1.3.1-9.1";
+    coqPackages.equations.override.version = "v1.3.2-9.2";
     coqPackages.equations.job = false;
-    coqPackages.ExtLib.override.version = "0.13.0";
+    coqPackages.ExtLib.override.version = "master";
     coqPackages.ExtLib.job = false;
-    coqPackages.coq.override.version = "9.1";
-    coqPackages.stdlib.override.version = "9.0.0";
+    coqPackages.coq.override.version = "9.2";
+    coqPackages.stdlib.override.version = "9.1.0";
     coqPackages.stdlib.job = false;
 
-    push-branches = ["9.1"];
-  };
-
-  bundles."rocq-dev" = {
-    rocqPackages.rocq-core.override.version = "master";
-    rocqPackages.stdlib.override.version = "master";
-    coqPackages.equations.override.version = "main";
-    coqPackages.ExtLib.override.version = "master";
-    coqPackages.coq.override.version = "master";
-    coqPackages.stdlib.override.version = "master";
-
-    push-branches = ["main"];
+    push-branches = ["9.2"];
   };
 
 
