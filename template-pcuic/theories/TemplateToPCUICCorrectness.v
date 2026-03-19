@@ -339,9 +339,9 @@ Qed.
 
 Section Translation.
   Context (Σ : Ast.Env.global_env).
-  Notation trans := (trans (trans_global_env Σ)).
-  Notation trans_decl := (trans_decl (trans_global_env Σ)).
-  Notation trans_local := (trans_local (trans_global_env Σ)).
+  Abbreviation trans := (trans (trans_global_env Σ)).
+  Abbreviation trans_decl := (trans_decl (trans_global_env Σ)).
+  Abbreviation trans_local := (trans_local (trans_global_env Σ)).
 
   Ltac dest_lookup :=
     destruct TransLookup.lookup_inductive as [[mdecl idecl]|].
@@ -449,8 +449,8 @@ Proof.
     solve_all.
 Qed.
 
-Notation Tterm :=Template.Ast.term.
-Notation Tcontext :=Template.Ast.Env.context.
+Abbreviation Tterm :=Template.Ast.term.
+Abbreviation Tcontext :=Template.Ast.Env.context.
 
 Lemma All_map2 {A B C} P (l : list A) (l' : list B) (f g : A -> B -> C) :
   All P l' ->
@@ -610,7 +610,7 @@ Proof.
   rewrite mkApps_nonempty //.
 Qed.
 
-Notation trΣ := (trans_global_env Σ).
+Abbreviation trΣ := (trans_global_env Σ).
 
 Lemma trans_ind_params mdecl : trans_local (Ast.Env.ind_params mdecl) = ind_params (trans_minductive_body trΣ mdecl).
 Proof. reflexivity. Qed.

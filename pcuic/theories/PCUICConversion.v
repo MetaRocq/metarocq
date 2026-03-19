@@ -1283,7 +1283,7 @@ Section Inversions.
   Qed.
 
   (* TODO deprecate? #[deprecated(note="use red_mkApps_tInd")] *)
-  Notation invert_red_ind := red_mkApps_tInd.
+  Abbreviation invert_red_ind := red_mkApps_tInd.
 
   Lemma compare_term_mkApps_l_inv {pb} {u : term} {l : list term} {t : term} :
     compare_term Σ Σ pb (mkApps u l) t ->

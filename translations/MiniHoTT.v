@@ -91,7 +91,7 @@ Tactic Notation "etransitivity" := etransitivity _.
 
 Ltac transitivity x := etransitivity x.
 
-Notation idmap := (fun x => x).
+Abbreviation idmap := (fun x => x).
 
 Declare Scope equiv_scope.
 Declare Scope path_scope.
@@ -122,7 +122,7 @@ Notation pr2 := projT2.
 Notation "x .1" := (pr1 x) : fibration_scope.
 Notation "x .2" := (pr2 x) : fibration_scope.
 
-Notation compose := (fun g f x => g (f x)).
+Abbreviation compose := (fun g f x => g (f x)).
 Notation "g 'o' f" := (compose g%function f%function) (at level 40, left associativity) : function_scope.
 
 (* Instance iff_compose : Transitive iff | 1 *)
@@ -1309,7 +1309,7 @@ Proof.
   now destruct r, q.
 Defined.
 
-Notation concatR := (fun p q => concat q p).
+Abbreviation concatR := (fun p q => concat q p).
 
 #[global]
 Hint Resolve

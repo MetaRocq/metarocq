@@ -135,9 +135,9 @@ Section DeargAuxDecomp.
 
 Context (ind_masks : list (kername * mib_masks)).
 Context (const_masks : list (kername * bitmask)).
-Notation get_ctor_mask := (get_ctor_mask ind_masks).
-Notation get_mib_masks := (get_mib_masks ind_masks).
-Notation get_const_mask := (get_const_mask const_masks).
+Abbreviation get_ctor_mask := (get_ctor_mask ind_masks).
+Abbreviation get_mib_masks := (get_mib_masks ind_masks).
+Abbreviation get_const_mask := (get_const_mask const_masks).
 
 Set Equations Debug.
 Equations? dearg_aux_decomp (t : term) : term by wf t (fun x y : EAst.term => size x < size y) :=
@@ -658,24 +658,24 @@ Qed.
 Section dearg_correct.
 Context (ind_masks : list (kername * mib_masks)).
 Context (const_masks : list (kername * bitmask)).
-Notation get_ctor_mask := (get_ctor_mask ind_masks).
-Notation get_mib_masks := (get_mib_masks ind_masks).
-Notation get_const_mask := (get_const_mask const_masks).
-Notation dearg := (dearg ind_masks const_masks).
-Notation dearg_aux := (dearg_aux ind_masks const_masks).
-Notation dearg_env := (dearg_env ind_masks const_masks).
-Notation dearg_decl := (dearg_decl ind_masks const_masks).
-Notation dearg_cst := (dearg_cst ind_masks const_masks).
-Notation dearg_case := (dearg_case ind_masks).
-Notation dearg_proj := (dearg_proj ind_masks).
-Notation valid_case_masks := (valid_case_masks ind_masks).
-Notation valid_proj := (valid_proj ind_masks).
-Notation valid_cases := (valid_cases ind_masks).
-Notation valid_masks_decl := (valid_masks_decl ind_masks const_masks).
-Notation valid_masks_env := (valid_masks_env ind_masks const_masks).
-Notation is_expanded_aux := (is_expanded_aux ind_masks const_masks).
-Notation is_expanded := (is_expanded ind_masks const_masks).
-Notation is_expanded_env := (is_expanded_env ind_masks const_masks).
+Abbreviation get_ctor_mask := (get_ctor_mask ind_masks).
+Abbreviation get_mib_masks := (get_mib_masks ind_masks).
+Abbreviation get_const_mask := (get_const_mask const_masks).
+Abbreviation dearg := (dearg ind_masks const_masks).
+Abbreviation dearg_aux := (dearg_aux ind_masks const_masks).
+Abbreviation dearg_env := (dearg_env ind_masks const_masks).
+Abbreviation dearg_decl := (dearg_decl ind_masks const_masks).
+Abbreviation dearg_cst := (dearg_cst ind_masks const_masks).
+Abbreviation dearg_case := (dearg_case ind_masks).
+Abbreviation dearg_proj := (dearg_proj ind_masks).
+Abbreviation valid_case_masks := (valid_case_masks ind_masks).
+Abbreviation valid_proj := (valid_proj ind_masks).
+Abbreviation valid_cases := (valid_cases ind_masks).
+Abbreviation valid_masks_decl := (valid_masks_decl ind_masks const_masks).
+Abbreviation valid_masks_env := (valid_masks_env ind_masks const_masks).
+Abbreviation is_expanded_aux := (is_expanded_aux ind_masks const_masks).
+Abbreviation is_expanded := (is_expanded ind_masks const_masks).
+Abbreviation is_expanded_env := (is_expanded_env ind_masks const_masks).
 
 Lemma dearg_aux_mkApps args args' hd :
   dearg_aux args (mkApps hd args') = dearg_aux (map dearg args' ++ args) hd.

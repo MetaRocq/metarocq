@@ -18,7 +18,7 @@ From Equations Require Import Equations.
 
 Implicit Types cf : checker_flags.
 
-Notation isWAT := (isWfArity typing).
+Abbreviation isWAT := (isWfArity typing).
 
 Lemma isType_Sort {cf:checker_flags} {Σ Γ s} :
   wf_sort Σ s ->

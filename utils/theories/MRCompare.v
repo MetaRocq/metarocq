@@ -105,7 +105,7 @@ Module BoolOT <: UsualOrderedType.
 
 End BoolOT.
 
-Notation bool_compare := BoolOT.compare.
+Abbreviation bool_compare := BoolOT.compare.
 
 Local Ltac trd := cbn in *; try reflexivity; try discriminate.
 

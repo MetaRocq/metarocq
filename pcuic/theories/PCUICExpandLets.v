@@ -44,7 +44,7 @@ Fixpoint trans (t : term) : term :=
   | tPrim i => tPrim (map_prim trans i)
   end.
 
-Notation trans_decl := (map_decl trans).
+Abbreviation trans_decl := (map_decl trans).
 
 Definition trans_local Γ := List.map trans_decl Γ.
 

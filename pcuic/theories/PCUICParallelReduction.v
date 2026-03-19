@@ -85,8 +85,8 @@ Defined.
   It compares contexts up to `P` and no alpha-equivalence. *)
 Notation on_decls_over P Γ Γ' := (fun Δ Δ' => P (Γ ,,, Δ) (Γ' ,,, Δ')).
 Notation on_contexts_over P Γ Γ' := (All2_fold (on_decls (on_decls_over P Γ Γ'))).
-Notation on_contexts_app := All2_fold_app.
-Notation on_contexts_length := All2_fold_length.
+Abbreviation on_contexts_app := All2_fold_app.
+Abbreviation on_contexts_length := All2_fold_length.
 
 Section All2_fold.
 

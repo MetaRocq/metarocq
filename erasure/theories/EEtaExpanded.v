@@ -104,7 +104,7 @@ Ltac simp_eta := simp isEtaExp; rewrite -?isEtaExp_equation_1.
 
 Section isEtaExp.
   Context (Σ : global_context).
-  Notation isEtaExp := (isEtaExp Σ).
+  Abbreviation isEtaExp := (isEtaExp Σ).
 
   Lemma isEtaExp_mkApps_nonnil f v :
     ~~ isApp f -> v <> [] ->
@@ -218,7 +218,7 @@ End isEtaExp.
 
 Section WeakEtaExp.
   Context (Σ : global_context).
-  Notation isEtaExp := (isEtaExp Σ).
+  Abbreviation isEtaExp := (isEtaExp Σ).
 
   Lemma isEtaExp_app_mon ind c i i' : i <= i' -> isEtaExp_app Σ ind c i -> isEtaExp_app Σ ind c i'.
   Proof using Type.

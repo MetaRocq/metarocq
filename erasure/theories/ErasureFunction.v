@@ -23,7 +23,7 @@ Implicit Types (cf : checker_flags).
 
 #[local] Existing Instance extraction_normalizing.
 
-Notation alpha_eq := PCUICEquality.eq_context_upto_names.
+Abbreviation alpha_eq := PCUICEquality.eq_context_upto_names.
 
 Ltac sq :=
   repeat match goal with

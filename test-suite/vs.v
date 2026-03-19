@@ -911,9 +911,9 @@ Fixpoint merge {A: Type} (cmp : A -> A -> comparison) l1 l2 :=
   end
   in merge_aux l2.
 
-Notation sortu_atms := (rsort_uniq pure_atom_cmp).
-Notation insu_atm := (insert_uniq pure_atom_cmp).
-Notation sortu_clauses := (rsort_uniq compare_clause).
+Abbreviation sortu_atms := (rsort_uniq pure_atom_cmp).
+Abbreviation insu_atm := (insert_uniq pure_atom_cmp).
+Abbreviation sortu_clauses := (rsort_uniq compare_clause).
 
 Lemma pure_clause_ext:
   forall gamma delta p Pp p' Pp',
@@ -1177,7 +1177,7 @@ Variables
   (B_cmp : B -> B -> comparison)
   (fAB : A -> B).
 
-Notation canons := (list (A*B)).
+Abbreviation canons := (list (A*B)).
 
 (*Definition isEq (c : comparison) := match c with Eq => true | _ => false end.*)
 
@@ -1200,11 +1200,11 @@ Definition mergeC (a1 a2 : A) (cs: canons) : canons :=
 
 End cclosure.
 
-Notation expr_get := (lookC _ _ expr_cmp (@id _)).
-Notation expr_merge := (mergeC _ _ expr_cmp expr_cmp (@id _)).
+Abbreviation expr_get := (lookC _ _ expr_cmp (@id _)).
+Abbreviation expr_merge := (mergeC _ _ expr_cmp expr_cmp (@id _)).
 
 (* used internally *)
-Local Notation expr_rewriteC := (rewriteC expr _ expr_cmp).
+Local Abbreviation expr_rewriteC := (rewriteC expr _ expr_cmp).
 
 Fixpoint cclose_aux (l : list clause) : list (expr * expr) :=
   match l with

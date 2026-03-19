@@ -120,7 +120,7 @@ Fixpoint rename (f : renamingT) t : term :=
   | x => x
   end.
 
-Notation rename_predicate := (map_predicate_shift rename shiftn id).
+Abbreviation rename_predicate := (map_predicate_shift rename shiftn id).
 Notation rename_branches f := (map_branches_shift rename f).
 Definition rename_context f (Γ : context) : context :=
   fold_context_k (fun i => rename (shiftn i f)) Γ.
@@ -197,7 +197,7 @@ Proof.
     * apply map_branch_shift_eq_spec; solve_all; eauto using shiftn_ext.
 Qed.
 
-Notation rename_branch := (map_branch_shift rename shiftn).
+Abbreviation rename_branch := (map_branch_shift rename shiftn).
 
 #[global]
 Instance rename_proper : Proper (`=1` ==> Logic.eq ==> Logic.eq) rename.
@@ -588,8 +588,8 @@ Fixpoint inst s u :=
   | x => x
   end.
 
-Notation inst_predicate := (map_predicate_shift inst up id).
-Notation inst_branch := (map_branch_shift inst up).
+Abbreviation inst_predicate := (map_predicate_shift inst up id).
+Abbreviation inst_branch := (map_branch_shift inst up).
 Notation inst_branches f := (map (inst_branch f)).
 
 Definition ren_fn (l : list nat) :=

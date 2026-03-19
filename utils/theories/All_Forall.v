@@ -136,6 +136,7 @@ Proof.
     destruct (projP2 H').
     exact Hc. }
 Defined.
+Register Scheme Forall2_rect as rect_dep for Forall2.
 
 Definition Forall2_rec A B R (P : forall x y, Forall2 R x y -> Set)
   (Hn : P [] [] (@Forall2_nil _ _ _))
@@ -143,6 +144,7 @@ Definition Forall2_rec A B R (P : forall x y, Forall2 R x y -> Set)
       P l l' a -> P (x :: l) (y :: l') (Forall2_cons _ _ r a))
   : forall l l' (a : @Forall2 A B R l l'), P l l' a
   := @Forall2_rect A B R P Hn Hc.
+Register Scheme Forall2_rec as rec_dep for Forall2.
 
 Definition Forall2_dep_rect A B R R' (P : forall x y a, @Forall2_dep A B R R' x y a -> Type)
   (Hn : P [] [] (@Forall2_nil _ _ _) Forall2_dep_nil)
@@ -158,6 +160,7 @@ Proof.
     destruct (projP2 H').
     exact Hc. }
 Defined.
+Register Scheme Forall2_dep_rect as rect_dep for Forall2_dep.
 
 Definition Forall2_dep_rec A B R R' (P : forall x y a, @Forall2_dep A B R R' x y a -> Set)
   (Hn : P [] [] (@Forall2_nil _ _ _) Forall2_dep_nil)
@@ -165,6 +168,7 @@ Definition Forall2_dep_rec A B R R' (P : forall x y a, @Forall2_dep A B R R' x y
       P l l' rs a -> P (x :: l) (y :: l') (Forall2_cons _ _ r rs) (Forall2_dep_cons r' a))
   : forall l l' a (a' : @Forall2_dep A B R R' l l' a), P l l' a a'
   := @Forall2_dep_rect A B R R' P Hn Hc.
+Register Scheme Forall2_dep_rec as rec_dep for Forall2_dep.
 
 Section alli.
   Context {A} (p : nat -> A -> bool).
@@ -3121,13 +3125,11 @@ Section All2i_len.
 
   (** A special notion of All2i indexed by the length of the rest of the lists *)
 
-  Hint Constructors All2i : pcuic.
-
   Inductive All2i_len {A B : Type} (R : nat -> A -> B -> Type) : list A -> list B -> Type :=
     All2i_len_nil : All2i_len R [] []
   | All2i_len_cons : forall (x : A) (y : B) (l : list A) (l' : list B),
           R (List.length l) x y -> All2i_len R l l' -> All2i_len R (x :: l) (y :: l').
-  Hint Constructors All2i_len : core pcuic.
+  Hint Constructors All2i_len : core.
 
   Lemma All2i_len_app {A B} (P : nat -> A -> B -> Type) l0 l0' l1 l1' :
     All2i_len P l0' l1' ->

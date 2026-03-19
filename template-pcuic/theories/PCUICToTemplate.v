@@ -58,7 +58,7 @@ Fixpoint trans (t : PCUICAst.term) : Ast.term :=
   | PCUICAst.tPrim i => trans_prim trans i
   end.
 
-Notation trans_decl := (map_decl trans).
+Abbreviation trans_decl := (map_decl trans).
 
 Definition trans_local Γ := List.map trans_decl Γ.
 

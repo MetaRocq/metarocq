@@ -10,7 +10,7 @@ From Equations Require Import Equations.
 Set Equations Transparent.
 Set Default Goal Selector "!".
 
-Notation rtrans_clos := clos_refl_trans_n1.
+Abbreviation rtrans_clos := clos_refl_trans_n1.
 
 Lemma All2_many_OnOne2 :
   forall A (R : A -> A -> Type) l l',

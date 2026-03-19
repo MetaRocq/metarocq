@@ -140,7 +140,7 @@ Module Environment (T : Term).
   Definition judgment := judgment_ Sort.t term.
 
   (** ** Declarations *)
-  Notation context_decl := (context_decl term).
+  Abbreviation context_decl := (context_decl term).
 
   (** Local (de Bruijn) variable binding *)
 

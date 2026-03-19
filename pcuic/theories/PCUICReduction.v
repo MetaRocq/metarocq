@@ -1013,8 +1013,8 @@ Section ReductionCongruence.
         destruct a, p. simpl in *. subst. reflexivity.
     Qed.
 
-    Notation decomp_branch := (fun x : branch term => (bbody x, bcontext x)).
-    Notation recomp_branch := (fun x : term * context => {| bbody := x.1; bcontext := x.2 |}).
+    Abbreviation decomp_branch := (fun x : branch term => (bbody x, bcontext x)).
+    Abbreviation recomp_branch := (fun x : term * context => {| bbody := x.1; bcontext := x.2 |}).
     Notation decomp_branch' := (fun x : branch term => (bcontext x, bbody x)).
     Notation recomp_branch' := (fun x : context * term => {| bbody := x.2; bcontext := x.1 |}).
 

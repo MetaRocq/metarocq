@@ -272,8 +272,8 @@ Section Typecheck.
   Ltac specialize_Σ wfΣ :=
     repeat match goal with | h : _ |- _ => specialize (h _ wfΣ) end.
 
-  Local Notation ret := Checked_comp (only parsing).
-  Local Notation raise := (fun e => TypeError_comp e _) (only parsing).
+  Local Abbreviation ret := Checked_comp (only parsing).
+  Local Abbreviation raise := (fun e => TypeError_comp e _) (only parsing).
 
   Local Notation "x <- c1 ;; c2" := (
     match c1 with
@@ -289,7 +289,7 @@ Section Typecheck.
   (* We get stack overflow on Qed after Equations definitions when this is transparent *)
   Opaque reduce_stack_full.
 
-  Notation hnf := (hnf (X := X)).
+  Abbreviation hnf := (hnf (X := X)).
 
   Definition conv_pb_relb_gen_proper {T} pb equ equ' eqlu eqlu' :
   (forall u u', equ u u' = equ' u u') ->

@@ -444,7 +444,7 @@ Section Wcbv.
   | value_app f args : value_head #|args| f -> args <> [] -> All value args -> value (mkApps f args).
   Derive Signature for value.
 
-  Notation atomic := (atomic_value value).
+  Abbreviation atomic := (atomic_value value).
 
   Lemma value_values_ind : forall P : term -> Type,
       (forall t, atom t -> P t) ->

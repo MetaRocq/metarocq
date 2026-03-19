@@ -308,7 +308,7 @@ Corollary R_Acc_aux :
   Definition Pr (t' : term * stack) π :=
     snd (decompose_stack π) = snd (decompose_stack (snd t')).
 
-  Notation givePr := (_) (only parsing).
+  Abbreviation givePr := (_) (only parsing).
 
   Definition Pr' (t' : term * stack) :=
     isApp (fst t') = false /\
@@ -1090,7 +1090,7 @@ Corollary R_Acc_aux :
   Section reducewf.
     Context (Γ : context).
 
-    Notation sigmaarg :=
+    Abbreviation sigmaarg :=
       (sigma (fun t => sigma (fun π => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ (zipc t π)))).
 
     Local Instance wf_proof : WellFounded (fun x y : sigmaarg =>

@@ -5,7 +5,7 @@ Import MonadNotation.
 
 (** MWE du bug sur les niveaux d'univers frais.*)
 
-Notation nameAnon := {| binder_name := nAnon; binder_relevance := Relevant |}.
+Abbreviation nameAnon := {| binder_name := nAnon; binder_relevance := Relevant |}.
 
 (* Inductive Ind (T : Type) : Prop :=. *)
 (* MetaRocq Run (tmQuote Ind >>= tmPrint). *)

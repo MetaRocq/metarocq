@@ -665,9 +665,9 @@ Global Hint Constructors value : value.
 Section Wcbv.
   Context {wfl : WcbvFlags}.
   Context {Σ : global_declarations}.
-  Notation eval := (eval Σ).
-  Notation value_head := (value_head Σ).
-  Notation value := (value Σ).
+  Abbreviation eval := (eval Σ).
+  Abbreviation value_head := (value_head Σ).
+  Abbreviation value := (value Σ).
 
   Lemma value_app f args : value_head #|args| f -> All value args -> value (mkApps f args).
   Proof.

@@ -1358,7 +1358,7 @@ Proof.
     destruct Σ. apply nl_red1; eauto. now destruct wfΣ.
 Qed.
 
-Notation nldecl := (map_decl_anon nl).
+Abbreviation nldecl := (map_decl_anon nl).
 
 Lemma nl_conv_decls {cf} {Σ Γ Γ'} `{wf_ext Σ} {d d'} :
   conv_decls cumulAlgo_gen Σ Γ Γ' d d' ->
@@ -1383,6 +1383,8 @@ Proof.
   intros.
   induction X; simpl; constructor; eauto; simpl; now eapply nl_conv_decls in p.
 Qed.
+
+Create HintDb nl.
 #[global] Hint Resolve nl_conv_ctx : nl.
 
 Lemma nl_cumul_ctx {cf} {Σ Γ Δ} `{wf_ext Σ} :

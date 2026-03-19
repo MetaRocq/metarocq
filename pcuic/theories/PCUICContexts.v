@@ -721,7 +721,7 @@ Proof.
   now transitivity na.
 Qed.
 
-Notation eq_names := (All2 (fun x y => x = (decl_name y))).
+Abbreviation eq_names := (All2 (fun x y => x = (decl_name y))).
 
 Lemma eq_names_subst_context nas Γ s k :
   eq_names nas Γ ->

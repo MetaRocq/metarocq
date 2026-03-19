@@ -210,7 +210,7 @@ Implicit Types (efl : EEnvFlags).
 Section EEnvFlags.
   Context {efl : EEnvFlags}.
   Context {Σ : global_declarations}.
-  Notation wellformed := (wellformed Σ).
+  Abbreviation wellformed := (wellformed Σ).
 
   Lemma wellformed_closed {k t} : wellformed k t -> closedn k t.
   Proof using Type.

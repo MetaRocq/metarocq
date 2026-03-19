@@ -256,7 +256,7 @@ Qed.
 
 Notation is_open_term Γ := (on_free_vars (shiftnP #|Γ| xpred0)).
 Notation is_open_decl Γ := (on_free_vars_decl (shiftnP #|Γ| xpred0)).
-Notation is_closed_context := (on_free_vars_ctx xpred0).
+Abbreviation is_closed_context := (on_free_vars_ctx xpred0).
 
 
 Lemma on_free_vars_decl_impl (p q : nat -> bool) d :
@@ -1198,7 +1198,7 @@ Ltac inv_on_free_vars := inv_on_free_vars_orig.
    TODO somehow cleanup redefinitions of this tactic *)
 Ltac inv_on_free_vars ::= inv_on_free_vars_orig.
 
-Notation byfvs := (ltac:(cbn; eauto with fvs)) (only parsing).
+Abbreviation byfvs := (ltac:(cbn; eauto with fvs)) (only parsing).
 
 Lemma on_free_vars_vass {P na t} :
   on_free_vars P t ->

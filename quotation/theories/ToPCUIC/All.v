@@ -16,7 +16,7 @@ Module Raw.
   Definition quote_wf_ext {cf Σ} : @wf_ext cf Σ -> PCUICAst.term := PCUICTyping.quote_wf_ext.
 
   (** N.B. Only works if you [Import Raw.QuoteNotationHints] *)
-  Notation quote := Init.quoted_term_of (only parsing).
+  Abbreviation quote := Init.quoted_term_of (only parsing).
   Module QuoteNotationHints.
     Export (hints) Quotation.ToPCUIC.Init
       Quotation.ToPCUIC.PCUIC.PCUICAst

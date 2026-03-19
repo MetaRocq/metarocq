@@ -244,8 +244,8 @@ Equations mapu_prim {term term'} (f : Level.t -> Level.t) (g : term -> term')
 | f, g, (primArray; primArrayModel ar) =>
   (primArray; primArrayModel (mapu_array_model f g ar)).
 
-Notation map_array_model := (mapu_array_model id).
-Notation map_prim := (mapu_prim id).
+Abbreviation map_array_model := (mapu_array_model id).
+Abbreviation map_prim := (mapu_prim id).
 
 Equations test_prim {term} (p : term -> bool) (p : prim_val term) : bool :=
 | p, (primInt; _) => true

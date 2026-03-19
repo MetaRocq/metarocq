@@ -2548,7 +2548,7 @@ Coercion ws_term_prop : ws_term >-> is_true.
 #[global] Hint Resolve ws_term_prop : fvs.
 
 (** The subset of closed terms: no free-variables allowed *)
-Notation closed_term := (ws_term xpred0).
+Abbreviation closed_term := (ws_term xpred0).
 
 Lemma ws_term_xpredT {P} {t : ws_term P} : on_free_vars xpredT t.
 Proof.
@@ -2563,7 +2563,7 @@ Qed.
 Definition ws_context P := { t : context | on_free_vars_ctx P t }.
 
 (* The subsect of closed contexts. *)
-Notation closed_context := (ws_context xpred0).
+Abbreviation closed_context := (ws_context xpred0).
 Notation open_term Γ := (ws_term (shiftnP #|Γ| xpred0)).
 
 Definition ws_context_proj {P} (t : ws_context P) : context := proj1_sig t.
@@ -3924,7 +3924,7 @@ Section ConfluenceFacts.
     exists nf; intuition auto.
   Qed.
 
-  Notation byfvs := (_ ltac:(eauto with fvs)) (only parsing).
+  Abbreviation byfvs := (_ ltac:(eauto with fvs)) (only parsing).
 
   Lemma red_ws_red_left {Γ : closed_context} {x : ws_term (shiftnP #|Γ| xpred0)} {y} :
     red Σ Γ x y -> ∑ prf, ws_red Σ xpred0 Γ x (exist y prf).

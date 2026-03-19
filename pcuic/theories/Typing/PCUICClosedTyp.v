@@ -714,9 +714,6 @@ Proof.
   now eapply declared_projection_closed in decl.
 Qed.
 
-
-#[global] Hint Unfold inst_case_branch_context : len.
-
 (** This shows preservation by reduction of closed/noccur_between predicates
   necessary to prove exchange and strengthening lemmas. *)
 Lemma red1_on_free_vars {cf:checker_flags} {P : nat -> bool} {Σ Γ u v} {wfΣ : wf Σ} :
@@ -1014,7 +1011,7 @@ Proof.
     split.
     * revert clpars. generalize (pparams p).
       fix auxl' 1.
-      case => [|t' ts] /= //; cbn => /andP[] Ht' Hts; constructor; [apply auxt|apply auxl'] => //.
+      case => [|t' ts] /= //; cbn => /andP[] Ht' Hts; (constructor; [apply auxt|apply auxl']) => //.
     * split; [|now apply auxt].
       move: clctx.
       clear -auxt.

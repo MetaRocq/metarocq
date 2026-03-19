@@ -74,14 +74,14 @@ Section Validity.
     now apply isType_weaken.
   Qed.
 
-  Notation type_ctx := (type_local_ctx (lift_typing typing)).
+  Abbreviation type_ctx := (type_local_ctx (lift_typing typing)).
   Lemma type_ctx_wf_univ Σ Γ Δ s : type_ctx Σ Γ Δ s -> wf_sort Σ s.
   Proof using Type.
     induction Δ as [|[na [b|] ty]]; simpl; auto with pcuic.
   Qed.
   Hint Resolve type_ctx_wf_univ : pcuic.
 
-  Notation liat := ltac:(lia) (only parsing).
+  Abbreviation liat := ltac:(lia) (only parsing).
 
   Lemma eq_binder_annots_eq_ctx (Δ : context) (nas : list aname) :
     All2 (fun x y => eq_binder_annot x y.(decl_name)) nas Δ ->

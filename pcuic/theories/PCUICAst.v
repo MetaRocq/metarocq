@@ -212,7 +212,7 @@ Inductive term :=
 
 Derive NoConfusion for term.
 
-Notation prim_val := (prim_val term).
+Abbreviation prim_val := (prim_val term).
 
 Notation tInt i := (tPrim (_; primIntModel i)) (only parsing).
 Notation tFloat f := (tPrim (_; primFloatModel f)) (only parsing).
@@ -370,8 +370,8 @@ Fixpoint nlict (t : term) : bool :=
 
 Notation closed t := (closedn 0 t).
 Notation closed_decl n := (test_decl (closedn n)).
-Notation closedn_ctx := (test_context_k closedn).
-Notation closed_ctx := (closedn_ctx 0).
+Abbreviation closedn_ctx := (test_context_k closedn).
+Abbreviation closed_ctx := (closedn_ctx 0).
 
 Fixpoint noccur_between k n (t : term) : bool :=
   match t with

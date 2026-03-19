@@ -243,8 +243,8 @@ Section ContextConversion.
   Context {cf : checker_flags}.
   Context (Σ : global_env_ext).
 
-  Notation conv_context := (conv_context cumulSpec0 Σ).
-  Notation cumul_context := (cumul_context cumulSpec0 Σ).
+  Abbreviation conv_context := (conv_context cumulSpec0 Σ).
+  Abbreviation cumul_context := (cumul_context cumulSpec0 Σ).
 
   Global Instance cumul_pb_ctx_refl pb : Reflexive (cumul_pb_context cumulSpec0 pb Σ).
   Proof using Type.
@@ -523,8 +523,9 @@ Proof.
   - eapply X6; eauto.
   - eapply X7; eauto.
 Defined.
+Register Scheme cumulSpec0_rect as rect_dep for cumulSpec0.
 
-Notation cumulSpec0_ind_all := cumulSpec0_rect (only parsing).
+Abbreviation cumulSpec0_ind_all := cumulSpec0_rect (only parsing).
 
 Definition cumulSpec0_rec
   : forall cf (Σ : global_env_ext)

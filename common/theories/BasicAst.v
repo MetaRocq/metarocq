@@ -162,6 +162,8 @@ Proof. reflexivity. Qed.
 
 Lemma map_def_id {t} x : map_def (@id t) (@id t) x = id x.
 Proof. now destruct x. Qed.
+
+Create Rewrite HintDb map.
 #[global] Hint Rewrite @map_def_id @map_id : map.
 
 Lemma map_def_spec {A B} (P P' : A -> Type) (f f' g g' : A -> B) (x : def A) :
@@ -173,6 +175,7 @@ Proof.
   now rewrite !H // !H0.
 Qed.
 
+Create HintDb all.
 #[global] Hint Extern 10 (_ < _)%nat => lia : all.
 #[global] Hint Extern 10 (_ <= _)%nat => lia : all.
 #[global] Hint Extern 10 (@eq nat _ _) => lia : all.

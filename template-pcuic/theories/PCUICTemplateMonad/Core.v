@@ -12,7 +12,7 @@ Local Set Universe Polymorphism.
 Local Unset Universe Minimization ToSet.
 Import MonadNotation.
 
-Notation eval_pcuic_quotation := eval_pcuic_quotation (only parsing).
+Abbreviation eval_pcuic_quotation := eval_pcuic_quotation (only parsing).
 #[export] Existing Instance default_eval_pcuic_quotation.
 
 Definition tmQuote@{t u} `{eval_pcuic_quotation} {A:Type@{t}} (a : A) : TemplateMonad@{t u} PCUICAst.term :=

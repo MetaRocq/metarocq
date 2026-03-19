@@ -4,7 +4,7 @@ From MetaRocq.Template Require Export Loader.
 From MetaRocq.TemplatePCUIC.PCUICTemplateMonad Require Core.
 From MetaRocq.TemplatePCUIC Require Import TemplateMonadToPCUIC.
 
-Notation eval_pcuic_quotation := eval_pcuic_quotation (only parsing).
+Abbreviation eval_pcuic_quotation := eval_pcuic_quotation (only parsing).
 #[export] Existing Instance default_eval_pcuic_quotation.
 
 Set Warnings "-notation-overridden".

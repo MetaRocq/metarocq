@@ -24,7 +24,7 @@ Proof.
   destruct nas; cbn; auto; depelim hl.
   f_equal; auto. destruct r; subst; cbn; auto.
 Qed.
-Notation eq_names := (All2 (fun x y => x = (decl_name y))).
+Abbreviation eq_names := (All2 (fun x y => x = (decl_name y))).
 
 Lemma eq_names_subst_context nas Γ s k :
   eq_names nas Γ ->

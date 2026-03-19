@@ -525,11 +525,11 @@ Section Conversion.
 
   Definition abstract_env_compare_global_instance := compare_global_instance (abstract_env_lookup X) (abstract_env_compare_universe X).
 
-  Notation eqb_ctx := (eqb_ctx_upto (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance Conv).
-  Notation cmpb_term_napp := (eqb_term_upto_univ_napp (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance).
+  Abbreviation eqb_ctx := (eqb_ctx_upto (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance Conv).
+  Abbreviation cmpb_term_napp := (eqb_term_upto_univ_napp (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance).
   Notation cmpb_term pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance pb).
-  Notation eqb_term := (cmpb_term Conv).
-  Notation leqb_term := (cmpb_term Cumul).
+  Abbreviation eqb_term := (cmpb_term Conv).
+  Abbreviation leqb_term := (cmpb_term Cumul).
 
   Definition eqb_term_stack t1 π1 t2 π2 :=
     eqb_ctx (stack_context π1) (stack_context π2) &&
@@ -769,8 +769,8 @@ Section Conversion.
 
   Notation expand aux := (fun a b c d e f g h i => aux _ _ _ _ _ _ _ _ _) (only parsing).
 
-  Local Notation yes := (Success _) (only parsing).
-  Local Notation no := (fun e => Error e _) (only parsing).
+  Local Abbreviation yes := (Success _) (only parsing).
+  Local Abbreviation no := (fun e => Error e _) (only parsing).
 
   (* TODO NOTE
      repack could also take another argument of type

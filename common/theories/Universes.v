@@ -1691,10 +1691,10 @@ Module SortMapFact := FMapFacts.WProperties SortMap.
 Module SortMapExtraFact := FSets.WFactsExtra_fun Sort.OTOrig SortMap SortMapFact.F.
 Module SortMapDecide := FMapAVL.Decide Sort.OTOrig SortMap.
 
-Notation sProp := Sort.sProp.
-Notation sSProp := Sort.sSProp.
-Notation sType := Sort.sType.
-Notation sort := Sort.t.
+Abbreviation sProp := Sort.sProp.
+Abbreviation sSProp := Sort.sSProp.
+Abbreviation sType := Sort.sType.
+Abbreviation sort := Sort.t.
 
 Notation "⟦ u ⟧_ v" := (Sort.to_csort v u) (at level 0, format "⟦ u ⟧_ v", v name) : univ_scope.
 
@@ -2129,7 +2129,7 @@ Definition relevance_of_family (s : Sort.family) :=
 
 #[global] Opaque relevance_of_family.
 
-Notation rel_of_Type := (relevance_of_family Sort.fType).
+Abbreviation rel_of_Type := (relevance_of_family Sort.fType).
 Notation relevance_of_sort s := (relevance_of_family (Sort.to_family s)).
 
 Notation isSortRel s rel := (relevance_of_sort s = rel).

@@ -399,8 +399,8 @@ Section ContextConversion.
   Context {Σ : global_env_ext}.
   Context {wfΣ : wf Σ}.
 
-  Notation conv_context := (All2_fold (conv_decls Σ)).
-  Notation cumul_context := (All2_fold (cumul_decls Σ)).
+  Abbreviation conv_context := (All2_fold (conv_decls Σ)).
+  Abbreviation cumul_context := (All2_fold (cumul_decls Σ)).
 
   Hint Resolve conv_ctx_refl' cumul_ctx_refl' : pcuic.
 

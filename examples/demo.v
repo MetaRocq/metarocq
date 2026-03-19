@@ -87,7 +87,7 @@ MetaRocq Unquote Definition add_from_syntax := add_syntax.
 MetaRocq Unquote Definition eo_from_syntax := eo_syntax.
 Print eo_from_syntax.
 
-Local Notation Nat_module := (MPfile ["Datatypes"; "Init"; "Corelib"], "nat").
+Local Abbreviation Nat_module := (MPfile ["Datatypes"; "Init"; "Corelib"], "nat").
 
 
 
@@ -211,7 +211,7 @@ Inductive demoList (A : Set) : Set :=
 
 
 (** Putting the above commands in monadic program *)
-Notation inat :=
+Abbreviation inat :=
   {| inductive_mind := Nat_module; inductive_ind := 0 |}.
 MetaRocq Run (tmBind (tmQuote (3 + 3)) tmPrint).
 

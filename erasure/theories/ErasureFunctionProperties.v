@@ -25,7 +25,7 @@ Implicit Types (cf : checker_flags).
 #[local] Existing Instance extraction_normalizing.
 #[local] Existing Instance extraction_checker_flags.
 
-Notation alpha_eq := (All2 (PCUICEquality.compare_decls eq eq)).
+Abbreviation alpha_eq := (All2 (PCUICEquality.compare_decls eq eq)).
 
 Definition global_erased_with_deps (Σ : global_env) (Σ' : EAst.global_declarations) kn :=
   (exists cst, declared_constant Σ kn cst /\

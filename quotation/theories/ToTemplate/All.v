@@ -21,7 +21,7 @@ Module Raw.
   (* TODO: do we want anything from TypingWf? Is there anything else missing here? *)
 
   (** N.B. Only works if you [Import Raw.QuoteNotationHints] *)
-  Notation quote := Init.quoted_term_of (only parsing).
+  Abbreviation quote := Init.quoted_term_of (only parsing).
   Module QuoteNotationHints.
     Export (hints) Quotation.ToTemplate.Init
       Quotation.ToTemplate.Template.Ast

@@ -217,7 +217,7 @@ Derive NoConfusion for global_decl.
 
 Definition global_declarations := list (kername * global_decl).
 
-Notation global_context := global_declarations.
+Abbreviation global_context := global_declarations.
 
 (** *** Programs
 

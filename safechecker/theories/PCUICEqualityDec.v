@@ -74,7 +74,7 @@ Definition eqb_decl_upto_names (d d' : context_decl) : bool :=
   | _, _ => false
   end.
 
-Notation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
+Abbreviation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
 
 Fixpoint eqb_term_upto_univ_napp
   (cmpu : conv_pb -> Universe.t -> Universe.t -> bool)

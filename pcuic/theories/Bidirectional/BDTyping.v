@@ -235,8 +235,8 @@ Arguments lexprod [A B].
 
 Section BidirectionalInduction.
 
-  #[local] Notation wfl_size := (All_local_env_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _).
-  #[local] Notation wfl_size_rel := (All_local_rel_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _ _).
+  #[local] Abbreviation wfl_size := (All_local_env_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _).
+  #[local] Abbreviation wfl_size_rel := (All_local_rel_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _ _).
 
   Context `{cf : checker_flags}.
   Context (Σ : global_env_ext).

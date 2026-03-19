@@ -225,7 +225,7 @@ Module PrintTermTree.
 
   Definition print_global_context (g : global_context) :=
     print_list (print_decl g) nl (List.rev g).
-  Notation print_env := print_global_context.
+  Abbreviation print_env := print_global_context.
 
   Definition print_program (p : program) : t :=
     "Environment: " ^ nl ^

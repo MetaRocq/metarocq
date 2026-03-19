@@ -153,7 +153,7 @@ Inductive eq_decl_upto_names : context_decl -> context_decl -> Type :=
     eq_binder_annot na na' -> eq_decl_upto_names (vdef na b T) (vdef na' b T).
 
 Derive Signature NoConfusion for eq_decl_upto_names.
-Notation eq_context_upto_names := (All2 eq_decl_upto_names).
+Abbreviation eq_context_upto_names := (All2 eq_decl_upto_names).
 
 Lemma alpha_eq_context_assumptions {Γ Δ} :
   eq_context_upto_names Γ Δ ->

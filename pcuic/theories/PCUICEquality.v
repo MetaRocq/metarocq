@@ -215,7 +215,7 @@ Derive Signature NoConfusion for eq_decl_upto_names.
 
 Definition compare_decls cmp_term pb := PCUICConversion.All_decls_alpha_pb pb cmp_term.
 
-Notation eq_context_upto_names := (All2 eq_decl_upto_names).
+Abbreviation eq_context_upto_names := (All2 eq_decl_upto_names).
 
 Notation eq_context_gen cmp_term pb :=
   (All2_fold (fun _ _ => compare_decls cmp_term pb)).

@@ -338,7 +338,7 @@ End Pred1_inversion.
 #[global]
 Hint Constructors pred1 : pcuic.
 
-Notation predicate_depth := (predicate_depth_gen depth).
+Abbreviation predicate_depth := (predicate_depth_gen depth).
 Notation fold_context_term f := (fold_context (fun Γ' => map_decl (f Γ'))).
 
 Section Rho.
@@ -686,12 +686,12 @@ Section Rho.
     - clear -eqx Hx. abstract (invd; d).
   Defined.
 
-  Notation rho_predicate := (rho_predicate_gen rho).
-  Notation rho_br := (map_br_gen rho).
+  Abbreviation rho_predicate := (rho_predicate_gen rho).
+  Abbreviation rho_br := (map_br_gen rho).
   Notation rho_ctx_over Γ :=
     (fold_context (fun Δ => map_decl (rho (Γ ,,, Δ)))).
-  Notation rho_ctx := (fold_context_term rho).
-  Notation rho_iota_red := (rho_iota_red_gen rho).
+  Abbreviation rho_ctx := (fold_context_term rho).
+  Abbreviation rho_iota_red := (rho_iota_red_gen rho).
 
   Lemma rho_ctx_over_length Δ Γ : #|rho_ctx_over Δ Γ| = #|Γ|.
   Proof using Type.

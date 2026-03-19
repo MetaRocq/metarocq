@@ -2,7 +2,7 @@ From Stdlib Require Import ssreflect ssrbool Decimal DecimalString ZArith.
 From MetaRocq.Utils Require Import MRCompare bytestring ReflectEq.
 
 Local Open Scope bs.
-Notation string := String.t.
+Abbreviation string := String.t.
 
 (** When defining [Show] instance for your own datatypes, you sometimes need to
     start a new line for better printing. [nl] is a shorthand for it. *)
