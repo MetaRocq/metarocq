@@ -355,7 +355,7 @@ struct
       mind_entry_inds = List.map quote_one_inductive_entry is;
       mind_entry_template = false;
       mind_entry_universes = univs;
-      mind_entry_variance = Option.map (fun v -> [||], v) variance;
+      mind_entry_variance = variance;
       mind_entry_private = None }
 
   let quote_definition_entry ty body ctx =
