@@ -32,13 +32,13 @@ Notation "( x ; y ; z )" := (x ; ( y ; z)).
 Notation "( x ; y ; z ; t )" := (x ; ( y ; (z ; t))).
 Notation "( x ; y ; z ; t ; u )" := (x ; ( y ; (z ; (t ; u)))).
 Notation "( x ; y ; z ; t ; u ; v )" := (x ; ( y ; (z ; (t ; (u ; v))))).
-Notation "x .π1" := (@projT1 _ _ x) (at level 3, format "x '.π1'").
-Notation "x .π2" := (@projT2 _ _ x) (at level 3, format "x '.π2'").
+Notation "x .π1" := (@projT1 _ _ x) (at level 1, format "x '.π1'").
+Notation "x .π2" := (@projT2 _ _ x) (at level 1, format "x '.π2'").
 
 (** Shorthand for pointwise equality relation in Proper signatures *)
-Notation "`=1`" := (pointwise_relation _ Logic.eq) (at level 80).
+Notation "`=1`" := (pointwise_relation _ Logic.eq) (at level 0).
 Infix "=1" := (pointwise_relation _ Logic.eq) (at level 70) : type_scope.
-Notation "`=2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 80).
+Notation "`=2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 0).
 Infix "=2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 70) : type_scope.
 
 (** Higher-order lemma to simplify Proper proofs. *)

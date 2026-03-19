@@ -524,9 +524,9 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
   Definition e_source : Edge.t -> V.t := fst ∘ fst.
   Definition e_target : Edge.t -> V.t := snd.
   Definition e_weight : Edge.t -> Z := snd ∘ fst.
-  Notation "x ..s" := (e_source x) (at level 3, format "x '..s'").
-  Notation "x ..t" := (e_target x) (at level 3, format "x '..t'").
-  Notation "x ..w" := (e_weight x) (at level 3, format "x '..w'").
+  Notation "x ..s" := (e_source x) (at level 1, format "x '..s'").
+  Notation "x ..t" := (e_target x) (at level 1, format "x '..t'").
+  Notation "x ..w" := (e_weight x) (at level 1, format "x '..w'").
 
   Definition opp_edge (e : Edge.t) : Edge.t :=
     (e..t, - e..w, e..s).
@@ -992,7 +992,7 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     destruct (g a) => //=.
   Qed.
 
-  #[global] Instance fold_left_proper {A B} : Proper (`=2` ==> `=2`) (@fold_left A B).
+  #[global] Instance fold_left_proper {A B} : Proper ((`=2`) ==> `=2`) (@fold_left A B).
   Proof using Type.
     intros f g hfg x acc.
     induction x in acc |- * => //.
