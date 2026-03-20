@@ -5,19 +5,9 @@ DECLARE PLUGIN "rocq-metarocq-template-rocq.plugin"
 
 open Attributes
 open Ltac_plugin
-open Names
 
 (** Calling Ltac **)
 
-let ltac_lcall tac args =
-  let (location, name) = Loc.tag (Names.Id.of_string tac)
-    (* Loc.tag @@ Names.Id.of_string tac *)
-  in
-  CAst.make ?loc:location (Tacexpr.TacArg(Tacexpr.TacCall
-                              (CAst.make (Locus.ArgVar (CAst.make ?loc:location name),args))))
-
-open Tacexpr
-open Tacinterp
 open Stdarg
 open Tacarg
 open Redexpr
@@ -34,18 +24,6 @@ let _ =
       optkey   = ["MetaRocq"; "Strict"; "Unquote"; "Universe"; "Mode"];
       optread  = (fun () -> !Denoter.strict_unquote_universe_mode);
       optwrite = (fun b -> Denoter.strict_unquote_universe_mode := b) }
-
-let ltac_apply (f : Value.t) (args: Tacinterp.Value.t list) =
-  let fold arg (i, vars, lfun) =
-    let id = Names.Id.of_string ("x" ^ string_of_int i) in
-    let (l,n) = (Loc.tag id) in
-    let x = Reference (Locus.ArgVar (CAst.make ?loc:l n)) in
-    (succ i, x :: vars, Id.Map.add id arg lfun)
-  in
-  let (_, args, lfun) = List.fold_right fold args (0, [], Id.Map.empty) in
-  let lfun = Id.Map.add (Id.of_string "F") f lfun in
-  let ist = { (Tacinterp.default_ist ()) with Tacinterp.lfun = lfun; } in
-  Tacinterp.eval_tactic_ist ist (ltac_lcall "F" args)
 
 let to_ltac_val c = Tacinterp.Value.of_constr c
 
@@ -171,7 +149,7 @@ TACTIC EXTEND TemplateRocq_quote_term
           let sigma = Proofview.Goal.sigma gl in
           let c = to_constr_evars sigma c in
           let c = Constr_quoter.quote_term env sigma c in
-          ltac_apply tac (List.map to_ltac_val [EConstr.of_constr c])
+          Tacinterp.Value.apply tac (List.map to_ltac_val [EConstr.of_constr c])
   end }
 END
 
@@ -183,7 +161,7 @@ TACTIC EXTEND TemplateRocq_denote_term
          let evm, c = Constr_denoter.denote_term env evm (to_constr_evars evm c) in
          let evm, _ = Typing.type_of env evm (EConstr.of_constr c) in
          Proofview.tclTHEN (Proofview.Unsafe.tclEVARS evm)
-	   (ltac_apply tac (List.map to_ltac_val [EConstr.of_constr c]))
+           (Tacinterp.Value.apply tac (List.map to_ltac_val [EConstr.of_constr c]))
       end) }
 END
 
@@ -206,7 +184,7 @@ TACTIC EXTEND TemplateRocq_run_template_program
          | Some (env, evm, t) ->
             Proofview.tclTHEN
               (Proofview.Unsafe.tclEVARS evm)
-              (ltac_apply tac (List.map to_ltac_val [EConstr.of_constr t]))
+              (Tacinterp.Value.apply tac (List.map to_ltac_val [EConstr.of_constr t]))
          | None -> Proofview.tclUNIT ()
        end) }
 END
