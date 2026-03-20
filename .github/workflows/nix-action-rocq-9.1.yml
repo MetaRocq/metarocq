@@ -204,13 +204,6 @@ on:
   pull_request:
     paths:
     - .github/workflows/nix-action-rocq-9.1.yml
-  pull_request_target:
-    paths-ignore:
-    - .github/workflows/nix-action-rocq-9.1.yml
-    types:
-    - opened
-    - synchronize
-    - reopened
   push:
     branches:
     - '9.1'
