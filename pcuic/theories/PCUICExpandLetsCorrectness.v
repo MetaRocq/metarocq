@@ -1889,7 +1889,8 @@ Definition cf' cf :=
   {| check_univs := cf.(@check_univs);
      prop_sub_type := cf.(@prop_sub_type);
      indices_matter := cf.(@indices_matter);
-     lets_in_constructor_types := false |}.
+     lets_in_constructor_types := false;
+     with_eta := cf.(with_eta) |}.
 
 Notation wf_trans Σ := (@wf (cf' _) (trans_global_env Σ.1)).
 Notation wf_ext_trans Σ := (@wf_ext (cf' _) (trans_global Σ)).
