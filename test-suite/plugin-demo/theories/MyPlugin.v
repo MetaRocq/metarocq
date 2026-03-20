@@ -7,7 +7,7 @@ From MetaRocq.Template Require Import AstUtils Ast.
 
 Open Scope bs_scope.
 
-Notation TemplateMonad := TM.
+Abbreviation TemplateMonad := TM.
 Fixpoint mconcat (ls : list (TemplateMonad unit)) : TM unit :=
   match ls with
   | nil => tmReturn tt

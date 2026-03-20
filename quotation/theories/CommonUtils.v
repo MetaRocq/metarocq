@@ -147,7 +147,7 @@ Module WithTemplate.
             | _ => _ <- tmMsg "tmUnfoldQed: not const";; _ <- tmPrint v;; tmReturn p
             end;;
        tmUnquoteTyped A v.
-  Notation transparentify v := (match tmUnfoldQed v return _ with v' => ltac:(run_template_program v' (fun v' => exact v')) end) (only parsing).
+  Abbreviation transparentify v := (match tmUnfoldQed v return _ with v' => ltac:(run_template_program v' (fun v' => exact v')) end) (only parsing).
 
 
   Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference

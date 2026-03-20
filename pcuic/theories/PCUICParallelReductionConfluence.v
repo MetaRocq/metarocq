@@ -115,15 +115,16 @@ Section Pred1_inversion.
     simpl. eapply IHX0. now eapply pred_app.
   Qed.
 
+  Ltac t := solve_discr.
   Lemma pred1_mkApps_tConstruct (Σ : global_env) (Γ Δ : context)
         ind pars k (args : list term) c :
     pred1 Σ Γ Δ (mkApps (tConstruct ind pars k) args) c ->
     {args' : list term & (c = mkApps (tConstruct ind pars k) args') * (All2 (pred1 Σ Γ Δ) args args') }%type.
-  Proof with solve_discr.
+  Proof.
     revert c. induction args using rev_ind; intros; simpl in *.
-    depelim X... exists []. intuition auto.
+    depelim X;t. exists []. intuition auto.
     intros. rewrite mkApps_app in X.
-    depelim X...
+    depelim X;t.
     prepare_discr. apply mkApps_eq_decompose_app in H.
     rewrite !decompose_app_rec_mkApps in H. noconf H.
     destruct (IHargs _ X1) as [args' [-> Hargs']].
@@ -145,11 +146,11 @@ Section Pred1_inversion.
         ind u (args : list term) c :
     pred1 Σ Γ Δ (mkApps (tInd ind u) args) c ->
     {args' : list term & (c = mkApps (tInd ind u) args') * (All2 (pred1 Σ Γ Δ) args args') }%type.
-  Proof with solve_discr.
+  Proof.
     revert c. induction args using rev_ind; intros; simpl in *.
-    depelim X... exists []. intuition auto.
+    depelim X; t. exists []. intuition auto.
     intros. rewrite mkApps_app in X.
-    depelim X... simpl in H; noconf H. solve_discr.
+    depelim X; t. simpl in H; noconf H. solve_discr.
     prepare_discr. apply mkApps_eq_decompose_app in H.
     rewrite !decompose_app_rec_mkApps in H. noconf H.
     destruct (IHargs _ X1) as [args' [-> Hargs']].
@@ -163,9 +164,9 @@ Section Pred1_inversion.
     nth_error Γ k = Some b -> decl_body b = None ->
     pred1 Σ Γ Δ (mkApps (tRel k) args) c ->
     {args' : list term & (c = mkApps (tRel k) args') * (All2 (pred1 Σ Γ Δ) args args') }%type.
-  Proof with solve_discr.
+  Proof.
     revert c. induction args using rev_ind; intros; simpl in *.
-    - depelim X...
+    - depelim X; t.
       * exists []. intuition auto.
         eapply nth_error_pred1_ctx in a; eauto.
         destruct a as [body' [eqopt _]]. rewrite H /= H0 in eqopt. discriminate.
@@ -186,16 +187,16 @@ Section Pred1_inversion.
     declared_constant Σ cst cb -> cst_body cb = None ->
     pred1 Σ Γ Δ (mkApps (tConst cst u) args) c ->
     {args' : list term & (c = mkApps (tConst cst u) args') * (All2 (pred1 Σ Γ Δ) args args') }%type.
-  Proof with solve_discr.
+  Proof.
     revert c. induction args using rev_ind; intros; simpl in *.
-    depelim X...
+    depelim X;t.
     - unshelve eapply declared_constant_to_gen in H, isdecl; eauto.
       red in H, isdecl. unfold declared_constant_gen in *.
       rewrite isdecl in H; noconf H.
       congruence.
     - exists []. intuition auto.
     - rewrite mkApps_app in X.
-      depelim X...
+      depelim X;t.
       * prepare_discr. apply mkApps_eq_decompose_app in H1.
         rewrite !decompose_app_rec_mkApps in H1. noconf H1.
       * destruct (IHargs _ H H0 X1) as [args' [-> Hargs']].
@@ -216,12 +217,13 @@ Section Pred1_inversion.
                                     (fun x => (dname x, rarg x))
                                     (pred1 Σ) mfix0 mfix1 *
                          (All2 (pred1 Σ Γ Δ) ) args0 args1 } }%type).
-  Proof with solve_discr.
+  Proof.
     intros hnth isc pred. remember (mkApps _ _) as fixt.
     revert mfix0 idx args0 Heqfixt hnth isc.
     induction pred; intros; solve_discr.
     - unfold unfold_fix in e.
       red in a1.
+      clear X.
       eapply All2_nth_error_Some in a1; eauto.
       destruct a1 as [t' [ht' [hds [hr [= eqna eqrarg]]]]].
       rewrite ht' in e => //. noconf e. rewrite -eqrarg in e0.
@@ -249,14 +251,14 @@ Section Pred1_inversion.
                    (fun x => (dname x, rarg x))
                    (pred1 Σ) mfix0 mfix1 *
      (All2 (pred1 Σ Γ Δ) ) args0 args1).
-  Proof with solve_discr.
+  Proof.
     intros Hnth Hisc.
     remember (mkApps _ _) as fixt.
     remember (mkApps _ args1) as fixt'.
     intros pred. revert mfix0 mfix1 idx0 args0 d Hnth Hisc idx1 args1 Heqfixt Heqfixt'.
     induction pred; intros; solve_discr.
     - (* Not reducible *)
-      red in a1. eapply All2_nth_error_Some in a1; eauto.
+      clear X; red in a1. eapply All2_nth_error_Some in a1; eauto.
       destruct a1 as [t' [Hnth' [Hty [Hpred Hann]]]].
       unfold unfold_fix in e. destruct (nth_error mfix1 idx) eqn:hfix1.
       noconf e. noconf Hnth'.
@@ -294,7 +296,7 @@ Section Pred1_inversion.
                     (fun x => (dname x, rarg x))
                     (pred1 Σ) mfix0 mfix1 *
       (All2 (pred1 Σ Γ Δ) ) args0 args1.
-  Proof with solve_discr.
+  Proof.
     intros pred. remember (mkApps _ _) as fixt. revert mfix0 idx args0 Heqfixt.
     induction pred; intros; solve_discr.
     - destruct args0 using rev_ind. noconf Heqfixt. clear IHargs0.
@@ -315,7 +317,7 @@ Section Pred1_inversion.
                     (fun x => (dname x, rarg x))
                     (pred1 Σ) mfix0 mfix1 *
       (All2 (pred1 Σ Γ Δ)) args0 args1.
-  Proof with solve_discr.
+  Proof.
     intros pred. remember (mkApps _ _) as fixt.
     remember (mkApps _ args1) as fixt'.
     revert mfix0 mfix1 idx args0 args1 Heqfixt Heqfixt'.
@@ -338,8 +340,8 @@ End Pred1_inversion.
 #[global]
 Hint Constructors pred1 : pcuic.
 
-Notation predicate_depth := (predicate_depth_gen depth).
-Notation fold_context_term f := (fold_context (fun Γ' => map_decl (f Γ'))).
+Abbreviation predicate_depth := (predicate_depth_gen depth).
+Abbreviation fold_context_term f := (fold_context (fun Γ' => map_decl (f Γ'))).
 
 Section Rho.
   Context {cf : checker_flags}.
@@ -686,12 +688,12 @@ Section Rho.
     - clear -eqx Hx. abstract (invd; d).
   Defined.
 
-  Notation rho_predicate := (rho_predicate_gen rho).
-  Notation rho_br := (map_br_gen rho).
-  Notation rho_ctx_over Γ :=
+  Abbreviation rho_predicate := (rho_predicate_gen rho).
+  Abbreviation rho_br := (map_br_gen rho).
+  Abbreviation rho_ctx_over Γ :=
     (fold_context (fun Δ => map_decl (rho (Γ ,,, Δ)))).
-  Notation rho_ctx := (fold_context_term rho).
-  Notation rho_iota_red := (rho_iota_red_gen rho).
+  Abbreviation rho_ctx := (fold_context_term rho).
+  Abbreviation rho_iota_red := (rho_iota_red_gen rho).
 
   Lemma rho_ctx_over_length Δ Γ : #|rho_ctx_over Δ Γ| = #|Γ|.
   Proof using Type.
@@ -3306,7 +3308,7 @@ Section Rho.
       on_ctx_free_vars xpredT (Γ ,,, Δ) ->
       forall Γ'0, pred1_ctx Σ Γ' Γ'0 ->
       pred1_ctx_over Σ Γ' Γ'0 Δ' (rho_ctx_over Γ'0 Δ)).
-  Proof using wfΣ with solve_discr.
+  Proof using wfΣ.
     set Pctx := fun (Γ Δ : context) =>
       on_ctx_free_vars xpredT Γ ->
       pred1_ctx Σ Δ (rho_ctx Γ).
@@ -3769,7 +3771,7 @@ Section Rho.
         destruct l. simpl in *.
         depelim predM0; solve_discr.
         simp rho in X1.
-        depelim X1... econstructor; eauto.
+        depelim X1; solve_discr. econstructor; eauto.
         simpl. simp rho.
         rewrite map_app mkApps_app.
         constructor; eauto.
@@ -4122,7 +4124,7 @@ Section Rho.
 
 End Rho.
 
-Notation rho_ctx Σ := (fold_context_term (rho Σ)).
+Abbreviation rho_ctx Σ := (fold_context_term (rho Σ)).
 
 (* The diamond lemma for parallel reduction follows directly from the triangle lemma. *)
 

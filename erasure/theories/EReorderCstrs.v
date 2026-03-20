@@ -441,7 +441,7 @@ Section reorder_proofs.
   Context (Σ : global_declarations) (m : inductives_mapping).
   Context (wfm : wf_inductives_mapping Σ m).
 
-  Notation optimize := (reorder m).
+  Abbreviation optimize := (reorder m).
 
   Lemma optimize_mkApps f l : optimize (mkApps f l) = mkApps (optimize f) (map optimize l).
   Proof using Type.
@@ -1025,9 +1025,9 @@ Section reorder_mapping.
   Context (mapping : inductives_mapping).
   Context (Σ : global_context).
   Context (wfm : wf_inductives_mapping Σ mapping).
-  Notation reorder := (reorder mapping).
-  Notation reorder_decl := (reorder_decl mapping).
-  Notation reorder_env := (reorder_env mapping).
+  Abbreviation reorder := (reorder mapping).
+  Abbreviation reorder_decl := (reorder_decl mapping).
+  Abbreviation reorder_env := (reorder_env mapping).
 
 Lemma is_propositional_optimize ind :
   wf_glob Σ ->

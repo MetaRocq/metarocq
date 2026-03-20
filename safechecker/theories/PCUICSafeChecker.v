@@ -575,7 +575,7 @@ Section CheckEnv.
     typing_result (forall Σ, abstract_env_ext_rel X_ext Σ -> ∥ ws_cumul_ctx_pb_rel le Σ Γ Δ Δ' ∥) :=
     check_ws_cumul_ctx X_impl X_ext le Γ Δ Δ' wfΔ wfΔ'.
 
-  Notation eqb_term_conv X conv_pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) (abstract_env_compare_global_instance _ X) conv_pb).
+  Abbreviation eqb_term_conv X conv_pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) (abstract_env_compare_global_instance _ X) conv_pb).
 
   Program Definition check_eq_term pb X_ext t u
      (wft : forall Σ, abstract_env_ext_rel X_ext Σ -> wf_universes Σ t)

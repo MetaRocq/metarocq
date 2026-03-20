@@ -600,8 +600,8 @@ Section classification.
   Context {cf:checker_flags} {Σ : global_env_ext}.
   Context {wfΣ : wf Σ}.
 
-  Notation wh_neutral := (whne RedFlags.default).
-  Notation wh_normal := (whnf RedFlags.default).
+  Abbreviation wh_neutral := (whne RedFlags.default).
+  Abbreviation wh_normal := (whnf RedFlags.default).
 
   Transparent construct_cofix_discr.
 

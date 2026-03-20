@@ -23,7 +23,7 @@ From Stdlib Require Import ssreflect ssrbool.
 
 (** Well-formed terms: invariants which are not ensured by the OCaml type system *)
 
-Notation wf_nactx :=
+Abbreviation wf_nactx :=
   (All2 (fun x y => eq_binder_annot x (decl_name y))).
 
 Inductive wf {Σ} : term -> Type :=

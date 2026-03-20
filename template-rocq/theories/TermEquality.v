@@ -59,7 +59,7 @@ Definition global_variance_gen lookup gr napp :=
   | _ => AllEqual
   end.
 
-Notation global_variance Σ := (global_variance_gen (lookup_env Σ)).
+Abbreviation global_variance Σ := (global_variance_gen (lookup_env Σ)).
 
 Definition cmp_opt_variance cmp_univ pb v :=
   match v with
@@ -117,7 +117,7 @@ Qed.
 Definition cmp_global_instance_gen Σ cmp_universe pb gr napp :=
   cmp_opt_variance cmp_universe pb (global_variance_gen Σ gr napp).
 
-Notation cmp_global_instance Σ := (cmp_global_instance_gen (lookup_env Σ)).
+Abbreviation cmp_global_instance Σ := (cmp_global_instance_gen (lookup_env Σ)).
 
 Lemma cmp_universe_instance_impl R R' :
   RelationClasses.subrelation R R' ->
@@ -153,7 +153,7 @@ Inductive eq_decl_upto_names : context_decl -> context_decl -> Type :=
     eq_binder_annot na na' -> eq_decl_upto_names (vdef na b T) (vdef na' b T).
 
 Derive Signature NoConfusion for eq_decl_upto_names.
-Notation eq_context_upto_names := (All2 eq_decl_upto_names).
+Abbreviation eq_context_upto_names := (All2 eq_decl_upto_names).
 
 Lemma alpha_eq_context_assumptions {Γ Δ} :
   eq_context_upto_names Γ Δ ->
@@ -304,15 +304,15 @@ Inductive eq_term_upto_univ_napp Σ
   eq_term_upto_univ_napp Σ cmp_universe cmp_sort Conv 0 ty ty' ->
   eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb napp (tArray u arr def ty) (tArray u' arr' def' ty').
 
-Notation eq_term_upto_univ Σ cmp_universe cmp_sort pb := (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb 0).
+Abbreviation eq_term_upto_univ Σ cmp_universe cmp_sort pb := (eq_term_upto_univ_napp Σ cmp_universe cmp_sort pb 0).
 
 (* ** Syntactic conversion/cumulativity up-to universes *)
 
 Definition compare_term `{checker_flags} Σ φ (pb : conv_pb) :=
   eq_term_upto_univ Σ (compare_universe φ) (compare_sort φ) pb.
 
-Notation eq_term Σ φ := (compare_term Σ φ Conv).
-Notation leq_term Σ φ := (compare_term Σ φ Cumul).
+Abbreviation eq_term Σ φ := (compare_term Σ φ Conv).
+Abbreviation leq_term Σ φ := (compare_term Σ φ Cumul).
 
 Lemma cmp_universe_instance_refl cmp_universe :
   RelationClasses.Reflexive cmp_universe ->

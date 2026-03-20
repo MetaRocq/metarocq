@@ -120,7 +120,7 @@ Section Conversion.
     intro s. destruct s ; eauto.
   Qed.
 
-  Notation wtp Γ t π :=
+  Abbreviation wtp Γ t π :=
     (forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zipc t π)) (only parsing).
 
   Set Primitive Projections.
@@ -311,13 +311,13 @@ Section Conversion.
     Unshelve. all: eauto.
   Qed.
 
-  Notation pzt u := (zipc (tm1 u) (stk1 u)) (only parsing).
-  Notation pps1 u := (stack_pos (tm1 u) (stk1 u)) (only parsing).
-  Notation pwt u := (exist (P := fun t => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ _ t)
+  Abbreviation pzt u := (zipc (tm1 u) (stk1 u)) (only parsing).
+  Abbreviation pps1 u := (stack_pos (tm1 u) (stk1 u)) (only parsing).
+  Abbreviation pwt u := (exist (P := fun t => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ _ t)
                                  _ (fun Σ wfΣ => wth u Σ wfΣ)) (only parsing).
-  Notation pps2 u := (stack_pos (tm2 u) (stk2 u)) (only parsing).
+  Abbreviation pps2 u := (stack_pos (tm2 u) (stk2 u)) (only parsing).
 
-  Notation obpack u:=
+  Abbreviation obpack u:=
     (pzt u ; (pps1 u, (pwt u; (pps2 u, st u)))) (only parsing).
 
   Definition R Γ (u v : pack Γ) :=
@@ -333,7 +333,7 @@ Section Conversion.
     apply R_aux_Acc. assumption.
   Qed.
 
-  Notation eq_term Σ t u := (eq_term Σ Σ t u).
+  Abbreviation eq_term Σ t u := (eq_term Σ Σ t u).
 
   Lemma R_aux_irrelevance Γ x y z :
     ((x.π1; x.π2.1), (existT (fun x => pos x × state) (` x.π2.2.π1) x.π2.2.π2)) =
@@ -525,11 +525,11 @@ Section Conversion.
 
   Definition abstract_env_compare_global_instance := compare_global_instance (abstract_env_lookup X) (abstract_env_compare_universe X).
 
-  Notation eqb_ctx := (eqb_ctx_upto (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance Conv).
-  Notation cmpb_term_napp := (eqb_term_upto_univ_napp (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance).
-  Notation cmpb_term pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance pb).
-  Notation eqb_term := (cmpb_term Conv).
-  Notation leqb_term := (cmpb_term Cumul).
+  Abbreviation eqb_ctx := (eqb_ctx_upto (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance Conv).
+  Abbreviation cmpb_term_napp := (eqb_term_upto_univ_napp (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance).
+  Abbreviation cmpb_term pb := (eqb_term_upto_univ (abstract_env_compare_universe X) (abstract_env_compare_sort X) abstract_env_compare_global_instance pb).
+  Abbreviation eqb_term := (cmpb_term Conv).
+  Abbreviation leqb_term := (cmpb_term Cumul).
 
   Definition eqb_term_stack t1 π1 t2 π2 :=
     eqb_ctx (stack_context π1) (stack_context π2) &&
@@ -561,14 +561,14 @@ Section Conversion.
     symmetry; apply reflect_iff. eapply wf_instanceP.
   Qed.
 
-  Notation conv_stack_ctx Γ π1 π2 :=
+  Abbreviation conv_stack_ctx Γ π1 π2 :=
     (forall Σ, abstract_env_ext_rel X Σ -> ∥ (Σ ⊢ Γ ,,, stack_context π1 = Γ ,,, stack_context π2) ∥).
 
-  Notation conv_term leq Γ t π t' π' :=
+  Abbreviation conv_term leq Γ t π t' π' :=
     (forall Σ, abstract_env_ext_rel X Σ -> conv_cum leq Σ (Γ ,,, stack_context π) (zipp t π) (zipp t' π'))
       (only parsing).
 
-  Notation alt_conv_term Γ t π t' π' :=
+  Abbreviation alt_conv_term Γ t π t' π' :=
     (forall Σ, abstract_env_ext_rel X Σ -> ∥ Σ ;;; Γ ,,, stack_context π ⊢ zipp t π = zipp t' π' ∥)
       (only parsing).
 
@@ -767,36 +767,36 @@ Section Conversion.
          (mkpack Γ s t1 π1 t2 π2 h2) ->
        Ret s' Γ t1' π1' t2' π2'.
 
-  Notation expand aux := (fun a b c d e f g h i => aux _ _ _ _ _ _ _ _ _) (only parsing).
+  Abbreviation expand aux := (fun a b c d e f g h i => aux _ _ _ _ _ _ _ _ _) (only parsing).
 
-  Local Notation yes := (Success _) (only parsing).
-  Local Notation no := (fun e => Error e _) (only parsing).
+  Local Abbreviation yes := (Success _) (only parsing).
+  Local Abbreviation no := (fun e => Error e _) (only parsing).
 
   (* TODO NOTE
      repack could also take another argument of type
      ConversionError -> ConversionError
      to keep a full error trace (we currently only do it partially).
   *)
-  Local Notation repack e :=
+  Local Abbreviation repack e :=
     (match e with Success h => Success _ | Error er h => Error er _ end)
     (only parsing).
 
-  Notation isconv_red_raw leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_red_raw leq t1 π1 t2 π2 aux :=
     (aux Reduction t1 π1 t2 π2 _ _ _ _ leq _ I I I) (only parsing).
-  Notation isconv_prog_raw leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_prog_raw leq t1 π1 t2 π2 aux :=
     (aux Term t1 π1 t2 π2 _ _ _ _ leq _ _ _ I) (only parsing).
-  Notation isconv_args_raw leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_args_raw leq t1 π1 t2 π2 aux :=
     (aux Args t1 π1 t2 π2 _ _ _ _ leq _ I I I) (only parsing).
-  Notation isconv_fallback_raw leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_fallback_raw leq t1 π1 t2 π2 aux :=
     (aux Fallback t1 π1 t2 π2 _ _ _ _ leq _ _ _ _) (only parsing).
 
-  Notation isconv_red leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_red leq t1 π1 t2 π2 aux :=
     (repack (isconv_red_raw leq t1 π1 t2 π2 aux)) (only parsing).
-  Notation isconv_prog leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_prog leq t1 π1 t2 π2 aux :=
     (repack (isconv_prog_raw leq t1 π1 t2 π2 aux)) (only parsing).
-  Notation isconv_args leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_args leq t1 π1 t2 π2 aux :=
     (repack (isconv_args_raw leq t1 π1 t2 π2 aux)) (only parsing).
-  Notation isconv_fallback leq t1 π1 t2 π2 aux :=
+  Abbreviation isconv_fallback leq t1 π1 t2 π2 aux :=
     (repack (isconv_fallback_raw leq t1 π1 t2 π2 aux)) (only parsing).
 
   Equations(noeqns) _isconv_red (Γ : context) (leq : conv_pb)
@@ -3248,7 +3248,7 @@ Qed.
     destruct H as [[]]; constructor; auto.
   Qed.
 
-Notation tPrimArray a := (tPrim (primArray; primArrayModel a)).
+Abbreviation tPrimArray a := (tPrim (primArray; primArrayModel a)).
 
 Equations (noeqns) isconv_array_values_aux
             (Γ : context)

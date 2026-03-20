@@ -37,9 +37,9 @@ Definition projT1 {A} {P:A -> Type} (p:sigT P) : A :=
 Definition projT2  {A} {P:A -> Type} (p:sigT P) : P (projT1 p) :=
   sigT_rect _ _ (fun x => P (projT1 x)) (fun x y => y) p.
 
-Notation id := (fun x => x).
+Abbreviation id := (fun x => x).
 
-Notation compose := (fun g f x => g (f x)).
+Abbreviation compose := (fun g f x => g (f x)).
 
 Module Hott_Notations.
 Notation "g ∘ f" := (compose g%function f%function) (at level 1): function_scope.

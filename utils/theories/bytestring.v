@@ -185,7 +185,7 @@ Module String.
 End String.
 
 Definition bs := String.t.
-Notation string := String.t.
+Abbreviation string := String.t.
 
 Bind Scope bs_scope with bs.
 
@@ -403,9 +403,9 @@ End StringOT.
 
 Module StringOTOrig := OrdersAlt.Backport_OT StringOT.
 
-Notation string_compare := StringOT.compare.
-Notation string_compare_eq := StringOT.compare_eq.
-Notation CompareSpec_string := StringOT.compare_spec.
+Abbreviation string_compare := StringOT.compare.
+Abbreviation string_compare_eq := StringOT.compare_eq.
+Abbreviation CompareSpec_string := StringOT.compare_spec.
 
 (** To perform efficient pretty printing, one needs to use a tree structure
   to avoid quadratic overhead of appending strings. *)

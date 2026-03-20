@@ -166,7 +166,7 @@ Proof.
     depelim X; constructor. intuition eauto.
     eapply (make_All_All (f Γ) b).
 Qed.
-
+Register Scheme expanded_ind as ind_nodep for expanded.
 Definition expanded_constant_decl Σ (cb : constant_body) : Prop :=
   on_Some_or_None (expanded Σ []) cb.(cst_body).
 

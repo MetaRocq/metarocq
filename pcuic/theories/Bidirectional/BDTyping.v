@@ -17,6 +17,8 @@ From Equations Require Import Equations.
 
 Implicit Types (cf : checker_flags) (Σ : global_env_ext) (Γ : context).
 
+Local Set Warnings "-postfix-notation-not-level-1".
+
 Reserved Notation " Σ ;;; Γ |- t ▹ T " (at level 50, Γ, t, T at next level).
 Reserved Notation " Σ ;;; Γ |- t ▹□ u " (at level 50, Γ, t, u at next level).
 Reserved Notation " Σ ;;; Γ |- t ▹Π ( na , A , B ) " (at level 50, Γ, t, na, A, B at next level).
@@ -235,8 +237,8 @@ Arguments lexprod [A B].
 
 Section BidirectionalInduction.
 
-  #[local] Notation wfl_size := (All_local_env_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _).
-  #[local] Notation wfl_size_rel := (All_local_rel_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _ _).
+  #[local] Abbreviation wfl_size := (All_local_env_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _).
+  #[local] Abbreviation wfl_size_rel := (All_local_rel_sorting_size (@checking_size _ _) (@infering_sort_size _ _) _ _).
 
   Context `{cf : checker_flags}.
   Context (Σ : global_env_ext).

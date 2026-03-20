@@ -139,7 +139,7 @@ Module ModPathComp.
     intros; apply PeanoNat.Nat.compare_antisym.
   Qed.
 
-  Lemma compare_eq x y : x ?= y = Eq -> x = y.
+  Lemma compare_eq x y : (x ?= y) = Eq -> x = y.
   Proof.
     induction x in y |- *; destruct y; simpl; auto; try congruence.
     intros c. eapply DirPathOT.compare_eq in c; now subst.
@@ -341,7 +341,7 @@ Module KernameMapFact := FMapFacts.WProperties KernameMap.
 Module KernameMapExtraFact := FSets.WFactsExtra_fun Kername.OT KernameMap KernameMapFact.F.
 Module KernameMapDecide := FMapAVL.Decide Kername.OT KernameMap.
 
-Notation eq_kername := (eqb (A:=kername)) (only parsing).
+Abbreviation eq_kername := (eqb (A:=kername)) (only parsing).
 
 Lemma eq_kername_refl kn : eq_kername kn kn.
 Proof.
@@ -401,7 +401,7 @@ Next Obligation.
   cbn. constructor. noconf p; reflexivity.
 Qed.
 
-Notation eq_inductive := (eqb (A:=inductive)).
+Abbreviation eq_inductive := (eqb (A:=inductive)).
 
 Lemma eq_inductive_refl i : eq_inductive i i.
 Proof.

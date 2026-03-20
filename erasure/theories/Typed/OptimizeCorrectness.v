@@ -135,9 +135,9 @@ Section DeargAuxDecomp.
 
 Context (ind_masks : list (kername * mib_masks)).
 Context (const_masks : list (kername * bitmask)).
-Notation get_ctor_mask := (get_ctor_mask ind_masks).
-Notation get_mib_masks := (get_mib_masks ind_masks).
-Notation get_const_mask := (get_const_mask const_masks).
+Abbreviation get_ctor_mask := (get_ctor_mask ind_masks).
+Abbreviation get_mib_masks := (get_mib_masks ind_masks).
+Abbreviation get_const_mask := (get_const_mask const_masks).
 
 Set Equations Debug.
 Equations? dearg_aux_decomp (t : term) : term by wf t (fun x y : EAst.term => size x < size y) :=
@@ -658,24 +658,24 @@ Qed.
 Section dearg_correct.
 Context (ind_masks : list (kername * mib_masks)).
 Context (const_masks : list (kername * bitmask)).
-Notation get_ctor_mask := (get_ctor_mask ind_masks).
-Notation get_mib_masks := (get_mib_masks ind_masks).
-Notation get_const_mask := (get_const_mask const_masks).
-Notation dearg := (dearg ind_masks const_masks).
-Notation dearg_aux := (dearg_aux ind_masks const_masks).
-Notation dearg_env := (dearg_env ind_masks const_masks).
-Notation dearg_decl := (dearg_decl ind_masks const_masks).
-Notation dearg_cst := (dearg_cst ind_masks const_masks).
-Notation dearg_case := (dearg_case ind_masks).
-Notation dearg_proj := (dearg_proj ind_masks).
-Notation valid_case_masks := (valid_case_masks ind_masks).
-Notation valid_proj := (valid_proj ind_masks).
-Notation valid_cases := (valid_cases ind_masks).
-Notation valid_masks_decl := (valid_masks_decl ind_masks const_masks).
-Notation valid_masks_env := (valid_masks_env ind_masks const_masks).
-Notation is_expanded_aux := (is_expanded_aux ind_masks const_masks).
-Notation is_expanded := (is_expanded ind_masks const_masks).
-Notation is_expanded_env := (is_expanded_env ind_masks const_masks).
+Abbreviation get_ctor_mask := (get_ctor_mask ind_masks).
+Abbreviation get_mib_masks := (get_mib_masks ind_masks).
+Abbreviation get_const_mask := (get_const_mask const_masks).
+Abbreviation dearg := (dearg ind_masks const_masks).
+Abbreviation dearg_aux := (dearg_aux ind_masks const_masks).
+Abbreviation dearg_env := (dearg_env ind_masks const_masks).
+Abbreviation dearg_decl := (dearg_decl ind_masks const_masks).
+Abbreviation dearg_cst := (dearg_cst ind_masks const_masks).
+Abbreviation dearg_case := (dearg_case ind_masks).
+Abbreviation dearg_proj := (dearg_proj ind_masks).
+Abbreviation valid_case_masks := (valid_case_masks ind_masks).
+Abbreviation valid_proj := (valid_proj ind_masks).
+Abbreviation valid_cases := (valid_cases ind_masks).
+Abbreviation valid_masks_decl := (valid_masks_decl ind_masks const_masks).
+Abbreviation valid_masks_env := (valid_masks_env ind_masks const_masks).
+Abbreviation is_expanded_aux := (is_expanded_aux ind_masks const_masks).
+Abbreviation is_expanded := (is_expanded ind_masks const_masks).
+Abbreviation is_expanded_env := (is_expanded_env ind_masks const_masks).
 
 Lemma dearg_aux_mkApps args args' hd :
   dearg_aux args (mkApps hd args') = dearg_aux (map dearg args' ++ args) hd.
@@ -2466,6 +2466,7 @@ Proof.
   destruct (Heq kn kn');subst;[easy| apply IH].
 Qed.
 
+Create HintDb dearg.
 Hint Resolve
      closedn_subst0 closed_mkApps closedn_dearg_aux closed_iota_red
      is_expanded_aux_subst is_expanded_aux_mkApps
@@ -2723,6 +2724,7 @@ Ltac invert_facts :=
       | [ H : is_expanded (mkApps _ _) = true |- _] =>
           apply is_expanded_aux_mkApps_inv in H as (? & ?)
       end.
+Ltac t := auto with dearg.
 
 Lemma eval_valid_cases {wfl : WcbvFlags} Σ t v :
   with_constructor_as_block = false ->
@@ -2736,22 +2738,22 @@ Lemma eval_valid_cases {wfl : WcbvFlags} Σ t v :
   valid_cases t ->
 
   valid_cases v.
-Proof with auto with dearg.
+Proof.
   intros ? ev clos_env clos_t valid_env valid_t.
   induction ev in t, v, ev, clos_t, valid_t |- *; auto; cbn in *; propify;try congruence.
   - intuition auto.
-    eapply eval_closed in ev1 as ?...
-    eapply eval_closed in ev2 as ?...
+    eapply eval_closed in ev1 as ?; t.
+    eapply eval_closed in ev2 as ?; t.
     rewrite closed_subst in * by easy.
-    apply IHev3; [apply closedn_subst0|apply valid_cases_subst]...
+    apply IHev3; [apply closedn_subst0|apply valid_cases_subst]; t.
   - intuition auto.
-    eapply eval_closed in ev1 as ?...
+    eapply eval_closed in ev1 as ?; t.
     rewrite closed_subst in * by easy.
-    apply IHev2; [apply closedn_subst0|apply valid_cases_subst]...
+    apply IHev2; [apply closedn_subst0|apply valid_cases_subst]; t.
   - destruct clos_t as [clos_discr clos_brs].
     destruct valid_t as [[val_discr val_brs] val_masks].
     specialize (IHev1 clos_discr val_discr) as val_cases.
-    eapply eval_closed in ev1 as Happs...
+    eapply eval_closed in ev1 as Happs; t.
     apply closed_mkApps_inv in Happs as (? & ?).
     assert (closed (iota_red pars args br)).
     { apply closed_iota_red; auto.
@@ -2759,11 +2761,11 @@ Proof with auto with dearg.
       cbn in *.
       replace (#|br.1| + 0) with #|br.1| in * by lia.
       now rewrite e4. }
-    eapply eval_closed in ev2 as ?...
+    eapply eval_closed in ev2 as ?; t.
     eapply valid_cases_mkApps_inv in val_cases as (? & ?).
-    apply IHev2...
-    apply valid_cases_iota_red...
-    eapply (nth_error_forallb e2) in val_brs as ?...
+    apply IHev2; t.
+    apply valid_cases_iota_red; t.
+    eapply (nth_error_forallb e2) in val_brs as ?; t.
   - subst brs.
     cbn in *.
     propify.
@@ -2773,21 +2775,21 @@ Proof with auto with dearg.
       now rewrite repeat_length.
     + apply valid_cases_substl; try apply Forall_repeat;easy.
   - intuition auto.
-    eapply eval_closed in ev1 as ?...
-    eapply eval_closed in ev2 as ?...
+    eapply eval_closed in ev1 as ?; t.
+    eapply eval_closed in ev2 as ?; t.
     apply closed_mkApps_inv in H7 as (? & ?).
     apply valid_cases_mkApps_inv in H6 as (? & ?).
-    apply H5...
-    + apply closed_mkApps...
+    apply H5; t.
+    + apply closed_mkApps; t.
       now eapply closed_cunfold_fix.
     + split; [|easy].
-      apply valid_cases_mkApps...
-      eapply valid_cases_cunfold_fix; [eassumption| |]...
+      apply valid_cases_mkApps; t.
+      eapply valid_cases_cunfold_fix; [eassumption| |]; t.
   - easy.
   - intuition auto.
-    eapply eval_closed in ev1 as ?...
-    eapply eval_closed in ev2 as ?...
-    apply H5...
+    eapply eval_closed in ev1 as ?; t.
+    eapply eval_closed in ev2 as ?; t.
+    apply H5; t.
     + now eapply closed_cunfold_fix.
     + split; [|easy].
       eapply valid_cases_cunfold_fix;eauto.
@@ -2818,7 +2820,7 @@ Proof with auto with dearg.
     + now eapply valid_cases_constant.
   - destruct p;cbn in *.
     propify.
-    eapply eval_closed in ev1 as ?...
+    eapply eval_closed in ev1 as ?; t.
     intuition auto.
     invert_facts.
     assert (closed a) by
@@ -3322,7 +3324,7 @@ Section dearg.
     forall (ev : trans_env Σ e⊢ tApp hd arg ⇓ v),
       deriv_length ev <= S n ->
       trans_env (dearg_env Σ) e⊢ tApp (dearg hd) (dearg arg) ⇓ dearg v.
-  Proof with auto with dearg.
+  Proof.
     intros ? clos_hd valid_hd exp_hd clos_arg valid_arg exp_arg ev ev_len.
     depind ev; cbn in *;try congruence.
     - apply eval_box with (dearg t').
@@ -3338,7 +3340,7 @@ Section dearg.
         rewrite !closed_subst; eauto. 2:now apply closedn_dearg_aux.
         intros.
         rewrite <- (dearg_subst [a']) by easy.
-        unshelve eapply (IH _ _ _ _ _ ev3)...
+        unshelve eapply (IH _ _ _ _ _ ev3); t.
         * now apply is_expanded_aux_subst.
         * lia.
     - facts.
@@ -3365,10 +3367,10 @@ Section dearg.
         cbn in *.
         apply is_expanded_cunfold_fix in e1 as ?; eauto with dearg.
         rewrite <- dearg_expanded, <- dearg_mkApps by easy.
-        apply IHev3 with (ev := ev3)...
-        * apply closed_mkApps...
-        * apply valid_cases_mkApps...
-        * apply is_expanded_aux_mkApps...
+        apply IHev3 with (ev := ev3); t.
+        * apply closed_mkApps; t.
+        * apply valid_cases_mkApps; t.
+        * apply is_expanded_aux_mkApps; t.
           erewrite is_expanded_aux_upwards; [|eassumption|easy].
           cbn.
           easy.

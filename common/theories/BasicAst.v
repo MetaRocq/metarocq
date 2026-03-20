@@ -16,6 +16,7 @@ Derive NoConfusion EqDec for relevance.
 
 (** Binders annotated with relevance *)
 Record binder_annot (A : Type) := mkBindAnn { binder_name : A; binder_relevance : relevance }.
+(* Scheme All for binder_annot. *)
 
 Arguments mkBindAnn {_}.
 Arguments binder_name {_}.
@@ -110,6 +111,7 @@ Arguments dname {term} _.
 Arguments dtype {term} _.
 Arguments dbody {term} _.
 Arguments rarg {term} _.
+(* Scheme All for def. *)
 
 Derive NoConfusion for def.
 #[global] Instance def_eq_dec {A} : Classes.EqDec A -> Classes.EqDec (def A).
@@ -162,6 +164,8 @@ Proof. reflexivity. Qed.
 
 Lemma map_def_id {t} x : map_def (@id t) (@id t) x = id x.
 Proof. now destruct x. Qed.
+
+Create Rewrite HintDb map.
 #[global] Hint Rewrite @map_def_id @map_id : map.
 
 Lemma map_def_spec {A B} (P P' : A -> Type) (f f' g g' : A -> B) (x : def A) :
@@ -173,6 +177,7 @@ Proof.
   now rewrite !H // !H0.
 Qed.
 
+Create HintDb all.
 #[global] Hint Extern 10 (_ < _)%nat => lia : all.
 #[global] Hint Extern 10 (_ <= _)%nat => lia : all.
 #[global] Hint Extern 10 (@eq nat _ _) => lia : all.
@@ -225,6 +230,7 @@ Record judgment_ {universe Term} := Judge {
 }.
 Arguments judgment_ : clear implicits.
 Arguments Judge {universe Term} _ _ _.
+(* Scheme All for judgment_. *)
 
 Definition judgment_map {univ T A} (f: T -> A) (j : judgment_ univ T) :=
   Judge (option_map f (j_term j)) (f (j_typ j)) (j_univ j) (j_rel j).
@@ -240,24 +246,25 @@ Section Contexts.
   }.
   Derive NoConfusion for context_decl.
 End Contexts.
+(* Scheme All for context_decl. *)
 
 Arguments context_decl : clear implicits.
 
-Notation Typ typ := (Judge None typ None None).
-Notation TypRel typ rel := (Judge None typ None (Some rel)).
-Notation TermTyp tm ty := (Judge (Some tm) ty None None).
-Notation TermTypRel tm ty rel := (Judge (Some tm) ty None (Some rel)).
-Notation TermoptTyp tm typ := (Judge tm typ None None).
-Notation TermoptTypRel tm typ rel := (Judge tm typ None (Some rel)).
-Notation TypUniv ty u := (Judge None ty (Some u) None).
-Notation TypUnivRel ty u rel := (Judge None ty (Some u) (Some rel)).
-Notation TermTypUniv tm ty u := (Judge (Some tm) ty (Some u) None).
+Abbreviation Typ typ := (Judge None typ None None).
+Abbreviation TypRel typ rel := (Judge None typ None (Some rel)).
+Abbreviation TermTyp tm ty := (Judge (Some tm) ty None None).
+Abbreviation TermTypRel tm ty rel := (Judge (Some tm) ty None (Some rel)).
+Abbreviation TermoptTyp tm typ := (Judge tm typ None None).
+Abbreviation TermoptTypRel tm typ rel := (Judge tm typ None (Some rel)).
+Abbreviation TypUniv ty u := (Judge None ty (Some u) None).
+Abbreviation TypUnivRel ty u rel := (Judge None ty (Some u) (Some rel)).
+Abbreviation TermTypUniv tm ty u := (Judge (Some tm) ty (Some u) None).
 
-Notation j_vass na ty := (TypRel ty na.(binder_relevance)).
-Notation j_vass_s na ty s := (TypUnivRel ty s na.(binder_relevance)).
-Notation j_vdef na b ty := (TermTypRel b ty na.(binder_relevance)).
-Notation j_decl d := (TermoptTypRel (decl_body d) (decl_type d) (decl_name d).(binder_relevance)).
-Notation j_decl_s d s := (Judge (decl_body d) (decl_type d) s (Some (decl_name d).(binder_relevance))).
+Abbreviation j_vass na ty := (TypRel ty na.(binder_relevance)).
+Abbreviation j_vass_s na ty s := (TypUnivRel ty s na.(binder_relevance)).
+Abbreviation j_vdef na b ty := (TermTypRel b ty na.(binder_relevance)).
+Abbreviation j_decl d := (TermoptTypRel (decl_body d) (decl_type d) (decl_name d).(binder_relevance)).
+Abbreviation j_decl_s d s := (Judge (decl_body d) (decl_type d) s (Some (decl_name d).(binder_relevance))).
 
 Definition map_decl {term term'} (f : term -> term') (d : context_decl term) : context_decl term' :=
   {| decl_name := d.(decl_name);
@@ -366,7 +373,7 @@ Proof. apply nth_error_app_lt. Qed.
 Definition ondecl {A} (P : A -> Type) (d : context_decl A) :=
   option_default P d.(decl_body) unit × P d.(decl_type).
 
-Notation onctx P := (All (ondecl P)).
+Abbreviation onctx P := (All (ondecl P)).
 
 Section ContextMap.
   Context {term term' : Type} (f : nat -> term -> term').
@@ -424,7 +431,7 @@ Qed.
 
 Section Contexts.
   Context {term term' term'' : Type}.
-  Notation context term := (list (context_decl term)).
+  Abbreviation context term := (list (context_decl term)).
 
   Lemma test_decl_impl (f g : term -> bool) x : (forall x, f x -> g x) ->
     test_decl f x -> test_decl g x.
@@ -593,7 +600,7 @@ End Contexts.
 
 Section Contexts.
   Context {term term' term'' : Type}.
-  Notation context term := (list (context_decl term)).
+  Abbreviation context term := (list (context_decl term)).
 
   Lemma fold_context_k_id (x : context term) : fold_context_k (fun i x => x) x = x.
   Proof using Type.

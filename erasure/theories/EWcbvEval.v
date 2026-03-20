@@ -341,7 +341,7 @@ Section Wcbv.
 
 End Wcbv.
 
-Notation atomic Σ := (atomic_value Σ (value Σ)).
+Abbreviation atomic Σ := (atomic_value Σ (value Σ)).
 
 Definition eval_primitive_depth {eval : term -> term -> Set} (size : forall x y, eval x y -> nat) {p p'} (e : eval_primitive eval p p') : nat :=
   match e with
@@ -660,14 +660,17 @@ Section eval_rect.
 
 End eval_rect.
 
+Register Scheme eval_rect as rect_dep for eval.
+Register Scheme eval_rec as rec_dep for eval.
+Register Scheme eval_ind as ind_dep for eval.
 Global Hint Constructors value : value.
 
 Section Wcbv.
   Context {wfl : WcbvFlags}.
   Context {Σ : global_declarations}.
-  Notation eval := (eval Σ).
-  Notation value_head := (value_head Σ).
-  Notation value := (value Σ).
+  Abbreviation eval := (eval Σ).
+  Abbreviation value_head := (value_head Σ).
+  Abbreviation value := (value Σ).
 
   Lemma value_app f args : value_head #|args| f -> All value args -> value (mkApps f args).
   Proof.

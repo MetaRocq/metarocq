@@ -4,6 +4,8 @@ From Equations Require Import Equations.
 
 Import ListNotations.
 
+(* Scheme All for Forall. *)
+Scheme All for Forall2.
 Derive Signature for Forall Forall2.
 
 (** Combinators *)
@@ -16,6 +18,7 @@ Inductive All {A} (P : A -> Type) : list A -> Type :=
 Arguments All {A} P%_type _.
 Arguments All_nil {_ _}.
 Arguments All_cons {_ _ _ _}.
+(* Scheme All for All. *)
 Derive Signature NoConfusion for All.
 #[global] Hint Constructors All : core.
 
@@ -24,6 +27,7 @@ Inductive Alli {A} (P : nat -> A -> Type) (n : nat) : list A -> Type :=
 | Alli_cons hd tl : P n hd -> Alli P (S n) tl -> Alli P n (hd :: tl).
 Arguments Alli_nil {_ _ _}.
 Arguments Alli_cons {_ _ _ _ _}.
+(* Scheme All for Alli. *)
 Derive Signature for Alli.
 Derive NoConfusionHom for Alli.
 
@@ -33,6 +37,7 @@ Inductive All2 {A B : Type} (R : A -> B -> Type) : list A -> list B -> Type :=
     R x y -> All2 R l l' -> All2 R (x :: l) (y :: l').
 Arguments All2_nil {_ _ _}.
 Arguments All2_cons {_ _ _ _ _ _ _}.
+Scheme All for All2.
 Derive Signature for All2.
 Derive NoConfusionHom for All2.
 #[global] Hint Constructors All2 : core.
@@ -47,6 +52,7 @@ Inductive All2_dep {A B : Type} {R : A -> B -> Type} (R' : forall a b, R a b -> 
     R' x y r -> All2_dep R' rs -> All2_dep R' (All2_cons r rs).
 Arguments All2_dep_nil {_ _ _ _}.
 Arguments All2_dep_cons {_ _ _ _ _ _ _ _ _ _} _ _.
+Scheme All for All2_dep.
 Derive Signature for All2_dep.
 Derive NoConfusionHom for All2_dep.
 #[global] Hint Constructors All2_dep : core.
@@ -57,6 +63,7 @@ Inductive Forall2_dep {A B : Type} {R : A -> B -> Prop} (R' : forall a b, R a b 
     R' x y r -> Forall2_dep R' rs -> Forall2_dep R' (@Forall2_cons _ _ _ _ _ _ _ r rs).
 Arguments Forall2_dep_nil {_ _ _ _}.
 Arguments Forall2_dep_cons {_ _ _ _ _ _ _ _ _ _} _ _.
+Scheme All for Forall2_dep.
 Derive Signature for Forall2_dep.
 #[global] Hint Constructors Forall2_dep : core.
 
@@ -70,7 +77,7 @@ Inductive All2i {A B : Type} (R : nat -> A -> B -> Type) (n : nat)
       All2i R n (x :: l) (y :: r).
 Arguments All2i_nil {_ _ _ _}.
 Arguments All2i_cons {_ _ _ _ _ _ _ _}.
-
+Scheme All for All2i.
 Derive Signature NoConfusionHom for All2i.
 
 
@@ -80,6 +87,7 @@ Inductive All3 {A B C : Type} (R : A -> B -> C -> Type) : list A -> list B -> li
     R x y z -> All3 R l l' l'' -> All3 R (x :: l) (y :: l') (z :: l'').
 Arguments All3_nil {_ _ _ _}.
 Arguments All3_cons {_ _ _ _ _ _ _ _ _ _}.
+Scheme All for All3.
 
 Inductive Forall3 {A B C : Type} (R : A -> B -> C -> Type) : list A -> list B -> list C -> Prop :=
   Forall3_nil : Forall3 R [] [] []
@@ -87,6 +95,7 @@ Inductive Forall3 {A B C : Type} (R : A -> B -> C -> Type) : list A -> list B ->
     R x y z -> Forall3 R l l' l'' -> Forall3 R (x :: l) (y :: l') (z :: l'').
 Arguments Forall3_nil {_ _ _ _}.
 Arguments Forall3_cons {_ _ _ _ _ _ _ _ _ _}.
+Scheme All for Forall3.
 
 #[global] Hint Constructors All3 Forall3 : core.
 Derive Signature for All3 Forall3.
@@ -136,6 +145,7 @@ Proof.
     destruct (projP2 H').
     exact Hc. }
 Defined.
+Register Scheme Forall2_rect as rect_dep for Forall2.
 
 Definition Forall2_rec A B R (P : forall x y, Forall2 R x y -> Set)
   (Hn : P [] [] (@Forall2_nil _ _ _))
@@ -143,6 +153,7 @@ Definition Forall2_rec A B R (P : forall x y, Forall2 R x y -> Set)
       P l l' a -> P (x :: l) (y :: l') (Forall2_cons _ _ r a))
   : forall l l' (a : @Forall2 A B R l l'), P l l' a
   := @Forall2_rect A B R P Hn Hc.
+Register Scheme Forall2_rec as rec_dep for Forall2.
 
 Definition Forall2_dep_rect A B R R' (P : forall x y a, @Forall2_dep A B R R' x y a -> Type)
   (Hn : P [] [] (@Forall2_nil _ _ _) Forall2_dep_nil)
@@ -158,6 +169,7 @@ Proof.
     destruct (projP2 H').
     exact Hc. }
 Defined.
+Register Scheme Forall2_dep_rect as rect_dep for Forall2_dep.
 
 Definition Forall2_dep_rec A B R R' (P : forall x y a, @Forall2_dep A B R R' x y a -> Set)
   (Hn : P [] [] (@Forall2_nil _ _ _) Forall2_dep_nil)
@@ -165,6 +177,7 @@ Definition Forall2_dep_rec A B R R' (P : forall x y a, @Forall2_dep A B R R' x y
       P l l' rs a -> P (x :: l) (y :: l') (Forall2_cons _ _ r rs) (Forall2_dep_cons r' a))
   : forall l l' a (a' : @Forall2_dep A B R R' l l' a), P l l' a a'
   := @Forall2_dep_rect A B R R' P Hn Hc.
+Register Scheme Forall2_dep_rec as rec_dep for Forall2_dep.
 
 Section alli.
   Context {A} (p : nat -> A -> bool).
@@ -1012,6 +1025,7 @@ Qed.
 Inductive OnOne2 {A : Type} (P : A -> A -> Type) : list A -> list A -> Type :=
 | OnOne2_hd hd hd' tl : P hd hd' -> OnOne2 P (hd :: tl) (hd' :: tl)
 | OnOne2_tl hd tl tl' : OnOne2 P tl tl' -> OnOne2 P (hd :: tl) (hd :: tl').
+Scheme All for OnOne2.
 Derive Signature NoConfusion for OnOne2.
 
 Lemma OnOne2_All_mix_left {A} {P : A -> A -> Type} {Q : A -> Type} {l l'} :
@@ -1242,6 +1256,7 @@ Qed.
 Inductive OnOne2i {A : Type} (P : nat -> A -> A -> Type) : nat -> list A -> list A -> Type :=
 | OnOne2i_hd i hd hd' tl : P i hd hd' -> OnOne2i P i (hd :: tl) (hd' :: tl)
 | OnOne2i_tl i hd tl tl' : OnOne2i P (S i) tl tl' -> OnOne2i P i (hd :: tl) (hd :: tl').
+Scheme All for OnOne2i.
 Derive Signature NoConfusion for OnOne2i.
 
 Lemma OnOne2i_All_mix_left {A} {P : nat -> A -> A -> Type} {Q : A -> Type} {i l l'} :
@@ -1416,6 +1431,7 @@ Qed.
 Inductive OnOne2All {A B : Type} (P : B -> A -> A -> Type) : list B -> list A -> list A -> Type :=
 | OnOne2All_hd b bs hd hd' tl : P b hd hd' -> #|bs| = #|tl| -> OnOne2All P (b :: bs) (hd :: tl) (hd' :: tl)
 | OnOne2All_tl b bs hd tl tl' : OnOne2All P bs tl tl' -> OnOne2All P (b :: bs) (hd :: tl) (hd :: tl').
+Scheme All for OnOne2All.
 Derive Signature NoConfusion for OnOne2All.
 
 Lemma OnOne2All_All_mix_left {A B} {P : B -> A -> A -> Type} {Q : A -> Type} {i l l'} :
@@ -3121,13 +3137,12 @@ Section All2i_len.
 
   (** A special notion of All2i indexed by the length of the rest of the lists *)
 
-  Hint Constructors All2i : pcuic.
-
   Inductive All2i_len {A B : Type} (R : nat -> A -> B -> Type) : list A -> list B -> Type :=
     All2i_len_nil : All2i_len R [] []
   | All2i_len_cons : forall (x : A) (y : B) (l : list A) (l' : list B),
-          R (List.length l) x y -> All2i_len R l l' -> All2i_len R (x :: l) (y :: l').
-  Hint Constructors All2i_len : core pcuic.
+      R (List.length l) x y -> All2i_len R l l' -> All2i_len R (x :: l) (y :: l').
+  Scheme All for All2i_len.
+  Hint Constructors All2i_len : core.
 
   Lemma All2i_len_app {A B} (P : nat -> A -> B -> Type) l0 l0' l1 l1' :
     All2i_len P l0' l1' ->
@@ -3519,7 +3534,7 @@ Qed.
 Inductive All_fold {A} (P : list A -> A -> Type) : list A -> Type :=
   | All_fold_nil : All_fold P nil
   | All_fold_cons {d Γ} : All_fold P Γ -> P Γ d -> All_fold P (d :: Γ).
-
+(* Scheme All for All_fold. *)
 Derive Signature NoConfusionHom for All_fold.
 
 Lemma All_fold_tip {A : Type} (P : list A -> A -> Type) {x} : All_fold P [x] -> P [] x.
@@ -3531,7 +3546,7 @@ Inductive All2_fold {A} (P : list A -> list A -> A -> A -> Type)
             : list A -> list A -> Type :=
 | All2_fold_nil : All2_fold P nil nil
 | All2_fold_cons {d d' Γ Γ'} : All2_fold P Γ Γ' -> P Γ Γ' d d' -> All2_fold P (d :: Γ) (d' :: Γ').
-
+Scheme All for All2_fold.
 Derive Signature NoConfusion for All2_fold.
 
 Definition All_over {A B} (P : list B -> list B -> A -> A -> Type) (Γ Γ' : list B) :=
@@ -3862,7 +3877,7 @@ Lemma All2_fold_All_fold_mix {A P Q} {l l' : list A} :
   All_fold Q l' ->
   All2_fold (fun Γ Γ' x y => Q Γ x × Q Γ' y × P Γ Γ' x y) l l'.
 Proof.
-  induction 1; [constructor|] => l r; depelim l; depelim r; constructor; auto.
+  induction 1; [> constructor|intros l r]; depelim l; depelim r; constructor; auto.
 Qed.
 
 Lemma All2_fold_All_fold_mix_inv {A} {P Q} {l l' : list A} :

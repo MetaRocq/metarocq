@@ -63,10 +63,10 @@ Fixpoint depth t : nat :=
   | _ => 1
   end.
 
-Notation context_depth := (context_depth_gen depth).
-Notation list_depth := (list_depth_gen depth).
-Notation mfixpoint_depth := (mfixpoint_depth_gen depth).
-Notation prim_depth := (prim_depth_gen depth).
+Abbreviation context_depth := (context_depth_gen depth).
+Abbreviation list_depth := (list_depth_gen depth).
+Abbreviation mfixpoint_depth := (mfixpoint_depth_gen depth).
+Abbreviation prim_depth := (prim_depth_gen depth).
 
 Lemma depth_mkApps f l : max (depth f) (list_depth l) <= depth (mkApps f l).
 Proof.

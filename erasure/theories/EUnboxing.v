@@ -650,7 +650,7 @@ Module Fast.
 
   End fastunbox.
 
-  Notation unbox' Σ := (unbox Σ []).
+  Abbreviation unbox' Σ := (unbox Σ []).
 
   Definition unbox_constant_decl Σ cb :=
     {| cst_body := option_map (unbox' Σ) cb.(cst_body) |}.

@@ -1691,12 +1691,12 @@ Module SortMapFact := FMapFacts.WProperties SortMap.
 Module SortMapExtraFact := FSets.WFactsExtra_fun Sort.OTOrig SortMap SortMapFact.F.
 Module SortMapDecide := FMapAVL.Decide Sort.OTOrig SortMap.
 
-Notation sProp := Sort.sProp.
-Notation sSProp := Sort.sSProp.
-Notation sType := Sort.sType.
-Notation sort := Sort.t.
+Abbreviation sProp := Sort.sProp.
+Abbreviation sSProp := Sort.sSProp.
+Abbreviation sType := Sort.sType.
+Abbreviation sort := Sort.t.
 
-Notation "⟦ u ⟧_ v" := (Sort.to_csort v u) (at level 0, format "⟦ u ⟧_ v", v name) : univ_scope.
+Notation "⟦ u ⟧_ v" := (Sort.to_csort v u) (at level 1, format "⟦ u ⟧_ v", v name) : univ_scope.
 
 
 Lemma val_sort_sup v s1 s2 :
@@ -2129,11 +2129,11 @@ Definition relevance_of_family (s : Sort.family) :=
 
 #[global] Opaque relevance_of_family.
 
-Notation rel_of_Type := (relevance_of_family Sort.fType).
-Notation relevance_of_sort s := (relevance_of_family (Sort.to_family s)).
+Abbreviation rel_of_Type := (relevance_of_family Sort.fType).
+Abbreviation relevance_of_sort s := (relevance_of_family (Sort.to_family s)).
 
-Notation isSortRel s rel := (relevance_of_sort s = rel).
-Notation isSortRelOpt s relopt :=
+Abbreviation isSortRel s rel := (relevance_of_sort s = rel).
+Abbreviation isSortRelOpt s relopt :=
   (option_default (fun rel => isSortRel s rel) relopt True).
 
 
@@ -2448,8 +2448,6 @@ Section no_prop_leq_type.
     destruct s2; cbn; [ auto | absurd | absurd].
   Qed.
 
-  Hint Resolve leq_sort_prop_no_prop_sub_type : univ_lemmas.
-
   Lemma leq_prop_is_propositonal {s1 s2} :
     prop_sub_type = false ->
     leq_sort ϕ s1 s2 ->
@@ -2479,7 +2477,7 @@ Definition fresh_universe : Universe.t := Universe.make' fresh_level.
 
 Class UnivSubst A := subst_instance : Instance.t -> A -> A.
 
-Notation "x @[ u ]" := (subst_instance u x) (at level 3,
+Notation "x @[ u ]" := (subst_instance u x) (at level 1,
   format "x @[ u ]").
 
 #[global] Instance subst_instance_level : UnivSubst Level.t :=
@@ -2614,6 +2612,7 @@ Section UniverseClosedSubst.
 
 End UniverseClosedSubst.
 
+Create HintDb substu.
 #[global]
 Hint Resolve closedu_subst_instance_level closedu_subst_instance_level_expr
      closedu_subst_instance_univ closedu_subst_instance : substu.

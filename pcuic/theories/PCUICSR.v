@@ -1146,8 +1146,8 @@ Proof.
   firstorder auto.
 Qed.
 
-Local Notation welltyped Σ Γ t := (∑ T, Σ ;;; Γ |- t : T).
-Local Notation welltyped_terms Σ Γ := (All (fun t => welltyped Σ Γ t)).
+Local Abbreviation welltyped Σ Γ t := (∑ T, Σ ;;; Γ |- t : T).
+Local Abbreviation welltyped_terms Σ Γ := (All (fun t => welltyped Σ Γ t)).
 
 Lemma spine_subst_wt_terms {cf} {Σ Γ inst s Δ} : spine_subst Σ Γ inst s Δ ->
   welltyped_terms Σ Γ inst.

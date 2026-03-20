@@ -122,7 +122,7 @@ Proof.
  - econstructor. constructor.
  - destruct a as [na [b|] ty]; cbn.
    + constructor. intros ass; depelim ass.
-   + elim: IHΓ; constructor; pcuic. now constructor.
+   + elim: IHΓ; constructor; pcuic.
      apply n; now depelim H.
 Qed.
 
@@ -1885,8 +1885,8 @@ Definition cf' cf :=
      indices_matter := cf.(@indices_matter);
      lets_in_constructor_types := false |}.
 
-Notation wf_trans Σ := (@wf (cf' _) (trans_global_env Σ.1)).
-Notation wf_ext_trans Σ := (@wf_ext (cf' _) (trans_global Σ)).
+Abbreviation wf_trans Σ := (@wf (cf' _) (trans_global_env Σ.1)).
+Abbreviation wf_ext_trans Σ := (@wf_ext (cf' _) (trans_global Σ)).
 
 Lemma trans_red1 {cf} (Σ : global_env_ext) {wfΣ : wf Σ} {wfΣ' : wf_trans Σ} Γ T U :
   red1 Σ Γ T U ->

@@ -178,7 +178,9 @@ Module GoodConstraint.
     | gc_le_var_set n k, gc_le_var_set n' k' =>
       compare_cont (Nat.compare n n') (Nat.compare k k')
     end.
-  Infix "?=" := compare.
+
+
+  Infix "?=" := compare (at level 70).
 
   Lemma compare_sym (a b : t):
     compare b a = CompOpp (compare a b).
@@ -221,7 +223,7 @@ Module GoodConstraint.
       eauto using VariableLevel.compare_trans, VariableLevel.compare_eq, Z.compare_eq, Z_compare_trans.
   Qed.
 
-  Lemma compare_eq (x y : t) : x ?= y = Datatypes.Eq -> x = y.
+  Lemma compare_eq (x y : t) : (x ?= y) = Datatypes.Eq -> x = y.
   Proof.
     destruct x, y; cbn => //.
     destruct (VariableLevel.compare t0 t2) eqn:e => /= //.
@@ -239,13 +241,13 @@ Module GoodConstraint.
     destruct (Nat.compare_spec n0 n2) => /= //; subst => //.
   Qed.
 
-  Lemma compare_refl (x : t) : x ?= x = Datatypes.Eq.
+  Lemma compare_refl (x : t) : (x ?= x) = Datatypes.Eq.
   Proof.
     destruct x => /= //;
     rewrite ?VariableLevel.compare_refl /= ?Z.compare_refl /= ?Nat.compare_refl ?string_compare_eq //.
   Qed.
 
-  Definition lt (x y : t) := (x ?= y = Datatypes.Lt).
+  Definition lt (x y : t) := (x ?= y) = Datatypes.Lt.
   Lemma lt_trans (x y z : t) : lt x y -> lt y z -> lt x z.
   Proof. apply compare_trans. Qed.
   Lemma lt_not_eq (x y : t) : lt x y -> ~ eq x y.
@@ -285,7 +287,7 @@ Module GoodConstraint.
 
 End GoodConstraint.
 
-Notation gc_satisfies0 := GoodConstraint.satisfies.
+Abbreviation gc_satisfies0 := GoodConstraint.satisfies.
 
 Module GoodConstraintSet := Make GoodConstraint.
 Module GoodConstraintSetFact := WFactsOn GoodConstraint GoodConstraintSet.
@@ -658,9 +660,9 @@ End GC.
 
 Module Import wGraph := WeightedGraph Level LevelSet.
 Module VSet := LevelSet.
-Local Notation lzero := Level.lzero.
+Local Abbreviation lzero := Level.lzero.
 (* vtn = variable to noprop *)
-Local Notation vtn := VariableLevel.to_noprop.
+Local Abbreviation vtn := VariableLevel.to_noprop.
 
 Definition universes_graph := t.
 Definition init_graph : universes_graph
@@ -1136,12 +1138,12 @@ Definition Equal_graph :=
   LevelSet.Equal G.1.1 G'.1.1 /\
   wGraph.EdgeSet.Equal G.1.2 G'.1.2 /\ Level.eq G.2 G'.2.
 
-Notation "'(=_g)'" := Equal_graph (at level 30).
+Notation "(=_g)" := Equal_graph (at level 0).
 Infix "=_g" := Equal_graph (at level 30).
 
-Global Instance: RelationClasses.RewriteRelation ((=_g)) := {}.
+Global Instance: RelationClasses.RewriteRelation (=_g) := {}.
 
-Global Instance equal_graph_equiv : RelationClasses.Equivalence ((=_g)).
+Global Instance equal_graph_equiv : RelationClasses.Equivalence (=_g).
 Proof. split; unfold Equal_graph.
   - intros [[vs es] s]; cbn. intuition reflexivity.
   - intros [[vs es] s] [[vs' es'] s']; cbn.

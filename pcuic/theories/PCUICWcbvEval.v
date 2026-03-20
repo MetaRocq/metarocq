@@ -456,9 +456,10 @@ Section Wcbv.
     induction ev; constructor. eapply aux. exact IHev.
     eapply aux.
   Qed.
+  Register Scheme eval_rect as rect_dep for eval.
 
   Definition eval_ind (P : forall t t0 : term, eval t t0 -> Prop) := eval_rect P.
-
+  Register Scheme eval_ind as ind_dep for eval.
   (** Characterization of values for this reduction relation.
       Only constructors and cofixpoints can accumulate arguments.
       All other values are atoms and cannot have arguments:
@@ -491,11 +492,11 @@ Section Wcbv.
       primitive_value value (prim_array a).
    Derive Signature NoConfusion for primitive_value.
 
-  Variant atomic_value (value : term -> Type) : term -> Type :=
-  | atomic_atom t : atom t -> atomic_value value t
-  | atomic_primitive p : primitive_value value p -> atomic_value value (tPrim p).
-  Derive Signature NoConfusion for atomic_value.
-  Hint Constructors atomic_value : core.
+   Variant atomic_value (value : term -> Type) : term -> Type :=
+     | atomic_atom t : atom t -> atomic_value value t
+     | atomic_primitive p : primitive_value value p -> atomic_value value (tPrim p).
+   Derive Signature NoConfusion for atomic_value.
+   Hint Constructors atomic_value : core.
 
    Inductive value : term -> Type :=
    | value_atomic t : atomic_value value t -> value t
@@ -1071,6 +1072,8 @@ Section Wcbv.
   Qed.
 
   Unset SsrRewrite.
+  Register Scheme eval_ind as ind_dep for eval.
+  Register Scheme eval_rect as rect_dep for eval.
   Lemma eval_unique_sig {t v v'} :
     forall (ev1 : eval t v) (ev2 : eval t v'),
       {| pr1 := v; pr2 := ev1 |} = {| pr1 := v'; pr2 := ev2 |}.
@@ -1268,6 +1271,8 @@ Section Wcbv.
 
 End Wcbv.
 
+Register Scheme eval_ind as ind_dep for eval.
+Register Scheme eval_rect as rect_dep for eval.
 Arguments eval_unique_sig {_ _ _ _}.
 Arguments eval_deterministic {_ _ _ _}.
 Arguments eval_unique {_ _ _}.

@@ -8,9 +8,9 @@ Ltac Tauto.intuition_solver ::= auto with *.
 
 Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec : TermDecide T) (Import EDec : EnvironmentDecide T E).
 
-  Local Notation extendsb_decls_part Σ Σ'
+  Local Abbreviation extendsb_decls_part Σ Σ'
     := (forallb (fun d => let c := d.1 in skipn (#|lookup_envs Σ' c| - #|lookup_envs Σ c|) (lookup_envs Σ' c) == lookup_envs Σ c) (declarations Σ)) (only parsing).
-  Local Notation strictly_extendsb_decls_part Σ Σ'
+  Local Abbreviation strictly_extendsb_decls_part Σ Σ'
     := (skipn (#|Σ'.(declarations)| - #|Σ.(declarations)|) Σ'.(declarations) == Σ.(declarations)) (only parsing).
 
   Lemma extends_decls_partT (Σ Σ' : global_env)

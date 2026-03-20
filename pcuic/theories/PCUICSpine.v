@@ -25,14 +25,14 @@ Implicit Types (cf : checker_flags) (Σ : global_env_ext).
 
 Derive Signature for ctx_inst.
 
-Notation ctx_inst Σ := (ctx_inst (typing Σ)).
+Abbreviation ctx_inst Σ := (ctx_inst (typing Σ)).
 
 Ltac splits := repeat split.
 
-Notation spnil isty isty' w := (type_spine_nil _ isty isty' w).
+Abbreviation spnil isty isty' w := (type_spine_nil _ isty isty' w).
 Arguments type_spine_cons {cf Σ Γ ty hd tl na A B B'} : rename.
 
-Notation spcons isty isty' w tyhd sp := (@type_spine_cons _ _ _ _ _ _ _ _ _ _ isty isty' w tyhd sp).
+Abbreviation spcons isty isty' w tyhd sp := (@type_spine_cons _ _ _ _ _ _ _ _ _ _ isty isty' w tyhd sp).
 
 Lemma typing_spine_eq {cf:checker_flags} Σ Γ ty s s' ty' :
   s = s' ->

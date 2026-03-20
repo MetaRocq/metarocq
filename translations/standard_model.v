@@ -26,7 +26,7 @@ Fixpoint kproj (k : nat) (t : term) :=
   | S k => kproj k (proj1 t)
   end.
 
-Notation app0 := (fun t => subst_app t [tRel 0]).
+Abbreviation app0 := (fun t => subst_app t [tRel 0]).
 
 
 

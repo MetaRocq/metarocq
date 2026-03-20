@@ -10,14 +10,17 @@ Notation "p .1" := (fst p) : pair_scope.
 Notation "p .2" := (snd p) : pair_scope.
 Open Scope pair_scope.
 
-Notation "x × y" := (prod x y ) (at level 80, right associativity).
+Notation "x × y" := (prod x y) (at level 80, right associativity).
+
+(* Scheme All for prod. *)
+(* Scheme All for and. *)
 
 (* transparent version of [proj1], [proj2] *)
 Definition proj1 {A B} (x : A /\ B) : A := let (a, b) := x in a.
 Definition proj2 {A B} (x : A /\ B) : B := let (a, b) := x in b.
 
-Notation "p .p1" := (proj1 p) (at level 2, left associativity, format "p .p1").
-Notation "p .p2" := (proj2 p) (at level 2, left associativity, format "p .p2").
+Notation "p .p1" := (proj1 p) (at level 1, left associativity, format "p .p1").
+Notation "p .p2" := (proj2 p) (at level 1, left associativity, format "p .p2").
 
 Definition on_snd {A B C} (f : B -> C) (p : A * B) :=
   (fst p, f (snd p)).

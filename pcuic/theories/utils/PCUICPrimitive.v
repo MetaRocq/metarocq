@@ -11,6 +11,7 @@ Record array_model {term : Type} :=
     array_type : term;
     array_default : term;
     array_value : list term }.
+(* Scheme All for array_model. *)
 Derive NoConfusion for array_model.
 
 Arguments array_model : clear implicits.
@@ -27,7 +28,7 @@ Inductive prim_model (term : Type) : prim_tag -> Type :=
 | primFloatModel (f : PrimFloat.float) : prim_model term primFloat
 | primStringModel (s : PrimString.string) : prim_model term primString
 | primArrayModel (a : array_model term) : prim_model term primArray.
-
+(* Scheme All for prim_model. *)
 Arguments primIntModel {term}.
 Arguments primFloatModel {term}.
 Arguments primStringModel {term}.
@@ -187,6 +188,7 @@ Inductive onPrim {term} (P : term -> Prop) : prim_val term -> Prop :=
     P a.(array_type) ->
     All P a.(array_value) ->
     onPrim P (primArray; primArrayModel a).
+(* Scheme All for onPrim. *)
 Derive Signature for onPrim.
 
 Inductive onPrims {term} (eq_term : term -> term -> Type) Re : prim_val term -> prim_val term -> Type :=
@@ -199,6 +201,7 @@ Inductive onPrims {term} (eq_term : term -> term -> Type) Re : prim_val term -> 
     eq_term a.(array_type) a'.(array_type) ->
     All2 eq_term a.(array_value) a'.(array_value) ->
     onPrims eq_term Re (primArray; primArrayModel a) (primArray; primArrayModel a').
+(* Scheme All for onPrims. *)
 Derive Signature NoConfusion for onPrims.
 
 Definition tPrimProp {term} (P : term -> Type) (p : PCUICPrimitive.prim_val term) : Type :=
@@ -244,8 +247,8 @@ Equations mapu_prim {term term'} (f : Level.t -> Level.t) (g : term -> term')
 | f, g, (primArray; primArrayModel ar) =>
   (primArray; primArrayModel (mapu_array_model f g ar)).
 
-Notation map_array_model := (mapu_array_model id).
-Notation map_prim := (mapu_prim id).
+Abbreviation map_array_model := (mapu_array_model id).
+Abbreviation map_prim := (mapu_prim id).
 
 Equations test_prim {term} (p : term -> bool) (p : prim_val term) : bool :=
 | p, (primInt; _) => true

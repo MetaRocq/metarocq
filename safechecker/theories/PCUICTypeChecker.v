@@ -272,8 +272,8 @@ Section Typecheck.
   Ltac specialize_Σ wfΣ :=
     repeat match goal with | h : _ |- _ => specialize (h _ wfΣ) end.
 
-  Local Notation ret := Checked_comp (only parsing).
-  Local Notation raise := (fun e => TypeError_comp e _) (only parsing).
+  Local Abbreviation ret := Checked_comp (only parsing).
+  Local Abbreviation raise := (fun e => TypeError_comp e _) (only parsing).
 
   Local Notation "x <- c1 ;; c2" := (
     match c1 with
@@ -289,7 +289,7 @@ Section Typecheck.
   (* We get stack overflow on Qed after Equations definitions when this is transparent *)
   Opaque reduce_stack_full.
 
-  Notation hnf := (hnf (X := X)).
+  Abbreviation hnf := (hnf (X := X)).
 
   Definition conv_pb_relb_gen_proper {T} pb equ equ' eqlu eqlu' :
   (forall u u', equ u u' = equ' u u') ->
@@ -442,7 +442,7 @@ Section Typecheck.
       eapply type_reduction; eauto. exact r.
     Qed. *)
 
-    Local Notation check_eq_true b e :=
+    Local Abbreviation check_eq_true b e :=
       (if b as b' return (typing_result_comp (is_true b')) then ret eq_refl else raise e).
 
     Equations check_eq {A : Type} {RE : ReflectEq A} (a b : A) (e : type_error) : typing_result_comp (a = b) :=
@@ -1140,7 +1140,7 @@ Section Typecheck.
     eapply abstract_env_compare_sort_correct with (conv_pb := Conv); eauto using wf_sort_type0.
   Qed.
 
-  Notation wt_brs Γ ci mdecl idecl p ptm ctors brs n :=
+  Abbreviation wt_brs Γ ci mdecl idecl p ptm ctors brs n :=
     (forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ All2i (fun i cdecl br =>
       let brctxty := case_branch_type ci.(ci_ind) mdecl idecl p br ptm i cdecl in
       eq_context_upto_names br.(bcontext) (cstr_branch_context ci mdecl cdecl) ×
@@ -1370,7 +1370,7 @@ Section Typecheck.
 
   End check_mfix.
 
-  Local Notation check_eq_true b e :=
+  Local Abbreviation check_eq_true b e :=
     (if b as b' return (typing_result_comp (is_true b')) then ret eq_refl else raise e).
 
   Equations? check_primitive_invariants (p : prim_tag) (decl : constant_body) : typing_result_comp (primitive_invariants p decl) :=

@@ -8,8 +8,8 @@ Import MonadNotation.
 
 Definition bigint : PrimInt63.int := 542985047%int63.
 
-Notation eval_hnf := (tmEval hnf).
-Notation eval := (tmEval all).
+Abbreviation eval_hnf := (tmEval hnf).
+Abbreviation eval := (tmEval all).
 
 MetaRocq Run (eval_hnf bigint >>=
             (fun x => tmQuote (x + 1)%int63) >>=

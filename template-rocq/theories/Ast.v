@@ -44,6 +44,7 @@ Record predicate {term} := mk_predicate {
                           binder is first). Types are obtained from inductive declaration.
                           Also used for lifting/substitution for the return type. *)
   preturn : term; (* The return type *) }.
+(* Scheme All for predicate. *)
 
 Arguments predicate : clear implicits.
 Arguments mk_predicate {_}.
@@ -159,7 +160,7 @@ Proof.
   apply map_predicate_eq_spec; auto.
 Qed.
 
-Notation shiftf f k := (fun k' => f (k' + k)).
+Abbreviation shiftf f k := (fun k' => f (k' + k)).
 
 Section map_predicate_k.
   Context {term : Type}.
@@ -220,6 +221,7 @@ Section Branch.
     bodyf b.(bbody).
 End Branch.
 Arguments branch : clear implicits.
+(* Scheme All for branch. *)
 
 Section map_branch.
   Context {term term' : Type}.
@@ -292,10 +294,10 @@ Definition map_branches {term B} (f : term -> B) l := List.map (map_branch f) l.
 Definition tCaseBrsProp {A} (P : A -> Type) (l : list (branch A)) :=
   All (fun x => P (bbody x)) l.
 
-Notation map_branches_k f k brs :=
+Abbreviation map_branches_k f k brs :=
   (List.map (fun b => map_branch (f (#|b.(bcontext)| + k)) b) brs).
 
-Notation test_branches_k test k brs :=
+Abbreviation test_branches_k test k brs :=
   (List.forallb (fun b => test_branch (test (#|b.(bcontext)| + k)) b) brs).
 
 Lemma map_branches_k_map_branches_k
@@ -464,7 +466,7 @@ Fixpoint lift n k t : term :=
   | x => x
   end.
 
-Notation lift0 n := (lift n 0).
+Abbreviation lift0 n := (lift n 0).
 
 (** Parallel substitution: it assumes that all terms in the substitution live in the
     same context *)
@@ -504,9 +506,10 @@ Fixpoint subst s k u :=
   end.
 
 (** Substitutes [t1 ; .. ; tn] in u for [Rel 0; .. Rel (n-1)] *in parallel* *)
-Notation subst0 t := (subst t 0).
+Abbreviation subst0 t := (subst t 0).
 Definition subst1 t k u := subst [t] k u.
-Notation subst10 t := (subst1 t 0).
+Abbreviation subst10 t := (subst1 t 0).
+Set Warnings "-postfix-notation-not-level-1".
 Notation "M { j := N }" := (subst1 N j M) (at level 10, right associativity).
 
 Fixpoint closedn k (t : term) : bool :=
@@ -534,7 +537,7 @@ Fixpoint closedn k (t : term) : bool :=
   | _ => true
   end.
 
-Notation closed t := (closedn 0 t).
+Abbreviation closed t := (closedn 0 t).
 
 Fixpoint noccur_between k n (t : term) : bool :=
   match t with

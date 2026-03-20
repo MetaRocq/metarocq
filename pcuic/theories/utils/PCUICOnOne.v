@@ -10,7 +10,7 @@ From Equations Require Import Equations.
 Set Equations Transparent.
 Set Default Goal Selector "!".
 
-Notation rtrans_clos := clos_refl_trans_n1.
+Abbreviation rtrans_clos := clos_refl_trans_n1.
 
 Lemma All2_many_OnOne2 :
   forall A (R : A -> A -> Type) l l',
@@ -91,7 +91,7 @@ Definition on_one_decl (P : term -> term -> Type)
   | _, _ => False
   end.
 
-Notation on_one_decl1 P Γ := (on_one_decl (P Γ)).
+Abbreviation on_one_decl1 P Γ := (on_one_decl (P Γ)).
 
 Lemma on_one_decl_impl (P Q : term -> term -> Type) :
   (inclusion P Q) ->

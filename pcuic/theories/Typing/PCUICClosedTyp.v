@@ -238,7 +238,7 @@ Proof.
       { now rewrite ind_predicate_context_length. }
     + clear H9. solve_all. unfold test_branch_k. clear H7. solve_all.
       * rewrite (closedn_ctx_alpha a1).
-        eapply closed_cstr_branch_context_gen in X0; tea.
+        unshelve eapply closed_cstr_branch_context_gen in X0; tea. exact ci.
         rewrite (wf_predicate_length_pars H1).
         now rewrite (declared_minductive_ind_npars isdecl).
       * rewrite (All2_length a1).
@@ -714,9 +714,6 @@ Proof.
   now eapply declared_projection_closed in decl.
 Qed.
 
-
-#[global] Hint Unfold inst_case_branch_context : len.
-
 (** This shows preservation by reduction of closed/noccur_between predicates
   necessary to prove exchange and strengthening lemmas. *)
 Lemma red1_on_free_vars {cf:checker_flags} {P : nat -> bool} {Σ Γ u v} {wfΣ : wf Σ} :
@@ -1014,7 +1011,7 @@ Proof.
     split.
     * revert clpars. generalize (pparams p).
       fix auxl' 1.
-      case => [|t' ts] /= //; cbn => /andP[] Ht' Hts; constructor; [apply auxt|apply auxl'] => //.
+      case => [|t' ts] /= //; cbn => /andP[] Ht' Hts; (constructor; [apply auxt|apply auxl']) => //.
     * split; [|now apply auxt].
       move: clctx.
       clear -auxt.

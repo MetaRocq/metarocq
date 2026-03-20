@@ -2,12 +2,18 @@ From Stdlib Require Import Ascii String ZArith Lia Morphisms.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
+(* We are not using the nested eliminators yet. Need quotation to support sort polymorphism to enable them first *)
+#[export] Set Warnings "-register-all".
+
 (* Do not change, [ascii_dec] and [string_dec] are extracted specifically *)
 Global Instance ascii_eqdec : EqDec ascii := ascii_dec.
 Global Instance string_eqdec : EqDec string := string_dec.
 
 Derive NoConfusion for ascii string.
 Derive NoConfusion EqDec for positive Z.
+
+(* Scheme All for sigT. *)
+Register Scheme ex_rect as rect_dep for ex.
 
 Declare Scope metarocq_scope.
 
@@ -32,13 +38,13 @@ Notation "( x ; y ; z )" := (x ; ( y ; z)).
 Notation "( x ; y ; z ; t )" := (x ; ( y ; (z ; t))).
 Notation "( x ; y ; z ; t ; u )" := (x ; ( y ; (z ; (t ; u)))).
 Notation "( x ; y ; z ; t ; u ; v )" := (x ; ( y ; (z ; (t ; (u ; v))))).
-Notation "x .π1" := (@projT1 _ _ x) (at level 3, format "x '.π1'").
-Notation "x .π2" := (@projT2 _ _ x) (at level 3, format "x '.π2'").
+Notation "x .π1" := (@projT1 _ _ x) (at level 1, format "x '.π1'").
+Notation "x .π2" := (@projT2 _ _ x) (at level 1, format "x '.π2'").
 
 (** Shorthand for pointwise equality relation in Proper signatures *)
-Notation "`=1`" := (pointwise_relation _ Logic.eq) (at level 80).
+Notation "`=1`" := (pointwise_relation _ Logic.eq) (at level 0).
 Infix "=1" := (pointwise_relation _ Logic.eq) (at level 70) : type_scope.
-Notation "`=2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 80).
+Notation "`=2`" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 0).
 Infix "=2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level 70) : type_scope.
 
 (** Higher-order lemma to simplify Proper proofs. *)
@@ -77,6 +83,7 @@ Create HintDb terms.
 Ltac len := autorewrite with len; cbn.
 Tactic Notation "len" "in" hyp(cl) := autorewrite with len in cl.
 
+Create Rewrite HintDb len.
 #[global] Hint Rewrite Nat.add_0_r : len.
 
 Ltac arith_congr := repeat (try lia; progress f_equal).

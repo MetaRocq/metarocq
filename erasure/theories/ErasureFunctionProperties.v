@@ -25,7 +25,7 @@ Implicit Types (cf : checker_flags).
 #[local] Existing Instance extraction_normalizing.
 #[local] Existing Instance extraction_checker_flags.
 
-Notation alpha_eq := (All2 (PCUICEquality.compare_decls eq eq)).
+Abbreviation alpha_eq := (All2 (PCUICEquality.compare_decls eq eq)).
 
 Definition global_erased_with_deps (Σ : global_env) (Σ' : EAst.global_declarations) kn :=
   (exists cst, declared_constant Σ kn cst /\
@@ -2329,7 +2329,7 @@ Proof.
 Qed.
 
 (* we use the [match] trick to get typeclass resolution to pick up the right instances without leaving any evidence in the resulting term, and without having to pass them manually everywhere *)
-Notation NormalizationIn_erase_global_deps_fast X decls
+Abbreviation NormalizationIn_erase_global_deps_fast X decls
   := (match extraction_checker_flags, extraction_normalizing return _ with
       | cf, no
         => forall n,

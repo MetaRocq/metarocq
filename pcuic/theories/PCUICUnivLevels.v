@@ -75,7 +75,7 @@ Definition fresh_levels global_levels levels :=
       declared_constraints_levels all_levels (constraints_of_udecl udecl).
   Proof. reflexivity. Qed.
 
-  Notation levels_of_list := LevelSetProp.of_list.
+  Abbreviation levels_of_list := LevelSetProp.of_list.
 
   Lemma levels_of_list_app l l' :
     levels_of_list (l ++ l') =

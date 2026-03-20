@@ -50,7 +50,7 @@ Hint Extern 10 (@eq nat _ _) => lia : terms.
 
 Ltac easy ::= easy0 || solve [intuition eauto 3 with core terms].
 
-Notation subst_rec N M k := (subst N k M) (only parsing).
+Abbreviation subst_rec N M k := (subst N k M) (only parsing).
 
 From Stdlib Require Import PeanoNat.
 Import Nat.

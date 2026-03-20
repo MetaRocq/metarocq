@@ -2,7 +2,7 @@ From MetaRocq Require Import Template.Loader.
 
 Local Open Scope string_scope.
 
-Notation test := (let x := 2 in x).
+Abbreviation test := (let x := 2 in x).
 
 MetaRocq Quote Definition letin_syntax := test.
 

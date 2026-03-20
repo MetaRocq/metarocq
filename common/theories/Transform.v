@@ -24,8 +24,8 @@ Module Transform.
      Context {env env' : Type}.
      Context {term term' : Type}.
      Context {value value' : Type}.
-     Notation program' := (program env' term').
-     Notation program := (program env term).
+     Abbreviation program' := (program env' term').
+     Abbreviation program := (program env term).
      Context {eval :  program -> value -> Prop}.
      Context {eval' : program' -> value' -> Prop}.
 

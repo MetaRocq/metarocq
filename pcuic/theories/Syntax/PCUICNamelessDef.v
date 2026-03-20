@@ -60,7 +60,7 @@ Fixpoint nameless (t : term) : bool :=
   | tPrim p => test_prim nameless p
   end.
 
-Notation nameless_ctx := (forallb (nameless_decl nameless)).
+Abbreviation nameless_ctx := (forallb (nameless_decl nameless)).
 
 Definition anonymize (b : binder_annot name) : binder_annot name :=
   map_binder_annot (fun _ => nAnon) b.

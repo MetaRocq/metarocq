@@ -74,7 +74,7 @@ Definition eqb_decl_upto_names (d d' : context_decl) : bool :=
   | _, _ => false
   end.
 
-Notation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
+Abbreviation eqb_context_upto_names := (forallb2 eqb_decl_upto_names).
 
 Fixpoint eqb_term_upto_univ_napp
   (cmpu : conv_pb -> Universe.t -> Universe.t -> bool)
@@ -169,7 +169,7 @@ Fixpoint eqb_term_upto_univ_napp
   | _, _ => false
   end.
 
-Notation eqb_term_upto_univ cmpu cmps gen_compare_global_instance pb :=
+Abbreviation eqb_term_upto_univ cmpu cmps gen_compare_global_instance pb :=
   (eqb_term_upto_univ_napp cmpu cmps gen_compare_global_instance pb 0).
 
 Definition conv_pb_relb_gen {T} (eq leq : T -> T -> bool) pb :=
@@ -710,7 +710,7 @@ Definition eqb_decl_gen eqb_term pb (d d' : context_decl) : bool :=
   | _, _ => false
   end.
 
-Notation eqb_context_gen eqb_term pb := (forallb2 (eqb_decl_gen eqb_term pb)).
+Abbreviation eqb_context_gen eqb_term pb := (forallb2 (eqb_decl_gen eqb_term pb)).
 
 Definition eqb_ctx_upto cmpu cmps gen_compare_global_instance pb : context -> context -> bool :=
   eqb_context_gen (fun pb => eqb_term_upto_univ cmpu cmps gen_compare_global_instance pb) pb.
@@ -1071,7 +1071,7 @@ Section EqualityDecGen.
     now eapply (reflect_eqb_termp_napp Cumul).
   Qed.
 
-  Notation eq_term Σ t u := (eq_term Σ Σ t u).
+  Abbreviation eq_term Σ t u := (eq_term Σ Σ t u).
 
   Lemma reflect_eq_term leqb_level_n_gen
   (leqb_correct : leqb_level_n_spec_gen uctx' leqb_level_n_gen) t u :
