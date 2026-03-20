@@ -17,18 +17,16 @@ let pr_string l =
 
 let check ~opaque_access env evm poly (c, ustate) =
   debug (fun () -> str"Quoting");
-  let env = if poly then env else
-    let (qs, us), (qcst, ucst) = Evd.sort_context_set evm in
-    Environ.push_context_set ~strict:true (us, ucst) @@
-    Environ.push_qualities ~rigid:true (qs, qcst) env
-  in
   let prog = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:true ~opaque_access ~with_universes:true env evm) (EConstr.to_constr evm c) in
-  let uctx =
+  let env, uctx =
     if poly then
       let uctx = Evd.to_universe_context evm in
       let inst, auctx = UVars.abstract_universes uctx in
-      Ast_quoter.mkPolymorphic_ctx (Ast_quoter.quote_abstract_univ_context auctx)
-    else Ast_quoter.mkMonomorphic_ctx ()
+      env, Ast_quoter.mkPolymorphic_ctx (Ast_quoter.quote_abstract_univ_context auctx)
+    else
+      let env = Environ.set_qualities (Evd.elim_graph evm) env in
+      let env = Environ.set_universes (Evd.universes evm) env in
+      env, Ast_quoter.mkMonomorphic_ctx ()
   in
   let check =
     time (str"Checking")
