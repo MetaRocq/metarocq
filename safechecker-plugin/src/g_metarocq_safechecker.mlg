@@ -15,7 +15,7 @@ let pr_string l =
   (* We allow utf8 encoding *)
   str (caml_string_of_bytestring l)
 
-let check ~opaque_access env evm poly (c, ustate) =
+let check ~opaque_access env evm poly ~allow_eta (c, ustate) =
   debug (fun () -> str"Quoting");
   let env = if poly then env else
     let (qs, us), (qcst, ucst) = Evd.sort_context_set evm in
@@ -33,7 +33,7 @@ let check ~opaque_access env evm poly (c, ustate) =
   let check =
     time (str"Checking")
       (Extraction.infer_and_print_template_program_with_guard
-        Config0.default_checker_flags
+         Config0.{ default_checker_flags with with_eta = allow_eta }
         (* Config0.type_in_type *)
          prog)
       uctx
@@ -44,11 +44,17 @@ let check ~opaque_access env evm poly (c, ustate) =
 }
 
 VERNAC COMMAND EXTEND MetaRocqSafeCheck CLASSIFIED AS QUERY STATE opaque_access
-| #[ poly = polymorphic ] [ "MetaRocq" "SafeCheck" constr(c) ] -> {
+| #[ poly = polymorphic ] [ "MetaRocq" "SafeCheck"  constr(c) ] -> {
     let env = Global.env () in
     let evm = Evd.from_env env in
     let c = Constrintern.interp_constr env evm c in
-    check env evm poly c
+    check env evm poly ~allow_eta:false c
+  }
+| #[ poly = polymorphic ] [ "MetaRocq" "UnsafeCheck" constr(c) ] -> {
+    let env = Global.env () in
+    let evm = Evd.from_env env in
+    let c = Constrintern.interp_constr env evm c in
+    check env evm poly ~allow_eta:true c
   }
 END
 
