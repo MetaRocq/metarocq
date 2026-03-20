@@ -186,8 +186,8 @@ Section PrimModel.
     | primArrayModel a => fold_left f a.(array_value) (f acc a.(array_default))
     end.
 End PrimModel.
-Scheme All for array_model.
-Scheme All for prim_model.
+(* Scheme All for array_model. *)
+(* Scheme All for prim_model. *)
 Arguments array_model : clear implicits.
 Arguments prim_val : clear implicits.
 
@@ -521,5 +521,5 @@ Section onPrims.
 
 End onPrims.
 
-Scheme All for onPrims.
-Scheme All for onPrims_dep.
+(* Scheme All for onPrims. *)
+(* Scheme All for onPrims_dep. *)

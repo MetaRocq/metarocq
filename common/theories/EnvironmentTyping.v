@@ -683,7 +683,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
 
   Derive Signature NoConfusion for All_local_env.
   End TypeLocal.
-  Scheme All for All_local_env.
+  (* Scheme All for All_local_env. *)
   Arguments localenv_nil {_}.
   Arguments localenv_cons_def {_ _ _ _ _} _ _.
   Arguments localenv_cons_abs {_ _ _ _} _ _.
@@ -948,7 +948,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
                               (localenv_cons_def all tu).
 
   End TypeLocalOver.
-  Scheme All for All_local_env_over_sorting.
+  (* Scheme All for All_local_env_over_sorting. *)
   Derive Signature for All_local_env_over_sorting.
 
   Definition All_local_env_over typing property :=
@@ -1020,7 +1020,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
         ctx_inst Γ inst (vdef na b t :: Δ).
     Derive Signature NoConfusion for ctx_inst.
   End TypeCtxInst.
-  Scheme All for ctx_inst.
+  (* Scheme All for ctx_inst. *)
 
   Lemma ctx_inst_impl_gen Γ inst Δ args P :
     { P' & ctx_inst P' Γ inst Δ } ->
@@ -1204,7 +1204,7 @@ Module Conversion (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : E
     of cumulativity is useless *)
     (eqt : P pb t t') :
     All_decls_alpha_pb (vdef na b t) (vdef na' b' t').
-  Scheme All for All_decls_alpha_pb.
+  (* Scheme All for All_decls_alpha_pb. *)
   Derive Signature NoConfusion for All_decls_alpha_pb.
 
   Arguments All_decls_alpha_pb pb P : clear implicits.

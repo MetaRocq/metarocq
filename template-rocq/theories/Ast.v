@@ -44,7 +44,7 @@ Record predicate {term} := mk_predicate {
                           binder is first). Types are obtained from inductive declaration.
                           Also used for lifting/substitution for the return type. *)
   preturn : term; (* The return type *) }.
-Scheme All for predicate.
+(* Scheme All for predicate. *)
 
 Arguments predicate : clear implicits.
 Arguments mk_predicate {_}.
@@ -221,7 +221,7 @@ Section Branch.
     bodyf b.(bbody).
 End Branch.
 Arguments branch : clear implicits.
-Scheme All for branch.
+(* Scheme All for branch. *)
 
 Section map_branch.
   Context {term term' : Type}.

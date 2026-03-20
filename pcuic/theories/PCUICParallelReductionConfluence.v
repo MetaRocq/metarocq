@@ -223,7 +223,7 @@ Section Pred1_inversion.
     induction pred; intros; solve_discr.
     - unfold unfold_fix in e.
       red in a1.
-      clear X X1.
+      clear X.
       eapply All2_nth_error_Some in a1; eauto.
       destruct a1 as [t' [ht' [hds [hr [= eqna eqrarg]]]]].
       rewrite ht' in e => //. noconf e. rewrite -eqrarg in e0.
@@ -258,7 +258,7 @@ Section Pred1_inversion.
     intros pred. revert mfix0 mfix1 idx0 args0 d Hnth Hisc idx1 args1 Heqfixt Heqfixt'.
     induction pred; intros; solve_discr.
     - (* Not reducible *)
-      clear X X1; red in a1. eapply All2_nth_error_Some in a1; eauto.
+      clear X; red in a1. eapply All2_nth_error_Some in a1; eauto.
       destruct a1 as [t' [Hnth' [Hty [Hpred Hann]]]].
       unfold unfold_fix in e. destruct (nth_error mfix1 idx) eqn:hfix1.
       noconf e. noconf Hnth'.

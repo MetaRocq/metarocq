@@ -1,7 +1,7 @@
 From Stdlib Require Import List ssreflect ssrbool Arith Morphisms Relation_Definitions.
 
 From MetaRocq.Utils Require Import MRPrelude MRList MRProd MRReflect ReflectEq.
-Scheme All for option.
+(* Scheme All for option. *)
 
 Definition option_get {A} (default : A) (x : option A) : A
   := match x with

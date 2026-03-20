@@ -2,6 +2,9 @@ From Stdlib Require Import Ascii String ZArith Lia Morphisms.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
+(* We are not using the nested eliminators yet. Need quotation to support sort polymorphism to enable them first *)
+#[export] Set Warnings "-register-all".
+
 (* Do not change, [ascii_dec] and [string_dec] are extracted specifically *)
 Global Instance ascii_eqdec : EqDec ascii := ascii_dec.
 Global Instance string_eqdec : EqDec string := string_dec.
@@ -9,7 +12,7 @@ Global Instance string_eqdec : EqDec string := string_dec.
 Derive NoConfusion for ascii string.
 Derive NoConfusion EqDec for positive Z.
 
-Scheme All for sigT.
+(* Scheme All for sigT. *)
 Register Scheme ex_rect as rect_dep for ex.
 
 Declare Scope metarocq_scope.

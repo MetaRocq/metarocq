@@ -6,7 +6,7 @@ Set Equations Transparent.
 
 Export ListNotations.
 
-Scheme All for list.
+(* Scheme All for list. *)
 
 Arguments firstn : simpl nomatch.
 Arguments skipn : simpl nomatch.

@@ -41,7 +41,7 @@ Record predicate {term} := mk_predicate {
     (* The predicate context,
     initially built from params and puinst *)
   preturn : term; (* The return type *) }.
-Scheme All for predicate.
+(* Scheme All for predicate. *)
 Derive NoConfusion for predicate.
 Arguments predicate : clear implicits.
 Arguments mk_predicate {_}.
@@ -150,7 +150,7 @@ Section Branch.
     test_context_k p #|pred.(pparams)| b.(bcontext) && p (#|b.(bcontext)| + k) b.(bbody).
 
 End Branch.
-Scheme All for branch.
+(* Scheme All for branch. *)
 Arguments branch : clear implicits.
 
 Section map_branch.

@@ -16,7 +16,7 @@ Derive NoConfusion EqDec for relevance.
 
 (** Binders annotated with relevance *)
 Record binder_annot (A : Type) := mkBindAnn { binder_name : A; binder_relevance : relevance }.
-Scheme All for binder_annot.
+(* Scheme All for binder_annot. *)
 
 Arguments mkBindAnn {_}.
 Arguments binder_name {_}.
@@ -111,7 +111,7 @@ Arguments dname {term} _.
 Arguments dtype {term} _.
 Arguments dbody {term} _.
 Arguments rarg {term} _.
-Scheme All for def.
+(* Scheme All for def. *)
 
 Derive NoConfusion for def.
 #[global] Instance def_eq_dec {A} : Classes.EqDec A -> Classes.EqDec (def A).
@@ -230,7 +230,7 @@ Record judgment_ {universe Term} := Judge {
 }.
 Arguments judgment_ : clear implicits.
 Arguments Judge {universe Term} _ _ _.
-Scheme All for judgment_.
+(* Scheme All for judgment_. *)
 
 Definition judgment_map {univ T A} (f: T -> A) (j : judgment_ univ T) :=
   Judge (option_map f (j_term j)) (f (j_typ j)) (j_univ j) (j_rel j).
@@ -246,7 +246,7 @@ Section Contexts.
   }.
   Derive NoConfusion for context_decl.
 End Contexts.
-Scheme All for context_decl.
+(* Scheme All for context_decl. *)
 
 Arguments context_decl : clear implicits.
 

@@ -1224,7 +1224,7 @@ Module Environment (T : Term).
     P b b' ->
     P t t' ->
     All_decls P (vdef na b t) (vdef na b' t').
-  Scheme All for All_decls.
+  (* Scheme All for All_decls. *)
   Derive Signature NoConfusion for All_decls.
 
   (** Allow alpha-renaming of binders *)
@@ -1239,7 +1239,7 @@ Module Environment (T : Term).
     P b b' ->
     P t t' ->
     All_decls_alpha P (vdef na b t) (vdef na' b' t').
-  Scheme All for All_decls_alpha.
+  (* Scheme All for All_decls_alpha. *)
   Derive Signature NoConfusion for All_decls_alpha.
 
   Lemma All_decls_impl (P Q : term -> term -> Type) d d' :

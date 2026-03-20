@@ -4,7 +4,7 @@ From Equations Require Import Equations.
 
 Import ListNotations.
 
-Scheme All for Forall.
+(* Scheme All for Forall. *)
 Scheme All for Forall2.
 Derive Signature for Forall Forall2.
 
@@ -18,7 +18,7 @@ Inductive All {A} (P : A -> Type) : list A -> Type :=
 Arguments All {A} P%_type _.
 Arguments All_nil {_ _}.
 Arguments All_cons {_ _ _ _}.
-Scheme All for All.
+(* Scheme All for All. *)
 Derive Signature NoConfusion for All.
 #[global] Hint Constructors All : core.
 
@@ -27,7 +27,7 @@ Inductive Alli {A} (P : nat -> A -> Type) (n : nat) : list A -> Type :=
 | Alli_cons hd tl : P n hd -> Alli P (S n) tl -> Alli P n (hd :: tl).
 Arguments Alli_nil {_ _ _}.
 Arguments Alli_cons {_ _ _ _ _}.
-Scheme All for Alli.
+(* Scheme All for Alli. *)
 Derive Signature for Alli.
 Derive NoConfusionHom for Alli.
 
@@ -3534,7 +3534,7 @@ Qed.
 Inductive All_fold {A} (P : list A -> A -> Type) : list A -> Type :=
   | All_fold_nil : All_fold P nil
   | All_fold_cons {d Γ} : All_fold P Γ -> P Γ d -> All_fold P (d :: Γ).
-Scheme All for All_fold.
+(* Scheme All for All_fold. *)
 Derive Signature NoConfusionHom for All_fold.
 
 Lemma All_fold_tip {A : Type} (P : list A -> A -> Type) {x} : All_fold P [x] -> P [] x.

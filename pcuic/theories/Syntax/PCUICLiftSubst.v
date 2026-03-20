@@ -20,6 +20,11 @@ Derive Signature for assumption_context.
 
 Create HintDb terms.
 
+Create Rewrite HintDb lift.
+Create Rewrite HintDb subst.
+Create Rewrite HintDb wf.
+Create Rewrite HintDb pcuic.
+
 Ltac arith_congr := repeat (try lia; progress f_equal).
 
 Ltac easy0 :=
