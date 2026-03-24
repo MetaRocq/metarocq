@@ -139,6 +139,8 @@ Proof.
       now convert_foralls.
 Qed.
 
+Create HintDb consts_to_values_rw_hints.
+
 Lemma lookup_env_consts_to_values ctx name :
   lookup_env (consts_to_values_env ctx) name = option_map (consts_to_values_global_decl) (lookup_env ctx name).
 Proof.
@@ -163,6 +165,8 @@ Proof.
     end; try easy
   ).
 Qed.
+Hint Rewrite lookup_env_consts_to_values : consts_to_values_rw_hints.
+
 
 
 Lemma lookup_inductive_consts_to_values ctx i :
@@ -172,6 +176,7 @@ Proof.
   rewrite lookup_env_consts_to_values.
   destruct (lookup_env ctx (inductive_mind i)) as [[? | ibody]|]; simpl; reflexivity.
 Qed.
+Hint Rewrite lookup_inductive_consts_to_values : consts_to_values_rw_hints.
 
 Lemma lookup_constructor_consts_to_values ctx i n :
   lookup_constructor (consts_to_values_env ctx) i n = lookup_constructor ctx i n.
@@ -181,6 +186,7 @@ Proof.
     /lookup_constructor
     lookup_inductive_consts_to_values //.
 Qed.
+Hint Rewrite lookup_constructor_consts_to_values : consts_to_values_rw_hints.
 
 Lemma lookup_constructor_pars_args_consts_to_values ctx i n :
   lookup_constructor_pars_args (consts_to_values_env ctx) i n = lookup_constructor_pars_args ctx i n.
@@ -189,6 +195,7 @@ Proof.
     /lookup_constructor_pars_args
     lookup_constructor_consts_to_values //.
 Qed.
+Hint Rewrite lookup_constructor_pars_args_consts_to_values : consts_to_values_rw_hints.
 
 Lemma wf_brs_consts_to_values ctx i n :
   wf_brs (consts_to_values_env ctx) i n = wf_brs ctx i n.
@@ -197,12 +204,14 @@ Proof.
     /wf_brs
     lookup_inductive_consts_to_values //.
 Qed.
+Hint Rewrite wf_brs_consts_to_values : consts_to_values_rw_hints.
 
 Lemma lookup_projection_consts_to_values ctx i :
   lookup_projection (consts_to_values_env ctx) i = lookup_projection ctx i.
 Proof.
   rewrite /lookup_projection lookup_constructor_consts_to_values //.
 Qed.
+Hint Rewrite lookup_projection_consts_to_values : consts_to_values_rw_hints.
 
 Lemma lookup_constant_consts_to_values ctx s :
   lookup_constant (consts_to_values_env ctx) s = 
@@ -214,6 +223,7 @@ Proof.
   - rewrite /lookup_constant /=.
     now destruct (s == name).
 Qed.
+Hint Rewrite lookup_constant_consts_to_values : consts_to_values_rw_hints.
 
 
 
@@ -289,6 +299,7 @@ Proof.
     convert_foralls;
     now intros [? [|]]; simpl.
 Qed.
+Hint Rewrite fresh_consts_to_values : consts_to_values_rw_hints.
 
 Theorem wf_glob_consts_to_values
   (efl : EEnvFlags) (flags : WcbvFlags) 
@@ -299,7 +310,7 @@ Theorem wf_glob_consts_to_values
 Proof.
   induction ctx as [|[? [[[|]]|?]] ? ?];
   inversion 2; subst; constructor; now rewrite /= ?wf_consts_to_values_env_map_ctx ?wf_consts_to_values_same_ctx ?fresh_consts_to_values.
-Qed.    
+Qed.
 
 Theorem wf_consts_to_values
   (efl : EEnvFlags) (flags : WcbvFlags) 
@@ -325,6 +336,7 @@ Proof.
   destruct args; simpl; last easy.
   now rewrite lookup_constructor_consts_to_values.
 Qed.
+Hint Rewrite -> consts_to_values_atom : consts_to_values_rw_hints.
 
 Lemma consts_to_values_mkApps (e : term) (args : list term) :
   consts_to_values (mkApps e args) = mkApps (consts_to_values e) (map consts_to_values args).
@@ -332,13 +344,7 @@ Proof.
   induction args as [| ? ? IH] in e |- *; first reflexivity.
   rewrite /= IH //.
 Qed.
-
-Lemma mkApps_snoc e args a :
-  tApp (mkApps e args) a = mkApps e (args ++ [a]).
-Proof.
-  induction args in e |- *; easy.
-Qed.
-
+Hint Rewrite consts_to_values_mkApps : consts_to_values_rw_hints.
 
 Lemma consts_to_values_csubst e1 n e2 :
   consts_to_values (ECSubst.csubst e1 n e2) =
@@ -380,6 +386,7 @@ Proof.
     apply All_map_eq.
     now convert_foralls.
 Qed.
+Hint Rewrite consts_to_values_csubst : consts_to_values_rw_hints.
 
 Lemma consts_to_values_substl l e :
   consts_to_values (ECSubst.substl l e) =
@@ -392,6 +399,7 @@ Proof.
   fold (ECSubst.substl (map consts_to_values l) (consts_to_values e)); simpl.
   now rewrite consts_to_values_csubst IH.
 Qed. 
+Hint Rewrite <- consts_to_values_substl : consts_to_values_rw_hints.
 
 Lemma map_fix_subst mfix :
   map consts_to_values (fix_subst mfix) = fix_subst (map (map_def consts_to_values) mfix).
@@ -404,6 +412,7 @@ Proof.
   rewrite map_cons /=; f_equal.
   now rewrite IH.
 Qed.
+Hint Rewrite map_fix_subst : consts_to_values_rw_hints.
 
 Lemma consts_to_values_cunfold_fix mfix idx :
   cunfold_fix (map (map_def consts_to_values) mfix) idx =
@@ -414,6 +423,7 @@ Proof.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   now rewrite consts_to_values_substl map_fix_subst.
 Qed.
+Hint Rewrite consts_to_values_cunfold_fix : consts_to_values_rw_hints.
 
 Lemma map_cofix_subst mfix :
   map consts_to_values (cofix_subst mfix) = cofix_subst (map (map_def consts_to_values) mfix).
@@ -426,6 +436,7 @@ Proof.
   rewrite map_cons /=; f_equal.
   now rewrite IH.
 Qed.
+Hint Rewrite map_cofix_subst : consts_to_values_rw_hints.
 
 Lemma consts_to_values_cunfold_cofix mfix idx :
   cunfold_cofix (map (map_def consts_to_values) mfix) idx =
@@ -436,6 +447,7 @@ Proof.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   now rewrite consts_to_values_substl map_cofix_subst.
 Qed.
+Hint Rewrite consts_to_values_cunfold_cofix : consts_to_values_rw_hints.
 
 
 
@@ -448,6 +460,8 @@ Proof.
     /inductive_isprop_and_pars 
     lookup_inductive_consts_to_values //.
 Qed.
+Hint Rewrite consts_to_values_ind_isprop_and_pars : consts_to_values_rw_hints.
+
 Lemma consts_to_values_constr_isprop_pars_decl ctx ind n :
   constructor_isprop_pars_decl (consts_to_values_env ctx) ind n =
   constructor_isprop_pars_decl ctx ind n.
@@ -456,6 +470,8 @@ Proof.
     /constructor_isprop_pars_decl 
     lookup_constructor_consts_to_values //.
 Qed.  
+Hint Rewrite consts_to_values_constr_isprop_pars_decl : consts_to_values_rw_hints.
+
 
 
 Lemma consts_to_values_declared_constant ctx c decl :
@@ -473,6 +489,8 @@ Lemma consts_to_values_cst_body  decl :
 Proof.
   destruct decl as [[?|]]; reflexivity.
 Qed.
+Hint Rewrite consts_to_values_cst_body : consts_to_values_rw_hints.
+
 
 Lemma consts_to_values_head e :
   EAstUtils.head (consts_to_values e) = consts_to_values (EAstUtils.head e).
@@ -480,29 +498,35 @@ Proof.
   induction e; simpl; try reflexivity.
   now rewrite !EAstUtils.head_tApp.
 Qed.  
+Hint Rewrite consts_to_values_head : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isLambda e : 
   isLambda (consts_to_values e) = isLambda e.
 Proof.
   destruct e; reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isLambda : consts_to_values_rw_hints.
+
 Lemma consts_to_values_isFixApp e : EAstUtils.isFixApp (consts_to_values e) = EAstUtils.isFixApp e.
 Proof.
   unfold EAstUtils.isFixApp.
   rewrite consts_to_values_head.
   destruct (EAstUtils.head e); reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isFixApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isFix e : 
   EAstUtils.isFix (consts_to_values e) = EAstUtils.isFix e.
 Proof.
   destruct e; reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isFix : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isBox e : EAstUtils.isBox (consts_to_values e) = EAstUtils.isBox e.
 Proof.
   destruct e; reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isBox : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isConstructApp e :
   EAstUtils.isConstructApp (consts_to_values e) = EAstUtils.isConstructApp e.
@@ -511,6 +535,7 @@ Proof.
   rewrite consts_to_values_head.
   destruct (EAstUtils.head e); reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isConstructApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isPrimApp e : EAstUtils.isPrimApp (consts_to_values e) = EAstUtils.isPrimApp e.
 Proof.
@@ -518,6 +543,7 @@ Proof.
   rewrite consts_to_values_head.
   destruct (EAstUtils.head e); reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isPrimApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isLazyApp e : EAstUtils.isLazyApp (consts_to_values e) = EAstUtils.isLazyApp e.
 Proof.
@@ -525,6 +551,7 @@ Proof.
   rewrite consts_to_values_head.
   destruct (EAstUtils.head e); reflexivity.
 Qed.
+Hint Rewrite consts_to_values_isLazyApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_iota pars args br :
   consts_to_values (iota_red pars args br) = 
@@ -535,6 +562,7 @@ Lemma consts_to_values_iota pars args br :
 Proof.
   rewrite /iota_red consts_to_values_substl -map_skipn map_rev //.
 Qed.
+Hint Rewrite consts_to_values_iota : consts_to_values_rw_hints.
 
 
 
@@ -560,6 +588,8 @@ Qed.
             eapply wellformed_iota_red_brs
         | |- is_true (wellformed _ _ (ECSubst.csubst _ _ _)) => 
             eapply wellformed_csubst
+        | |- is_true (wellformed _ _ (ECSubst.substl _ _)) => 
+            eapply wellformed_substl
         | |- context[is_true (_ && _)] => rewrite andb_and
         | |- _ /\ _ => split; try easy
         | h : ?P |- ?P => assumption
@@ -579,15 +609,29 @@ Qed.
       ]..
     |].
 
-Ltac my_simpl :=
-  repeat match goal with
-  | h : nth_error ?l ?n = Some ?r |-
-      nth_error (map _ ?l) ?n = Some _ =>
-        rewrite nth_error_map h //=
-  | |- context[#|map _ _|] => rewrite length_map //
-  | |- context[#|skipn _ (map _ _)|] => rewrite -map_skipn /=
-  end.
 
+Hint Rewrite length_map : consts_to_values_rw_hints.
+Hint Rewrite <- @map_skipn : consts_to_values_rw_hints.
+Hint Rewrite @nth_error_map : consts_to_values_rw_hints.
+Hint Rewrite <-@map_repeat : consts_to_values_rw_hints.
+Hint Rewrite andb_and : consts_to_values_rw_hints.
+Hint Rewrite repeat_length : consts_to_values_rw_hints.
+
+#[local]
+Ltac my_simpl :=
+  repeat(
+    match goal with
+    | h : ?e = Some _ |-
+        option_map _ ?e = Some _ =>
+          rewrite h
+    end ||
+    autorewrite with consts_to_values_rw_hints in *
+  ).
+
+#[local]
+Ltac crush := solve[
+    destruct_IHs; my_simpl; econstructor; try now my_simpl
+  ].
 
 Theorem trust_consts_to_values_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : Transform.program _ term)
@@ -601,149 +645,56 @@ Theorem trust_consts_to_values_pres :
 Proof.
   intros ? ? [ctx e] ? ? htBox [wf_ctx wf_e] [eval_e]; simpl in *.
   constructor; simpl.
-  induction eval_e; simpl in *; try rewrite ->!andb_and in *.
-  - destruct_IHs. econstructor; eassumption.
-  - destruct_IHs.
-    econstructor; try eassumption.
-    now rewrite -consts_to_values_csubst.
-  - destruct_IHs.
-    econstructor; first eassumption.
-    now rewrite -consts_to_values_csubst.
-  - destruct_IHs.
-    econstructor.
-    + assumption.
-    + now rewrite consts_to_values_mkApps in H1.
-    + rewrite consts_to_values_constr_isprop_pars_decl e1 //.
-    + erewrite nth_error_map, e2; simpl.
-      reflexivity.
-    + rewrite length_map. eassumption. 
-    + rewrite -map_skipn length_map. 
-      destruct br; simpl in *. assumption.
-    + rewrite -consts_to_values_iota //.
-  - destruct_IHs.
-    eapply eval_iota_block.
-    + assumption.
-    + eassumption.
-    + rewrite consts_to_values_constr_isprop_pars_decl e1 //.
-    + my_simpl.
-    + my_simpl.
-    + my_simpl.
-    + rewrite -consts_to_values_iota //.
-  - destruct_IHs.
-    { subst brs. simpl in *.
-      rewrite ->andb_and in *.
-      destruct wf_e as (_ & _ & wf_f4 & _).
-      apply wellformed_substl; last rewrite repeat_length //.
-      remember #|n| as len.
-      move:htBox.
-      clear.
-      induction len; simpl; first easy.
-      rewrite andb_and; split; easy. }
-    eapply eval_iota_sing.
-    + assumption.
-    + assumption.
-    + rewrite consts_to_values_ind_isprop_and_pars //.
-    + subst; reflexivity.
-    + change tBox with (consts_to_values tBox).
-      rewrite -map_repeat -consts_to_values_substl.
-      assumption.
-  - destruct_IHs.
-    eapply eval_fix; simpl in *.
-    + assumption.
-    + now rewrite consts_to_values_mkApps /= in H2.
-    + eassumption.
-    + rewrite consts_to_values_cunfold_fix e1 length_map //.
-    + rewrite -consts_to_values_mkApps //.
-  - destruct_IHs.
-    rewrite consts_to_values_mkApps /=.
-    eapply eval_fix_value.
-    + assumption.
-    + now rewrite consts_to_values_mkApps /= in H1.
-    + eassumption.
-    + rewrite consts_to_values_cunfold_fix e1.
-      reflexivity.
-    + my_simpl.
-  - destruct_IHs.
-    eapply eval_fix'; try eassumption.
-    rewrite consts_to_values_cunfold_fix e0; reflexivity.
-  - destruct_IHs.
-    eapply eval_cofix_case.
-    + rewrite consts_to_values_mkApps /= in H1.
-      eassumption.
-    + rewrite consts_to_values_cunfold_cofix e0 /on_snd //.
-    + rewrite consts_to_values_mkApps // in H0.
-  - destruct_IHs.
-    eapply eval_cofix_proj.
-    + rewrite consts_to_values_mkApps /= in H1.
-      eassumption.
-    + rewrite consts_to_values_cunfold_cofix e0 /on_snd //.
-    + rewrite consts_to_values_mkApps // in H0.
+  induction eval_e; simpl in *.
+  - crush.
+  - crush.
+  - crush.
+  - crush.
+  - crush.
+  - subst.
+    destruct_IHs; simpl in *.
+    { assert (
+        forall n, forallb (wellformed ctx 0) (repeat tBox n)
+      ).
+      { move: htBox; clear. induction n; simpl; now my_simpl. }
+      apply wellformed_substl; now my_simpl. }
+    eapply eval_iota_sing; try now my_simpl.
+    change tBox with (consts_to_values tBox).
+    now my_simpl.
+  - crush.
+  - crush.
+  - crush.
+  - crush.
+  - crush.
   - destruct_IHs.
     { rewrite /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
       rewrite /wf_global_decl e //= in isdecl. }
-    eapply eval_force.
-    + econstructor.
-      * now apply consts_to_values_declared_constant. 
-      * rewrite consts_to_values_cst_body e //.
-      * do 2 constructor.
-    + assumption.
-  - destruct_IHs.
-    eapply eval_proj.
-    + assumption.
-    + now rewrite consts_to_values_mkApps in H1.
-    + now rewrite consts_to_values_constr_isprop_pars_decl.
-    + my_simpl.
-    + my_simpl.
-    + assumption. 
-  - destruct_IHs.
-    eapply eval_proj_block.
-    + assumption.
-    + eassumption.
-    + now rewrite consts_to_values_constr_isprop_pars_decl.
-    + my_simpl.
-    + my_simpl.
-    + assumption.
-  - destruct_IHs.
-    apply eval_proj_prop; try assumption.
-    now rewrite consts_to_values_ind_isprop_and_pars.
-  - destruct_IHs.
-    rewrite consts_to_values_mkApps /=.
-    eapply eval_construct.
-    + assumption.
-    + now rewrite lookup_constructor_consts_to_values.
-    + now rewrite consts_to_values_mkApps in H1.
-    + my_simpl.
-    + assumption.
-  - destruct_IHs.
-    eapply eval_construct_block.
-    + assumption.
-    + now rewrite lookup_constructor_consts_to_values.
-    + my_simpl.
-    + destruct cstr_as_blocks; last first.
-      { destruct args; last easy. 
-        inversion a; subst.
-        constructor. }
-      rewrite /lookup_constructor_pars_args e0 /= in wf_e.
-      destruct wf_e as [[? ?] [? ?]%andb_andI].
-      apply All2_All2_Set, All2_map.
-      apply All2_over_undep in iha.
-      unshelve eapply (All2_apply_dep_arrow _ iha).
-      now convert_foralls.
-  - destruct_IHs.
-    apply eval_app_cong; try assumption.
-    rewrite 
-      consts_to_values_isLambda
-      consts_to_values_isFixApp
-      consts_to_values_isFix
-      consts_to_values_isBox
-      consts_to_values_isConstructApp
-      consts_to_values_isPrimApp
-      consts_to_values_isLazyApp
-      //.
-  - inversion X; subst; try solve[repeat constructor].
+    eapply eval_force; try now my_simpl.
+    econstructor.
+    + now apply consts_to_values_declared_constant. 
+    + now my_simpl.
+    + do 2 constructor.
+  - crush.
+  - crush.
+  - crush.
+  - crush.
+  - destruct_IHs; my_simpl.
+    eapply eval_construct_block; try now my_simpl.
+    destruct cstr_as_blocks; last first.
+    { destruct args; last easy. 
+      inversion a; subst.
+      constructor. }
+    rewrite /lookup_constructor_pars_args e0 /= in wf_e.
+    destruct wf_e as [[? ?] [? ?]%andb_andI].
+    apply All2_All2_Set, All2_map.
+    apply All2_over_undep in iha.
+    unshelve eapply (All2_apply_dep_arrow _ iha).
+    now convert_foralls.
+  - crush.
+  - inversion X; subst; try solve[repeat constructor]; my_simpl.
     rewrite /test_prim /= /test_array_model /= in wf_e.
-    destruct wf_e as [? [? ?]%andb_andI].
+    my_simpl.
     destruct_IHs.
     unfold map_prim; simpl.
     do 2 constructor; last assumption.
@@ -752,8 +703,6 @@ Proof.
     apply All2_over_undep in X0.
     unshelve eapply (All2_apply_dep_arrow _ X0).
     now convert_foralls.
-  - destruct_IHs.
-    econstructor; eassumption.
-  - apply eval_atom.
-    now rewrite consts_to_values_atom.
+  - crush.
+  - crush.
 Qed.
