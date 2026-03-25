@@ -32,7 +32,7 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixpkgs-unstable
     - name: Cachix setup metacoq
-      uses: cachix/cachix-action@v16
+      uses: cachix/cachix-action@v17
       with:
         authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         extraPullNames: coq, coq-community
@@ -91,7 +91,7 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixpkgs-unstable
     - name: Cachix setup metacoq
-      uses: cachix/cachix-action@v16
+      uses: cachix/cachix-action@v17
       with:
         authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         extraPullNames: coq, coq-community
@@ -177,7 +177,7 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixpkgs-unstable
     - name: Cachix setup metacoq
-      uses: cachix/cachix-action@v16
+      uses: cachix/cachix-action@v17
       with:
         authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         extraPullNames: coq, coq-community
