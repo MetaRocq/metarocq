@@ -1502,8 +1502,10 @@ Section WcbvEnv.
     forall v t, eval Σ v t -> eval Σ' v t.
   Proof.
     intros wf ex t v ev.
-    induction ev; try solve [econstructor;
-      eauto using (extends_lookup_constructor wf ex), (extends_constructor_isprop_pars_decl wf ex), (extends_is_propositional wf ex)].
+    pose proof (extends_lookup_constructor wf ex).
+    pose proof (extends_constructor_isprop_pars_decl wf ex).
+    pose proof (extends_is_propositional wf ex).
+    induction ev; try solve [econstructor; eauto].
     - econstructor; eauto.
       red in isdecl |- *. eauto using extends_lookup.
     - econstructor; tea.
