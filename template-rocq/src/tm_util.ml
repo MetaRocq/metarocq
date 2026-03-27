@@ -210,11 +210,11 @@ module RetypeMindEntry =
   let sup_sort s1 s2 =
     let open Sorts in
     match s1, s2 with
-  | (_, SProp) -> assert false (* template SProp not allowed *)
+  | (_, SProp) | GSort _, _ | _, GSort _ -> assert false (* template SProp not allowed *)
   | (SProp, s) | (Prop, s) | (s, Prop) -> s
   | (Set, Set) -> Sorts.set
-  | (Set, (Type u | QSort (_, u))) | ((Type u | QSort (_, u)), Set) -> Sorts.sort_of_univ (Universe.sup u Universe.type0)
-  | ((Type u | QSort (_, u)), (Type v | QSort (_, v))) -> Sorts.sort_of_univ (Universe.sup u v)
+  | (Set, (Type u | VSort (_, u))) | ((Type u | VSort (_, u)), Set) -> Sorts.sort_of_univ (Universe.sup u Universe.type0)
+  | ((Type u | VSort (_, u)), (Type v | VSort (_, v))) -> Sorts.sort_of_univ (Universe.sup u v)
 
 
   let infer_mentry_univs env evm mind =
