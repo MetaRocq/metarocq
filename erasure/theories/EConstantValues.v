@@ -295,8 +295,7 @@ Proof.
   remember #|mfix| as n eqn:heq.
   clear heq.
   induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  now simple.
 Qed.
 Hint Rewrite map_fix_subst : consts_to_values_rw_hints.
 
@@ -306,7 +305,7 @@ Lemma consts_to_values_cunfold_fix mfix idx :
   option_map (on_snd consts_to_values) (cunfold_fix mfix idx).
 Proof.
   unfold cunfold_fix.
-  rewrite nth_error_map.
+  simple.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   now rewrite consts_to_values_substl map_fix_subst.
 Qed.
@@ -321,8 +320,7 @@ Proof.
   remember #|mfix| as n eqn:heq.
   clear heq.
   induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  now simple.
 Qed.
 Hint Rewrite map_cofix_subst : consts_to_values_rw_hints.
 
@@ -332,7 +330,7 @@ Lemma consts_to_values_cunfold_cofix mfix idx :
   option_map (on_snd consts_to_values) (cunfold_cofix mfix idx).
 Proof.
   unfold cunfold_cofix.
-  rewrite nth_error_map.
+  simple.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   now rewrite consts_to_values_substl map_cofix_subst.
 Qed.
@@ -364,8 +362,7 @@ Lemma consts_to_values_declared_constant ctx c decl :
   declared_constant (consts_to_values_env ctx) c (consts_to_values_constant_decl decl).
 Proof.
   unfold declared_constant. simple.
-  destruct (lookup_env ctx c); intros [=->].
-  reflexivity.
+  now intros ->.
 Qed.
 
 Lemma consts_to_values_cst_body  decl :
@@ -387,27 +384,27 @@ Hint Rewrite consts_to_values_head : consts_to_values_rw_hints.
 Lemma consts_to_values_isLambda e : 
   isLambda (consts_to_values e) = isLambda e.
 Proof.
-  destruct e; reflexivity.
+  now destruct e.
 Qed.
 Hint Rewrite consts_to_values_isLambda : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isFixApp e : EAstUtils.isFixApp (consts_to_values e) = EAstUtils.isFixApp e.
 Proof.
   unfold EAstUtils.isFixApp; simple.
-  destruct (EAstUtils.head e); reflexivity.
+  now destruct (EAstUtils.head e).
 Qed.
 Hint Rewrite consts_to_values_isFixApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isFix e : 
   EAstUtils.isFix (consts_to_values e) = EAstUtils.isFix e.
 Proof.
-  destruct e; reflexivity.
+  now destruct e.
 Qed.
 Hint Rewrite consts_to_values_isFix : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isBox e : EAstUtils.isBox (consts_to_values e) = EAstUtils.isBox e.
 Proof.
-  destruct e; reflexivity.
+  now destruct e.
 Qed.
 Hint Rewrite consts_to_values_isBox : consts_to_values_rw_hints.
 
@@ -415,21 +412,21 @@ Lemma consts_to_values_isConstructApp e :
   EAstUtils.isConstructApp (consts_to_values e) = EAstUtils.isConstructApp e.
 Proof.
   unfold EAstUtils.isConstructApp; simple.
-  destruct (EAstUtils.head e); reflexivity.
+  now destruct (EAstUtils.head e).
 Qed.
 Hint Rewrite consts_to_values_isConstructApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isPrimApp e : EAstUtils.isPrimApp (consts_to_values e) = EAstUtils.isPrimApp e.
 Proof.
   unfold EAstUtils.isPrimApp; simple.
-  destruct (EAstUtils.head e); reflexivity.
+  now destruct (EAstUtils.head e).
 Qed.
 Hint Rewrite consts_to_values_isPrimApp : consts_to_values_rw_hints.
 
 Lemma consts_to_values_isLazyApp e : EAstUtils.isLazyApp (consts_to_values e) = EAstUtils.isLazyApp e.
 Proof.
   unfold EAstUtils.isLazyApp; simple.
-  destruct (EAstUtils.head e); reflexivity.
+  now destruct (EAstUtils.head e).
 Qed.
 Hint Rewrite consts_to_values_isLazyApp : consts_to_values_rw_hints.
 
@@ -440,13 +437,11 @@ Lemma consts_to_values_iota pars args br :
     (map consts_to_values args) 
     (on_snd consts_to_values br).
 Proof.
-  rewrite /iota_red consts_to_values_substl -map_skipn map_rev //.
+  now rewrite /iota_red consts_to_values_substl -map_skipn map_rev.
 Qed.
 Hint Rewrite consts_to_values_iota : consts_to_values_rw_hints.
 
 
-
-(* TODO: comment *)
 Lemma wf_consts_to_values_same_ctx 
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (t : term) (k : nat) (ctx : global_context) :
@@ -458,8 +453,8 @@ Proof.
   simple; unfold wf_fix, test_def, map_prim, test_prim, test_array_model in *;
   repeat split; intros; simple; try easy.
   - now destruct cstr_as_blocks; simple.
-  - inversion X; subst; easy.
-  - inversion X as [| | | ? [? ?]]; subst; now simple.
+  - now inversion X; subst.
+  - now inversion X as [| | | ? [? ?]]; subst; simple.
 Qed.
 
 
@@ -601,7 +596,7 @@ Proof.
       rewrite /wf_global_decl e //= in isdecl. }
     eapply eval_force; try now simple.
     econstructor.
-    + now apply consts_to_values_declared_constant. 
+    + now apply consts_to_values_declared_constant.
     + now simple.
     + do 2 constructor.
   - destruct_IHs. crush eval_proj.
@@ -662,7 +657,7 @@ Proof.
   intros h_extends name decl heq.
   simple.
   apply option_map_Some in heq as [decl' [heq%h_extends ?]]; subst.
-  now rewrite heq.
+  now simple.
 Qed.
 
 #[global]
