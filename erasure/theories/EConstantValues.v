@@ -561,7 +561,7 @@ Theorem consts_to_values_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : eprogram)
   (v : term),
   has_tApp -> (* Needed for eval_wellformed *)
-  has_tBox -> (* Needed for wellformedness in the case eval_iota_sing *)
+  has_tBox || ~~ with_prop_case -> (* Needed for wellformedness in the case eval_iota_sing *)
   (* TODO: ajouter has_tBox \/ ~ has_iota_sing *)
   wf_eprogram efl p ->
   eval_eprogram wfl p v ->
@@ -577,10 +577,12 @@ Proof.
   - destruct_IHs. crush eval_iota.
   - destruct_IHs. crush eval_iota_block.
   - destruct_IHs; simpl in *.
-    { assert (
+    { assert (has_tBox) as htBox'.
+      { destruct has_tBox, with_prop_case; simple; easy. }
+      assert (
         forallb (wellformed ctx 0) (repeat tBox #|n|)
       ).
-      { move: htBox; clear. induction n; simpl; now simple. }
+      { move: htBox'; clear. induction n; simpl; now simple. }
       apply wellformed_substl; now simple. }
     eapply eval_iota_sing; try now simple.
     change tBox with (consts_to_values tBox).
@@ -633,7 +635,7 @@ Qed.
 
 Import Transform.
 
-Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : WcbvFlags) (hApp : has_tApp) (hBox : has_tBox) (hLazy : has_tLazy_Force) :
+Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : WcbvFlags) (hApp : has_tApp) (hBox : has_tBox || ~~with_prop_case) (hLazy : has_tLazy_Force) :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram wfl) (eval_eprogram wfl) :=
   {| name := "Constants to values";

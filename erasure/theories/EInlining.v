@@ -40,7 +40,7 @@ Section Inline.
     | tBox => tBox
     | tEvar ev args => tEvar ev (map inline args).
 End Inline.
-Check tCase.
+
 Definition inline_constant_decl inlining cb :=
   {| cst_body := option_map (inline inlining) cb.(cst_body) |}.
 
@@ -378,7 +378,6 @@ Proof.
             eqb, 
             Kername.reflect_kername, Kername.eqb, Kername.compare 
             in *.
-            Search (_ <> _ -> ~~(_ == _)).
           destruct name as [n1 n2], name' as [n1' n2'].
           rewrite 
             (StringOT.compare_sym n2' n2)
@@ -560,7 +559,6 @@ Proof.
       unfold inline_global_decl, inline_constant_decl.
       simple.
       erewrite inline_add_fresh; try easy.
-      Search wf_glob wellformed.
       now eapply lookup_env_wf.
   - inversion h_wf_ctx; subst.
     rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
@@ -595,9 +593,6 @@ Proof.
   rewrite lookup_env_inline //.
   destruct (lookup_env ctx name) as [[|]|]; simple; easy.
 Qed.
-
-Print lookup_minductive.
-About lookup_constructor.
 
 Lemma lookup_mind_inlining
   (efl : EEnvFlags) (flags : WcbvFlags) inlining
@@ -1333,7 +1328,7 @@ Theorem trust_inlining_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining (p : Transform.program _ term)
   (v : term),
   has_tApp ->
-  has_tBox ->
+  has_tBox || ~~with_prop_case ->
   wf_eprogram efl p ->
   eval_eprogram wfl p v ->
   exists v' : term,
@@ -1372,10 +1367,12 @@ Proof.
     eapply eval_iota_block; try easy; subst Σ'; try now simple.
     now erewrite inline_iota in *.
   - destruct_IHs; simpl in *.
-    { assert (
+    { assert (has_tBox) as htBox'.
+      { destruct has_tBox, with_prop_case; simple; easy. }
+      assert (
         forallb (wellformed glob_ctx 0) (repeat tBox #|n|)
       ).
-      { move: htBox; clear. induction n; simpl; now simple. }
+      { move: htBox'; clear. induction n; simpl; now simple. }
       apply wellformed_substl; simple.
       subst.
       change n with (n, f4).1.
@@ -1474,7 +1471,7 @@ Qed.
 
 Import Transform.
 
-Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inlining (hApp : has_tApp) (hBox : has_tBox) :
+Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inlining (hApp : has_tApp) (hBox : has_tBox || ~~ with_prop_case) :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram wfl) (eval_inlined_program wfl) :=
   {| name := "inlining ";
@@ -1768,16 +1765,17 @@ Proof.
           rewrite find_inlining_fresh // find_inlining_not_declared //.
           now intros [??].
       + intros.
-        assert (~~ KernameSet.mem name' inlining) by rewrite heq //.
+        assert (~~ KernameSet.mem name' inlining)
+        by rewrite heq //.
         rewrite !inline_env_lookup_no_inline_None //.
-    - destruct (KernameSet.mem name' inlining) eqn:heq.
-      + destruct decl as [[[|]]|]; simple; try easy.
-        * rewrite KernameMapFact.F.add_neq_o.
-          { now rewrite Kername.compare_eq. }
-          unfold my_size in *; now eapply (IH None); simple.
-        * unfold my_size in *; now eapply (IH None); simple.
-        * unfold my_size in *; now eapply (IH None); simple.
-      + unfold my_size in *; now eapply (IH None); simple.
+    - unfold my_size, myP in *.
+      unshelve epose proof IH None ctx _ _ _ _ _ as [? ?]; simple.
+      { easy. }
+      destruct (KernameSet.mem name' inlining) eqn:heq; last easy.
+      destruct decl as [[[|]]|]; simple; try easy.
+      rewrite KernameMapFact.F.add_neq_o.
+      { now rewrite Kername.compare_eq. }
+      easy.
   }
 Qed.
 
