@@ -46,6 +46,9 @@ Record erasure_configuration := {
   inlined_constants : KernameSet.t;
   extracted_inductives : extract_inductives;
   }.
+  (* 
+  add thunking
+  Add inlining at the end of verified *)
 
 Definition default_dearging_config :=
   {| overridden_masks := fun _ => None;
@@ -72,7 +75,7 @@ Definition default_unsafe_passes :=
     unboxing := false;
     inductives_extraction := true;
       betared := true |}.
-
+(* TODO: verify unboxing *)
 Definition default_erasure_config :=
   {| enable_unsafe := default_unsafe_passes;
      dearging_config := default_dearging_config;
