@@ -483,6 +483,7 @@ End PCUICTerm.
   the closed predicate to them. *)
 Module PCUICEnvironment := Environment PCUICTerm.
 Export PCUICEnvironment.
+#[export] Remove Hints PCUICTerm.subst_instance_constr : typeclass_instances.
 (* Do NOT `Include` this module, as this would sadly duplicate the rewrite database... *)
 
 
