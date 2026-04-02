@@ -343,11 +343,11 @@ Proof using Type.
     rewrite subst_instance_subst. cbn.
     rewrite !subst_instance_two.
     rewrite {6}/subst_instance /subst_instance_list /=.
+    unfold subst_instance.
     rewrite map_rev.
     econstructor; eauto. 2:now rewrite length_map.
     eapply X2 in H0; tas. rewrite subst_instance_mkApps in H0.
     eassumption.
-
   - intros mfix n decl H H0 H1 X IHX X0 IHX0 wffix u univs wfΣ'.
     rewrite (map_dtype _ (subst_instance u)). econstructor.
     + specialize (H1 u univs wfΣ' H2).
