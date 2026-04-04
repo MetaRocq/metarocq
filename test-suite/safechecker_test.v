@@ -11,6 +11,12 @@ Environment is well-formed and Ind(Stdlib.Init.Datatypes.nat,0,[]) has type: Sor
 
 MetaRocq SafeCheck (3 + 1).
 
+Axiom foo : nat -> nat.
+Definition eta_rule : foo = fun x => foo x := eq_refl.
+
+Fail MetaRocq SafeCheck eta_rule.
+MetaRocq UnsafeCheck eta_rule.
+
 Definition bool_list := List.map negb (cons true (cons false nil)).
 (* was working a bit by accident *)
 (* MetaRocq SafeCheck bool_list. *)
