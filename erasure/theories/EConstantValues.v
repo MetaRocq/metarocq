@@ -562,7 +562,6 @@ Theorem consts_to_values_pres :
   (v : term),
   has_tApp -> (* Needed for eval_wellformed *)
   has_tBox || ~~ with_prop_case -> (* Needed for wellformedness in the case eval_iota_sing *)
-  (* TODO: ajouter has_tBox \/ ~ has_iota_sing *)
   wf_eprogram efl p ->
   eval_eprogram wfl p v ->
   let ip := consts_to_values_program p in

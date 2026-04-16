@@ -273,16 +273,6 @@ Ltac wf_mon_inlining :=
 
 
 
-
-
-(*
-  TODO: Lemmes d'inversion:
-  - Si ind en tête, alors pas touche
-  - Si const, alors c'est un inlining pour des hints donnés (ou juste on conserve isSome, wf etc)
-
-*)
-
-
 Lemma lookup_env_fresh_None ctx name :
   fresh_global name ctx ->
   lookup_env ctx name = None.
@@ -1119,36 +1109,6 @@ Proof.
   destruct e; try (discriminate || easy); simpl.
   destruct args; now simple.
 Qed.
-
-(* Lemma inline_lookup_env
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
-  inlining ctx c :
-  lookup_env (inline_env inlining ctx).1 c = 
-  option_map (
-    fun (decl : global_decl) => 
-    match decl with
-    | ConstantDecl body => ConstantDecl (inline_constant_decl (inline_env inlining ctx).2 body)
-    | InductiveDecl _ => decl
-    end) (lookup_env ctx c).
-Proof. *)
-
-
-  
-(* Lemma inline_declared_constant
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
-  inlining ctx c decl :
-  declared_constant ctx c decl ->
-  declared_constant
-    (inline_env inlining ctx).1 
-    c 
-    (inline_constant_decl (inline_env inlining ctx).2 decl).
-Proof.
-  unfold declared_constant. simple.
-  (* TODO: Lemma on lookup_env (inline_env inlining ctx).1 c *)
-  destruct (lookup_env ctx c); intros [=->].
-  reflexivity.
-Qed. *)
-
 
 Lemma inline_isLambda (wfl : WcbvFlags) inlining ctx v :
   value ctx v ->
