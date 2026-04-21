@@ -36,7 +36,6 @@ Section unbox.
 
 Section Def.
   Context (Σ : GlobalContextMap.t).
-Print mutual_inductive_body.
   Definition unboxable (idecl : one_inductive_body) (cdecl : constructor_body) :=
     (#|idecl.(ind_ctors)| == 1) && (cdecl.(cstr_nargs) == 1).
    
@@ -48,12 +47,6 @@ Print mutual_inductive_body.
       | None := false }
     | kn | S _ := false.
     
-    Print tFix.
-    Print wellformed.
-    Print wf_brs.
-    Print wf_fix_gen.
-    Print mutual_inductive_body.
-    Print recursivity_kind.
 
   Notation " t 'eqn:' h " := (exist t h) (only parsing, at level 12).
 
@@ -95,12 +88,6 @@ Print mutual_inductive_body.
 
 End Def.
 
-About global_decl.
-Print GlobalContextMap.t.
-
-
-Print Extract.E.constructor_body.
-Print ident.
 
 
 
@@ -274,7 +261,6 @@ Ltac invert_primProp :=
 Lemma wf_unbox_env_map_ctx 
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (t : term) (k : nat) (Σ : GlobalContextMap.t) ctx :
-  ~~cstr_as_blocks ->
   wellformed ctx k t -> 
   wellformed (map (on_snd (unbox_decl Σ)) ctx) k t.
 Proof.
@@ -293,7 +279,14 @@ Proof.
     destruct (lookup_env ctx (inductive_mind i)) as [[?|?]|]; simple;
     try easy.
     now destruct (nth_error (ind_bodies m) (inductive_ind i)); simple.
-  - now destruct cstr_as_blocks.
+  - destruct cstr_as_blocks; try easy.
+    simple.
+    split; last easy.
+    unfold lookup_constructor_pars_args, lookup_constructor, lookup_inductive, lookup_minductive in *.
+    simple.
+    destruct (lookup_env ctx (inductive_mind i)) as [[?|?]|]; simple; try easy.
+    destruct (nth_error (ind_bodies m) (inductive_ind i)); simple; last easy.
+    destruct (nth_error (ind_ctors o) n); simple; easy.
   - unfold lookup_inductive, lookup_minductive in *; simple.
     destruct (lookup_env ctx (inductive_mind p.1)) as [[? | ?]|]; simple; try easy.
     now destruct (nth_error (ind_bodies m) (inductive_ind p.1) ).
@@ -338,13 +331,12 @@ Hint Rewrite @fresh_global_map_on_snd : unboxing_rw_hints.
 Lemma wf_unbox_expr
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (t : term) (k : nat) (Σ : GlobalContextMap.t) ctx :
-  ~~cstr_as_blocks ->
+  (* ~~cstr_as_blocks -> *)
   has_tLetIn ->
   wellformed ctx k t -> 
   wellformed ctx k (unbox Σ t).
 Proof.
-  destruct cstr_as_blocks eqn:has_cstr_blocks; first easy.
-  intros _.
+  (* destruct cstr_as_blocks eqn:has_cstr_blocks; first easy. *)
   induction t using term_forall_list_ind in k |- *; simple;
   try invert_primProp;
   unfold 
@@ -353,11 +345,19 @@ Proof.
     map_prim, test_prim, test_array_model 
     in *; 
   repeat split; intros; simple; try easy.
-  - rewrite ->has_cstr_blocks in *.
-    destruct (is_unboxable Σ i n); last first.
-    { simple. rewrite has_cstr_blocks. now destruct args. }
-    destruct args; last easy.
-    simple. now rewrite has_cstr_blocks.
+  - destruct cstr_as_blocks eqn:has_cstr_blocks; last first.
+    + destruct (is_unboxable Σ i n); last first.
+      { simple. rewrite has_cstr_blocks. now destruct args. }
+      destruct args; last easy.
+      simple. now rewrite has_cstr_blocks.
+    + destruct (is_unboxable Σ i n); simple; last first.
+      { rewrite has_cstr_blocks. now simple. }
+      destruct args as [|arg1[|arg2 args]]; simple; rewrite ?has_cstr_blocks; simple; try easy.
+      * now apply X.
+      * repeat split; try easy.
+        { now apply X. }  
+        { apply X; try easy. now apply H0. }
+        { intros. apply X; try easy. now apply H0. }
   - unfold is_unboxable_clause_1, lookup_constructor.
     destruct (lookup_inductive Σ p.1) as [[mind_body ind_body]|] eqn:heq;
       simple; last easy.
@@ -387,13 +387,12 @@ Qed.
 Lemma wf_glob_map_unbox 
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (Σ : GlobalContextMap.t) ctx :
-  ~~ cstr_as_blocks ->
   has_tLetIn ->
   wf_glob ctx ->
   wf_glob (map (on_snd (unbox_decl Σ)) ctx).
 Proof.
   induction ctx as [| [name decl] ctx]; first easy.
-  intros ? ? h; inversion h as [|? ? ? wf_ctx wf_decl fresh_name]; subst; clear h; simple.
+  intros ? h; inversion h as [|? ? ? wf_ctx wf_decl fresh_name]; subst; clear h; simple.
   constructor; simple; try easy.
   unfold wf_global_decl.
   destruct decl as [[[?|]]|?]; simple.
@@ -401,16 +400,15 @@ Proof.
 Qed.
 
 
-Theorem wf_consts_to_values
+Theorem wf_unboxing
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (input : eprogram_env) :
-  ~~cstr_as_blocks ->
   has_tLetIn ->
   wf_eprogram_env efl input ->
   wf_eprogram efl (unbox_program input).
 Proof.
   destruct input as [ctx t].
-  intros ? ? [wf_ctx wf_t]; simple.
+  intros ? [wf_ctx wf_t]; simple.
   pose proof wf_glob_map_unbox.
   pose proof wf_unbox_env_map_ctx.
   pose proof wf_unbox_expr.
@@ -685,9 +683,8 @@ Proof.
   destruct (eqb_spec name name') as [? | hneq]; subst; last easy.
   destruct decl; first easy.
   injection hlookup as ?; subst; simple.
-Qed.  
-Print mutual_inductive_body.
-Search proj_npars ind_npars.
+Qed.
+
 Lemma wf_inductive_no_cstr_params (efl : EEnvFlags) m :
   ~~has_cstr_params ->
   wf_minductive m ->
@@ -782,8 +779,6 @@ Theorem unbox_pres :
   ~~has_tCoFix ->
   ~~has_cstr_params ->
   with_constructor_as_block ->
-  (* ~~cstr_as_blocks -> *)
-  (* has_tLetIn -> *)
   wf_eprogram_env efl p ->
   eval_eprogram_env wfl p v ->
   let ip := unbox_program p in
@@ -964,9 +959,10 @@ Proof.
     |] eqn:heq; simple; last easy.
     injection e1 as ? ? ?; subst; simple.
     assert (proj_npars = 0); subst.
-    { unfold lookup_constructor, lookup_inductive in heq.
+    { clear htBox nhtCofix wf_e H0 H1 eval_e2 e2 e3 hCstrsAsBlcks.
+      unfold lookup_constructor, lookup_inductive in heq.
       destruct (lookup_minductive ctx (inductive_mind proj_ind)) eqn:heq'''; simple; try easy.
-      unshelve eapply lookup_wf_minductive in heq'''; try easy.
+      unshelve eapply lookup_wf_minductive in heq'''; try assumption.
       destruct (nth_error (EAst.ind_bodies m) (inductive_ind proj_ind)); simple; try easy.
       destruct (EAst.ind_ctors o); simple; try easy.
       injection heq as ? ? ?; subst; simple.
@@ -974,7 +970,7 @@ Proof.
       simple.
       destruct heq''' as [h _].
       destruct has_cstr_params; try easy.
-      destruct proj_npars; easy. }
+      destruct proj_npars; try easy. }
     destruct 
       ind_ctors as [|ind_ctor [| ? ?]],
       cstr_nargs as [|[|?]]; simple;
@@ -1092,6 +1088,122 @@ Proof.
 Qed.
 
 
+Lemma unbox_extends_eq (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (ctx ctx' : GlobalContextMap.t) k (e : term) :
+  wf_glob ctx ->
+  wf_glob ctx' ->
+  wellformed ctx k e ->
+  extends ctx ctx' ->
+  unbox ctx' e = unbox ctx e.
+Proof.
+  induction e in k |- * using term_forall_list_ind; intros; simple; try solve[easy | now simple; f_equal].
+  - simple; f_equal.
+    apply All_map_eq; simple.
+    intros; now eapply X.
+  - destruct n; simple; last first.
+    { simple; f_equal.
+      apply All_map_eq; simple.
+      intros; eapply X; try easy.
+      destruct cstr_as_blocks; simple; first easy.
+      destruct args; easy. }
+    assert (lookup_constructor ctx' i 0 = lookup_constructor ctx i 0). 
+    { destruct (lookup_constructor ctx i 0) eqn:heq; try easy.
+      now eapply extends_lookup_constructor. }
+    rewrite ->H3 in *.
+    destruct (is_unboxable_clause_1 i (lookup_constructor ctx i 0)) eqn:heq; last first.
+    { simple; f_equal.
+      apply All_map_eq; simple.
+      intros; eapply X; try easy.
+      destruct cstr_as_blocks; simple; first easy.
+      destruct args; easy. }
+    destruct args as [|? [|? ?]]; simple; try easy.
+    + eapply X; try easy.
+      destruct cstr_as_blocks; now simple.
+    + do 2 f_equal.
+      { eapply X; try easy.
+        destruct cstr_as_blocks; now simple. }
+      f_equal.
+      { eapply X; try easy.
+        destruct cstr_as_blocks; now simple. }
+      apply All_map_eq; simple.
+      intros; eapply X; try easy.
+      destruct cstr_as_blocks; simple; easy.
+  - assert (lookup_constructor ctx' p.1 0 = lookup_constructor ctx p.1 0). 
+    { unfold wf_brs, lookup_constructor in *.
+      destruct (lookup_inductive ctx p.1) as [[[? ? ?] [? ? ? ?]]|] eqn:heq; simple; last easy.
+      eapply extends_lookup_inductive in heq as heq'; try easy.
+      now rewrite heq'. }
+    rewrite ->H3 in *.
+    destruct (is_unboxable_clause_1 p.1 (lookup_constructor ctx p.1 0)) eqn:heq; last first.
+    { simple; f_equal; first easy.
+      apply All_map_eq; simple.
+      intros; unfold on_snd.
+      f_equal. now eapply X. }
+    assert (map (on_snd (unbox ctx')) l = map (on_snd (unbox ctx)) l).
+    { apply All_map_eq; simple.
+      intros; unfold on_snd.
+      f_equal. now eapply X. }
+    unfold get_unboxable_case_branch.
+    rewrite H4.
+    destruct (map (on_snd (unbox ctx)) l) as [|[[|? [|? ?]] ?] [|? ?]] eqn:heq'; try now f_equal.
+  - assert (lookup_constructor ctx' (proj_ind s) 0 = lookup_constructor ctx (proj_ind s) 0). 
+    { unfold wf_brs, lookup_projection, lookup_constructor in *.
+      destruct (lookup_inductive ctx (proj_ind s)) as [[[? ? ?] [? ? ? ?]]|] eqn:heq; simple; last easy.
+      eapply extends_lookup_inductive in heq as heq'; try easy.
+      now rewrite heq'. }
+    rewrite ->H3 in *.
+    destruct (is_unboxable_clause_1 (proj_ind s) (lookup_constructor ctx (proj_ind s) 0)) eqn:heq; last now f_equal.
+    easy.
+  - simple; f_equal.
+    apply All_map_eq; simple.
+    unfold map_def.
+    intros ? ?; unfold map_def; simple; f_equal.
+    unfold wf_fix, test_def in H1; simple.
+    now eapply X.
+  - simple; f_equal.
+    apply All_map_eq; simple.
+    unfold map_def.
+    intros ? ?; unfold map_def; simple; f_equal.
+    unfold wf_fix, test_def in H1; simple.
+    now eapply X.
+  - simple; f_equal.
+    inversion X as [| | | ? [? ?]]; subst; simple; try easy.
+    unfold map_prim, map_array_model, test_prim, test_array_model in *; simple.
+    do 3 f_equal; first easy.
+    now apply All_map_eq; simple.
+Qed.
+
+
+Lemma unbox_extends (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (ctx ctx' : GlobalContextMap.t) :
+  wf_glob ctx ->
+  wf_glob ctx' ->
+  extends ctx ctx' ->
+  extends (unbox_env ctx) (unbox_env ctx').
+Proof.
+  intros wf_ctx wf_ctx' h_extends.
+  intros name d.
+  simple.
+  destruct (lookup_env ctx name) as [[[[e|]]|]|]eqn:heq'; simple;
+    try easy; last first.
+  { unfold unbox_inductive_decl.
+    intros [=<-].
+    erewrite h_extends; last eassumption.
+    simple; f_equal. }
+  { unfold unbox_constant_decl; intros [=<-].
+    erewrite h_extends; last eassumption.
+    simple; f_equal. }
+  unfold unbox_constant_decl; simple.
+  intros [=<-].
+  erewrite h_extends; last eassumption.
+  simple; unfold unbox_constant_decl; simple; do 4 f_equal.
+  eapply unbox_extends_eq; try easy.
+  Search lookup_env wf_glob wellformed.
+  apply (lookup_env_wellformed wf_ctx heq').
+Qed.
+
+(* 
+
 Lemma map_unbox_repeat_box Σ n : 
   map (unbox Σ) (repeat tBox n) = repeat tBox n.
 Proof.
@@ -1201,7 +1313,7 @@ Transparent isEtaExp_unfold_clause_1. *)
     unfold iota_red.
     simple.
     rewrite unbox_substl //.
-  Qed.
+  Qed. *)
 
   (* Lemma unbox_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def unbox) mfix) = map unbox (EGlobalEnv.fix_subst mfix).
   Proof using Type.

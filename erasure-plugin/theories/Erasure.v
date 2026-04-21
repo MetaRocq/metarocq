@@ -47,6 +47,7 @@ Record erasure_configuration := {
   extracted_inductives : extract_inductives;
   }.
   (* 
+  TODO:
   add thunking
   Add inlining at the end of verified *)
 
@@ -72,16 +73,16 @@ Definition all_unsafe_passes := make_unsafe_passes true.
 Definition default_unsafe_passes :=
   {| cofix_to_lazy := true;
       inlining := true;
-    unboxing := false;
-    inductives_extraction := true;
+      unboxing := false;
+      inductives_extraction := true;
       betared := true |}.
 (* TODO: verify unboxing *)
 Definition default_erasure_config :=
   {| enable_unsafe := default_unsafe_passes;
      dearging_config := default_dearging_config;
      enable_typed_erasure := true;
-    inlined_constants := KernameSet.empty;
-    extracted_inductives := [] |}.
+     inlined_constants := KernameSet.empty;
+     extracted_inductives := [] |}.
 
 (* This runs only the verified phases without the typed erasure and "fast" remove params *)
 Definition safe_erasure_config :=
@@ -125,42 +126,42 @@ Definition final_wcbv_flags := {|
   with_guarded_fix := false;
   with_constructor_as_block := true |}.
 
+
 Program Definition optional_unsafe_transforms econf :=
   let passes := econf.(enable_unsafe) in
   let efl := EConstructorsAsBlocks.switch_cstr_as_blocks
   (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) in
+  let efl' := efl_coind_to_ind efl in
+  let efl'' := if passes.(cofix_to_lazy) then efl' else efl in
   ETransform.optional_self_transform passes.(cofix_to_lazy)
     ((* Rebuild the efficient lookup table *)
     rebuild_wf_env_transform (efl := efl) false false ▷
     (* Coinductives & cofixpoints are translated to inductive types and thunked fixpoints *)
     coinductive_to_inductive_transformation efl
-      (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)) ▷
-  ETransform.optional_self_transform passes.(unboxing)
-    (rebuild_wf_env_transform (efl := efl) false false ▷
-      unbox_transformation efl final_wcbv_flags) ▷
+      (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
+      ▷
+    ETransform.optional_self_transform (passes.(unboxing))
+      (rebuild_wf_env_transform (efl := efl') false false ▷
+        unbox_transformation efl' final_wcbv_flags (has_app := _) (has_cofix := _) (has_prop_case := eq_refl) (has_letin := eq_refl) (has_cstrparams := eq_refl) (has_cstr_block := eq_refl)) ) ▷
   ETransform.optional_self_transform passes.(inductives_extraction)
-    (rebuild_wf_env_transform (efl := efl) false false ▷
-       extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives) ▷
-       forget_inductive_extraction_info_transformation efl final_wcbv_flags) ▷
-  ETransform.optional_self_transform passes.(inlining)
-      (inline_transformation efl final_wcbv_flags econf.(inlined_constants) _ _ ▷
-       forget_inlining_info_transformation efl final_wcbv_flags) ▷
+    (rebuild_wf_env_transform (efl := efl'') false false ▷
+       extract_inductive_transformation efl'' final_wcbv_flags econf.(extracted_inductives) ▷
+       forget_inductive_extraction_info_transformation efl'' final_wcbv_flags) ▷
   (* Heuristically do it twice for more beta-normal terms *)
   ETransform.optional_self_transform passes.(betared)
-    (betared_transformation efl final_wcbv_flags ▷
-     betared_transformation efl final_wcbv_flags).
+    (betared_transformation efl'' final_wcbv_flags ▷
+     betared_transformation efl'' final_wcbv_flags).
 
 Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
+  destruct (enable_unsafe econf) as [[] [] [] [] []] eqn:heq; cbn in * => //; intuition auto.
 Qed.
+
 Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
+  destruct econf as [[[] [] [] [] []] ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
 Qed.
+
 Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
-Qed.
-Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] [] []]; cbn in * => //; intuition auto.
+  destruct econf as [[[] [] [] [] []] ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
 Qed.
 
 Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
@@ -184,6 +185,10 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
   (* Inline projections to cases *)
   inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
+
+  (* Inline declared constants *)
+  (* (inline_transformation efl target_wcbv_flags safe_erasure_config.(inlined_constants) _ _ ▷
+    forget_inlining_info_transformation efl target_wcbv_flags) ▷ *)
   (* Rebuild the efficient lookup table *)
   rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) true false ▷
   (* First-order constructor representation *)
@@ -203,6 +208,8 @@ Next Obligation.
   destruct H. split => //. sq.
   now eapply ETransform.expanded_eprogram_env_expanded_eprogram_cstrs.
 Qed.
+  
+
 
 Program Definition verified_lambdabox_pipeline_mapping {guard : abstract_guard_impl}
   (efl := EWellformed.all_env_flags)
