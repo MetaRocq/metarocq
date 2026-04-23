@@ -1101,8 +1101,8 @@ Proof.
   move: pr'; cbn. now intros []. apply pr. apply pr'.
 Qed.
 
-From MetaRocq.Erasure Require Import EUnboxing.
 
+From MetaRocq.Erasure Require Import EUnboxing.
 
 Program Definition unbox_transformation (efl : EEnvFlags) (wfl : WcbvFlags) {has_app : has_tApp} {has_cofix : ~~ has_tCoFix} {has_prop_case : has_tBox || ~~with_prop_case} {has_letin : has_tLetIn} {has_cstrparams : ~~ has_cstr_params} {has_cstr_block: with_constructor_as_block} :
   Transform.t _ _ EAst.term EAst.term _ _
@@ -1196,4 +1196,79 @@ Instance optional_self_transformation_ext {env term eval} activate tr extends :
   TransformExt.t (@optional_self_transform env term eval activate tr) extends extends.
 Proof.
   red; intros. destruct activate; cbn in * => //. now apply H.
+Qed.
+
+
+From MetaRocq.Erasure Require Import EInlining.
+
+Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inlining (hApp : has_tApp) (hBox : has_tBox || ~~ with_prop_case) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_inlined_program wfl) :=
+  {| name := "inlining ";
+    transform p _ := inline_program inlining p ;
+    pre p := wf_eprogram efl p;
+    post (p : inlined_program) := wf_eprogram efl p;
+    obseq p hp (p' : inlined_program) v v' := v' = inline p' v |}.
+
+Next Obligation.
+  intros. now apply inlining_wf.
+Qed.
+Next Obligation.
+  repeat intro.
+  now eapply inlining_pres.
+Qed.
+
+
+#[global]
+Instance inline_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
+  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1.1 p'.1.1).
+Proof.
+  intros ? ? inlining ? ?.
+  unfold TransformExt.t, transform, inline_transformation, inline_program.
+  intros [ctx e] [ctx' e'] [? ?] [? ?] h_extends.
+  simple.
+  now eapply extends_inline_env.
+Qed.
+
+
+
+
+Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : WcbvFlags) :
+  Transform.t _ _ EAst.term EAst.term _ _
+      (eval_inlined_program wfl) (eval_eprogram wfl) :=
+    {| name := "forgetting about inlining info";
+      transform p _ := (p.1.1, p.2) ;
+      pre (p : inlined_program) := wf_eprogram efl p ;
+      post (p : eprogram) := wf_eprogram efl p ;
+      obseq p hp p' v v' := v' = v |}.
+
+  Next Obligation.
+    intros efl wfl [[Σ inls] t] p.
+    exact p.
+  Qed.
+  Next Obligation.
+    intros efl wfl [[Σ inls] t] v [wf_Σ wf_t] [h_eval] p'.
+    now exists v.
+  Qed.
+
+#[global]
+Instance forget_inlining_info_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags),
+  TransformExt.t (forget_inlining_info_transformation efl wfl)
+    (fun p p' => extends p.1.1 p'.1.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  intros.
+  red. now intros [[] ?] [[] ?]; cbn.
+Qed.
+
+#[global]
+Instance forget_inlining_info_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags),
+  TransformExt.t (forget_inlining_info_transformation efl wfl)
+    extends_inlined_eprogram extends_eprogram.
+Proof.
+  intros ? ? [[] ?] [[] ?]; cbn.
+  now rewrite /extends_inlined_eprogram /extends_eprogram /=.
 Qed.

@@ -824,7 +824,7 @@ Proof.
 Qed.
      
 
-Theorem trust_inlining_wf :
+Theorem inlining_wf :
   forall (efl : EEnvFlags)
   (wfl : WcbvFlags) inlining 
   (input : Transform.program _ term),
@@ -1232,7 +1232,7 @@ Qed.
 
 
 
-Theorem trust_inlining_pres :
+Theorem inlining_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining (p : Transform.program _ term)
   (v : term),
   has_tApp ->
@@ -1380,14 +1380,14 @@ Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inl
   {| name := "inlining ";
     transform p _ := inline_program inlining p ;
     pre p := wf_eprogram efl p ;
-    post (p : inlined_program) := wf_eprogram efl p ;
+    post (p : inlined_program) := wf_eprogram efl p;
     obseq p hp (p' : inlined_program) v v' := v' = inline p' v |}.
 
 Next Obligation.
-  now apply trust_inlining_wf.
+  now apply inlining_wf.
 Qed.
 Next Obligation.
-  now eapply trust_inlining_pres.
+  now eapply inlining_pres.
 Qed.
 
 Lemma find_inlining_not_declared 
@@ -1696,7 +1696,7 @@ Proof.
 Qed.
 
 #[global]
-Lemma trust_inline_transformation_ext :
+Instance inline_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
   TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1.1 p'.1.1).
@@ -1714,7 +1714,7 @@ Definition extends_inlined_eprogram (p q : inlined_program) :=
   extends p.1.1 q.1.1 /\ p.2 = q.2.
 
 #[global]
-Theorem trust_inline_transformation_ext' :
+Instance inline_transformation_ext' :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
   TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
     extends_eprogram extends_inlined_eprogram.
@@ -1746,7 +1746,7 @@ Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : 
   Qed.
 
 #[global]
-Lemma forget_inlining_info_transformation_ext :
+Instance forget_inlining_info_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags),
   TransformExt.t (forget_inlining_info_transformation efl wfl)
     (fun p p' => extends p.1.1 p'.1.1) (fun p p' => extends p.1 p'.1).
@@ -1756,7 +1756,7 @@ Proof.
 Qed.
 
 #[global]
-Lemma forget_inlining_info_transformation_ext' :
+Instance forget_inlining_info_transformation_ext' :
   forall (efl : EEnvFlags) (wfl : WcbvFlags),
   TransformExt.t (forget_inlining_info_transformation efl wfl)
     extends_inlined_eprogram extends_eprogram.
