@@ -171,6 +171,8 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
    (eval_eprogram_env default_wcbv_flags)
    (* Target evaluation, with no more cases on prop, unguarded fixpoints, constructors as block *)
    (EProgram.eval_eprogram final_wcbv_flags) :=
+
+  
   (* Simulation of the guarded fixpoint rules with a single unguarded one:
     the only "stuck" fixpoints remaining are unapplied.
     This translation is a noop on terms and environments.  *)
@@ -185,10 +187,19 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
   (* Inline projections to cases *)
   inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
-
   (* Inline declared constants *)
-  (* (inline_transformation efl target_wcbv_flags safe_erasure_config.(inlined_constants) _ _ ▷
-    forget_inlining_info_transformation efl target_wcbv_flags) ▷ *)
+  (* inline_transformation
+    ((EInlineProjections.disable_projections_env_flag 
+        (ERemoveParams.switch_no_params 
+          EWellformed.all_env_flags)))
+    target_wcbv_flags 
+    safe_erasure_config.(inlined_constants) 
+    eq_refl eq_refl ▷ 
+  forget_inlining_info_transformation 
+    ((EInlineProjections.disable_projections_env_flag 
+        (ERemoveParams.switch_no_params 
+          EWellformed.all_env_flags)))
+    target_wcbv_flags ▷ *)
   (* Rebuild the efficient lookup table *)
   rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) true false ▷
   (* First-order constructor representation *)
@@ -202,12 +213,13 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
    fixpoints or case analyses on propositional content. All fixpoint bodies start with a lambda as well.
    Finally, projections are inlined to cases, so no `tProj` remains. *)
 
-Import EGlobalEnv EWellformed.
+Import EGlobalEnv EWellformed EInduction.
 
 Next Obligation.
   destruct H. split => //. sq.
   now eapply ETransform.expanded_eprogram_env_expanded_eprogram_cstrs.
 Qed.
+
   
 
 
@@ -559,13 +571,15 @@ Proof.
   unfold verified_lambdabox_pipeline_mapping. tc.
 Qed.
 
-Lemma verified_lambdabox_pipeline_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
+Instance verified_lambdabox_pipeline_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
   TransformExt.t verified_lambdabox_pipeline extends_eprogram_env extends_eprogram.
 Proof.
-  unfold verified_lambdabox_pipeline. tc.
+  unfold verified_lambdabox_pipeline.
+  repeat (eapply TransformExt.compose; last tc).
+  tc.
 Qed.
 
-Lemma verified_lambdabox_pipeline_mapping_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
+Instance verified_lambdabox_pipeline_mapping_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
   TransformExt.t verified_lambdabox_pipeline_mapping (fun p p' => p.1 = p'.1 /\ extends_eprogram_env p.2 p'.2) extends_eprogram.
 Proof.
   unfold verified_lambdabox_pipeline_mapping. tc.
@@ -792,7 +806,7 @@ Qed.
 
 Next Obligation.
   unfold optional_unsafe_transforms. cbn.
-  destruct enable_unsafe as [[] ? ? ?]=> //.
+  destruct econf as [[[] ? ? ?] ? ? ? ?]=> //.
 Qed.
 
 Local Obligation Tactic := intros; eauto.
@@ -1123,7 +1137,7 @@ Program Definition run_erase_program {guard : abstract_guard_impl} econf :=
 Next Obligation.
 Proof.
   unfold optional_unsafe_transforms; cbn.
-  destruct enable_unsafe as [[] ? ? ?]=> //.
+  destruct econf as [[[] ? ? ?] ? ? ? ?]=> //.
 Qed.
 
 Program Definition erase_and_print_template_program econf (m : inductives_mapping) (p : Ast.Env.program) : string :=
