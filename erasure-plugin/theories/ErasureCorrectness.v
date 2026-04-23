@@ -1415,6 +1415,46 @@ Proof.
     reflexivity.
 Qed.
 
+Import EInlining.
+
+Definition fo_evalue_inline (p : program (E.global_context × constants_inlining) EAst.term) :=
+  firstorder_evalue p.1.1 p.2.
+
+#[global]
+Instance inline_transformation_fix_pres {efl : EWellformed.EEnvFlags} {wcbvf : WcbvFlags}
+  {has_app : has_tApp} {has_prop_case : has_tBox || ~~ with_prop_case} inlining :
+  ETransformPresFO.t
+    (@inline_transformation efl wcbvf inlining has_app has_prop_case)
+    (fun p => firstorder_evalue_block p.1 p.2) (fun p => firstorder_evalue_block p.1.1 p.2)
+    (fun p pr fo => EInlining.inline_program inlining p).
+Proof.
+  split; last reflexivity.
+  intros [Σ t] pr fo.
+  unfold 
+    fo_evalue_inline, fo_evalue, inline_program
+  in *.
+  destruct_inline_env; cbn [fst snd] in *.
+  induction fo using firstorder_evalue_block_elim.
+  simple.
+  econstructor; simple; try easy.
+  intros y (x & hin & ?)%PCUICElimination.In_map; subst.
+  apply H1; try easy.
+  unfold wf_eprogram in *; simple; split; try easy.
+  destruct cstr_as_blocks; simple; try easy.
+  now destruct args.
+Qed.
+
+
+#[global] Instance forget_inlining_pres {efl : EWellformed.EEnvFlags} {wcbvf : WcbvFlags} :
+  ETransformPresFO.t
+    (@forget_inlining_info_transformation efl wcbvf)
+    (fun p => firstorder_evalue_block p.1.1 p.2) (fun p => firstorder_evalue_block p.1 p.2)
+    (fun p pr fo => (p.1.1, p.2)).
+Proof.
+  split => //.
+Qed.
+
+
 Lemma lambdabox_pres_fo :
   exists compile_value, ETransformPresFO.t verified_lambdabox_pipeline fo_evalue_map (fun p => firstorder_evalue_block p.1 p.2) compile_value /\
     forall p pr fo, (compile_value p pr fo).2 = compile_evalue_box (ERemoveParams.strip p.1 p.2) [].

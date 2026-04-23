@@ -187,19 +187,6 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
   (* Inline projections to cases *)
   inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
-  (* Inline declared constants *)
-  (* inline_transformation
-    ((EInlineProjections.disable_projections_env_flag 
-        (ERemoveParams.switch_no_params 
-          EWellformed.all_env_flags)))
-    target_wcbv_flags 
-    safe_erasure_config.(inlined_constants) 
-    eq_refl eq_refl ▷ 
-  forget_inlining_info_transformation 
-    ((EInlineProjections.disable_projections_env_flag 
-        (ERemoveParams.switch_no_params 
-          EWellformed.all_env_flags)))
-    target_wcbv_flags ▷ *)
   (* Rebuild the efficient lookup table *)
   rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) true false ▷
   (* First-order constructor representation *)
