@@ -27,6 +27,7 @@ Transparent Acc_intro_generator.
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import MonadNotation.
 
 #[global]

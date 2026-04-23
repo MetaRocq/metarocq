@@ -11,6 +11,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils
 From MetaRocq.Utils Require Export LibHypsNaming.
 From Stdlib Require Import ssreflect.
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 From Equations.Type Require Import Relation.
 From Equations.Prop Require Import DepElim.
 From Equations Require Import Equations.
