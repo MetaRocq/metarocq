@@ -7,6 +7,7 @@ From Equations Require Import Equations.
 From Equations.Prop Require Import Subterm.
 
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import PCUICEnvTyping.
 
 (** Derive the well-founded subterm relation for terms. Not so useful
