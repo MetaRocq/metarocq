@@ -1253,6 +1253,21 @@ Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : 
     now exists v.
   Qed.
 
+
+#[global]
+Instance inline_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
+  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
+    extends_eprogram extends_inlined_eprogram.
+Proof.
+  intros ? ? inlining ? ?.
+  unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
+  intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
+  pose proof extends_inline_env efl wfl.
+  pose proof inline_extends efl wfl inlining.
+  now simple.
+Qed.
+
 #[global]
 Instance forget_inlining_info_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags),
