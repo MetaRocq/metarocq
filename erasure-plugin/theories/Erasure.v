@@ -6,7 +6,7 @@ From MetaRocq.Template Require Import EtaExpand TemplateProgram.
 From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram.
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnvImpl.
 From MetaRocq.Erasure Require EAstUtils ErasureFunction ErasureCorrectness EPretty Extract.
-From MetaRocq.Erasure Require Import EProgram EInlining EBeta ERemapInductives.
+From MetaRocq.Erasure Require Import EProgram EBeta ERemapInductives.
 From MetaRocq.ErasurePlugin Require Import ETransform.
 
 Import PCUICProgram.

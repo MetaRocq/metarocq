@@ -1415,7 +1415,7 @@ Proof.
     reflexivity.
 Qed.
 
-Import EInlining.
+(* Import EInlining.
 
 Definition fo_evalue_inline (p : program (E.global_context × constants_inlining) EAst.term) :=
   firstorder_evalue p.1.1 p.2.
@@ -1452,7 +1452,7 @@ Qed.
     (fun p pr fo => (p.1.1, p.2)).
 Proof.
   split => //.
-Qed.
+Qed. *)
 
 
 Lemma lambdabox_pres_fo :

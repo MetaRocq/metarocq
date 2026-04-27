@@ -2,6 +2,8 @@
 From Stdlib Require Import Utf8 Program.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Kernames Primitive BasicAst EnvMap.
+From MetaRocq.SafeChecker Require Import PCUICSafeReduce (inspect).
+
 From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EInduction EArities
     ELiftSubst ESpineView EGlobalEnv EWellformed EEnvMap
     EWcbvEval EEtaExpanded ECSubst EWcbvEvalEtaInd EProgram.
@@ -20,7 +22,6 @@ Local Existing Instance extraction_checker_flags.
 
 Ltac introdep := let H := fresh in intros H; depelim H.
 
-Require Import PCUICSafeReduce (inspect).
 Section unbox.
 
 Section Def.
@@ -1201,7 +1202,7 @@ Transparent isEtaExp_unfold_clause_1. *)
       | view_other u nconstr => mkApps (unbox Σ f) (map (unbox Σ) v)
     end.
   Proof using Type.
-  Admitted.
+  
     (* intros napp.
     destruct (TermSpineView.view_mkApps (TermSpineView.view (mkApps f v)) napp nnil) as [hna [hv' ->]].
     simp unbox; rewrite -unbox_equation_1.
@@ -1226,7 +1227,7 @@ Transparent isEtaExp_unfold_clause_1. *)
       | view_other u nconstr => mkApps (unbox Σ f) (map (unbox Σ) v)
     end.
   Proof using Type.
-  Admitted. *)
+   *)
     (* intros napp.
     destruct v using rev_case; simpl.
     - destruct construct_viewc => //. simp unbox.
