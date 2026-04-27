@@ -1234,6 +1234,21 @@ Qed.
 
 
 
+#[global]
+Instance inline_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
+  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
+    extends_eprogram extends_inlined_eprogram.
+Proof.
+  intros ? ? inlining ? ?.
+  unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
+  intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
+  pose proof extends_inline_env efl wfl.
+  pose proof inline_extends efl wfl inlining.
+  now simple.
+Qed.
+
+
 
 Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : WcbvFlags) :
   Transform.t _ _ EAst.term EAst.term _ _
@@ -1253,21 +1268,6 @@ Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : 
     now exists v.
   Qed.
 
-
-#[global]
-Instance inline_transformation_ext' :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
-  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
-    extends_eprogram extends_inlined_eprogram.
-Proof.
-  intros ? ? inlining ? ?.
-  unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
-  intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
-  pose proof extends_inline_env efl wfl.
-  pose proof inline_extends efl wfl inlining.
-  now simple.
-Qed.
-
 #[global]
 Instance forget_inlining_info_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags),
@@ -1286,4 +1286,41 @@ Instance forget_inlining_info_transformation_ext' :
 Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
   now rewrite /extends_inlined_eprogram /extends_eprogram /=.
+Qed.
+
+
+
+From MetaRocq.Erasure Require Import EConstantsToValues.
+
+Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : WcbvFlags) (hApp : has_tApp) (hBox : has_tBox || ~~with_prop_case) (hLazy : has_tLazy_Force) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_eprogram wfl) :=
+  {| name := "Constants to values";
+    transform p _ := consts_to_values_program p ;
+    pre p := wf_eprogram efl p ;
+    post (p : eprogram) := wf_eprogram efl p /\ ∥values_glob p.1∥ ;
+    obseq p hp (p' : eprogram) v v' := v' = consts_to_values v |}.
+
+Next Obligation.
+  repeat intro.
+  split.
+  + now apply wf_consts_to_values.
+  + constructor. 
+    now apply consts_to_values_env_values.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  pose proof consts_to_values_pres.
+  now eexists.
+Qed.
+
+#[global]
+Instance consts_to_values_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
+  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  intros efl wfl hApp hBox hLazy p p' h1 h2.
+  apply consts_to_values_extends.
 Qed.

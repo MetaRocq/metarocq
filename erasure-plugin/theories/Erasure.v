@@ -76,7 +76,7 @@ Definition default_unsafe_passes :=
       unboxing := false;
       inductives_extraction := true;
       betared := true |}.
-(* TODO: verify unboxing *)
+  
 Definition default_erasure_config :=
   {| enable_unsafe := default_unsafe_passes;
      dearging_config := default_dearging_config;
@@ -140,6 +140,7 @@ Program Definition optional_unsafe_transforms econf :=
     coinductive_to_inductive_transformation efl
       (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
       ▷
+    (* (Co)Inductive types with one constructor with one index are unboxed. While this pass is verified, it relies on the absence of cofixpoints guaranteed by the previous, unverified, transformation *)
     ETransform.optional_self_transform (passes.(unboxing))
       (rebuild_wf_env_transform (efl := efl') false false ▷
         unbox_transformation efl' final_wcbv_flags (has_app := _) (has_cofix := _) (has_prop_case := eq_refl) (has_letin := eq_refl) (has_cstrparams := eq_refl) (has_cstr_block := eq_refl)) ) ▷

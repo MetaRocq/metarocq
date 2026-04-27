@@ -13,13 +13,8 @@ Import MonadNotation.
 
 (** We transform a program by transforming each constant into a value by thunking them, and forcing their evaluation when needed *)
 (* 
-  Values:
-  - Lambdas
-  - Constructor with values
-  - Cofixpoints
-  - Primitives (with arrays composed of values)
-  - Lazy
-  - Box 
+  TODO:
+  Thunk only when the constant is not already a value
 *)
 Fixpoint consts_to_values (t : term) : term :=
   match t with
@@ -67,21 +62,19 @@ Definition consts_to_values_env Σ : global_context :=
 Definition consts_to_values_program (p : program) : program :=
   (consts_to_values_env p.1, consts_to_values p.2).
 
-(* TODO: see to add new types to differentiate, even if equal  *)
 
 From MetaRocq.Erasure Require Import EProgram EWellformed EWcbvEval.
 From MetaRocq.Common Require Import Transform.
 
 
-(* Before proving the main theorems, we prove a bunch of commuting and invariance lemmas *)
 Create HintDb consts_to_values_rw_hints.
 Ltac simple := repeat (
+    assumption ||
     match goal with
     | |- All _ _ => apply Forall_All 
     | H : All _ _ |- _ => apply All_Forall in H
-    | h : ?e = Some _ |-
-        option_map _ ?e = Some _ =>
-          rewrite h
+    | h : ?e = Some _ |- _ =>
+          rewrite ->h in *
     end ||
     autorewrite with consts_to_values_rw_hints in * || 
     simpl in *
@@ -97,7 +90,7 @@ Hint Rewrite length_map : consts_to_values_rw_hints.
 Hint Rewrite length_map : consts_to_values_rw_hints.
 Hint Rewrite <- @map_skipn : consts_to_values_rw_hints.
 Hint Rewrite @nth_error_map : consts_to_values_rw_hints.
-Hint Rewrite <-@map_repeat : consts_to_values_rw_hints.
+Hint Rewrite @map_repeat : consts_to_values_rw_hints.
 Hint Rewrite andb_and : consts_to_values_rw_hints.
 Hint Rewrite repeat_length : consts_to_values_rw_hints.
 
@@ -124,20 +117,15 @@ Proof.
   repeat (
     match goal with
     | H : context[if ?p then _ else _] |- _ =>
-        let hp := fresh "h" in
-        destruct p eqn:hp
+        destruct p eqn:?
     | |- context[if ?p then _ else _] =>
-        let hp := fresh "h" in
-        destruct p eqn:hp
+        destruct p eqn:?
     | H : context[if ?p then _ else _] |- _ =>
-        let hp := fresh "h" in
-        destruct p eqn:hp
+        destruct p eqn:?
     | H : context[match ?p with _ => _ end] |- _ =>
-        let hp := fresh "h" in
-        destruct p eqn:hp
+        destruct p eqn:?
     | |- context[match ?p with _ => _ end] =>
-        let hp := fresh "h" in
-        destruct p eqn:hp
+        destruct p eqn:?
     end; easy
   ).
 Qed.
@@ -148,7 +136,7 @@ Lemma lookup_inductive_consts_to_values ctx i :
   lookup_inductive (consts_to_values_env ctx) i = lookup_inductive ctx i.
 Proof. 
   unfold lookup_inductive, lookup_minductive; simple.
-  destruct (lookup_env ctx (inductive_mind i)) as [[? | ibody]|]; simpl; reflexivity.
+  destruct (lookup_env ctx (inductive_mind i)) as [[? | ?]|]; reflexivity.
 Qed.
 Hint Rewrite lookup_inductive_consts_to_values : consts_to_values_rw_hints.
 
@@ -203,11 +191,9 @@ Hint Rewrite lookup_constant_consts_to_values : consts_to_values_rw_hints.
 Lemma fresh_consts_to_values name ctx :
   fresh_global name (consts_to_values_env ctx) <-> fresh_global name ctx.
 Proof.
-  unfold fresh_global.
   split; 
     [intros H%Forall_map_inv | intros H; apply Forall_map];
-    simple;
-    now intros [? [|]]; simpl.
+    simple.
 Qed.
 Hint Rewrite fresh_consts_to_values : consts_to_values_rw_hints.
 
@@ -217,7 +203,7 @@ Lemma consts_to_values_atom (wfl : WcbvFlags) ctx e :
 Proof.
   destruct e; try (discriminate || easy); simpl.
   destruct args; simpl; last easy.
-  now rewrite lookup_constructor_consts_to_values.
+  now simple.
 Qed.
 Hint Rewrite -> consts_to_values_atom : consts_to_values_rw_hints.
 
@@ -225,8 +211,7 @@ Hint Rewrite -> consts_to_values_atom : consts_to_values_rw_hints.
 Lemma consts_to_values_mkApps (e : term) (args : list term) :
   consts_to_values (mkApps e args) = mkApps (consts_to_values e) (map consts_to_values args).
 Proof.
-  induction args as [| ? ? IH] in e |- *; first reflexivity.
-  rewrite /= IH //.
+  now induction args in e |- *.
 Qed.
 Hint Rewrite consts_to_values_mkApps : consts_to_values_rw_hints.
 
@@ -235,7 +220,7 @@ Lemma consts_to_values_csubst e1 n e2 :
   consts_to_values (ECSubst.csubst e1 n e2) =
   ECSubst.csubst (consts_to_values e1) n (consts_to_values e2).
 Proof.
-  induction e2 using term_forall_list_ind in n, e1 |- *; simpl; try (reflexivity || now f_equal).
+  induction e2 using term_forall_list_ind in n, e1 |- *; simple; try easy.
   - destruct (n ?= n0); reflexivity.
   - f_equal.
     rewrite !map_map_compose.
@@ -284,17 +269,14 @@ Proof.
   rewrite map_app !fold_left_app.
   now simple.
 Qed. 
-Hint Rewrite <- consts_to_values_substl : consts_to_values_rw_hints.
+Hint Rewrite consts_to_values_substl : consts_to_values_rw_hints.
 
 
 Lemma map_fix_subst mfix :
   map consts_to_values (fix_subst mfix) = fix_subst (map (map_def consts_to_values) mfix).
 Proof.
   unfold fix_subst.
-  simple.
-  remember #|mfix| as n eqn:heq.
-  clear heq.
-  induction n as [|? IH]; first reflexivity.
+  induction mfix as [|? ? IH] at 2 4; first reflexivity.
   now simple.
 Qed.
 Hint Rewrite map_fix_subst : consts_to_values_rw_hints.
@@ -304,10 +286,8 @@ Lemma consts_to_values_cunfold_fix mfix idx :
   cunfold_fix (map (map_def consts_to_values) mfix) idx =
   option_map (on_snd consts_to_values) (cunfold_fix mfix idx).
 Proof.
-  unfold cunfold_fix.
-  simple.
-  destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
-  now rewrite consts_to_values_substl map_fix_subst.
+  unfold cunfold_fix; simple.
+  now destruct (nth_error mfix idx); unfold on_snd; simple.
 Qed.
 Hint Rewrite consts_to_values_cunfold_fix : consts_to_values_rw_hints.
 
@@ -316,10 +296,7 @@ Lemma map_cofix_subst mfix :
   map consts_to_values (cofix_subst mfix) = cofix_subst (map (map_def consts_to_values) mfix).
 Proof.
   unfold cofix_subst.
-  rewrite length_map.
-  remember #|mfix| as n eqn:heq.
-  clear heq.
-  induction n as [|? IH]; first reflexivity.
+  induction mfix as [|? ? IH] at 2 4; first reflexivity.
   now simple.
 Qed.
 Hint Rewrite map_cofix_subst : consts_to_values_rw_hints.
@@ -329,10 +306,8 @@ Lemma consts_to_values_cunfold_cofix mfix idx :
   cunfold_cofix (map (map_def consts_to_values) mfix) idx =
   option_map (on_snd consts_to_values) (cunfold_cofix mfix idx).
 Proof.
-  unfold cunfold_cofix.
-  simple.
-  destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
-  now rewrite consts_to_values_substl map_cofix_subst.
+  unfold cunfold_cofix; simple.
+  now destruct (nth_error mfix idx); unfold on_snd; simple.
 Qed.
 Hint Rewrite consts_to_values_cunfold_cofix : consts_to_values_rw_hints.
 
@@ -376,8 +351,7 @@ Hint Rewrite consts_to_values_cst_body : consts_to_values_rw_hints.
 Lemma consts_to_values_head e :
   EAstUtils.head (consts_to_values e) = consts_to_values (EAstUtils.head e).
 Proof.
-  induction e; simpl; try reflexivity.
-  now rewrite !EAstUtils.head_tApp.
+  now induction e; simpl; rewrite ?EAstUtils.head_tApp.
 Qed.  
 Hint Rewrite consts_to_values_head : consts_to_values_rw_hints.
 
@@ -437,7 +411,8 @@ Lemma consts_to_values_iota pars args br :
     (map consts_to_values args) 
     (on_snd consts_to_values br).
 Proof.
-  now rewrite /iota_red consts_to_values_substl -map_skipn map_rev.
+  unfold iota_red. simple.
+  now rewrite map_rev.
 Qed.
 Hint Rewrite consts_to_values_iota : consts_to_values_rw_hints.
 
@@ -497,11 +472,10 @@ Proof.
   pose proof wf_glob_consts_to_values.
   pose proof wf_consts_to_values_same_ctx.
   pose proof wf_consts_to_values_env_map_ctx.
-  unfold wf_eprogram.
-  now simpl.
+  unfold wf_eprogram; simple.
+  easy.
 Qed.
 
-(* For the proof of preservation of evaluation, the induction hypotheses will have wellformedness properties as premises. This tactic specializes the ihs and tries to prove the premises *)
 #[local] Ltac destruct_IHs :=
     repeat match goal with 
     | IH : _ -> 
@@ -513,8 +487,16 @@ Qed.
     ; [
       try solve[
         repeat (
-          easy || simple || 
+          simpl in * || easy || simple ||  intros ||
           lazymatch goal with
+          | hdec : declared_constant _ ?c _ |- _ =>
+              unfold lookup_constant, declared_constant in *;
+              apply lookup_env_wellformed in hdec as ?
+          | heq: ?a = _, 
+                h: context[match ?a with _ => _ end] |- _ =>
+                  rewrite heq in h
+          | h: In _ (repeat _ _) |- _ =>
+                apply repeat_spec in h; subst
           | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
               rewrite wellformed_mkApps /= in h
           | |- is_true (wellformed _ _ (mkApps _ _)) =>
@@ -548,13 +530,9 @@ Qed.
       ]..
     |].
 
-(* 
-  Most cases are handled by the following tactic 
-  It is a bit slow, destruct_IHs seems to be the bottleneck
-*)
 #[local]
-Ltac crush lem := solve[
-    simple; eapply lem; try now simple
+Ltac crush := solve[
+    simple; econstructor; try now simple
   ].
 
 Theorem consts_to_values_pres :
@@ -570,44 +548,17 @@ Proof.
   intros ? ? [ctx e] ? ? htBox [wf_ctx wf_e] [eval_e]; simpl in *.
   constructor; simpl.
   induction eval_e; simpl in *; subst.
-  - destruct_IHs. crush eval_box.
-  - destruct_IHs. crush eval_beta.
-  - destruct_IHs. crush eval_zeta.
-  - destruct_IHs. crush eval_iota.
-  - destruct_IHs. crush eval_iota_block.
-  - destruct_IHs; simpl in *.
-    { assert (has_tBox) as htBox'.
-      { destruct has_tBox, with_prop_case; simple; easy. }
-      assert (
-        forallb (wellformed ctx 0) (repeat tBox #|n|)
-      ).
-      { move: htBox'; clear. induction n; simpl; now simple. }
-      apply wellformed_substl; now simple. }
-    eapply eval_iota_sing; try now simple.
-    change tBox with (consts_to_values tBox).
-    now simple.
-  - destruct_IHs. crush eval_fix.
-  - destruct_IHs. crush eval_fix_value.
-  - destruct_IHs. crush eval_fix'.
-  - destruct_IHs. crush eval_cofix_case.
-  - destruct_IHs. crush eval_cofix_proj.
-  - destruct_IHs.
-    { rewrite /lookup_constant isdecl /= in wf_e.
-      apply lookup_env_wellformed in isdecl; last assumption.
-      rewrite /wf_global_decl e //= in isdecl. }
-    eapply eval_force; try now simple.
+  all: destruct_IHs. (* Takes a bit of time, proves the premises of most of the induction hypotheses  *)
+  all: try crush.  (* Solves automatically most of the goals *)
+  - eapply eval_force; try now simple.
     econstructor.
     + now apply consts_to_values_declared_constant.
     + now simple.
     + do 2 constructor.
-  - destruct_IHs. crush eval_proj.
-  - destruct_IHs. crush eval_proj_block.
-  - destruct_IHs. crush eval_proj_prop.
-  - destruct_IHs. crush eval_construct.
-  - destruct_IHs; simple.
+  - simple.
     eapply eval_construct_block; try now simple.
     destruct cstr_as_blocks; last first.
-    { destruct args; last easy. 
+    { destruct args; last easy.
       inversion a; subst.
       constructor. }
     rewrite /lookup_constructor_pars_args e0 /= in wf_e.
@@ -616,7 +567,6 @@ Proof.
     apply All2_over_undep in iha.
     unshelve eapply (All2_apply_dep_arrow _ iha).
     now simple.
-  - destruct_IHs. crush eval_app_cong.
   - inversion X; subst; try solve[repeat constructor]; simple.
     rewrite /test_prim /= /test_array_model /= in wf_e.
     simple.
@@ -628,28 +578,9 @@ Proof.
     apply All2_over_undep in X0.
     unshelve eapply (All2_apply_dep_arrow _ X0).
     now simple.
-  - destruct_IHs. crush eval_force.
-  - destruct_IHs. crush eval_atom.
 Qed.
 
-Import Transform.
 
-Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : WcbvFlags) (hApp : has_tApp) (hBox : has_tBox || ~~with_prop_case) (hLazy : has_tLazy_Force) :
-  Transform.t _ _ EAst.term EAst.term _ _
-    (eval_eprogram wfl) (eval_eprogram wfl) :=
-  {| name := "Constants to values";
-    transform p _ := consts_to_values_program p ;
-    pre p := wf_eprogram efl p ;
-    post (p : eprogram) := wf_eprogram efl p ;
-    obseq p hp (p' : eprogram) v v' := v' = consts_to_values v |}.
-
-Next Obligation.
-  now apply wf_consts_to_values.
-Qed.
-Next Obligation.
-  eexists (consts_to_values v); split; last reflexivity.
-  now eapply consts_to_values_pres.
-Qed.
 
 Lemma consts_to_values_extends ctx ctx' :
   extends ctx ctx' ->
@@ -661,27 +592,12 @@ Proof.
   now simple.
 Qed.
 
-#[global]
-Lemma trust_consts_to_values_transformation_ext :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
-  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
-    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+
+
+
+Theorem consts_to_values_env_values {wfl : WcbvFlags} (Σ : global_context) :
+  values_glob (consts_to_values_env Σ).
 Proof.
-  intros efl wfl hApp hBox hLazy p p' h1 h2.
-  apply consts_to_values_extends.
+  induction Σ as [|[kn [[[v|]]|?]] Σ IH]; simpl; 
+    repeat constructor; assumption.
 Qed.
-
-Definition extends_consts_to_values_eprogram (p q : eprogram) :=
-  extends p.1 q.1 /\ p.2 = q.2.
-
-#[global]
-Theorem trust_inline_transformation_ext' :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
-  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
-    extends_eprogram extends_consts_to_values_eprogram.
-Proof.
-  intros efl wfl hApp hBox hLazy [ctx e] [ctx' e'] h1 h2 [h_extends heq]; simple; subst.
-  pose proof consts_to_values_extends.
-  now split; simple.
-Qed.
-

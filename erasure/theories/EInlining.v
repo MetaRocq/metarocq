@@ -840,53 +840,6 @@ Qed.
 
 
 
-#[local] Ltac destruct_IHs :=
-    repeat match goal with 
-    | Σ' := (inline_env _ _).1,
-      IH : _ -> 
-      eval ?Σ' _ _
-        |- _ =>
-        unshelve epose proof IH _; first try easy;
-        clear IH
-    end
-    ; [
-      try solve[
-        repeat (
-          easy || simple || 
-          lazymatch goal with
-          | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
-              rewrite wellformed_mkApps /= in h
-          | |- is_true (wellformed _ _ (mkApps _ _)) =>
-              rewrite wellformed_mkApps /=
-          | h : _ /\ _ |- _ => destruct h
-          | h : cunfold_fix _ _ = Some (_, ?e) |-
-              is_true (wellformed _ _ ?e) => 
-              eapply wellformed_cunfold_fix; simpl
-          | h : cunfold_cofix _ _ = Some (_, ?e) |-
-              is_true (wellformed _ _ ?e) => 
-              eapply wellformed_cunfold_cofix; simpl
-          | h : nth_error _ _ = Some ?a |-
-                is_true (wellformed _ _ ?a) => eapply nth_error_forallb
-          | |- is_true (wellformed _ _ (iota_red _ _ _)) => 
-              eapply wellformed_iota_red_brs
-          | |- is_true (wellformed _ _ (ECSubst.csubst _ _ _)) => 
-              eapply wellformed_csubst
-          | |- is_true (wellformed _ _ (ECSubst.substl _ _)) => 
-              eapply wellformed_substl
-          | |- _ /\ _ => split
-          | h : context[if ?c then _ else _] |- _ => 
-              destruct c eqn:?
-          | h : is_true (is_nil ?l) |- _ => 
-              destruct l; last (simpl in h; easy); clear h
-          end ||
-          match goal with
-          | h : eval _ _ _ |- _ => 
-              apply eval_wellformed in h; [|easy..]; simpl in h
-          end 
-        )
-      ]..
-    |].
-
 Lemma wf_inlining_closed 
   (efl : EEnvFlags)
   inlining ctx k name t :
@@ -1232,6 +1185,55 @@ Qed.
 
 
 
+#[local] Ltac destruct_IHs :=
+    repeat match goal with 
+    | Σ' := (inline_env _ _).1,
+      IH : _ -> 
+      eval ?Σ' _ _
+        |- _ =>
+        unshelve epose proof IH _; first try easy;
+        clear IH
+    end
+    ; [
+      try solve[
+        repeat (
+          easy || simple || 
+          lazymatch goal with
+          | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
+              rewrite wellformed_mkApps /= in h
+          | |- is_true (wellformed _ _ (mkApps _ _)) =>
+              rewrite wellformed_mkApps /=
+          | h : _ /\ _ |- _ => destruct h
+          | h : cunfold_fix _ _ = Some (_, ?e) |-
+              is_true (wellformed _ _ ?e) => 
+              eapply wellformed_cunfold_fix; simpl
+          | h : cunfold_cofix _ _ = Some (_, ?e) |-
+              is_true (wellformed _ _ ?e) => 
+              eapply wellformed_cunfold_cofix; simpl
+          | h : nth_error _ _ = Some ?a |-
+                is_true (wellformed _ _ ?a) => eapply nth_error_forallb
+          | |- is_true (wellformed _ _ (iota_red _ _ _)) => 
+              eapply wellformed_iota_red_brs
+          | |- is_true (wellformed _ _ (ECSubst.csubst _ _ _)) => 
+              eapply wellformed_csubst
+          | |- is_true (wellformed _ _ (ECSubst.substl _ _)) => 
+              eapply wellformed_substl
+          | |- _ /\ _ => split
+          | h : context[if ?c then _ else _] |- _ => 
+              destruct c eqn:?
+          | h : is_true (is_nil ?l) |- _ => 
+              destruct l; last (simpl in h; easy); clear h
+          end ||
+          match goal with
+          | h : eval _ _ _ |- _ => 
+              apply eval_wellformed in h; [|easy..]; simpl in h
+          end 
+        )
+      ]..
+    |].
+
+
+
 Theorem inlining_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining (p : Transform.program _ term)
   (v : term),
@@ -1345,14 +1347,14 @@ Proof.
     apply eval_app_cong; try easy.
     apply eval_to_value in eval_e1.
     unfold inls.
-    rewrite 
+    now rewrite 
       inline_isLambda //
       inline_isFixApp //
       inline_isFix //
       inline_isBox //
       inline_isConstructApp //
       inline_isPrimApp //
-      inline_isLazyApp //
+      inline_isLazyApp
     .
   - inversion X; subst; try solve[repeat constructor]; simple.
     rewrite /test_prim /= /test_array_model /= in wf_e.
@@ -1441,10 +1443,13 @@ Lemma inline_find_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' 
   wf_glob ctx ->
   wf_glob ctx' ->
   extends ctx ctx' ->
-  (forall p : {t' | t = Some t'},
-  forall k, wellformed ctx k (proj1_sig p) ->
-  inline (inline_env inlining ctx).2 (proj1_sig p) = 
-  inline (inline_env inlining ctx').2 (proj1_sig p)) /\ 
+  (match t with
+  | None => True
+  | Some t' =>
+  forall k, wellformed ctx k (t') ->
+  inline (inline_env inlining ctx).2 (t') = 
+  inline (inline_env inlining ctx').2 t'
+  end) /\ 
   (forall name, isSome (lookup_env ctx name) ->
   KernameMap.find name (inline_env inlining ctx).2 = 
   KernameMap.find name (inline_env inlining ctx').2).
@@ -1474,26 +1479,24 @@ Proof.
   apply (well_founded_induction_type_2 myP wf_mysize_lt).
   intros t ctx IH ctx' wf_ctx wf_ctx' ctx'_extends_ctx.
   split.
-  { intros [t' ?] k wf_t; subst.
+  { destruct t as [t'|]; last easy. 
+    intros k wf_t; subst.
     destruct t'; unfold my_size in *; simple; try easy;
     try solve[
       f_equal;
       match goal with
       | |- inline _ ?t = inline _ ?t =>
-        let H := fresh in 
-        unshelve epose proof IH (Some t) ctx (ltac:(easy)) _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _];
-        epose proof H (exist _ eq_refl) _; easy
+        now unshelve epose proof IH (Some t) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx
       end
     ].
     - simple. f_equal. 
       apply All_map_eq.
       simple.
       intros x h_in.
-      unshelve epose proof IH (Some x) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [? _].
-      { assert (size x < (list_size size l)) 
+      unshelve epose proof IH (Some x) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      assert (size x < (list_size size l)) 
         by now apply (In_size id).
-        lia. }
-      now eapply (H (exist x eq_refl)).
+      lia.
     - unfold inline_clause_5.
       unshelve epose proof IH None _ _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [_ ->]; try easy.
       unfold lookup_constant in wf_t.
@@ -1503,28 +1506,21 @@ Proof.
       destruct cstr_as_blocks; simple; last now destruct args.
       simple.
       intros x h_in.
-      unshelve epose proof IH (Some x) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [? _].
-      { assert (size x < (list_size size args)) 
+      unshelve epose proof IH (Some x) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      assert (size x < (list_size size args)) 
         by now apply (In_size id).
-        lia. }
-      now eapply (H (exist x eq_refl)).
+      lia.
     - f_equal.
-      { match goal with
-        | |- inline _ ?t = inline _ ?t =>
-          let H := fresh in 
-          unshelve epose proof IH (Some t) ctx (ltac:(easy)) _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _];
-          epose proof H (exist _ eq_refl) _; easy
-        end. }
+      { now unshelve epose proof IH (Some t') ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx. }
       unfold on_snd.
       apply All_map_eq.
       simple.
       intros x h_in.
       f_equal.
-      unshelve epose proof IH (Some x.2) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _].
-      { assert (size x.2 < (list_size (size ∘ snd) brs)) 
+      unshelve epose proof IH (Some x.2) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      assert (size x.2 < (list_size (size ∘ snd) brs)) 
         by now apply (In_size snd).
-        lia. }
-      now eapply (H (exist x.2 eq_refl)).
+      lia.
     - unfold map_def, wf_fix in *.
       simple.
       f_equal.
@@ -1532,11 +1528,10 @@ Proof.
       simple.
       intros x h_in.
       f_equal.
-      unshelve epose proof IH (Some (dbody x)) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _].
-      { assert (size (dbody x) < (list_size (size ∘ dbody) mfix)) 
+      unshelve epose proof IH (Some (dbody x)) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      assert (size (dbody x) < (list_size (size ∘ dbody) mfix)) 
         by now apply (In_size dbody).
-        lia. }
-      now eapply (H (exist (dbody x) eq_refl)).
+      lia.
     - unfold map_def, wf_fix in *.
       simple.
       f_equal.
@@ -1544,35 +1539,26 @@ Proof.
       simple.
       intros x h_in.
       f_equal.
-      unshelve epose proof IH (Some (dbody x)) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _].
-      { assert (size (dbody x) < (list_size (size ∘ dbody) mfix)) 
+      unshelve epose proof IH (Some (dbody x)) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      assert (size (dbody x) < (list_size (size ∘ dbody) mfix)) 
         by now apply (In_size dbody).
-        lia. }
-      now eapply (H (exist (dbody x) eq_refl)).
+      lia.
     - unfold 
         test_prim, map_prim, 
         test_array_model, map_array_model in *; simple.
       destruct prim as [? [| | |]]; simple; try easy.
       do 4 f_equal.
-      { assert (
-          size (array_default a) <= 
-          prim_size size (Primitive.primArray; primArrayModel a)
-        ) by now destruct a; unfold prim_size; simple.
-        match goal with
-        | |- inline _ ?t = inline _ ?t =>
-          let H := fresh in 
-          unshelve epose proof IH (Some t) ctx (ltac:(easy)) _ wf_ctx wf_ctx' ctx'_extends_ctx as [H _];
-          epose proof H (exist _ eq_refl) _; easy
-        end. }
+      { 
+        unshelve epose proof IH (Some (array_default a)) ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+        now destruct a; unfold prim_size; simple.  }
       apply All_map_eq.
       simple.
       intros x' h_in.
-      unshelve epose proof IH (Some x') ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx as [? _].
-      { unfold prim_size; simple.
-        assert (size x' < (list_size size (array_value a))) 
+      unshelve epose proof IH (Some x') ctx _ _ wf_ctx wf_ctx' ctx'_extends_ctx; last easy.
+      unfold prim_size; simple.
+      assert (size x' < (list_size size (array_value a))) 
         by now apply (In_size id).
-        lia. }
-      now eapply (H (exist x' eq_refl)). }
+      lia. }
   { intros name h_lookup.
     destruct ctx as [|[name' decl] ctx]; first easy.
     move: wf_ctx.
@@ -1605,8 +1591,7 @@ Proof.
           symmetry.
           unfold my_size in IH; simple.
           unshelve epose proof IH (Some t') ctx _ ctx' wf_ctx wf_ctx' _ as [H' _]; try easy.
-          f_equal.
-          eapply (H' (exist t' eq_refl)); easy.
+          now f_equal.
         * rewrite find_inlining_fresh //.
           rewrite find_inlining_not_declared //.
           intros [t' h].
@@ -1620,15 +1605,14 @@ Proof.
           now intros [??].
       + intros.
         assert (~~ KernameSet.mem name' inlining)
-        by rewrite heq //.
+          by rewrite heq //.
         rewrite !inline_env_lookup_no_inline_None //.
     - unfold my_size, myP in *.
-      unshelve epose proof IH None ctx _ _ _ _ _ as [? ?]; simple; first easy.
+      unshelve epose proof IH None ctx _ _ _ _ _; simple; first easy.
       destruct (KernameSet.mem name' inlining) eqn:heq; last easy.
       destruct decl as [[[|]]|]; simple; try easy.
       rewrite KernameMapFact.F.add_neq_o; last easy.
-      now rewrite Kername.compare_eq.
-  }
+      now rewrite Kername.compare_eq. }
 Qed.
 
 
@@ -1641,8 +1625,8 @@ Lemma find_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' name :
   KernameMap.find name (inline_env inlining ctx').2.
 Proof.
   intros.
-  eapply inline_find_extends; try easy.
-  exact None.
+  set t := @None term.
+  now eapply inline_find_extends.
 Qed.
 
 Lemma inline_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' k t :
@@ -1654,8 +1638,7 @@ Lemma inline_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' k t :
   inline (inline_env inlining ctx').2 t.
 Proof.
   intros.
-  unshelve epose proof inline_find_extends efl wfl inlining ctx ctx' (Some t) _ _ _ as [H' _]; try assumption.
-  now eapply (H' (exist t eq_refl)).
+  now eapply (inline_find_extends _ _ _ _ _ (Some t)).
 Qed. 
 
 Lemma extends_inline_env (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' :
@@ -1668,7 +1651,7 @@ Proof.
   rewrite lookup_env_inline // in heq.
   destruct (lookup_env ctx name) as [d|]eqn:heq';
   last easy.
-  simpl in heq.
+  simple.
   injection heq as <-.
   rewrite lookup_env_inline // (H1 _ _ heq') /inline_global_decl.
   destruct d as [[[t|]]|]; [|easy..].
