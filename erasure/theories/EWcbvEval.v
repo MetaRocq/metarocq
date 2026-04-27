@@ -339,7 +339,26 @@ Section Wcbv.
    | value_app_nonnil f args : value_head #|args| f -> args <> [] -> All value args -> value (mkApps f args).
    Derive Signature for value.
 
+
 End Wcbv.
+
+(** Characterisation of an environment where all declarations with a body map to a value *)
+Definition value_decl {wfl : WcbvFlags} (Σ : global_context) (d : global_decl) :=
+  match d with
+  | ConstantDecl {| cst_body := Some v |} => value Σ v
+  | _ => True
+  end.
+
+Inductive values_glob {wfl : WcbvFlags} : global_context -> Type :=
+| values_glob_nil : values_glob []
+| values_glob_cons 
+    (kn : kername) (d : global_decl) (Σ : global_context) :
+    values_glob Σ ->
+    value_decl Σ d ->
+    values_glob ((kn, d) :: Σ)
+.
+Derive Signature for values_glob.
+
 
 Notation atomic Σ := (atomic_value Σ (value Σ)).
 

@@ -20,26 +20,13 @@ Local Existing Instance extraction_checker_flags.
 
 Ltac introdep := let H := fresh in intros H; depelim H.
 
-#[global]
-Hint Constructors eval : core.
-
-Import MRList (map_InP, map_InP_spec).
-
-Equations safe_hd {A} (l : list A) (nnil : l <> nil) : A :=
-| [] | nnil := False_rect _ (nnil eq_refl)
-| hd :: _ | _nnil := hd.
-
-Definition inspect {A : Type} (x : A) : {y : A | x = y} :=
-  @exist _ (fun y => x = y) x eq_refl.
-
+Require Import PCUICSafeReduce (inspect).
 Section unbox.
 
 Section Def.
   Context (Σ : GlobalContextMap.t).
   Definition unboxable (idecl : one_inductive_body) (cdecl : constructor_body) :=
     (#|idecl.(ind_ctors)| == 1) && (cdecl.(cstr_nargs) == 1).
-   
-
 
   Equations is_unboxable (kn : inductive) (c : nat) : bool :=
     | kn | 0 with GlobalContextMap.lookup_constructor Σ kn 0 := {
@@ -89,10 +76,6 @@ Section Def.
 End Def.
 
 
-
-
-
-
 Definition unbox_constant_decl Σ cb :=
   {| cst_body := option_map (unbox Σ) cb.(cst_body) |}.
 
@@ -115,8 +98,6 @@ Definition unbox_program (p : eprogram_env) : eprogram :=
   (unbox_env p.1, unbox p.1 p.2).
 
 
-
-
 Create HintDb unboxing_rw_hints.
 Ltac simple := repeat (
     assumption ||
@@ -124,7 +105,7 @@ Ltac simple := repeat (
     | |- All _ _ => apply Forall_All 
     | H : All _ _ |- _ => apply All_Forall in H
     | h : ?e = Some _ |-
-        option_map _ ?e = Some _ =>
+        context[option_map _ ?e] =>
           rewrite h
     end ||
     autorewrite with unboxing_rw_hints in * || 
@@ -153,7 +134,7 @@ Hint Rewrite <- map_rev : unboxing_rw_hints.
 Hint Rewrite @nth_error_nil : unboxing_rw_hints.
 
 
-Lemma lookup_env_map_snd Σ f kn : lookup_env (List.map (on_snd f) Σ) kn = option_map f (lookup_env Σ kn).
+Lemma lookup_env_map_snd Σ f kn : lookup_env (map (on_snd f) Σ) kn = option_map f (lookup_env Σ kn).
 Proof.
   induction Σ; cbn; auto.
   case: eqb_spec => //.
@@ -209,7 +190,7 @@ Proof.
   unfold lookup_constructor.
   simple.
   destruct (lookup_inductive Σ name) as [[[? ?] ?]|]; simple; last easy.
-  now destruct (nth_error (ind_ctors o) k).
+  now destruct (nth_error (ind_ctors _) k).
 Qed.
 Hint Rewrite lookup_constructor_unbox : unboxing_rw_hints.
 
@@ -230,7 +211,7 @@ Proof.
   unfold lookup_projection.
   simple.
   destruct (lookup_constructor Σ (proj_ind name)) as [[[? ?] ?]|]; simple; last easy.
-  now destruct (nth_error (ind_projs o) (proj_arg name)).
+  now destruct (nth_error (ind_projs _) (proj_arg name)).
 Qed.
 Hint Rewrite lookup_projection_unbox : unboxing_rw_hints.
 
@@ -297,14 +278,15 @@ Proof.
 Qed.
 
 
-
-
 Lemma get_unboxable_case_branch_spec {ind : inductive} {brs : list (list name * term)} {brna bbody} :
   get_unboxable_case_branch ind brs = Some (brna, bbody) <->
   brs = [([brna], bbody)].
 Proof.
   now funelim (get_unboxable_case_branch ind brs).
 Qed.
+Hint Rewrite @get_unboxable_case_branch_spec : unboxing_rw_hints.
+
+
 Lemma get_unboxable_case_branch_map_on_snd {ind : inductive} {brs : list (list name * term)} f :
   get_unboxable_case_branch ind (map (on_snd f) brs) = option_map (on_snd f) (get_unboxable_case_branch ind brs).
 Proof.
@@ -331,12 +313,10 @@ Hint Rewrite @fresh_global_map_on_snd : unboxing_rw_hints.
 Lemma wf_unbox_expr
   (efl : EEnvFlags) (flags : WcbvFlags) 
   (t : term) (k : nat) (Σ : GlobalContextMap.t) ctx :
-  (* ~~cstr_as_blocks -> *)
   has_tLetIn ->
   wellformed ctx k t -> 
   wellformed ctx k (unbox Σ t).
 Proof.
-  (* destruct cstr_as_blocks eqn:has_cstr_blocks; first easy. *)
   induction t using term_forall_list_ind in k |- *; simple;
   try invert_primProp;
   unfold 
@@ -370,7 +350,6 @@ Proof.
       simple; last easy.
     
     repeat split; try easy.
-    rewrite get_unboxable_case_branch_spec in heq'''.
     subst.
     assert (In ([n], t0) [([n], t0)]) by now left.
     eapply (X ([_], _)); try easy.
@@ -424,12 +403,15 @@ Proof.
   induction e2 
     using term_forall_list_ind
     in k  |- *;
-      simple; try now f_equal.
+      simple; try solve[
+        now f_equal |
+        simple; f_equal;
+        unfold map_def;
+        apply All_map_eq;
+        simple; intros; f_equal;
+        easy
+      ].
   - simple. destruct (k ?= n); reflexivity.
-  - simple.
-    f_equal.
-    apply All_map_eq.
-    now simple.
   - destruct (is_unboxable Σ i n) eqn:heq; simple; last first.
     { f_equal.
       apply All_map_eq.
@@ -482,16 +464,6 @@ Proof.
     eqn:heq; simple; last easy.
     destruct (unboxable ind_body constr_body) eqn:heq';
     simple; easy.
-  - simple; f_equal.
-    unfold map_def.
-    apply All_map_eq.
-    simple. intros. f_equal.
-    easy.
-  - simple; f_equal.
-    unfold map_def.
-    apply All_map_eq.
-    simple. intros. f_equal.
-    easy.
   - inversion X as [| | | ? [? ?]]; 
     unfold map_prim, map_array_model; 
     simple; try easy.
@@ -519,12 +491,8 @@ Lemma unbox_map_fix_subst Σ mfix  :
   map (unbox Σ) (fix_subst mfix) = fix_subst (map (map_def ((unbox Σ))) mfix).
 Proof.
   unfold fix_subst.
-  simple.
-  remember #|mfix| as n eqn:heq.
-  clear heq.
-  induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  induction mfix as [|? ? IH] at 2 4; first reflexivity.
+  now simple.
 Qed.
 Hint Rewrite unbox_map_fix_subst : unboxing_rw_hints.
 
@@ -546,12 +514,8 @@ Lemma unbox_map_cofix_subst Σ mfix  :
   map (unbox Σ) (cofix_subst mfix) = cofix_subst (map (map_def ((unbox Σ))) mfix).
 Proof.
   unfold cofix_subst.
-  simple.
-  remember #|mfix| as n eqn:heq.
-  clear heq.
-  induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  induction mfix as [|? ? IH] at 2 4; first reflexivity.
+  now simple.
 Qed.
 Hint Rewrite unbox_map_cofix_subst : unboxing_rw_hints.
 
@@ -576,10 +540,6 @@ Proof.
   now induction l in e |- *.
 Qed.
 Hint Rewrite unbox_mkApps : unboxing_rw_hints.
-
-(* Lemma unbox_env_declared_constant ctx c decl :
-  declared_constant ctx c decl ->
-  declared_constant (unbox_env ctx) c (unbox_decl decl). *)
 
 Lemma tCase_not_val (efl : EEnvFlags) (wfl : WcbvFlags)
   ctx indn t brs :
@@ -733,11 +693,9 @@ Proof.
     end.
   change (P (tApp t1 t2)).
   move: h.
-  eapply value_values_ind.
+  eapply value_values_ind; simple; try easy.
   - intros t h.
     now destruct t.
-  - now simple.
-  - now simple.
   - intros f args value_head_f args_nnil args_vals IH.
     induction args as [|? [|? ?] _] using rev_ind;
     simple; first easy.
@@ -774,7 +732,7 @@ Ltac find_value_contra := solve[
 Theorem unbox_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : eprogram_env)
   (v : term),
-  has_tApp -> (* Needed for eval_wellformed *)
+  has_tApp ->
   has_tBox || ~~ with_prop_case -> 
   ~~has_tCoFix ->
   ~~has_cstr_params ->
@@ -784,8 +742,7 @@ Theorem unbox_pres :
   let ip := unbox_program p in
   eval_eprogram wfl ip (unbox p.1 v).
 Proof.
-  intros ? ? [ctx e] ? ? htBox nhtCofix nhCstrPms hCstrsAsBlcks [wf_ctx wf_e] [eval_e]; simpl in *.
-  constructor; simpl.
+  intros ? ? [ctx e] ? ? htBox nhtCofix nhCstrPms hCstrsAsBlcks [wf_ctx wf_e] [eval_e]; constructor; simple.
   induction eval_e; simple; subst.
   - destruct_IHs. crush eval_box.
   - destruct_IHs. crush eval_beta.
@@ -807,19 +764,28 @@ Proof.
           [[ind_finite ind_npars ind_bodies] ind_body] 
           cstr_body
         ]
-      |] eqn:heq; simple; try easy.
-    + assert (ind_npars = 0); subst.
-      { unfold lookup_constructor, lookup_inductive in heq.
-        destruct (lookup_minductive ctx (inductive_mind ind)) eqn:heq''; simple; try easy.
-        unshelve eapply lookup_wf_minductive in heq''; try easy.
-        destruct (nth_error (EAst.ind_bodies m) (inductive_ind ind)); simple; try easy.
-        destruct (ind_ctors o); simple; try easy.
-        injection heq as ? ? ?; subst; simple.
-        unfold wf_minductive in heq''.
-        simple.
-        destruct heq'' as [h _].
-        destruct has_cstr_params; try easy.
-        destruct ind_npars; easy. }
+      |] eqn:heq; simple; try easy; last first.
+    { eapply eval_iota_block.
+      - assumption.
+      - destruct c; easy.
+      - unfold constructor_isprop_pars_decl in *; simple.
+        now destruct (lookup_constructor ctx ind c) as [[[? ?]]|].
+      - now simple.
+      - now simple.
+      - now simple.
+      - unfold iota_red in *; simple. }
+    assert (ind_npars = 0); subst.
+    { unfold lookup_constructor, lookup_inductive in heq.
+      destruct (lookup_minductive ctx (inductive_mind ind)) eqn:heq''; simple; try easy.
+      unshelve eapply lookup_wf_minductive in heq''; try easy.
+      destruct (nth_error (EAst.ind_bodies m) (inductive_ind ind)); simple; try easy.
+      destruct (ind_ctors o); simple; try easy.
+      injection heq as ? ? ?; subst; simple.
+      unfold wf_minductive in heq''.
+      simple.
+      destruct heq'' as [h _].
+      destruct has_cstr_params; try easy.
+      destruct ind_npars; easy. }
       destruct (unboxable ind_body cstr_body) eqn:heq'; last first.
       { eapply eval_iota_block.
         - assumption.
@@ -845,15 +811,6 @@ Proof.
       injection e1 as ? ? ?; subst; simple;
       injection e2 as ?; subst; simple;
       destruct args as [|arg [|? ?]]; simple; easy.
-    + eapply eval_iota_block.
-      * assumption.
-      * destruct c; easy.
-      * unfold constructor_isprop_pars_decl in *; simple.
-        now destruct (lookup_constructor ctx ind c) as [[[? ?]]|].
-      * now simple.
-      * now simple.
-      * now simple.
-      * unfold iota_red in *; simple.
   - destruct_IHs; simpl in *.
     { assert (has_tBox) as htBox'.
       { destruct has_tBox, with_prop_case; simple; easy. }
@@ -879,14 +836,12 @@ Proof.
     { destruct (ind_ctors) as [|? [|? ?]]; try easy.
       - eapply eval_iota_sing; simple; try easy.
         + unfold inductive_isprop_and_pars in *; simple.
-          now rewrite heq.
         + simple.
           replace (repeat tBox #|n|) 
           with (map (unbox ctx) (repeat tBox #|n|));
           now simple.
       - eapply eval_iota_sing; simple; try easy.
         + unfold inductive_isprop_and_pars in *; simple.
-          now rewrite heq.
         + simple.
           replace (repeat tBox #|n|) 
           with (map (unbox ctx) (repeat tBox #|n|));
@@ -896,7 +851,6 @@ Proof.
     destruct (cstr_nargs ind_ctor == 1) eqn:heq''; last first.
     { eapply eval_iota_sing; simple; try easy.
       - unfold inductive_isprop_and_pars in *; simple.
-        now rewrite heq.
       - simple.
         replace (repeat tBox #|n|) 
         with (map (unbox ctx) (repeat tBox #|n|));
@@ -905,13 +859,10 @@ Proof.
     destruct n as [|n [|n' ns]]; simple.
     + eapply eval_iota_sing; simple; try easy.
       unfold inductive_isprop_and_pars in *; simple.
-      now rewrite heq.
     + crush eval_zeta.
     + eapply eval_iota_sing; simple; try easy.
       * unfold inductive_isprop_and_pars in *; simple.
-        now rewrite heq.
-      * rewrite unbox_substl unbox_csubst in H0.
-        simple.
+      * rewrite unbox_substl unbox_csubst in H0; simple.
   - destruct_IHs. crush eval_fix.
   - destruct_IHs. crush eval_fix_value.
   - destruct_IHs. crush eval_fix'.
@@ -919,21 +870,18 @@ Proof.
     clear IHeval_e1 IHeval_e2.
     apply eval_wellformed in eval_e1; try easy.
     rewrite wellformed_mkApps in eval_e1; simple.
-    destruct eval_e1 as [[? ?] ?].
     now apply (no_fixpoint_negb has_tCoFix).
   - exfalso.
     clear IHeval_e1 IHeval_e2.
     apply eval_wellformed in eval_e1; try easy.
     rewrite wellformed_mkApps in eval_e1; simple.
-    destruct eval_e1 as [[? ?] ?].
     now apply (no_fixpoint_negb has_tCoFix).
   - destruct_IHs.
     { rewrite /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
       rewrite /wf_global_decl e //= in isdecl. }
     econstructor; last easy.
-    + unfold declared_constant. simple.
-      now rewrite isdecl.
+    + unfold declared_constant in *. now simple.
     + now simple.
   - easy.
   - destruct_IHs.
@@ -1004,8 +952,7 @@ Proof.
       rewrite heq
     ).
   - easy.
-  - destruct_IHs; simple.
-    unfold is_unboxable, is_unboxable_clause_1, lookup_constructor_pars_args in *; simple.
+  - unfold is_unboxable, is_unboxable_clause_1, lookup_constructor_pars_args in *; simple.
     destruct c as [|c]; simple; last first.
     { destruct cstr_as_blocks; last first.
       { destruct args, args'; simple; try solve[inversion a | easy].
@@ -1204,12 +1151,6 @@ Qed.
 
 (* 
 
-Lemma map_unbox_repeat_box Σ n : 
-  map (unbox Σ) (repeat tBox n) = repeat tBox n.
-Proof.
-  now simple.
-Qed.
-
 Arguments eqb : simpl never.
 
 
@@ -1379,6 +1320,13 @@ Transparent isEtaExp_unfold_clause_1. *)
 
 
 End unbox.
+
+
+(* Import MRList (map_InP, map_InP_spec). *)
+(* Equations safe_hd {A} (l : list A) (nnil : l <> nil) : A :=
+| [] | nnil := False_rect _ (nnil eq_refl)
+| hd :: _ | _nnil := hd. *)
+
 
 (* #[universes(polymorphic)] Global Hint Rewrite @map_primIn_spec @map_InP_spec : unbox.
 Tactic Notation "simp_eta" "in" hyp(H) := simp isEtaExp in H; rewrite -?isEtaExp_equation_1 in H.
