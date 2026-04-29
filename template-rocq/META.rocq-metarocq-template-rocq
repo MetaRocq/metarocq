@@ -4,7 +4,7 @@ package "plugin" (
     description = "The MetaRocq Rocq Template Plugin"
     version = "8.20"
     directory = "src"
-    requires = "coq-core.plugins.ltac"
+    requires = "rocq-runtime.plugins.ltac"
     archive(byte) = "template_rocq.cma"
     archive(native) = "template_rocq.cmxa"
     plugin(byte) = "template_rocq.cma"
