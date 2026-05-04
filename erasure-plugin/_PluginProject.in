@@ -112,8 +112,8 @@ src/eOptimizePropDiscr.mli
 src/eOptimizePropDiscr.ml
 src/optimizePropDiscr.mli
 src/optimizePropDiscr.ml
-src/eInlining.mli
-src/eInlining.ml
+
+
 src/eBeta.mli
 src/eBeta.ml
 src/eProgram.mli
