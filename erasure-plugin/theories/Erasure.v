@@ -193,7 +193,21 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   (* First-order constructor representation *)
   constructors_as_blocks_transformation
     (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags))
-    (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl).
+    (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl) ▷ 
+  (* Inline the environment *)
+  inline_transformation 
+    (EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))
+    final_wcbv_flags
+    default_erasure_config.(inlined_constants)
+    eq_refl
+    eq_refl ▷ 
+  forget_inlining_info_transformation 
+    ((EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))) _  
+.
 
 (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
    parameters in inductive declarations. The constructor applications are also transformed to a first-order
