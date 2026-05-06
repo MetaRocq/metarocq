@@ -125,14 +125,18 @@ Proof.
   move: obseq.
   unfold verified_lambdabox_pipeline.
   repeat destruct_compose.
+  cbn [transform forget_inlining_info_transformation] in *.
+  cbn [transform inline_transformation] in *.
   cbn [transform rebuild_wf_env_transform] in *.
   cbn [transform constructors_as_blocks_transformation] in *.
   cbn [transform inline_projections_optimization] in *.
   cbn [transform remove_match_on_box_trans] in *.
   cbn [transform remove_params_optimization] in *.
   cbn [transform guarded_to_unguarded_fix] in *.
-  intros ? ? ? ? ? ? ?.
+  intros ? ? ? ? ? ? ? ? ?.
   unfold run, time.
+  cbn [obseq compose forget_inlining_info_transformation] in *.
+  cbn [obseq compose inline_transformation] in *.
   cbn [obseq compose constructors_as_blocks_transformation] in *.
   cbn [obseq run compose rebuild_wf_env_transform] in *.
   cbn [obseq compose inline_projections_optimization] in *.
@@ -142,7 +146,33 @@ Proof.
   intros obs.
   decompose [ex and prod] obs. clear obs. subst.
   unfold run, time.
-  unfold EConstructorsAsBlocks.transform_blocks_program. cbn [snd]. f_equal.
+  unfold EInlining.inline_program.
+  EInlining.destruct_inline_env.
+  unfold EConstructorsAsBlocks.transform_blocks_program. cbn [snd]. do 2 f_equal.
+  {
+    unfold EInlining.inlined_program_inlinings.
+    repeat destruct_compose.
+    intros.
+    cbn [transform inline_transformation] in *.
+    unfold EInlining.inline_program.
+    EInlining.destruct_inline_env.
+    cbn [transform constructors_as_blocks_transformation] in *.
+    cbn [transform rebuild_wf_env_transform] in *.
+    cbn [transform inline_projections_optimization] in *.
+    cbn [transform remove_match_on_box_trans] in *.
+    cbn [transform remove_params_optimization] in *.
+    cbn [transform guarded_to_unguarded_fix] in *.
+    unfold EConstructorsAsBlocks.transform_blocks_program.
+    cbn [fst snd].
+    do 3 f_equal.
+    eapply rebuild_wf_env_irr.
+    unfold EInlineProjections.optimize_program. cbn [fst snd].
+    f_equal.
+    eapply rebuild_wf_env_irr.
+    unfold EOptimizePropDiscr.remove_match_on_box_program. cbn [fst snd].
+    f_equal.
+    now eapply rebuild_wf_env_irr.
+  }
   repeat destruct_compose.
   intros.
   cbn [transform rebuild_wf_env_transform] in *.
