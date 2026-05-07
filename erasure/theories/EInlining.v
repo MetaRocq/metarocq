@@ -211,6 +211,7 @@ Proof.
   now destruct t.
 Qed.
 
+
 Lemma is_nil_map {A B : Type} (f : A -> B) l :
   is_nil (map f l) = is_nil l.
 Proof.
@@ -1114,6 +1115,25 @@ Proof.
       !EAstUtils.head_tApp.
     inversion H; reflexivity.
 Qed.
+
+Lemma inline_isFixApp_imp inlining ctx t :
+  EAstUtils.isFixApp t ->
+  EAstUtils.isFixApp (inline (inline_env inlining ctx).2 t).
+Proof.
+  unfold EAstUtils.isFixApp.
+  induction t; simple; try easy.
+  now rewrite !EAstUtils.head_tApp.
+Qed.
+
+Lemma inline_isCoFixHead_imp inlining ctx t :
+  EAstUtils.isCoFix (EAstUtils.head t) ->
+  EAstUtils.isCoFix (EAstUtils.head (inline (inline_env inlining ctx).2 t)).
+Proof.
+  induction t; simple; try easy.
+  now rewrite !EAstUtils.head_tApp.
+Qed.
+
+
 
 Lemma inline_isBox (wfl : WcbvFlags) inlining ctx v :
   value ctx v ->

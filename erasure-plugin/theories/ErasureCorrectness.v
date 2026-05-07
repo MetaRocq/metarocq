@@ -1445,7 +1445,7 @@ Proof.
     reflexivity.
 Qed.
 
-(* Import EInlining.
+Import EInlining.
 
 Definition fo_evalue_inline (p : program (E.global_context × constants_inlining) EAst.term) :=
   firstorder_evalue p.1.1 p.2.
@@ -1475,6 +1475,36 @@ Proof.
 Qed.
 
 
+
+#[global] Instance inline_transformation_pres_app {efl : EWellformed.EEnvFlags} {wcbvf : WcbvFlags}
+  {has_app : has_tApp} {has_prop_case : has_tBox || ~~ with_prop_case} inlining :
+  ETransformPresAppLam.t
+    (@inline_transformation efl wcbvf inlining has_app has_prop_case)
+    (fun _ => True) (fun _ => True).
+Proof.
+  split; try easy; intros.
+  - destruct p, p'; simpl in *; subst.
+    now unfold inline_program; repeat destruct_inline_env.
+  - unshelve eexists.
+    now unfold pre, inline_transformation, wf_eprogram in *; simple.
+    unshelve eexists.
+    now unfold pre, inline_transformation, wf_eprogram in *; simple.
+    simpl.
+    now unfold inline_program; repeat destruct_inline_env.
+  - unfold isFunction, inline_transformation, transform, inline_program in *.
+    repeat destruct_inline_env.
+    simple.
+    unfold is_true in *.
+    rewrite ->!orb_true_iff in *.
+    destruct H as [[H | H] | H].
+    + repeat left.
+      now apply isLambda_inline.
+    + left; right.
+      now apply inline_isFixApp_imp.
+    + repeat right.
+      now apply inline_isCoFixHead_imp.
+Qed.
+
 #[global] Instance forget_inlining_pres {efl : EWellformed.EEnvFlags} {wcbvf : WcbvFlags} :
   ETransformPresFO.t
     (@forget_inlining_info_transformation efl wcbvf)
@@ -1482,13 +1512,28 @@ Qed.
     (fun p pr fo => (p.1.1, p.2)).
 Proof.
   split => //.
-Qed. *)
+Qed.
+
+
+
+#[global] Instance forget_inlining_pres_app {efl : EWellformed.EEnvFlags} wfl :
+  ETransformPresAppLam.t
+    (@forget_inlining_info_transformation efl wfl)
+    (fun _ => True) (fun _ => True).
+Proof.
+  split; try easy.
+  intros.
+  destruct p, p'; simpl in *; subst; reflexivity.
+  Unshelve.
+  all: now unfold pre, forget_inlining_info_transformation, wf_eprogram in *; simple.
+Qed.
 
 
 Lemma lambdabox_pres_fo :
   exists compile_value, ETransformPresFO.t verified_lambdabox_pipeline fo_evalue_map (fun p => firstorder_evalue_block p.1 p.2) compile_value /\
     forall p pr fo, (compile_value p pr fo).2 = compile_evalue_box (ERemoveParams.strip p.1 p.2) [].
 Proof.
+  Opaque ERemoveParams.strip.
   eexists.
   split.
   unfold verified_lambdabox_pipeline.
@@ -1500,16 +1545,30 @@ Proof.
   2:unfold ETransformPresFO.compose_compile_fo_value; cbn.
   unshelve eapply ETransformPresFO.compose; tc. shelve.
   2:unfold ETransformPresFO.compose_compile_fo_value; cbn.
+  unshelve eapply ETransformPresFO.compose; tc. shelve.
+  2:unfold ETransformPresFO.compose_compile_fo_value; cbn.
+  unshelve eapply ETransformPresFO.compose; tc. shelve.
+  2:unfold ETransformPresFO.compose_compile_fo_value; cbn.
   unshelve eapply ETransformPresFO.compose. shelve. eapply remove_match_on_box_pres => //.
-  unfold ETransformPresFO.compose_compile_fo_value; cbn -[ERemoveParams.strip ERemoveParams.strip_env].
-  reflexivity.
+  destruct p as [Γ t].
+  unfold inline_program.
+  destruct_inline_env.
+  unfold fo_evalue_map in fo.
+  unfold ETransformPresFO.compose_compile_fo_value; cbn -[ERemoveParams.strip ERemoveParams.strip_env inline_env] in *.
+  inversion fo; subst.
+  assert (forall inlining t l, List.map (inline inlining) l = l -> inline inlining (compile_evalue_box t l) = compile_evalue_box t l) as heq.
+  { clear.
+    intros env t l heq.
+    induction t in l, heq |- *; simpl; try easy.
+    now rewrite IHt1 //= IHt2. }
+  now rewrite heq.
 Qed.
 
 #[local] Instance lambdabox_pres_app :
   ETransformPresAppLam.t verified_lambdabox_pipeline is_eta_fix_app_map (fun _ => True).
 Proof.
   unfold verified_lambdabox_pipeline.
-  do 5 (unshelve eapply ETransformPresAppLam.compose; [shelve| |tc]).
+  do 7 (unshelve eapply ETransformPresAppLam.compose; [shelve| |tc]).
   2:{ eapply remove_match_on_box_pres_app => //. }
   do 2 (unshelve eapply ETransformPresAppLam.compose; [shelve| |tc]).
   tc.
@@ -2189,7 +2248,6 @@ Section pipeline_cond.
   Let v_t := compile_value_box (PCUICExpandLets.trans_global_env Σ) v [].
 
   Opaque compose.
-
   Lemma verified_erasure_pipeline_lookup_env_in kn decl (efl := EInlineProjections.switch_no_params all_env_flags)
     {has_rel : has_tRel} {has_box : has_tBox} :
     EGlobalEnv.lookup_env Σ_t kn = Some decl ->
@@ -2207,6 +2265,18 @@ Section pipeline_cond.
   unfold verified_lambdabox_pipeline.
   repeat rewrite -transform_compose_assoc.
   repeat (destruct_compose; intro).
+
+  unfold transform at 1. cbn -[transform].
+  unfold transform at 1. cbn -[transform].
+  unfold inline_program; destruct_inline_env.
+  cbn -[transform].
+  unshelve setoid_rewrite EInlining.lookup_env_inline; [
+    exact ((EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags))))
+  | | exact final_wcbv_flags |]; last first.
+  { apply H8. }
+  set (inline_global_decl _).
   unfold transform at 1. cbn -[transform].
   rewrite EConstructorsAsBlocks.lookup_env_transform_blocks.
   set (EConstructorsAsBlocks.transform_blocks_decl _).
@@ -2224,7 +2294,7 @@ Section pipeline_cond.
   unfold transform at 1. cbn -[transform].
   unfold transform at 1. cbn -[transform].
   erewrite EOptimizePropDiscr.lookup_env_remove_match_on_box.
-  2: {
+  2: { 
     apply ERemoveParams.strip_env_wf.
     unfold transform at 1. cbn -[transform].
     rewrite erase_global_deps_fast_spec.
@@ -2247,13 +2317,13 @@ Section pipeline_cond.
   unshelve epose proof
     (Hlookup := lookup_env_in_erase_global_deps optimized_abstract_env_impl w t0
     _ kn _ Hyp0 decl' _ Heq).
-  { epose proof (wf_fresh_globals _ HΣ). clear - H8.
-    revert H8. cbn. set (Σ.1). induction 1; econstructor; eauto.
+  { epose proof (wf_fresh_globals _ HΣ). clear - H10.
+    revert H10. cbn. set (Σ.1). induction 1; econstructor; eauto.
     cbn. clear -H. induction H; econstructor; eauto. }
   destruct Hlookup as [decl'' [? ?]]. exists decl''; split ; eauto.
-  cbn in H10. inversion H10.
+  cbn in H12. inversion H12.
   now destruct decl' , decl''.
-  Qed.
+  Time Qed.
 
 End pipeline_cond.
 
