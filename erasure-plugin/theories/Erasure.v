@@ -165,6 +165,8 @@ Next Obligation.
   destruct econf as [[[] [] [] [] []] ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
 Qed.
 
+
+(* TODO: Take erasure config as argument *)
 Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   (efl := EWellformed.all_env_flags)
   : Transform.t _ _ _ EAst.term _ _
