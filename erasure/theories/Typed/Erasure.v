@@ -1173,7 +1173,7 @@ Proof.
     now apply lift_sorting_forget_body, lift_sorting_forget_rel in wt.
   - assert (rΣ = Σ).
     { eapply abstract_env_ext_irr;eauto. }
-    easy.
+    subst; assumption.
   - assert (rΣ = Σ).
     { eapply abstract_env_ext_irr;eauto. }
     subst.
