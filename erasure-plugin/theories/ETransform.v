@@ -1265,7 +1265,7 @@ Proof.
   intros ? ? inlining ? ?.
   unfold TransformExt.t, transform, inline_transformation, inline_program.
   intros [ctx e] [ctx' e'] [? ?] [? ?] h_extends.
-  simple.
+  EInlining.simple.
   now eapply extends_inline_env.
 Qed.
 
@@ -1280,8 +1280,8 @@ Proof.
   intros ? ? inlining ? ?.
   unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
   intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
-  pose proof extends_inline_env efl wfl.
-  pose proof inline_extends efl wfl inlining.
+  pose proof extends_inline_env efl.
+  pose proof inline_extends efl inlining.
   now simple.
 Qed.
 

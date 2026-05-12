@@ -69,7 +69,7 @@ From MetaRocq.Common Require Import Transform.
 
 Create HintDb consts_to_values_rw_hints.
 Ltac simple := repeat (
-    assumption ||
+    eassumption ||
     match goal with
     | |- All _ _ => apply Forall_All 
     | H : All _ _ |- _ => apply All_Forall in H
@@ -418,7 +418,7 @@ Hint Rewrite consts_to_values_iota : consts_to_values_rw_hints.
 
 
 Lemma wf_consts_to_values_same_ctx 
-  (efl : EEnvFlags) (flags : WcbvFlags) 
+  (efl : EEnvFlags)
   (t : term) (k : nat) (ctx : global_context) :
   has_tLazy_Force ->
   wellformed ctx k t -> 
@@ -434,7 +434,7 @@ Qed.
 
 
 Lemma wf_consts_to_values_env_map_ctx 
-  (efl : EEnvFlags) (flags : WcbvFlags) 
+  (efl : EEnvFlags) 
   (t : term) (k : nat) (ctx : global_context) :
   has_tLazy_Force ->
   wellformed ctx k t -> 
@@ -450,19 +450,22 @@ Qed.
 
 
 Lemma wf_glob_consts_to_values
-  (efl : EEnvFlags) (flags : WcbvFlags) 
+  (efl : EEnvFlags)
   (ctx : global_context) :
   has_tLazy_Force ->
   wf_glob ctx ->
   wf_glob (consts_to_values_env ctx).
 Proof.
   induction ctx as [|[? [[[|]]|?]] ? ?];
-  inversion 2; subst; constructor; now rewrite /= ?wf_consts_to_values_env_map_ctx ?wf_consts_to_values_same_ctx ?fresh_consts_to_values.
+  inversion 2; subst; constructor; 
+    now rewrite /= 
+      ?wf_consts_to_values_env_map_ctx 
+      ?wf_consts_to_values_same_ctx 
+      ?fresh_consts_to_values.
 Qed.
 
 Theorem wf_consts_to_values
-  (efl : EEnvFlags) (flags : WcbvFlags) 
-  (input : eprogram) :
+  (efl : EEnvFlags) (input : eprogram) :
   has_tLazy_Force ->
   wf_eprogram efl input ->
   wf_eprogram efl (consts_to_values_program input).
@@ -476,6 +479,7 @@ Proof.
   easy.
 Qed.
 
+
 #[local] Ltac destruct_IHs :=
     repeat match goal with 
     | IH : _ -> 
@@ -483,57 +487,64 @@ Qed.
         |- _ =>
         unshelve epose proof IH _; first try easy;
         clear IH
-    end
-    ; [
-      try solve[
-        repeat (
-          simpl in * || easy || simple ||  intros ||
-          lazymatch goal with
-          | hdec : declared_constant _ ?c _ |- _ =>
-              unfold lookup_constant, declared_constant in *;
-              apply lookup_env_wellformed in hdec as ?
-          | heq: ?a = _, 
-                h: context[match ?a with _ => _ end] |- _ =>
-                  rewrite heq in h
-          | h: In _ (repeat _ _) |- _ =>
-                apply repeat_spec in h; subst
-          | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
-              rewrite wellformed_mkApps /= in h
-          | |- is_true (wellformed _ _ (mkApps _ _)) =>
-              rewrite wellformed_mkApps /=
-          | h : _ /\ _ |- _ => destruct h
-          | h : cunfold_fix _ _ = Some (_, ?e) |-
-              is_true (wellformed _ _ ?e) => 
-              eapply wellformed_cunfold_fix; simpl
-          | h : cunfold_cofix _ _ = Some (_, ?e) |-
-              is_true (wellformed _ _ ?e) => 
-              eapply wellformed_cunfold_cofix; simpl
-          | h : nth_error _ _ = Some ?a |-
-                is_true (wellformed _ _ ?a) => eapply nth_error_forallb
-          | |- is_true (wellformed _ _ (iota_red _ _ _)) => 
-              eapply wellformed_iota_red_brs
-          | |- is_true (wellformed _ _ (ECSubst.csubst _ _ _)) => 
-              eapply wellformed_csubst
-          | |- is_true (wellformed _ _ (ECSubst.substl _ _)) => 
-              eapply wellformed_substl
-          | |- _ /\ _ => split
-          | h : context[if ?c then _ else _] |- _ => 
-              destruct c eqn:?
-          | h : is_true (is_nil ?l) |- _ => 
-              destruct l; last (simpl in h; easy); clear h
-          end ||
-          match goal with
-          | h : eval _ _ _ |- _ => 
-              apply eval_wellformed in h; [|easy..]; simpl in h
-          end 
-        )
-      ]..
-    |].
+    end.
+
+
+#[local]
+Ltac solve_wf := 
+  match goal with
+  | |- context[wellformed _ _ _] =>
+    solve[
+      repeat (
+        simpl in * || easy || simple ||  intros ||
+        lazymatch goal with
+        | hdec : declared_constant _ ?c _ |- _ =>
+            unfold lookup_constant, declared_constant in *;
+            apply lookup_env_wellformed in hdec as ?
+        | heq: ?a = _, 
+              h: context[match ?a with _ => _ end] |- _ =>
+                rewrite heq in h
+        | h: In _ (repeat _ _) |- _ =>
+              apply repeat_spec in h; subst
+        | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
+            rewrite wellformed_mkApps /= in h
+        | |- is_true (wellformed _ _ (mkApps _ _)) =>
+            rewrite wellformed_mkApps /=
+        | h : _ /\ _ |- _ => destruct h
+        | h : cunfold_fix _ _ = Some (_, ?e) |-
+            is_true (wellformed _ _ ?e) => 
+            eapply wellformed_cunfold_fix; simpl
+        | h : cunfold_cofix _ _ = Some (_, ?e) |-
+            is_true (wellformed _ _ ?e) => 
+            eapply wellformed_cunfold_cofix; simpl
+        | h : nth_error _ _ = Some ?a |-
+              is_true (wellformed _ _ ?a) => eapply nth_error_forallb
+        | |- is_true (wellformed _ _ (iota_red _ _ _)) => 
+            eapply wellformed_iota_red_brs
+        | |- is_true (wellformed _ _ (ECSubst.csubst _ _ _)) => 
+            eapply wellformed_csubst
+        | |- is_true (wellformed _ _ (ECSubst.substl _ _)) => 
+            eapply wellformed_substl
+        | |- _ /\ _ => split
+        | h : context[if ?c then _ else _] |- _ => 
+            destruct c eqn:?
+        | h : is_true (is_nil ?l) |- _ => 
+            destruct l; last (simpl in h; easy); clear h
+        end ||
+        match goal with
+        | h : eval _ _ _ |- _ => 
+            apply eval_wellformed in h; [|easy..]; simpl in h
+        end 
+      )
+    ]
+  end.
 
 #[local]
 Ltac crush := solve[
-    simple; econstructor; try now simple
-  ].
+  now simple |
+  solve_wf |
+  simple; econstructor; try now simple
+].
 
 Theorem consts_to_values_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : eprogram)
@@ -548,13 +559,10 @@ Proof.
   intros ? ? [ctx e] ? ? htBox [wf_ctx wf_e] [eval_e]; simpl in *.
   constructor; simpl.
   induction eval_e; simpl in *; subst.
-  all: destruct_IHs. (* Takes a bit of time, proves the premises of most of the induction hypotheses  *)
-  all: try crush.  (* Solves automatically most of the goals *)
-  - eapply eval_force; try now simple.
-    econstructor.
-    + now apply consts_to_values_declared_constant.
-    + now simple.
-    + do 2 constructor.
+  all: destruct_IHs.
+  all: try crush.
+  - pose proof consts_to_values_declared_constant _ _ _ isdecl.
+    repeat (econstructor; simple; try easy).
   - simple.
     eapply eval_construct_block; try now simple.
     destruct cstr_as_blocks; last first.
