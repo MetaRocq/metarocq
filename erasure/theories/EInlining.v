@@ -111,8 +111,9 @@ Ltac destruct_inline_env :=
       destr inlining ctx
   end.
 
-
+#[local]
 Create HintDb inlining_rw_hints.
+
 Ltac simple := repeat (
     assumption ||
     match goal with
@@ -127,7 +128,7 @@ Ltac simple := repeat (
     simpl in *
   ).
 
-Hint Rewrite @Forall_All : inlining_rw_hints.
+(* Hint Rewrite @Forall_All : inlining_rw_hints. *)
 Hint Rewrite <-@forallb_Forall : inlining_rw_hints.
 Hint Rewrite <-@forallb_Forall : inlining_rw_hints.
 Hint Rewrite Forall_forall : inlining_rw_hints.
@@ -142,8 +143,7 @@ Hint Rewrite andb_and : inlining_rw_hints.
 Hint Rewrite repeat_length : inlining_rw_hints.
 Hint Rewrite if_same : inlining_rw_hints.
 
-Lemma inline_env_nil_1
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining :
+Lemma inline_env_nil_1 inlining :
   (inline_env inlining []).1 = [].
 Proof.
   reflexivity.
@@ -151,9 +151,7 @@ Qed.
 Hint Rewrite inline_env_nil_1 : inlining_rw_hints.
 
 
-Lemma inline_env_cons_1
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
-  (ctx : global_context) d :
+Lemma inline_env_cons_1 inlining ctx d :
   (inline_env inlining (d :: ctx)).1 = inline_decl (inline_env inlining ctx).2 d :: (inline_env inlining ctx).1.
 Proof.
   induction ctx as [|d' ctx IH]; first reflexivity.
@@ -164,8 +162,7 @@ Qed.
 Hint Rewrite inline_env_cons_1 : inlining_rw_hints.
 
 
-Lemma inline_env_nil_2
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining :
+Lemma inline_env_nil_2 inlining :
   (inline_env inlining []).2 = KernameMap.empty term.
 Proof.
   reflexivity.
@@ -173,9 +170,7 @@ Qed.
 Hint Rewrite inline_env_nil_2 : inlining_rw_hints.
 
 
-Lemma inline_env_cons_2
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
-  (ctx : global_context) d :
+Lemma inline_env_cons_2 inlining ctx d :
   (inline_env inlining (d :: ctx)).2 = 
   inline_add
     inlining 
@@ -190,13 +185,10 @@ Qed.
 Hint Rewrite inline_env_cons_2 : inlining_rw_hints.
 
 
-Lemma fresh_inline 
-  (efl : EEnvFlags) (flags : WcbvFlags) 
-  (inlining : inlining) (glob_ctx : global_context)
-  (name : kername) :
-  fresh_global name (inline_env inlining glob_ctx).1 <-> fresh_global name glob_ctx.
+Lemma fresh_inline inlining ctx name :
+  fresh_global name (inline_env inlining ctx).1 <-> fresh_global name ctx.
 Proof.
-  induction glob_ctx as [| [? decl] ? ?]; first reflexivity.
+  induction ctx as [| [? decl] ? ?]; first reflexivity.
   rewrite inline_env_cons_1 /inline_decl /= /fresh_global !Forall_cons_iff.
   apply ZifyClasses.and_morph; last assumption.
   now destruct decl.
@@ -204,13 +196,12 @@ Qed.
 Hint Rewrite fresh_inline : inlining_rw_hints.
 
 
-Lemma isLambda_inline (t : term) inlining :
+Lemma isLambda_inline t inlining :
   isLambda t ->
   isLambda (inline inlining t).
 Proof.
   now destruct t.
 Qed.
-
 
 Lemma is_nil_map {A B : Type} (f : A -> B) l :
   is_nil (map f l) = is_nil l.
@@ -220,8 +211,8 @@ Qed.
 Hint Rewrite @is_nil_map : inlining_rw_hints.
 
 
-Lemma wellformed_monotone 
-  {efl : EEnvFlags} (ctx : global_context) (k k': nat) e :
+Lemma wellformed_monotone {efl : EEnvFlags} 
+  ctx k k' e :
   k <= k' ->
   wellformed ctx k e ->
   wellformed ctx k' e.
@@ -251,12 +242,12 @@ Proof.
 Qed.
 
 
-Definition wf_inlining {efl : EEnvFlags} (ctx : global_context) (k : nat) (inlining : constants_inlining) :=
-  forall key (e : term), KernameMap.find (elt := term) key inlining = Some e ->
+Definition wf_inlining {efl : EEnvFlags} ctx k inlining :=
+  forall key e, KernameMap.find key inlining = Some e ->
   wellformed ctx k e.
 
 
-Lemma wf_inlining_monotone {efl : EEnvFlags} (ctx : global_context) (k k' : nat) (inlining : constants_inlining) :
+Lemma wf_inlining_monotone {efl : EEnvFlags} ctx k k' inlining :
   k <= k' ->
   wf_inlining ctx k inlining ->
   wf_inlining ctx k' inlining.
@@ -299,7 +290,7 @@ Proof.
 Qed.
 Hint Rewrite inline_decl_1 : inlining_rw_hints.
 
-Lemma inline_env_lookup (efl : EEnvFlags) (flags : WcbvFlags) inlining ctx name t :
+Lemma inline_env_lookup (efl : EEnvFlags) inlining ctx name t :
   KernameSet.mem name inlining ->
   wf_glob ctx ->
   KernameMap.find name (inline_env inlining ctx).2 = Some t <->
@@ -352,7 +343,7 @@ Proof.
     now rewrite fresh_inline.
 Qed.
 
-Lemma inline_env_lookup_no_inline_None (efl : EEnvFlags) (flags : WcbvFlags) inlining ctx name :
+Lemma inline_env_lookup_no_inline_None (efl : EEnvFlags) inlining ctx name :
   ~~ KernameSet.mem name inlining ->
   wf_glob ctx ->
   KernameMap.find name (inline_env inlining ctx).2 = None.
@@ -391,7 +382,7 @@ Qed.
 
 
 Lemma inline_add_fresh 
-  (efl : EEnvFlags) (flags : WcbvFlags) name k ctx t t' inls :
+  (efl : EEnvFlags) name k ctx t t' inls :
   fresh_global name ctx ->
   wellformed ctx k t ->
   inline (KernameMap.add name t' inls) t = inline inls t.
@@ -520,10 +511,10 @@ Proof.
   simple.
   destruct (eqb_spec name name'); last easy.
   destruct d as [[[t'|]]|]; try easy.
-  intros [=[=[=[= ?]]]]; subst; easy.
+  now intros [=[=[=[= ?]]]]; subst.
 Qed.
 
-Lemma lookup_env_inline (efl : EEnvFlags) (flags : WcbvFlags) inlining ctx name :
+Lemma lookup_env_inline (efl : EEnvFlags) inlining ctx name :
   wf_glob ctx ->
   lookup_env (inline_env inlining ctx).1 name =
   option_map
@@ -568,7 +559,7 @@ Hint Rewrite lookup_env_inline : inlining_rw_hints.
 
 
 Lemma lookup_constant_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name d :
   wf_glob ctx ->
   let ctx' := (inline_env inlining ctx).1 in
@@ -581,7 +572,7 @@ Proof.
 Qed.
 
 Lemma lookup_mind_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name :
   let ctx' := (inline_env inlining ctx).1 in
   lookup_minductive ctx' name = lookup_minductive ctx name.
@@ -595,7 +586,7 @@ Hint Rewrite lookup_mind_inlining : inlining_rw_hints.
 
 
 Lemma lookup_ind_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name :
   let ctx' := (inline_env inlining ctx).1 in
   lookup_inductive ctx' name = lookup_inductive ctx name.
@@ -606,7 +597,7 @@ Qed.
 Hint Rewrite lookup_ind_inlining : inlining_rw_hints.
 
 Lemma lookup_constr_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name n :
   let ctx' := (inline_env inlining ctx).1 in
   lookup_constructor ctx' name n = lookup_constructor ctx name n.
@@ -617,7 +608,7 @@ Qed.
 Hint Rewrite lookup_constr_inlining : inlining_rw_hints.
 
 Lemma lookup_constr_pars_args_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name n :
   let ctx' := (inline_env inlining ctx).1 in
   lookup_constructor_pars_args ctx' name n = 
@@ -630,7 +621,7 @@ Hint Rewrite lookup_constr_pars_args_inlining : inlining_rw_hints.
 
 
 Lemma lookup_proj_inlining
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) name :
   let ctx' := (inline_env inlining ctx).1 in
   lookup_projection ctx' name = 
@@ -642,7 +633,7 @@ Qed.
 Hint Rewrite lookup_proj_inlining : inlining_rw_hints.
 
 Theorem wf_inlining_same_ctx 
-  (efl : EEnvFlags) (flags : WcbvFlags)  inlining
+  (efl : EEnvFlags)   inlining
   (t : term) (k : nat) (ctx : global_context) :
   wf_inlining ctx k inlining ->
   wellformed ctx k t -> 
@@ -680,7 +671,7 @@ Proof.
 Qed.
 
 Theorem wf_inlining_ctx 
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (k : nat) (ctx : global_context) e :
   wf_glob ctx ->
   wellformed ctx k e ->
@@ -706,7 +697,7 @@ Qed.
   
 
 Lemma wf_glob_inlining 
-  (efl : EEnvFlags) (flags : WcbvFlags) inlining
+  (efl : EEnvFlags)  inlining
   (ctx : global_context) :
   wf_glob ctx ->
   let Σ := (inline_env inlining ctx).1 in
@@ -823,18 +814,17 @@ Proof.
       wf_inlining_ctx,
       lookup_env_wf.
 Qed.
-     
+
 
 Theorem inlining_wf :
-  forall (efl : EEnvFlags)
-  (wfl : WcbvFlags) inlining 
+  forall (efl : EEnvFlags) inlining 
   (input : Transform.program _ term),
   wf_eprogram efl input -> 
   wf_eprogram efl (inline_program inlining input).
 Proof.
-  intros ? ? inlining [ctx e] [? ?]; unfold wf_eprogram, inline_program; split; simple; first now apply wf_glob_inlining.
-  pose proof wf_glob_inlining efl wfl inlining ctx.
-  pose proof wf_inlining_ctx efl wfl inlining 0 ctx e.
+  intros ? inlining [ctx e] [? ?]; unfold wf_eprogram, inline_program; split; simple; first now apply wf_glob_inlining.
+  pose proof wf_glob_inlining efl inlining ctx.
+  pose proof wf_inlining_ctx efl inlining 0 ctx e.
   pose proof wf_inlining_same_ctx.
   now simple.
 Qed.
@@ -945,8 +935,7 @@ Hint Rewrite inline_mkApps : inlining_rw_hints.
 
 
 Lemma inline_ind_isprop_and_pars
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
-  inlining ctx ind :
+  (efl : EEnvFlags) inlining ctx ind :
   inductive_isprop_and_pars (inline_env inlining ctx).1 ind =
   inductive_isprop_and_pars ctx ind.
 Proof.
@@ -956,8 +945,7 @@ Qed.
 Hint Rewrite inline_ind_isprop_and_pars : inlining_rw_hints.
 
 Lemma inline_constr_isprop_pars_decl 
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
-  inlining ctx ind n :
+  (efl : EEnvFlags) inlining ctx ind n :
   constructor_isprop_pars_decl (inline_env inlining ctx).1 ind n =
   constructor_isprop_pars_decl ctx ind n.
 Proof.
@@ -968,7 +956,7 @@ Hint Rewrite inline_constr_isprop_pars_decl : inlining_rw_hints.
 
 
 Lemma inline_iota 
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (efl : EEnvFlags) 
   inlining pars args br ctx :
   wf_inlining ctx 0 inlining ->
   inline inlining (iota_red pars args br) = 
@@ -987,7 +975,7 @@ Hint Rewrite inline_iota : inlining_rw_hints.
 
 
 Lemma inline_map_fix_subst 
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (efl : EEnvFlags)
   inlining mfix :
   map (inline inlining) (fix_subst mfix) = fix_subst (map (map_def (inline inlining)) mfix).
 Proof.
@@ -1005,7 +993,7 @@ Hint Rewrite inline_map_fix_subst : inlining_rw_hints.
 
 
 Lemma inline_map_cofix_subst 
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (efl : EEnvFlags)
   inlining mfix :
   map (inline inlining) (cofix_subst mfix) = cofix_subst (map (map_def (inline inlining)) mfix).
 Proof.
@@ -1022,7 +1010,7 @@ Hint Rewrite inline_map_cofix_subst : inlining_rw_hints.
 
 
 Lemma inline_cunfold_fix
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (efl : EEnvFlags)
   inlining ctx mfix idx :
   wf_inlining ctx 0 inlining ->
   cunfold_fix (map (map_def (inline inlining)) mfix) idx =
@@ -1038,7 +1026,7 @@ Hint Rewrite inline_cunfold_fix : inlining_rw_hints.
 
 
 Lemma inline_cunfold_cofix
-  (efl : EEnvFlags) (wfl : WcbvFlags) 
+  (efl : EEnvFlags) 
   inlining ctx mfix idx :
   wf_inlining ctx 0 inlining ->
   cunfold_cofix (map (map_def (inline inlining)) mfix) idx =
@@ -1265,13 +1253,13 @@ Theorem inlining_pres :
   let ip := inline_program inlining p in
   eval_eprogram wfl ip v' /\ v' = inline ip v.
 Proof.
-  intros efl wfl inlining [glob_ctx e] v htApp htBox [wf_glob_ctx wf_e] [eval_e];
+  intros efl wfl inlining [ctx e] v htApp htBox [wf_ctx wf_e] [eval_e];
   simpl in *; eexists; split; last reflexivity.
   constructor.
   unfold inline_program; simple.
   unfold inlined_program_inlinings; simple.
-  set Σ' := (inline_env inlining glob_ctx).1.
-  set inls := (inline_env inlining glob_ctx).2.
+  set Σ' := (inline_env inlining ctx).1.
+  set inls := (inline_env inlining ctx).2.
   assert (wf_inlining Σ' 0 inls) 
     by now apply wf_glob_inlining.
   induction eval_e; simple.
@@ -1295,7 +1283,7 @@ Proof.
     { assert (has_tBox) as htBox'.
       { destruct has_tBox, with_prop_case; simple; easy. }
       assert (
-        forallb (wellformed glob_ctx 0) (repeat tBox #|n|)
+        forallb (wellformed ctx 0) (repeat tBox #|n|)
       ).
       { move: htBox'; clear. induction n; simpl; now simple. }
       apply wellformed_substl; simple.
@@ -1330,7 +1318,7 @@ Proof.
     + unfold inls in *.
       eapply inline_env_lookup in heq; try easy; last first.
       { destruct (KernameSet.mem c inlining) eqn:heq'; first easy.
-        unshelve epose proof inline_env_lookup_no_inline_None _ _ _ _ _ _ wf_glob_ctx; try easy.
+        unshelve epose proof inline_env_lookup_no_inline_None _ _ _ _ _ wf_ctx; try easy.
         now rewrite heq'. }
       rewrite 
         lookup_env_inline // isdecl 
@@ -1395,7 +1383,7 @@ Proof.
 Qed.
 
 Lemma find_inlining_not_declared 
-  (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx name :
+  (efl : EEnvFlags) inlining ctx name :
   wf_glob ctx ->
   (~ exists t, lookup_env ctx name = Some (ConstantDecl {|cst_body := Some t|})) ->
   KernameMap.find name (inline_env inlining ctx).2 = None.
@@ -1439,7 +1427,7 @@ Proof.
 Qed.
 
 Lemma find_inlining_fresh 
-  (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx name :
+  (efl : EEnvFlags) inlining ctx name :
   fresh_global name ctx ->
   KernameMap.find name (inline_env inlining ctx).2 = None.
 Proof.
@@ -1459,7 +1447,7 @@ Proof.
 Qed.
 
 
-Lemma inline_find_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' (t : option term) :
+Lemma inline_find_extends (efl : EEnvFlags) inlining ctx ctx' (t : option term) :
   wf_glob ctx ->
   wf_glob ctx' ->
   extends ctx ctx' ->
@@ -1636,7 +1624,7 @@ Proof.
 Qed.
 
 
-Lemma find_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' name :
+Lemma find_extends (efl : EEnvFlags) inlining ctx ctx' name :
   wf_glob ctx ->
   wf_glob ctx' ->
   extends ctx ctx' ->
@@ -1649,7 +1637,7 @@ Proof.
   now eapply inline_find_extends.
 Qed.
 
-Lemma inline_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' k t :
+Lemma inline_extends (efl : EEnvFlags) inlining ctx ctx' k t :
   wf_glob ctx ->
   wf_glob ctx' ->
   extends ctx ctx' ->
@@ -1658,10 +1646,10 @@ Lemma inline_extends (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' k t :
   inline (inline_env inlining ctx').2 t.
 Proof.
   intros.
-  now eapply (inline_find_extends _ _ _ _ _ (Some t)).
+  now eapply (inline_find_extends _ _ _ _ (Some t)).
 Qed. 
 
-Lemma extends_inline_env (efl : EEnvFlags) (wfl : WcbvFlags) inlining ctx ctx' :
+Lemma extends_inline_env (efl : EEnvFlags) inlining ctx ctx' :
   wf_glob ctx ->
   wf_glob ctx' ->
   extends ctx ctx' ->
@@ -1676,7 +1664,7 @@ Proof.
   rewrite lookup_env_inline // (H1 _ _ heq') /inline_global_decl.
   destruct d as [[[t|]]|]; [|easy..].
   simple.
-  rewrite /inline_constant_decl /= (inline_extends _ _ _ ctx ctx' 0) //.
+  rewrite /inline_constant_decl /= (inline_extends _ _ ctx ctx' 0) //.
   now eapply lookup_env_wf.
 Qed.
 
