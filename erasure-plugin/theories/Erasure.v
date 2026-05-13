@@ -77,7 +77,7 @@ Definition default_unsafe_passes :=
       inductives_extraction := true;
       betared := true |}.
   
-Definition default_econf :=
+Definition default_erasure_config :=
   {| enable_unsafe := default_unsafe_passes;
      dearging_config := default_dearging_config;
      enable_typed_erasure := true;
@@ -85,7 +85,7 @@ Definition default_econf :=
      extracted_inductives := [] |}.
 
 (* This runs only the verified phases without the typed erasure and "fast" remove params *)
-Definition safe_econf :=
+Definition safe_erasure_config :=
   {| enable_unsafe := no_unsafe_passes;
      enable_typed_erasure := false;
      dearging_config := default_dearging_config;
