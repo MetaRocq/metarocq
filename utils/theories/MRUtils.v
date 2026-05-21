@@ -166,7 +166,7 @@ Tactic Notation "forward" constr(H) "by" tactic(tac) := forward_gen H tac.
 #[global]
 Hint Resolve Peano_dec.eq_nat_dec : eq_dec.
 
-Ltac invs H := inversion H; subst; clear H.
+Ltac invs H := inversion H; subst; try clear H.
 
 Ltac generalize_eq x t :=
   set (x := t) in *; cut (x = t); [|reflexivity]; clearbody x.

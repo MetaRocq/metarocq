@@ -3217,7 +3217,7 @@ Section SRContext.
   Qed.
 
   Ltac invs H := inversion H; subst.
-  Ltac invc H := inversion H; subst; clear H.
+  Ltac invc H := inversion H; subst; try clear H.
 
   Lemma subject_reduction_ctx {Σ} {wfΣ : wf Σ} Γ Γ' t T :
     red1_ctx Σ Γ Γ' ->

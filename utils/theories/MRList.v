@@ -543,7 +543,7 @@ Proof.
   destruct a. now f_equal.
 Qed.
 
-Local Ltac invs H := inversion H; subst; clear H.
+Local Ltac invs H := inversion H; subst; try clear H.
 
 Lemma last_inv A (l1 l2 : list A) x y :
   (l1 ++ [x] = l2 ++ [y] -> l1 = l2 /\ x = y)%list.
