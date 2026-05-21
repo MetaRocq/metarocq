@@ -6,7 +6,7 @@ From MetaRocq.Template Require Import EtaExpand TemplateProgram.
 From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram.
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnvImpl.
 From MetaRocq.Erasure Require EAstUtils ErasureFunction ErasureCorrectness EPretty Extract.
-From MetaRocq.Erasure Require Import EProgram EInlining EBeta ERemapInductives.
+From MetaRocq.Erasure Require Import EProgram EBeta ERemapInductives.
 From MetaRocq.ErasurePlugin Require Import ETransform.
 
 Import PCUICProgram.
@@ -46,6 +46,10 @@ Record erasure_configuration := {
   inlined_constants : KernameSet.t;
   extracted_inductives : extract_inductives;
   }.
+  (* 
+  TODO:
+  add thunking
+  Add inlining at the end of verified *)
 
 Definition default_dearging_config :=
   {| overridden_masks := fun _ => None;
@@ -69,16 +73,16 @@ Definition all_unsafe_passes := make_unsafe_passes true.
 Definition default_unsafe_passes :=
   {| cofix_to_lazy := true;
       inlining := true;
-    unboxing := false;
-    inductives_extraction := true;
+      unboxing := false;
+      inductives_extraction := true;
       betared := true |}.
-
+  
 Definition default_erasure_config :=
   {| enable_unsafe := default_unsafe_passes;
      dearging_config := default_dearging_config;
      enable_typed_erasure := true;
-    inlined_constants := KernameSet.empty;
-    extracted_inductives := [] |}.
+     inlined_constants := KernameSet.empty;
+     extracted_inductives := [] |}.
 
 (* This runs only the verified phases without the typed erasure and "fast" remove params *)
 Definition safe_erasure_config :=
@@ -122,51 +126,56 @@ Definition final_wcbv_flags := {|
   with_guarded_fix := false;
   with_constructor_as_block := true |}.
 
+
 Program Definition optional_unsafe_transforms econf :=
   let passes := econf.(enable_unsafe) in
   let efl := EConstructorsAsBlocks.switch_cstr_as_blocks
   (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) in
+  let efl' := efl_coind_to_ind efl in
+  let efl'' := if passes.(cofix_to_lazy) then efl' else efl in
   ETransform.optional_self_transform passes.(cofix_to_lazy)
     ((* Rebuild the efficient lookup table *)
     rebuild_wf_env_transform (efl := efl) false false ▷
     (* Coinductives & cofixpoints are translated to inductive types and thunked fixpoints *)
     coinductive_to_inductive_transformation efl
-      (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)) ▷
-  ETransform.optional_self_transform passes.(unboxing)
-    (rebuild_wf_env_transform (efl := efl) false false ▷
-      unbox_transformation efl final_wcbv_flags) ▷
+      (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
+      ▷
+    (* (Co)Inductive types with one constructor with one index are unboxed. While this pass is verified, it relies on the absence of cofixpoints guaranteed by the previous, unverified, transformation *)
+    ETransform.optional_self_transform (passes.(unboxing))
+      (rebuild_wf_env_transform (efl := efl') false false ▷
+        unbox_transformation efl' final_wcbv_flags (has_app := _) (has_cofix := _) (has_prop_case := eq_refl) (has_letin := eq_refl) (has_cstrparams := eq_refl) (has_cstr_block := eq_refl)) ) ▷
   ETransform.optional_self_transform passes.(inductives_extraction)
-    (rebuild_wf_env_transform (efl := efl) false false ▷
-       extract_inductive_transformation efl final_wcbv_flags econf.(extracted_inductives) ▷
-       forget_inductive_extraction_info_transformation efl final_wcbv_flags) ▷
-  ETransform.optional_self_transform passes.(inlining)
-      (inline_transformation efl final_wcbv_flags econf.(inlined_constants) ▷
-       forget_inlining_info_transformation efl final_wcbv_flags) ▷
+    (rebuild_wf_env_transform (efl := efl'') false false ▷
+       extract_inductive_transformation efl'' final_wcbv_flags econf.(extracted_inductives) ▷
+       forget_inductive_extraction_info_transformation efl'' final_wcbv_flags) ▷
   (* Heuristically do it twice for more beta-normal terms *)
   ETransform.optional_self_transform passes.(betared)
-    (betared_transformation efl final_wcbv_flags ▷
-     betared_transformation efl final_wcbv_flags).
+    (betared_transformation efl'' final_wcbv_flags ▷
+     betared_transformation efl'' final_wcbv_flags).
 
 Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
-Qed.
-Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
-Qed.
-Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] []]; cbn in * => //; intuition auto.
-Qed.
-Next Obligation.
-  destruct (enable_unsafe econf) as [[] [] [] [] []]; cbn in * => //; intuition auto.
+  destruct (enable_unsafe econf) as [[] [] [] [] []] eqn:heq; cbn in * => //; intuition auto.
 Qed.
 
-Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
+Next Obligation.
+  destruct econf as [[[] [] [] [] []] ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
+Qed.
+
+Next Obligation.
+  destruct econf as [[[] [] [] [] []] ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
+Qed.
+
+
+(* TODO: Take erasure config as argument *)
+Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl} econf
   (efl := EWellformed.all_env_flags)
   : Transform.t _ _ _ EAst.term _ _
    (* Standard evaluation, with cases on prop, guarded fixpoints, applied constructors *)
    (eval_eprogram_env default_wcbv_flags)
    (* Target evaluation, with no more cases on prop, unguarded fixpoints, constructors as block *)
    (EProgram.eval_eprogram final_wcbv_flags) :=
+
+  
   (* Simulation of the guarded fixpoint rules with a single unguarded one:
     the only "stuck" fixpoints remaining are unapplied.
     This translation is a noop on terms and environments.  *)
@@ -186,7 +195,21 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
   (* First-order constructor representation *)
   constructors_as_blocks_transformation
     (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags))
-    (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl).
+    (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl) ▷ 
+  (* Inline the environment *)
+  inline_transformation 
+    (EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))
+    final_wcbv_flags
+    econf.(inlined_constants)
+    eq_refl
+    eq_refl ▷ 
+  forget_inlining_info_transformation 
+    ((EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))) _  
+.
 
 (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
    parameters in inductive declarations. The constructor applications are also transformed to a first-order
@@ -194,14 +217,17 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
    fixpoints or case analyses on propositional content. All fixpoint bodies start with a lambda as well.
    Finally, projections are inlined to cases, so no `tProj` remains. *)
 
-Import EGlobalEnv EWellformed.
+Import EGlobalEnv EWellformed EInduction.
 
 Next Obligation.
   destruct H. split => //. sq.
   now eapply ETransform.expanded_eprogram_env_expanded_eprogram_cstrs.
 Qed.
 
-Program Definition verified_lambdabox_pipeline_mapping {guard : abstract_guard_impl}
+  
+
+
+Program Definition verified_lambdabox_pipeline_mapping {guard : abstract_guard_impl} econf
   (efl := EWellformed.all_env_flags)
   : Transform.t _ _ _ EAst.term _ _
    (* Standard evaluation, with cases on prop, guarded fixpoints, applied constructors *)
@@ -213,7 +239,7 @@ Program Definition verified_lambdabox_pipeline_mapping {guard : abstract_guard_i
   (* Rebuild the efficient lookup table *)
   rebuild_wf_env_transform (efl := efl) true true ▷
   (* Extract as usual *)
-  verified_lambdabox_pipeline.
+  verified_lambdabox_pipeline econf.
 
 (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
    parameters in inductive declarations. The constructor applications are also transformed to a first-order
@@ -469,7 +495,7 @@ Next Obligation.
   intros cf K p v pr ev. now eapply (preservation (pcuic_expand_lets_transform K)).
 Qed.
 
-Program Definition verified_erasure_pipeline {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
+Program Definition verified_erasure_pipeline {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
  Transform.t _ _ _ EAst.term _ _
   PCUICTransform.eval_pcuic_program
   (EProgram.eval_eprogram final_wcbv_flags) :=
@@ -483,7 +509,7 @@ Program Definition verified_erasure_pipeline {guard : abstract_guard_impl} (efl 
   pcuic_expand_lets_transform (K _ T1) ▷
   (* Erasure of proofs terms in Prop and types *)
   erase_transform ▷
-  verified_lambdabox_pipeline.
+  verified_lambdabox_pipeline econf.
 Next Obligation.
   intros guard efl K T1 p.
   cbn. intuition eauto. now eapply H2. now eapply H2.
@@ -492,7 +518,7 @@ Next Obligation.
   intros guard efl K T1 p. cbn. intuition auto.
 Qed.
 
-Program Definition verified_erasure_pipeline_mapping {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
+Program Definition verified_erasure_pipeline_mapping {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
  Transform.t _ _ _ EAst.term _ _
   eval_pcuic_program_mapping
   (EProgram.eval_eprogram final_wcbv_flags) :=
@@ -506,7 +532,7 @@ Program Definition verified_erasure_pipeline_mapping {guard : abstract_guard_imp
   pcuic_expand_lets_transform_mapping (K _ T1) ▷
   (* Erasure of proofs terms in Prop and types *)
   erase_transform_mapping ▷
-  verified_lambdabox_pipeline_mapping.
+  verified_lambdabox_pipeline_mapping econf.
 Next Obligation.
   intros guard efl K T1 p.
   cbn. intuition eauto. now eapply H3. now eapply H3.
@@ -532,16 +558,16 @@ Proof.
   eexists;reflexivity.
 Qed.
 
-Instance verified_lambdabox_pipeline_extends {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
-  TransformExt.t verified_lambdabox_pipeline
+Instance verified_lambdabox_pipeline_extends {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
+  TransformExt.t (verified_lambdabox_pipeline econf)
     (fun p p' =>
       extends (EEnvMap.GlobalContextMap.global_decls p.1) (EEnvMap.GlobalContextMap.global_decls p'.1)) (fun p p' => extends p.1 p'.1).
 Proof.
   unfold verified_lambdabox_pipeline. tc.
 Qed.
 
-Instance verified_lambdabox_pipeline_mapping_extends {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
-  TransformExt.t verified_lambdabox_pipeline_mapping
+Instance verified_lambdabox_pipeline_mapping_extends {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
+  TransformExt.t (verified_lambdabox_pipeline_mapping econf)
     (fun p p' =>
       p.1 = p'.1 /\
       extends (EEnvMap.GlobalContextMap.global_decls p.2.1) (EEnvMap.GlobalContextMap.global_decls p'.2.1)) (fun p p' => extends p.1 p'.1).
@@ -549,14 +575,16 @@ Proof.
   unfold verified_lambdabox_pipeline_mapping. tc.
 Qed.
 
-Lemma verified_lambdabox_pipeline_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
-  TransformExt.t verified_lambdabox_pipeline extends_eprogram_env extends_eprogram.
+Instance verified_lambdabox_pipeline_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
+  TransformExt.t (verified_lambdabox_pipeline econf) extends_eprogram_env extends_eprogram.
 Proof.
-  unfold verified_lambdabox_pipeline. tc.
+  unfold verified_lambdabox_pipeline.
+  repeat (eapply TransformExt.compose; last tc).
+  tc.
 Qed.
 
-Lemma verified_lambdabox_pipeline_mapping_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) :
-  TransformExt.t verified_lambdabox_pipeline_mapping (fun p p' => p.1 = p'.1 /\ extends_eprogram_env p.2 p'.2) extends_eprogram.
+Instance verified_lambdabox_pipeline_mapping_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
+  TransformExt.t (verified_lambdabox_pipeline_mapping econf) (fun p p' => p.1 = p'.1 /\ extends_eprogram_env p.2 p'.2) extends_eprogram.
 Proof.
   unfold verified_lambdabox_pipeline_mapping. tc.
 Qed.
@@ -718,21 +746,22 @@ Next Obligation.
   intros efl K T1 T2 T3 T4 p. cbn. intuition eauto.
 Qed.
 
-Program Definition erasure_pipeline {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) : Transform.t _ _ _ _ _ _
+Program Definition erasure_pipeline {guard : abstract_guard_impl}
+ (efl := EWellformed.all_env_flags) econf : Transform.t _ _ _ _ _ _
   eval_template_program
   (EProgram.eval_eprogram final_wcbv_flags) :=
   pre_erasure_pipeline ▷
-  verified_erasure_pipeline.
+  verified_erasure_pipeline econf.
 
 Next Obligation.
   intros guard efl p; cbn. intuition auto.
 Qed.
 
-Program Definition erasure_pipeline_mapping {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) : Transform.t _ _ _ _ _ _
+Program Definition erasure_pipeline_mapping {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf : Transform.t _ _ _ _ _ _
   eval_template_program_mapping
   (EProgram.eval_eprogram final_wcbv_flags) :=
   pre_erasure_pipeline_mapping ▷
-  verified_erasure_pipeline_mapping.
+  verified_erasure_pipeline_mapping econf.
 
 Next Obligation.
   intros guard efl p; cbn. intuition auto.
@@ -765,7 +794,22 @@ Program Definition verified_lambdabox_typed_pipeline (efl := EWellformed.all_env
    constructors_as_blocks_transformation
      (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags))
      (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl) ▷
-   optional_unsafe_transforms econf.
+
+   (* Inline the environment *)
+  inline_transformation 
+    (EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))
+    final_wcbv_flags
+    econf.(inlined_constants)
+    eq_refl
+    eq_refl ▷ 
+  forget_inlining_info_transformation 
+    ((EConstructorsAsBlocks.switch_cstr_as_blocks
+      (EInlineProjections.disable_projections_env_flag
+        (ERemoveParams.switch_no_params EWellformed.all_env_flags)))) _  ▷
+   optional_unsafe_transforms econf
+   .
 
  (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
     parameters in inductive declarations. The constructor applications are also transformed to a first-order
@@ -782,7 +826,7 @@ Qed.
 
 Next Obligation.
   unfold optional_unsafe_transforms. cbn.
-  destruct enable_unsafe as [[] ? ? ?]=> //.
+  destruct econf as [[[] ? ? ?] ? ? ? ?]=> //.
 Qed.
 
 Local Obligation Tactic := intros; eauto.
@@ -1109,11 +1153,11 @@ Axiom assume_that_we_only_erase_on_welltyped_programs : forall {cf : checker_fla
 (* This also optionally runs the cofix to fix translation *)
 Program Definition run_erase_program {guard : abstract_guard_impl} econf :=
   if econf.(enable_typed_erasure) then run (typed_erasure_pipeline econf)
-  else run (erasure_pipeline_mapping ▷ (optional_unsafe_transforms econf)).
+  else run (erasure_pipeline_mapping econf ▷ (optional_unsafe_transforms econf)).
 Next Obligation.
 Proof.
   unfold optional_unsafe_transforms; cbn.
-  destruct enable_unsafe as [[] ? ? ?]=> //.
+  destruct econf as [[[] ? ? ?] ? ? ? ?]=> //.
 Qed.
 
 Program Definition erase_and_print_template_program econf (m : inductives_mapping) (p : Ast.Env.program) : string :=
@@ -1129,7 +1173,7 @@ Next Obligation.
   split; typeclasses eauto.
 Qed.
 
-Definition typed_erasure_config :=
+Definition typed_econf :=
   {| enable_unsafe := no_unsafe_passes;
       dearging_config := default_dearging_config;
       enable_typed_erasure := true;
@@ -1139,4 +1183,4 @@ Definition typed_erasure_config :=
 (* TODO: Parameterize by a configuration for dearging, allowing to, e.g., override masks. *)
 Program Definition typed_erase_and_print_template_program (p : Ast.Env.program)
   : string :=
-  erase_and_print_template_program typed_erasure_config [] p.
+  erase_and_print_template_program typed_econf [] p.
