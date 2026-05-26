@@ -16,6 +16,7 @@ Import MRList (map_InP, map_InP_elim, map_InP_spec).
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import MonadNotation.
 
 From Equations Require Import Equations.

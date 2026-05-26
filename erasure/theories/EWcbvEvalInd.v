@@ -5,6 +5,7 @@ From MetaRocq.Common Require Import config Kernames BasicAst EnvMap.
 From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EInduction EWcbvEval EGlobalEnv ECSubst EInduction.
 
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 From Equations Require Import Equations.
 Set Equations Transparent.
 Local Set Keyed Unification.

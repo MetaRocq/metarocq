@@ -8,6 +8,7 @@ From MetaRocq.Erasure Require Import EAst EAstUtils EInduction EArities
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import MonadNotation.
 
 From Equations Require Import Equations.

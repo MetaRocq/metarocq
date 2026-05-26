@@ -9,6 +9,7 @@ From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EInduction EGloba
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
+#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import MonadNotation.
 
 From Equations Require Import Equations.
