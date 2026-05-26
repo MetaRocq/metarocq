@@ -1,7 +1,7 @@
 
 package "plugin" (
   directory = "."
-  requires = "coq-core.plugins.ltac rocq-metarocq-template-ocaml.plugin"
+  requires = "rocq-runtime.plugins.ltac rocq-metarocq-template-ocaml.plugin"
   archive(byte) = "metarocq_safechecker_plugin.cma"
   archive(native) = "metarocq_safechecker_plugin.cmxa"
   plugin(byte) = "metarocq_safechecker_plugin.cma"
