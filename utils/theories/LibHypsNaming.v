@@ -247,7 +247,7 @@ Ltac rename_new_hyps tac :=
   map_hyps renam new_hyps.
 
 Ltac rename_all_hyps :=
-  let renam H := rename_if_not_old (I) H in
+  let renam H := tryif is_section_var H then idtac else rename_if_not_old (I) H in
   let hyps := all_hyps in
   map_hyps renam hyps.
 
