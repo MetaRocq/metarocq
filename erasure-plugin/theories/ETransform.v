@@ -1215,7 +1215,7 @@ Next Obligation.
   repeat intro.
   split.
   + now apply wf_consts_to_values.
-  + constructor. 
+  + constructor.
     now apply consts_to_values_env_values.
 Qed.
 
@@ -1235,6 +1235,17 @@ Proof.
   apply consts_to_values_extends.
 Qed.
 
+
+#[global]
+Instance consts_to_values_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
+  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
+    extends_eprogram extends_eprogram.
+Proof.
+  intros efl wfl hApp hBox hLazy p p' h1 h2.
+  unfold TransformExt.t, transform, consts_to_values_transformation, consts_to_values_program, extends_eprogram.
+  intros [ctx ->]. split => //. now apply consts_to_values_extends.
+Qed.
 
 From MetaRocq.Erasure Require Import EInlining.
 
