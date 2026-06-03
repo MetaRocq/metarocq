@@ -156,6 +156,7 @@ Definition map_eval_primitive_step_index {term term' : Set} {eval : term -> term
 
 Print iota_red.
 Section Wcbv.
+  Context {wfl : WcbvFlags}.
   Context (Σ : global_declarations).
   (* The local context is fixed: we are only doing weak reductions *)
 
@@ -207,11 +208,20 @@ Section Wcbv.
       decl.(cst_body) = Some body ->
       eval [] body res cost ->
       eval Γ (tConst c) res (cost + 1) (* TODO see if +1 needed, I think so *)
+  
+  | eval_construct_App ind c mdecl idecl cdecl args args' cs : (* TODO: see to use the flag constructor as blocks *)
+      ~~with_constructor_as_block ->
+      lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
+      #|args| <= ind_npars mdecl + cstr_nargs cdecl ->
+      All3 (eval Γ) args args' cs ->
+      eval Γ (mkApps (tConstruct ind c []) args) (vConstruct ind c args') (list_sum cs + 1)
+
 
   (** Constructor congruence: we do not allow over-applications *)
   | eval_construct_block ind c mdecl idecl cdecl args args' cs  :
+      with_constructor_as_block ->
       lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
-      #|args| <= cstr_nargs cdecl ->
+      #|args| <= ind_npars mdecl + cstr_nargs cdecl -> (* see if we add `ind_npars mdecl` or ask for no params *)
       All3 (eval Γ) args args' cs ->
       eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + 1)
 
@@ -231,7 +241,7 @@ Section Wcbv.
       eval Γ (tForce t) v (c1 + c2 + 1)
   .
 Section EvalInd.
-  Variable (P : ∀ (Γ : environment) (t : term) (v : value) (cost : nat), eval Γ t v cost -> Type).
+  Variable (P : ∀ {wfl : WcbvFlags} (Γ : environment) (t : term) (v : value) (cost : nat), eval Γ t v cost -> Type).
   Variable f : 
     ∀ {Γ n v e},
     P Γ (tRel n) v 0 (eval_var Γ n v e).
@@ -267,14 +277,22 @@ Section EvalInd.
     ∀ {Γ c decl body res isdecl cost e e0},
     P [] body res cost e0 ->
     P Γ (tConst c) res _ (eval_delta Γ c decl body isdecl res cost e e0).
-    
-  Variable f8 : 
-      ∀ {Γ ind c mdecl idecl cdecl args args' cs} 
+  Variable f8 :
+      ∀ {Γ ind c mdecl idecl cdecl args args' cs}
+        (c_as_bks : ~~with_constructor_as_block)
         (e : lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl)) 
-        (l : #|args| ≤ cstr_nargs cdecl) 
+        (l : #|args| ≤ ind_npars mdecl + cstr_nargs cdecl) 
+        (a : All3 (eval Γ) args args' cs) (IHa : All3_over a (P Γ)), 
+      P Γ (mkApps (tConstruct ind c []) args) (vConstruct ind c args') _
+        (eval_construct_App Γ ind c mdecl idecl cdecl args args'  cs c_as_bks  e l a).
+  Variable f9 : 
+      ∀ {Γ ind c mdecl idecl cdecl args args' cs}
+        (c_as_bks : with_constructor_as_block)
+        (e : lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl)) 
+        (l : #|args| ≤ ind_npars mdecl + cstr_nargs cdecl) 
         (a : All3 (eval Γ) args args' cs) (IHa : All3_over a (P Γ)), 
       P Γ (tConstruct ind c args) (vConstruct ind c args') _
-        (eval_construct_block Γ ind c mdecl idecl cdecl args args' cs e l a).
+        (eval_construct_block Γ ind c mdecl idecl cdecl args args'  cs c_as_bks  e l a).
   (* Variable f9 : 
     ∀ {Γ ind c mdecl idecl cdecl e},
     P Γ (tConstruct ind c []) (vConstruct ind c []) 
@@ -295,28 +313,31 @@ Section EvalInd.
     P _ _ _ c2 ev1 ->
     P _ _ _ (c1 + c2 + 1) (eval_force _ _ _ _ _ c1 c2 ev0 ev1).
   
-  Fixpoint eval_ind {Γ t v c} t_eval_v
+  Fixpoint eval_rect {Γ t v c} t_eval_v
     : P Γ t v c t_eval_v :=
       match t_eval_v as e0 in (eval _ t0 v0 c0) return (P Γ t0 v0 c0 e0) with
       | @eval_var _ na v0 e0 => f
-      | @eval_beta _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 =>  f1 (eval_ind e0) (eval_ind e1) (eval_ind e2)
+      | @eval_beta _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 =>  f1 (eval_rect e0) (eval_rect e1) (eval_rect e2)
       | @eval_lambda _ na b => f2
-      | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f3 (eval_ind e0) (eval_ind e1)
-      | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f4 (eval_ind e0) (eval_ind e5)
-      | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => f5 (eval_ind e0) (eval_ind e2) (eval_ind e3)
+      | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f3 (eval_rect e0) (eval_rect e1)
+      | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f4 (eval_rect e0) (eval_rect e5)
+      | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => f5 (eval_rect e0) (eval_rect e2) (eval_rect e3)
       | @eval_fix _ mfix idx => f6
-      | @eval_delta _ c decl body isdecl res cost e0 e1 => f7 (eval_ind e1)
-      | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs e0 l a => f8 e0 l a (map_All3_dep _ (@eval_ind Γ) a)
+      | @eval_delta _ c decl body isdecl res cost e0 e1 => f7 (eval_rect e1)
+      | @eval_construct_App _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f8 c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
+      | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f9 c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
       (* | @eval_construct_block_empty _ ind c mdecl idecl cdecl e0 => f9  *)
-      | @eval_prim _ p p' c ev => f10 ev (map_eval_primitive_step_index (@eval_ind Γ) ev)
+      | @eval_prim _ p p' c ev => f10 ev (map_eval_primitive_step_index (@eval_rect Γ) ev)
       | @eval_lazy _ t => f11
-      | @eval_force _ Γ' t t' v c1 c2 ev ev' => f12 (eval_ind ev) (eval_ind ev')
+      | @eval_force _ Γ' t t' v c1 c2 ev ev' => f12 (eval_rect ev) (eval_rect ev')
       end.
+  Definition eval_rec := @eval_rect.
+  Definition eval_ind := @eval_rect.
 End EvalInd.
 
 End Wcbv.
 
-Fixpoint size {Σ Γ t v n} (e : eval Σ Γ t v n) : nat :=
+Fixpoint size {wfl : WcbvFlags} {Σ Γ t v n} (e : eval Σ Γ t v n) : nat :=
   let fix size_mult {l1 l2 ns} (a : All3 (eval Σ Γ) l1 l2 ns) :=
     match a with
     | All3_nil => 0
@@ -324,29 +345,33 @@ Fixpoint size {Σ Γ t v n} (e : eval Σ Γ t v n) : nat :=
     end
   in
   match e with
-  | @eval_var _ _ na v0 e0 => 0
-  | @eval_beta _ _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 => size e0 + size e1 + size e2 + 1
-  | @eval_lambda _ _ na b => 0
-  | @eval_zeta _ _ na b0 b0' b1 res c1 c2 e0 e1 => size e0 + size e1 + 1
-  | @eval_iota_block _ _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => size e0 + size e5 + 1
-  | @eval_fix_unfold _ _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => size e0 + size e2 + size e3 + 1
-  | @eval_fix _ _ mfix idx => 0
-  | @eval_delta _ _ c decl body isdecl res cost e0 e1 => size e1 + 1
-  | @eval_construct_block _ _ ind c mdecl idecl cdecl args args' cost e0 l a => size_mult a + 1
-  | @eval_prim _ _ p p' _ (evalPrimStepIndexInt i) => 0
-  | @eval_prim _ _ p p' _ (evalPrimStepIndexFloat f) => 0
-  | @eval_prim _ _ p p' _ (evalPrimStepIndexString s) => 0
-  | @eval_prim _ _ p p' c (evalPrimStepIndexArray _ _ _ _ _ _ e e') => size_mult e + size e'
-  | @eval_lazy _ _ t => 0
-  | @eval_force _ _ Γ' t t' v c1 c2 ev ev' => size ev + size ev' + 1
+  | @eval_var _ _ _ na v0 e0 => 0
+  | @eval_beta _ _ _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 => size e0 + size e1 + size e2 + 1
+  | @eval_lambda _ _ _ na b => 0
+  | @eval_zeta _ _ _ na b0 b0' b1 res c1 c2 e0 e1 => size e0 + size e1 + 1
+  | @eval_iota_block _ _ _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => size e0 + size e5 + 1
+  | @eval_fix_unfold _ _ _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => size e0 + size e2 + size e3 + 1
+  | @eval_fix _ _ _ mfix idx => 0
+  | @eval_delta _ _ _ c decl body isdecl res cost e0 e1 => size e1 + 1
+  | @eval_construct_App _ _ _ ind c mdecl idecl cdecl args args' cost c_as_bks e0 l a => size_mult a + 1
+  | @eval_construct_block _ _ _ ind c mdecl idecl cdecl args args' cost c_as_bks e0 l a => size_mult a + 1
+  | @eval_prim _ _ _ p p' _ (evalPrimStepIndexInt i) => 0
+  | @eval_prim _ _ _ p p' _ (evalPrimStepIndexFloat f) => 0
+  | @eval_prim _ _ _ p p' _ (evalPrimStepIndexString s) => 0
+  | @eval_prim _ _ _ p p' c (evalPrimStepIndexArray _ _ _ _ _ _ e e') => size_mult e + size e'
+  | @eval_lazy _ _ _ t => 0
+  | @eval_force _ _ _ Γ' t t' v c1 c2 ev ev' => size ev + size ev' + 1
   end.
 
-Lemma size_SI {Σ Γ t v n} (e : eval Σ Γ t v n) :
+Lemma size_SI {wfl : WcbvFlags} {Σ Γ t v n} (e : eval Σ Γ t v n) :
   size e = n.
 Proof.
   induction e; subst; simpl; try congruence.
   - induction a; simpl in *; first reflexivity.
-    assert (#|l0| ≤ cstr_nargs cdecl) by easy.
+    assert (#|l0| ≤ ind_npars mdecl + cstr_nargs cdecl) by easy.
+    now destruct IHa.
+  - induction a; simpl in *; first reflexivity.
+    assert (#|l0| ≤ ind_npars mdecl + cstr_nargs cdecl) by easy.
     now destruct IHa.
   - destruct evih; try reflexivity.
     f_equal; last assumption.
@@ -475,13 +500,31 @@ Hint Rewrite Forall_forall : rw_hints.
 Hint Rewrite @forallb_map : rw_hints.
 Hint Rewrite andb_and : rw_hints.
 Hint Rewrite length_map : rw_hints.
-Hint Rewrite length_map : rw_hints.
+Hint Rewrite length_app : rw_hints.
 Hint Rewrite <- @map_skipn : rw_hints.
 Hint Rewrite @nth_error_map : rw_hints.
 Hint Rewrite <-@map_repeat : rw_hints.
 Hint Rewrite andb_and : rw_hints.
 Hint Rewrite repeat_length : rw_hints.
 Hint Rewrite if_same : rw_hints.
+
+
+Lemma size_rev {A : Type} (l : list A) :
+  #|List.rev l| = #|l|.
+Proof.
+  induction l; now simple.
+Qed.
+Hint Rewrite @size_rev : rw_hints.
+
+
+Lemma size_fix_env mfix Γ :
+  #|fix_env mfix Γ| = #|mfix|.
+Proof.
+  unfold fix_env.
+  generalize #|mfix| as n.
+  induction n; now simple.
+Qed.
+Hint Rewrite size_fix_env : rw_hints.
 
 Lemma wellformed_monotone {efl : EEnvFlags} 
   ctx k k' e :
@@ -624,31 +667,32 @@ Proof.
   f_equal.
   now rewrite csubst_comm.
 Qed.
-
 Lemma eval_SI_wf_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
+  with_constructor_as_block = cstr_as_blocks ->
+  has_tApp ->
   wf_glob Σ ->
   forallb (wellformed_val Σ) Γ ->
   wellformed Σ #|Γ| e ->
   eval Σ Γ e v n ->
   wellformed_val Σ v.
 Proof.
-  intros wf_Σ wf_Γ wf_e h_eval.
+  intros cstr_blocks htApp wf_Σ wf_Γ wf_e h_eval.
   induction h_eval; simple; try solve[
     repeat split; try easy
   ].
   - now eapply wf_Γ, nth_error_In.
+
   - apply IHh_eval3; try easy; now intros ? [-> | hIn].
+
   - apply IHh_eval2; try easy; now intros ? [-> | hIn].
+
   - destruct IHh_eval1; try easy. 
     apply IHh_eval2.
     + now intros x [?%in_rev|?]%in_app_or.
-    + rewrite length_app.
-      replace #|List.rev args| with #|args|; last first.
-      { clear; induction args; simple; try easy.
-        now rewrite length_app Nat.add_comm IHargs. }
-      rewrite e3.
+    + rewrite e3.
       apply wf_e.
       now eapply nth_error_In.
+
   - unfold wf_fix, test_def in *; simple.
     destruct IHh_eval1 as [[[? ?] ?] [? ?]]; try easy.
     apply IHh_eval2; last first.
@@ -657,15 +701,8 @@ Proof.
       injection e0 as e0; subst.
       unshelve epose proof H3 _ _; first shelve.
       { eapply nth_error_In, heq. }
-      simple.
-      rewrite length_app.
-      replace #|fix_env mfix Γ'| with #|mfix|; simple; first easy.
-      unfold fix_env.
-      generalize #|mfix| as n.
-      now induction n; simple. }
-    intros ? [-> | hIn]; try easy.
-    rewrite in_app_iff in hIn.
-    destruct hIn as [hIn | hIn]; last easy.
+      simple. easy. }
+    intros ? [-> | [hIn | hIn]%in_app_iff]; try easy.
     unfold fix_env in hIn.
     revert hIn.
     remember (#|mfix|) as n eqn:heq.
@@ -678,30 +715,49 @@ Proof.
     { destruct mfix; subst; simple; first easy.
       now rewrite /is_true Nat.ltb_lt. }
     rewrite heq in H2, H3.
-    clear heq.
+    clear heq IHh_eval2.
     induction n; simple; try easy.
     intros [<- | hIn]; try easy.
     simple; unfold wf_fix, test_def; simple; repeat split; try easy.
-    apply IHn; try easy.
-    destruct n; first easy. unfold is_true in *; rewrite ->Nat.ltb_lt in *; easy.
+    apply IHn; try easy; last first.
+    destruct n; first easy. unfold is_true in *; rewrite ->Nat.ltb_lt in *. lia.
+
   - apply IHh_eval; first easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
     simple. now rewrite e in H.
-  - destruct cstr_as_blocks; last (destruct args; last easy); repeat split; simple; try easy.
-    + destruct wf_e as [_ [_ wf_e]]. induction a; simple; try easy.
-      destruct IHa.
-      intros ? [-> | hIn]; simple.
-      * now apply i.
-      * now apply IHa0.
-    + destruct (lookup_constructor_pars_args Σ ind c) as [[? ?]|]; try easy.
-      replace #|args'| with #|args|; last first.
-      { clear IHa; revert a. clear. induction 1; now simple. }
-      destruct (eqb_spec #|args| (n + n0)); try easy.
-      exfalso. apply H.
-      simple. symmetry. now apply eqb_eq.
-    + inversion a; easy. 
-    + inversion a; subst.
-      destruct (lookup_constructor_pars_args Σ ind c) as [[? ?]|]; try easy.
+
+  - rewrite wellformed_mkApps in wf_e; simple.
+    assert (cstr_as_blocks = false) as heq. 
+    { now rewrite -cstr_blocks -(negb_involutive with_constructor_as_block) c_as_bks. }
+    assert (#|args| = #|args'|).
+    { revert a IHa; clear; intros a _. induction a in |- *; now simple. }
+    rewrite heq in wf_e.
+    rewrite /lookup_constructor_pars_args e heq; simple; repeat split; try easy; last now rewrite /is_true Nat.leb_le.
+    destruct wf_e as [_ wf_e].
+    revert a IHa wf_e wf_Γ; clear.
+    intros a IH hwf wf_Γ.
+    induction a; simple; try easy.
+    destruct IH as [? ?]; simple.
+    intros v [[] | hIn]; simple; try easy.
+    + apply i; simple. now apply hwf.
+    + apply IHa; now simple.
+
+
+  - rewrite -cstr_blocks c_as_bks /lookup_constructor_pars_args e;
+    rewrite -cstr_blocks c_as_bks /lookup_constructor_pars_args e in wf_e; simple.
+    assert (ind_npars mdecl + cstr_nargs cdecl = #|args|) as heq by now apply eqb_eq.
+    assert (#|args'| = #|args|) as heq'.
+    { revert a IHa; clear; intros a _. induction a in |- *; now simple. }
+    simple. repeat split; try easy.
+    destruct wf_e as [_ [_ wf_e]].
+    revert a IHa wf_e wf_Γ; clear.
+    intros a IH hwf wf_Γ.
+    induction a; simple; try easy.
+    destruct IH as [? ?]; simple.
+    intros v [[] | hIn]; simple; try easy.
+    + apply i; simple. now apply hwf.
+    + apply IHa; now simple.
+  
   - inversion evih; subst; unfold test_prim, test_array_model in *; simple; repeat split; try easy.
     destruct wf_e as [? wf_e].
     revert wf_e wf_Γ X. clear.
@@ -716,7 +772,8 @@ Lemma closed_csubst_test:
 ∀ (t : term) (k k': nat) (u : term),
 k' <= k ->
 closed t → closedn (S k) u → closedn k (csubst t k' u).
-intros t k k' u h_lt h_closed_t h_closed_u.
+Proof.
+  intros t k k' u h_lt h_closed_t h_closed_u.
   intros.
   induction u in k, k', h_lt, h_closed_t, h_closed_u |- * using EInduction.term_forall_list_ind; simple; try easy.
   - repeat (
@@ -749,14 +806,6 @@ intros t k k' u h_lt h_closed_t h_closed_u.
       unfold test_prim, map_prim, test_array_model, map_array_model in *; simple; try easy.
 Qed.
 
-Lemma size_fix_env mfix Γ :
-  #|fix_env mfix Γ| = #|mfix|.
-Proof.
-  unfold fix_env.
-  generalize #|mfix| as n.
-  induction n; now simple.
-Qed.
-Hint Rewrite size_fix_env : rw_hints.
 
 Lemma fold_left_csubst_app {efl : EEnvFlags} Γ Γ' t k :
   forallb (closedn k) Γ ->
@@ -771,7 +820,135 @@ Proof.
   rewrite -IHΓ; simple; try easy.
 Qed.
 
-(* TODO: Refactor, it is very ugly *)
+
+Lemma substl_tLambda Γ na b:
+  substl Γ (tLambda na b) = 
+    tLambda na (fold_left (λ bod term : EAst.term, csubst term 1 bod) Γ b).
+Proof.
+  unfold substl;
+  induction Γ in b |- *; simple; easy.
+Qed.
+Hint Rewrite substl_tLambda : rw_hints.
+
+Lemma substl_tFix Γ mfix idx :
+  substl Γ (tFix mfix idx) = 
+  tFix (map (fold_left (λ b t, map_def (csubst t #|mfix|) b) Γ) mfix) idx.
+Proof.
+  unfold substl;
+  induction Γ in mfix |- *; simple.
+  - now rewrite map_id.
+  - now rewrite IHΓ !map_map_compose length_map Nat.add_0_r.
+Qed.
+Hint Rewrite substl_tFix : rw_hints.
+
+Lemma substl_tApp Γ a b :
+  substl Γ (tApp a b) = tApp (substl Γ a) (substl Γ b).
+Proof.
+  unfold substl;
+  induction Γ in a, b |- *; simple; easy.
+Qed.
+Hint Rewrite substl_tApp : rw_hints.
+
+Lemma substl_tLetIn Γ na a b :
+  substl Γ (tLetIn na a b) = tLetIn na (substl Γ a) (fold_left (λ b t, csubst t 1 b) Γ b).
+Proof.
+  unfold substl;
+  induction Γ in a, b |- *; simple; easy.
+Qed.
+Hint Rewrite substl_tLetIn : rw_hints.
+
+Lemma substl_tCase Γ ind n discr brs :
+  substl Γ (tCase (ind, n) discr brs) = 
+    tCase 
+      (ind, n) 
+      (substl Γ discr)
+      (map (λ br, (br.1, fold_left (λ b t, csubst t #|br.1| b) Γ br.2)) brs).
+Proof.
+  unfold substl; induction Γ in discr, brs |- *; simple.
+  - now rewrite map_id_f.
+  - rewrite IHΓ map_map_compose.
+    f_equal.
+    apply map_ext.
+    intros; simple; repeat f_equal.
+    now rewrite Nat.add_0_r.
+Qed.
+Hint Rewrite substl_tCase : rw_hints.
+
+Lemma substl_tConst Γ c : 
+  substl Γ (tConst c) = tConst c.
+Proof.
+  induction Γ; unfold substl; simple; easy.
+Qed.
+Hint Rewrite substl_tConst : rw_hints.
+
+
+Lemma substl_tConstruct Γ ind c args : 
+  substl Γ (tConstruct ind c args) = tConstruct ind c (map (substl Γ) args).
+Proof.
+  induction Γ in args |- *.
+  - unfold substl. simple. now rewrite map_id.
+  - unfold substl in *. simple. now rewrite IHΓ map_map_compose.
+Qed.
+Hint Rewrite substl_tConstruct : rw_hints.
+
+Lemma substl_tPrim Γ p : 
+  substl Γ (tPrim p) = tPrim (map_prim (substl Γ) p).
+Proof.
+  unfold map_prim. destruct p as [? [| | | [? ?]]]; simple.
+  - now induction Γ; simple.
+  - now induction Γ; simple.
+  - now induction Γ; simple.
+  - unfold substl, map_array_model, map_array_model; simple. 
+    induction Γ in array_default, array_value |- *; simple.
+    + now rewrite map_id.
+    + rewrite IHΓ; simple; try easy.
+      do 4 f_equal. now rewrite map_map_compose.
+Qed.
+Hint Rewrite substl_tPrim : rw_hints.
+
+Lemma substl_tLazy Γ t : 
+  substl Γ (tLazy t) = tLazy ((substl Γ) t).
+Proof.
+  unfold substl.
+  now induction Γ in t |- *; simple.
+Qed.
+Hint Rewrite substl_tLazy : rw_hints.
+
+Lemma substl_tForce Γ t : 
+  substl Γ (tForce t) = tForce ((substl Γ) t).
+Proof.
+  unfold substl.
+  now induction Γ in t |- *; simple.
+Qed.
+Hint Rewrite substl_tForce : rw_hints.
+
+
+Lemma substl_mkApps Γ t l : 
+  substl Γ (mkApps t l) = mkApps (substl Γ t) (map (substl Γ) l).
+Proof.
+  unfold substl.
+  induction Γ in t, l |- *; simple.
+  { now rewrite map_id. }
+  now rewrite EEtaExpandedFix.csubst_mkApps IHΓ map_map_compose.
+Qed.
+Hint Rewrite substl_mkApps : rw_hints.
+
+Lemma substl_tRel Γ n v : 
+  closed v ->
+  nth_error Γ n = Some v ->
+  substl Γ (tRel n) = v.
+Proof.
+  unfold substl.
+  induction Γ in n |- *; destruct n; simple; try easy.
+  clear. intros h_closed [=->].
+  induction Γ; simple; try easy.
+  now rewrite csubst_closed.
+Qed.
+Hint Rewrite substl_tRel : rw_hints.
+
+
+Search substl mkApps.
+
 Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
   cstr_as_blocks = with_constructor_as_block ->
   with_guarded_fix = false ->
@@ -782,6 +959,496 @@ Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
   eval Σ Γ e v n ->
   EWcbvEval.eval Σ (substl (map term_of_val Γ) e) (term_of_val v).
 Proof.
+  intros ? h_unguarded h_app wf_Σ wf_env wf_e heval.
+  induction heval; simple; try now econstructor.
+  - induction Γ in n, e, h_app, wf_env, wf_e |- *; destruct n; try easy.
+    + unfold substl. cbn.
+      simpl in e. injection e as ->.
+      fold (substl (map term_of_val Γ) (term_of_val v)).
+      assert (closed (term_of_val v)).
+      { eapply wellformed_closed, wellformed_val_wellformed; simple; easy. }
+      unfold substl.
+      clear IHΓ.
+      induction Γ.
+      * simple. now apply value_final, value_term_of_val.
+      * simple.
+        rewrite csubst_closed //.
+        apply IHΓ; simple.
+        intros; now apply wf_env.
+    + now apply IHΓ; simple.
+  - econstructor; simple.
+    + now apply IHheval1; simple.
+    + now apply IHheval2; simple.
+    + rewrite /substl /= in IHheval3.
+      assert (wellformed_val Σ a').
+      { now eapply eval_SI_wf_val; simple; try eassumption. }
+      unshelve epose proof eval_SI_wf_val _ _ _ _ _ _ _ _ _ _ heval1; simple; try easy.
+      match goal with
+      | h: context[EWcbvEval.eval Σ ?a (term_of_val res)]
+        |- EWcbvEval.eval Σ ?b (term_of_val res) =>
+        replace b with a; first apply h
+      end; simple; try easy.
+      apply fold_csubst_csubst_commute; simple; try easy.
+      * eapply wellformed_closed.
+        now eapply wellformed_val_wellformed.
+      * intros. eapply wellformed_closed.
+        now eapply wellformed_val_wellformed. 
+  - econstructor.
+    + now apply IHheval1; simple.
+    + assert (wellformed_val Σ b0').
+      { now eapply eval_SI_wf_val; simple; try eassumption. }
+      match goal with
+      | h: context[EWcbvEval.eval Σ ?a (term_of_val res)]
+        |- EWcbvEval.eval Σ ?b (term_of_val res) =>
+        replace b with a; first apply h
+      end; simple; try easy.
+      apply fold_csubst_csubst_commute; simple; try easy.
+      * eapply wellformed_closed.
+        now eapply wellformed_val_wellformed.
+      * intros. eapply wellformed_closed.
+        now eapply wellformed_val_wellformed. 
+  - assert (forallb (wellformed_val Σ) (List.rev args)).
+    { simple. intros x hIn%in_rev.
+      apply eval_SI_wf_val in heval1; simple; try easy. }
+    assert (forallb (closedn 0) (map term_of_val (List.rev args))).
+    { simple. intros x hIn.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    assert (forallb (closedn 0) (map term_of_val Γ)).
+    { simple. intros x hIn.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    destruct with_constructor_as_block eqn:heq; rewrite ->H in *.
+    { econstructor; first assumption; simple; try easy.
+      - now apply IHheval1; simple.
+      - now simple.
+      - simple.
+      - simple.
+      - unfold iota_red; simple.
+        rewrite skipn_0 -map_rev.
+        unfold substl.
+        replace #|br.1| with (#|map term_of_val (List.rev args)| + 0) by now simple.
+        rewrite fold_left_csubst_app; simple.
+        simple. rewrite -map_app.
+        apply IHheval2; simple; try easy.
+        + now intros x [?|?]%in_app_or.
+        + rewrite e3. now eapply wf_e, nth_error_In. }
+    { econstructor; first assumption; simple; try easy.
+      - now apply IHheval1; simple.
+      - now simple.
+      - simple.
+      - simple.
+      - unfold iota_red; simple.
+        rewrite skipn_0 -map_rev.
+        unfold substl.
+        replace #|br.1| with (#|map term_of_val (List.rev args)| + 0) by now simple.
+        rewrite fold_left_csubst_app. simple.
+        simple. rewrite -map_app.
+        apply IHheval2; simple; try easy.
+        + now intros x [?|?]%in_app_or.
+        + rewrite e3. now eapply wf_e, nth_error_In. }
+  - rewrite /substl /= in IHheval1, IHheval2, IHheval3.
+    unfold cunfold_fix in e0.
+    destruct (nth_error mfix idx) as [[? []]|] eqn:heq; simple; try easy.
+    injection e0 as e0; subst.
+    eapply eval_fix'; simple.
+    + now apply IHheval1; simple.
+    + unfold EGlobalEnv.cunfold_fix in *; simple.
+      now rewrite heq.
+    + now apply IHheval3; simple.
+    + assert (wellformed_val Σ av).
+      { apply eval_SI_wf_val in heval3; simple; easy. }
+      unfold map_def; simple.
+      replace (
+        dbody 
+          (fold_left (λ b t0, {| 
+            dname := EAst.dname b; 
+            dbody := csubst t0 #|mfix| (dbody b);
+            rarg := EAst.rarg b |}) (map term_of_val Γ')
+            {| dname := dname; dbody := tLambda na fn; rarg := rarg |}))
+      with 
+      (tLambda na 
+        (fold_left 
+          (λ b t0, csubst t0 (S #|mfix|) b) 
+          (map term_of_val Γ')
+          fn)
+      ); last first.
+      { induction Γ' in fn |- *; now simple. }
+      eapply EWcbvEval.eval_beta.
+      { simple. now constructor. }
+      { apply value_final, value_term_of_val; simple. }
+    rewrite -fold_csubst_csubst_commute; simple; try easy.
+    { eapply wellformed_closed, wellformed_val_wellformed; simple. easy. }
+    { intros x hIn.
+      set mfix' := (map _ _) in hIn.
+      pose proof closed_fix_subst mfix'; simple.
+      apply H1; simple.
+      intros ?. rewrite in_map_iff.
+      intros (x' & <- & hIn').
+      unfold test_def, mfix'.
+      simple.
+      apply eval_SI_wf_val in heval1; simple; try easy.
+      unfold wf_fix, test_def in *; simple.
+      replace (
+          dbody 
+            (fold_left 
+              (λ b t0, {| dname := EAst.dname b; dbody := csubst t0 #|mfix| (dbody b); rarg := EAst.rarg b |}) 
+              (map term_of_val Γ') x')
+      ) with (
+        (fold_left (λ b t0, csubst t0 #|mfix| b) (map term_of_val Γ') (dbody x'))
+      ); simple; last first.
+      { clear.
+        induction Γ' in x' |- *; simple; try easy.
+        now rewrite -IHΓ'. }
+      assert (closedn (#|mfix| + #|Γ'|) (dbody x')).
+      { now eapply wellformed_closed. }
+      revert H2.
+      clear mfix' hIn H1.
+      generalize #|mfix| as n.
+      assert (∀ v n, In v Γ' → closedn n (term_of_val v)) as h_closed'.
+      { intros. apply (@closed_upwards 0); last easy.
+        eapply wellformed_closed, wellformed_val_wellformed; easy. }
+      revert h_closed'. clear.
+      intros h_closed' n h_closed.
+      induction Γ' in n, h_closed, h_closed' |- *; simple.
+      rewrite fold_csubst_csubst_commute; simple; try easy.
+      unshelve epose proof IHΓ' _ (S n) _; try easy.
+      { now rewrite Nat.add_succ_r in h_closed. }
+      simple. rewrite ->Nat.add_0_r in *.
+      eapply closed_csubst_test; now simple. }
+    
+    assert (forallb (wellformed_val Σ) Γ').
+    { apply eval_SI_wf_val in heval1; now simple. }
+    assert (forallb (wellformed_val Σ) (fix_env mfix Γ')).
+    { simple. apply eval_SI_wf_val in heval1; simple; try easy.
+      intros x hIn.
+      revert hIn heval1. clear.
+      unfold wf_fix, test_def; simple.
+      intros hIn (((h_fix & wf_Γ') & wf_mfix) & h_lt & wf_body).
+      unfold fix_env in hIn.
+      set (
+        f_aux mfix := fix aux (n : nat) : list value :=
+          match n with
+          | 0 => []
+          | S n0 => vRecClos mfix n0 Γ' :: aux n0
+          end
+      ).
+      fold (f_aux mfix) in hIn.
+      remember #|mfix| as n eqn:heq in hIn.
+      assert (n <= #|mfix|) by (subst; reflexivity).
+      clear heq.
+      induction n; simple; try easy.
+      destruct hIn as [<- | hIn]; simple; try easy.
+      unfold wf_fix, test_def; simple; repeat split; try easy.
+      now apply Nat.ltb_lt. }
+    match goal with
+    | h : context[EWcbvEval.eval Σ ?t1 ?res] 
+      |- EWcbvEval.eval Σ ?t2 ?res =>
+        replace t2 with t1; first apply h
+    end; simple; try easy.
+    * split; first easy.
+      now intros x [? | ?]%in_app_iff.
+    * apply eval_SI_wf_val in heval1; simple; try easy.
+      unfold wf_fix, test_def in heval1; simple.
+      destruct heval1 as [_ [_ h]].
+      unshelve epose proof h {| dname := dname; dbody := tLambda na fn; rarg := rarg |} _.
+      { now eapply nth_error_In. }
+      simple; try easy.
+    * assert (
+        map term_of_val (fix_env mfix Γ') =
+          fix_subst (map (fold_left (λ (b : def term) t0, {| dname := EAst.dname b; dbody := csubst t0 #|mfix| (dbody b); rarg := EAst.rarg b |})
+          (map term_of_val Γ')) mfix)
+      ) as heq'.
+      { clear. unfold fix_subst, fix_env; simple.
+        match goal with
+        | |- map _ (?f1 _) = ?f2 _ => 
+            set (aux1 := f1);
+            set (aux2 := f2)
+        end.
+        generalize #|mfix| as n.
+        induction n; simple; try easy.
+        now f_equal. }
+      rewrite -heq'.
+    
+      rewrite !fold_csubst_csubst_commute; simple; try easy; try solve[
+        try intros x [? | ?]%in_app_iff; intros; eapply wellformed_closed, wellformed_val_wellformed; simple; easy
+      ].
+      f_equal.
+      rewrite map_app -fold_left_csubst_app; simple; try solve[
+        try intros x [? | ?]%in_app_iff; intros; eapply wellformed_closed, wellformed_val_wellformed; simple; easy
+      ].
+      now rewrite Nat.add_1_r.
+      
+  - rewrite /substl /= in IHheval. econstructor; try easy.
+    apply IHheval; try easy.
+    pose proof lookup_env_wellformed wf_Σ isdecl.
+    simple. now rewrite e in H0.
+  - rewrite wellformed_mkApps in wf_e; simple; rewrite /lookup_constructor_pars_args e /= in wf_e.
+    assert (cstr_as_blocks = false) as heq. 
+    { now rewrite H -(negb_involutive with_constructor_as_block) c_as_bks. }
+    rewrite ->heq in *.
+    eapply eval_mkApps_Construct; simple; try easy.
+    { apply eval_atom; simple. now rewrite c_as_bks e. }
+    destruct wf_e as [_ wf_e]. induction a; simple; try easy.
+    destruct IHa.
+    constructor.
+    + now apply e0; simple.
+    + now apply IHa0.
+  - rewrite /lookup_constructor_pars_args e /= in wf_e.
+    rewrite ->H, c_as_bks in *.
+    econstructor; simple; try easy.
+    { simple. symmetry. now apply eqb_eq. }
+    destruct wf_e as [_ [_ wf_e]]. induction a; simple; try easy.
+    destruct IHa.
+    constructor.
+    + now apply e0; simple.
+    + now apply IHa0.
+  - constructor.
+    inversion evih; subst; unfold map_prim, test_prim, test_array_model in *; simple; repeat split; try easy; constructor; last first.
+    { now apply H4; simple. }
+    destruct wf_e as [? wf_e].
+    clear H0 H4 H5 H6 H7. 
+    revert ev0 wf_e wf_env X. clear.
+    unfold test_prim, test_array_model; simple.
+    induction ev0; simple; try easy.
+    intros wf_e wf_Γ [? ?].
+    simple.
+    constructor; simple; try easy.
+    + now apply e; simple. 
+    + now apply IHev0; simple.
+  - econstructor.
+    + now apply IHheval1; simple.
+    + assert (wellformed_val Σ (vLazy t' Γ')).
+      { now eapply eval_SI_wf_val; simple. }
+      apply IHheval2; now simple.
+Qed.
+
+Definition isClos (v : value) : bool :=
+  match v with
+  | vClos _ _ _ => true
+  | _ => false
+  end.
+
+Lemma isLambda_isClos {efl : EEnvFlags} v :
+  isClos v = isLambda (term_of_val v).
+Proof.
+  destruct v; simple; try easy.
+  destruct cstr_as_blocks; simple; first easy.
+  unshelve epose proof isLambda_mkApps (tConstruct ind c []) (map term_of_val args) _ as H; first easy.
+  now rewrite -(negb_involutive (isLambda _)) H.
+Qed.
+
+Lemma term_of_val_lambda {efl : EEnvFlags} na t v :
+  term_of_val v = tLambda na t ->
+  ∑ Γ t, v = vClos na t Γ.
+Proof.
+  intros h.
+  assert (isClos v) by now rewrite isLambda_isClos h.
+  destruct v; simple; try easy.
+  now injection h as -> _.
+Qed.
+
+Locate ";".
+
+Equations extract {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> Type} 
+  (a1 : All (λ v, wellformed_val Σ v → ∑ n v', P v n v') args) 
+  (a2 : All (λ v, wellformed_val Σ v) args) :
+  list nat × list value :=
+  extract All_nil All_nil := ([], []);
+  extract (All_cons h t) (All_cons wf_h wf_t) with h wf_h, extract t wf_t := {
+    | (n; (v; a)), (ln, lv) => ((n :: ln), (v :: lv))
+  }.
+
+Definition extract_ns {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> Type} 
+  (a1 : All (λ v, wellformed_val Σ v → ∑ n v', P v n v') args)
+  (a2 : All (λ v, wellformed_val Σ v) args) := fst (extract a1 a2).
+
+
+Definition extract_vs {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> Type} 
+  (a1 : All (λ v, wellformed_val Σ v → ∑ n v', P v n v') args) 
+  (a2 : All (λ v, wellformed_val Σ v) args) := snd (extract a1 a2).
+
+Lemma fold_left_map_def {A B : Set} (f : A -> B -> A) env (d : def A) : 
+  fold_left (λ b d, map_def (λ t, f t d) b) env d = map_def (λ b, fold_left f env b) d.
+Proof.
+  unfold map_def; induction env in d |- *; destruct d; simple; easy.
+Qed.
+
+Lemma closed_fold_left_csubst {efl : EEnvFlags} {wfl : WcbvFlags} k b env :
+   All (λ x, ∀ k, closedn k (term_of_val x)) env -> 
+   closedn (k + #|env|) b ->
+   closedn k (fold_left (λ b0 t0 : term, csubst t0 k b0) (map term_of_val env) b).
+Proof.
+    intros h_all_closed h_closed.
+    induction env in b, k, h_all_closed, h_closed |- *; simple.
+    { now rewrite Nat.add_0_r in h_closed. }
+    rewrite fold_csubst_csubst_commute; simple; try easy.
+    apply closed_csubst_test; simple; try easy.
+    rewrite Nat.add_succ_r in h_closed.
+    now apply IHenv; simple.
+Qed.
+
+
+From Stdlib Require Import PeanoNat.
+Lemma eval_SI_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ v :
+  has_tApp ->
+  with_constructor_as_block = cstr_as_blocks ->
+  wellformed_val Σ v ->
+  ∑ (n : nat) v', term_of_val v = term_of_val v' × eval Σ Γ (term_of_val v) v' n.
+Proof.
+  intros hApp cstr_blocks h_wf.
+  induction v using value_ind.
+  - simple. 
+    unfold lookup_constructor_pars_args in h_wf.
+    destruct (lookup_constructor Σ ind c) as [[[mdecl idecl] cdecl] |] eqn:heq; simpl in *; last easy.
+    assert (All (wellformed_val Σ) args) as X' by now simple.
+    pose args' := @extract_vs efl _ _ _ X X'.
+    assert (map term_of_val args = map term_of_val args').
+    { clear. subst args'; unfold extract_vs. 
+      funelim (extract X X'); simple; try easy.
+      destruct a as [? ?]. rewrite Heq in Hind.
+      now f_equal. }
+    eexists. exists (vConstruct ind c args'); simple; destruct cstr_as_blocks; split; try (f_equal; easy).
+    + eapply eval_construct_block with (cs := extract_ns X X'); simple; try easy.
+      { now assert (#|args| = ind_npars mdecl + cstr_nargs cdecl) as h by now apply eqb_eq. }
+      unfold args', extract_vs, extract_ns.
+      clear. funelim (extract X X'); simple; constructor; try easy.
+      { now destruct a. }
+      now rewrite Heq in Hind.
+    + eapply eval_construct_App with (cs := extract_ns X X'); simple; try easy.
+      { now rewrite cstr_blocks. }
+      { now assert (#|args| <= ind_npars mdecl + cstr_nargs cdecl) as h by now apply Nat.leb_le. }
+      unfold args', extract_vs, extract_ns.
+      clear. funelim (extract X X'); simple; constructor; try easy.
+      { now destruct a. }
+      now rewrite Heq in Hind.
+  - exists 0, (vClos na (fold_left (λ b t, csubst t 1 b) (map term_of_val env) b) Γ); split; simple; try constructor.
+    f_equal.
+    unshelve epose proof closed_fold_left_csubst 1 b env _ _ as h.
+    { simple; intros x hIn n.
+        now eapply wellformed_closed, wellformed_val_wellformed. }
+    { now eapply wellformed_closed. }
+    revert h. clear.
+    induction Γ; simple; first reflexivity; intros h.
+    rewrite csubst_closed; now simple.
+  - exists 0, 
+    (vRecClos (map (fold_left (λ (b0 : def term) (t0 : term), map_def (csubst t0 #|b|) b0) (map term_of_val env)) b) idx Γ);
+      split; simple; try constructor.
+    f_equal.
+    rewrite map_map_compose. apply All_map_eq; simple.
+    intros x hIn; simple. 
+    remember csubst as c eqn:heq; rewrite !fold_left_map_def; subst c.
+    unfold map_def; simple.
+    f_equal.
+    unshelve epose proof closed_fold_left_csubst #|b| (dbody x) env _ _ as h.
+    { simple; intros ? ? n.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    { unfold wf_fix, test_def in h_wf; simple.
+       now eapply wellformed_closed. }
+    revert h. clear.
+    induction Γ; simple; first reflexivity; intros h.
+    rewrite csubst_closed; now simple.
+  - simple; inversion X as [| | | ? [? ?]]; subst; unfold map_prim; simple;
+    try lazymatch goal with
+    | |- context[tPrim (?t; ?c _ ?m) = _] =>
+        exists 0, (vPrim (t; @c value m)); split; repeat constructor
+    end.
+    destruct a as [default values]; unfold map_array_model, test_prim, test_array_model in *; simple.
+    assert (All (wellformed_val Σ) values) as X' by now simple.
+    pose values' := @extract_vs efl _ _ _ a0 X'.
+    assert (map term_of_val values = map term_of_val values').
+    { clear. subst values'; unfold extract_vs. 
+      funelim (extract a0 X'); simple; try easy.
+      destruct a as [? ?]. rewrite Heq in Hind.
+      now f_equal. }
+    destruct s as (n_default & v'_default & eq_default & eval_default); first easy.
+    pose new_a := {| array_default := v'_default; array_value := values' |}.
+    eexists. exists (vPrim (Primitive.primArray; primArrayModel new_a)).
+    split; simple.
+    { unfold map_prim, map_array_model; simple. easy. }
+    constructor. eapply evalPrimStepIndexArray with (ns := extract_ns a0 X'); last easy.
+    unfold new_a, values', extract_ns, extract_vs in *.
+    clear. funelim (extract a0 X'); simple; constructor; try easy.
+    { now destruct a. }
+    now rewrite Heq in Hind.
+  - exists 0, (vLazy (substl (map term_of_val env) p) Γ); split; last now constructor.
+    simple; f_equal.
+    unfold substl.
+    unshelve epose proof closed_fold_left_csubst 0 p env _ _ as h.
+    { simple; intros x hIn n.
+        now eapply wellformed_closed, wellformed_val_wellformed. }
+    { now eapply wellformed_closed. }
+    revert h. clear.
+    induction Γ; simple; first reflexivity; intros h.
+    rewrite csubst_closed; now simple.
+Qed.
+
+Lemma eval_SI_subst {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
+  has_tApp ->
+  with_constructor_as_block = cstr_as_blocks ->
+  wf_glob Σ ->
+  forallb (wellformed_val Σ) Γ ->
+  wellformed Σ #|Γ| e ->
+  eval Σ Γ e v n ->
+  ∑ (n' : nat) (v' : value),
+  term_of_val v = term_of_val v' × 
+  eval Σ [] (substl (map term_of_val Γ) e) v' n'.
+Proof.
+  intros htApp c_blocks wf_Σ wf_Γ wf_e heval; simple.
+  induction heval; simple.
+  - destruct (eval_SI_val Σ [] v) as (n' & v' & heqv' & hevalv'); simple.
+    { now eapply wf_Γ, nth_error_In. }
+    exists n', v'; split; simple.
+    erewrite substl_tRel; simple; try easy.
+    apply nth_error_In in e.
+    now eapply wellformed_closed, wellformed_val_wellformed.
+  - simple.
+    destruct IHheval1 as (n1 & v1 & heq1 & Iheval1); simple; try easy.
+    destruct IHheval2 as (n2 & v2 & heq2 & Iheval2); simple; try easy.
+    destruct IHheval3 as (n3 & v3 & heq3 & Iheval3); simple; try easy.
+    { intros x [<- | hIn]; simple.
+      - now apply eval_SI_wf_val in heval2; simple.
+      - now apply eval_SI_wf_val in heval1; simple. }
+    { now apply eval_SI_wf_val in heval1; simple. }
+    eexists. exists v3; split; first easy.
+    econstructor; simple; try easy.
+Admitted.
+
+Lemma eval_SI_eval {efl : EEnvFlags} {wfl : WcbvFlags} Σ e v :
+  (* cstr_as_blocks = with_constructor_as_block ->
+  with_guarded_fix = false ->
+  has_tApp -> *)
+  ~~ has_tBox ->
+  wf_glob Σ ->
+  (* forallb (wellformed_val Σ) Γ -> *)
+  wellformed Σ 0 e ->
+  EWcbvEval.eval Σ e v ->
+  ∑ (n : nat) (v' : value), (v = term_of_val v') × eval Σ [] e v' n.
+  (* See to add substitutions here *)
+Proof.
+  intros htBox wf_Σ wf_e h_eval.
+  induction h_eval using EWcbvEval.eval_ind; simple.
+  - apply eval_wellformed in h_eval1; simple; try easy.
+    now rewrite h_eval1 in htBox.
+  - apply eval_wellformed in h_eval1; simple; try easy.
+    apply eval_wellformed in h_eval2; simple; try easy.
+    assert (wellformed Σ 0 (csubst a' 0 b)).
+    { apply wellformed_csubst; now simple.  }
+    apply eval_wellformed in h_eval3; simple; try easy.
+    destruct 
+      IHh_eval1 as (n1 & v'1 & heq1 & IH1),
+      IHh_eval2 as (n2 & v'2 & heq2 & IH2),
+      IHh_eval3 as (n3 & v'3 & heq3 & IH3); simple; try easy; subst.
+    destruct (term_of_val_lambda _ _ _ (eq_sym heq1)) as (Γ & t & ->).
+    exists (n1 + n2 + n3 + 1), v'3; split; first easy.
+    econstructor; try easy.
+    simple.
+    injection heq1 as ->.
+    rewrite -fold_csubst_csubst_commute in IH3; simple; try easy.
+    { now eapply wellformed_closed. }
+    { admit. }
+    
+      
+    { apply eval_wellformed in h_eval1, h_eval2; simple; try easy.
+      apply wellformed_csubst; now simple. }
   intros ? h_unguarded h_app wf_Σ wf_env wf_e heval.
   induction heval using eval_ind; simpl; try now econstructor.
   - induction Γ in n, e, h_app, wf_env, wf_e |- *; destruct n; try easy.
@@ -1215,6 +1882,8 @@ Proof.
       { now eapply eval_SI_wf_val; simple; try eassumption. }
       apply IHheval2; now simple.
 Qed.
+
+
 
 Definition ident_of_name (na : name) : ident :=
   match na with nAnon => "" | nNamed na => na end.
