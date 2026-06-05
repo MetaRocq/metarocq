@@ -7,8 +7,7 @@ From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils ELiftSubst ECSubs
   EWellformed EWcbvEval.
 From MetaRocq.Utils Require Import bytestring MRString.
 From MetaRocq.Erasure Require Import EWcbvEvalCstrsAsBlocksFixLambdaInd.
-From Stdlib Require Import BinaryString.
-Import String.
+From Stdlib Require Import Relations.Relations.
 
 From Equations Require Import Equations.
 From Stdlib Require Import ssreflect ssrbool.
@@ -444,7 +443,7 @@ Section Values.
   | vRecClos (b : mfixpoint term) (idx : nat) (env : list value)
   | vPrim (p : EPrimitive.prim_val value)
   | vLazy (p : term) (env : list value).
-
+  
   Section ValueInd.
     Variable P : value -> Type.
     Variable f1 : ∀ ind c args, All P args -> P (vConstruct ind c args).
@@ -478,10 +477,16 @@ Section Values.
         | vLazy p env => f5 _ _ (on_list env)
         end
       in value_rect.
-        
-    Definition value_rec := value_rect.
-    Definition value_ind := value_rect.
   End ValueInd.
+
+  Definition value_rec (P : value -> Set) := value_rect P.
+  Definition value_ind (P : value -> Prop) := value_rect P.
+  Set Elimination Schemes.
+
+  Derive NoConfusion for value.
+  Derive Subterm for value.
+
+
   Definition environment := list value.
 
   Definition fix_env (l : mfixpoint term) (Γ : environment) :=
@@ -540,7 +545,7 @@ Section Values.
     EWcbvEval.value Σ (term_of_val v).
   Proof.
     intros heq htapp hwf.
-    induction v using value_ind; simpl; try now do 2 constructor.
+    induction v; simpl; try now do 2 constructor.
     - pose proof @All_map.
       simpl in *.
       destruct cstr_as_blocks eqn:heq'.
@@ -715,6 +720,8 @@ End Values.
 Hint Rewrite size_fix_env : rw_hints.
 
 Section Primitives.
+  Unset Elimination Schemes.
+
   Inductive eval_primitive_step_index {term term' : Set} (eval : term -> term' -> nat -> Type) :
     prim_val term -> prim_val term' -> nat -> Type :=
     | evalPrimStepIndexInt i : eval_primitive_step_index eval (prim_int i) (prim_int i) 0
@@ -742,6 +749,8 @@ Section Primitives.
       let a' := {| array_default := def'; array_value := v' |} in
       eval_primitive_step_index_ind eval P (prim_array a) (prim_array a') _ (evalPrimStepIndexArray eval v def v' def' ns n ev ed)
   .
+  Set Elimination Schemes.
+  
 
   Definition map_eval_primitive_step_index {term term' : Set} {eval : term -> term' -> nat -> Type} 
     {P : ∀ x y c, eval x y c -> Type} (h : ∀ x y c e, P x y c e) {p p' c} ev : eval_primitive_step_index_ind eval P p p' c ev := 
@@ -759,6 +768,7 @@ Section Wcbv.
   Context (Σ : global_declarations).
   (* The local context is fixed: we are only doing weak reductions *)
 
+  Unset Elimination Schemes.
   Inductive eval (Γ : environment) : term -> value -> nat -> Type :=
   (** Reductions *)
   | eval_var n v :
@@ -928,9 +938,10 @@ Section Wcbv.
         | @eval_lazy _ t => f11
         | @eval_force _ Γ' t t' v c1 c2 ev ev' => f12 (eval_rect ev) (eval_rect ev')
         end.
-    Definition eval_rec := @eval_rect.
-    Definition eval_ind := @eval_rect.
   End EvalInd.
+  Definition eval_rec (P : WcbvFlags -> ∀ Γ t v cost, eval Γ t v cost -> Set) := @eval_rect P.
+  Definition eval_ind (P : WcbvFlags -> ∀ Γ t v cost, eval Γ t v cost -> Prop) := @eval_rect P.
+  Set Elimination Schemes.
 
 End Wcbv.
 
@@ -977,6 +988,254 @@ Section Test.
       induction ev; simpl; now destruct a.
   Qed.
 End Test.
+
+
+Section LogRel.
+  Definition PostT  : Type := relation (term * environment * nat).
+  Definition PostGT : Type := relation (term * environment * nat).
+
+  Section Exp_rel.
+    Context {wfl : WcbvFlags}.
+    Variable Σ : global_context.
+    Variable val_rel : PostGT -> nat -> value -> value -> Prop.
+    Variable Post : PostT.
+    Variable PostG : PostGT.
+    
+    Definition exp_rel'
+      (k : nat) 
+      (p1 : term * environment) 
+      (p2 : term * environment) 
+      : Prop :=
+        let '(t1, Γ1) := p1 in
+        let '(t2, Γ2) := p2 in
+        ∀ v1 n1,
+        n1 <= k -> 
+        eval Σ Γ1 t1 v1 n1 ->
+        ∃ v2 n2,
+          ∥eval Σ Γ2 t2 v2 n2∥ ∧ 
+          Post (t1, Γ1, n1) (t2, Γ2, n2) ∧
+          val_rel PostG (k - n1) v1 v2.
+
+  End Exp_rel.
+  Print value.
+  Print prim_val.
+  Print prim_model.
+  Print array_model.
+  Print Primitive.prim_tag.
+  Context {wfl : WcbvFlags}.
+  Variable Σ : global_context.
+  Fixpoint val_rel' (PostG : PostGT) (k : nat) (v1 v2 : value) {struct k} : Prop :=
+    let fix val_rel_aux (v1 v2 : value) {struct v1} : Prop :=
+      let fix Forall2_aux vs1 vs2 : Prop := 
+        match vs1, vs2 with
+        | [], [] => True
+        | v1 :: vs1, v2 :: vs2 =>
+            val_rel_aux v1 v2 ∧ Forall2_aux vs1 vs2
+        | _, _ => False
+        end
+      in
+      match v1, v2 with
+      | vConstruct i1 n1 vs1, vConstruct i2 n2 vs2 =>
+          i1 = i2 ∧ n1 = n2 ∧ Forall2_aux vs1 vs2
+      | vClos n1 t1 Γ1, vClos n2 t2 Γ2 =>
+        match k with
+        | 0 => True
+        | S k =>
+            ∀ (v1 v2 : value) j,
+            j <= k ->
+            val_rel' PostG (k - (k - j)) v1 v2 ->
+            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1::Γ1) (t2, v2::Γ2)
+        end
+      | vRecClos mfix1 n1 Γ1, vRecClos mfix2 n2 Γ2 =>
+        match k with
+        | 0 => True
+        | S k =>
+            ∀ t1 t2 v1 v2 j,
+            j <= k -> 
+            cunfold_fix mfix1 n1 = Some t1 ->
+            cunfold_fix mfix2 n2 = Some t2 ->
+            val_rel' PostG (k - (k - j)) v1 v2 ->
+            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1 :: fix_env mfix1 Γ1 ++ Γ1) (t2, v2:: fix_env mfix2 Γ2 ++ Γ2)
+        end
+      | vPrim (_; primIntModel i1), vPrim (_; primIntModel i2) => i1 = i2
+      | vPrim (_; primFloatModel f1), vPrim (_; primFloatModel f2) => f1 = f2
+      | vPrim (_; primStringModel s1), vPrim (_; primStringModel s2) => s1 = s2
+      | vPrim (_; primArrayModel {|array_default := def1; array_value := vals1 |}), 
+        vPrim (_; primArrayModel {|array_default := def2; array_value := vals2 |}) =>
+          val_rel_aux def1 def2 ∧ Forall2_aux vals1 vals2
+      | vPrim _, vPrim _ => False
+      | vLazy t1 Γ1, vLazy t2 Γ2 =>
+        match k with
+        | 0 => True
+        | S k =>
+            ∀ j, j <= k ->
+            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, Γ1) (t2, Γ2) 
+        end
+      | _, _ => False
+      end
+    in
+    val_rel_aux v1 v2
+  .
+
+  Definition val_rel (PostG : PostGT) (k : nat) (v1 v2 : value) : Prop :=
+    match v1, v2 with
+    | vConstruct i1 n1 vs1, vConstruct i2 n2 vs2 => i1 = i2 ∧ n1 = n2 ∧ Forall2 (val_rel' PostG k) vs1 vs2
+    | vClos n1 t1 Γ1, vClos n2 t2 Γ2 =>
+        ∀ (v1 v2 : value) j,
+        j < k ->
+        val_rel' PostG j v1 v2 ->
+        exp_rel' Σ val_rel' PostG PostG j (t1, v1::Γ1) (t2, v2::Γ2)
+    | vRecClos mfix1 n1 Γ1, vRecClos mfix2 n2 Γ2 =>
+        ∀ t1 t2 v1 v2 j,
+        j < k -> 
+        cunfold_fix mfix1 n1 = Some t1 ->
+        cunfold_fix mfix2 n2 = Some t2 ->
+        val_rel' PostG j v1 v2 ->
+        exp_rel' Σ val_rel' PostG PostG j (t1, v1 :: fix_env mfix1 Γ1 ++ Γ1) (t2, v2:: fix_env mfix2 Γ2 ++ Γ2)
+    | vPrim p1, vPrim p2 => 
+        match p1, p2 with
+        | (_; primIntModel i1), (_; primIntModel i2) => i1 = i2
+        | (_; primFloatModel f1), (_; primFloatModel f2) => f1 = f2
+        | (_; primStringModel s1), (_; primStringModel s2) => s1 = s2
+        | (_; primArrayModel {|array_default := def1; array_value := vals1 |}),  
+          (_; primArrayModel {|array_default := def2; array_value := vals2 |}) =>
+            val_rel' PostG k def1 def2 ∧ Forall2 (val_rel' PostG k) vals1 vals2
+        | _, _ => False
+        end
+    | vLazy t1 Γ1, vLazy t2 Γ2 => 
+        ∀ j, j < k ->
+        exp_rel' Σ val_rel' PostG PostG j (t1, Γ1) (t2, Γ2) 
+    | _, _ => False
+    end.
+
+  Lemma val_rel_eq (k : nat) PostG (v1 v2 : value) :
+    val_rel' PostG k v1 v2 <-> val_rel PostG k v1 v2.
+  Proof.
+    unfold val_rel'.
+    induction v1 in v2 |- *; destruct v2; destruct k as [| k];
+    try match goal with
+    | p : prim_val _ |- _ =>
+        destruct p as [? [| | | [def2 vals2]]]
+    end; simple; try easy.
+    
+    - split; repeat match goal with
+      | |- _ -> _ => intro
+      | h : _ ∧ _ |- _ => destruct h
+      | |- _ => split
+      end; subst; simple; try easy.
+      + revert args0 H1. induction args; intros [|a' args'] H1; simple; try easy.
+        constructor; simple; try easy.
+        apply IHargs; try easy.
+        intros. apply X; easy.
+      + revert args0 H1. induction args; intros [|a' args'] H1; simple; try easy.
+        inversion H1; subst; constructor; simple; try easy.
+        apply IHargs; try easy.
+        intros. apply X; easy.
+    - split; repeat match goal with
+      | |- _ -> _ => intro
+      | h : _ ∧ _ |- _ => destruct h
+      | |- _ => split
+      end; subst; simple; try easy.
+      + revert args0 H1. induction args; intros [|a' args'] H1; simple; try easy.
+        constructor; simple; try easy.
+        apply IHargs; try easy.
+        intros. apply X; easy.
+      + revert args0 H1. induction args; intros [|a' args'] H1; simple; try easy.
+        inversion H1; subst; constructor; simple; try easy.
+        apply IHargs; try easy.
+        intros. apply X; easy.
+    - split; intros.
+      + assert (k - (k - j) = j) as heq by lia.
+        edestruct (H v1 v2 j) with (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy;
+        now rewrite ->heq in *; repeat eexists.
+      + assert (k - (k - j) = j) as heq by lia. rewrite -> heq in *.
+        edestruct (H v1 v2 j) with (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy.
+    - split; intros.
+      + assert (k - (k - j) = j) as heq by lia.
+        edestruct (H t1 t2 v1 v2 j) with (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy;
+        now rewrite ->heq in *; repeat eexists.
+      + assert (k - (k - j) = j) as heq by lia. rewrite -> heq in *.
+        edestruct (H t1 t2 v1 v2 j) with (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy.
+    - inversion X as [| | | [def1 vals1] [? ?]]; subst; simple; try easy.
+      split; repeat match goal with
+      | |- _ -> _ => intro
+      | h : _ ∧ _ |- _ => destruct h
+      | |- _ => split
+      end; subst; simple; try easy.
+      + revert vals2 H0. clear X. induction vals1; intros [|a' args'] H1; simple; try easy.
+        constructor; simple; try easy.
+        apply IHvals1; try easy.
+        intros. apply a; easy.
+      + revert vals2 H0. clear X. induction vals1; intros [|a' args'] H1; simple; try easy.
+        inversion H1; subst; constructor; simple; try easy.
+        apply IHvals1; try easy.
+        intros. apply a; easy.
+    - inversion X as [| | | [def1 vals1] [? ?]]; subst; simple; try easy.
+      split; repeat match goal with
+      | |- _ -> _ => intro
+      | h : _ ∧ _ |- _ => destruct h
+      | |- _ => split
+      end; subst; simple; try easy.
+      + revert vals2 H0. clear X. induction vals1; intros [|a' args'] H1; simple; try easy.
+        constructor; simple; try easy.
+        apply IHvals1; try easy.
+        intros. apply a; easy.
+      + revert vals2 H0. clear X. induction vals1; intros [|a' args'] H1; simple; try easy.
+        inversion H1; subst; constructor; simple; try easy.
+        apply IHvals1; try easy.
+        intros. apply a; easy.
+    - split; intros.
+      + assert (k - (k - j) = j) as heq by lia.
+        edestruct (H j) with (v1 := v1) (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy;
+        now rewrite ->heq in *; repeat eexists.
+      + assert (k - (k - j) = j) as heq by lia. rewrite -> heq in *.
+        edestruct (H j) with (v1 := v1) (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy.
+  Qed.
+
+  Hint Rewrite val_rel_eq : rw_hints.
+
+
+  Notation exp_rel := (exp_rel' Σ val_rel).
+
+   Lemma preord_val_monotonic (k j : nat) v1 v2 PostG :
+    j <= k ->
+    val_rel PostG k v1 v2 ->
+    val_rel PostG j v1 v2.
+  Proof.
+    intros Hleq Hpre.
+    revert v2 Hpre; induction v1; intros v2 Hpre;
+    destruct v2; try (simpl; contradiction); simple; try easy.
+    - simple; repeat split; try easy.
+      destruct Hpre as (_ & _ & Hpre).
+      induction Hpre; constructor; simple; try easy.
+      now apply IHHpre.
+    - inversion X as [ | | | [? ?] [? ?]]; subst; simple.
+      clear X.
+      destruct p0 as [? [| | | [? ?]]]; simple.
+      destruct Hpre as [? Hpre]; split; simple; try easy.
+      induction Hpre; constructor; simple; try easy.
+      now apply IHHpre.
+  Qed.
+
+  Lemma loc_inv_monotone k p1 p2 Post Post' PostG :
+    (∀ r1 r2, Post r1 r2 -> Post' r1 r2) ->
+    exp_rel Post PostG k p1 p2 ->
+    exp_rel Post' PostG k p1 p2
+  .
+  Proof.
+    destruct p1 as [e1 Γ1], p2 as [e2 Γ2]; simple.
+    intros hinc h v1 n1 n1_lt_k heval.
+    destruct (h v1 n1 n1_lt_k heval) as (v2 & n2 & [heval2] & hPost & hval_rel).
+    exists v2, n2; repeat split; simple.
+    easy.
+  Qed.
+
+
+End LogRel.
+
+
+
+
 
 
 Lemma eval_SI_wf_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
