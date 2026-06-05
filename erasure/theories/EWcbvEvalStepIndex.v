@@ -106,6 +106,7 @@ Section Utils.
     unfold map_def; induction env in d |- *; destruct d; simple; easy.
   Qed.
 
+
 End Utils.
 Hint Rewrite @size_rev : rw_hints.
 
@@ -261,6 +262,20 @@ Section SubstLemmas.
       now rewrite -Nat.add_succ_r.
     - inversion X as [| | | ? [? ?]]; subst;
         unfold test_prim, map_prim, test_array_model, map_array_model in *; simple; try easy.
+  Qed.
+
+  Lemma closed_fold_left_csubst {efl : EEnvFlags} {wfl : WcbvFlags} k b env :
+    All (λ x, ∀ k, closedn k x) env -> 
+    closedn (k + #|env|) b ->
+    closedn k (fold_left (λ b0 t0 : term, csubst t0 k b0) env b).
+  Proof.
+    intros h_all_closed h_closed.
+    induction env in b, k, h_all_closed, h_closed |- *; simple.
+    { now rewrite Nat.add_0_r in h_closed. }
+    rewrite fold_csubst_csubst_commute; simple; try easy.
+    apply closed_csubst_test; simple; try easy.
+    rewrite Nat.add_succ_r in h_closed.
+    now apply IHenv; simple.
   Qed.
 
   Lemma fold_left_csubst_app {efl : EEnvFlags} Γ Γ' t k :
@@ -1333,6 +1348,13 @@ Proof.
       apply IHheval2; now simple.
 Qed.
 
+
+
+
+
+
+
+
 Equations extract {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> Type} 
   (a1 : All (λ v, wellformed_val Σ v → ∑ n v', P v n v') args) 
   (a2 : All (λ v, wellformed_val Σ v) args) :
@@ -1350,25 +1372,6 @@ Definition extract_ns {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> 
 Definition extract_vs {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> Type} 
   (a1 : All (λ v, wellformed_val Σ v → ∑ n v', P v n v') args) 
   (a2 : All (λ v, wellformed_val Σ v) args) := snd (extract a1 a2).
-
-
-
-
-
-
-Lemma closed_fold_left_csubst {efl : EEnvFlags} {wfl : WcbvFlags} k b env :
-   All (λ x, ∀ k, closedn k (term_of_val x)) env -> 
-   closedn (k + #|env|) b ->
-   closedn k (fold_left (λ b0 t0 : term, csubst t0 k b0) (map term_of_val env) b).
-Proof.
-  intros h_all_closed h_closed.
-  induction env in b, k, h_all_closed, h_closed |- *; simple.
-  { now rewrite Nat.add_0_r in h_closed. }
-  rewrite fold_csubst_csubst_commute; simple; try easy.
-  apply closed_csubst_test; simple; try easy.
-  rewrite Nat.add_succ_r in h_closed.
-  now apply IHenv; simple.
-Qed.
 
 
 Lemma eval_SI_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ v :
