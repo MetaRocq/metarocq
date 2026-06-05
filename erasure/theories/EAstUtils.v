@@ -325,7 +325,7 @@ Definition isLazy c :=
   end.
 
 Definition isFixApp t := isFix (head t).
-Definition  t := isConstruct (head t).
+Definition isConstructApp t := isConstruct (head t).
 Definition isPrimApp t := isPrim (head t).
 Definition isLazyApp t := isLazy (head t).
 
