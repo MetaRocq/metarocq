@@ -13,6 +13,7 @@ From MetaRocq.Quotation.ToPCUIC.Utils Require Import (hints) All_Forall.
 #[export] Hint Extern 0 (@tPrimProp ?term quotation_of ?a)
 => lazymatch goal with
    | [ H : @tPrimProp _ quotation_of _ |- _ ] => assumption
+   | [ H : @tPrimProp _ (fun x => quotation_of x) _ |- _ ] => assumption
    end : typeclass_instances.
 
 #[export] Instance quote_prim_model {term tag} {qterm : quotation_of term} {quote_term : ground_quotable term} : ground_quotable (prim_model term tag) := ltac:(destruct 1; eauto).
