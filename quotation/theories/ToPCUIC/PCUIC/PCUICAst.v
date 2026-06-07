@@ -13,6 +13,9 @@ From MetaRocq.Utils Require Import MRUtils.
 
 #[local] Instance quotation_of_predicate {term} {p : predicate term} {qterm : quotation_of term} {qp : tCasePredProp quotation_of quotation_of p} : quotation_of p := ltac:(induction p; cbv [tCasePredProp PCUICAst.pparams PCUICAst.pcontext PCUICAst.preturn] in *; destruct_head'_prod; exact _).
 #[export] Hint Extern 0 (@tCasePredProp ?term quotation_of quotation_of ?p) => assumption : typeclass_instances.
+#[local] Instance quotation_of_branch {term} {qterm : quotation_of term} {b : branch term} {qctx : onctx quotation_of b.(bcontext)} {qbody : quotation_of b.(bbody)} : quotation_of b := ltac:(destruct b; cbv [PCUICAst.bcontext PCUICAst.bbody] in *; exact _).
+#[local] Instance quotation_of_branches {term} {qterm : quotation_of term} {l : list (branch term)} {ql : tCaseBrsProp quotation_of l} : quotation_of l := ltac:(cbv [tCaseBrsProp] in ql; induction ql; destruct_head'_prod; exact _).
+#[export] Hint Extern 0 (@tCaseBrsProp _ quotation_of _) => assumption : typeclass_instances.
 
 #[export] Instance quote_term : ground_quotable term := ltac:(induction 1 using term_forall_list_ind; exact _).
 
