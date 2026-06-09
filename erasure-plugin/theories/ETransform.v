@@ -1335,3 +1335,53 @@ Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
   now rewrite /extends_inlined_eprogram /extends_eprogram /=.
 Qed.
+
+(* Implementing box *)
+
+From MetaRocq.Erasure Require Import EImplementBox.
+
+Program Definition implement_box_transformation (efl : EEnvFlags)
+  (has_app : has_tApp) (has_lam : has_tLambda) (has_letin : has_tLetIn) (nocofix : has_tCoFix = false)
+  (nopars : has_cstr_params = false):
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  {| name := "implementing box";
+    transform p _ := EImplementBox.implement_box_program p ;
+    pre p := wf_eprogram efl p ;
+    post p := wf_eprogram (switch_off_box efl) p ;
+    obseq p hp p' v v' := v' = implement_box v |}.
+Next Obligation.
+  intros. cbn in *. split.
+  - eapply implement_box_env_wf_glob; eauto. apply p.
+  - eapply transform_wellformed'. all:eauto. all: apply p.
+Qed.
+Next Obligation.
+  intros efl hasapp haslam haslet nocof nopars.
+  intros pr v wf pre.
+  destruct pr. destruct wf, pre; cbn in * |-.
+  eexists. split; [ | eauto].
+  econstructor.
+  eapply implement_box_eval; cbn; eauto.
+Qed.
+
+From MetaRocq.Erasure Require Import EImplementLazyForce.
+
+Program Definition implement_lazy_force_transformation (efl : EEnvFlags) (has_app : has_tApp) (has_lam : has_tLambda) (has_tbox : has_tBox)
+  (nocofix : has_tCoFix = false) (nopars : has_cstr_params = false) :
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  {| name := "implementing lazy and force using lambdas ";
+    transform p _ := implement_lazy_force_program p ;
+    pre p := wf_eprogram efl p ;
+    post p := wf_eprogram (switch_off_thunk efl) p ;
+    obseq p hp p' v v' := v' = implement_lazy_force v |}.
+Next Obligation.
+  intros efl hasapp haslam hasbox nocof nopars p wf. cbn. cbn in wf.
+  split. eapply implement_lazy_force_env_wf_glob; eauto. apply wf.
+  apply transform_wellformed'; eauto. all:apply wf.
+Qed.
+Next Obligation.
+  intros efl hasapp haslam hasbox nocof nopars p t wf ev.
+  destruct p as [g p]. destruct wf, ev; cbn in * |-.
+  eexists. split; [| eauto].
+  split.
+  eapply implement_lazy_force_eval; eauto.
+Qed.
