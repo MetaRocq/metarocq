@@ -1038,25 +1038,25 @@ Section LogRel.
       | vConstruct i1 n1 vs1, vConstruct i2 n2 vs2 =>
           i1 = i2 ∧ n1 = n2 ∧ Forall2_aux vs1 vs2
       | vClos n1 t1 Γ1, vClos n2 t2 Γ2 =>
-        match k with
-        | 0 => True
-        | S k =>
-            ∀ (v1 v2 : value) j,
-            j <= k ->
-            val_rel' PostG (k - (k - j)) v1 v2 ->
-            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1::Γ1) (t2, v2::Γ2)
-        end
+          match k with
+          | 0 => True
+          | S k =>
+              ∀ (v1 v2 : value) j,
+              j <= k ->
+              val_rel' PostG (k - (k - j)) v1 v2 ->
+              exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1::Γ1) (t2, v2::Γ2)
+          end
       | vRecClos mfix1 n1 Γ1, vRecClos mfix2 n2 Γ2 =>
-        match k with
-        | 0 => True
-        | S k =>
-            ∀ t1 t2 v1 v2 j,
-            j <= k -> 
-            cunfold_fix mfix1 n1 = Some t1 ->
-            cunfold_fix mfix2 n2 = Some t2 ->
-            val_rel' PostG (k - (k - j)) v1 v2 ->
-            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1 :: fix_env mfix1 Γ1 ++ Γ1) (t2, v2:: fix_env mfix2 Γ2 ++ Γ2)
-        end
+          match k with
+          | 0 => True
+          | S k =>
+              ∀ t1 t2 v1 v2 j,
+              j <= k -> 
+              cunfold_fix mfix1 n1 = Some t1 ->
+              cunfold_fix mfix2 n2 = Some t2 ->
+              val_rel' PostG (k - (k - j)) v1 v2 ->
+              exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, v1 :: fix_env mfix1 Γ1 ++ Γ1) (t2, v2:: fix_env mfix2 Γ2 ++ Γ2)
+          end
       | vPrim (_; primIntModel i1), vPrim (_; primIntModel i2) => i1 = i2
       | vPrim (_; primFloatModel f1), vPrim (_; primFloatModel f2) => f1 = f2
       | vPrim (_; primStringModel s1), vPrim (_; primStringModel s2) => s1 = s2
@@ -1065,12 +1065,12 @@ Section LogRel.
           val_rel_aux def1 def2 ∧ Forall2_aux vals1 vals2
       | vPrim _, vPrim _ => False
       | vLazy t1 Γ1, vLazy t2 Γ2 =>
-        match k with
-        | 0 => True
-        | S k =>
-            ∀ j, j <= k ->
-            exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, Γ1) (t2, Γ2) 
-        end
+          match k with
+          | 0 => True
+          | S k =>
+              ∀ j, j <= k ->
+              exp_rel' Σ val_rel' PostG PostG (k - (k - j)) (t1, Γ1) (t2, Γ2) 
+          end
       | _, _ => False
       end
     in
@@ -1191,13 +1191,14 @@ Section LogRel.
       + assert (k - (k - j) = j) as heq by lia. rewrite -> heq in *.
         edestruct (H j) with (v1 := v1) (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy.
   Qed.
+  
 
   Hint Rewrite val_rel_eq : rw_hints.
 
 
   Notation exp_rel := (exp_rel' Σ val_rel).
 
-   Lemma preord_val_monotonic (k j : nat) v1 v2 PostG :
+   Lemma val_rel_monotonic (k j : nat) v1 v2 PostG :
     j <= k ->
     val_rel PostG k v1 v2 ->
     val_rel PostG j v1 v2.
@@ -1217,6 +1218,19 @@ Section LogRel.
       now apply IHHpre.
   Qed.
 
+  Lemma exp_rel_monotonic (k j : nat) p1 p2 Post PostG :
+    j <= k ->
+    exp_rel Post PostG k p1 p2 ->
+    exp_rel Post PostG j p1 p2.
+  Proof.
+    unfold exp_rel in *.
+    destruct p1 as [e1 Γ1], p2 as [e2 Γ2].
+    intros Hleq Hpre v1 n1 n1_lt_j e1_eval_v1.
+    unshelve epose proof (Hpre _ _ _ e1_eval_v1) as (v2 & n2 & e2_eval_v2 & post & v1_rel_v2); first lia.
+    exists v2, n2. repeat (split; try easy).
+    now eapply val_rel_monotonic; last eassumption.
+  Qed.
+
   Lemma loc_inv_monotone k p1 p2 Post Post' PostG :
     (∀ r1 r2, Post r1 r2 -> Post' r1 r2) ->
     exp_rel Post PostG k p1 p2 ->
@@ -1225,14 +1239,172 @@ Section LogRel.
   Proof.
     destruct p1 as [e1 Γ1], p2 as [e2 Γ2]; simple.
     intros hinc h v1 n1 n1_lt_k heval.
-    destruct (h v1 n1 n1_lt_k heval) as (v2 & n2 & [heval2] & hPost & hval_rel).
-    exists v2, n2; repeat split; simple.
-    easy.
+    destruct (h v1 n1 n1_lt_k heval) as (v2 & n2 & heval2 & hPost & hval_rel).
+    now exists v2, n2.
+  Qed.
+
+  Ltac my_discr :=
+    let aux t ind c args h := 
+      assert (head t = tConstruct ind c args) by now rewrite h; simple
+    in
+    try match goal with
+    | h : ?t = mkApps (tConstruct ?ind ?c ?args) _ |- _ => aux t ind c args h
+    | h : mkApps (tConstruct ?ind ?c ?args) _ = ?t |- _ =>
+        aux t ind c args (eq_sym h)
+    end; discriminate.
+
+
+
+  Lemma val_rel_refl (k : nat) PG v:
+    val_rel PG k v v.
+  Proof.
+    induction k as [k IH] in v |- * using strong_nat_ind;
+    induction v; try now simple.
+    - repeat split.
+      induction args; constructor.
+      + now simple.
+      + now inversion X.
+    - destruct k; try now simple.
+      simple.
+      intros.
+    - inversion X as [| | | [? ?] [? ?]]; subst; simple; try easy.
+      fold (val_rel' PG 0) (val_rel' PG 0 array_default array_default).
+      split; first simple.
+      clear X.
+      induction array_value; constructor.
+      { now simple. }
+      now apply IHarray_value; simple.
+    - repeat split.
+      induction args; constructor.
+      + now simple.
+      + now inversion X.
+    try (now repeat (split; try easy); econstructor; eauto; simple; eauto).
+
+    - 
+    { simple. }
+    destruct k as [| k]; unfold Reflexive; intros x; rewrite preord_val_eq;
+    induction x using val_ind'; simpl; eauto;
+    try (now (try split; eauto); econstructor; eauto; rewrite preord_val_eq; eauto).
+    - split; eauto. constructor; eauto. rewrite preord_val_eq; eauto.
+      destruct IHx0. eauto.
+    - intros.
+      edestruct (set_lists_length (def_funs f0 f0 t t) (def_funs f0 f0 t t))
+        as [rho2' Hset']; eauto.
+      do 3 eexists; split; eauto. split; eauto. intros Hc.
+      exfalso. lia.
+    - split; eauto. constructor; eauto. rewrite preord_val_eq; eauto.
+        destruct IHx0. eauto.
+    - intros.
+      edestruct (set_lists_length (def_funs f0 f0 t t) (def_funs f0 f0 t t))
+        as [rho2' Hset']; eauto.
+      do 3 eexists; eauto. split; eauto.
+      split; eauto.
+      intros Hleq Hall v1 c Hleq' Hstep.
+      eapply preord_exp_refl_weak; eauto.
+      eapply preord_env_set_lists_l; eauto.
+      eapply preord_env_refl; eauto.
+  Qed.
+
+
+  Lemma exp_rel_refl Post PostG k e Γ Γ' : 
+    Forall2 (val_rel PostG k) Γ Γ' ->
+    exp_rel Post PostG k (e, Γ) (e, Γ').
+  Proof.
+    induction k as [k IH] in e, Γ, Γ', Post |- * using strong_nat_ind.
+    induction e in Γ, Γ', k, IH |- * using EInduction.term_forall_list_ind; intros Γ_rel_Γ' v1 n1 n1_le_k h_eval;
+      inversion h_eval; subst; try my_discr.
+    - pose proof Forall2_nth_error_Some_l _ _ _ _ _ _ _ H0 Γ_rel_Γ' as (v2 & heq & v1_rel_v2).
+      exists v2, 0; repeat split.
+      + now constructor.
+      + (* Need compatibility conditions on Post and PostG *) admit.
+      + now rewrite Nat.sub_0_r.
+    - exists (vClos n e Γ'), 0; repeat split.
+      + constructor.
+      + admit.
+      + rewrite Nat.sub_0_r.
+        intros v1 v2 j j_lt_k v1_rel_v2 v' n' n'_le_j h_eval'.
+        unshelve epose proof IH j _ PostG e (v1::Γ) (v2::Γ') _ v' n' n'_le_j h_eval' as (? & ? & ? & ? & ?); try easy.
+        { constructor; simple.
+          eapply List.Forall2_impl; last eassumption.
+          intros. now eapply val_rel_monotonic; last eassumption. }
+        do 2 eexists; simple; easy.
+    - unshelve epose proof IHe1 _ _ _ _ Γ_rel_Γ' _ _ _ X
+        as (v_e1' & c1' & [e1_eval_v_e1'] & hpost & b0'_rel_v_e1'); try easy.
+      unshelve epose proof IHe2 (k - c1) _ (b0' :: Γ) (v_e1' :: Γ') _ _ _ _ X0 
+        as (v_e2' & c2' & [e2_eval_v_e2'] & hpost2 & v1_rel_v_e2'); try easy.
+      { constructor; simple. eapply List.Forall2_impl; last eassumption.
+        intros. now eapply val_rel_monotonic; last eassumption. }
+      exists v_e2', (c1' + c2' + 1); repeat split.
+      + now econstructor.
+      + admit.
+      + now eapply val_rel_monotonic; last eassumption.
+    - unshelve epose proof IHe1 k _ _ _ Γ_rel_Γ' _ _ _ X
+        as ([| na' b' Γ'0' | | |] & c1' & [e1_eval_v_e1'] & hpost & b0'_rel_v_e1'); try easy.
+      unshelve epose proof IHe2 _ _ _ _ Γ_rel_Γ' _ _ _ X0
+        as (v_e2' & c2' & [e2_eval_v_e2'] & hpost2 & v1_rel_v_e2'); try easy.
+      assert (val_rel' PostG (min (k - c1 - 1) (k - c2)) a' v_e2') as h
+      by now simple; eapply val_rel_monotonic; last eassumption.
+      unshelve epose proof b0'_rel_v_e1' a' v_e2' _ _ h; try lia.
+      repeat eexists.
+      + econstructor; try eassumption.
+        rewrite <-val_rel_eq in v1_rel_v_e2'.
+        unshelve epose proof b0'_rel_v_e1' a' v_e2' _ _ v1_rel_v_e2'.
+        try lia.
+        simple.
+      unshelve epose proof IH _ _ _ .
+      { constructor; simple. eapply List.Forall2_impl; last eassumption. admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
+    - admit.
   Qed.
 
 
 End LogRel.
 
+Hint Rewrite @val_rel_eq : rw_hints.
+Definition exp_rel {wfl : WcbvFlags} Σ := exp_rel' Σ (val_rel Σ).
+
+Search "ind" "strong".
+
+Lemma subst_add_Γ {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e u k :
+  exp_rel Σ (λ _ _, True) (λ _ _, True) k ((csubst (term_of_val u) 0 e), Γ) (e, u::Γ).
+Proof.
+  induction k using strong_nat_ind.
+  intros v1 n1 n1_lt_k h_eval.
+  inversion h_eval; subst; simple; try easy.
+  - assert (e = tRel (S n)); last subst.
+    { destruct e; simple; try discriminate.
+      destruct n0; simple; last now injection H0.
+      destruct u; simple; try easy.
+      destruct cstr_as_blocks; simple; try easy.
+      assert (head (tRel n) = tConstruct ind c []) by now rewrite H0; simple.
+      discriminate. }
+    exists v1, 0; repeat split.
+    + now constructor.
+    + simple. unfold val_rel.
+    destruct e; simple; try discriminate.
+      destruct n0.
+      + destruct u; simple; try easy.
+        destruct cstr_as_blocks; simple; try easy.
+        admit.
+      + simple. 
+  - intros v1 n1 n1_lt_k e_eval_v1.
+    inversion e_eval_v1. 
+has_tApp ->
+  with_constructor_as_block = cstr_as_blocks ->
+  wf_glob Σ ->
+  forallb (wellformed_val Σ) Γ ->
+  wellformed Σ (S #|Γ|) e ->
+  eval Σ Γ (csubst (term_of_val u) 0 e) v n ->
+  ∑ (n' : nat) (v' : value),
+  term_of_val v = term_of_val v' ×
+  eval Σ (u :: Γ) e v' n'.
 
 
 
