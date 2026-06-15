@@ -27,6 +27,7 @@ Set Default Proof Using "Type*".
   (untyped) terms where all proofs are erased to a dummy value. *)
 
 
+
 #[local]
 Create HintDb rw_hints.
 
@@ -59,6 +60,16 @@ Hint Rewrite if_same : rw_hints.
 Hint Rewrite @skipn_0 : rw_hints.
 Hint Rewrite <-map_rev : rw_hints.
 Hint Rewrite head_mkApps : rw_hints.
+
+Ltac my_discr :=
+    let aux t ind c args h := 
+      assert (head t = tConstruct ind c args) by now rewrite h; simple
+    in
+    try match goal with
+    | h : ?t = mkApps (tConstruct ?ind ?c ?args) _ |- _ => aux t ind c args h
+    | h : mkApps (tConstruct ?ind ?c ?args) _ = ?t |- _ =>
+        aux t ind c args (eq_sym h)
+    end; discriminate.
 
 
 (** ** Big step version of weak cbv beta-zeta-iota-fix-delta reduction. *)
@@ -106,8 +117,18 @@ Section Utils.
   Qed.
 
 
+  Lemma Forall_same_In {A} (P : A -> A -> Prop) l :
+    Forall2 P l l <-> ∀ x, In x l -> P x x.
+  Proof.
+    induction l as [|a l IH]; split; simple; try easy.
+    - intros h x [->| hIn]; inversion h; subst; now simple.
+    - intros h; constructor; simple; try easy.
+      now apply IH.
+  Qed.
+
 End Utils.
 Hint Rewrite @size_rev : rw_hints.
+Hint Rewrite @Forall_same_In : rw_hints.
 
 
 Section SubstLemmas.
@@ -290,6 +311,12 @@ Section SubstLemmas.
     rewrite -IHΓ; simple; try easy.
   Qed.
 
+  Lemma substl_tBox Γ :
+    substl Γ tBox = tBox.
+  Proof.
+    now induction Γ.
+  Qed.
+
   Lemma substl_tLambda Γ na b:
     substl Γ (tLambda na b) = 
       tLambda na (fold_left (λ bod term : EAst.term, csubst term 1 bod) Γ b).
@@ -297,6 +324,14 @@ Section SubstLemmas.
     unfold substl;
     induction Γ in b |- *; simple; easy.
   Qed.
+
+   Lemma substl_tProj Γ p e :
+    substl Γ (tProj p e) = tProj p (substl Γ e).
+  Proof.
+    unfold substl;
+    induction Γ in e |- *; now simple.
+  Qed.
+
 
   Lemma substl_tFix Γ mfix idx :
     substl Γ (tFix mfix idx) = 
@@ -419,7 +454,10 @@ Section SubstLemmas.
     now apply IHenv; simple.
   Qed.
 End SubstLemmas.
+
+Hint Rewrite substl_tBox : rw_hints.
 Hint Rewrite substl_tLambda : rw_hints.
+Hint Rewrite substl_tProj : rw_hints.
 Hint Rewrite substl_tFix : rw_hints.
 Hint Rewrite substl_tApp : rw_hints.
 Hint Rewrite substl_tLetIn : rw_hints.
@@ -436,8 +474,8 @@ Hint Rewrite substl_tRel : rw_hints.
 Section Values.
   Unset Elimination Schemes.
 
-  (* TODO: See to add tBox *)
   Inductive value : Set :=
+  | vBox
   | vConstruct (ind : inductive) (c : nat) (args : list value)
   | vClos (na : name) (b : term) (env : list value)
   | vRecClos (b : mfixpoint term) (idx : nat) (env : list value)
@@ -446,11 +484,12 @@ Section Values.
   
   Section ValueInd.
     Variable P : value -> Type.
-    Variable f1 : ∀ ind c args, All P args -> P (vConstruct ind c args).
-    Variable f2 : ∀ na b env, All P env -> P (vClos na b env).
-    Variable f3 : ∀ b idx env, All P env -> P (vRecClos b idx env).
-    Variable f4 : ∀ p , primProp P p -> P (vPrim p).
-    Variable f5 : ∀ p env, All P env -> P (vLazy p env).
+    Variable f_box : P vBox.
+    Variable f_constr : ∀ ind c args, All P args -> P (vConstruct ind c args).
+    Variable f_clos : ∀ na b env, All P env -> P (vClos na b env).
+    Variable f_rec_clos : ∀ b idx env, All P env -> P (vRecClos b idx env).
+    Variable f_prim : ∀ p , primProp P p -> P (vPrim p).
+    Variable f_lazy : ∀ p env, All P env -> P (vLazy p env).
 
     Definition value_rect : ∀ v, P v :=
       let fix value_rect v :=
@@ -470,11 +509,12 @@ Section Values.
           end
         in
         match v with
-        | vConstruct ind c args => f1 _ _ _ (on_list args)
-        | vClos na b env => f2 _ _ _ (on_list env)
-        | vRecClos b idx env => f3 _ _ _ (on_list env)
-        | vPrim p => f4 _ (on_prim p)
-        | vLazy p env => f5 _ _ (on_list env)
+        | vBox => f_box
+        | vConstruct ind c args => f_constr _ _ _ (on_list args)
+        | vClos na b env => f_clos _ _ _ (on_list env)
+        | vRecClos b idx env => f_rec_clos _ _ _ (on_list env)
+        | vPrim p => f_prim _ (on_prim p)
+        | vLazy p env => f_lazy _ _ (on_list env)
         end
       in value_rect.
   End ValueInd.
@@ -506,6 +546,7 @@ Section Values.
   
   Fixpoint term_of_val {efl : EEnvFlags} (v : value) : term :=
     match v with
+    | vBox => tBox 
     | vConstruct ind c vals => 
         if cstr_as_blocks
         then tConstruct ind c (map term_of_val vals)
@@ -518,6 +559,7 @@ Section Values.
 
   Fixpoint wellformed_val {efl : EEnvFlags} Σ v : bool :=
     match v with
+    | vBox => has_tBox 
     | vConstruct ind c vals => 
         has_tConstruct &&  EWellformed.isSome (lookup_constructor Σ ind c) && forallb (wellformed_val Σ) vals &&
         match lookup_constructor_pars_args Σ ind c with
@@ -601,6 +643,7 @@ Section Values.
     wellformed Σ k (term_of_val v).
   Proof.
     induction v in k |- *.
+    - now simple.
     - simple.
       intros ? [[[? ?] all_wf_args] h_wf].
       assert (forallb (wellformed Σ k) (map term_of_val args)) by now simple.
@@ -762,14 +805,20 @@ Section Primitives.
         evalPrimStepIndexArrayDep _ _ _ _ _ _ _ _ _ _ (map_All3_dep _ h ev) (h _ _ _ ed)
     end.
 End Primitives.
-
 Section Wcbv.
   Context {wfl : WcbvFlags}.
   Context (Σ : global_declarations).
   (* The local context is fixed: we are only doing weak reductions *)
-
   Unset Elimination Schemes.
   Inductive eval (Γ : environment) : term -> value -> nat -> Type :=
+  | eval_box :
+      eval Γ tBox vBox 0
+
+  | eval_box_app a t v n1 n2 :
+      eval Γ a vBox n1 ->
+      eval Γ t v n2 ->
+      eval Γ (tApp a t) vBox (n1 + n2 + 1)
+
   (** Reductions *)
   | eval_var n v :
       nth_error Γ n = Some v ->
@@ -800,6 +849,15 @@ Section Wcbv.
       #|args| = #|br.1| ->
       eval ((List.rev args) ++ Γ) br.2 res c2 ->
       eval Γ (tCase (ind, 0) discr brs) res (c1 + c2 + 1)
+
+  | eval_proj p cdecl discr args a n :
+      with_constructor_as_block ->
+      eval Γ discr (vConstruct (proj_ind p) 0 args) n ->
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
+      #|args| = proj_npars p + cstr_nargs cdecl ->
+      nth_error args (proj_npars p + proj_arg p) = Some a ->
+      eval Γ (tProj p discr) a (n + 1)
+
 
   (** Fix unfolding, without guard *)
   | eval_fix_unfold f mfix idx a av fn res Γ' c1 c2 c3 :
@@ -853,42 +911,51 @@ Section Wcbv.
 
   Section EvalInd.
     Variable (P : ∀ {wfl : WcbvFlags} (Γ : environment) (t : term) (v : value) (cost : nat), eval Γ t v cost -> Type).
-    Variable f : 
+    Variable f_box : ∀ {Γ}, P Γ tBox vBox 0 (eval_box Γ).
+    Variable f_box_app : ∀ {Γ a t v n1 n2 e1 e2},
+      P Γ a vBox n1 e1 ->
+      P Γ t v n2 e2 ->
+      P Γ (tApp a t) vBox (n1 + n2 + 1) (eval_box_app Γ a t v n1 n2 e1 e2).
+    Variable f_var : 
       ∀ {Γ n v e},
       P Γ (tRel n) v 0 (eval_var Γ n v e).
-    Variable f1 : 
+    Variable f_beta : 
       ∀ {Γ f1 na b a a' res Γ' c1 c2 c3 e e0 e1},
       P Γ f1 (vClos na b Γ') c1 e ->
       P Γ a a' c2 e0 ->
       P (a' :: Γ') b res c3 e1 ->
       P Γ (tApp f1 a) res _ (eval_beta Γ f1 na b a a' res Γ' c1 c2 c3 e e0 e1).
-    Variable f2 :
+    Variable f_lambda :
       ∀ {Γ na b},
       P Γ (tLambda na b) (vClos na b Γ) 0 (eval_lambda Γ na b).
-    Variable f3 : 
+    Variable f_zeta : 
       ∀ {Γ na b0 b0' b1 res c1 c2 e e0},
       P Γ b0 b0' c1 e ->
       P (b0' :: Γ) b1 res c2 e0 ->
       P Γ (tLetIn na b0 b1) res _ (eval_zeta Γ na b0 b0' b1 res c1 c2 e e0).
-    Variable f4 : 
+    Variable f_iota_block : 
       ∀ {Γ ind cdecl discr c args brs br res c1 c2 e e0 e1 e2 e3 e4},
         P Γ discr (vConstruct ind c args) c1 e ->
         P (List.rev args ++ Γ) br.2 res c2 e4 ->
         P Γ (tCase (ind, 0) discr brs) res _ (eval_iota_block Γ ind cdecl discr c args brs br res c1 c2 e e0 e1 e2 e3 e4).
-    Variable f5 :
+        About eval_proj.
+    Variable f_proj : ∀ {Γ p cdecl discr args a n cstr_blcks e1 e2 e3 e4},
+      P Γ discr (vConstruct (proj_ind p) 0 args) n e1 ->
+      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n cstr_blcks e1 e2 e3 e4).
+    Variable f_fix_unfold :
       ∀ {Γ f mfix idx a av fn res Γ' c1 c2 c3 e e0 e1 e2},
       P Γ f (vRecClos mfix idx Γ') c1 e ->
       P (av :: (fix_env mfix Γ') ++ Γ') fn res c2 e1 ->
       P Γ a av c3 e2 ->
       P Γ (tApp f a) res _ (eval_fix_unfold Γ f mfix idx a av fn res Γ' c1 c2 c3 e e0 e1 e2).
-    Variable f6 : 
+    Variable f_fix : 
       ∀ {Γ mfix idx},
       P Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0 (eval_fix Γ mfix idx).
-    Variable f7 :
+    Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
       P Γ (tConst c) res _ (eval_delta Γ c decl body isdecl res cost e e0).
-    Variable f8 :
+    Variable f_constr_app :
         ∀ {Γ ind c mdecl idecl cdecl args args' cs}
           (c_as_bks : ~~with_constructor_as_block)
           (e : lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl)) 
@@ -896,7 +963,7 @@ Section Wcbv.
           (a : All3 (eval Γ) args args' cs) (IHa : All3_over a (P Γ)), 
         P Γ (mkApps (tConstruct ind c []) args) (vConstruct ind c args') _
           (eval_construct_App Γ ind c mdecl idecl cdecl args args'  cs c_as_bks  e l a).
-    Variable f9 : 
+    Variable f_constr_block : 
         ∀ {Γ ind c mdecl idecl cdecl args args' cs}
           (c_as_bks : with_constructor_as_block)
           (e : lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl)) 
@@ -904,39 +971,41 @@ Section Wcbv.
           (a : All3 (eval Γ) args args' cs) (IHa : All3_over a (P Γ)), 
         P Γ (tConstruct ind c args) (vConstruct ind c args') _
           (eval_construct_block Γ ind c mdecl idecl cdecl args args'  cs c_as_bks  e l a).
-    Variable f10 : 
+    Variable f_prim : 
       ∀ {Γ p p' c} 
         (ev : eval_primitive_step_index (eval Γ) p p' c)
         (evih : eval_primitive_step_index_ind (eval Γ) (P Γ) _ _ _ ev),
       P Γ (tPrim p) (vPrim p') _ (eval_prim _ _ _ _ ev).
-    Variable f11 :
+    Variable f_lazy :
       ∀ {Γ t}, 
       P Γ (tLazy t) (vLazy t Γ) 0 (eval_lazy _ _).
-    Variable f12 : 
+    Variable f_force : 
       ∀ {Γ Γ' t t' v c1 c2} 
         {ev0 : eval Γ t (vLazy t' Γ') c1} 
         {ev1 : eval Γ' t' v c2},
       P _ _ _ c1 ev0 -> 
       P _ _ _ c2 ev1 ->
       P _ _ _ (c1 + c2 + 1) (eval_force _ _ _ _ _ c1 c2 ev0 ev1).
-    
     Fixpoint eval_rect {Γ t v c} t_eval_v
       : P Γ t v c t_eval_v :=
         match t_eval_v as e0 in (eval _ t0 v0 c0) return (P Γ t0 v0 c0 e0) with
-        | @eval_var _ na v0 e0 => f
-        | @eval_beta _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 =>  f1 (eval_rect e0) (eval_rect e1) (eval_rect e2)
-        | @eval_lambda _ na b => f2
-        | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f3 (eval_rect e0) (eval_rect e1)
-        | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f4 (eval_rect e0) (eval_rect e5)
-        | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => f5 (eval_rect e0) (eval_rect e2) (eval_rect e3)
-        | @eval_fix _ mfix idx => f6
-        | @eval_delta _ c decl body isdecl res cost e0 e1 => f7 (eval_rect e1)
-        | @eval_construct_App _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f8 c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
-        | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f9 c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
+        | @eval_box _ => f_box
+        | @eval_box_app _ a t v n1 n2 e1 e2 => f_box_app (eval_rect e1) (eval_rect e2)
+        | @eval_var _ na v0 e0 => f_var
+        | @eval_beta _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 =>  f_beta (eval_rect e0) (eval_rect e1) (eval_rect e2)
+        | @eval_lambda _ na b => f_lambda
+        | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f_zeta (eval_rect e0) (eval_rect e1)
+        | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f_iota_block (eval_rect e0) (eval_rect e5)
+        | @eval_proj _ _ _ _ _ _ _ _ e _ _ _  => f_proj (eval_rect e)
+        | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => f_fix_unfold (eval_rect e0) (eval_rect e2) (eval_rect e3)
+        | @eval_fix _ mfix idx => f_fix
+        | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
+        | @eval_construct_App _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f_constr_app c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
+        | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => f_constr_block c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
         (* | @eval_construct_block_empty _ ind c mdecl idecl cdecl e0 => f9  *)
-        | @eval_prim _ p p' c ev => f10 ev (map_eval_primitive_step_index (@eval_rect Γ) ev)
-        | @eval_lazy _ t => f11
-        | @eval_force _ Γ' t t' v c1 c2 ev ev' => f12 (eval_rect ev) (eval_rect ev')
+        | @eval_prim _ p p' c ev => f_prim ev (map_eval_primitive_step_index (@eval_rect Γ) ev)
+        | @eval_lazy _ t => f_lazy
+        | @eval_force _ Γ' t t' v c1 c2 ev ev' => f_force (eval_rect ev) (eval_rect ev')
         end.
   End EvalInd.
   Definition eval_rec (P : WcbvFlags -> ∀ Γ t v cost, eval Γ t v cost -> Set) := @eval_rect P.
@@ -955,11 +1024,14 @@ Section Test.
       end
     in
     match e with
+    | @eval_box _ _ _ => 0
+    | @eval_box_app _ _ _ a t v n1 n2 e1 e2 => size e1 + size e2 + 1
     | @eval_var _ _ _ na v0 e0 => 0
     | @eval_beta _ _ _ f10 na b a a' res Γ' c1 c2 c3 e0 e1 e2 => size e0 + size e1 + size e2 + 1
     | @eval_lambda _ _ _ na b => 0
     | @eval_zeta _ _ _ na b0 b0' b1 res c1 c2 e0 e1 => size e0 + size e1 + 1
     | @eval_iota_block _ _ _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => size e0 + size e5 + 1
+    | @eval_proj _ _ _ _ _ _ _ _ _ _ e _ _ _  => size e + 1
     | @eval_fix_unfold _ _ _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 => size e0 + size e2 + size e3 + 1
     | @eval_fix _ _ _ mfix idx => 0
     | @eval_delta _ _ _ c decl body isdecl res cost e0 e1 => size e1 + 1
@@ -1035,6 +1107,7 @@ Section LogRel.
         end
       in
       match v1, v2 with
+      | vBox, vBox => True
       | vConstruct i1 n1 vs1, vConstruct i2 n2 vs2 =>
           i1 = i2 ∧ n1 = n2 ∧ Forall2_aux vs1 vs2
       | vClos n1 t1 Γ1, vClos n2 t2 Γ2 =>
@@ -1079,6 +1152,7 @@ Section LogRel.
 
   Definition val_rel (PostG : PostGT) (k : nat) (v1 v2 : value) : Prop :=
     match v1, v2 with
+    | vBox, vBox => True
     | vConstruct i1 n1 vs1, vConstruct i2 n2 vs2 => i1 = i2 ∧ n1 = n2 ∧ Forall2 (val_rel' PostG k) vs1 vs2
     | vClos n1 t1 Γ1, vClos n2 t2 Γ2 =>
         ∀ (v1 v2 : value) j,
@@ -1191,10 +1265,17 @@ Section LogRel.
       + assert (k - (k - j) = j) as heq by lia. rewrite -> heq in *.
         edestruct (H j) with (v1 := v1) (n1 := n1) as (v3 & n3 & [heval] & hPost & h); try easy.
   Qed.
-  
-
   Hint Rewrite val_rel_eq : rw_hints.
+  
+  Lemma forall_val_rel_eq (k : nat) PostG (vs1 vs2 : list value) :
+    Forall2 (val_rel' PostG k) vs1 vs2 <-> Forall2 (val_rel PostG k) vs1 vs2.
+  Proof.
+    split; induction 1; constructor; simple.
+  Qed.
 
+  Hint Rewrite forall_val_rel_eq : rw_hints.
+  
+  Opaque val_rel'.
 
   Notation exp_rel := (exp_rel' Σ val_rel).
 
@@ -1243,74 +1324,36 @@ Section LogRel.
     now exists v2, n2.
   Qed.
 
-  Ltac my_discr :=
-    let aux t ind c args h := 
-      assert (head t = tConstruct ind c args) by now rewrite h; simple
-    in
-    try match goal with
-    | h : ?t = mkApps (tConstruct ?ind ?c ?args) _ |- _ => aux t ind c args h
-    | h : mkApps (tConstruct ?ind ?c ?args) _ = ?t |- _ =>
-        aux t ind c args (eq_sym h)
-    end; discriminate.
 
 
 
   Lemma val_rel_refl (k : nat) PG v:
     val_rel PG k v v.
   Proof.
-    induction k as [k IH] in v |- * using strong_nat_ind;
+    induction k as [[|k] IH] in v |- * using strong_nat_ind;
     induction v; try now simple.
-    - repeat split.
-      induction args; constructor.
-      + now simple.
-      + now inversion X.
-    - destruct k; try now simple.
-      simple.
-      intros.
-    - inversion X as [| | | [? ?] [? ?]]; subst; simple; try easy.
-      fold (val_rel' PG 0) (val_rel' PG 0 array_default array_default).
-      split; first simple.
-      clear X.
-      induction array_value; constructor.
-      { now simple. }
-      now apply IHarray_value; simple.
-    - repeat split.
-      induction args; constructor.
-      + now simple.
-      + now inversion X.
-    try (now repeat (split; try easy); econstructor; eauto; simple; eauto).
-
-    - 
-    { simple. }
-    destruct k as [| k]; unfold Reflexive; intros x; rewrite preord_val_eq;
-    induction x using val_ind'; simpl; eauto;
-    try (now (try split; eauto); econstructor; eauto; rewrite preord_val_eq; eauto).
-    - split; eauto. constructor; eauto. rewrite preord_val_eq; eauto.
-      destruct IHx0. eauto.
-    - intros.
-      edestruct (set_lists_length (def_funs f0 f0 t t) (def_funs f0 f0 t t))
-        as [rho2' Hset']; eauto.
-      do 3 eexists; split; eauto. split; eauto. intros Hc.
-      exfalso. lia.
-    - split; eauto. constructor; eauto. rewrite preord_val_eq; eauto.
-        destruct IHx0. eauto.
-    - intros.
-      edestruct (set_lists_length (def_funs f0 f0 t t) (def_funs f0 f0 t t))
-        as [rho2' Hset']; eauto.
-      do 3 eexists; eauto. split; eauto.
-      split; eauto.
-      intros Hleq Hall v1 c Hleq' Hstep.
-      eapply preord_exp_refl_weak; eauto.
-      eapply preord_env_set_lists_l; eauto.
-      eapply preord_env_refl; eauto.
-  Qed.
+    - inversion X as [| | | [? ?] [? ?]]; subst; now simple.
+    - intros v1 v2 j j_le_Sk v1_rel_v2 v' n1 n1_le_j h_eval.
+      repeat econstructor; simple; try easy.
+      + admit.
+      + admit.
+    - intros v1 v2 j j_le_Sk v1_rel_v2 v' n1 n1_le_j h_eval.
+      repeat econstructor; simple; try easy.
+      + admit.
+      + admit.
+    - inversion X as [| | | [? ?] [? ?]]; subst; now simple.
+    - intros j j_le_Sk v n1 n1_le_j h_eval.
+      repeat econstructor; simple; try easy.
+      admit.
+  Admitted. 
 
 
   Lemma exp_rel_refl Post PostG k e Γ Γ' : 
     Forall2 (val_rel PostG k) Γ Γ' ->
     exp_rel Post PostG k (e, Γ) (e, Γ').
   Proof.
-    induction k as [k IH] in e, Γ, Γ', Post |- * using strong_nat_ind.
+  Admitted.
+    (* induction k as [k IH] in e, Γ, Γ', Post |- * using strong_nat_ind.
     induction e in Γ, Γ', k, IH |- * using EInduction.term_forall_list_ind; intros Γ_rel_Γ' v1 n1 n1_le_k h_eval;
       inversion h_eval; subst; try my_discr.
     - pose proof Forall2_nth_error_Some_l _ _ _ _ _ _ _ H0 Γ_rel_Γ' as (v2 & heq & v1_rel_v2).
@@ -1362,7 +1405,7 @@ Section LogRel.
     - admit.
     - admit.
     - admit.
-  Qed.
+  Qed. *)
 
 
 End LogRel.
@@ -1375,37 +1418,25 @@ Search "ind" "strong".
 Lemma subst_add_Γ {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e u k :
   exp_rel Σ (λ _ _, True) (λ _ _, True) k ((csubst (term_of_val u) 0 e), Γ) (e, u::Γ).
 Proof.
-  induction k using strong_nat_ind.
+  induction k in e |- * using strong_nat_ind.
   intros v1 n1 n1_lt_k h_eval.
-  inversion h_eval; subst; simple; try easy.
-  - assert (e = tRel (S n)); last subst.
-    { destruct e; simple; try discriminate.
-      destruct n0; simple; last now injection H0.
-      destruct u; simple; try easy.
-      destruct cstr_as_blocks; simple; try easy.
-      assert (head (tRel n) = tConstruct ind c []) by now rewrite H0; simple.
-      discriminate. }
-    exists v1, 0; repeat split.
-    + now constructor.
-    + simple. unfold val_rel.
-    destruct e; simple; try discriminate.
-      destruct n0.
-      + destruct u; simple; try easy.
-        destruct cstr_as_blocks; simple; try easy.
-        admit.
-      + simple. 
-  - intros v1 n1 n1_lt_k e_eval_v1.
-    inversion e_eval_v1. 
-has_tApp ->
-  with_constructor_as_block = cstr_as_blocks ->
-  wf_glob Σ ->
-  forallb (wellformed_val Σ) Γ ->
-  wellformed Σ (S #|Γ|) e ->
-  eval Σ Γ (csubst (term_of_val u) 0 e) v n ->
-  ∑ (n' : nat) (v' : value),
-  term_of_val v = term_of_val v' ×
-  eval Σ (u :: Γ) e v' n'.
-
+  induction e using EInduction.term_forall_list_ind;
+    try (inversion h_eval; my_discr).
+  - simple. inversion h_eval; try my_discr.
+    repeat econstructor.
+  - destruct n; simple.
+    + exists u, 0; repeat split.
+      * now constructor.
+      * admit.
+    + inversion h_eval; subst; last my_discr.
+      repeat econstructor; try easy.
+      apply val_rel_refl.
+  - simple.
+    inversion h_eval; subst; try my_discr.
+    exists (vClos n e (u :: Γ)), 0; repeat split.
+    + constructor.
+    + admit.
+Admitted.
 
 
 
@@ -1435,6 +1466,8 @@ Proof.
     + rewrite e3.
       apply wf_e.
       now eapply nth_error_In.
+  - apply IHh_eval; try easy.
+    now eapply nth_error_In.
 
   - unfold wf_fix, test_def in *; simple.
     destruct IHh_eval1 as [[[? ?] ?] [? ?]]; try easy.
@@ -1524,6 +1557,9 @@ Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
 Proof.
   intros ? h_unguarded h_app wf_Σ wf_env wf_e heval.
   induction heval; simple; try now econstructor.
+  - econstructor.
+    + now apply IHheval1; simple.
+    + now apply IHheval2; simple.
   - induction Γ in n, e, h_app, wf_env, wf_e |- *; destruct n; try easy.
     + unfold substl. cbn.
       simpl in e. injection e as ->.
@@ -1603,6 +1639,14 @@ Proof.
         apply IHheval2; simple; try easy.
         + now intros x [?|?]%in_app_or.
         + rewrite e3. now eapply wf_e, nth_error_In. }
+  - rewrite H cstr_blcks in IHheval.
+    eapply eval_proj_block; try eassumption.
+    + apply IHheval; now simple.
+    + now simple.
+    + now simple.
+    + apply value_final, value_term_of_val; try easy.
+      apply eval_SI_wf_val in heval; simple; try easy.
+      now eapply heval, nth_error_In. 
   - rewrite /substl /= in IHheval1, IHheval2, IHheval3.
     unfold cunfold_fix in e0.
     destruct (nth_error mfix idx) as [[? []]|] eqn:heq; simple; try easy.
@@ -1613,7 +1657,6 @@ Proof.
     + now apply IHheval3; simple.
     + assert (wellformed_val Σ av).
       { apply eval_SI_wf_val in heval3; simple; easy. }
-      Search map_def fold_left.
       unfold map_def; simple.
       replace (
         dbody 
@@ -1812,7 +1855,8 @@ Lemma eval_SI_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ v :
   ∑ (n : nat) v', term_of_val v = term_of_val v' × eval Σ Γ (term_of_val v) v' n.
 Proof.
   intros hApp cstr_blocks h_wf.
-  induction v using value_ind.
+  induction v.
+  - repeat econstructor.
   - simple. 
     unfold lookup_constructor_pars_args in h_wf.
     destruct (lookup_constructor Σ ind c) as [[[mdecl idecl] cdecl] |] eqn:heq; simpl in *; last easy.
@@ -1839,10 +1883,10 @@ Proof.
       now rewrite Heq in Hind.
   - exists 0, (vClos na (fold_left (λ b t, csubst t 1 b) (map term_of_val env) b) Γ); split; simple; try constructor.
     f_equal.
-    unshelve epose proof closed_fold_left_csubst 1 b env _ _ as h.
-    { simple; intros x hIn n.
-        now eapply wellformed_closed, wellformed_val_wellformed. }
-    { now eapply wellformed_closed. }
+    unshelve epose proof closed_fold_left_csubst 1 b (map term_of_val env) _ _ as h.
+    { simple; intros ? (x & <- & hIn)%in_map_iff n.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    { simple. now eapply wellformed_closed. }
     revert h. clear.
     induction Γ; simple; first reflexivity; intros h.
     rewrite csubst_closed; now simple.
@@ -1855,11 +1899,11 @@ Proof.
     remember csubst as c eqn:heq; rewrite !fold_left_map_def; subst c.
     unfold map_def; simple.
     f_equal.
-    unshelve epose proof closed_fold_left_csubst #|b| (dbody x) env _ _ as h.
-    { simple; intros ? ? n.
+    unshelve epose proof closed_fold_left_csubst #|b| (dbody x) (map term_of_val env) _ _ as h.
+    { simple; intros ? (? & <- & ?)%in_map_iff n.
       now eapply wellformed_closed, wellformed_val_wellformed. }
     { unfold wf_fix, test_def in h_wf; simple.
-       now eapply wellformed_closed. }
+      simple. now eapply wellformed_closed. }
     revert h. clear.
     induction Γ; simple; first reflexivity; intros h.
     rewrite csubst_closed; now simple.
@@ -1889,10 +1933,10 @@ Proof.
   - exists 0, (vLazy (substl (map term_of_val env) p) Γ); split; last now constructor.
     simple; f_equal.
     unfold substl.
-    unshelve epose proof closed_fold_left_csubst 0 p env _ _ as h.
-    { simple; intros x hIn n.
-        now eapply wellformed_closed, wellformed_val_wellformed. }
-    { now eapply wellformed_closed. }
+    unshelve epose proof closed_fold_left_csubst 0 p (map term_of_val env) _ _ as h.
+    { simple; intros ? (? & <- & ?)%in_map_iff n.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    { simple. now eapply wellformed_closed. }
     revert h. clear.
     induction Γ; simple; first reflexivity; intros h.
     rewrite csubst_closed; now simple.
@@ -1911,6 +1955,11 @@ Lemma eval_SI_csubst {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u n :
 Proof.
   intros htApp c_blocks wf_Σ wf_Γ wf_e heval; simple.
   dependent induction heval; simple.
+  - destruct e; simple; try discriminate.
+    + now repeat econstructor.
+    + destruct n; last discriminate.
+      destruct u; simple; destruct cstr_as_blocks; now my_discr || (repeat econstructor).
+  - admit.
   - destruct e; simple; try discriminate.
     destruct n0; simple.
     { destruct u; simple; destruct cstr_as_blocks; try discriminate.
@@ -1966,6 +2015,7 @@ Lemma eval_SI_subst {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
   forallb (wellformed_val Σ) Γ ->
   wellformed Σ #|Γ| e ->
   eval Σ Γ e v n ->
+  (* expr_rel e (substl (map term_of_val Γ) e) *)
   ∑ (n' : nat) (v' : value),
   term_of_val v = term_of_val v' × 
   eval Σ [] (substl (map term_of_val Γ) e) v' n'.
@@ -1974,6 +2024,7 @@ Proof.
   induction heval; simple; try solve[
     now do 4 try econstructor
   ].
+  - admit.
   - destruct (eval_SI_val Σ [] v) as (n' & v' & heqv' & hevalv'); simple.
     { now eapply wf_Γ, nth_error_In. }
     exists n', v'; split; simple.
@@ -2033,12 +2084,9 @@ Proof.
 Admitted.
 
 Lemma eval_SI_eval {efl : EEnvFlags} {wfl : WcbvFlags} Σ e v :
-  (*  ->
-  with_guarded_fix = false ->
-   *)
+  (*  with_guarded_fix = false -> *)
   cstr_as_blocks = with_constructor_as_block ->
   has_tApp ->
-  ~~ has_tBox ->
   wf_glob Σ ->
   (* forallb (wellformed_val Σ) Γ -> *)
   wellformed Σ 0 e ->
@@ -2046,10 +2094,11 @@ Lemma eval_SI_eval {efl : EEnvFlags} {wfl : WcbvFlags} Σ e v :
   ∑ (n : nat) (v' : value), (v = term_of_val v') × eval Σ [] e v' n.
   (* See to add substitutions here *)
 Proof.
-  intros hcblocks htApp htBox wf_Σ wf_e h_eval.
+  intros hcblocks htApp wf_Σ wf_e h_eval.
   induction h_eval using EWcbvEval.eval_ind; simple.
-  - apply eval_wellformed in h_eval1; simple; try easy.
-    now rewrite h_eval1 in htBox.
+  - destruct IHh_eval1 as (? & [] & ? & ?); simple; try solve[destruct cstr_as_blocks; my_discr | easy].
+    destruct IHh_eval2 as (? & ? & ? & ?); simple; first easy; subst.
+    now repeat econstructor.
   - apply eval_wellformed in h_eval1; simple; try easy.
     apply eval_wellformed in h_eval2; simple; try easy.
     assert (wellformed Σ 0 (csubst a' 0 b)).
