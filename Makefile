@@ -37,6 +37,7 @@ install: all
 	$(MAKE) -C safechecker-plugin install
 	$(MAKE) -C erasure install
 	$(MAKE) -C erasure-plugin install
+	$(MAKE) -C translations install
 
 uninstall:
 	$(MAKE) -C utils uninstall
@@ -196,7 +197,7 @@ cleanplugins:
 
 ci-local-noclean:
 	./configure.sh local
-	$(MAKE) all translations test-suite TIMED=pretty-timed
+	$(MAKE) all test-suite TIMED=pretty-timed
 
 ci-local: ci-local-noclean
 	$(MAKE) clean
