@@ -196,9 +196,14 @@ struct
     | Polymorphic ctx -> UVars.AbstractContext.repr ctx
 
   let get_template_instance mind = match mind.Declarations.mind_template with
-  | None -> UVars.Instance.empty
-  | Some templ -> templ.template_defaults  
+  | None -> None
+  | Some templ -> Some templ.template_defaults  
   
+  let on_template_instance tinst f u =
+    match tinst with
+    | None -> u
+    | Some inst -> f inst u
+
   let quote_universes_entry = function
     | Monomorphic_entry -> Q.mkMonomorphic_entry ()
     | Polymorphic_entry ctx -> Q.mkPolymorphic_entry (Q.quote_univ_context ctx)
@@ -418,10 +423,10 @@ struct
           in
           let indices, acc = quote_rel_context quote_term acc (push_rel_context pars env) sigma indices in
           let indty, acc = quote_term acc env sigma indty in
-          let indsort = Q.quote_sort (UVars.subst_instance_sort tinst (inductive_sort oib)) in
+          let indsort = Q.quote_sort (on_template_instance tinst UVars.subst_instance_sort (inductive_sort oib)) in
           let (reified_ctors,acc) =
             List.fold_left (fun (ls,acc) (nm,(ctx, ty),ar) ->
-              let ty = Term.it_mkProd_or_LetIn ty (Vars.subst_instance_context tinst ctx) in
+              let ty = Term.it_mkProd_or_LetIn ty (on_template_instance tinst Vars.subst_instance_context ctx) in
               let ty = Inductive.abstract_constructor_type_relatively_to_inductive_types_context ntyps t ty in
               let ctx, concl = Term.decompose_prod_decls ty in
               let argctx, parsctx =
@@ -467,7 +472,7 @@ struct
         ([],acc) (Array.to_list mib.mind_packets)
       in
       let nparams = Q.quote_int mib.Declarations.mind_nparams in
-      let paramsctx, acc = quote_rel_context quote_term acc env sigma (Vars.subst_instance_context tinst mib.Declarations.mind_params_ctxt) in
+      let paramsctx, acc = quote_rel_context quote_term acc env sigma (on_template_instance tinst Vars.subst_instance_context mib.Declarations.mind_params_ctxt) in
       let uctx = quote_universes_decl mib.Declarations.mind_universes mib.Declarations.mind_template in
       let var = Option.map (CArray.map_to_list Q.quote_variance) mib.Declarations.mind_variance in
       let bodies = List.map Q.mk_one_inductive_body (List.rev ls) in
