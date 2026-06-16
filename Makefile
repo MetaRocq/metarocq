@@ -1,5 +1,5 @@
 
-all: printconf template-rocq pcuic safechecker erasure erasure-plugin safechecker-plugin quotation
+all: printconf template-rocq pcuic safechecker erasure erasure-plugin safechecker-plugin translations quotation
 
 -include Makefile.conf
 
