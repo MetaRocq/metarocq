@@ -446,4 +446,181 @@ Proof.
     rewrite csubst_closed; now simple.
 Qed.
 
+Lemma isConstructApp_isvConstr 
+  {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v n :
+  isConstructApp t ->
+  eval Σ Γ t v n ->
+  isvConstr v.
+Proof.
+  unfold isConstructApp.
+  intros hConstrApp heval.
+  induction heval; subst;
+  rewrite ->?head_tApp in *; simple; try easy.
+Qed.    
+
+
 (* TODO: Eval deterministic *)
+
+Lemma eval_SI_deterministic
+  {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v1 v2 n1 n2 :
+  eval Σ Γ t v1 n1 ->
+  eval Σ Γ t v2 n2 ->
+  v1 = v2 ∧ n1 = n2.
+Proof.
+  intros eval1 eval2.
+  induction eval1 in eval2, v2, n2 |- *.
+  - now inversion eval2; try my_discr; subst.
+  - inversion eval2; try my_discr; subst; try solve[
+      edestruct IHeval1_1; first eassumption;
+      edestruct IHeval1_2; first eassumption;
+      now subst
+    ].
+    assert (isConstructApp (tApp a t)) as hConstr
+    by now rewrite -H /isConstructApp head_mkApps.
+    rewrite /isConstructApp head_tApp in hConstr.
+    now eapply isConstructApp_isvConstr in hConstr; 
+      last eassumption.
+  - inversion eval2; my_discr || easy.
+  - inversion eval2; subst; try solve[
+      edestruct IHeval1_1; first eassumption;
+      now subst
+    ].
+    + edestruct IHeval1_1; first eassumption.
+      subst. injection H as ? ? ?; subst.
+      edestruct IHeval1_2; first eassumption; subst.
+      edestruct IHeval1_3; first eassumption; subst.
+      easy.
+    + assert (isConstructApp (tApp f1 a)) as hConstr 
+      by now rewrite -H /isConstructApp head_mkApps.
+      rewrite /isConstructApp head_tApp in hConstr.
+      now eapply isConstructApp_isvConstr in hConstr; last eassumption.
+  - inversion eval2; subst; easy || my_discr.
+  - inversion eval2; subst; try solve[
+      edestruct IHeval1_1; first eassumption; subst;
+      edestruct IHeval1_2; first eassumption; subst;
+      easy
+    | my_discr
+    ].
+  - inversion eval2; subst; try solve[
+      edestruct IHeval1_1; first eassumption; subst;
+      edestruct IHeval1_2; first eassumption; subst;
+      easy
+    | my_discr
+    ].
+    edestruct IHeval1_1; first eassumption; subst.
+    injection H as ? ?; subst.
+    assert (br = br0) by easy. subst.
+    edestruct IHeval1_2; first eassumption; subst.
+    easy.
+  - inversion eval2; subst; try my_discr.
+    edestruct IHeval1; first eassumption; subst.
+    injection H as ?; subst.
+    easy.
+  - inversion eval2; subst; try solve[
+      edestruct IHeval1_1; first eassumption; subst;
+      edestruct IHeval1_2; first eassumption; subst;
+      easy
+    | my_discr
+    ].
+    + edestruct IHeval1_1; first eassumption; subst.
+      injection H as ? ?; subst.
+      assert (fn = fn0) by easy; subst.
+      edestruct IHeval1_2; first eassumption; subst.
+      edestruct IHeval1_3; first eassumption; subst.
+      easy.
+    + assert (isConstructApp (tApp f a)) as hConstr 
+      by now rewrite -H /isConstructApp head_mkApps.
+      rewrite /isConstructApp head_tApp in hConstr.
+      now eapply isConstructApp_isvConstr in hConstr; last eassumption.
+  - inversion eval2; subst; easy || my_discr.
+  - inversion eval2; subst; try my_discr.
+    assert (decl = decl0) by easy. subst.
+    assert (body = body0) by easy. subst.
+    edestruct IHeval1; first eassumption; subst.
+    easy.
+  - inversion eval2; subst; try my_discr.
+    + apply isConstructApp_isvConstr in eval2; first easy.
+      now rewrite /isConstructApp head_mkApps.
+    + apply isConstructApp_isvConstr in X; first easy.
+      unfold isConstructApp.
+      now erewrite <-head_tApp, H0, head_mkApps.
+    + apply isConstructApp_isvConstr in X; first easy.
+      unfold isConstructApp.
+      now erewrite <-head_tApp, H, head_mkApps.
+    + assert 
+      (head (tConstruct ind0 c0 []) = head (tConstruct ind c [])) 
+      as h 
+      by now erewrite <-head_mkApps, H, head_mkApps at 1.
+      injection h as ? ?; subst.
+      apply mkApps_eq_right in H; subst.
+      assert (args' = args'0 ∧ cs = cs0); last easy.
+      revert IHa X.
+      clear.
+      induction args in a, args', args'0, cs, cs0 |- *.
+      { intros. inversion a. inversion X. easy. }
+      intros.
+      destruct args'; first inversion a.
+      destruct args'0; first inversion X.
+      remember (a0 :: args).
+      remember (v :: args').
+      destruct a eqn:heq; first discriminate; subst.
+      injection Heql as ? ?.
+      injection Heql0 as ? ?.
+      subst.
+      inversion X; subst.
+      destruct IHa.
+      edestruct IHargs; try easy.
+      edestruct a; easy.
+    + now rewrite H0 in c_as_bks. 
+  - inversion eval2; subst; try my_discr.
+    { now rewrite c_as_bks in H0. }
+    assert (args' = args'0 ∧ cs = cs0); last easy.
+    revert IHa X.
+    clear.
+    induction args in a, args', args'0, cs, cs0 |- *.
+    { intros. inversion a. inversion X. easy. }
+    intros.
+    destruct args'; first inversion a.
+    destruct args'0; first inversion X.
+    remember (a0 :: args).
+    remember (v :: args').
+    destruct a eqn:heq; first discriminate; subst.
+    injection Heql as ? ?.
+    injection Heql0 as ? ?.
+    subst.
+    inversion X; subst.
+    destruct IHa.
+    edestruct IHargs; try easy.
+    edestruct a; easy.
+  - inversion eval2; subst; try my_discr.
+    inversion evih; subst; try now inversion X.
+    inversion X; subst.
+    subst a a' a1 a2 a'0.
+    assert (def' = def'0 ∧ n = n0) as (? & ?)
+    by now edestruct H3.
+    subst.
+    assert (v' = v'0 ∧ ns = ns0); last easy.
+    revert X0 X1.
+    clear.
+    induction v in ev0, v', v'0, ns, ns0 |- *.
+    { intros. inversion ev0. inversion X1. easy. }
+    intros.
+    destruct v'; first inversion ev0.
+    destruct v'0; first inversion X1.
+    remember (a :: v).
+    remember (v0 :: v').
+    destruct ev0 eqn:heq; first discriminate; subst.
+    injection Heql as ? ?.
+    injection Heql0 as ? ?.
+    subst.
+    inversion X1; subst.
+    destruct X0.
+    edestruct IHv; try easy.
+    edestruct a1; easy.
+  - inversion eval2; subst; easy || my_discr.
+  - inversion eval2; subst; try my_discr.
+    edestruct IHeval1_1; first eassumption; subst.
+    injection H as ? ?; subst.
+    edestruct IHeval1_2; first eassumption; subst.
+    easy.
+Qed.
