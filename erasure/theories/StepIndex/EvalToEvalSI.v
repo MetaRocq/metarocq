@@ -87,9 +87,12 @@ Section eval_eval_SI_atom.
     - destruct args; simple; last discriminate.
       now rewrite hCstrBlocks' in atom_t.
     - crush tFix_substl_eq term_of_val_eq_fix.
-    - admit. (* cofix *)
+    - crush tCoFix_substl_eq (λ v mfix i, term_of_val_eq_cofix v mfix i []).
+      exists (list_sum [] + 1), (vCoFixClos x idx Γ []); split.
+      + now simple.
+      + now eapply eval_cofix with (args := []).
     - crush tLazy_substl_eq term_of_val_eq_lazy.
-  Admitted.
+  Qed.
 
 End eval_eval_SI_atom.
 
@@ -128,6 +131,7 @@ Lemma eval_eval_SI_prim
   (u : term)
   (ev : eval_primitive (EWcbvEval.eval Σ) p p') Γ :
   has_tApp ->
+  with_constructor_as_block = cstr_as_blocks ->
   wf_glob Σ ->
   forallb (wellformed_val Σ) Γ ->
   tPrim p = substl (map term_of_val Γ) u ->
@@ -143,7 +147,7 @@ Lemma eval_eval_SI_prim
   
   ∑ (n : nat) (v' : value), term_of_val v' = tPrim p' × eval Σ Γ u v' n.
 Proof.
-  intros hApp wf_Σ wf_Γ heq wf_u IH.
+  intros hApp hCstrBlocks wf_Σ wf_Γ heq wf_u IH.
   apply tPrim_substl_eq in heq as heq'.
   destruct heq' as [[n heq'] | [u' heq']]; subst.
   - destruct (nth_error Γ n) eqn:heq'; last now rewrite substl_tRel_None in heq; simple.
@@ -182,8 +186,22 @@ Proof.
     simple.
     unfold map_prim, map_array_model, prim_array; simple.
     repeat f_equal.
-    + (* Need determinism *) admit.
-    + (* Need determinism *) admit.
+    + unshelve epose proof eval_SI_val _ [] array_default _ _ _ as (? & ? & heq'' & heval); simple; try easy.
+      { assert (wellformed_val Σ (vPrim (Primitive.primArray; primArrayModel {| array_default := array_default; array_value := array_value |}))) by now eapply wf_Γ, nth_error_In.
+        simple. unfold test_prim, test_array_model in H; now simple. }
+      pose proof eval_SI_deterministic _ _ _ _ _ _ _ h_eval_def heval as (? & ?); subst.
+      assumption.
+    + apply nth_error_In, wf_Γ in heq' as h.
+      simple. unfold test_prim, test_array_model in h; simple.
+      destruct h as (? & ? & h_wf).
+      induction array_value in IH, h_wf, v' |- *.
+      { now inversion IH. }
+      inversion IH; subst; simple.
+      f_equal; last auto.
+      destruct X as (? & ? & heq'' & heval).
+      unshelve epose proof eval_SI_val _ Γ a _ _ _ as (? & ? & heq''' & heval'); simple; try easy.
+      pose proof eval_SI_deterministic _ _ _ _ _ _ _ heval heval' as (? & ?); subst.
+      assumption.
   - inversion IH; simple; subst; clear IH;
     unfold map_prim, prim_string in *;
     destruct u' as [? []]; simple; try discriminate; injection heq as ?; subst;
@@ -212,11 +230,12 @@ Proof.
       now induction IH as [|? ? ? ? (? & ? & ?) ? ?]; simple.
     + do 2 constructor; try easy.
       now apply extract_All3_left.
-Admitted. 
+Qed. 
 
 
 
 Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u :
+  ~~ with_prop_case ->
   with_guarded_fix = false ->
   has_tApp ->
   cstr_as_blocks = true ->
@@ -229,7 +248,7 @@ Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u :
   ∑ (n : nat) (v' : value),
   term_of_val v' = v × eval Σ Γ u v' n.
 Proof.
-  intros h_unguarded hApp hCstrBlocks hCstrBlocks' wf_Σ wf_u wf_Γ h_eval heq.
+  intros h_prop_case h_unguarded hApp hCstrBlocks hCstrBlocks' wf_Σ wf_u wf_Γ h_eval heq.
   assert (wellformed Σ 0 e) as wf_e.
   { subst. apply wellformed_substl; simple.
     - intros ? ?. now apply wellformed_val_wellformed.
@@ -329,11 +348,12 @@ Proof.
   - now apply X.
   - pose proof tApp_substl_eq _ _ _ _ hCstrBlocks heq as (u1 & u2 & ?); subst; simple.
     injection heq as ? ?; subst.
-    unshelve epose proof s Γ _ u1 eq_refl _ as (n1 & [| | | | |] & heq1 & h_eval1); 
-      simple; rewrite ->?hCstrBlocks in *; try easy. (* TODO: inversion lemma for vRecClos *)
-    injection heq1 as ? ?; subst.
+    unshelve epose proof s Γ _ u1 eq_refl _ as (n1 & v1 & heq1 & h_eval1); simple; rewrite ->?hCstrBlocks in *; try easy.
+    epose proof term_of_val_eq_fix _ _ _ heq1 as (mfix' & env & heq); subst.
+    simple.
+    injection heq1 as ?; subst.
     unshelve epose proof s0 Γ _ u2 eq_refl as (n2 & v'2 & heq2 & h_eval2); simple; try easy; subst.
-    destruct (nth_error b idx) as [d' |] eqn:heq; simple; last easy.
+    destruct (nth_error mfix' idx) as [d' |] eqn:heq; simple; last easy.
     injection H1 as ?; subst.
     rewrite fold_left_map_def in H2. fold csubst in H2.
     simple.
@@ -341,11 +361,11 @@ Proof.
     { apply eval_SI_wellformed_val in h_eval1; simple; try easy.
       now eapply h_eval1, nth_error_In. }
     destruct d' as [? [] ?]; simple; try easy. (* TODO: use lemmas instead of destruct *)
-    replace (fold_left (λ t d : term, csubst d #|b| t) (map term_of_val env) (tLambda na0 t))
-    with (tLambda na0 (fold_left (λ t d : term, csubst d (S #|b|) t) (map term_of_val env) t)) in H2
+    replace (fold_left (λ t d : term, csubst d #|mfix'| t) (map term_of_val env) (tLambda na0 t))
+    with (tLambda na0 (fold_left (λ t d : term, csubst d (S #|mfix'|) t) (map term_of_val env) t)) in H2
     by now induction env in t |- *; simple.
     injection H2 as ? ?; subst.
-    unshelve epose proof s1 (v'2 :: (map (λ x : nat, vRecClos b x env) (List.rev (seq 0 #|b|))) ++ env) _ t _ _ as (n3 & v'3 & heq3 & h_eval3); simple; try easy; subst.
+    unshelve epose proof s1 (v'2 :: (map (λ x : nat, vRecClos mfix' x env) (List.rev (seq 0 #|mfix'|))) ++ env) _ t _ _ as (n3 & v'3 & heq3 & h_eval3); simple; try easy; subst.
     { intros x [? | [(? & ? & ?%in_rev)%in_map_iff | ?]%in_app_iff]; subst.
       - eapply eval_SI_wellformed_val in h_eval2; now simple.
       - eapply eval_SI_wellformed_val in h_eval1; simple; try easy.
@@ -358,11 +378,11 @@ Proof.
       erewrite (map_ext (tFix _)); last first.
       { intros n.
         rewrite -substl_tFix.
-        change (substl (map term_of_val env) (tFix b n)) with (term_of_val (vRecClos b n env)).
+        change (substl (map term_of_val env) (tFix mfix' n)) with (term_of_val (vRecClos mfix' n env)).
         reflexivity. }
       rewrite -map_map_compose.
       unfold substl.
-      replace (S #|b|) with (#|term_of_val v'2 :: map term_of_val (map (λ x : nat, vRecClos b x env) (List.rev (seq 0 #|b|)))| + 0); last now simple.
+      replace (S #|mfix'|) with (#|term_of_val v'2 :: map term_of_val (map (λ x : nat, vRecClos mfix' x env) (List.rev (seq 0 #|mfix'|)))| + 0); last now simple.
       rewrite fold_left_csubst_app; simple; last now rewrite map_app.
       - intros x [? | (? & ? & (? & ? & hIn%in_rev)%in_map_iff)%in_map_iff]; subst.
         + eapply eval_SI_wellformed_val in h_eval2; simple; try easy.
@@ -374,7 +394,7 @@ Proof.
       - intros x hIn.
         eapply wellformed_closed, wellformed_val_wellformed; try easy.
         eapply eval_SI_wellformed_val in h_eval1; now simple. }
-    { assert (wellformed Σ (#|b| + #|env|) (dbody {| dname := dname; dbody := tLambda na t; rarg := rarg |})) as h; 
+    { assert (wellformed Σ (#|mfix'| + #|env|) (dbody {| dname := dname; dbody := tLambda na t; rarg := rarg |})) as h; 
         last now simple.
       Opaque dbody.
       eapply eval_SI_wellformed_val in h_eval1; simple; try easy.
@@ -411,7 +431,11 @@ Proof.
       now rewrite csubst_closed. }
     { now eapply wellformed_up. }
     exists (n1 + 1), v0; split.
-    { admit. (* term_of_val v0 -> v'2 and both are values, combine with determinism *) }
+    { unshelve epose proof eval_SI_val _ Γ v0 _ _ _ as (? & ? & heq''' & heval'); simple; try easy.
+      { apply eval_SI_wellformed_val in h_eval1; simple; try easy.
+        now apply nth_error_In in heq. }
+      pose proof eval_SI_deterministic _ _ _ _ _ _ _ h_eval2 heval' as (? & ?); subst.
+      assumption. }
     now econstructor.
   - admit. (* Proj of tBox *) (* TODO: add *) (* can be removed *)
   - admit.
@@ -427,7 +451,18 @@ Proof.
       simple. rewrite hCstrBlocks.
       split; last now constructor.
       f_equal.
-      admit. (* given by determinism of eval *)
+      assert (forallb (wellformed_val Σ) args0) as h_wf.
+      { simple. apply nth_error_In, wf_Γ in heq'.
+        now simple. }
+      induction args0 in X0, args', h_wf |- *.
+      { now inversion X0. }
+      inversion X0; subst; simple.
+      f_equal; last now apply IHargs0; simple.
+      destruct X as [IH wf_tov_a wf_y].
+      pose proof IH [] eq_refl (term_of_val a) eq_refl wf_tov_a as (? & ? & heq & heval); subst.
+      unshelve epose proof eval_SI_val _ [] a _ _ _ as (? & ? & heq''' & heval'); simple; try easy.
+      pose proof eval_SI_deterministic _ _ _ _ _ _ _ heval heval' as (? & ?); subst.
+      assumption.
     + rewrite ->hCstrBlocks in *; simple.
       injection heq as ?; subst.
       apply All2_map_left_inv in X0; simple.

@@ -49,11 +49,15 @@ Hint Rewrite head_mkApps : rw_hints.
 
 
 Ltac my_discr :=
-  let aux t ind c args h := 
-    assert (head t = tConstruct ind c args) by now rewrite h; simple
+  let aux t t_head h name := 
+    assert (head t = t_head) as name by now rewrite h; simple
   in
   try match goal with
-  | h : ?t = mkApps (tConstruct ?ind ?c ?args) _ |- _ => aux t ind c args h
-  | h : mkApps (tConstruct ?ind ?c ?args) _ = ?t |- _ =>
-      aux t ind c args (eq_sym h)
+  | h : mkApps ?head1 ?args1 = mkApps ?head2 ?args2 |- _ =>
+      let name := fresh in
+      assert ((head (mkApps head1 args1)) = (head (mkApps head2 args2))) as name by (now rewrite h);
+      rewrite !head_mkApps in name 
+  | h : ?t = mkApps (?t_head) _ |- _ => aux t t_head h fresh
+  | h : mkApps (?t_head) _ = ?t |- _ =>
+      aux t t_head (eq_sym h) fresh
   end; discriminate.

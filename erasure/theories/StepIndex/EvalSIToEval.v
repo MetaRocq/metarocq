@@ -245,7 +245,15 @@ Proof.
           try intros x [? | ?]%in_app_iff; intros; eapply wellformed_closed, wellformed_val_wellformed; simple; easy
         ].
         now rewrite Nat.add_1_r.
-      
+  - apply eval_mkApps_CoFix; try easy.
+    rewrite wellformed_mkApps // in wf_e.
+    simple.
+    destruct wf_e as [? wf_args].
+    induction a in wf_args, IHa |- *; simple; try easy.
+    destruct IHa.
+    constructor.
+    + apply e; now simple.
+    + now apply IHa0.
   - rewrite /substl /= in IHheval. econstructor; try easy.
     apply IHheval; try easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
