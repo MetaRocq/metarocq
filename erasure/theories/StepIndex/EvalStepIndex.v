@@ -18,6 +18,29 @@ Section Wcbv.
 
   Unset Elimination Schemes.
 
+  Print eval.
+  (*
+    - eval_box : OK
+    - eval_beta : OK
+    - eval_zeta : OK
+    - eval_iota : OK
+    - eval_iota_block : OK
+    - eval_iota_sing : Can be skipped
+    - eval_fix : our fix are unguarded
+    - eval_fix_value : our fix are unguarded
+    - eval_fix' : OK
+    - eval_cofix_case : TODO
+    - eval_cofix_proj : TODO
+    - eval_delta : OK
+    - eval_proj : OK
+    - eval_proj_block : OK
+    - eval_proj_prop : can be skipped
+    - eval_construct : OK, might be removed
+    - eval_construct_block : OK 
+    - eval_app_cong : TODO, but might be handled by cofix 
+    - eval_prim : OK 
+    - eval_atom : OK I think *)
+
   Inductive eval (Γ : environment) : term -> value -> nat -> Type :=
   | eval_box :
       eval Γ tBox vBox 0
@@ -77,6 +100,10 @@ Section Wcbv.
 
   | eval_fix mfix idx :
       eval Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0
+
+  | eval_cofix mfix idx args args' ns :
+      All3 (eval Γ) args args' ns ->
+      eval Γ (mkApps (tCoFix mfix idx) args) (vCoFixClos mfix idx Γ args') (list_sum ns + 1)
 
   (** Constant unfolding *)
   | eval_delta c decl body (isdecl : declared_constant Σ c decl) res cost :
@@ -158,6 +185,14 @@ Section Wcbv.
     Variable f_fix : 
       ∀ {Γ mfix idx},
       P Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0 (eval_fix Γ mfix idx).
+
+    Print eval.
+    Variable f_cofix : 
+      ∀ {Γ mfix idx args args' ns}
+        (a : All3 (eval Γ) args args' ns)
+        (IHa : All3_over a (P Γ)),
+        P Γ (mkApps (tCoFix mfix idx) args) (vCoFixClos mfix idx Γ args') _
+          (eval_cofix Γ mfix idx args args' ns a). 
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -207,6 +242,7 @@ Section Wcbv.
         | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 =>
             f_fix_unfold (eval_rect e0) (eval_rect e2) (eval_rect e3)
         | @eval_fix _ mfix idx => f_fix
+        | @eval_cofix _ mfix idx args args' ns a => f_cofix a (map_All3_dep _ (@eval_rect Γ) a)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_App _ ind c mdecl idecl cdecl args args' cs c_as_bks e0 l a => 
             f_constr_app c_as_bks e0 l a (map_All3_dep _ (@eval_rect Γ) a)
@@ -226,7 +262,6 @@ End Wcbv.
 
 
 
-
 Lemma eval_SI_wellformed_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
   with_constructor_as_block = cstr_as_blocks ->
   has_tApp ->
@@ -243,7 +278,6 @@ Proof.
   - apply IHh_eval3; try easy; now intros ? [-> | hIn].
   - easy.
   - apply IHh_eval2; try easy; now intros ? [-> | hIn].
-
   - destruct IHh_eval1; try easy. 
     apply IHh_eval2.
     + now intros x [?%in_rev|?]%in_app_or.
@@ -252,7 +286,6 @@ Proof.
       now eapply nth_error_In.
   - apply IHh_eval; try easy.
     now eapply nth_error_In.
-
   - unfold wf_fix, test_def in *; simple.
     destruct IHh_eval1 as [[[? ?] ?] [? ?]]; try easy.
     apply IHh_eval3; last first.
@@ -263,30 +296,23 @@ Proof.
       { eapply nth_error_In, heq. }
       simple. easy. }
     intros ? [-> | [hIn | hIn]%in_app_iff]; try easy.
-    unfold fix_env in hIn.
-    revert hIn.
-    remember (#|mfix|) as n eqn:heq.
-    assert (
-      match n with
-      | 0 => True
-      | S n' => n' <? #|mfix|
-      end
-    ).
-    { destruct mfix; subst; simple; first easy.
-      now rewrite /is_true Nat.ltb_lt. }
-    rewrite heq in H2, H3.
-    clear heq IHh_eval3.
-    induction n; simple; try easy.
-    intros [<- | hIn]; try easy.
-    simple; unfold wf_fix, test_def; simple; repeat split; try easy.
-    apply IHn; try easy; last first.
-    destruct n; first easy. unfold is_true in *; rewrite ->Nat.ltb_lt in *. lia.
+    rewrite fix_env_map in_map_iff in hIn.
+    destruct hIn as (? & ? & hIn%in_rev%in_seq); subst.
+    simple. unfold wf_fix, test_def; simple.
+    repeat split; try easy.
+    now apply Nat.ltb_lt.
   - easy.
-
+  - rewrite wellformed_mkApps // in wf_e.
+    simple.
+    repeat split; try easy.
+    induction a; simple; try easy.
+    destruct IHa as [? ?]; simple.
+    intros v [[] | hIn]; simple; try easy.
+    + apply i; simple. now apply wf_e.
+    + apply IHa0; now simple.
   - apply IHh_eval; first easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
     simple.
-
   - rewrite wellformed_mkApps in wf_e; simple.
     assert (cstr_as_blocks = false) as heq. 
     { now rewrite -cstr_blocks -(negb_involutive with_constructor_as_block) c_as_bks. }
@@ -302,8 +328,6 @@ Proof.
     intros v [[] | hIn]; simple; try easy.
     + apply i; simple. now apply hwf.
     + apply IHa; now simple.
-
-
   - rewrite -cstr_blocks c_as_bks /lookup_constructor_pars_args e;
     rewrite -cstr_blocks c_as_bks /lookup_constructor_pars_args e in wf_e; simple.
     assert (ind_npars mdecl + cstr_nargs cdecl = #|args|) as heq by now apply eqb_eq.
@@ -318,7 +342,6 @@ Proof.
     intros v [[] | hIn]; simple; try easy.
     + apply i; simple. now apply hwf.
     + apply IHa; now simple.
-  
   - inversion evih; subst; unfold test_prim, test_array_model in *; simple; repeat split; try easy.
     destruct wf_e as [? wf_e].
     revert wf_e wf_Γ X. clear.
@@ -361,7 +384,7 @@ Proof.
   intros hApp cstr_blocks h_wf.
   induction v.
   - repeat econstructor.
-  - simple. 
+  - simple.
     unfold lookup_constructor_pars_args in h_wf.
     destruct (lookup_constructor Σ ind c) as [[[mdecl idecl] cdecl] |] eqn:heq; simpl in *; last easy.
     assert (All (wellformed_val Σ) args) as X' by now simple.
@@ -411,6 +434,40 @@ Proof.
     revert h. clear.
     induction Γ; simple; first reflexivity; intros h.
     rewrite csubst_closed; now simple.
+  - assert (All (wellformed_val Σ) args) as X' by now simple.
+    pose args' := extract_vs X0 X'.
+    assert (map term_of_val args = map term_of_val args').
+    { clear. subst args'; unfold extract_vs. 
+      funelim (extract X0 X'); simple; try easy.
+      destruct a as [? ?]. rewrite Heq in Hind.
+      now f_equal. }
+    exists (list_sum (extract_ns X0 X') + 1).
+    simple.
+    eexists (vCoFixClos (map (fold_left (λ (b0 : def term) (t : term), map_def (csubst t #|b|) b0) (map term_of_val env)) b) idx Γ args'); simple; split; last first.
+    + eapply eval_cofix.
+      unfold args', extract_vs, extract_ns.
+      clear. funelim (extract X0 X'); simple; constructor; try easy.
+      { now destruct a. }
+      now rewrite Heq in Hind.
+    + f_equal; last easy.
+      f_equal.
+      rewrite map_map_compose.
+      apply All_map_eq.
+      simple.
+      intros [] hIn.
+      rewrite !fold_left_map_def.
+      fold csubst.
+      unfold map_def; simple.
+      f_equal.
+      enough (closedn #|b| (fold_left (λ (b0 : term) (t : term), csubst t #|b| b0) (map term_of_val env) dbody)).
+      { revert H0; clear; intros h_closed. induction Γ; simple; first easy.
+        now rewrite csubst_closed. }
+      unfold wf_fix, test_def in h_wf; simple.
+      apply h_wf in hIn; simple.
+      apply closed_fold_left_csubst; simple; try easy.
+      * intros ? (x & ? & hIn')%in_map_iff k; subst.
+        now eapply wellformed_closed, wellformed_val_wellformed.
+      * now eapply wellformed_closed.
   - simple; inversion X as [| | | ? [? ?]]; subst; unfold map_prim; simple;
     try lazymatch goal with
     | |- context[tPrim (?t; ?c _ ?m) = _] =>
@@ -446,6 +503,7 @@ Proof.
     rewrite csubst_closed; now simple.
 Qed.
 
+
 Lemma isConstructApp_isvConstr 
   {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v n :
   isConstructApp t ->
@@ -456,10 +514,37 @@ Proof.
   intros hConstrApp heval.
   induction heval; subst;
   rewrite ->?head_tApp in *; simple; try easy.
-Qed.    
+Qed.
 
 
-(* TODO: Eval deterministic *)
+Lemma isCoFixApp_isvCoFix 
+  {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v n :
+  isCoFix (head t) ->
+  eval Σ Γ t v n ->
+  isvCoFixClos v.
+Proof.
+  unfold isConstructApp.
+  intros hConstrApp heval.
+  induction heval; subst;
+  rewrite ->?head_tApp in *; simple; try easy.
+Qed.
+
+
+Ltac find_contra := 
+    let aux f lem a b h :=
+      let h' := fresh in 
+      assert (f (head (tApp a b))) as h'
+      by (now rewrite h head_mkApps);
+      rewrite head_tApp in h';
+      now eapply lem in h'; 
+        last eassumption
+    in
+    match goal with 
+    | h : tApp ?a ?b = mkApps (tConstruct _ _ _) _ |- _ => aux isConstruct isConstructApp_isvConstr a b h
+    | h : mkApps (tConstruct _ _ _) _ = tApp ?a ?b |- _ => aux isConstruct isConstructApp_isvConstr a b (eq_sym h)
+    | h : tApp ?a ?b = mkApps (tCoFix _ _) _ |- _ => aux isCoFix isCoFixApp_isvCoFix a b h
+    | h : mkApps (tCoFix _ _) _ = tApp ?a ?b |- _ => aux isCoFix isCoFixApp_isvCoFix a b (eq_sym h)
+    end.
 
 Lemma eval_SI_deterministic
   {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v1 v2 n1 n2 :
@@ -471,41 +556,35 @@ Proof.
   induction eval1 in eval2, v2, n2 |- *.
   - now inversion eval2; try my_discr; subst.
   - inversion eval2; try my_discr; subst; try solve[
+      find_contra |
       edestruct IHeval1_1; first eassumption;
       edestruct IHeval1_2; first eassumption;
       now subst
     ].
-    assert (isConstructApp (tApp a t)) as hConstr
-    by now rewrite -H /isConstructApp head_mkApps.
-    rewrite /isConstructApp head_tApp in hConstr.
-    now eapply isConstructApp_isvConstr in hConstr; 
-      last eassumption.
   - inversion eval2; my_discr || easy.
   - inversion eval2; subst; try solve[
+      find_contra |
       edestruct IHeval1_1; first eassumption;
       now subst
     ].
-    + edestruct IHeval1_1; first eassumption.
-      subst. injection H as ? ? ?; subst.
-      edestruct IHeval1_2; first eassumption; subst.
-      edestruct IHeval1_3; first eassumption; subst.
-      easy.
-    + assert (isConstructApp (tApp f1 a)) as hConstr 
-      by now rewrite -H /isConstructApp head_mkApps.
-      rewrite /isConstructApp head_tApp in hConstr.
-      now eapply isConstructApp_isvConstr in hConstr; last eassumption.
+    edestruct IHeval1_1; first eassumption.
+    subst. injection H as ? ? ?; subst.
+    edestruct IHeval1_2; first eassumption; subst.
+    edestruct IHeval1_3; first eassumption; subst.
+    easy.
   - inversion eval2; subst; easy || my_discr.
   - inversion eval2; subst; try solve[
       edestruct IHeval1_1; first eassumption; subst;
       edestruct IHeval1_2; first eassumption; subst;
-      easy
-    | my_discr
+      easy | 
+      my_discr
     ].
   - inversion eval2; subst; try solve[
+      find_contra |
       edestruct IHeval1_1; first eassumption; subst;
       edestruct IHeval1_2; first eassumption; subst;
-      easy
-    | my_discr
+      easy |
+      my_discr
     ].
     edestruct IHeval1_1; first eassumption; subst.
     injection H as ? ?; subst.
@@ -517,61 +596,75 @@ Proof.
     injection H as ?; subst.
     easy.
   - inversion eval2; subst; try solve[
+      find_contra |
       edestruct IHeval1_1; first eassumption; subst;
       edestruct IHeval1_2; first eassumption; subst;
       easy
     | my_discr
     ].
-    + edestruct IHeval1_1; first eassumption; subst.
-      injection H as ? ?; subst.
-      assert (fn = fn0) by easy; subst.
-      edestruct IHeval1_2; first eassumption; subst.
-      edestruct IHeval1_3; first eassumption; subst.
-      easy.
-    + assert (isConstructApp (tApp f a)) as hConstr 
-      by now rewrite -H /isConstructApp head_mkApps.
-      rewrite /isConstructApp head_tApp in hConstr.
-      now eapply isConstructApp_isvConstr in hConstr; last eassumption.
+    edestruct IHeval1_1; first eassumption; subst.
+    injection H as ? ?; subst.
+    assert (fn = fn0) by easy; subst.
+    edestruct IHeval1_2; first eassumption; subst.
+    edestruct IHeval1_3; first eassumption; subst.
+    easy.
   - inversion eval2; subst; easy || my_discr.
+  - inversion eval2; subst; try my_discr || find_contra.
+    match type of H0 with
+    | mkApps ?a ?args = mkApps ?b ?args' =>
+        change a with (head a) in H0;
+        change b with (head b) in H0
+    end.
+    apply mkApps_head_inj in H0 as [h ?]; injection h as ? ?; subst.
+    assert (args' = args'0 ∧ ns = ns0); last easy.
+    revert IHa X.
+    clear.
+    induction args in a, args', args'0, ns, ns0 |- *.
+    { intros. inversion a. inversion X. easy. }
+    intros.
+    destruct args'; first inversion a.
+    destruct args'0; first inversion X.
+    remember (a0 :: args).
+    remember (v :: args').
+    destruct a eqn:heq; first discriminate; subst.
+    injection Heql as ? ?.
+    injection Heql0 as ? ?.
+    subst.
+    inversion X; subst.
+    destruct IHa.
+    edestruct IHargs; try easy.
+    edestruct a; easy.
   - inversion eval2; subst; try my_discr.
     assert (decl = decl0) by easy. subst.
     assert (body = body0) by easy. subst.
     edestruct IHeval1; first eassumption; subst.
     easy.
-  - inversion eval2; subst; try my_discr.
-    + apply isConstructApp_isvConstr in eval2; first easy.
-      now rewrite /isConstructApp head_mkApps.
-    + apply isConstructApp_isvConstr in X; first easy.
-      unfold isConstructApp.
-      now erewrite <-head_tApp, H0, head_mkApps.
-    + apply isConstructApp_isvConstr in X; first easy.
-      unfold isConstructApp.
-      now erewrite <-head_tApp, H, head_mkApps.
-    + assert 
-      (head (tConstruct ind0 c0 []) = head (tConstruct ind c [])) 
-      as h 
-      by now erewrite <-head_mkApps, H, head_mkApps at 1.
-      injection h as ? ?; subst.
-      apply mkApps_eq_right in H; subst.
-      assert (args' = args'0 ∧ cs = cs0); last easy.
-      revert IHa X.
-      clear.
-      induction args in a, args', args'0, cs, cs0 |- *.
-      { intros. inversion a. inversion X. easy. }
-      intros.
-      destruct args'; first inversion a.
-      destruct args'0; first inversion X.
-      remember (a0 :: args).
-      remember (v :: args').
-      destruct a eqn:heq; first discriminate; subst.
-      injection Heql as ? ?.
-      injection Heql0 as ? ?.
-      subst.
-      inversion X; subst.
-      destruct IHa.
-      edestruct IHargs; try easy.
-      edestruct a; easy.
-    + now rewrite H0 in c_as_bks. 
+  - inversion eval2; subst; try my_discr || find_contra || now destruct with_constructor_as_block.
+    match type of H with
+    | mkApps ?a ?args = mkApps ?b ?args' =>
+        change a with (head a) in H;
+        change b with (head b) in H
+    end.
+    apply mkApps_head_inj in H as [h ?]; injection h as ? ?; subst.
+    assert (args' = args'0 ∧ cs = cs0); last easy.
+    revert IHa X.
+    clear.
+    induction args in a, args', args'0, cs, cs0 |- *.
+    { intros. inversion a. inversion X. easy. }
+    intros.
+    destruct args'; first inversion a.
+    destruct args'0; first inversion X.
+    remember (a0 :: args).
+    remember (v :: args').
+    destruct a eqn:heq; first discriminate; subst.
+    injection Heql as ? ?.
+    injection Heql0 as ? ?.
+    subst.
+    inversion X; subst.
+    destruct IHa.
+    edestruct IHargs; try easy.
+    edestruct a; easy.
+    
   - inversion eval2; subst; try my_discr.
     { now rewrite c_as_bks in H0. }
     assert (args' = args'0 ∧ cs = cs0); last easy.
