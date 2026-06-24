@@ -99,6 +99,30 @@ Definition all_env_flags_blocks :=
      has_cstr_params := true ;
      cstr_as_blocks := true |}.
 
+Definition erased_term_flags :=
+  {| has_tBox := true
+    ; has_tRel := true
+    ; has_tVar := false
+    ; has_tEvar := false
+    ; has_tLambda := true
+    ; has_tLetIn := true
+    ; has_tApp := true
+    ; has_tConst := true
+    ; has_tConstruct := true
+    ; has_tCase := true
+    ; has_tProj := true
+    ; has_tFix := true
+    ; has_tCoFix := true
+    ; has_tPrim := all_primitive_flags
+    ; has_tLazy_Force := true (* Actually not possible *)
+  |}.
+
+Definition erased_env_flags :=
+  {| has_axioms := true;
+     term_switches := erased_term_flags;
+     has_cstr_params := true ;
+     cstr_as_blocks := false |}.
+
 Section wf.
 
   Context {efl  : EEnvFlags}.

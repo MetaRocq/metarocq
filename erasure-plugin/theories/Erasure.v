@@ -121,6 +121,7 @@ Definition final_wcbv_flags := {|
   with_guarded_fix := false;
   with_constructor_as_block := true |}.
 
+Import EWellformed.
 
 Program Definition optional_unsafe_transforms econf :=
   let passes := econf.(enable_unsafe) in
@@ -133,7 +134,7 @@ Program Definition optional_unsafe_transforms econf :=
     rebuild_wf_env_transform (efl := efl) false false ▷
     (* Coinductives & cofixpoints are translated to inductive types and thunked fixpoints *)
     coinductive_to_inductive_transformation efl
-      (has_app := eq_refl) (has_box := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
+      (has_app := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
       ▷
     (* (Co)Inductive types with one constructor with one index are unboxed. While this pass is verified, it relies on the absence of cofixpoints guaranteed by the previous, unverified, transformation *)
     ETransform.optional_self_transform (passes.(unboxing))
@@ -160,17 +161,20 @@ Next Obligation.
   destruct econf as [[[] [] [] []] ? ? ? ? ?] eqn:heq; simpl in *; cbn in * => //; intuition auto.
 Qed.
 
-Program Definition inlining_transformation econf :=
+Program Definition inlining_transformation {efl : EEnvFlags} (has_app : has_tApp) econf :=
   let wfl := EConstructorsAsBlocks.switch_cstr_as_blocks
       (EInlineProjections.disable_projections_env_flag
-        (ERemoveParams.switch_no_params EWellformed.all_env_flags))
+        (ERemoveParams.switch_no_params efl))
   in
    inline_transformation wfl final_wcbv_flags
-    econf.(inlined_constants) eq_refl eq_refl ▷
+    econf.(inlined_constants) _ _  ▷
     forget_inlining_info_transformation wfl _.
+Next Obligation.
+  now rewrite orb_true_r.
+Qed.
 
-Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl} econf
-  (efl := EWellformed.all_env_flags)
+
+Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf
   : Transform.t _ _ _ EAst.term _ _
    (* Standard evaluation, with cases on prop, guarded fixpoints, applied constructors *)
    (eval_eprogram_env default_wcbv_flags)
@@ -181,23 +185,24 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl} eco
     This translation is a noop on terms and environments.  *)
   guarded_to_unguarded_fix (fl := default_wcbv_flags) (wcon := eq_refl) eq_refl ▷
   (* Remove all constructor parameters *)
-  remove_params_optimization (wcon := eq_refl) ▷
+  remove_params_optimization (wcon := eq_refl) efl eq_refl eq_refl ▷
   (* Rebuild the efficient lookup table *)
-  rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
+  rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params efl) true false ▷
   (* Remove all cases / projections on propositional content *)
-  remove_match_on_box_trans (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
+  remove_match_on_box_trans (efl := ERemoveParams.switch_no_params efl) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
   (* Rebuild the efficient lookup table *)
-  rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
+  rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params efl) true false ▷
   (* Inline projections to cases *)
-  inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
+  inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (efl := ERemoveParams.switch_no_params efl)
+    (wcon := eq_refl) eq_refl eq_refl (has_app := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
   (* Rebuild the efficient lookup table *)
-  rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) true false ▷
+  rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params efl)) true false ▷
   (* First-order constructor representation *)
   constructors_as_blocks_transformation
-    (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags))
+    (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params efl))
     (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl) ▷
   (* Inline the environment *)
-  ETransform.optional_self_transform econf.(inlining) (inlining_transformation econf).
+  ETransform.optional_self_transform econf.(inlining) (inlining_transformation (efl := EConstructorsAsBlocks.switch_cstr_as_blocks (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params efl))) eq_refl econf).
 
 (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
    parameters in inductive declarations. The constructor applications are also transformed to a first-order
@@ -772,11 +777,12 @@ Program Definition verified_lambdabox_typed_pipeline (efl := EWellformed.all_env
      This translation is a noop on terms and environments.  *)
   guarded_to_unguarded_fix (fl := {| with_prop_case := false; with_guarded_fix := true; with_constructor_as_block := false |}) (wcon := eq_refl) eq_refl ▷
    (* Remove all constructor parameters *)
-   remove_params_optimization (wcon := eq_refl) ▷
+   remove_params_optimization (wcon := eq_refl) efl eq_refl eq_refl ▷
    (* Rebuild the efficient lookup table *)
    rebuild_wf_env_transform (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags) true false ▷
    (* Inline projections to cases *)
-   inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (wcon := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
+   inline_projections_optimization (fl := EWcbvEval.target_wcbv_flags) (efl := ERemoveParams.switch_no_params EWellformed.all_env_flags)
+     (wcon := eq_refl) eq_refl eq_refl (has_app := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl) ▷
    (* Rebuild the efficient lookup table *)
    rebuild_wf_env_transform (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags)) true false ▷
    (* First-order constructor representation *)
@@ -784,7 +790,7 @@ Program Definition verified_lambdabox_typed_pipeline (efl := EWellformed.all_env
      (efl := EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params EWellformed.all_env_flags))
      (has_app := eq_refl) (has_pars := eq_refl) (has_rel := eq_refl) (has_box := eq_refl) (has_cstrblocks := eq_refl) ▷
   (* Inline the environment *)
-  ETransform.optional_self_transform econf.(inlining) (inlining_transformation econf).
+  ETransform.optional_self_transform econf.(inlining) (inlining_transformation eq_refl econf).
  (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
     parameters in inductive declarations. The constructor applications are also transformed to a first-order
     "block"  application, of the right length, and the evaluation relation does not need to consider guarded
