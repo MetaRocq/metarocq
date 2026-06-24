@@ -1252,10 +1252,9 @@ Proof.
 Qed.
 
 #[global] Instance inline_projections_optimization_pres {fl : WcbvFlags}
- (efl := EInlineProjections.switch_no_params all_env_flags) {wcon : with_constructor_as_block = false}
-  {has_rel : has_tRel} {has_box : has_tBox} :
+ (efl := ERemoveParams.switch_no_params all_env_flags) {wcon : with_constructor_as_block = false} :
   ETransformPresFO.t
-    (inline_projections_optimization (wcon := wcon) (hastrel := has_rel) (hastbox := has_box))
+    (inline_projections_optimization (wcon := wcon) eq_refl eq_refl (has_app := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl))
     fo_evalue_map fo_evalue (fun p pr fo => (EInlineProjections.optimize_env p.1, p.2)).
 Proof. split => //.
   - intros [] pr fo.
@@ -1278,10 +1277,9 @@ Qed.
 Import EAstUtils.
 
 #[global] Instance inline_projections_optimization_pres_app {fl : WcbvFlags}
- (efl := EInlineProjections.switch_no_params all_env_flags) {wcon : with_constructor_as_block = false}
-  {has_rel : has_tRel} {has_box : has_tBox} :
+ (efl := ERemoveParams.switch_no_params all_env_flags) {wcon : with_constructor_as_block = false} :
   ETransformPresAppLam.t
-    (inline_projections_optimization (wcon := wcon) (hastrel := has_rel) (hastbox := has_box))
+    (inline_projections_optimization (wcon := wcon) eq_refl eq_refl (has_app := eq_refl) (hastrel := eq_refl) (hastbox := eq_refl))
     is_eta_app_map is_eta_app.
 Proof.
   split => //.
@@ -1371,9 +1369,9 @@ Proof.
      apply/orP. move/or3P: H1 => []; intuition auto. destruct t => //.
 Qed.
 
-#[global] Instance remove_params_optimization_pres {fl : WcbvFlags} {wcon : with_constructor_as_block = false} :
+#[global] Instance remove_params_optimization_pres {fl : WcbvFlags} {wcon : with_constructor_as_block = false} (efl := all_env_flags):
   ETransformPresFO.t
-    (remove_params_optimization (wcon := wcon))
+    (remove_params_optimization (wcon := wcon) efl eq_refl eq_refl)
     fo_evalue_map fo_evalue (fun p pr fo => (ERemoveParams.strip_env p.1, ERemoveParams.strip p.1 p.2)).
 Proof. split => //.
   intros [] pr fo.
@@ -1388,9 +1386,9 @@ Proof. split => //.
   rewrite skipn_map. len. rewrite length_skipn. lia.
 Qed.
 
-#[global] Instance remove_params_optimization_pres_app {fl : WcbvFlags} {wcon : with_constructor_as_block = false} :
+#[global] Instance remove_params_optimization_pres_app {fl : WcbvFlags} {wcon : with_constructor_as_block = false} (efl := all_env_flags) :
   ETransformPresAppLam.t
-    (remove_params_optimization (wcon := wcon))
+    (remove_params_optimization (wcon := wcon) efl eq_refl eq_refl)
     is_eta_app_map is_eta_app.
 Proof.
   split => //.
@@ -1607,32 +1605,31 @@ Proof.
 Qed.
 
 #[global]
-Instance inlining_transformation_pres_fo econf :
+Instance inlining_transformation_pres_fo econf
+  (efl := (EConstructorsAsBlocks.switch_cstr_as_blocks (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params all_env_flags)))) :
   ETransformPresFO.t
-    (@inlining_transformation econf)
+    (@inlining_transformation efl eq_refl econf)
     (fun p => firstorder_evalue_block p.1 p.2) (fun p => firstorder_evalue_block p.1 p.2)
     (fun p _ _ => let p' := EInlining.inline_program econf.(inlined_constants) p in (p'.1.1, p'.2)).
 Proof.
   unfold inlining_transformation.
-  epose (he := ETransformPresFO.compose _ _ _ (inline_transformation
-(EConstructorsAsBlocks.switch_cstr_as_blocks (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params all_env_flags)))
-final_wcbv_flags (inlined_constants econf) eq_refl eq_refl)
- (forget_inlining_info_transformation
-(EConstructorsAsBlocks.switch_cstr_as_blocks
-(EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params all_env_flags))) final_wcbv_flags) _ _ _ _ _).
+  epose (he := ETransformPresFO.compose _ _ _ (inline_transformation _
+final_wcbv_flags (inlined_constants econf) _ _)
+ (forget_inlining_info_transformation _ final_wcbv_flags) _ _ _ _ _).
   unfold ETransformPresFO.compose_compile_fo_value in he. exact he.
 Qed.
 
 #[global]
-Instance optional_inlining_transformation_pres_fo econf :
+Instance optional_inlining_transformation_pres_fo econf
+  (efl := (EConstructorsAsBlocks.switch_cstr_as_blocks (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params all_env_flags)))) :
   ETransformPresFO.t
-    (optional_self_transform econf.(Erasure.inlining) (@inlining_transformation econf))
+    (optional_self_transform econf.(Erasure.inlining) (@inlining_transformation efl eq_refl econf))
     (fun p => firstorder_evalue_block p.1 p.2) (fun p => firstorder_evalue_block p.1 p.2)
     (fun p _ _ => if econf.(Erasure.inlining) then
        let p' := EInlining.inline_program econf.(inlined_constants) p in (p'.1.1, p'.2)
        else p).
 Proof.
-  epose (he := optional_transform_pres_fo econf.(Erasure.inlining) _ (inlining_transformation econf)
+  epose (he := optional_transform_pres_fo econf.(Erasure.inlining) _ (inlining_transformation _ econf)
      (fun p _ _ => let p' := EInlining.inline_program econf.(inlined_constants) p in (p'.1.1, p'.2))).
   destruct econf as [? ? ? []]; cbn in *. apply he; tc. apply he; tc.
 Qed.
@@ -2383,7 +2380,7 @@ Section pipeline_cond.
 
   Lemma lookup_inline (efl := (EConstructorsAsBlocks.switch_cstr_as_blocks
 (EInlineProjections.disable_projections_env_flag (ERemoveParams.switch_no_params all_env_flags)))) p pr kn :
-    EGlobalEnv.lookup_env (transform (optional_self_transform (Erasure.inlining econf) (inlining_transformation econf)) p pr).1 kn =
+    EGlobalEnv.lookup_env (transform (optional_self_transform (Erasure.inlining econf) (inlining_transformation eq_refl econf)) p pr).1 kn =
     option_map (if econf.(Erasure.inlining) then inline_global_decl (inline_env econf.(inlined_constants) p.1).2 else fun x => x) (EGlobalEnv.lookup_env p.1 kn).
   Proof.
     clear -efl.
@@ -2394,7 +2391,7 @@ Section pipeline_cond.
   Qed.
 
   Opaque compose.
-  Lemma verified_erasure_pipeline_lookup_env_in kn decl (efl := EInlineProjections.switch_no_params all_env_flags)
+  Lemma verified_erasure_pipeline_lookup_env_in kn decl (efl := ERemoveParams.switch_no_params all_env_flags)
     {has_rel : has_tRel} {has_box : has_tBox} :
     EGlobalEnv.lookup_env Σ_t kn = Some decl ->
    exists decl',
@@ -2412,10 +2409,10 @@ Section pipeline_cond.
   repeat rewrite -transform_compose_assoc.
   repeat (destruct_compose; intro).
   set (transform (guarded_to_unguarded_fix _) _ _) as t1.
-  set (transform remove_params_optimization _ _) as t2.
+  set (transform (remove_params_optimization _ _ _) _ _) as t2.
   set (transform remove_match_on_box_trans _ _) as t3.
   set (transform (rebuild_wf_env_transform true false) _ _) as t4 at 2.
-  set (transform inline_projections_optimization _ _) as t5.
+  set (transform (inline_projections_optimization _ _) _ _) as t5.
   set (transform (rebuild_wf_env_transform true false) _ _) as t6.
   set (transform constructors_as_blocks_transformation _ _) as t7.
   rewrite lookup_inline.
@@ -2507,7 +2504,7 @@ Section pipeline_theorem.
   Let Σ_v := (transform (verified_erasure_pipeline econf) (Σ, v) (precond2 _ _ _ _ expΣ expt typing _ econf _ Heval)).1.
   Let v_t := compile_value_box (PCUICExpandLets.trans_global_env Σ) v [].
 
-  Lemma verified_erasure_pipeline_extends (efl := EInlineProjections.switch_no_params all_env_flags)
+  Lemma verified_erasure_pipeline_extends (efl := ERemoveParams.switch_no_params all_env_flags)
    {has_rel : has_tRel} {has_box : has_tBox} :
    EGlobalEnv.extends Σ_v Σ_t.
   Proof.
