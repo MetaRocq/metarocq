@@ -396,7 +396,7 @@ Qed.
 Hint Rewrite substl_tEvar : rw_hints.
 
 
-Lemma wellformed_fold_left_csubst {efl : EEnvFlags} {wfl : WcbvFlags} Σ k b env :
+Lemma wellformed_fold_left_csubst {efl : EEnvFlags} Σ k b env :
   All (λ x, ∀ k, wellformed Σ k x) env -> 
   wellformed Σ (k + #|env|) b ->
   wellformed Σ k (fold_left (λ b0 t0 : term, csubst t0 k b0) env b).

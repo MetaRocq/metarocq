@@ -168,98 +168,135 @@ Proof.
     + now apply IHheval2; simple.
   - unfold cunfold_cofix in heq1.
     destruct (nth_error mfix idx) eqn:heq; last easy; simple.
-    injection heq1 as ?; subst.
-    apply eval_SI_wellformed_val in heval1 as wf_cofix_clos; simple; try easy.
-    unfold wf_fix, test_def in wf_cofix_clos; simple.
-    assert (forallb (wellformed_val Σ) (cofix_env mfix env ++ env)).
-    { simple. rewrite cofix_env_map.
-      intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; simple; last easy.
-      subst. simple; unfold wf_fix; simple; repeat split; try easy.
-      now apply Nat.ltb_lt. }
-    assert (wellformed Σ (#|mfix| + #|env|) (mkApps (dbody d) (map term_of_val args))).
-    { apply nth_error_In in heq.
-      rewrite wellformed_mkApps; simple; split; try easy.
-      intros ? ?. now apply wellformed_val_wellformed. }
-    assert (forallb (wellformed_val Σ) con_args).
-    { apply eval_SI_wellformed_val in heval2; intros; now simple. }
     eapply EWcbvEval.eval_cofix_case.
-    + now apply IHheval1; simple.
-    + unfold EGlobalEnv.cunfold_cofix.
-      simple; reflexivity.
-    + econstructor; first now destruct with_constructor_as_block.
-      * rewrite fold_left_map_def; fold csubst; simple.
-        erewrite map_ext; last first.
-        { intros. rewrite fold_left_map_def; fold csubst; simple. reflexivity. }
-        unfold substl.
-        rewrite cofix_subst_map.
-        simple.
-        match goal with
-        | |- context[fold_left _ ?f'] => set l := f'
-        end.
-        replace #|mfix| with (#|l| + 0) by now unfold l; simple.
-        rewrite fold_left_csubst_app.
-        { simple.
-          intros ? (x & ? & hIn%in_rev%in_seq)%in_map_iff; subst.
-          erewrite map_ext; last first.
-          { intros ?; rewrite -fold_left_map_def. reflexivity. }
-          simple.
-          intros d' hIn'.
-          unfold test_def.
-          rewrite fold_left_map_def; simple.
-          rewrite Nat.add_0_r.
-          apply closed_fold_left_csubst; simple.
-          - intros ? (? & ? & ?)%in_map_iff ?; subst.
-            now eapply wellformed_closed, wellformed_val_wellformed.
-          - now eapply wellformed_closed. }
-        { simple.
-          intros x hIn.
-          now eapply wellformed_closed, wellformed_val_wellformed. }
-        fold (substl (l ++ map term_of_val env) (dbody d)).
-        assert (l = map term_of_val (cofix_env mfix env)) as heq'.
-        { subst l.
-          rewrite cofix_env_map map_map_compose.
-          apply map_ext.
-          intros n. simple.
-          f_equal. apply map_ext.
-          intros d'.
-          now rewrite fold_left_map_def. }
-        rewrite heq' -map_app.
-        assert (map term_of_val args = (map (substl (map term_of_val (cofix_env mfix env ++ env))) (map term_of_val args))) as heq''.
-        { assert (forallb (λ a, closed (term_of_val a)) args) as h_closed.
-          { simple. intros a hIn. now eapply wellformed_closed, wellformed_val_wellformed. }
-          match goal with
-          | |- map _ _ = map (substl ?f) _ => generalize f
-          end.
-          intros σ.
-          induction args as [| a args IH] in h_closed |- *; simple; try easy.
-          f_equal; last first.
-          { now apply IH. }
-          assert (closed (term_of_val a)) as h_closed_a by easy.
-          unfold substl.
-          induction σ in h_closed_a |- *; simple; try easy.
-          now rewrite csubst_closed. }
-        rewrite heq''.
-        now apply IHheval2; simple.
-      * eassumption.
-      * simple. reflexivity.
-      * simple.
-      * simple.
-      * unfold iota_red.
-        simple.
-        unfold substl.
-        replace #|br.1| with (#|map term_of_val (List.rev con_args)| + 0) by now simple.
-        rewrite fold_left_csubst_app.
-        { simple.
-          intros x hIn%in_rev.
-          now eapply wellformed_closed, wellformed_val_wellformed. }
-        { simple.
-          intros x hIn.
-          now eapply wellformed_closed, wellformed_val_wellformed. }
-        rewrite -map_app.
-        apply IHheval3.
-        { simple. now intros x [ hIn%in_rev |hIn]%in_app_iff. }
-        rewrite heq5.
-        now eapply wf_e, nth_error_In.
+    + apply IHheval1; now simple.
+    + unfold EGlobalEnv.cunfold_cofix; simple.
+      reflexivity.
+    + apply eval_SI_wellformed_val in heval1 as hwf; simple; last easy.
+      unfold wf_fix, test_def in hwf; simple.
+      unshelve epose proof IHheval2 _ _; simple; try easy.
+      { repeat split; simple; try easy.
+        rewrite wellformed_mkApps; simple; split; last first.
+        { now intros; apply wellformed_val_wellformed. }
+        apply wellformed_substl; simple.
+        - rewrite cofix_env_map.
+          intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff| hIn]%in_app_iff; subst;
+            apply wellformed_val_wellformed; try easy.
+          simple; unfold wf_fix, test_def; simple; repeat split; try easy.
+          now apply Nat.ltb_lt.
+        - injection heq1 as ?; subst.
+          apply nth_error_In in heq.
+          now eapply wellformed_up. }
+      lazymatch goal with
+      | h: EWcbvEval.eval _ ?e1 (term_of_val _)
+        |- EWcbvEval.eval _ ?e2 _ =>
+          assert (e1 = e2) as <-; last easy
+      end.
+      do 2 f_equal; last first.
+      { rewrite map_map_compose.
+        apply All_map_eq. simple.
+        intros arg hIn.
+        assert (closed (term_of_val arg)) as h_closed.
+        { now eapply wellformed_closed, wellformed_val_wellformed.  }
+        now eapply fold_left_csubst_closed. }
+      injection heq1 as ?; subst.
+      simple. rewrite fold_left_map_def; fold csubst; simple.
+      unfold substl at 3.
+      rewrite cofix_subst_map.
+      simple.
+      assert (#|mfix| = #|(map (tCoFix (map (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix|) b) (map term_of_val env)) mfix)) (List.rev (seq 0 #|mfix|)))| + 0) as h by now simple.
+      rewrite {3}h.
+      rewrite fold_left_csubst_app; simple.
+      { intros ? ?%in_rev%in_seq.
+        simple. intros ? ?.
+        unfold test_def.
+        rewrite fold_left_map_def; fold csubst; simple.
+        rewrite Nat.add_0_r.
+        apply closed_fold_left_csubst; simple; last now eapply wellformed_closed.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now eapply wellformed_closed, wellformed_val_wellformed. }
+      { intros. now eapply wellformed_closed, wellformed_val_wellformed. }
+      unfold substl.
+      erewrite fold_left_csubst_closed; last reflexivity; last first.
+      { apply closed_fold_left_csubst; simple; last first.
+        { eapply wellformed_closed. now apply nth_error_In in heq. }
+        rewrite cofix_env_map.
+        intros ? (? & ? & [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff)%in_map_iff ?; subst;
+          eapply wellformed_closed, wellformed_val_wellformed; try easy.
+        simple; unfold wf_fix; simple; repeat split; try easy.
+        now apply Nat.ltb_lt. } 
+      f_equal.
+      rewrite map_app; f_equal.
+      rewrite cofix_env_map map_map_compose.
+      apply map_ext.
+      intros; simple.
+      reflexivity.
+
+  - unfold cunfold_cofix in heq1.
+    destruct (nth_error mfix idx) eqn:heq; last easy; simple.
+    eapply EWcbvEval.eval_cofix_proj.
+    + apply IHheval1; now simple.
+    + unfold EGlobalEnv.cunfold_cofix; simple.
+      reflexivity.
+    + apply eval_SI_wellformed_val in heval1 as hwf; simple; last easy.
+      unfold wf_fix, test_def in hwf; simple.
+      unshelve epose proof IHheval2 _ _; simple; try easy.
+      { repeat split; simple; try easy.
+        rewrite wellformed_mkApps; simple; split; last first.
+        { now intros; apply wellformed_val_wellformed. }
+        apply wellformed_substl; simple.
+        - rewrite cofix_env_map.
+          intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff| hIn]%in_app_iff; subst;
+            apply wellformed_val_wellformed; try easy.
+          simple; unfold wf_fix, test_def; simple; repeat split; try easy.
+          now apply Nat.ltb_lt.
+        - injection heq1 as ?; subst.
+          apply nth_error_In in heq.
+          now eapply wellformed_up. }
+      lazymatch goal with
+      | h: EWcbvEval.eval _ ?e1 (term_of_val _)
+        |- EWcbvEval.eval _ ?e2 _ =>
+          assert (e1 = e2) as <-; last easy
+      end.
+      do 2 f_equal; last first.
+      { rewrite map_map_compose.
+        apply All_map_eq. simple.
+        intros arg hIn.
+        assert (closed (term_of_val arg)) as h_closed.
+        { now eapply wellformed_closed, wellformed_val_wellformed.  }
+        now eapply fold_left_csubst_closed. }
+      injection heq1 as ?; subst.
+      simple. rewrite fold_left_map_def; fold csubst; simple.
+      unfold substl at 3.
+      rewrite cofix_subst_map.
+      simple.
+      assert (#|mfix| = #|(map (tCoFix (map (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix|) b) (map term_of_val env)) mfix)) (List.rev (seq 0 #|mfix|)))| + 0) as h by now simple.
+      rewrite {3}h.
+      rewrite fold_left_csubst_app; simple.
+      { intros ? ?%in_rev%in_seq.
+        simple. intros ? ?.
+        unfold test_def.
+        rewrite fold_left_map_def; fold csubst; simple.
+        rewrite Nat.add_0_r.
+        apply closed_fold_left_csubst; simple; last now eapply wellformed_closed.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now eapply wellformed_closed, wellformed_val_wellformed. }
+      { intros. now eapply wellformed_closed, wellformed_val_wellformed. }
+      unfold substl.
+      erewrite fold_left_csubst_closed; last reflexivity; last first.
+      { apply closed_fold_left_csubst; simple; last first.
+        { eapply wellformed_closed. now apply nth_error_In in heq. }
+        rewrite cofix_env_map.
+        intros ? (? & ? & [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff)%in_map_iff ?; subst;
+          eapply wellformed_closed, wellformed_val_wellformed; try easy.
+        simple; unfold wf_fix; simple; repeat split; try easy.
+        now apply Nat.ltb_lt. } 
+      f_equal.
+      rewrite map_app; f_equal.
+      rewrite cofix_env_map map_map_compose.
+      apply map_ext.
+      intros; simple.
+      reflexivity.
   - rewrite /substl /= in IHheval. econstructor; try easy.
     apply IHheval; try easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
