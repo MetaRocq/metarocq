@@ -43,6 +43,11 @@ Section Val_rel.
   Context {wfl : WcbvFlags}.
   Variable Σ : global_context.
   
+  (* TODO: add cofix, might be necessary to need for them to reduce to vConstr, or 
+    cofix1 ->> v1 ->
+    cofix2 ->> v2 ->
+    exp_rel (case v1) (case v2)
+  *)
   Fixpoint val_rel' (PostG : PostGT) (k : nat) (v1 v2 : value) {struct k} : Prop :=
     let fix val_rel_aux (v1 v2 : value) {struct v1} : Prop :=
       let fix Forall2_aux vs1 vs2 : Prop := 
@@ -473,6 +478,7 @@ Section LogRelProps.
   Proof.
     induction k as [[|k] IH] in v |- * using strong_nat_ind;
     induction v; try now simple.
+    - admit.
     - inversion X as [| | | [? ?] [? ?]]; subst; now simple.
     - intros v1 v2 j j_le_Sk v1_rel_v2 v' n1 n1_le_j h_eval.
       repeat econstructor; simple; try easy.
@@ -482,6 +488,7 @@ Section LogRelProps.
       repeat econstructor; simple; try easy.
       + admit.
       + admit.
+    - admit.
     - inversion X as [| | | [? ?] [? ?]]; subst; now simple.
     - intros j j_le_Sk v n1 n1_le_j h_eval.
       repeat econstructor; simple; try easy.
@@ -527,14 +534,9 @@ Section LogRelProps.
       + now econstructor.
       + admit.
       + now eapply val_rel_monotonic; last eassumption.
+    - admit.
     - unshelve epose proof IHe1 _ k _ _ _ Γ_rel_Γ' _ _ _ X
-        as ([| | | | |] & c1' & [e1_eval_v_e1'] & hpost & b0'_rel_v_e1'); try easy.
-      unshelve epose proof IHe2 _ _ _ _ _ Γ_rel_Γ' _ _ _ X0
-        as (v_e2' & c2' & [e2_eval_v_e2'] & hpost2 & v1_rel_v_e2'); try easy.
-      repeat econstructor; try easy.
-      admit.
-    - unshelve epose proof IHe1 _ k _ _ _ Γ_rel_Γ' _ _ _ X
-        as ([| | na' b' Γ'0' | | |] & c1' & [e1_eval_v_e1'] & hpost & b0'_rel_v_e1'); try easy.
+        as ([| | na' b' Γ'0' | | | |] & c1' & [e1_eval_v_e1'] & hpost & b0'_rel_v_e1'); try easy.
       unshelve epose proof IHe2 _ _ _ _ _ Γ_rel_Γ' _ _ _ X0
         as (v_e2' & c2' & [e2_eval_v_e2'] & hpost2 & v1_rel_v_e2'); try easy.
       assert (val_rel' Σ PostG (min (k - c1 - 1) (k - c2)) a' v_e2') as h
@@ -545,6 +547,7 @@ Section LogRelProps.
       + admit.
       + simple.
         now eapply val_rel_monotonic; try eassumption.
+    - admit.
     - admit.
     - admit.
     - repeat eexists.

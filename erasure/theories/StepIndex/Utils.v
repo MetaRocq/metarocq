@@ -9,12 +9,15 @@ From MetaRocq.Utils Require Import bytestring MRString.
 From Stdlib Require Import ssreflect ssrbool.
 Set Default Proof Using "Type*".
 
-
+Print cunfold_fix.
 Definition cunfold_fix (mfix : mfixpoint term) (idx : nat) :=
   match nth_error mfix idx with
-  | Some ({| dbody := tLambda _ d |}) => Some d
+  | Some {| dbody := tLambda _ d |} => Some d
   | _ => None
   end.
+
+  
+Definition cunfold_cofix (mfix : mfixpoint term) (idx : nat) := option_map dbody (nth_error mfix idx).
 
 
 Fixpoint All3_over {A B C : Type} {P : A -> B -> C -> Type} {la : list A} {lb : list B} {lc : list C}
@@ -76,4 +79,90 @@ Proof.
   generalize #|l| as n.
   induction n; first reflexivity.
   now rewrite IHn seq_S rev_app_distr.
+Qed.
+
+
+Lemma cofix_subst_map l : cofix_subst l = map (tCoFix l) (List.rev (seq 0 #|l|)).
+Proof.
+  unfold cofix_subst.
+  generalize #|l| as n.
+  induction n; first reflexivity.
+  now rewrite IHn seq_S rev_app_distr.
+Qed.
+
+
+
+Lemma isCoFixApp_eval 
+  {efl : EEnvFlags} {wfl : WcbvFlags} Σ t v :
+  isCoFix (head t) ->
+  eval Σ t v ->
+  isCoFix (head v).
+Proof.
+  intros hCofixApp heval.
+  induction heval; subst;
+  rewrite ->?head_tApp in *; simple; try easy.
+Qed.
+
+
+
+(* From ImplementBox *)
+
+Lemma wellformed_lookup_inductive_pars {efl : EEnvFlags} Σ kn mdecl :
+  has_cstr_params = false ->
+  wf_glob Σ ->
+  lookup_minductive Σ kn = Some mdecl -> mdecl.(ind_npars) = 0.
+Proof.
+  intros hasp.
+  induction 1; cbn => //.
+  case: eqb_spec => [|].
+  - intros ->. destruct d => //. intros [= <-].
+    cbn in H0. unfold wf_minductive in H0.
+    rtoProp. cbn in H0. rewrite hasp in H0; now eapply eqb_eq in H0.
+  - intros _. eapply IHwf_glob.
+Qed.
+
+Lemma wellformed_lookup_constructor_pars {efl : EEnvFlags} {Σ kn c mdecl idecl cdecl} :
+  has_cstr_params = false ->
+  wf_glob Σ ->
+  lookup_constructor Σ kn c = Some (mdecl, idecl, cdecl) -> mdecl.(ind_npars) = 0.
+Proof.
+  intros hasp wf. cbn -[lookup_minductive].
+  destruct lookup_minductive eqn:hl => //.
+  do 2 destruct nth_error => //.
+  eapply wellformed_lookup_inductive_pars in hl => //. congruence.
+Qed.
+
+Lemma lookup_constructor_pars_args_spec {efl : EEnvFlags} {Σ ind n mdecl idecl cdecl} :
+  wf_glob Σ ->
+  lookup_constructor Σ ind n = Some (mdecl, idecl, cdecl) ->
+  lookup_constructor_pars_args Σ ind n = Some (mdecl.(ind_npars), cdecl.(cstr_nargs)).
+Proof.
+  cbn -[lookup_constructor] => wfΣ.
+  destruct lookup_constructor as [[[mdecl' idecl'] [pars args]]|] eqn:hl => //.
+  intros [= -> -> <-]. cbn. f_equal.
+Qed.
+
+Lemma wellformed_lookup_constructor_pars_args {efl : EEnvFlags} {Σ ind k n block_args} :
+  wf_glob Σ ->
+  has_cstr_params = false ->
+  wellformed Σ k (EAst.tConstruct ind n block_args) ->
+  ∑ args, lookup_constructor_pars_args Σ ind n = Some (0, args).
+Proof.
+  intros wfΣ hasp wf. cbn -[lookup_constructor] in wf.
+  destruct lookup_constructor as [[[mdecl idecl] cdecl]|] eqn:hl => //.
+  exists cdecl.(cstr_nargs).
+  pose proof (wellformed_lookup_constructor_pars hasp wfΣ hl).
+  eapply lookup_constructor_pars_args_spec in hl => //. congruence.
+  destruct has_tConstruct => //.
+Qed.
+
+Lemma constructor_isprop_pars_decl_params {efl : EEnvFlags} {Σ ind c b pars cdecl} :
+  has_cstr_params = false -> wf_glob Σ ->
+  constructor_isprop_pars_decl Σ ind c = Some (b, pars, cdecl) -> pars = 0.
+Proof.
+  intros hasp hwf.
+  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive.
+  destruct lookup_minductive as [mdecl|] eqn:hl => /= //.
+  do 2 destruct nth_error => //.
+  eapply wellformed_lookup_inductive_pars in hl => //. congruence.
 Qed.

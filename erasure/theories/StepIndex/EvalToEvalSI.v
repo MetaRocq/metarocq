@@ -6,6 +6,7 @@ From MetaRocq.PCUIC Require PCUICWcbvEval.
 From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils ELiftSubst ECSubst EReflect EGlobalEnv EWellformed EWcbvEval.
 From MetaRocq.Utils Require Import bytestring MRString.
 From MetaRocq.Erasure Require Import EWcbvEvalCstrsAsBlocksFixLambdaInd.
+From MetaRocq.Erasure Require Import EImplementBox.
 From MetaRocq.Erasure.StepIndex Require Import Tactics Utils SubstLemmas Values Primitives EvalStepIndex.
 From Stdlib Require Import Relations.Relations.
 From Equations Require Import Equations.
@@ -68,10 +69,9 @@ Section eval_eval_SI_atom.
     (Σ : global_context)
     (t u : term) 
     (Γ : environment) :
-    with_guarded_fix = false ->
     has_tApp ->
     cstr_as_blocks ->
-    with_constructor_as_block = true ->
+    with_constructor_as_block ->
     wf_glob Σ ->
     atom Σ t ->
     wellformed Σ 0 t ->
@@ -80,7 +80,7 @@ Section eval_eval_SI_atom.
     wellformed Σ #|Γ| u ->
     ∑ (n : nat) (v' : value), term_of_val v' = t × eval Σ Γ u v' n.
   Proof.
-    intros h_unguarded hApp hCstrBlocks hCstrBlocks' wf_Σ atom_t wf_t wf_Γ heq wf_u.
+    intros hApp hCstrBlocks hCstrBlocks' wf_Σ atom_t wf_t wf_Γ heq wf_u.
     destruct t; simple; try easy.
     - crush tBox_substl_eq term_of_val_eq_box.
     - crush tLambda_substl_eq term_of_val_eq_lambda.
@@ -131,7 +131,7 @@ Lemma eval_eval_SI_prim
   (u : term)
   (ev : eval_primitive (EWcbvEval.eval Σ) p p') Γ :
   has_tApp ->
-  with_constructor_as_block = cstr_as_blocks ->
+  cstr_as_blocks ->
   wf_glob Σ ->
   forallb (wellformed_val Σ) Γ ->
   tPrim p = substl (map term_of_val Γ) u ->
@@ -236,10 +236,11 @@ Qed.
 
 Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u :
   ~~ with_prop_case ->
-  with_guarded_fix = false ->
+  ~~ with_guarded_fix ->
+  ~~ has_cstr_params ->
   has_tApp ->
-  cstr_as_blocks = true ->
-  with_constructor_as_block = true ->
+  cstr_as_blocks ->
+  with_constructor_as_block ->
   wf_glob Σ ->
   wellformed Σ #|Γ| u ->
   forallb (wellformed_val Σ) Γ ->
@@ -248,7 +249,7 @@ Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u :
   ∑ (n : nat) (v' : value),
   term_of_val v' = v × eval Σ Γ u v' n.
 Proof.
-  intros h_prop_case h_unguarded hApp hCstrBlocks hCstrBlocks' wf_Σ wf_u wf_Γ h_eval heq.
+  intros h_prop_case h_unguarded h_pars hApp hCstrBlocks hCstrBlocks' wf_Σ wf_u wf_Γ h_eval heq.
   assert (wellformed Σ 0 e) as wf_e.
   { subst. apply wellformed_substl; simple.
     - intros ? ?. now apply wellformed_val_wellformed.
@@ -261,14 +262,32 @@ Proof.
   { easy. }
   all: intros.
   all: repeat match reverse goal with  [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-  - unshelve epose proof tApp_substl_eq _ _ _ _ hCstrBlocks heq as (u1 & u2 & ?); subst; simple; try easy.
+  - unshelve epose proof tApp_substl_eq _ _ _ _ heq as [[n ?] |(u1 & u2 & ?)]; subst; simple.
+    { destruct (nth_error Γ n) as [v'|] eqn:heq'; last first.
+      - rewrite substl_tRel_None in heq; now simple.
+      - erewrite substl_tRel in heq; simple; try easy; last first.
+        { now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In.  }
+        destruct v'; simple; try my_discr.
+        apply (f_equal head) in heq.
+        rewrite head_tApp head_mkApps in heq.
+        apply isCoFixApp_eval in H; first easy.
+        now rewrite heq. }
     injection heq as ? ?; subst.
     unshelve epose proof s Γ _ _ eq_refl
     as (n1 & v'1 & ?%term_of_val_eq_box & h_eval1); subst; simple; try easy.
     unshelve epose proof s0 Γ _ _ eq_refl _
     as (n2 & v'2 & ? & h_eval2); simple; try easy.
     exists (n1 + n2 + 1), vBox; split; econstructor; easy.
-  - pose proof tApp_substl_eq _ _ _ _ hCstrBlocks heq as (u1 & u2 & ?); subst; simple.
+  - unshelve epose proof tApp_substl_eq _ _ _ _ heq as [[n ?]|(u1 & u2 & ?)]; subst; simple.
+    { destruct (nth_error Γ n) as [v' |] eqn:heq'; last first.
+      - rewrite substl_tRel_None in heq; now simple.
+      - erewrite substl_tRel in heq; simple; try easy; last first.
+        { now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In.  }
+        destruct v'; simple; try my_discr.
+        apply (f_equal head) in heq.
+        rewrite head_tApp head_mkApps in heq.
+        apply isCoFixApp_eval in H; first easy.
+        now rewrite heq. }
     injection heq as ? ?; subst.
     unshelve epose proof s Γ _ _ eq_refl
     as (n1 & v'1 & heq1 & h_eval1); subst; simple; try easy.
@@ -308,7 +327,7 @@ Proof.
     unshelve epose proof s Γ _ _ eq_refl
     as (n1 & v'1 & heq1 & h_eval1); simple; try easy.
     epose proof term_of_val_eq_construct _ _ _ _ heq1 as (args' & ?); subst.
-    simple. rewrite hCstrBlocks in heq1.
+    simple.
     injection heq1 as ?; subst.
     unfold iota_red in *.
     unshelve epose proof s0 (List.rev (skipn pars args') ++ Γ) _  p.2 _
@@ -338,15 +357,25 @@ Proof.
     { rewrite H3.
       destruct br; injection H1 as ?; subst; simple.
       now eapply wf_u, nth_error_In. }
-    (* The reduction wants no parameters, see if needed or if we relax the red *)
-    assert (pars = 0) by admit; subst.
+    assert (pars = 0); last subst.
+    { eapply constructor_isprop_pars_decl_params; try easy.
+      now destruct has_cstr_params. }
     exists (n1 + n2 + 1), v'2; do 2 econstructor; try easy; simple.
     destruct br; injection H1 as ?; subst; simple.
-  - admit. (* PropCase *) (* TODO: add *)
-  - rewrite h_unguarded in H. discriminate.
-  - rewrite h_unguarded in H. discriminate.
+  - rewrite H in h_prop_case. discriminate.
+  - rewrite H in h_unguarded. discriminate.
+  - rewrite H in h_unguarded. discriminate.
   - now apply X.
-  - pose proof tApp_substl_eq _ _ _ _ hCstrBlocks heq as (u1 & u2 & ?); subst; simple.
+  - unshelve epose proof tApp_substl_eq _ _ _ _ heq as [[n ?]|(u1 & u2 & ?)]; subst; simple.
+    { destruct (nth_error Γ n) as [v' |] eqn:heq'; last first.
+      - rewrite substl_tRel_None in heq; now simple.
+      - erewrite substl_tRel in heq; simple; try easy; last first.
+        { now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In.  }
+        destruct v'; simple; try my_discr.
+        apply (f_equal head) in heq.
+        rewrite head_tApp head_mkApps in heq.
+        apply isCoFixApp_eval in H0; first easy.
+        now rewrite heq. }
     injection heq as ? ?; subst.
     unshelve epose proof s Γ _ u1 eq_refl _ as (n1 & v1 & heq1 & h_eval1); simple; rewrite ->?hCstrBlocks in *; try easy.
     epose proof term_of_val_eq_fix _ _ _ heq1 as (mfix' & env & heq); subst.
@@ -407,7 +436,14 @@ Proof.
         rewrite heq.
         reflexivity.
       + now rewrite fix_env_map.
-  - admit. (* CoFix *)
+  - pose proof tCase_substl_eq _ _ _ _ _ heq as (discr' & brs' & ?); subst.
+    simple.
+    injection heq as ? ?; subst.
+    unshelve epose proof s _ _ _ eq_refl _ as (n1 & v'1 & heq1 & heval1); simple; try easy.
+    pose proof term_of_val_eq_cofix _ _ _ _ heq1 as (mfix' & Γ' & args' & heq'); subst; simple.
+    apply mkApps_eq_inj in heq1 as [[= ?] ?]; subst; simple; try easy.
+    admit.
+
   - admit. (* CoFix *)
   - apply tConst_substl_eq in heq; subst.
     pose proof s [] eq_refl body eq_refl i as (n & v' & ? & h_eval'); subst.
@@ -418,7 +454,6 @@ Proof.
     rewrite ->!hCstrBlocks in *.
     unshelve epose proof s Γ _ u' eq_refl _ as (n1 & ? & heq1 & h_eval1); simple; try easy.
     pose proof term_of_val_eq_construct _ _ _ _ heq1 as (args' & heq1'); subst; simple.
-    rewrite hCstrBlocks in heq1.
     injection heq1 as ?; subst.
     simple.
     destruct (nth_error args' (proj_npars p + proj_arg p)) eqn:heq; last easy.
@@ -437,18 +472,25 @@ Proof.
       pose proof eval_SI_deterministic _ _ _ _ _ _ _ h_eval2 heval' as (? & ?); subst.
       assumption. }
     now econstructor.
-  - admit. (* Proj of tBox *) (* TODO: add *) (* can be removed *)
-  - admit.
+  - rewrite H0 in h_prop_case. discriminate.
+  - assert (∑ mfix idx args, f' = mkApps (tCoFix mfix idx) args).
+    { assert (EWcbvEval.value Σ f') as val_f' by now eapply eval_to_value.
+      inversion val_f'; subst; simple; try easy.
+      + inversion X; subst; last now simple.
+        destruct f'; simple; try easy.
+        do 2 eexists. now exists [].
+      + inversion H1; simple; try easy; last now destruct with_guarded_fix.
+        subst. eauto. }
+    admit.
   - pose proof tConstruct_substl_eq _ _ _ _ _ heq as [(n & ?) | (args'' & ?)]; subst; simple.
     + destruct (nth_error Γ n) as [?|] eqn:heq'; simple; last first.
       { erewrite substl_tRel_None in heq; simple; easy. }
       erewrite substl_tRel in heq; simple; try easy; last first.
       { now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In. }
       destruct v0; simple; try my_discr.
-      rewrite hCstrBlocks in heq.
       injection heq as ? ?; subst.
       exists 0, (vConstruct ind0 c args0).
-      simple. rewrite hCstrBlocks.
+      simple.
       split; last now constructor.
       f_equal.
       assert (forallb (wellformed_val Σ) args0) as h_wf.
@@ -481,12 +523,10 @@ Proof.
         now apply ih_t1_t2 with (u := t1); simple. }
       exists (list_sum (extract_ns IH) + 1), (vConstruct ind i (extract_vs IH)).
       split; simple.
-      { rewrite hCstrBlocks.
-        f_equal. clear.
+      { f_equal. clear.
         unfold extract_vs.
         induction IH as [| ? ? ? ? (n & v & h1 & h2) ? ?]; now simple. }
       econstructor; simple; try easy.
-      { now rewrite H0. }
       now apply extract_All3_left.
   - now eapply eval_eval_SI_prim.
   - pose proof tForce_substl_eq _ _ _ heq as (u' & heq'); subst; simple.
