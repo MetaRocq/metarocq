@@ -169,7 +169,7 @@ Proof.
 Qed.
 
 
-Lemma closed_fold_left_csubst {efl : EEnvFlags} {wfl : WcbvFlags} k b env :
+Lemma closed_fold_left_csubst {efl : EEnvFlags} k b env :
   All (λ x, ∀ k, closedn k x) env -> 
   closedn (k + #|env|) b ->
   closedn k (fold_left (λ b0 t0 : term, csubst t0 k b0) env b).

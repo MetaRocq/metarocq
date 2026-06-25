@@ -13,7 +13,6 @@ From Stdlib Require Import ssreflect ssrbool.
 Set Default Proof Using "Type*".
 
 Section Wcbv.
-  Context {wfl : WcbvFlags}.
   Context (Σ : global_declarations).
   
   Unset Elimination Schemes.
@@ -80,7 +79,6 @@ Section Wcbv.
       eval Γ (tCase (ind, 0) discr brs) res (c1 + c2 + 1)
 
   | eval_proj p cdecl discr args a n :
-      with_constructor_as_block ->
       eval Γ discr (vConstruct (proj_ind p) 0 args) n ->
       constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
       #|args| = proj_npars p + cstr_nargs cdecl ->
@@ -99,10 +97,15 @@ Section Wcbv.
   | eval_fix mfix idx :
       eval Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0
 
-  | eval_cofix mfix idx args args' ns :
-      All3 (eval Γ) args args' ns ->
-      eval Γ (mkApps (tCoFix mfix idx) args) (vCoFixClos mfix idx Γ args') (list_sum ns + 1)
-      (* TODO maybe have a ->> cofix and mkApps a args -> vCofix *)
+
+  | eval_cofix mfix idx :
+      eval Γ (tCoFix mfix idx) (vCoFixClos mfix idx Γ []) 0
+
+  | eval_cofix_app arg arg' a mfix idx env args n1 n2 :
+      eval Γ a (vCoFixClos mfix idx env args) n1 ->
+      eval Γ arg arg' n2 ->
+      eval Γ (tApp a arg) (vCoFixClos mfix idx env (args ++ [arg'])) (n1 + n2 + 1)
+      
 
   | eval_cofix_case discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
@@ -114,6 +117,17 @@ Section Wcbv.
       #|con_args| = #|br.1| ->
       eval ((List.rev con_args) ++ Γ) br.2 res n3 ->
       eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1)
+
+    (* 
+      Problèmes:
+      - Pas d'hypothèse de récurrence sur `mkApps fn (map term_of_val args')`
+      - On est pas sûr que `mkApps fn (map term_of_val args')` se réduise en construct, ça pourrait être un cofix
+        (techniquement évité par la contrainte de productivité je pense, mais l'info est probablement pas conservée à l'effacement)
+      Solution envisageable:
+      evaluer `tCase (mkApps (substl (cofix_env mfix env ++ env) fn) (map term_of_val args)) brs`, on perd un peu l'intérêt de l'environnement, mais on gagne le fait que ce qu'on veut prouver est prouvable
+
+    *)
+
 
       (** Constant unfolding *)
   | eval_delta c decl body (isdecl : declared_constant Σ c decl) res cost :
@@ -131,12 +145,6 @@ Section Wcbv.
       eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + 1)
     (* maybe add #|cs| in cost like for fuel_sem *)
 
-  (* | eval_construct_block_empty ind c mdecl idecl cdecl :
-     lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
-     eval Γ (tConstruct ind c []) (vConstruct ind c []) *)
-  (* Seems handled by the case above *)
-  (* TODO: can be removed *)
-
   | eval_prim p p' c :
       eval_primitive_step_index (eval Γ) p p' c ->
       eval Γ (tPrim p) (vPrim p') c
@@ -150,7 +158,7 @@ Section Wcbv.
   .
 
   Section EvalInd.
-    Variable (P : ∀ {wfl : WcbvFlags} (Γ : environment) (t : term) (v : value) (cost : nat), eval Γ t v cost -> Type).
+    Variable (P : ∀ (Γ : environment) (t : term) (v : value) (cost : nat), eval Γ t v cost -> Type).
     Variable f_box : ∀ {Γ}, P Γ tBox vBox 0 (eval_box Γ).
     Variable f_box_app : ∀ {Γ a t v n1 n2 e1 e2},
       P Γ a vBox n1 e1 ->
@@ -178,9 +186,9 @@ Section Wcbv.
         P Γ discr (vConstruct ind c args) c1 e ->
         P (List.rev args ++ Γ) br.2 res c2 e4 ->
         P Γ (tCase (ind, 0) discr brs) res _ (eval_iota_block Γ ind cdecl discr c args brs br res c1 c2 e e0 e1 e2 e3 e4).
-    Variable f_proj : ∀ {Γ p cdecl discr args a n cstr_blcks e1 e2 e3 e4},
+    Variable f_proj : ∀ {Γ p cdecl discr args a n e1 e2 e3 e4},
       P Γ discr (vConstruct (proj_ind p) 0 args) n e1 ->
-      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n cstr_blcks e1 e2 e3 e4).
+      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n e1 e2 e3 e4).
     Variable f_fix_unfold :
       ∀ {Γ f mfix idx a av fn res Γ' c1 c2 c3 e e0 e1 e2},
       P Γ f (vRecClos mfix idx Γ') c1 e ->
@@ -190,12 +198,16 @@ Section Wcbv.
     Variable f_fix : 
       ∀ {Γ mfix idx},
       P Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0 (eval_fix Γ mfix idx).
-    Variable f_cofix : 
-      ∀ {Γ mfix idx args args' ns}
-        (a : All3 (eval Γ) args args' ns)
-        (IHa : All3_over a (P Γ)),
-        P Γ (mkApps (tCoFix mfix idx) args) (vCoFixClos mfix idx Γ args') _
-          (eval_cofix Γ mfix idx args args' ns a). 
+    Variable f_cofix :
+      ∀ {Γ mfix idx},
+      P _ _ _ _ (eval_cofix Γ mfix idx).
+    Variable f_cofix_app : 
+      ∀ {Γ arg arg' a mfix idx env args n1 n2}
+        { e1 : eval Γ a (vCoFixClos mfix idx env args) n1 }
+        { e2 : eval Γ arg arg' n2 },
+        P _ _ _ _ e1 ->
+        P _ _ _ _ e2 ->
+        P Γ _ _ _ (eval_cofix_app Γ arg arg' a mfix idx env args n1 n2 e1 e2). 
     Variable f_cofix_case : 
       ∀ {Γ discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
@@ -250,11 +262,13 @@ Section Wcbv.
         | @eval_lambda _ na b => f_lambda
         | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f_zeta (eval_rect e0) (eval_rect e1)
         | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f_iota_block (eval_rect e0) (eval_rect e5)
-        | @eval_proj _ _ _ _ _ _ _ _ e _ _ _  => f_proj (eval_rect e)
+        | @eval_proj _ _ _ _ _ _ _ e _ _ _  => f_proj (eval_rect e)
         | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 =>
             f_fix_unfold (eval_rect e0) (eval_rect e2) (eval_rect e3)
         | @eval_fix _ mfix idx => f_fix
-        | @eval_cofix _ mfix idx args args' ns a => f_cofix a (map_All3_dep _ (@eval_rect Γ) a)
+        | @eval_cofix _ mfix idx => f_cofix
+        | @eval_cofix_app _ arg arg' a mfix idx env args n1 n2 e1 e2 => 
+            f_cofix_app (eval_rect e1) (eval_rect e2)
         | @eval_cofix_case _ discr mfix idx env args fn ind c con_args cdecl
                     brs br res n1 n2 n3 e1 heq1 e2 heq2 heq3 heq4 heq5 e3 => 
               f_cofix_case (eval_rect e1) (eval_rect e2) (eval_rect e3)
@@ -266,15 +280,15 @@ Section Wcbv.
         | @eval_force _ Γ' t t' v c1 c2 ev ev' => f_force (eval_rect ev) (eval_rect ev')
         end.
   End EvalInd.
-  Definition eval_rec (P : WcbvFlags -> ∀ Γ t v cost, eval Γ t v cost -> Set) := @eval_rect P.
-  Definition eval_ind (P : WcbvFlags -> ∀ Γ t v cost, eval Γ t v cost -> Prop) := @eval_rect P.
+  Definition eval_rec (P : ∀ Γ t v cost, eval Γ t v cost -> Set) := @eval_rect P.
+  Definition eval_ind (P : ∀ Γ t v cost, eval Γ t v cost -> Prop) := @eval_rect P.
   Set Elimination Schemes.
 
 End Wcbv.
 
 
 
-Lemma eval_SI_wellformed_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
+Lemma eval_SI_wellformed_val {efl : EEnvFlags} Σ Γ e v n :
   cstr_as_blocks ->
   has_tApp ->
   wf_glob Σ ->
@@ -314,14 +328,11 @@ Proof.
     repeat split; try easy.
     now apply Nat.ltb_lt.
   - easy.
-  - rewrite wellformed_mkApps // in wf_e.
-    simple.
+  - easy.
+  - unshelve epose proof IHh_eval1 _ _; try easy.
+    unshelve epose proof IHh_eval2 _ _; try easy.
     repeat split; try easy.
-    induction a; simple; try easy.
-    destruct IHa as [? ?]; simple.
-    intros v [[] | hIn]; simple; try easy.
-    + apply i; simple. now apply wf_e.
-    + apply IHa0; now simple.
+    now intros x [hIn | [-> | []]]%in_app_iff.
   - unshelve epose proof IHh_eval1 _ _ as h; try easy.
     unfold wf_fix in h; simple.
     destruct h as [[[? wf_env] wf_args] [idx_lt_mfix%Nat.ltb_lt wf_mfix]].
@@ -396,7 +407,70 @@ Definition extract_vs {efl : EEnvFlags} {Σ args} {P : value -> nat -> value -> 
   (a2 : All (λ v, wellformed_val Σ v) args) := snd (extract a1 a2).
 
 
-Lemma eval_SI_val {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ v :
+Lemma All3_app_inv_first {A B C} (P : A -> B -> C -> Type) l1_1 l1_2 l2 l3 :
+  All3 P (l1_1 ++ l1_2) l2 l3 ->
+  ∑ l2_1 l2_2 l3_1 l3_2,
+    l2 = l2_1 ++ l2_2 × 
+    l3 = l3_1 ++ l3_2 ×
+    All3 P l1_1 l2_1 l3_1 ×
+    All3 P l1_2 l2_2 l3_2.
+Proof.
+  intros hAll.
+  induction l1_1 as [|h1 l1_1 IH] in l2, l3, hAll |- *.
+  - simple. exists [], l2, [], l3.
+    now repeat split.
+  - simple.
+    inversion hAll as [|? h2 h3 ? l2' l3' Phs hAll']; subst.
+    destruct (IH _ _ hAll') as (l2_1 & l2_2 & l3_1 & l3_2 & heq1 & heq2 & hAll1 & hAll2); subst.
+    exists (h2 :: l2_1), l2_2, (h3 :: l3_1), l3_2.
+    now repeat split.
+Qed.
+
+
+Lemma All3_snoc_inv_first {A B C} (P : A -> B -> C -> Type) l1 e1 l2 l3 :
+  All3 P (l1 ++ [e1]) l2 l3 ->
+  ∑ l2' e2 l3' e3,
+    l2 = l2' ++ [e2] × 
+    l3 = l3' ++ [e3] ×
+    All3 P l1 l2' l3' ×
+    P e1 e2 e3.
+Proof.
+  intros hAll.
+  apply All3_app_inv_first in hAll as (? & ? & ? & ? & ? & ? & ? & hAll'); subst.
+  inversion hAll'; subst.
+  inversion X0; subst.
+  now repeat eexists.
+Qed.
+
+
+Lemma eval_cofix_mkApps Σ Γ a mfix idx env n args args' ns :
+  eval Σ Γ a (vCoFixClos mfix idx env []) n ->
+  All3 (eval Σ Γ) args args' ns ->
+  eval Σ Γ (mkApps a args) (vCoFixClos mfix idx env args') (n + list_sum ns + #|ns|).
+Proof.
+  intros eval_a eval_args.
+  induction args
+  as [|arg args IH]
+  using list_rect_rev
+  in args', ns, eval_args |- *.
+  { simple. inversion eval_args; simple; subst.
+    now rewrite !Nat.add_0_r. }
+  apply All3_snoc_inv_first in eval_args 
+    as (args'' & arg' & ns' & n' & ? & ? & hAll' & eval_arg); subst.
+  rewrite list_sum_app.
+  simple.
+  epose proof eval_cofix_app _ _ _ _ _ _ _ _ _ _ _ (IH _ _ hAll') eval_arg.
+  rewrite mkApps_app /=.
+  match goal with 
+  | h: eval _ _ (tApp _ _) _ ?n1 
+    |- eval _ _ _ _ ?n2 => replace n2 with n1 by lia
+  end.
+  assumption.
+Qed.
+
+
+
+Lemma eval_SI_val {efl : EEnvFlags} Σ Γ v :
   has_tApp ->
   cstr_as_blocks ->
   wellformed_val Σ v ->
@@ -455,10 +529,11 @@ Proof.
       funelim (extract X0 X'); simple; try easy.
       destruct a as [? ?]. rewrite Heq in Hind.
       now f_equal. }
-    exists (list_sum (extract_ns X0 X') + 1).
+    exists (list_sum (extract_ns X0 X') + #|extract_ns X0 X'|).
     simple.
     eexists (vCoFixClos (map (fold_left (λ (b0 : def term) (t : term), map_def (csubst t #|b|) b0) (map term_of_val env)) b) idx Γ args'); simple; split; last first.
-    + eapply eval_cofix.
+    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps.
+      { constructor. }
       unfold args', extract_vs, extract_ns.
       clear. funelim (extract X0 X'); simple; constructor; try easy.
       { now destruct a. }
@@ -613,8 +688,8 @@ Proof.
       find_contra |
       edestruct IHeval1_1; first eassumption; subst;
       edestruct IHeval1_2; first eassumption; subst;
-      easy
-    | my_discr
+      easy |
+      my_discr
     ].
     edestruct IHeval1_1; first eassumption; subst.
     injection H as ? ?; subst.
@@ -624,30 +699,15 @@ Proof.
     easy.
   - inversion eval2; subst; easy || my_discr.
   - inversion eval2; subst; try my_discr || find_contra.
-    match type of H0 with
-    | mkApps ?a ?args = mkApps ?b ?args' =>
-        change a with (head a) in H0;
-        change b with (head b) in H0
-    end.
-    apply mkApps_head_inj in H0 as [h ?]; injection h as ? ?; subst.
-    assert (args' = args'0 ∧ ns = ns0); last easy.
-    revert IHa X.
-    clear.
-    induction args in a, args', args'0, ns, ns0 |- *.
-    { intros. inversion a. inversion X. easy. }
-    intros.
-    destruct args'; first inversion a.
-    destruct args'0; first inversion X.
-    remember (a0 :: args).
-    remember (v :: args').
-    destruct a eqn:heq; first discriminate; subst.
-    injection Heql as ? ?.
-    injection Heql0 as ? ?.
-    subst.
-    inversion X; subst.
-    destruct IHa.
-    edestruct IHargs; try easy.
-    edestruct a; easy.
+    easy.
+  - inversion eval2; subst; try solve[
+      find_contra |
+      edestruct IHeval1_1; first eassumption; subst;
+      edestruct IHeval1_2; first eassumption; subst;
+      easy |
+      my_discr
+    ].
+
   - inversion eval2; subst; try my_discr.
     { now apply IHeval1_1 in X. }
     apply IHeval1_1 in X as [[= ? ? ?] ?]; subst.
