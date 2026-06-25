@@ -26,15 +26,15 @@ Section Wcbv.
     - eval_fix : our fix are unguarded
     - eval_fix_value : our fix are unguarded
     - eval_fix' : OK
-    - eval_cofix_case : TODO
-    - eval_cofix_proj : TODO
+    - eval_cofix_case : OK but unsatisfactory
+    - eval_cofix_proj : OK but unsatisfactory
     - eval_delta : OK
     - eval_proj : OK
     - eval_proj_block : OK
     - eval_proj_prop : can be skipped
     - eval_construct : OK, might be removed, TODO: remove
     - eval_construct_block : OK 
-    - eval_app_cong : TODO, but might be handled by cofix 
+    - eval_app_cong : OK by eval_cofix_app
     - eval_prim : OK 
     - eval_atom : OK I think *)
 
@@ -105,9 +105,16 @@ Section Wcbv.
       eval Γ a (vCoFixClos mfix idx env args) n1 ->
       eval Γ arg arg' n2 ->
       eval Γ (tApp a arg) (vCoFixClos mfix idx env (args ++ [arg'])) (n1 + n2 + 1)
+  
+  
       
 
-  | eval_cofix_case discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3 :
+  | eval_cofix_case discr mfix idx env args fn ip brs res n1 n2 :
+      eval Γ discr (vCoFixClos mfix idx env args) n1 ->
+      cunfold_cofix mfix idx = Some fn ->
+      eval Γ (tCase ip (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args)) brs) res n2 ->
+      eval Γ (tCase ip discr brs) res (n1 + n2 + 1)
+      (* 
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
       eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct ind c con_args) n2 ->
@@ -116,7 +123,7 @@ Section Wcbv.
       #|con_args| = cdecl.(cstr_nargs) ->
       #|con_args| = #|br.1| ->
       eval ((List.rev con_args) ++ Γ) br.2 res n3 ->
-      eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1)
+      eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1) *)
 
     (* 
       Problèmes:
@@ -128,6 +135,22 @@ Section Wcbv.
 
     *)
 
+  | eval_cofix_proj discr mfix idx env args fn p res n1 n2 :
+      eval Γ discr (vCoFixClos mfix idx env args) n1 ->
+      cunfold_cofix mfix idx = Some fn ->
+      eval Γ (tProj p (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args))) res n2 ->
+      eval Γ (tProj p discr) res (n1 + n2 + 1)
+  (* 
+  
+  eval_cofix_proj
+     : ∀ (Σ0 : global_context) (p : projection) (mfix : mfixpoint term) (idx : nat) (args : list
+  term) (discr : term) (narg : nat) (fn
+  res : term),
+  eval Σ0 discr (mkApps (tCoFix mfix idx) args)
+  → EGlobalEnv.cunfold_cofix mfix idx = Some (narg, fn)
+  → eval Σ0 (tProj p (mkApps fn args)) res
+  → eval Σ0 (tProj p discr) res
+*)
 
       (** Constant unfolding *)
   | eval_delta c decl body (isdecl : declared_constant Σ c decl) res cost :
@@ -142,8 +165,7 @@ Section Wcbv.
       lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
       #|args| = ind_npars mdecl + cstr_nargs cdecl -> (* see if we add `ind_npars mdecl` or ask for no params *)
       All3 (eval Γ) args args' cs ->
-      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + 1)
-    (* maybe add #|cs| in cost like for fuel_sem *)
+      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + #|cs| + 1)
 
   | eval_prim p p' c :
       eval_primitive_step_index (eval Γ) p p' c ->
@@ -209,22 +231,29 @@ Section Wcbv.
         P _ _ _ _ e2 ->
         P Γ _ _ _ (eval_cofix_app Γ arg arg' a mfix idx env args n1 n2 e1 e2). 
     Variable f_cofix_case : 
-      ∀ {Γ discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3}
+      ∀ {Γ discr mfix idx env args fn ip brs res n1 n2}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
-        { e2 : eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct ind c con_args) n2 }
-        { heq2 : constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) }
-        { heq3 : nth_error brs c = Some br }
-        { heq4 : #|con_args| = cstr_nargs cdecl }
-        { heq5 : #|con_args| = #|br.1| }
-        { e3 : eval (List.rev con_args ++ Γ) br.2 res n3 },
+        { e2 : eval Γ 
+          (tCase ip (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args)) brs) 
+          res n2 },
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
-        P _ _ _ _ e3 ->
         P Γ _ _ _
           (eval_cofix_case 
-            Γ discr mfix idx env args fn ind c con_args cdecl 
-            brs br res n1 n2 n3 e1 heq1 e2 heq2 heq3 heq4 heq5 e3). 
+            Γ discr mfix idx env args fn ip brs res n1 n2 e1 heq1 e2). 
+      Variable f_cofix_proj : 
+      ∀ {Γ discr mfix idx env args fn p res n1 n2}
+        { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
+        { heq1 : cunfold_cofix mfix idx = Some fn }
+        { e2 : eval Γ 
+          (tProj p (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args))) 
+          res n2 },
+        P _ _ _ _ e1 ->
+        P _ _ _ _ e2 ->
+        P Γ _ _ _
+          (eval_cofix_proj 
+            Γ discr mfix idx env args fn p res n1 n2 e1 heq1 e2). 
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -269,9 +298,10 @@ Section Wcbv.
         | @eval_cofix _ mfix idx => f_cofix
         | @eval_cofix_app _ arg arg' a mfix idx env args n1 n2 e1 e2 => 
             f_cofix_app (eval_rect e1) (eval_rect e2)
-        | @eval_cofix_case _ discr mfix idx env args fn ind c con_args cdecl
-                    brs br res n1 n2 n3 e1 heq1 e2 heq2 heq3 heq4 heq5 e3 => 
-              f_cofix_case (eval_rect e1) (eval_rect e2) (eval_rect e3)
+        | @eval_cofix_case _ discr mfix idx env args fn ip brs res n1 n2 e1 heq1 e2 => 
+              f_cofix_case (eval_rect e1) (eval_rect e2)
+        | @eval_cofix_proj _ discr mfix idx env args fn p res n1 n2 e1 heq1 e2 => 
+              f_cofix_proj (eval_rect e1) (eval_rect e2)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs e0 l a =>
             f_constr_block e0 l a (map_All3_dep _ (@eval_rect Γ) a)
@@ -338,25 +368,49 @@ Proof.
     destruct h as [[[? wf_env] wf_args] [idx_lt_mfix%Nat.ltb_lt wf_mfix]].
     unfold test_def in wf_mfix.
     unshelve epose proof IHh_eval2 _ _ as h; try easy.
-    { intros x [hIn | hIn]%in_app_iff; last easy.
-      rewrite cofix_env_map in hIn.
-      apply in_map_iff in hIn as (? & ? & ?%in_rev%in_seq); subst.
-      simple; repeat split; try easy.
-      unfold wf_fix, test_def; simple; split; last easy.
-      now apply Nat.ltb_lt. }
-    { unfold cunfold_cofix in heq1.
-      destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
-      simple.
-      rewrite wellformed_mkApps; simple.
-      split.
-      { injection heq1 as ?; subst; simple.
-        now eapply wf_mfix, nth_error_In. }
-      intros.
-      apply wellformed_val_wellformed; try easy. }
-    apply IHh_eval3.
-    + now intros x [hIn%in_rev | hIn]%in_app_iff.
-    + unfold wf_brs in wf_e.
-      rewrite heq5. now eapply wf_e, nth_error_In.
+    repeat split; try easy.
+    rewrite wellformed_mkApps; simple; split.
+    + apply wellformed_substl; simple.
+      * rewrite cofix_env_map.
+        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; simple;
+        last now apply wellformed_val_wellformed.
+        simple; repeat split; try easy.
+        unfold wf_fix, test_def; simple; split; first now apply Nat.ltb_lt.
+        intros.
+        rewrite fold_left_map_def Nat.add_0_r; fold csubst.
+        apply wellformed_fold_left_csubst; simple; last easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
+        now apply wellformed_val_wellformed.
+      * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
+        unfold cunfold_cofix in heq1.
+        destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
+        simple. injection heq1 as ?; subst.
+        now apply nth_error_In in heq.
+    + now intros ? ?; apply wellformed_val_wellformed.
+  - unshelve epose proof IHh_eval1 _ _ as h; try easy.
+    unfold wf_fix in h; simple.
+    destruct h as [[[? wf_env] wf_args] [idx_lt_mfix%Nat.ltb_lt wf_mfix]].
+    unfold test_def in wf_mfix.
+    unshelve epose proof IHh_eval2 _ _ as h; try easy.
+    repeat split; try easy.
+    rewrite wellformed_mkApps; simple; split.
+    + apply wellformed_substl; simple.
+      * rewrite cofix_env_map.
+        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; simple;
+        last now apply wellformed_val_wellformed.
+        simple; repeat split; try easy.
+        unfold wf_fix, test_def; simple; split; first now apply Nat.ltb_lt.
+        intros.
+        rewrite fold_left_map_def Nat.add_0_r; fold csubst.
+        apply wellformed_fold_left_csubst; simple; last easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
+        now apply wellformed_val_wellformed.
+      * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
+        unfold cunfold_cofix in heq1.
+        destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
+        simple. injection heq1 as ?; subst.
+        now apply nth_error_In in heq.
+    + now intros ? ?; apply wellformed_val_wellformed.
   - apply IHh_eval; first easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
     simple.
@@ -461,11 +515,10 @@ Proof.
   simple.
   epose proof eval_cofix_app _ _ _ _ _ _ _ _ _ _ _ (IH _ _ hAll') eval_arg.
   rewrite mkApps_app /=.
-  match goal with 
-  | h: eval _ _ (tApp _ _) _ ?n1 
-    |- eval _ _ _ _ ?n2 => replace n2 with n1 by lia
+  now match goal with 
+  | h: eval _ _ _ _ ?n1 
+    |- eval _ _ _ _ ?n2 => replace n2 with n1
   end.
-  assumption.
 Qed.
 
 
@@ -635,6 +688,20 @@ Ltac find_contra :=
     | h : mkApps (tCoFix _ _) _ = tApp ?a ?b |- _ => aux isCoFix isCoFixApp_isvCoFix a b (eq_sym h)
     end.
 
+Ltac injections :=
+  repeat (
+    subst || simple ||
+    match goal with
+    | H: ?f _ = ?f _ |- _ => progress injection H as ?
+    | H: ?f _ _ = ?f _ _ |- _ => progress injection H as ?
+    | H: ?f _ _ _ = ?f _ _ _ |- _ => progress injection H as ?
+    | H: ?f _ _ _ _ = ?f _ _ _ _ |- _ => progress injection H as ?
+    | H: ?f _ _ _ _ _ = ?f _ _ _ _ _ |- _ => progress injection H as ?
+    | H: ?f _ _ _ _ _ _ = ?f _ _ _ _ _ _ |- _ => progress injection H as ?
+    end
+  ).
+
+
 Lemma eval_SI_deterministic
   {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ t v1 v2 n1 n2 :
   eval Σ Γ t v1 n1 ->
@@ -642,88 +709,29 @@ Lemma eval_SI_deterministic
   v1 = v2 ∧ n1 = n2.
 Proof.
   intros eval1 eval2.
-  induction eval1 in eval2, v2, n2 |- *.
-  - now inversion eval2; try my_discr; subst.
-  - inversion eval2; try my_discr; subst; try solve[
-      find_contra |
+  induction eval1 in eval2, v2, n2 |- *; try solve[
+    inversion eval2; subst; unfold declared_constant in *; solve[
+      find_contra | my_discr | easy |
+      injections;
+      edestruct IHeval1; first eassumption;
+      injections; 
+      easy |
+      injections;
       edestruct IHeval1_1; first eassumption;
+      injections;
       edestruct IHeval1_2; first eassumption;
-      now subst
-    ].
-  - inversion eval2; my_discr || easy.
-  - inversion eval2; subst; try solve[
-      find_contra |
+      injections;
+      easy |
+      injections;
       edestruct IHeval1_1; first eassumption;
-      now subst
-    ].
-    edestruct IHeval1_1; first eassumption.
-    subst. injection H as ? ? ?; subst.
-    edestruct IHeval1_2; first eassumption; subst.
-    edestruct IHeval1_3; first eassumption; subst.
-    easy.
-  - inversion eval2; subst; easy || my_discr.
-  - inversion eval2; subst; try solve[
-      edestruct IHeval1_1; first eassumption; subst;
-      edestruct IHeval1_2; first eassumption; subst;
-      easy | 
-      my_discr
-    ].
-  - inversion eval2; subst; try solve[
-      find_contra |
-      edestruct IHeval1_1; first eassumption; subst;
-      edestruct IHeval1_2; first eassumption; subst;
-      easy |
-      my_discr
-    ].
-    edestruct IHeval1_1; first eassumption; subst.
-    injection H as ? ?; subst.
-    assert (br = br0) by easy. subst.
-    edestruct IHeval1_2; first eassumption; subst.
-    easy.
-  - inversion eval2; subst; try my_discr.
-    edestruct IHeval1; first eassumption; subst.
-    injection H as ?; subst.
-    easy.
-  - inversion eval2; subst; try solve[
-      find_contra |
-      edestruct IHeval1_1; first eassumption; subst;
-      edestruct IHeval1_2; first eassumption; subst;
-      easy |
-      my_discr
-    ].
-    edestruct IHeval1_1; first eassumption; subst.
-    injection H as ? ?; subst.
-    assert (fn = fn0) by easy; subst.
-    edestruct IHeval1_2; first eassumption; subst.
-    edestruct IHeval1_3; first eassumption; subst.
-    easy.
-  - inversion eval2; subst; easy || my_discr.
-  - inversion eval2; subst; try my_discr || find_contra.
-    easy.
-  - inversion eval2; subst; try solve[
-      find_contra |
-      edestruct IHeval1_1; first eassumption; subst;
-      edestruct IHeval1_2; first eassumption; subst;
-      easy |
-      my_discr
-    ].
-
-  - inversion eval2; subst; try my_discr.
-    { now apply IHeval1_1 in X. }
-    apply IHeval1_1 in X as [[= ? ? ?] ?]; subst.
-    assert (fn = fn0) by congruence; subst.
-    apply IHeval1_2 in X0 as [[= ? ?] ?]; subst.
-    assert (cdecl = cdecl0) by congruence; subst.
-    assert (br = br0) by congruence; subst.
-    apply IHeval1_3 in X1 as [? ?]; subst.
-    easy.
-
-  - inversion eval2; subst; try my_discr.
-    assert (decl = decl0) by easy. subst.
-    assert (body = body0) by easy. subst.
-    edestruct IHeval1; first eassumption; subst.
-    easy.
-    
+      injections;
+      edestruct IHeval1_2; first eassumption;
+      injections;
+      edestruct IHeval1_3; first eassumption;
+      injections;
+      easy
+    ] 
+  ].
   - inversion eval2; subst; try my_discr.
     assert (args' = args'0 ∧ cs = cs0); last easy.
     revert IHa X.
@@ -768,10 +776,4 @@ Proof.
     destruct X0.
     edestruct IHv; try easy.
     edestruct a1; easy.
-  - inversion eval2; subst; easy || my_discr.
-  - inversion eval2; subst; try my_discr.
-    edestruct IHeval1_1; first eassumption; subst.
-    injection H as ? ?; subst.
-    edestruct IHeval1_2; first eassumption; subst.
-    easy.
 Qed.

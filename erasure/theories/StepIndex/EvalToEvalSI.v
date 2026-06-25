@@ -439,10 +439,157 @@ Proof.
     unshelve epose proof s _ _ _ eq_refl _ as (n1 & v'1 & heq1 & heval1); simple; try easy.
     pose proof term_of_val_eq_cofix _ _ _ _ heq1 as (mfix' & Γ' & args' & heq'); subst; simple.
     apply mkApps_eq_inj in heq1 as [[= ?] ?]; subst; simple; try easy.
-    
-    admit.
-
-  - admit. (* CoFix *)
+    unfold EGlobalEnv.cunfold_cofix, cunfold_cofix in *.
+    simple. destruct (nth_error mfix' idx) eqn:heq; simple; last easy.
+    injection H as ? ?; subst.
+    set u :=
+      tCase 
+        ip 
+        (mkApps (substl (cofix_subst (map (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix'|) b) (map term_of_val Γ')) mfix')) (dbody (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix'|) b) (map term_of_val Γ') d))) (map term_of_val args')) 
+        brs'.
+    apply eval_SI_wellformed_val in heval1 as hwf; simple; try easy.
+    unfold wf_fix, test_def in hwf; simple.
+    unshelve epose proof s0 Γ _ u _ _ as (n2 & v'2 & heq2 & heval2); subst u; simple; try easy.
+    { do 2 f_equal.
+      - rewrite cofix_subst_map.
+        symmetry. eapply fold_left_csubst_closed; last reflexivity.
+        apply closed_fold_left_csubst; simple.
+        + intros ? (? & ? & ?%in_rev%in_seq)%in_map_iff ?; subst; simple.
+          intros x hIn.
+          unfold test_def.
+          rewrite fold_left_map_def; fold csubst; simple.
+          eapply @closed_upwards with (k := #|mfix'|); last easy.
+          apply closed_fold_left_csubst; simple.
+          intros ? (? & ? & ?)%in_map_iff ?; subst.
+          * now eapply wellformed_closed, wellformed_val_wellformed.
+          * now eapply wellformed_closed.
+        + rewrite fold_left_map_def; simple; apply closed_fold_left_csubst; simple.
+          * intros ? (? & ? & ?)%in_map_iff ?; subst.
+            now eapply wellformed_closed, wellformed_val_wellformed.
+          * apply nth_error_In in heq. now eapply wellformed_closed. 
+      - rewrite map_map_compose. apply All_map_eq; simple.
+        intros ? ?.
+        unfold substl.
+        erewrite fold_left_csubst_closed; try easy.
+        eapply wellformed_closed, wellformed_val_wellformed; try easy. }
+    { rewrite wellformed_mkApps; simple.
+      repeat split; try easy; last first.
+      { intros; now apply wellformed_val_wellformed. }
+      rewrite fold_left_map_def; fold csubst; simple.
+      rewrite cofix_subst_map; simple.
+      apply wellformed_substl; simple; try easy.
+      - intros ? ?%in_rev%in_seq. unfold wf_fix, test_def. simple.
+        repeat split; [easy| now apply Nat.ltb_lt|].
+        intros. rewrite fold_left_map_def; fold csubst; simple.
+        rewrite Nat.add_0_r.
+        eapply wellformed_fold_left_csubst; simple; try easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now apply wellformed_val_wellformed.
+      - apply nth_error_In, hwf in heq.
+        eapply wellformed_up; first apply wellformed_fold_left_csubst; simple; try easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now apply wellformed_val_wellformed. }
+    exists (n1 + n2 + 1), v'2; split; first assumption.
+    eapply eval_cofix_case; simple; try easy.
+    + now unfold cunfold_cofix; simple.
+    + lazymatch goal with
+      | h: eval _ _ ?e1 v'2 _
+        |- eval _ _ ?e2 _ _ =>
+          assert (e1 = e2) as <-; last easy
+      end.
+      do 2 f_equal.
+      rewrite fold_left_map_def; fold csubst; simple.
+      unfold substl.
+      rewrite map_app cofix_env_map cofix_subst_map map_map_compose -fold_left_csubst_app; simple.
+      * intros x ?%in_rev%in_seq.
+        apply closed_fold_left_csubst; simple.
+        { intros ? (? & ? & ?)%in_map_iff ?; subst.
+          now eapply wellformed_closed, wellformed_val_wellformed.  }
+        unfold test_def.
+        intros ? ?.
+        now eapply wellformed_closed.
+      * intros. now eapply wellformed_closed, wellformed_val_wellformed.
+      * rewrite Nat.add_0_r. f_equal.
+        apply map_ext. intros.
+        now simple.
+  - pose proof tProj_substl_eq _ _ _ _ heq as (discr' & ?); subst.
+    simple.
+    injection heq as ?; subst.
+    unshelve epose proof s _ _ _ eq_refl _ as (n1 & v'1 & heq1 & heval1); simple; try easy.
+    pose proof term_of_val_eq_cofix _ _ _ _ heq1 as (mfix' & Γ' & args' & heq'); subst; simple.
+    apply mkApps_eq_inj in heq1 as [[= ?] ?]; subst; simple; try easy.
+    unfold EGlobalEnv.cunfold_cofix, cunfold_cofix in *.
+    simple. destruct (nth_error mfix' idx) eqn:heq; simple; last easy.
+    injection H0 as ? ?; subst.
+    apply eval_SI_wellformed_val in heval1 as hwf; simple; try easy.
+    unfold wf_fix, test_def in hwf; simple.
+    set u :=
+      tProj 
+        p 
+        (mkApps (substl (cofix_subst (map (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix'|) b) (map term_of_val Γ')) mfix')) (dbody (fold_left (λ (b : def term) (t : term), map_def (csubst t #|mfix'|) b) (map term_of_val Γ') d))) (map term_of_val args')).
+    unshelve epose proof s0 Γ _ u _ _ as (n2 & v'2 & heq2 & heval2); subst u; simple; try easy.
+    { do 2 f_equal.
+      - rewrite cofix_subst_map.
+        symmetry. eapply fold_left_csubst_closed; last reflexivity.
+        apply closed_fold_left_csubst; simple.
+        + intros ? (? & ? & ?%in_rev%in_seq)%in_map_iff ?; subst; simple.
+          intros x hIn.
+          unfold test_def.
+          rewrite fold_left_map_def; fold csubst; simple.
+          eapply @closed_upwards with (k := #|mfix'|); last easy.
+          apply closed_fold_left_csubst; simple.
+          intros ? (? & ? & ?)%in_map_iff ?; subst.
+          * now eapply wellformed_closed, wellformed_val_wellformed.
+          * now eapply wellformed_closed.
+        + rewrite fold_left_map_def; simple; apply closed_fold_left_csubst; simple.
+          * intros ? (? & ? & ?)%in_map_iff ?; subst.
+            now eapply wellformed_closed, wellformed_val_wellformed.
+          * apply nth_error_In in heq. now eapply wellformed_closed. 
+      - rewrite map_map_compose. apply All_map_eq; simple.
+        intros ? ?.
+        unfold substl.
+        erewrite fold_left_csubst_closed; try easy.
+        eapply wellformed_closed, wellformed_val_wellformed; try easy. }
+    { rewrite wellformed_mkApps; simple.
+      repeat split; try easy; last first.
+      { intros; now apply wellformed_val_wellformed. }
+      rewrite fold_left_map_def; fold csubst; simple.
+      rewrite cofix_subst_map; simple.
+      apply wellformed_substl; simple; try easy.
+      - intros ? ?%in_rev%in_seq. unfold wf_fix, test_def. simple.
+        repeat split; [easy| now apply Nat.ltb_lt|].
+        intros. rewrite fold_left_map_def; fold csubst; simple.
+        rewrite Nat.add_0_r.
+        eapply wellformed_fold_left_csubst; simple; try easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now apply wellformed_val_wellformed.
+      - apply nth_error_In, hwf in heq.
+        eapply wellformed_up; first apply wellformed_fold_left_csubst; simple; try easy.
+        intros ? (? & ? & ?)%in_map_iff ?; subst.
+        now apply wellformed_val_wellformed. }
+    exists (n1 + n2 + 1), v'2; split; first assumption.
+    eapply eval_cofix_proj; simple; try easy.
+    + now unfold cunfold_cofix; simple.
+    + lazymatch goal with
+      | h: eval _ _ ?e1 v'2 _
+        |- eval _ _ ?e2 _ _ =>
+          assert (e1 = e2) as <-; last easy
+      end.
+      do 2 f_equal.
+      rewrite fold_left_map_def; fold csubst; simple.
+      unfold substl.
+      rewrite map_app cofix_env_map cofix_subst_map map_map_compose -fold_left_csubst_app; simple.
+      * intros x ?%in_rev%in_seq.
+        apply closed_fold_left_csubst; simple.
+        { intros ? (? & ? & ?)%in_map_iff ?; subst.
+          now eapply wellformed_closed, wellformed_val_wellformed.  }
+        unfold test_def.
+        intros ? ?.
+        now eapply wellformed_closed.
+      * intros. now eapply wellformed_closed, wellformed_val_wellformed.
+      * rewrite Nat.add_0_r. f_equal.
+        apply map_ext. intros.
+        now simple.
   - apply tConst_substl_eq in heq; subst.
     pose proof s [] eq_refl body eq_refl i as (n & v' & ? & h_eval'); subst.
     exists (n + 1), v'; split; first easy.
@@ -561,7 +708,7 @@ Proof.
           now simple. }
         repeat constructor; try assumption.
         now apply ih_t1_t2 with (u := t1); simple. }
-      exists (list_sum (extract_ns IH) + 1), (vConstruct ind i (extract_vs IH)).
+      exists (list_sum (extract_ns IH) + #|extract_ns IH| + 1), (vConstruct ind i (extract_vs IH)).
       split; simple.
       { f_equal. clear.
         unfold extract_vs.
@@ -578,4 +725,4 @@ Proof.
     unshelve epose proof s0 env _ _ eq_refl _ as (n2 & v'2 & heq2 & h_eval2); simple; try easy; subst.
     exists (n1 + n2 + 1), v'2; split; now econstructor.
   - now apply eval_eval_SI_atom.
-Admitted.
+Qed.
