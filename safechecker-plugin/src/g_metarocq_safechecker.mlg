@@ -72,7 +72,7 @@ let retypecheck_term_dependencies ~opaque_access env gr =
     Option.iter (typecheck env') cbody
   in
   let st = Conv_oracle.get_transp_state (Environ.oracle (Global.env())) in
-  let deps = Assumptions.assumptions ~add_opaque:true ~add_transparent:true opaque_access
+  let _theory, deps = Assumptions.assumptions ~add_opaque:true ~add_transparent:true opaque_access
       st [gr] in
   let process_object k _ty =
     let open Printer in
@@ -86,6 +86,7 @@ let retypecheck_term_dependencies ~opaque_access env gr =
         | Guarded _ -> ()
         | TypeInType c -> ()
         | UIP _ -> ()
+        | IndicesNotMattering _ -> ()
       end
     | Opaque c | Transparent c -> typecheck_constant c
   in Printer.ContextObjectMap.iter process_object deps
