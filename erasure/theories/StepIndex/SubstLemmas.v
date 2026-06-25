@@ -206,12 +206,19 @@ Qed.
 Hint Rewrite substl_tBox : rw_hints.
 
 
+Lemma fold_left_csubst_tLambda k Γ na b:
+  fold_left (λ bod term : EAst.term, csubst term k bod)  Γ (tLambda na b) = 
+    tLambda na (fold_left (λ bod term : EAst.term, csubst term (S k) bod) Γ b).
+Proof.
+  unfold substl;
+  induction Γ in b |- *; simple; easy.
+Qed.
+
 Lemma substl_tLambda Γ na b:
   substl Γ (tLambda na b) = 
     tLambda na (fold_left (λ bod term : EAst.term, csubst term 1 bod) Γ b).
 Proof.
-  unfold substl;
-  induction Γ in b |- *; simple; easy.
+  unfold substl; now rewrite fold_left_csubst_tLambda.
 Qed.
 Hint Rewrite substl_tLambda : rw_hints.
 
@@ -405,3 +412,14 @@ Proof.
   now apply IHenv; simple.
 Qed.
 
+
+Lemma fold_left_csubst_closed t Γ k k' :
+  closedn k t ->
+  k <= k' ->
+  fold_left (λ b t, csubst t k' b) Γ t = t.
+Proof.
+  intros h_closed h_lt.
+  induction Γ; simple; try easy.
+  rewrite csubst_closed //.
+  now eapply closed_upwards.
+Qed.
