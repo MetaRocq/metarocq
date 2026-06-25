@@ -100,8 +100,6 @@ Proof.
 Qed.
 Hint Rewrite size_fix_env : rw_hints.
 
-Print cofix_subst.
-
 
 Definition cofix_env (l : mfixpoint term) (Γ : environment) :=
   let fix aux (n : nat) : list value :=
@@ -408,6 +406,16 @@ Proof.
   destruct v; simple; try my_discr;
   injection heq as ? ?; subst; easy.
 Qed.
+
+
+Lemma term_of_val_eq_App t1 t2 v :
+  term_of_val v = tApp t1 t2 ->
+  ∑ mfix idx Γ args, v = vCoFixClos mfix idx Γ args.
+Proof.
+  intros heq.
+  destruct v; simple; discriminate || eauto.
+Qed.
+
 
 Lemma term_of_val_eq_cofix v mfix i args :
   term_of_val v = mkApps (tCoFix mfix i) args ->

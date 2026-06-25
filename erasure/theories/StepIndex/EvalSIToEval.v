@@ -157,15 +157,15 @@ Proof.
       erewrite map_ext; first reflexivity.
       intros; simple;
       now rewrite fold_left_map_def.
-  - apply eval_mkApps_CoFix; try easy.
-    rewrite wellformed_mkApps // in wf_e.
-    simple.
-    destruct wf_e as [? wf_args].
-    induction a in wf_args, IHa |- *; simple; try easy.
-    destruct IHa.
-    constructor.
-    + apply e; now simple.
-    + now apply IHa0.
+  - rewrite map_app mkApps_app.
+    eapply eval_app_cong.
+    + now apply IHheval1; simple.
+    + destruct with_guarded_fix; first easy.
+      destruct args using list_rect_rev; simple.
+      rewrite map_app mkApps_app; simple.
+      unfold isPrimApp, isConstructApp, isLazyApp.
+      now rewrite head_tApp head_mkApps.
+    + now apply IHheval2; simple.
   - unfold cunfold_cofix in heq1.
     destruct (nth_error mfix idx) eqn:heq; last easy; simple.
     injection heq1 as ?; subst.
