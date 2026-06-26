@@ -138,12 +138,14 @@ Section Val_rel.
     val_rel' PostG k v1 v2 <-> val_rel PostG k v1 v2.
   Proof.
     unfold val_rel'.
-    induction v1 in v2 |- *; destruct v2; destruct k as [| k];
-    try match goal with
-    | p : prim_val _ |- _ =>
-        destruct p as [? [| | | [def2 vals2]]]
-    end; simple; try easy.
-    
+    induction v1 in v2 |- *; destruct v2; destruct k as [| k].
+    all: try lazymatch goal with
+         | p : prim_val _ |- _ =>
+            destruct p as [? [| | | [def2 vals2]]]
+         end.
+    all: try reflexivity.
+    all: simple.
+    all: try easy.
     - split; repeat match goal with
       | |- _ -> _ => intro
       | h : _ ∧ _ |- _ => destruct h
