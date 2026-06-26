@@ -233,7 +233,7 @@ Hint Rewrite @forall_val_rel_eq : rw_hints.
 Definition exp_rel {wfl : WcbvFlags} Σ := exp_rel' Σ (val_rel Σ).
 
 
-
+(* 
   
 Section LogRelProps.
 
@@ -577,4 +577,4 @@ Section LogRelProps.
   Admitted.
 
 End LogRelProps.
-
+ *)

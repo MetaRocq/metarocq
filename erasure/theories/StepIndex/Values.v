@@ -132,11 +132,11 @@ Fixpoint term_of_val (v : value) : term :=
   match v with
   | vBox => tBox 
   | vConstruct ind c vals => tConstruct ind c (map term_of_val vals)
-  | vClos na t Γ => substl (map term_of_val Γ) (tLambda na t)
-  | vRecClos mfix n Γ => substl (map term_of_val Γ) (tFix mfix n)
-  | vCoFixClos mfix n Γ args => mkApps (substl (map term_of_val Γ) (tCoFix mfix n)) (map term_of_val args)
+  | vClos na t Γ => substlg (map term_of_val Γ) 0 (tLambda na t)
+  | vRecClos mfix n Γ => substlg (map term_of_val Γ) 0 (tFix mfix n)
+  | vCoFixClos mfix n Γ args => mkApps (substlg (map term_of_val Γ) 0 (tCoFix mfix n)) (map term_of_val args)
   | vPrim p => tPrim (map_prim term_of_val p)
-  | vLazy t Γ => tLazy (substl (map term_of_val Γ) t)
+  | vLazy t Γ => tLazy (substlg (map term_of_val Γ) 0 t)
   end.
 
 
@@ -458,28 +458,28 @@ Proof.
 Qed.
 
 #[local]
-Ltac eliminate_tRel_case Γ n heq :=
+Ltac eliminate_tRel_case Γ n k heq :=
   solve[
-    exfalso; unfold substl in heq;
-    induction Γ as [| v Γ IH] in n, heq |- *;
+    exfalso;
+    induction Γ as [| v Γ IH] in n, k, heq |- *;
     [ discriminate
-    | destruct n; simple; 
+    | simple; destruct (k ?= n); simple; 
       [ destruct v; simple; simple; my_discr
-      | now pose proof IH _ heq ] ]
+      | easy.. ] ]
   ].
 
 
-Lemma tBox_substl_eq Γ u :
-  tBox = substl (map term_of_val Γ) u ->
+Lemma tBox_substlg_eq Γ u k :
+  tBox = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (u = tBox).
 Proof.
   intros heq.
-  destruct u; simple; try discriminate; try easy.
+  destruct u; simple; discriminate || easy.
 Qed.
 
 
-Lemma tLambda_substl_eq na b Γ u :
-  tLambda na b = substl (map term_of_val Γ) u ->
+Lemma tLambda_substlg_eq na b Γ u k :
+  tLambda na b = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ b', u = tLambda na b').
 Proof.
   intros heq.
@@ -488,8 +488,8 @@ Proof.
 Qed.
 
 
-Lemma tFix_substl_eq m i Γ u :
-  tFix m i = substl (map term_of_val Γ) u ->
+Lemma tFix_substlg_eq m i Γ u k :
+  tFix m i = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ mfix', u = tFix mfix' i).
 Proof.
   intros heq.
@@ -498,8 +498,8 @@ Proof.
 Qed.
 
 
-Lemma tCoFix_substl_eq m i Γ u :
-  tCoFix m i = substl (map term_of_val Γ) u ->
+Lemma tCoFix_substlg_eq m i Γ u k :
+  tCoFix m i = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ mfix', u = tCoFix mfix' i).
 Proof.
   intros heq.
@@ -508,56 +508,56 @@ Proof.
 Qed.
 
 
-Lemma tApp_substl_eq f t Γ u :
-  tApp f t = substl (map term_of_val Γ) u ->
+Lemma tApp_substlg_eq f t Γ u k :
+  tApp f t = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ u1 u2, u = tApp u1 u2).
 Proof.
   intros heq.
   destruct u; simple; try discriminate; easy.
 Qed.
 
-Lemma tLetIn_substl_eq t1 t2 na Γ u :
-  tLetIn na t1 t2 = substl (map term_of_val Γ) u ->
+Lemma tLetIn_substlg_eq t1 t2 na Γ u k :
+  tLetIn na t1 t2 = substlg (map term_of_val Γ) k u ->
   ∑ u1 u2, u = tLetIn na u1 u2.
 Proof.
   intros heq.
   destruct u; simple; try discriminate; last now injection heq as ? ? ?; subst.
-  eliminate_tRel_case Γ n heq.
+  eliminate_tRel_case Γ n k heq.
 Qed.
 
 
-Lemma tCase_substl_eq i discr brs Γ u :
-  tCase i discr brs = substl (map term_of_val Γ) u ->
+Lemma tCase_substlg_eq i discr brs Γ u k :
+  tCase i discr brs = substlg (map term_of_val Γ) k u ->
   ∑ discr' brs', u = tCase i discr' brs'.
 Proof.
   intros heq.
   destruct u; simple; try discriminate; last now injection heq as ? ? ?; subst.
-  eliminate_tRel_case Γ n heq.
+  eliminate_tRel_case Γ n k heq.
 Qed.
 
 
-Lemma tConst_substl_eq c Γ u :
-  tConst c = substl (map term_of_val Γ) u ->
+Lemma tConst_substlg_eq c Γ u k :
+  tConst c = substlg (map term_of_val Γ) k u ->
   u = tConst c.
 Proof.
   intros heq.
   destruct u; simple; try discriminate; subst; last easy.
-  eliminate_tRel_case Γ n heq.
+  eliminate_tRel_case Γ n k heq.
 Qed.
 
 
-Lemma tProj_substl_eq p t Γ u :
-  tProj p t = substl (map term_of_val Γ) u ->
+Lemma tProj_substlg_eq p t Γ u k :
+  tProj p t = substlg (map term_of_val Γ) k u ->
   ∑ u', u = tProj p u'.
 Proof.
   intros heq.
   destruct u; simple; try discriminate; subst; last now injection heq as ?; subst.
-  eliminate_tRel_case Γ n heq.
+  eliminate_tRel_case Γ n k heq.
 Qed.
 
 
-Lemma tConstruct_substl_eq ind c args Γ u :
-  tConstruct ind c args = substl (map term_of_val Γ) u ->
+Lemma tConstruct_substlg_eq ind c args Γ u k :
+  tConstruct ind c args = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ args', u = tConstruct ind c args').
 Proof.
   intros heq.
@@ -566,8 +566,8 @@ Proof.
 Qed.
 
 
-Lemma tLazy_substl_eq t Γ u :
-  tLazy t = substl (map term_of_val Γ) u ->
+Lemma tLazy_substlg_eq t Γ u k :
+  tLazy t = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ u', u = tLazy u').
 Proof.
   intros heq.
@@ -575,18 +575,18 @@ Proof.
 Qed.
 
 
-Lemma tForce_substl_eq t Γ u :
-  tForce t = substl (map term_of_val Γ) u ->
+Lemma tForce_substlg_eq t Γ u k :
+  tForce t = substlg (map term_of_val Γ) k u ->
   ∑ u', u = tForce u'.
 Proof.
   intros heq.
   destruct u; simple; subst; try discriminate || easy.
-  eliminate_tRel_case Γ n heq.
+  eliminate_tRel_case Γ n k heq.
 Qed.
 
 
-Lemma tPrim_substl_eq p Γ u :
-  tPrim p = substl (map term_of_val Γ) u ->
+Lemma tPrim_substlg_eq p Γ u k :
+  tPrim p = substlg (map term_of_val Γ) k u ->
   (∑ n, u = tRel n) + (∑ p', u = tPrim p').
 Proof.
   intros heq.
