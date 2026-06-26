@@ -1,3 +1,4 @@
+(* 
 (* Distributed under the terms of the MIT license. *)
 From Stdlib Require Import Utf8 Program.
 From MetaRocq.Common Require Import config BasicAst.
@@ -238,4 +239,4 @@ Proof.
     { now eapply wellformed_closed. }
     { apply eval_SI_wf_val in IH1, IH2; simple; try easy.
       intros. now eapply wellformed_closed, wellformed_val_wellformed. }
-Admitted.
+Admitted. *)

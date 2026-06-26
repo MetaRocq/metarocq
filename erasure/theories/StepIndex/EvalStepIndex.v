@@ -112,7 +112,7 @@ Section Wcbv.
   | eval_cofix_case discr mfix idx env args fn ip brs res n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
-      eval Γ (tCase ip (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args)) brs) res n2 ->
+      eval Γ (tCase ip (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args)) brs) res n2 ->
       eval Γ (tCase ip discr brs) res (n1 + n2 + 1)
       (* 
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
@@ -138,7 +138,7 @@ Section Wcbv.
   | eval_cofix_proj discr mfix idx env args fn p res n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
-      eval Γ (tProj p (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args))) res n2 ->
+      eval Γ (tProj p (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args))) res n2 ->
       eval Γ (tProj p discr) res (n1 + n2 + 1)
   (* 
   
@@ -235,7 +235,7 @@ Section Wcbv.
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
         { e2 : eval Γ 
-          (tCase ip (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args)) brs) 
+          (tCase ip (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args)) brs) 
           res n2 },
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
@@ -247,7 +247,7 @@ Section Wcbv.
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
         { e2 : eval Γ 
-          (tProj p (mkApps (substl (map term_of_val (cofix_env mfix env ++ env)) fn) (map term_of_val args))) 
+          (tProj p (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args))) 
           res n2 },
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
@@ -371,14 +371,12 @@ Proof.
     repeat split; try easy.
     rewrite wellformed_mkApps; simple; split.
     + apply wellformed_substl; simple.
-      * rewrite cofix_env_map.
-        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; simple;
-        last now apply wellformed_val_wellformed.
-        simple; repeat split; try easy.
-        unfold wf_fix, test_def; simple; split; first now apply Nat.ltb_lt.
+      * rewrite cofix_env_map map_map_compose.
+        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff; subst; simple; last now apply wellformed_val_wellformed.
+        unfold wf_fix; simple. repeat split; try easy.
+        { now apply Nat.ltb_lt. }
         intros.
-        rewrite fold_left_map_def Nat.add_0_r; fold csubst.
-        apply wellformed_fold_left_csubst; simple; last easy.
+        apply wellformed_substlg; simple; last easy.
         intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
         now apply wellformed_val_wellformed.
       * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
@@ -395,14 +393,12 @@ Proof.
     repeat split; try easy.
     rewrite wellformed_mkApps; simple; split.
     + apply wellformed_substl; simple.
-      * rewrite cofix_env_map.
-        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; simple;
-        last now apply wellformed_val_wellformed.
-        simple; repeat split; try easy.
-        unfold wf_fix, test_def; simple; split; first now apply Nat.ltb_lt.
+      * rewrite cofix_env_map map_map_compose.
+        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff; subst; simple; last now apply wellformed_val_wellformed.
+        unfold wf_fix; simple. repeat split; try easy.
+        { now apply Nat.ltb_lt. }
         intros.
-        rewrite fold_left_map_def Nat.add_0_r; fold csubst.
-        apply wellformed_fold_left_csubst; simple; last easy.
+        apply wellformed_substlg; simple; last easy.
         intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
         now apply wellformed_val_wellformed.
       * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
@@ -507,8 +503,7 @@ Proof.
   as [|arg args IH]
   using list_rect_rev
   in args', ns, eval_args |- *.
-  { simple. inversion eval_args; simple; subst.
-    now rewrite !Nat.add_0_r. }
+  { simple. inversion eval_args; simple. }
   apply All3_snoc_inv_first in eval_args 
     as (args'' & arg' & ns' & n' & ? & ? & hAll' & eval_arg); subst.
   rewrite list_sum_app.
@@ -549,9 +544,9 @@ Proof.
     clear. funelim (extract X X'); simple; constructor; try easy.
     { now destruct a. }
     now rewrite Heq in Hind.
-  - exists 0, (vClos na (fold_left (λ b t, csubst t 1 b) (map term_of_val env) b) Γ); split; simple; try constructor.
+  - exists 0, (vClos na (substlg (map term_of_val env) 1 b) Γ); split; simple; try constructor.
     f_equal.
-    unshelve epose proof closed_fold_left_csubst 1 b (map term_of_val env) _ _ as h.
+    unshelve epose proof closed_substlg 1 b (map term_of_val env) _ _ as h.
     { simple; intros ? (x & <- & hIn)%in_map_iff n.
       now eapply wellformed_closed, wellformed_val_wellformed. }
     { simple. now eapply wellformed_closed. }
@@ -559,15 +554,14 @@ Proof.
     induction Γ; simple; first reflexivity; intros h.
     rewrite csubst_closed; now simple.
   - exists 0, 
-    (vRecClos (map (fold_left (λ (b0 : def term) (t0 : term), map_def (csubst t0 #|b|) b0) (map term_of_val env)) b) idx Γ);
-      split; simple; try constructor.
+    (vRecClos (map (map_def (substlg (map term_of_val env) #|b|)) b) idx Γ);
+      split; simple; last constructor.
     f_equal.
     rewrite map_map_compose. apply All_map_eq; simple.
     intros x hIn; simple. 
-    remember csubst as c eqn:heq; rewrite !fold_left_map_def; subst c.
     unfold map_def; simple.
     f_equal.
-    unshelve epose proof closed_fold_left_csubst #|b| (dbody x) (map term_of_val env) _ _ as h.
+    unshelve epose proof closed_substlg #|b| (dbody x) (map term_of_val env) _ _ as h.
     { simple; intros ? (? & <- & ?)%in_map_iff n.
       now eapply wellformed_closed, wellformed_val_wellformed. }
     { unfold wf_fix, test_def in h_wf; simple.
@@ -584,29 +578,24 @@ Proof.
       now f_equal. }
     exists (list_sum (extract_ns X0 X') + #|extract_ns X0 X'|).
     simple.
-    eexists (vCoFixClos (map (fold_left (λ (b0 : def term) (t : term), map_def (csubst t #|b|) b0) (map term_of_val env)) b) idx Γ args'); simple; split; last first.
-    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps.
-      { constructor. }
+    eexists (vCoFixClos (map (map_def (substlg (map term_of_val env) #|b|)) b) idx Γ args'); simple; split; last first.
+    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps; first constructor.
       unfold args', extract_vs, extract_ns.
       clear. funelim (extract X0 X'); simple; constructor; try easy.
-      { now destruct a. }
-      now rewrite Heq in Hind.
+      * apply a. 
+      * now rewrite Heq in Hind.
     + f_equal; last easy.
       f_equal.
       rewrite map_map_compose.
       apply All_map_eq.
       simple.
       intros [] hIn.
-      rewrite !fold_left_map_def.
-      fold csubst.
       unfold map_def; simple.
       f_equal.
-      enough (closedn #|b| (fold_left (λ (b0 : term) (t : term), csubst t #|b| b0) (map term_of_val env) dbody)).
-      { revert H0; clear; intros h_closed. induction Γ; simple; first easy.
-        now rewrite csubst_closed. }
+      erewrite (substlg_closed (substlg _ _ _)); try easy.
       unfold wf_fix, test_def in h_wf; simple.
       apply h_wf in hIn; simple.
-      apply closed_fold_left_csubst; simple; try easy.
+      apply closed_substlg; simple; try easy.
       * intros ? (x & ? & hIn')%in_map_iff k; subst.
         now eapply wellformed_closed, wellformed_val_wellformed.
       * now eapply wellformed_closed.
@@ -633,10 +622,9 @@ Proof.
     clear. funelim (extract a0 X'); simple; constructor; try easy.
     { now destruct a. }
     now rewrite Heq in Hind.
-  - exists 0, (vLazy (substl (map term_of_val env) p) Γ); split; last now constructor.
+  - exists 0, (vLazy (substlg (map term_of_val env) 0 p) Γ); split; last now constructor.
     simple; f_equal.
-    unfold substl.
-    unshelve epose proof closed_fold_left_csubst 0 p (map term_of_val env) _ _ as h.
+    unshelve epose proof closed_substlg 0 p (map term_of_val env) _ _ as h.
     { simple; intros ? (? & <- & ?)%in_map_iff n.
       now eapply wellformed_closed, wellformed_val_wellformed. }
     { simple. now eapply wellformed_closed. }

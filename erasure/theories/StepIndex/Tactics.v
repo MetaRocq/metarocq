@@ -30,6 +30,8 @@ Ltac simple := repeat (
   ).
 
 
+Hint Rewrite Nat.add_0_r : rw_hints.
+Hint Rewrite Nat.add_succ_r : rw_hints.
 Hint Rewrite <-@forallb_Forall : rw_hints.
 Hint Rewrite Forall_forall : rw_hints.
 Hint Rewrite @forallb_map : rw_hints.
@@ -46,6 +48,8 @@ Hint Rewrite if_same : rw_hints.
 Hint Rewrite @skipn_0 : rw_hints.
 Hint Rewrite <-map_rev : rw_hints.
 Hint Rewrite head_mkApps : rw_hints.
+Hint Rewrite head_tApp : rw_hints.
+Hint Rewrite map_app : rw_hints.
 
 
 Ltac my_discr :=
