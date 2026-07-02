@@ -36,10 +36,7 @@ Defined.
 #[export] Polymorphic Instance quote_prod {A B} {qA : quotation_of A} {qB : quotation_of B} {quoteA : ground_quotable A} {quoteB : ground_quotable B} : ground_quotable (prod A B) := (ltac:(induction 1; exact _)).
 #[export] Polymorphic Instance quote_list {A} {qA : quotation_of A} {quoteA : ground_quotable A} : ground_quotable (list A) := (ltac:(induction 1; exact _)).
 #[export] Polymorphic Instance quotation_of_list {A ls} {qA : quotation_of A} {qls : @All A quotation_of ls} : quotation_of ls := ltac:(induction qls; exact _).
-#[export] Hint Extern 0 (@All ?A quotation_of ?ls)
-=> lazymatch goal with
-   | [ H : @All _ quotation_of _ |- _ ] => assumption
-   end : typeclass_instances.
+#[export] Hint Extern 0 (@All ?A quotation_of ?ls) => assumption : typeclass_instances.
 #[export] Instance quote_comparison : ground_quotable comparison := ltac:(destruct 1; exact _).
 #[export] Instance quote_CompareSpec {Peq Plt Pgt : Prop} {qPeq : quotation_of Peq} {qPlt : quotation_of Plt} {qPgt : quotation_of Pgt} {quote_Peq : ground_quotable Peq} {quote_Plt : ground_quotable Plt} {quote_Pgt : ground_quotable Pgt} {c} : ground_quotable (CompareSpec Peq Plt Pgt c).
 Proof.
