@@ -5442,7 +5442,8 @@ Proof.
   - solve_all.
   - rewrite trans_mkApps; eapply expanded_tConstruct_app.
     unshelve eapply (trans_declared_constructor (empty_ext Σ)) in H.
-    4:eauto. len.
+    all:match goal with |- declared_constructor _ _ _ _ _ => eauto | _ => idtac end.
+    len.
     cbn. now rewrite context_assumptions_smash_context context_assumptions_map /=.
     solve_all.
   - depelim H0; constructor; cbn; eauto. solve_all.
