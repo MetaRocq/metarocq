@@ -45,7 +45,7 @@ Section Wcbv.
   | eval_box_app a t v n1 n2 :
       eval Γ a vBox n1 ->
       eval Γ t v n2 ->
-      eval Γ (tApp a t) vBox (n1 + n2 + 1)
+      eval Γ (tApp a t) vBox ((n1 + 1) + (n2 + 1))
 
   (** Reductions *)
   | eval_var n v :
@@ -57,7 +57,7 @@ Section Wcbv.
       eval Γ f (vClos na b Γ') c1 ->
       eval Γ a a' c2 ->
       eval (a' :: Γ') b res c3 ->
-      eval Γ (tApp f a) res (c1 + c2 + c3 + 1)
+      eval Γ (tApp f a) res ((c1 + 1) + (c2 + 1) + (c3 + 1))
 
   | eval_lambda na b :
       eval Γ (tLambda na b) (vClos na b Γ) 0
@@ -66,7 +66,7 @@ Section Wcbv.
   | eval_zeta na b0 b0' b1 res c1 c2 :
       eval Γ b0 b0' c1 ->
       eval (b0' :: Γ) b1 res c2 ->
-      eval Γ (tLetIn na b0 b1) res (c1 + c2 + 1)
+      eval Γ (tLetIn na b0 b1) res ((c1 + 1) + (c2 + 1))
 
   (** Case *)
   | eval_iota_block ind cdecl discr c args brs br res c1 c2 : (* Changed pars to not be 0 *)
@@ -76,7 +76,7 @@ Section Wcbv.
       #|args| = cdecl.(cstr_nargs) ->
       #|args| = #|br.1| ->
       eval ((List.rev args) ++ Γ) br.2 res c2 ->
-      eval Γ (tCase (ind, 0) discr brs) res (c1 + c2 + 1)
+      eval Γ (tCase (ind, 0) discr brs) res ((c1 + 1) + (c2 + 1))
 
   | eval_proj p cdecl discr args a n :
       eval Γ discr (vConstruct (proj_ind p) 0 args) n ->
@@ -92,7 +92,7 @@ Section Wcbv.
       cunfold_fix mfix idx = Some fn ->
       eval Γ a av c2 ->
       eval (av :: (fix_env mfix Γ') ++ Γ') fn res c3 ->
-      eval Γ (tApp f a) res (c1 + c2 + c3 + 1)
+      eval Γ (tApp f a) res ((c1 + 1) + (c2 + 1) + (c3 + 1))
 
   | eval_fix mfix idx :
       eval Γ (tFix mfix idx) (vRecClos mfix idx Γ) 0
@@ -104,7 +104,7 @@ Section Wcbv.
   | eval_cofix_app arg arg' a mfix idx env args n1 n2 :
       eval Γ a (vCoFixClos mfix idx env args) n1 ->
       eval Γ arg arg' n2 ->
-      eval Γ (tApp a arg) (vCoFixClos mfix idx env (args ++ [arg'])) (n1 + n2 + 1)
+      eval Γ (tApp a arg) (vCoFixClos mfix idx env (args ++ [arg'])) ((n1 + 1) + (n2 + 1))
   
   
       
@@ -113,7 +113,7 @@ Section Wcbv.
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
       eval Γ (tCase ip (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args)) brs) res n2 ->
-      eval Γ (tCase ip discr brs) res (n1 + n2 + 1)
+      eval Γ (tCase ip discr brs) res ((n1 + 1) + (n2 + 1))
       (* 
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
@@ -139,7 +139,7 @@ Section Wcbv.
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
       eval Γ (tProj p (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args))) res n2 ->
-      eval Γ (tProj p discr) res (n1 + n2 + 1)
+      eval Γ (tProj p discr) res ((n1 + 1) + (n2 + 1))
   (* 
   
   eval_cofix_proj
@@ -165,7 +165,7 @@ Section Wcbv.
       lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
       #|args| = ind_npars mdecl + cstr_nargs cdecl -> (* see if we add `ind_npars mdecl` or ask for no params *)
       All3 (eval Γ) args args' cs ->
-      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + #|cs| + 1)
+      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + #|cs|)
 
   | eval_prim p p' c :
       eval_primitive_step_index (eval Γ) p p' c ->
@@ -185,7 +185,7 @@ Section Wcbv.
     Variable f_box_app : ∀ {Γ a t v n1 n2 e1 e2},
       P Γ a vBox n1 e1 ->
       P Γ t v n2 e2 ->
-      P Γ (tApp a t) vBox (n1 + n2 + 1) (eval_box_app Γ a t v n1 n2 e1 e2).
+      P Γ (tApp a t) vBox _ (eval_box_app Γ a t v n1 n2 e1 e2).
     Variable f_var : 
       ∀ {Γ n v e},
       P Γ (tRel n) v 0 (eval_var Γ n v e).
@@ -496,7 +496,7 @@ Qed.
 Lemma eval_cofix_mkApps Σ Γ a mfix idx env n args args' ns :
   eval Σ Γ a (vCoFixClos mfix idx env []) n ->
   All3 (eval Σ Γ) args args' ns ->
-  eval Σ Γ (mkApps a args) (vCoFixClos mfix idx env args') (n + list_sum ns + #|ns|).
+  eval Σ Γ (mkApps a args) (vCoFixClos mfix idx env args') ((n + list_sum ns + 2 * #|ns|)).
 Proof.
   intros eval_a eval_args.
   induction args
@@ -510,6 +510,7 @@ Proof.
   simple.
   epose proof eval_cofix_app _ _ _ _ _ _ _ _ _ _ _ (IH _ _ hAll') eval_arg.
   rewrite mkApps_app /=.
+  simple.
   now match goal with 
   | h: eval _ _ _ _ ?n1 
     |- eval _ _ _ _ ?n2 => replace n2 with n1
@@ -576,16 +577,15 @@ Proof.
       funelim (extract X0 X'); simple; try easy.
       destruct a as [? ?]. rewrite Heq in Hind.
       now f_equal. }
-    exists (list_sum (extract_ns X0 X') + #|extract_ns X0 X'|).
-    simple.
-    eexists (vCoFixClos (map (map_def (substlg (map term_of_val env) #|b|)) b) idx Γ args'); simple; split; last first.
-    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps; first constructor.
+    exists (list_sum (extract_ns X0 X') + 2 * #|extract_ns X0 X'|).
+    eexists (vCoFixClos (map (map_def (substlg (map term_of_val env) #|b|)) b) idx Γ args'); simpl in *; split; last first.
+    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps.
+      { simple. constructor. }
       unfold args', extract_vs, extract_ns.
       clear. funelim (extract X0 X'); simple; constructor; try easy.
       * apply a. 
       * now rewrite Heq in Hind.
-    + f_equal; last easy.
-      f_equal.
+    + simple. f_equal; last easy. f_equal.
       rewrite map_map_compose.
       apply All_map_eq.
       simple.
