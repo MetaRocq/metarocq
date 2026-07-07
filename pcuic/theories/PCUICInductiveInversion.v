@@ -271,7 +271,7 @@ Section OnConstructor.
     split. split. split.
     2:{ eapply (weaken_lookup_on_global_env' _ _ (InductiveDecl mdecl)); tea.
         clear hnth. unshelve eapply declared_constructor_to_gen in declc; eauto.
-        exact (inductive_mind ind.1).
+        try exact (inductive_mind ind.1). (* with rocq-prover/rocq#22182 this goal stays shelved and is solved by side effect *)
         eapply declc. }
     red. apply wfΣ.
     eapply sorts_local_ctx_wf_local in X => //. clear X.
