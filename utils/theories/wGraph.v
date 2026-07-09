@@ -1970,7 +1970,7 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
                     | inr (q1, q2) => weight q1 + K + weight q2
                       end.
       Proof using HI Hxs.
-        clear -HI HG Hxs.
+        clear -HI Hxs.
         induction q.
         - reflexivity.
         - simpl.
@@ -2019,7 +2019,7 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
                       | inr (q1, q2) => sweight q1 + K + sweight q2
                       end.
       Proof using HI Hxs.
-        clear -HI HG Hxs.
+        clear -HI Hxs.
         induction q.
         - reflexivity.
         - simpl.
