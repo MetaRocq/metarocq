@@ -109,12 +109,7 @@ Section Wcbv.
   
       
 
-  | eval_cofix_case discr mfix idx env args fn ip brs res n1 n2 :
-      eval Γ discr (vCoFixClos mfix idx env args) n1 ->
-      cunfold_cofix mfix idx = Some fn ->
-      eval Γ (tCase ip (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args)) brs) res n2 ->
-      eval Γ (tCase ip discr brs) res ((n1 + 1) + (n2 + 1))
-      (* 
+  | eval_cofix_case discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
       eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct ind c con_args) n2 ->
@@ -123,7 +118,7 @@ Section Wcbv.
       #|con_args| = cdecl.(cstr_nargs) ->
       #|con_args| = #|br.1| ->
       eval ((List.rev con_args) ++ Γ) br.2 res n3 ->
-      eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1) *)
+      eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1)
 
     (* 
       Problèmes:
@@ -134,14 +129,16 @@ Section Wcbv.
       evaluer `tCase (mkApps (substl (cofix_env mfix env ++ env) fn) (map term_of_val args)) brs`, on perd un peu l'intérêt de l'environnement, mais on gagne le fait que ce qu'on veut prouver est prouvable
 
     *)
-
-  | eval_cofix_proj discr mfix idx env args fn p res n1 n2 :
+  (* TODO: change if above works *)
+  | eval_cofix_proj discr mfix idx env args fn con_args p cdecl a n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
-      eval Γ (tProj p (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args))) res n2 ->
-      eval Γ (tProj p discr) res ((n1 + 1) + (n2 + 1))
-  (* 
-  
+      eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct (proj_ind p) 0 con_args) n2 ->
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl) ->
+      #|con_args| = cdecl.(cstr_nargs) ->
+      nth_error con_args (proj_arg p) = Some a ->
+      eval Γ (tProj p discr) a (n1 + n2 + 1)
+  (*
   eval_cofix_proj
      : ∀ (Σ0 : global_context) (p : projection) (mfix : mfixpoint term) (idx : nat) (args : list
   term) (discr : term) (narg : nat) (fn
@@ -231,29 +228,36 @@ Section Wcbv.
         P _ _ _ _ e2 ->
         P Γ _ _ _ (eval_cofix_app Γ arg arg' a mfix idx env args n1 n2 e1 e2). 
     Variable f_cofix_case : 
-      ∀ {Γ discr mfix idx env args fn ip brs res n1 n2}
+      ∀ {Γ discr mfix idx env args fn ind c con_args cdecl brs br res n1 n2 n3}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
-        { e2 : eval Γ 
-          (tCase ip (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args)) brs) 
-          res n2 },
+        { e2 : eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct ind c con_args) n2 }
+        { heq2 : constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) }
+        { heq3 : nth_error brs c = Some br }
+        { heq4 : #|con_args| = cstr_nargs cdecl }
+        { heq5 : #|con_args| = #|br.1| }
+        { e3 : eval (List.rev con_args ++ Γ) br.2 res n3 },
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
+        P _ _ _ _ e3 ->
         P Γ _ _ _
           (eval_cofix_case 
-            Γ discr mfix idx env args fn ip brs res n1 n2 e1 heq1 e2). 
+            Γ discr mfix idx env args fn ind c con_args cdecl 
+            brs br res n1 n2 n3 e1 heq1 e2 heq2 heq3 heq4 heq5 e3). 
+
       Variable f_cofix_proj : 
-      ∀ {Γ discr mfix idx env args fn p res n1 n2}
+      ∀ {Γ discr mfix idx env args fn p con_args cdecl a n1 n2}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
-        { e2 : eval Γ 
-          (tProj p (mkApps (substlg (map term_of_val (cofix_env mfix env ++ env)) 0 fn) (map term_of_val args))) 
-          res n2 },
+        { e2 : eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct (proj_ind p) 0 con_args) n2 }
+        { heq2 : constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl)}
+        { heq3 : #|con_args| = cstr_nargs cdecl }
+        { heq4 : nth_error con_args (proj_arg p) = Some a }
+        ,
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
         P Γ _ _ _
-          (eval_cofix_proj 
-            Γ discr mfix idx env args fn p res n1 n2 e1 heq1 e2). 
+          (eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 heq1 e2 heq2 heq3 heq4 ). 
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -298,9 +302,9 @@ Section Wcbv.
         | @eval_cofix _ mfix idx => f_cofix
         | @eval_cofix_app _ arg arg' a mfix idx env args n1 n2 e1 e2 => 
             f_cofix_app (eval_rect e1) (eval_rect e2)
-        | @eval_cofix_case _ discr mfix idx env args fn ip brs res n1 n2 e1 heq1 e2 => 
-              f_cofix_case (eval_rect e1) (eval_rect e2)
-        | @eval_cofix_proj _ discr mfix idx env args fn p res n1 n2 e1 heq1 e2 => 
+        | @eval_cofix_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ e1 _ e2 _ _ _ _ e3 =>
+            f_cofix_case (eval_rect e1) (eval_rect e2) (eval_rect e3)
+        | @eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 heq1 e2 heq2 heq3 heq4 => 
               f_cofix_proj (eval_rect e1) (eval_rect e2)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs e0 l a =>
@@ -368,45 +372,36 @@ Proof.
     destruct h as [[[? wf_env] wf_args] [idx_lt_mfix%Nat.ltb_lt wf_mfix]].
     unfold test_def in wf_mfix.
     unshelve epose proof IHh_eval2 _ _ as h; try easy.
-    repeat split; try easy.
-    rewrite wellformed_mkApps; simple; split.
-    + apply wellformed_substl; simple.
-      * rewrite cofix_env_map map_map_compose.
-        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff; subst; simple; last now apply wellformed_val_wellformed.
-        unfold wf_fix; simple. repeat split; try easy.
-        { now apply Nat.ltb_lt. }
-        intros.
-        apply wellformed_substlg; simple; last easy.
-        intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
-        now apply wellformed_val_wellformed.
-      * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
-        unfold cunfold_cofix in heq1.
-        destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
-        simple. injection heq1 as ?; subst.
+    { rewrite cofix_env_map.
+      intros ? [(? & ? & [? ?]%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; last easy.
+      simple; unfold wf_fix, test_def; simple; repeat split; try easy.
+      now apply Nat.ltb_lt. }
+    { rewrite wellformed_mkApps; simple; split.
+      - rewrite /cunfold_cofix in heq1.
+        destruct (nth_error mfix idx) as [?|] eqn:heq; last easy.
+        injection heq1 as ?; subst.
         now apply nth_error_In in heq.
-    + now intros ? ?; apply wellformed_val_wellformed.
+      - intros. now apply wellformed_val_wellformed. }
+    apply IHh_eval3.
+    + now intros ? [hIn%in_rev|hIn]%in_app_iff.
+    + rewrite /wf_brs in wf_e.
+      rewrite heq5. now apply nth_error_In in heq3.
   - unshelve epose proof IHh_eval1 _ _ as h; try easy.
     unfold wf_fix in h; simple.
     destruct h as [[[? wf_env] wf_args] [idx_lt_mfix%Nat.ltb_lt wf_mfix]].
     unfold test_def in wf_mfix.
-    unshelve epose proof IHh_eval2 _ _ as h; try easy.
-    repeat split; try easy.
-    rewrite wellformed_mkApps; simple; split.
-    + apply wellformed_substl; simple.
-      * rewrite cofix_env_map map_map_compose.
-        intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff; subst; simple; last now apply wellformed_val_wellformed.
-        unfold wf_fix; simple. repeat split; try easy.
-        { now apply Nat.ltb_lt. }
-        intros.
-        apply wellformed_substlg; simple; last easy.
-        intros ? (? & ? & ?)%in_map_iff ?; subst; simple.
-        now apply wellformed_val_wellformed.
-      * assert (wellformed Σ (#|mfix| + #|env|) fn); last now eapply wellformed_up.
-        unfold cunfold_cofix in heq1.
-        destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
-        simple. injection heq1 as ?; subst.
+    apply IHh_eval2.
+    { rewrite cofix_env_map.
+      intros ? [(? & ? & [? ?]%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff; subst; last easy.
+      simple; unfold wf_fix, test_def; simple; repeat split; try easy.
+      now apply Nat.ltb_lt. }
+    { rewrite wellformed_mkApps; simple; split.
+      - rewrite /cunfold_cofix in heq1.
+        destruct (nth_error mfix idx) as [?|] eqn:heq; last easy.
+        injection heq1 as ?; subst.
         now apply nth_error_In in heq.
-    + now intros ? ?; apply wellformed_val_wellformed.
+      - intros. now apply wellformed_val_wellformed. }
+      now apply nth_error_In in heq4.
   - apply IHh_eval; first easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
     simple.

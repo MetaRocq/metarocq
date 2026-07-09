@@ -131,6 +131,10 @@ Section Val_rel.
     | vLazy t1 Γ1, vLazy t2 Γ2 => 
         ∀ j, j < k ->
         exp_rel' Σ val_rel' PostG PostG j (t1, Γ1) (t2, Γ2) 
+    (* | vCoFixClos Γ1 mfix1 c1 args1, vCoFixClos Γ2 mfix2 c2 args2 =>
+        exp_rel' Σ val_rel' PostG PostG 
+          (cofix_env mfix1 ++ Γ1, mkApps fn1 args1) 
+          (cofix_env mfix2 ++ Γ2, mkApps fn2 args2) *)
     | _, _ => False
     end.
 
@@ -580,3 +584,5 @@ Section LogRelProps.
 
 End LogRelProps.
  *)
+
+(* TODO: objectif d'avoir relation logique sur beta red (sans cofix pour l'instant) *)

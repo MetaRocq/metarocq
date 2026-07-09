@@ -67,6 +67,7 @@ theories/Typed/TypeAnnotations.v
 theories/Typed/Utils.v
 theories/Typed/WcbvEvalAux.v
 
+theories/StepIndex/EvalIndCofix.v
 theories/StepIndex/Tactics.v
 theories/StepIndex/Utils.v
 theories/StepIndex/SubstLemmas.v

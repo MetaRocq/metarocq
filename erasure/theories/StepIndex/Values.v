@@ -261,6 +261,12 @@ Proof.
 Qed.
 
 
+Definition isvBox (v : value) : bool :=
+  match v with
+  | vBox => true
+  | _ => false
+  end.
+
 Definition isvConstr (v : value) : bool :=
   match v with
   | vConstruct _ _ _ => true
