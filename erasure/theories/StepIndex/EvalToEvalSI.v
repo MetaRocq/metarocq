@@ -246,13 +246,16 @@ Lemma eval_eval_SI {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v u :
   term_of_val v' = v × eval Σ Γ u v' n.
 Proof.
   intros no_prop_case unguarded_fix no_cstr_params has_app cstr_blocks cstr_blocks' wf_Σ wf_u wf_Γ h_eval heq.
+  assert (wellformed Σ 0 e) as wf_e.
+  { subst. apply wellformed_substl; simple.
+    intros. now apply wellformed_val_wellformed. }
   revert Γ wf_Γ u wf_u heq.
   pose P e v := 
     ∀ Γ, forallb (wellformed_val Σ) Γ → 
     ∀ u : term, wellformed Σ #|Γ| u → 
     e = substlg (map term_of_val Γ) 0 u → 
     ∑ (n : nat) (v' : value), term_of_val v' = v × eval Σ Γ u v' n.
-  unshelve eapply (eval_cofix_ind (P efl efl) _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ h_eval); clear h_eval e v; subst P; simple.
+  unshelve eapply (eval_cofix_ind wf_Σ has_app no_prop_case unguarded_fix no_cstr_params cstr_blocks cstr_blocks' (P efl efl) _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ h_eval wf_e); clear h_eval wf_e e v; subst P; simple.
   - intros a t t' h_eval1 IH1 h_eval2 IH2 Γ wf_Γ u wf_u heq.
     unshelve epose proof tApp_substlg_eq _ _ _ _ _ heq as [[n ?] |(u1 & u2 & ?)]; subst; simple.
     { destruct (nth_error Γ n) as [v'|] eqn:heq'; last first.
@@ -314,8 +317,6 @@ Proof.
       - now eapply wellformed_closed, wellformed_val_wellformed, eval_SI_wellformed_val; simple.
       - intros. now eapply wellformed_closed, wellformed_val_wellformed. }
     eexists. exists v'2; split; econstructor; easy.
-  - intros * no_cstr_blocks.
-    rewrite no_cstr_blocks in cstr_blocks'. discriminate.
   - intros ind pars cdecl discr c args brs br res _.
     intros h_eval1 IH1 cstr_prop_pars_decl nth_error_brs_c size_args size_br1.
     intros h_eval2 IH2.
@@ -348,10 +349,7 @@ Proof.
       - intros x hIn. 
         now eapply wellformed_closed, wellformed_val_wellformed. }
     eexists. exists v'2; do 2 econstructor; easy.
-  - intros * prop_case. rewrite prop_case in no_prop_case. discriminate.
-  - intros * guarded. rewrite guarded in unguarded_fix. discriminate.
-  - intros * guarded. rewrite guarded in unguarded_fix. discriminate.
-  - intros f mifx idx a av fn res narg _ h_eval1 IH1 h_unfold_fix h_eval2 IH2 h_eval3 IH3.
+  - intros f mfix idx a av fn na d res _ h_eval1 IH1 nth_error_mfix_idx body_d h_eval2 IH2 h_eval3 IH3.
     intros Γ wf_Γ u wf_u heq.
     unshelve epose proof tApp_substlg_eq _ _ _ _ _ heq as [[n ?]|(u1 & u2 & ?)]; subst; simple.
     { destruct (nth_error Γ n) as [v' |] eqn:heq'; last first.
@@ -364,45 +362,43 @@ Proof.
         apply isCoFixApp_eval in h_eval1; first easy.
         now rewrite heq. }
     injection heq as ? ?; subst.
-    unshelve epose proof IHh_eval1 Γ _ u1 _ eq_refl as (n1 & v1 & heq1 & h_eval1'); simple; rewrite ->?hCstrBlocks in *; try easy.
+    unshelve epose proof IH1 Γ _ u1 _ eq_refl as (n1 & v1 & heq1 & h_eval1'); simple; rewrite ->?hCstrBlocks in *; try easy.
     epose proof term_of_val_eq_fix _ _ _ heq1 as (mfix' & env & heq); subst.
     simple.
     injection heq1 as ?; subst.
-    unshelve epose proof IHh_eval2 Γ _ u2 _ eq_refl as (n2 & v'2 & heq2 & h_eval2'); simple; try easy; subst.
-    unfold EGlobalEnv.cunfold_fix in e0. simple.
-    destruct (nth_error mfix' idx) as [d' |] eqn:heq; simple; last easy.
-    injection e0 as ?; subst.
-    simple. assert (isLambda (dbody d')).
-    { apply eval_SI_wellformed_val in h_eval1'; simple; try easy.
-      now eapply nth_error_In in heq. }
-    destruct d' as [? [] ?]; simple; try easy.
-    unshelve epose proof IHh_eval3 ((map (λ x : nat, vRecClos mfix' x env) (List.rev (seq 0 #|mfix'|))) ++ env) _ (tApp (tLambda na t) (term_of_val v'2)) _ _ as (n3 & v'3 & heq3 & h_eval3'); simple; try easy; subst.
-    { intros x [(? & ? & ?%in_rev)%in_map_iff | ?]%in_app_iff; subst.
+    unshelve epose proof IH2 Γ _ u2 _ eq_refl as (n2 & v'2 & heq2 & h_eval2'); simple; try easy; subst.
+    destruct d as [? ? ?]; simple; try easy. subst.
+    unshelve epose proof IH3 (v'2 :: (map (λ x : nat, vRecClos mfix' x env) (List.rev (seq 0 #|mfix'|))) ++ env) _ fn _ _ as (n3 & v'3 & heq3 & h_eval3'); simple; try easy; subst.
+    { intros x [ heq |[(? & ? & ?%in_rev%in_seq)%in_map_iff | ?]%in_app_iff]; subst.
+      - eapply eval_SI_wellformed_val in h_eval2'; now simple.
       - eapply eval_SI_wellformed_val in h_eval1'; simple; try easy.
         unfold wf_fix in *; simple; repeat split; try easy.
-        rewrite in_seq in H1.
         now apply Nat.ltb_lt.
       - now eapply eval_SI_wellformed_val in h_eval1'; simple. }
     { admit. }
-    { f_equal; simple.
-      - rewrite fix_subst_map. simple.
-        rewrite -substlg_app; try easy.
-        { simple.
-          intros ? ?%in_rev%in_seq.
-          apply eval_SI_wellformed_val in h_eval1'; simple; try easy.
-          unfold wf_fix, test_def in *; simple.
-          intros ? ?.
-          assert (closedn (#|mfix'|) (substlg (map term_of_val env) #|mfix'| (dbody x0))).
-          { eapply wellformed_closed, wellformed_substlg; simple; try easy.
-            intros ? (? & ? & ?)%in_map_iff ?; subst.
-            now apply wellformed_val_wellformed. }
-          now eapply closed_upwards. }
-        { simple. apply eval_SI_wellformed_val in h_eval1'; simple; try easy.
-          intros. now eapply wellformed_closed, wellformed_val_wellformed. }
-        do 2 f_equal; simple; try easy.
-        rewrite map_map_compose.
-        apply map_ext.
-        intros n. now simple.
+    { rewrite fix_subst_map. simple.
+      rewrite -map_map_compose -map_app.
+
+
+      rewrite -substlg_app; try easy.
+      { simple.
+        intros ? ?%in_rev%in_seq.
+        apply eval_SI_wellformed_val in h_eval1'; simple; try easy.
+        unfold wf_fix, test_def in *; simple.
+        intros ? ?.
+        assert (closedn (#|mfix'|) (substlg (map term_of_val env) #|mfix'| (dbody x0))).
+        { eapply wellformed_closed, wellformed_substlg; simple; try easy.
+          intros ? (? & ? & ?)%in_map_iff ?; subst.
+          now apply wellformed_val_wellformed. }
+        now eapply closed_upwards. }
+      { simple. apply eval_SI_wellformed_val in h_eval1'; simple; try easy.
+        intros. now eapply wellformed_closed, wellformed_val_wellformed. }
+      simple.
+      rewrite -map_map_compose.
+      f_equal.
+      do 2 f_equal; simple; try easy.
+      apply map_ext.
+      intros n. now simple.
       - erewrite substlg_closed; try easy.
         eapply wellformed_closed, wellformed_val_wellformed; try easy.
         apply eval_SI_wellformed_val in h_eval2'; simple; easy.  }

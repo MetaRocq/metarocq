@@ -362,9 +362,13 @@ Section eval_cofix_ind_dep.
   Qed.
 End eval_cofix_ind_dep.
 
+From MetaRocq.Erasure.StepIndex Require Import Utils SubstLemmas.
 
 Section eval_cofix_ind.
-  Context {wfl : WcbvFlags} {Σ : global_context} (P : ∀ x y : term, Type).
+  Context {wfl : WcbvFlags} {efl : EEnvFlags} {Σ : global_context} (wf_Σ : wf_glob Σ) 
+          (h_app : has_tApp) (no_prop_case : ~~ with_prop_case) (no_guarded_fix : ~~ with_guarded_fix)
+          (no_cstr_params : ~~ has_cstr_params) (cstr_blocks : cstr_as_blocks) (cstr_blocks' : with_constructor_as_block).
+  Context (P : ∀ x y : term, Type).
   Variable f_box :
     ∀ (a t t' : term), 
     eval Σ a tBox ->
@@ -391,21 +395,6 @@ Section eval_cofix_ind.
     P (csubst b0' 0 b1) res -> 
     P (tLetIn na b0 b1) res.
 
-  Variable f_iota : 
-    ∀ (ind : inductive) (pars : nat) (cdecl : constructor_body) 
-      (discr : term) (c : nat) (args : list term) (brs : list (list name × term)) 
-      (br : list name × term) (res : term),
-    with_constructor_as_block = false ->
-    eval Σ discr (mkApps (tConstruct ind c []) args) ->
-    P discr (mkApps (tConstruct ind c []) args) -> 
-    constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
-    nth_error brs c = Some br ->
-    #|args| = pars + cstr_nargs cdecl ->
-    #|skipn pars args| = #|br.1| ->
-    eval Σ (iota_red pars args br) res ->
-    P (iota_red pars args br) res ->
-    P (tCase (ind, pars) discr brs) res.
-
   Variable f_iota_block :
     ∀ (ind : inductive) (pars : nat) (cdecl : constructor_body) 
       (discr : term) (c : nat) (args : list term) (brs : list (list name × term)) 
@@ -421,80 +410,27 @@ Section eval_cofix_ind.
     P (iota_red pars args br) res -> 
     P (tCase (ind, pars) discr brs) res.
 
-  Variable f_iota_sing :
-    ∀ (ind : inductive) (pars : nat) (discr : term) (brs : list (list name × term)) 
-      (n : list name) (f4 res : term),
-    with_prop_case ->
-    eval Σ discr tBox ->
-    P discr tBox ->
-    inductive_isprop_and_pars Σ ind = Some (true, pars) ->
-    brs = [(n, f4)] ->
-    eval Σ (substl (repeat tBox #|n|) f4) res ->
-    P (substl (repeat tBox #|n|) f4) res -> 
-    P (tCase (ind, pars) discr brs) res.
-
-  Variable f_fix :
-    ∀ (f5 : term) (mfix : mfixpoint term) (idx : nat) (argsv : list term) 
-      (a av fn res : term),
-    with_guarded_fix ->
-    eval Σ f5 (mkApps (tFix mfix idx) argsv) ->
-    P f5 (mkApps (tFix mfix idx) argsv) -> 
-    eval Σ a av ->
-    P a av -> 
-    cunfold_fix mfix idx = Some (#|argsv|, fn) ->
-    eval Σ (tApp (mkApps fn argsv) av) res ->
-    P (tApp (mkApps fn argsv) av) res ->
-    P (tApp f5 a) res.
-  
-  Variable f_fix_value :
-    ∀ (f6 : term) (mfix : mfixpoint term) (idx : nat) (argsv : list term) 
-      (a av : term) (narg : nat) (fn : term),
-    with_guarded_fix ->
-    eval Σ f6 (mkApps (tFix mfix idx) argsv) ->
-    P f6 (mkApps (tFix mfix idx) argsv) ->
-    eval Σ a av ->
-    P a av -> 
-    cunfold_fix mfix idx = Some (narg, fn) ->
-    #|argsv| < narg ->
-    P (tApp f6 a) (tApp (mkApps (tFix mfix idx) argsv) av).
-    
   Variable f_fix' :
-    ∀ (f7 : term) (mfix : mfixpoint term) (idx : nat) 
-      (a av fn res : term) (narg : nat),
+    ∀ (f5 : term) (mfix : mfixpoint term) (idx : nat) (a av : term)
+      (fn : term) na d res,
     with_guarded_fix = false ->
-    eval Σ f7 (tFix mfix idx) -> 
-    P f7 (tFix mfix idx) ->
-    cunfold_fix mfix idx = Some (narg, fn) ->
+    eval Σ f5 (tFix mfix idx) ->
+    P f5 (tFix mfix idx) ->
+    nth_error mfix idx = Some d ->
+    d.(dbody) = tLambda na fn ->
     eval Σ a av -> 
-    P a av ->
-    eval Σ (tApp fn av) res ->
-    P (tApp fn av) res ->
-    P (tApp f7 a) res.
+    P a av -> 
+    eval Σ (substl (av :: fix_subst mfix) fn) res ->
+    P (substl (av :: fix_subst mfix) fn) res ->
+    P (tApp f5 a) res.
 
-  Variable f_cofix_case_no_cstr_as_blocks :
-    ∀ discr mfix idx args nargs fn ind c con_args
-      npars0 cdecl brs br res,
-    with_constructor_as_block = false ->
-    eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-    P discr (mkApps (tCoFix mfix idx) args) ->
-    cunfold_cofix mfix idx = Some (nargs, fn) ->
-    eval Σ (mkApps fn args) (mkApps (tConstruct ind c []) con_args) ->
-    P (mkApps fn args) (mkApps (tConstruct ind c []) con_args) ->
-    constructor_isprop_pars_decl Σ ind c = Some (false, npars0, cdecl) ->
-    nth_error brs c = Some br ->
-    #|con_args| = npars0 + cstr_nargs cdecl ->
-    #|skipn npars0 con_args| = #|br.1| ->
-    eval Σ (iota_red npars0 con_args br) res ->
-    P (iota_red npars0 con_args br) res ->
-    P (tCase (ind, npars0) discr brs) res.
-
-  Variable f_cofix_case_cstr_as_blocks :
+  Variable f_cofix_case :
     ∀ discr mfix idx args nargs fn ind c con_args
       npars0 cdecl brs br res,
       with_constructor_as_block ->
       eval Σ discr (mkApps (tCoFix mfix idx) args) ->
       P discr (mkApps (tCoFix mfix idx) args) ->
-      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      EGlobalEnv.cunfold_cofix mfix idx = Some (nargs, fn) ->
       eval Σ (mkApps fn args) (tConstruct ind c con_args) ->
       P (mkApps fn args) (tConstruct ind c con_args) ->
       constructor_isprop_pars_decl Σ ind c = Some (false, npars0, cdecl) ->
@@ -504,43 +440,13 @@ Section eval_cofix_ind.
       eval Σ (iota_red npars0 con_args br) res ->
       P (iota_red npars0 con_args br) res ->
       P (tCase (ind, npars0) discr brs) res.
-  
-  Variable f_cofix_case_prop :
-    ∀ discr mfix idx args nargs fn ind
-      npars brs n f res,
-      with_prop_case ->
-      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-      P discr (mkApps (tCoFix mfix idx) args) ->
-      cunfold_cofix mfix idx = Some (nargs, fn) ->
-      eval Σ (mkApps fn args) tBox ->
-      P (mkApps fn args) tBox ->
-      inductive_isprop_and_pars Σ ind = Some (true, npars) ->
-      brs = [(n, f)] ->
-      eval Σ (substl (repeat tBox #|n|) f) res ->
-      P (substl (repeat tBox #|n|) f) res ->
-      P (tCase (ind, npars) discr brs) res.
 
-  Variable f_cofix_proj_no_cstr_as_blocks :
-    ∀ discr mfix idx args nargs fn p con_args cdecl a res,
-      with_constructor_as_block = false ->
-      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-      P discr (mkApps (tCoFix mfix idx) args) ->
-      cunfold_cofix mfix idx = Some (nargs, fn) ->
-      eval Σ (mkApps fn args) (mkApps (tConstruct (proj_ind p) 0 []) con_args) ->
-      P (mkApps fn args) (mkApps (tConstruct (proj_ind p) 0 []) con_args) ->
-      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
-      #|con_args| = proj_npars p + cstr_nargs cdecl ->
-      nth_error con_args (proj_npars p + proj_arg p) = Some a  ->
-      eval Σ a res ->
-      P a res ->
-      P (tProj p discr) res.
-
-  Variable f_cofix_proj_cstr_as_blocks :
+  Variable f_cofix_proj :
     ∀ discr mfix idx args nargs fn p con_args cdecl a res,
       with_constructor_as_block ->
       eval Σ discr (mkApps (tCoFix mfix idx) args) ->
       P discr (mkApps (tCoFix mfix idx) args) ->
-      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      EGlobalEnv.cunfold_cofix mfix idx = Some (nargs, fn) ->
       eval Σ (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
       P (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
       constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
@@ -550,17 +456,6 @@ Section eval_cofix_ind.
       P a res ->
       P (tProj p discr) res.
 
-  Variable f_cofix_proj_prop :
-    ∀ discr mfix idx args nargs fn p,
-      with_prop_case ->
-      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-      P discr (mkApps (tCoFix mfix idx) args) ->
-      cunfold_cofix mfix idx = Some (nargs, fn) ->
-      eval Σ (mkApps fn args) tBox ->
-      P (mkApps fn args) tBox ->
-      inductive_isprop_and_pars Σ (proj_ind p) = Some (true, proj_npars p) ->
-      P (tProj p discr) tBox.
-
   Variable f_delta :
     ∀ (c : kername) (decl : constant_body) (body : term) (res : term),
     declared_constant Σ c decl ->
@@ -569,18 +464,6 @@ Section eval_cofix_ind.
     P body res ->
     P (tConst c) res.
 
-  Variable f_proj :
-    ∀ (p : projection) (cdecl : constructor_body) (discr : term) (args : list term) (a res : term),
-    with_constructor_as_block = false -> 
-    eval Σ discr (mkApps (tConstruct (proj_ind p) 0 []) args) ->
-    P discr (mkApps (tConstruct (proj_ind p) 0 []) args) ->
-    constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
-    #|args| = proj_npars p + cstr_nargs cdecl ->
-    nth_error args (proj_npars p + proj_arg p) = Some a ->
-    eval Σ a res ->
-    P a res -> 
-    P (tProj p discr) res.
-  
   Variable f_proj_block :
     ∀ (p : projection) (cdecl : constructor_body) (discr : term) (args : list term) (a res : term),
     with_constructor_as_block ->
@@ -592,27 +475,6 @@ Section eval_cofix_ind.
     eval Σ a res ->
     P a res ->
     P (tProj p discr) res.
-
-  Variable f_proj_prop :
-    ∀ (p : projection) (discr : term),
-    with_prop_case -> 
-    eval Σ discr tBox -> 
-    P discr tBox -> 
-    inductive_isprop_and_pars Σ (proj_ind p) = Some (true, proj_npars p) ->
-    P (tProj p discr) tBox.
-
-  Variable f_construct :
-    ∀ (ind : inductive) (c : nat) (mdecl : mutual_inductive_body) 
-      (idecl : one_inductive_body) (cdecl : constructor_body) (f14 : term) 
-      (args : list term) (a a' : term),
-      with_constructor_as_block = false ->
-      lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
-      eval Σ f14 (mkApps (tConstruct ind c []) args) ->
-      P f14 (mkApps (tConstruct ind c []) args) -> 
-      #|args| < cstr_arity mdecl cdecl ->
-      eval Σ a a' ->
-      P a a' -> 
-      P (tApp f14 a) (tApp (mkApps (tConstruct ind c []) args) a').
 
   Variable f_construct_block :
     ∀ (ind : inductive) (c : nat) (mdecl : mutual_inductive_body) 
@@ -633,7 +495,7 @@ Section eval_cofix_ind.
     eval Σ a a' ->
     P a a' -> 
     P (tApp f16 a) (tApp f' a').
-  About eval_preserve_mkApps_ind.
+  
   Variable f_prim :
     ∀ (p p' : prim_val term) (ev : eval_primitive (eval Σ) p p'),
     eval_primitive_ind (eval Σ) (λ x y _, P x y) p p' ev -> 
@@ -652,13 +514,191 @@ Section eval_cofix_ind.
     atom Σ t -> 
     P t t.
 
-  Definition eval_cofix_ind : ∀ x y (e : eval Σ x y), P x y.
+  Fixpoint eval_cofix_ind :
+    ∀ x y (e : eval Σ x y),
+    wellformed Σ 0 x ->
+    P x y.
   Proof.
-    apply eval_cofix_ind_dep; try easy.
-    intros.
-    apply All2_over_undep in X.
-    apply All2_Set_All2 in a.
-    easy.
+    intros t1 t2 e wf_x.
+    destruct e.
+    - eapply f_box; try easy.
+      + now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x.
+      + now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x.
+    - eapply f_beta; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; try easy.
+      rewrite /= !andb_and in wf_x.
+      apply eval_wellformed in e1; try easy.
+      apply eval_wellformed in e2; try easy.
+      rewrite /= !andb_and in e1, e2.
+      now apply wellformed_csubst.
+    - eapply f_zeta; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; try easy.
+      rewrite /= !andb_and in wf_x.
+      apply eval_wellformed in e1; try easy.
+      now apply wellformed_csubst.
+    - now exfalso.
+    - eapply f_iota_block; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; try easy.
+      rewrite /= /wf_brs !andb_and in wf_x.
+      apply eval_wellformed in e2; try easy.
+      eapply wellformed_iota_red; try easy.
+      + rewrite /= !andb_and in e2.
+        destruct cstr_as_blocks.
+        * now rewrite /= !andb_and in e2.
+        * now destruct args.
+      + destruct wf_x as (? & ? & wf_brs).
+        eapply nth_error_forallb in wf_brs; try easy.
+        now rewrite Nat.add_0_r in wf_brs.
+    - exfalso. now destruct with_prop_case.
+    - exfalso. now destruct with_guarded_fix.
+    - exfalso. now destruct with_guarded_fix.
+    - unfold EGlobalEnv.cunfold_fix in e2.
+      destruct (nth_error mfix idx) eqn:heq; last easy.
+      assert (isLambda (dbody d)).
+      { rewrite /= !andb_and in wf_x.
+        apply eval_wellformed in e1 as wf_tFix; try easy.
+        rewrite /= !andb_and in wf_tFix.
+        now eapply @nth_error_forallb with (p := λ d, isLambda (dbody d)). }
+      destruct d as [? [] ?]; try easy.
+      injection e2 as ? ?; subst.
+      rewrite substl_substlg0 substlg_tLambda in e4.
+      depelim e4; try solve[ easy |
+        depelim e4_1; simpl in *; try easy;
+        apply (f_equal head) in H0;
+        now rewrite head_mkApps in H0
+      ].
+      assert (av = a').
+      { eapply eval_value; last eassumption.
+        now eapply eval_to_value.  }
+      apply eval_value in e4_1 as heq'; last now do 2 constructor.
+      injection heq' as ? ?; subst.
+      assert (eval Σ (substl (a' :: fix_subst mfix) t) res).
+      { rewrite -substlg_csubst_commute in e4_3; try easy.
+        - rewrite /= !andb_and in wf_x.
+          apply eval_wellformed in e3; simpl in *; try easy.
+          now eapply wellformed_closed.
+        - rewrite /= !andb_and in wf_x.
+          apply closed_fix_subst.
+          apply eval_wellformed in e1; try easy.
+          rewrite /= !andb_and in e1.
+          eapply forallb_impl; last easy.
+          intros. now eapply wellformed_closed. }
+      eapply f_fix'; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; first assumption.
+      rewrite /= !andb_and in wf_x.
+      eapply wellformed_substl.
+      + simpl. rewrite andb_and; split.
+        * now apply eval_wellformed in e3.
+        * apply eval_wellformed in e1; try easy.
+          rewrite /= !andb_and in e1.
+          now apply wellformed_fix_subst.
+      + simpl. rewrite fix_subst_length.
+        apply eval_wellformed in e1; try easy.
+        rewrite /= !andb_and in e1.
+        eapply nth_error_forallb in heq; try easy.
+        rewrite /= !andb_and in heq.
+        apply heq.
+    - depelim e3.
+      + now exfalso.
+      + assert (wellformed Σ 0 (mkApps fn args)).
+        { rewrite /= !andb_and in wf_x.
+          apply eval_wellformed in e1; try easy.
+          rewrite wellformed_mkApps //= !andb_and in e1.
+          rewrite wellformed_mkApps // !andb_and.
+          split; last easy.
+          eapply wellformed_cunfold_cofix; try easy.
+          now rewrite /= !andb_and. }
+        eapply f_cofix_case; try easy.
+        { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+        eapply eval_cofix_ind; try easy.
+        rewrite /= /wf_brs !andb_and in wf_x.
+        apply eval_wellformed in e3_1; try easy.
+        rewrite /= cstr_blocks !andb_and in e3_1.
+        eapply wellformed_iota_red; try easy.
+        rewrite -(Nat.add_0_r #|_|).
+        now eapply nth_error_forallb in e3; last easy.
+      + exfalso. now destruct with_prop_case.
+      + exfalso.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        * now rewrite /isConstructApp head_mkApps in h.
+        * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
+          now rewrite h in h'.
+      + now exfalso.
+    - depelim e3.
+      + exfalso.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        * now rewrite /isConstructApp head_mkApps in h.
+        * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
+          now rewrite h in h'.
+      + now exfalso.
+      + assert (wellformed Σ 0 (mkApps fn args)).
+        { rewrite /= !andb_and in wf_x.
+          apply eval_wellformed in e1; try easy.
+          rewrite wellformed_mkApps //= !andb_and in e1.
+          rewrite wellformed_mkApps // !andb_and.
+          split; last easy.
+          eapply wellformed_cunfold_cofix; try easy.
+          now rewrite /= !andb_and. }
+        eapply f_cofix_proj; try easy.
+        { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+        eapply eval_cofix_ind; try easy.
+        rewrite /= !andb_and in wf_x.
+        apply eval_wellformed in e3_1; try easy.
+        rewrite /= cstr_blocks !andb_and in e3_1.
+        now eapply nth_error_forallb in e4.
+      + exfalso. now destruct with_prop_case.
+      + now exfalso.
+    - eapply f_delta; try easy.
+      eapply eval_cofix_ind; try easy.
+      apply lookup_env_wellformed in isdecl; try easy.
+      unfold wf_global_decl in isdecl.
+      now rewrite e in isdecl.
+    - now exfalso.
+    - eapply f_proj_block; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; try easy.
+      rewrite /= !andb_and in wf_x.
+      apply eval_wellformed in e2; try easy.
+      rewrite /= cstr_blocks !andb_and in e2.
+      now eapply nth_error_forallb in e5.
+    - exfalso. now destruct with_prop_case.
+    - now exfalso.
+    - eapply f_construct_block; try easy.
+      clear e e0 e1.
+      assert (forallb (wellformed Σ 0) args).
+      { now rewrite /= cstr_blocks !andb_and in wf_x. }
+      clear wf_x.
+      induction a; constructor.
+      + eapply eval_cofix_ind; try easy.
+        now rewrite /= andb_and in H. 
+      + apply IHa. now rewrite /= andb_and in H. 
+    - eapply f_app_cong; try easy.
+      + now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x.
+      + now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x.
+    - eapply f_prim.
+      depelim e; constructor.
+      + subst a a'.
+        assert (forallb (wellformed Σ 0) v).
+        { now rewrite /= /test_prim /test_array_model /= !andb_and in wf_x. }
+        clear wf_x.
+        induction ev; constructor.
+        * eapply eval_cofix_ind; try easy.
+          now rewrite /= andb_and in H. 
+        * apply IHev. now rewrite /= andb_and in H. 
+      + now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x.
+    - eapply f_force; try easy.
+      { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
+      eapply eval_cofix_ind; try easy.
+      rewrite /= andb_and in wf_x.
+      apply eval_wellformed in e1; try easy.
+      now rewrite /= andb_and in e1.
+    - now eapply f_atom.
   Qed.
 End eval_cofix_ind.
 
