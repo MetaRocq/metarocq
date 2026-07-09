@@ -21,7 +21,7 @@ Axiom eval_case_unfold_constr :
   rajouter une règle d'évaluation des cofix qui se comporte bien + transformation axiomatisée pour passer d'une règle à l'autre et changer les flags
 *)
 
-Section eval_cofix_ind.
+Section eval_cofix_ind_dep.
   Context {wfl : WcbvFlags} {Σ : global_context} (P : ∀ x y : term, eval Σ x y -> Type).
   Variable f_box :
     ∀ (a t t' : term) (e : eval Σ a tBox), 
@@ -310,7 +310,7 @@ Section eval_cofix_ind.
     ∀ (t : term) (i : atom Σ t), 
     P t t (eval_atom Σ t i).
 
-  Fixpoint eval_cofix_ind : ∀ x y e, P x y e.
+  Fixpoint eval_cofix_ind_dep : ∀ x y e, P x y e.
   Proof.
     intros t1 t2.
     destruct e.
@@ -350,20 +350,318 @@ Section eval_cofix_ind.
     - now apply f_construct.
     - apply f_construct_block.
       clear e e0 e1.
-      induction a; constructor.
-      + apply eval_cofix_ind.
-      + assumption.
+      now induction a; constructor.
     - now apply f_app_cong.
     - apply f_prim.
       depelim e; constructor.
-      + clear a a'. induction ev; constructor.
-        * apply eval_cofix_ind.
-        * assumption.
-      + apply eval_cofix_ind.
+      + clear a a'.
+        now induction ev; constructor.
+      + easy.
     - now apply f_force.
     - now apply f_atom.
   Qed.
+End eval_cofix_ind_dep.
+
+
+Section eval_cofix_ind.
+  Context {wfl : WcbvFlags} {Σ : global_context} (P : ∀ x y : term, Type).
+  Variable f_box :
+    ∀ (a t t' : term), 
+    eval Σ a tBox ->
+    P a tBox -> 
+    eval Σ t t' ->
+    P t t' -> 
+    P (tApp a t) tBox.
+
+  Variable f_beta : 
+    ∀ (f0 : term) (na : name) (b a a' res : term),
+    eval Σ f0 (tLambda na b) ->
+    P f0 (tLambda na b) -> 
+    eval Σ a a' ->
+    P a a' -> 
+    eval Σ (csubst a' 0 b) res ->
+    P (csubst a' 0 b) res -> 
+    P (tApp f0 a) res.
+
+  Variable f_zeta :
+    ∀ (na : name) (b0 b0' b1 res : term),
+    eval Σ b0 b0' ->
+    P b0 b0' ->
+    eval Σ (csubst b0' 0 b1) res ->
+    P (csubst b0' 0 b1) res -> 
+    P (tLetIn na b0 b1) res.
+
+  Variable f_iota : 
+    ∀ (ind : inductive) (pars : nat) (cdecl : constructor_body) 
+      (discr : term) (c : nat) (args : list term) (brs : list (list name × term)) 
+      (br : list name × term) (res : term),
+    with_constructor_as_block = false ->
+    eval Σ discr (mkApps (tConstruct ind c []) args) ->
+    P discr (mkApps (tConstruct ind c []) args) -> 
+    constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
+    nth_error brs c = Some br ->
+    #|args| = pars + cstr_nargs cdecl ->
+    #|skipn pars args| = #|br.1| ->
+    eval Σ (iota_red pars args br) res ->
+    P (iota_red pars args br) res ->
+    P (tCase (ind, pars) discr brs) res.
+
+  Variable f_iota_block :
+    ∀ (ind : inductive) (pars : nat) (cdecl : constructor_body) 
+      (discr : term) (c : nat) (args : list term) (brs : list (list name × term)) 
+      (br : list name × term) (res : term),
+    with_constructor_as_block ->
+    eval Σ discr (tConstruct ind c args) ->
+    P discr (tConstruct ind c args) -> 
+    constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
+    nth_error brs c = Some br ->
+    #|args| = pars + cstr_nargs cdecl ->
+    #|skipn pars args| = #|br.1| ->
+    eval Σ (iota_red pars args br) res ->
+    P (iota_red pars args br) res -> 
+    P (tCase (ind, pars) discr brs) res.
+
+  Variable f_iota_sing :
+    ∀ (ind : inductive) (pars : nat) (discr : term) (brs : list (list name × term)) 
+      (n : list name) (f4 res : term),
+    with_prop_case ->
+    eval Σ discr tBox ->
+    P discr tBox ->
+    inductive_isprop_and_pars Σ ind = Some (true, pars) ->
+    brs = [(n, f4)] ->
+    eval Σ (substl (repeat tBox #|n|) f4) res ->
+    P (substl (repeat tBox #|n|) f4) res -> 
+    P (tCase (ind, pars) discr brs) res.
+
+  Variable f_fix :
+    ∀ (f5 : term) (mfix : mfixpoint term) (idx : nat) (argsv : list term) 
+      (a av fn res : term),
+    with_guarded_fix ->
+    eval Σ f5 (mkApps (tFix mfix idx) argsv) ->
+    P f5 (mkApps (tFix mfix idx) argsv) -> 
+    eval Σ a av ->
+    P a av -> 
+    cunfold_fix mfix idx = Some (#|argsv|, fn) ->
+    eval Σ (tApp (mkApps fn argsv) av) res ->
+    P (tApp (mkApps fn argsv) av) res ->
+    P (tApp f5 a) res.
+  
+  Variable f_fix_value :
+    ∀ (f6 : term) (mfix : mfixpoint term) (idx : nat) (argsv : list term) 
+      (a av : term) (narg : nat) (fn : term),
+    with_guarded_fix ->
+    eval Σ f6 (mkApps (tFix mfix idx) argsv) ->
+    P f6 (mkApps (tFix mfix idx) argsv) ->
+    eval Σ a av ->
+    P a av -> 
+    cunfold_fix mfix idx = Some (narg, fn) ->
+    #|argsv| < narg ->
+    P (tApp f6 a) (tApp (mkApps (tFix mfix idx) argsv) av).
+    
+  Variable f_fix' :
+    ∀ (f7 : term) (mfix : mfixpoint term) (idx : nat) 
+      (a av fn res : term) (narg : nat),
+    with_guarded_fix = false ->
+    eval Σ f7 (tFix mfix idx) -> 
+    P f7 (tFix mfix idx) ->
+    cunfold_fix mfix idx = Some (narg, fn) ->
+    eval Σ a av -> 
+    P a av ->
+    eval Σ (tApp fn av) res ->
+    P (tApp fn av) res ->
+    P (tApp f7 a) res.
+
+  Variable f_cofix_case_no_cstr_as_blocks :
+    ∀ discr mfix idx args nargs fn ind c con_args
+      npars0 cdecl brs br res,
+    with_constructor_as_block = false ->
+    eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+    P discr (mkApps (tCoFix mfix idx) args) ->
+    cunfold_cofix mfix idx = Some (nargs, fn) ->
+    eval Σ (mkApps fn args) (mkApps (tConstruct ind c []) con_args) ->
+    P (mkApps fn args) (mkApps (tConstruct ind c []) con_args) ->
+    constructor_isprop_pars_decl Σ ind c = Some (false, npars0, cdecl) ->
+    nth_error brs c = Some br ->
+    #|con_args| = npars0 + cstr_nargs cdecl ->
+    #|skipn npars0 con_args| = #|br.1| ->
+    eval Σ (iota_red npars0 con_args br) res ->
+    P (iota_red npars0 con_args br) res ->
+    P (tCase (ind, npars0) discr brs) res.
+
+  Variable f_cofix_case_cstr_as_blocks :
+    ∀ discr mfix idx args nargs fn ind c con_args
+      npars0 cdecl brs br res,
+      with_constructor_as_block ->
+      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+      P discr (mkApps (tCoFix mfix idx) args) ->
+      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      eval Σ (mkApps fn args) (tConstruct ind c con_args) ->
+      P (mkApps fn args) (tConstruct ind c con_args) ->
+      constructor_isprop_pars_decl Σ ind c = Some (false, npars0, cdecl) ->
+      nth_error brs c = Some br ->
+      #|con_args| = npars0 + cstr_nargs cdecl ->
+      #|skipn npars0 con_args| = #|br.1| ->
+      eval Σ (iota_red npars0 con_args br) res ->
+      P (iota_red npars0 con_args br) res ->
+      P (tCase (ind, npars0) discr brs) res.
+  
+  Variable f_cofix_case_prop :
+    ∀ discr mfix idx args nargs fn ind
+      npars brs n f res,
+      with_prop_case ->
+      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+      P discr (mkApps (tCoFix mfix idx) args) ->
+      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      eval Σ (mkApps fn args) tBox ->
+      P (mkApps fn args) tBox ->
+      inductive_isprop_and_pars Σ ind = Some (true, npars) ->
+      brs = [(n, f)] ->
+      eval Σ (substl (repeat tBox #|n|) f) res ->
+      P (substl (repeat tBox #|n|) f) res ->
+      P (tCase (ind, npars) discr brs) res.
+
+  Variable f_cofix_proj_no_cstr_as_blocks :
+    ∀ discr mfix idx args nargs fn p con_args cdecl a res,
+      with_constructor_as_block = false ->
+      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+      P discr (mkApps (tCoFix mfix idx) args) ->
+      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      eval Σ (mkApps fn args) (mkApps (tConstruct (proj_ind p) 0 []) con_args) ->
+      P (mkApps fn args) (mkApps (tConstruct (proj_ind p) 0 []) con_args) ->
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
+      #|con_args| = proj_npars p + cstr_nargs cdecl ->
+      nth_error con_args (proj_npars p + proj_arg p) = Some a  ->
+      eval Σ a res ->
+      P a res ->
+      P (tProj p discr) res.
+
+  Variable f_cofix_proj_cstr_as_blocks :
+    ∀ discr mfix idx args nargs fn p con_args cdecl a res,
+      with_constructor_as_block ->
+      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+      P discr (mkApps (tCoFix mfix idx) args) ->
+      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      eval Σ (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
+      P (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
+      #|con_args| = proj_npars p + cstr_nargs cdecl ->
+      nth_error con_args (proj_npars p + proj_arg p) = Some a  ->
+      eval Σ a res ->
+      P a res ->
+      P (tProj p discr) res.
+
+  Variable f_cofix_proj_prop :
+    ∀ discr mfix idx args nargs fn p,
+      with_prop_case ->
+      eval Σ discr (mkApps (tCoFix mfix idx) args) ->
+      P discr (mkApps (tCoFix mfix idx) args) ->
+      cunfold_cofix mfix idx = Some (nargs, fn) ->
+      eval Σ (mkApps fn args) tBox ->
+      P (mkApps fn args) tBox ->
+      inductive_isprop_and_pars Σ (proj_ind p) = Some (true, proj_npars p) ->
+      P (tProj p discr) tBox.
+
+  Variable f_delta :
+    ∀ (c : kername) (decl : constant_body) (body : term) (res : term),
+    declared_constant Σ c decl ->
+    cst_body decl = Some body ->
+    eval Σ body res ->
+    P body res ->
+    P (tConst c) res.
+
+  Variable f_proj :
+    ∀ (p : projection) (cdecl : constructor_body) (discr : term) (args : list term) (a res : term),
+    with_constructor_as_block = false -> 
+    eval Σ discr (mkApps (tConstruct (proj_ind p) 0 []) args) ->
+    P discr (mkApps (tConstruct (proj_ind p) 0 []) args) ->
+    constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
+    #|args| = proj_npars p + cstr_nargs cdecl ->
+    nth_error args (proj_npars p + proj_arg p) = Some a ->
+    eval Σ a res ->
+    P a res -> 
+    P (tProj p discr) res.
+  
+  Variable f_proj_block :
+    ∀ (p : projection) (cdecl : constructor_body) (discr : term) (args : list term) (a res : term),
+    with_constructor_as_block ->
+    eval Σ discr (tConstruct (proj_ind p) 0 args) ->
+    P discr (tConstruct (proj_ind p) 0 args) ->
+    constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
+    #|args| = proj_npars p + cstr_nargs cdecl ->
+    nth_error args (proj_npars p + proj_arg p) = Some a ->
+    eval Σ a res ->
+    P a res ->
+    P (tProj p discr) res.
+
+  Variable f_proj_prop :
+    ∀ (p : projection) (discr : term),
+    with_prop_case -> 
+    eval Σ discr tBox -> 
+    P discr tBox -> 
+    inductive_isprop_and_pars Σ (proj_ind p) = Some (true, proj_npars p) ->
+    P (tProj p discr) tBox.
+
+  Variable f_construct :
+    ∀ (ind : inductive) (c : nat) (mdecl : mutual_inductive_body) 
+      (idecl : one_inductive_body) (cdecl : constructor_body) (f14 : term) 
+      (args : list term) (a a' : term),
+      with_constructor_as_block = false ->
+      lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
+      eval Σ f14 (mkApps (tConstruct ind c []) args) ->
+      P f14 (mkApps (tConstruct ind c []) args) -> 
+      #|args| < cstr_arity mdecl cdecl ->
+      eval Σ a a' ->
+      P a a' -> 
+      P (tApp f14 a) (tApp (mkApps (tConstruct ind c []) args) a').
+
+  Variable f_construct_block :
+    ∀ (ind : inductive) (c : nat) (mdecl : mutual_inductive_body) 
+      (idecl : one_inductive_body) (cdecl : constructor_body) (args args' : list term),
+    with_constructor_as_block ->
+    lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
+    #|args| = cstr_arity mdecl cdecl ->
+    All2 (eval Σ) args args' -> 
+    All2 P args args' ->
+    P (tConstruct ind c args) (tConstruct ind c args').
+
+  Variable f_app_cong :
+    ∀ (f16 f' a a' : term),
+    eval Σ f16 f' ->
+    P f16 f' -> 
+    ~~ (isLambda f' || (if with_guarded_fix then isFixApp f' else isFix f') ||
+        isBox f' || isConstructApp f' || isPrimApp f' || isLazyApp f' ) ->
+    eval Σ a a' ->
+    P a a' -> 
+    P (tApp f16 a) (tApp f' a').
+  About eval_preserve_mkApps_ind.
+  Variable f_prim :
+    ∀ (p p' : prim_val term) (ev : eval_primitive (eval Σ) p p'),
+    eval_primitive_ind (eval Σ) (λ x y _, P x y) p p' ev -> 
+    P (tPrim p) (tPrim p').
+
+  Variable f_force :
+    ∀ (t t' v : term),
+    eval Σ t (tLazy t') -> 
+    eval Σ t' v ->
+    P t (tLazy t') ->
+    P t' v ->
+    P (tForce t) v.
+
+  Variable f_atom :
+    ∀ (t : term),
+    atom Σ t -> 
+    P t t.
+
+  Definition eval_cofix_ind : ∀ x y (e : eval Σ x y), P x y.
+  Proof.
+    apply eval_cofix_ind_dep; try easy.
+    intros.
+    apply All2_over_undep in X.
+    apply All2_Set_All2 in a.
+    easy.
+  Qed.
 End eval_cofix_ind.
+
 
 Print Assumptions eval_cofix_ind.
 
