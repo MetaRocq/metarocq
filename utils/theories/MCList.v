@@ -774,6 +774,15 @@ Proof.
     by case: i.
 Qed.
 
+Lemma nth_error_firstn {A} n (l : list A) i : nth_error (firstn n l) i = if (i <? n) then nth_error l i else None.
+Proof.
+  induction l in n, i |- *; destruct n; simpl; auto.
+  all: rewrite ?nth_error_nil => //.
+  all: try by case: Nat.ltb.
+  move: (IHl n (pred i)).
+  by case: i.
+Qed.
+
 Lemma skipn_skipn {A} n m (l : list A) : skipn n (skipn m l) = skipn (m + n) l.
 Proof.
   induction m in n, l |- *. auto.
@@ -811,6 +820,12 @@ Proof.
   revert v; induction l; simpl; intros. easy.
   destruct v; trivial.
   simpl. rewrite IHl; auto with arith.
+Qed.
+
+Lemma nth_error_app_full {A} (l l' : list A) (v : nat) :
+  nth_error (l ++ l') v = if v <? #|l| then nth_error l v else nth_error l' (v - #|l|).
+Proof.
+  case: Nat.ltb_spec0 => ?; first [ apply nth_error_app1 | apply nth_error_app2 ]; lia.
 Qed.
 
 Lemma nth_error_app_inv X (x : X) n l1 l2 :
@@ -855,6 +870,13 @@ Proof.
   rewrite nth_error_app_ge; [easy|].
   now rewrite Nat.sub_diag.
 Qed.
+
+Lemma nth_error_last {A l a} : l <> [] -> nth_error l (Nat.pred #|l|) = Some (@last A l a).
+Proof.
+  induction l using rev_ind => // ?.
+  rewrite app_length -Nat.add_pred_r //= Nat.add_0_r nth_error_snoc //= last_last //.
+Qed.
+
 
 Lemma map_inj :
   forall A B (f : A -> B) l l',
@@ -1468,3 +1490,154 @@ Proof.
   { move => [->|[n H]]; [ exists 0 | exists (S n) ];
             rewrite ?skipn_0 ?skipn_S => //=. }
 Qed.
+
+Lemma cons_eq_iff A x xs y ys
+  : x :: xs = y :: ys <-> ((x = y :> A) /\ xs = ys).
+Proof. split; intuition congruence. Qed.
+
+Lemma nth_error_Some_ext_iff A (l l' : list A)
+  : (#|l| = #|l'| /\ (forall n d d', nth_error l n = Some d -> nth_error l' n = Some d' -> d = d')) <-> l = l'.
+Proof.
+  move: l'; induction l as [|?? IH], l' as [|? l'];
+    try specialize (IH l'); cbn; try (rewrite cons_eq_iff -IH; clear IH).
+  all: repeat first [ done
+                    | match goal with
+                      | [ H : _ /\ _ |- _ ] => destruct H
+                      | [ H : forall n d d', nth_error (_ :: _) n = Some d -> _ |- _ ]
+                        => pose proof (H 0); specialize (fun n => H (S n))
+                      | [ H : nth_error (_ :: _) ?n = _ |- _ ] => is_var n; destruct n
+                      end
+                    | exactly_once constructor
+                    | progress rewrite -> ?nth_error_nil in *
+                    | progress intros
+                    | progress cbn in *
+                    | now eauto ].
+Qed.
+
+Lemma nth_error_ext_iff A (l l' : list A)
+  : (forall n, nth_error l n = nth_error l' n) <-> l = l'.
+Proof.
+  move: l'; induction l as [|?? IH], l' as [|? l'];
+    try specialize (IH l'); cbn; try (rewrite cons_eq_iff -IH; clear IH).
+  all: repeat first [ done
+                    | progress cbn in *
+                    | congruence
+                    | progress subst
+                    | match goal with
+                      | [ H : _ /\ _ |- _ ] => destruct H
+                      | [ H : forall n, nth_error (_ :: _) n = _ |- _ ]
+                        => pose proof (H 0); specialize (fun n => H (S n))
+                      | [ H : forall n, _ = nth_error (_ :: _) n |- _ ]
+                        => pose proof (H 0); specialize (fun n => H (S n))
+                      | [ H : forall n, nth_error nil n = _ |- _ ]
+                        => setoid_rewrite nth_error_nil in H
+                      | [ |- context[nth_error (_ :: _) ?n] ] => is_var n; destruct n
+                      end
+                    | exactly_once constructor
+                    | progress rewrite -> ?nth_error_nil in *
+                    | progress intros ].
+Qed.
+
+Lemma In_iff_nth_error A x l : @In A x l <-> exists n, nth_error l n = Some x.
+Proof.
+  split; try case; intros *; first [ apply nth_error_In | apply In_nth_error ].
+Qed.
+
+Lemma List_rev_alt {A ls} : List.rev ls = @rev A ls.
+Proof. rewrite rev_alt; reflexivity. Qed.
+
+Lemma nth_error_rev_full {A ls i}
+  : nth_error (@rev A ls) i = if i <? #|ls| then nth_error ls (#|ls| - S i) else None.
+Proof.
+  case: Nat.ltb_spec0 => ?.
+  { rewrite -List_rev_alt nth_error_rev_inv //. }
+  { rewrite nth_error_None rev_length; lia. }
+Qed.
+
+Lemma nth_error_List_rev_full {A ls i}
+  : nth_error (@List.rev A ls) i = if i <? #|ls| then nth_error ls (#|ls| - S i) else None.
+Proof.
+  case: Nat.ltb_spec0 => ?.
+  { rewrite nth_error_rev_inv //. }
+  { rewrite nth_error_None List.rev_length; lia. }
+Qed.
+
+Lemma nth_error_rev_map {A B f ls i}
+  : nth_error (@rev_map A B f ls) i = if i <? #|ls| then option_map f (nth_error ls (#|ls| - S i)) else None.
+Proof.
+  rewrite rev_map_spec nth_error_List_rev_full map_length nth_error_map //.
+Qed.
+
+Lemma nth_error_rev_Some {A ls i v}
+  : nth_error (@rev A ls) i = Some v -> nth_error ls (#|ls| - S i) = Some v.
+Proof.
+  rewrite nth_error_rev_full; case: nth_error; case: Nat.ltb_spec0 => //=.
+Qed.
+
+Lemma nth_error_rev_Some_inv {A ls i v}
+  : nth_error ls i = Some v -> nth_error (@rev A ls) (#|ls| - S i) = Some v.
+Proof.
+  rewrite nth_error_rev_full; case: Nat.ltb_spec0;
+    try now case: ls => //=; rewrite ?nth_error_nil.
+  intros H0 H1.
+  assert (H : i < #|ls|) by now eapply nth_error_Some_length.
+  now replace (#|ls| - S (#|ls| - S i)) with i by lia.
+Qed.
+
+Lemma nth_error_List_rev_Some {A ls i v}
+  : nth_error (@List.rev A ls) i = Some v -> nth_error ls (#|ls| - S i) = Some v.
+Proof.
+  rewrite nth_error_List_rev_full; case: nth_error; case: Nat.ltb_spec0 => //=.
+Qed.
+
+Lemma nth_error_List_rev_Some_inv {A ls i v}
+  : nth_error ls i = Some v -> nth_error (@List.rev A ls) (#|ls| - S i) = Some v.
+Proof.
+  rewrite nth_error_List_rev_full; case: Nat.ltb_spec0;
+    try now case: ls => //=; rewrite ?nth_error_nil.
+  intros H0 H1.
+  assert (H : i < #|ls|) by now eapply nth_error_Some_length.
+  now replace (#|ls| - S (#|ls| - S i)) with i by lia.
+Qed.
+
+Lemma nth_error_rev_map_Some {A B f ls i v}
+  : nth_error (@rev_map A B f ls) i = Some v -> { v' : _ | nth_error ls (#|ls| - S i) = Some v' /\ f v' = v }.
+Proof.
+  rewrite nth_error_rev_map; case: nth_error; case: Nat.ltb_spec0 => //=.
+  intros ? *; inversion 1; subst; eauto.
+Qed.
+
+Lemma nth_error_rev_map_Some_inv {A B f ls i v}
+  : nth_error ls i = Some v -> nth_error (@rev_map A B f ls) (#|ls| - S i) = Some (f v).
+Proof.
+  rewrite nth_error_rev_map; case: Nat.ltb_spec0;
+    try now case: ls => //=; rewrite ?nth_error_nil.
+  intros H0 H1.
+  assert (H : i < #|ls|) by now eapply nth_error_Some_length.
+  replace (#|ls| - S (#|ls| - S i)) with i by lia.
+  now rewrite H1.
+Qed.
+
+Lemma mapi_rec_nth_error {A B f n l d k}
+  : nth_error l n = Some d -> nth_error (@mapi_rec A B f l k) n = Some (f (n + k) d).
+Proof.
+  move: l n k.
+  elim => [|? l IH]; case => [|?] k.
+  all: rewrite ?nth_error_nil => //=; try congruence.
+  move => ?; rewrite IH => //.
+  do 2 f_equal; lia.
+Qed.
+
+Lemma mapi_nth_error {A B f n l d}
+  : nth_error l n = Some d -> nth_error (@mapi A B f l) n = Some (f n d).
+Proof.
+  rewrite /mapi => ?; erewrite mapi_rec_nth_error; tea; do 2 f_equal; lia.
+Qed.
+
+Lemma nth_error_cons_S {A x xs n}
+  : @nth_error A (x :: xs) (S n) = nth_error xs n.
+Proof. reflexivity. Qed.
+
+Lemma nth_error_cons_O {A x xs}
+  : @nth_error A (x :: xs) 0 = Some x.
+Proof. reflexivity. Qed.
