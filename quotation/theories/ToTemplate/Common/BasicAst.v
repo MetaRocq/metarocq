@@ -22,5 +22,6 @@ From MetaRocq.Template Require Import AstUtils (* for tFixType *).
 #[export] Typeclasses Transparent mfixpoint.
 #[local] Hint Unfold dtype dbody : quotation.
 #[export] Instance quotation_of_mfixpoint {term} {m : mfixpoint term} {qterm : quotation_of term} {qm : tFixType quotation_of quotation_of m} : quotation_of m := ltac:(induction qm; destruct_head'_prod; destruct_head' def; exact _).
+#[export] Hint Extern 0 (tFixType quotation_of quotation_of ?m) => assumption : typeclass_instances.
 #[export] Hint Unfold eq_binder_annot : quotation.
 #[export] Typeclasses Transparent eq_binder_annot.

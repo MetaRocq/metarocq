@@ -22,6 +22,9 @@ Defined.
 #[export] Polymorphic Instance quote_option_default {A P o b} {quoteP : forall x, o = Some x -> ground_quotable (P x)} {quoteP' : o = None -> ground_quotable b} : ground_quotable (@option_default A Type P o b) := ltac:(destruct o; cbv [option_default]; exact _).
 #[export] Polymorphic Instance quote_option_defaultP {A o} {P : A -> Prop} {b : Prop} {quoteP : forall x, o = Some x -> ground_quotable (P x)} {quoteP' : o = None -> ground_quotable b} : ground_quotable (@option_default A Prop P o b) := ltac:(destruct o; cbv [option_default]; exact _).
 
+#[export] Polymorphic Instance quotation_of_option_default {A} {qA : quotation_of A} {o : option A} {b} {qb : ground_quotable b} {qo : option_default quotation_of o b} : quotation_of o := ltac:(destruct o; cbv [option_default] in qo; exact _).
+#[export] Hint Extern 0 (option_default quotation_of _ _) => assumption : typeclass_instances.
+
 #[export] Instance quote_on_Some {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some A P o) := ltac:(destruct o; cbv [on_Some]; exact _).
 #[export] Typeclasses Opaque on_Some.
 #[export] Instance quote_on_Some_or_None {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some_or_None A P o) := ltac:(destruct o; cbv [on_Some_or_None]; exact _).
