@@ -1,8 +1,6 @@
 From MetaCoq Require Import Template.All.
 Import MCMonadNotation.
 
-#[local] Existing Instance TemplateMonad_OptimizedMonad.
-
 Fixpoint tm_double n : TemplateMonad nat :=
   match n with
   | 0 => ret 0

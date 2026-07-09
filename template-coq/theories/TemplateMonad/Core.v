@@ -97,9 +97,8 @@ Definition TemplateMonad_UnoptimizedMonad@{t u} : Monad@{t u} TemplateMonad@{t u
 Definition TemplateMonad_OptimizedMonad@{t u} : Monad@{t u} TemplateMonad@{t u} :=
   {| ret := @tmReturn ; bind := @tmOptimizedBind |}.
 
-(* We don't want to make the optimized monad an instance, because it blows up performance in some cases *)
 Definition TemplateMonad_Monad@{t u} : Monad@{t u} TemplateMonad@{t u} :=
-  Eval hnf in TemplateMonad_UnoptimizedMonad.
+  Eval hnf in TemplateMonad_OptimizedMonad.
 Global Existing Instance TemplateMonad_Monad.
 
 Polymorphic Definition tmDefinitionRed
@@ -202,7 +201,7 @@ Definition TypeInstanceOptimized : Common.TMInstance :=
    |}.
 
 Definition TypeInstance : Common.TMInstance :=
-  Eval hnf in TypeInstanceUnoptimized.
+  Eval hnf in TypeInstanceOptimized.
 
 Definition tmQuoteUniverse@{U t u} : TemplateMonad@{t u} Universe.t
   := u <- @tmQuote Prop (Type@{U} -> True);;
