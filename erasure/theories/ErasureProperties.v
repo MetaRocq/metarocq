@@ -485,7 +485,7 @@ Section wellscoped.
   match t with
   | tRel i => true
   | tPrim p => test_prim wellformed p
-  | tEvar ev args => List.forallb (wellformed) args
+  | tEvar ev args => false (* List.forallb (wellformed) args *)
   | tLambda _ N M => wellformed N && wellformed M
   | tApp u v => wellformed u && wellformed v
   | tLetIn na b ty b' => wellformed b && wellformed ty && wellformed b'
@@ -501,7 +501,7 @@ Section wellscoped.
     List.forallb (test_def wellformed wellformed) mfix
   | tConst kn _ => isSome (lookup_constant Σ kn)
   | tConstruct ind c _ => isSome (lookup_constructor Σ ind c)
-  | tVar _ => true
+  | tVar _ => false
   | tInd ind _  => isSome (lookup_inductive Σ ind)
   | tSort _ => true
   | tProd na ty1 ty2 => wellformed ty1 && wellformed ty2

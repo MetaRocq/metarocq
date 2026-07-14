@@ -87,18 +87,6 @@ Definition all_term_flags :=
     ; has_tLazy_Force := true
   |}.
 
-Definition all_env_flags :=
-  {| has_axioms := true;
-     term_switches := all_term_flags;
-     has_cstr_params := true ;
-     cstr_as_blocks := false |}.
-
-Definition all_env_flags_blocks :=
-  {| has_axioms := true;
-     term_switches := all_term_flags;
-     has_cstr_params := true ;
-     cstr_as_blocks := true |}.
-
 Definition erased_term_flags :=
   {| has_tBox := true
     ; has_tRel := true
@@ -117,11 +105,17 @@ Definition erased_term_flags :=
     ; has_tLazy_Force := true (* Actually not possible *)
   |}.
 
-Definition erased_env_flags :=
+Definition all_env_flags :=
   {| has_axioms := true;
      term_switches := erased_term_flags;
      has_cstr_params := true ;
      cstr_as_blocks := false |}.
+
+Definition all_env_flags_blocks :=
+  {| has_axioms := true;
+     term_switches := erased_term_flags;
+     has_cstr_params := true ;
+     cstr_as_blocks := true |}.
 
 Section wf.
 
