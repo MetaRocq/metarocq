@@ -121,7 +121,7 @@ let get_constant_body ~opaque_access b =
   | Def b -> Some b
   | Undef inline -> None
   | OpaqueDef pr -> 
-    let proof, _ = Global.force_proof opaque_access pr in
+    let proof, _, _ = Global.force_proof opaque_access pr in
     (* FIXME delayed univs skipped *)
     Some proof
   | Primitive _ -> failwith "Primitives not supported by TemplateRocq"
