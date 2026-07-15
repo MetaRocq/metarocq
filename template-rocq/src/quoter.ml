@@ -553,7 +553,7 @@ struct
               | Def cs -> Some cs
               | OpaqueDef lc ->
                 if bypass then
-                  let c, univs = Global.force_proof opaque_access lc in
+                  let c, univs, _ = Global.force_proof opaque_access lc in
                   match univs with
                   | Opaqueproof.PrivateMonomorphic () -> Some c
                   | Opaqueproof.PrivatePolymorphic csts ->
@@ -677,7 +677,7 @@ struct
       | Def cs -> Some (quote_term env evm cs)
       | OpaqueDef cs ->
         if bypass
-        then Some (quote_term env evm (fst (Global.force_proof opaque_access cs)))
+        then Some (quote_term env evm (let (c, _, _) = Global.force_proof opaque_access cs in c))
         else None
       | Primitive _ -> failwith "Primitive types not supported by TemplateRocq"
       | Symbol _ -> failwith "Symbols are not supported by TemplateRocq"
