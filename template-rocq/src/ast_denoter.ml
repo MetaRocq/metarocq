@@ -107,27 +107,27 @@ struct
     quoted_kernel_name, quoted_inductive, quoted_relevance, quoted_univ_level, quoted_univ_instance, quoted_proj,
     quoted_int63, quoted_float64, quoted_pstring) structure_of_term =
     match tt with
-    | Coq_tRel n -> ACoq_tRel n
-    | Coq_tVar v -> ACoq_tVar v
-    | Coq_tEvar (x,l) -> ACoq_tEvar (x,l)
-    | Coq_tSort u -> ACoq_tSort u
-    | Coq_tCast (t,k,tt) -> ACoq_tCast (t,k,tt)
-    | Coq_tProd (a,b,c) -> ACoq_tProd (a,b,c)
-    | Coq_tLambda (a,b,c) -> ACoq_tLambda (a,b,c)
-    | Coq_tLetIn (a,b,c,d) -> ACoq_tLetIn (a,b,c,d)
-    | Coq_tApp (a,b) -> ACoq_tApp (a,b)
-    | Coq_tConst (a,b) -> ACoq_tConst (a,b)
-    | Coq_tInd (a,b) -> ACoq_tInd (a,b)
-    | Coq_tConstruct (a,b,c) -> ACoq_tConstruct (a,b,c)
-    | Coq_tCase (a,b,c,d) ->
-      ACoq_tCase (unquote_case_info a,unquote_predicate b,c,List.map unquote_branch d)
-    | Coq_tProj (a,b) -> ACoq_tProj (a,b)
-    | Coq_tFix (a,b) -> ACoq_tFix (List.map unquote_def a,b)
-    | Coq_tCoFix (a,b) -> ACoq_tCoFix (List.map unquote_def a,b)
-    | Coq_tInt i -> ACoq_tInt i
-    | Coq_tFloat f -> ACoq_tFloat f
-    | Coq_tString s -> ACoq_tString s
-    | Coq_tArray (u, arr, def, ty) -> ACoq_tArray (u, Array.of_list arr, def, ty)
+    | Rocq_tRel n -> ARocq_tRel n
+    | Rocq_tVar v -> ARocq_tVar v
+    | Rocq_tEvar (x,l) -> ARocq_tEvar (x,l)
+    | Rocq_tSort u -> ARocq_tSort u
+    | Rocq_tCast (t,k,tt) -> ARocq_tCast (t,k,tt)
+    | Rocq_tProd (a,b,c) -> ARocq_tProd (a,b,c)
+    | Rocq_tLambda (a,b,c) -> ARocq_tLambda (a,b,c)
+    | Rocq_tLetIn (a,b,c,d) -> ARocq_tLetIn (a,b,c,d)
+    | Rocq_tApp (a,b) -> ARocq_tApp (a,b)
+    | Rocq_tConst (a,b) -> ARocq_tConst (a,b)
+    | Rocq_tInd (a,b) -> ARocq_tInd (a,b)
+    | Rocq_tConstruct (a,b,c) -> ARocq_tConstruct (a,b,c)
+    | Rocq_tCase (a,b,c,d) ->
+      ARocq_tCase (unquote_case_info a,unquote_predicate b,c,List.map unquote_branch d)
+    | Rocq_tProj (a,b) -> ARocq_tProj (a,b)
+    | Rocq_tFix (a,b) -> ARocq_tFix (List.map unquote_def a,b)
+    | Rocq_tCoFix (a,b) -> ARocq_tCoFix (List.map unquote_def a,b)
+    | Rocq_tInt i -> ARocq_tInt i
+    | Rocq_tFloat f -> ARocq_tFloat f
+    | Rocq_tString s -> ARocq_tString s
+    | Rocq_tArray (u, arr, def, ty) -> ARocq_tArray (u, Array.of_list arr, def, ty)
 
   let unquote_string = Caml_bytestring.caml_string_of_bytestring
 
@@ -142,8 +142,8 @@ struct
 
   let unquote_name (q: quoted_name) : Name.t =
     match q with
-    | Coq_nAnon -> Anonymous
-    | Coq_nNamed n -> Name (unquote_ident n)
+    | Rocq_nAnon -> Anonymous
+    | Rocq_nNamed n -> Name (unquote_ident n)
 
   let unquote_aname (q: quoted_aname) : Name.t Constr.binder_annot =
     {Context.binder_name = unquote_name q.binder_name;
@@ -198,8 +198,8 @@ struct
 
   let unquote_level (trm : Universes0.Level.t) : Univ.Level.t =
     match trm with
-    | Universes0.Level.Coq_lzero -> Univ.Level.set
-    | Universes0.Level.Coq_level s ->
+    | Universes0.Level.Rocq_lzero -> Univ.Level.set
+    | Universes0.Level.Rocq_level s ->
       let s = unquote_string s in
       let comps = CString.split_on_char '.' s in
       let last, dp = CList.sep_last comps in
@@ -207,7 +207,7 @@ struct
       let idx = int_of_string last in
       (* TODO handle universes from workers *)
       Univ.Level.make (Univ.UGlobal.make dp "" idx)
-    | Universes0.Level.Coq_lvar n -> Univ.Level.var (unquote_int n)
+    | Universes0.Level.Rocq_lvar n -> Univ.Level.var (unquote_int n)
 
   let unquote_level_expr (trm : Universes0.Level.t * quoted_int) : Univ.Universe.t =
     let l = unquote_level (fst trm) in
@@ -223,9 +223,9 @@ struct
 
   let unquote_sort evm trm =
     match trm with
-    | Universes0.Sort.Coq_sSProp -> evm, Sorts.sprop
-    | Universes0.Sort.Coq_sProp -> evm, Sorts.prop
-    | Universes0.Sort.Coq_sType u ->
+    | Universes0.Sort.Rocq_sSProp -> evm, Sorts.sprop
+    | Universes0.Sort.Rocq_sProp -> evm, Sorts.prop
+    | Universes0.Sort.Rocq_sType u ->
       let evm, u = unquote_universe evm u in
       evm, Sorts.sort_of_univ u
 

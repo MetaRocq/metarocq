@@ -2,7 +2,7 @@
 Printf.printf "let int_of_byte = \n";;
 
 for i = 0 to 255 do
-  Printf.printf "| Coq_x%02x -> %i\n" i i
+  Printf.printf "| Rocq_x%02x -> %i\n" i i
 done *)
 (*
 Printf.printf "open Byte\n";;
@@ -10,12 +10,12 @@ Printf.printf "open Byte\n";;
 Printf.printf "let char_of_byte = function\n";;
 
 for i = 0 to 255 do
-  Printf.printf "| Coq_x%02x -> '\\%03i'\n" i i
+  Printf.printf "| Rocq_x%02x -> '\\%03i'\n" i i
 done;;
 
 Printf.printf "let byte_of_char = function\n";;
 for i = 0 to 255 do
-  Printf.printf "| '\\%03i' -> Coq_x%02x\n" i i
+  Printf.printf "| '\\%03i' -> Rocq_x%02x\n" i i
 done;;
 *)
 (*

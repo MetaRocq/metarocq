@@ -55,7 +55,7 @@ struct
   (* TODO: replace app_full by this abstract version?*)
   let rec app_full_abs (trm: D.t) (acc: D.t list) =
     match D.inspect_term trm with
-      ACoq_tApp (f, xs) -> app_full_abs f (xs @ acc)
+      ARocq_tApp (f, xs) -> app_full_abs f (xs @ acc)
     | _ -> (trm, acc)
 
   let push_rec_types (lna,typarray) env =
@@ -68,48 +68,48 @@ struct
     let rec aux env evm (trm: D.t) : _ * Constr.t =
       (* debug (fun () -> Pp.(str "denote_term" ++ spc () ++ Printer.pr_econstr_env env evm trm)) ;  *)
       match D.inspect_term trm with
-      | ACoq_tRel x -> evm, Constr.mkRel (D.unquote_int x + 1)
-      | ACoq_tVar x -> evm, Constr.mkVar (D.unquote_ident x)
-      | ACoq_tEvar (n, l) ->
+      | ARocq_tRel x -> evm, Constr.mkRel (D.unquote_int x + 1)
+      | ARocq_tVar x -> evm, Constr.mkVar (D.unquote_ident x)
+      | ARocq_tEvar (n, l) ->
         let evm, l' = map_evm (aux env) evm l in
         D.unquote_evar env evm n l'
-      | ACoq_tSort x -> let evm, s = D.unquote_sort evm x in evm, Constr.mkSort s
-      | ACoq_tCast (t,c,ty) -> let evm, t = aux env evm t in
+      | ARocq_tSort x -> let evm, s = D.unquote_sort evm x in evm, Constr.mkSort s
+      | ARocq_tCast (t,c,ty) -> let evm, t = aux env evm t in
         let evm, ty = aux env evm ty in
         evm, Constr.mkCast (t, D.unquote_cast_kind c, ty)
-      | ACoq_tProd (n,t,b) -> let evm, t = aux env evm t in
+      | ARocq_tProd (n,t,b) -> let evm, t = aux env evm t in
         let n = D.unquote_aname n in
         let evm, b = aux (Environ.push_rel (LocalAssum (n, t)) env) evm b in
         evm, Constr.mkProd (n, t, b)
-      | ACoq_tLambda (n,t,b) ->
+      | ARocq_tLambda (n,t,b) ->
         let n = D.unquote_aname n in
         let evm, t = aux env evm t in
         let evm, b = aux (Environ.push_rel (LocalAssum (n, t)) env) evm b in
         evm, Constr.mkLambda (n, t, b)
-      | ACoq_tLetIn (n,e,t,b) ->
+      | ARocq_tLetIn (n,e,t,b) ->
         let n = D.unquote_aname n in
         let evm, e = aux env evm e in
         let evm, t = aux env evm t in
         let evm, b = aux (Environ.push_rel (LocalDef (n, e, t)) env) evm b in
         evm, Constr.mkLetIn (n, e, t, b)
-      | ACoq_tApp (f,xs) -> let evm, f = aux env evm f in
+      | ARocq_tApp (f,xs) -> let evm, f = aux env evm f in
         let evm, xs = map_evm (aux env) evm xs in
         evm, Constr.mkApp (f, Array.of_list xs)
-      | ACoq_tConst (s,u) ->
+      | ARocq_tConst (s,u) ->
         let s = D.unquote_kn s in
         let evm, u = D.unquote_universe_instance evm u in
         (* XXX use the Environ API when available *)
         let cst = Global.constant_of_delta_kn s in
         evm, Constr.mkConstU (cst, u)
-      | ACoq_tConstruct (i,idx,u) ->
+      | ARocq_tConstruct (i,idx,u) ->
         let ind = D.unquote_inductive i in
         let evm, u = D.unquote_universe_instance evm u in
         evm, Constr.mkConstructU ((ind, D.unquote_int idx + 1), u)
-      | ACoq_tInd (i, u) ->
+      | ARocq_tInd (i, u) ->
         let i = D.unquote_inductive i in
         let evm, u = D.unquote_universe_instance evm u in
         evm, Constr.mkIndU (i, u)
-      | ACoq_tCase (ci, p, c, brs) ->
+      | ARocq_tCase (ci, p, c, brs) ->
         let ind = D.unquote_inductive ci.aci_ind in
         let relevance = D.unquote_relevance ci.aci_relevance in
         let ci = Inductiveops.make_case_info (Global.env ()) ind Constr.MatchStyle in
@@ -132,7 +132,7 @@ struct
         (* todo: reify better case_info *)
         let pcase = (ci, puinst, pars, ((napctx, pret), relevance), Constr.NoInvert, c, brs) in
         evm, Constr.mkCase pcase
-      | ACoq_tFix (lbd, i) ->
+      | ARocq_tFix (lbd, i) ->
         let (names,types,bodies,rargs) = (List.map (fun p->p.adname) lbd,  List.map (fun p->p.adtype) lbd, List.map (fun p->p.adbody) lbd,
                                           List.map (fun p->p.rarg) lbd) in
         let evm, types = map_evm (aux env) evm types in
@@ -142,7 +142,7 @@ struct
         let env = push_rec_types (lnames, ltypes) env in
         let evm, bodies = map_evm (aux env) evm bodies in
         evm, Constr.mkFix ((la rargs, D.unquote_int i), (lnames, ltypes, la bodies))
-      | ACoq_tCoFix (lbd, i) ->
+      | ARocq_tCoFix (lbd, i) ->
         let (names,types,bodies,rargs) = (List.map (fun p->p.adname) lbd,  List.map (fun p->p.adtype) lbd, List.map (fun p->p.adbody) lbd,
                                           List.map (fun p->p.rarg) lbd) in
         let evm, types = map_evm (aux env) evm types in
@@ -153,7 +153,7 @@ struct
         let evm, bodies = map_evm (aux env) evm bodies in
         evm, Constr.mkCoFix (D.unquote_int i, (lnames, ltypes, la bodies))
 
-      | ACoq_tProj (proj,t) ->
+      | ARocq_tProj (proj,t) ->
          let (ind, _npars, arg) = D.unquote_proj proj in
          let ind' = D.unquote_inductive ind in
          let proj_arg = D.unquote_int arg in
@@ -166,10 +166,10 @@ struct
            | RelevanceVar _ -> CErrors.user_err Pp.(str "Unquoting sort poly projections not yet supported.")
          in
          evm, Constr.mkProj (p', r, t')
-      | ACoq_tInt x -> evm, Constr.mkInt (D.unquote_int63 x)
-      | ACoq_tFloat x -> evm, Constr.mkFloat (D.unquote_float64 x)
-      | ACoq_tString x -> evm, Constr.mkString (D.unquote_pstring x)
-      | ACoq_tArray (u, arr, def, ty) ->
+      | ARocq_tInt x -> evm, Constr.mkInt (D.unquote_int63 x)
+      | ARocq_tFloat x -> evm, Constr.mkFloat (D.unquote_float64 x)
+      | ARocq_tString x -> evm, Constr.mkString (D.unquote_pstring x)
+      | ARocq_tArray (u, arr, def, ty) ->
           let evm, u = D.unquote_universe_level evm u in
           let evm, arr = CArray.fold_left_map (fun evm a -> aux env evm a) evm arr in
           let evm, def = aux env evm def in

@@ -28,17 +28,17 @@ let rs_unfold (env : Environ.env) (gr : global_reference) =
 
 (* Rocq state related to vernaculars, needed to declare constants,
    could be a good idea to add the evar_map / env here as a record *)
-type coq_state = Declare.OblState.t
+type rocq_state = Declare.OblState.t
 
-type 'a cont = st:coq_state -> Environ.env -> Evd.evar_map -> 'a -> coq_state
+type 'a cont = st:rocq_state -> Environ.env -> Evd.evar_map -> 'a -> rocq_state
 type 'a tm =
-  st:coq_state -> Environ.env -> Evd.evar_map
-  -> 'a cont -> (st:coq_state -> Pp.t -> coq_state) -> coq_state
+  st:rocq_state -> Environ.env -> Evd.evar_map
+  -> 'a cont -> (st:rocq_state -> Pp.t -> rocq_state) -> rocq_state
 
-let run ~st (c : 'a tm) env evm (k : st:coq_state -> Environ.env -> Evd.evar_map -> 'a -> coq_state) : coq_state =
+let run ~st (c : 'a tm) env evm (k : st:rocq_state -> Environ.env -> Evd.evar_map -> 'a -> rocq_state) : rocq_state =
   c ~st env evm k (fun ~st x -> CErrors.user_err x)
 
-let run_vernac ~st (c : 'a tm) : coq_state =
+let run_vernac ~st (c : 'a tm) : rocq_state =
   let env = Global.env () in
   let evm = Evd.from_env env in
   run ~st c env evm (fun ~st _ _ _ -> st)

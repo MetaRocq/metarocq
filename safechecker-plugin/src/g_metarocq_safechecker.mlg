@@ -37,8 +37,8 @@ let check ~opaque_access env evm poly (c, ustate) =
       uctx
   in
   match check with
-  | Coq_inl s -> Feedback.msg_info (pr_string s)
-  | Coq_inr s -> CErrors.user_err (pr_string s)
+  | Rocq_inl s -> Feedback.msg_info (pr_string s)
+  | Rocq_inr s -> CErrors.user_err (pr_string s)
 }
 
 VERNAC COMMAND EXTEND MetaRocqSafeCheck CLASSIFIED AS QUERY STATE opaque_access

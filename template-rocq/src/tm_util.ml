@@ -311,26 +311,26 @@ type ('nat, 'inductive, 'relevance) acase_info =
     aci_relevance : 'relevance }
 
 type ('term, 'nat, 'ident, 'name, 'quoted_sort, 'cast_kind, 'kername, 'inductive, 'relevance, 'universe_level, 'universe_instance, 'projection, 'int63, 'float64, 'pstring) structure_of_term =
-  | ACoq_tRel of 'nat
-  | ACoq_tVar of 'ident
-  | ACoq_tEvar of 'nat * 'term list
-  | ACoq_tSort of 'quoted_sort
-  | ACoq_tCast of 'term * 'cast_kind * 'term
-  | ACoq_tProd of 'name * 'term * 'term
-  | ACoq_tLambda of 'name * 'term * 'term
-  | ACoq_tLetIn of 'name * 'term * 'term * 'term
-  | ACoq_tApp of 'term * 'term list
-  | ACoq_tConst of 'kername * 'universe_instance
-  | ACoq_tInd of 'inductive * 'universe_instance
-  | ACoq_tConstruct of 'inductive * 'nat * 'universe_instance
-  | ACoq_tCase of ('nat, 'inductive, 'relevance) acase_info *
+  | ARocq_tRel of 'nat
+  | ARocq_tVar of 'ident
+  | ARocq_tEvar of 'nat * 'term list
+  | ARocq_tSort of 'quoted_sort
+  | ARocq_tCast of 'term * 'cast_kind * 'term
+  | ARocq_tProd of 'name * 'term * 'term
+  | ARocq_tLambda of 'name * 'term * 'term
+  | ARocq_tLetIn of 'name * 'term * 'term * 'term
+  | ARocq_tApp of 'term * 'term list
+  | ARocq_tConst of 'kername * 'universe_instance
+  | ARocq_tInd of 'inductive * 'universe_instance
+  | ARocq_tConstruct of 'inductive * 'nat * 'universe_instance
+  | ARocq_tCase of ('nat, 'inductive, 'relevance) acase_info *
     ('term, 'name, 'universe_instance) apredicate *
     'term * ('term, 'name) abranch list
-  | ACoq_tProj of 'projection * 'term
-  | ACoq_tFix of ('term, 'name, 'nat) amfixpoint * 'nat
-  | ACoq_tCoFix of ('term, 'name, 'nat) amfixpoint * 'nat
-  | ACoq_tInt of 'int63
-  | ACoq_tFloat of 'float64
-  | ACoq_tString of 'pstring
-  | ACoq_tArray of 'universe_level * 'term array * 'term * 'term
+  | ARocq_tProj of 'projection * 'term
+  | ARocq_tFix of ('term, 'name, 'nat) amfixpoint * 'nat
+  | ARocq_tCoFix of ('term, 'name, 'nat) amfixpoint * 'nat
+  | ARocq_tInt of 'int63
+  | ARocq_tFloat of 'float64
+  | ARocq_tString of 'pstring
+  | ARocq_tArray of 'universe_level * 'term array * 'term * 'term
 

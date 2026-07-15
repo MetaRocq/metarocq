@@ -67,8 +67,8 @@ struct
     | Sorts.RelevanceVar x -> BasicAst.Irrelevant
 
   let quote_name : Names.Name.t -> BasicAst.name = function
-    | Anonymous -> Coq_nAnon
-    | Name i -> Coq_nNamed (quote_ident i)
+    | Anonymous -> Rocq_nAnon
+    | Name i -> Rocq_nNamed (quote_ident i)
 
   let quote_aname ann_n =
     let {Context.binder_name = n; Context.binder_relevance = relevance} = ann_n in
@@ -84,10 +84,10 @@ struct
   let quote_pstring x = x
 
   let quote_level (l : Univ.Level.t) : Universes0.Level.t =
-    if Univ.Level.is_set l then Universes0.Level.Coq_lzero
+    if Univ.Level.is_set l then Universes0.Level.Rocq_lzero
     else match Univ.Level.var_index l with
-         | Some x -> Universes0.Level.Coq_lvar (quote_int x)
-         | None -> Universes0.Level.Coq_level (quote_string (Univ.Level.to_string l))
+         | Some x -> Universes0.Level.Rocq_lvar (quote_int x)
+         | None -> Universes0.Level.Rocq_level (quote_string (Univ.Level.to_string l))
 
   let quote_level_expr (lvl, shft) : Universes0.LevelExpr.t = quote_level lvl, quote_int shft
 
@@ -100,10 +100,10 @@ struct
 
   let quote_sort s = match s with
   | Sorts.Set -> Universes0.Sort.type0
-  | Sorts.SProp -> Universes0.Sort.Coq_sSProp
-  | Sorts.Prop -> Universes0.Sort.Coq_sProp
-  | Sorts.Type u -> Universes0.Sort.Coq_sType (quote_universe u)
-  | Sorts.VSort (_, u) | GSort (_, u) -> Universes0.Sort.Coq_sType (quote_universe u) (* FIXME *)
+  | Sorts.SProp -> Universes0.Sort.Rocq_sSProp
+  | Sorts.Prop -> Universes0.Sort.Rocq_sProp
+  | Sorts.Type u -> Universes0.Sort.Rocq_sType (quote_universe u)
+  | Sorts.VSort (_, u) | GSort (_, u) -> Universes0.Sort.Rocq_sType (quote_universe u) (* FIXME *)
 
   let quote_sort_quality_or_set s =
     let open UnivGen.QualityOrSet in
@@ -138,7 +138,7 @@ struct
   let quote_proj ind p a = { proj_ind = ind; proj_npars = p; proj_arg = a }
 
   let quote_constraint_type = function
-    | Univ.UnivConstraint.Lt -> Universes0.ConstraintType.Le BinNums.(Zpos Coq_xH)
+    | Univ.UnivConstraint.Lt -> Universes0.ConstraintType.Le BinNums.(Zpos Rocq_xH)
     | Univ.UnivConstraint.Le -> Universes0.ConstraintType.Le BinNums.Z0
     | Univ.UnivConstraint.Eq -> Universes0.ConstraintType.Eq
 
@@ -217,8 +217,8 @@ struct
 
   let quote_context l = l
 
-  let mkAnon () = Coq_nAnon
-  let mkName i = Coq_nNamed i
+  let mkAnon () = Rocq_nAnon
+  let mkName i = Rocq_nNamed i
 
   let mkBindAnn nm r = { BasicAst.binder_name = nm; BasicAst.binder_relevance = r}
 
@@ -229,23 +229,23 @@ struct
    * let mkAName i r = {BasicAst.binder_name = mkName i; BasicAst.binder_relevance = r} *)
 
 
-  let mkRel n = Coq_tRel n
-  let mkVar id = Coq_tVar id
-  let mkEvar n args = Coq_tEvar (n,Array.to_list args)
-  let mkSort s = Coq_tSort s
-  let mkCast c k t = Coq_tCast (c,k,t)
+  let mkRel n = Rocq_tRel n
+  let mkVar id = Rocq_tVar id
+  let mkEvar n args = Rocq_tEvar (n,Array.to_list args)
+  let mkSort s = Rocq_tSort s
+  let mkCast c k t = Rocq_tCast (c,k,t)
 
-  let mkConst c u = Coq_tConst (c, u)
-  let mkProd na t b = Coq_tProd (na, t, b)
-  let mkLambda na t b = Coq_tLambda (na, t, b)
-  let mkApp f xs = Coq_tApp (f, Array.to_list xs)
-  let mkInd i u = Coq_tInd (i, u)
-  let mkConstruct (ind, i) u = Coq_tConstruct (ind, i, u)
-  let mkLetIn na b t t' = Coq_tLetIn (na,b,t,t')
-  let mkInt i = Coq_tInt i
-  let mkFloat f = Coq_tFloat f
-  let mkString s = Coq_tString s
-  let mkArray u arr ~default ~ty = Coq_tArray (u, Array.to_list arr, default, ty)
+  let mkConst c u = Rocq_tConst (c, u)
+  let mkProd na t b = Rocq_tProd (na, t, b)
+  let mkLambda na t b = Rocq_tLambda (na, t, b)
+  let mkApp f xs = Rocq_tApp (f, Array.to_list xs)
+  let mkInd i u = Rocq_tInd (i, u)
+  let mkConstruct (ind, i) u = Rocq_tConstruct (ind, i, u)
+  let mkLetIn na b t t' = Rocq_tLetIn (na,b,t,t')
+  let mkInt i = Rocq_tInt i
+  let mkFloat f = Rocq_tFloat f
+  let mkString s = Rocq_tString s
+  let mkArray u arr ~default ~ty = Rocq_tArray (u, Array.to_list arr, default, ty)
 
   let rec seq f t =
     if f < t then
@@ -261,7 +261,7 @@ struct
     in
     let defs = List.fold_left mk_fun [] (seq 0 (Array.length a)) in
     let block = List.rev defs in
-    Coq_tFix (block, b)
+    Rocq_tFix (block, b)
 
   let mkCoFix ((a,b),(ns,ts,ds)) =
     let mk_fun xs i =
@@ -272,7 +272,7 @@ struct
     in
     let defs = List.fold_left mk_fun [] (seq 0 (Array.length ns)) in
     let block = List.rev defs in
-    Coq_tCoFix (block, b)
+    Rocq_tCoFix (block, b)
 
   let mkCase (ind, npar, r) (univs, pars, pctx, pret) c brs =
     let info = { ci_ind = ind; ci_npar = npar; ci_relevance = r } in
@@ -281,9 +281,9 @@ struct
                  pcontext = List.rev (Array.to_list pctx);
                  preturn = pret } in
     let branches = List.map (fun (bctx, br) -> { bcontext = List.rev (Array.to_list bctx); bbody = br }) brs in
-    Coq_tCase (info,pred,c,branches)
+    Rocq_tCase (info,pred,c,branches)
 
-  let mkProj p c = Coq_tProj (p,c)
+  let mkProj p c = Rocq_tProj (p,c)
 
 
   let mkMonomorphic_ctx () = Universes0.Monomorphic_ctx
@@ -385,7 +385,7 @@ struct
     quoted_univ_instance, quoted_proj,
     quoted_int63, quoted_float64, quoted_pstring) structure_of_term =
    match t with
-  | Coq_tRel n -> ACoq_tRel n
+  | Rocq_tRel n -> ARocq_tRel n
   (* todo ! *)
     (* so on *)
   | _ ->  failwith "not yet implemented"

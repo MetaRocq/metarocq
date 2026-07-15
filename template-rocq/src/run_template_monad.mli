@@ -5,6 +5,6 @@ val run_template_program_rec :
   poly:PolyFlags.t ->
   ?intactic:bool ->
   Constr.t Plugin_core.cont ->
-  st:Plugin_core.coq_state ->
+  st:Plugin_core.rocq_state ->
   Environ.env -> Evd.evar_map * Constr.t ->
-  Plugin_core.coq_state
+  Plugin_core.rocq_state

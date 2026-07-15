@@ -388,55 +388,55 @@ struct
     let (h,args) = app_full t [] in
     if constr_equall h tRel then
       match args with
-        x :: _ -> ACoq_tRel x
+        x :: _ -> ARocq_tRel x
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tVar then
       match args with
-        x :: _ -> ACoq_tVar x
+        x :: _ -> ARocq_tVar x
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tEvar then
       match args with
-      | [x; y] -> ACoq_tEvar (x, unquote_list y)
+      | [x; y] -> ARocq_tEvar (x, unquote_list y)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tSort then
       match args with
-        x :: _ -> ACoq_tSort x
+        x :: _ -> ARocq_tSort x
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tCast then
       match args with
-        x :: y :: z :: _ -> ACoq_tCast (x, y, z)
+        x :: y :: z :: _ -> ARocq_tCast (x, y, z)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tProd then
       match args with
-        n :: t :: b :: _ -> ACoq_tProd (n,t,b)
+        n :: t :: b :: _ -> ARocq_tProd (n,t,b)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tLambda then
       match args with
-        n  :: t :: b :: _ -> ACoq_tLambda (n,t,b)
+        n  :: t :: b :: _ -> ARocq_tLambda (n,t,b)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tLetIn then
       match args with
-        n :: e :: t :: b :: _ -> ACoq_tLetIn (n,e,t,b)
+        n :: e :: t :: b :: _ -> ARocq_tLetIn (n,e,t,b)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tApp then
       match args with
-        f::xs::_ -> ACoq_tApp (f, unquote_list xs)
+        f::xs::_ -> ARocq_tApp (f, unquote_list xs)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tConst then
       match args with
-        s::u::_ -> ACoq_tConst (s, u)
+        s::u::_ -> ARocq_tConst (s, u)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tInd then
       match args with
-        i::u::_ -> ACoq_tInd (i,u)
+        i::u::_ -> ARocq_tInd (i,u)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tConstructor then
       match args with
-        i::idx::u::_ -> ACoq_tConstruct (i,idx,u)
+        i::idx::u::_ -> ARocq_tConstruct (i,idx,u)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure: constructor case"))
     else if constr_equall h tCase then
       match args with
-        info::p::d::brs::_ -> ACoq_tCase (unquote_case_info info, unquote_predicate p, d,
+        info::p::d::brs::_ -> ARocq_tCase (unquote_case_info info, unquote_predicate p, d,
            List.map unquote_branch (unquote_list brs))
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tFix then
@@ -454,7 +454,7 @@ struct
           |_ -> raise (Failure " (mkdef must take exactly 5 arguments)")
         in
         let lbd = List.map unquoteFbd (unquote_list bds) in
-        ACoq_tFix (lbd, i)
+        ARocq_tFix (lbd, i)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tCoFix then
       match args with
@@ -471,27 +471,27 @@ struct
           |_ -> raise (Failure " (mkdef must take exactly 5 arguments)")
         in
         let lbd = List.map unquoteFbd (unquote_list bds) in
-        ACoq_tCoFix (lbd, i)
+        ARocq_tCoFix (lbd, i)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tProj then
       match args with
-        proj::t::_ -> ACoq_tProj (proj, t)
+        proj::t::_ -> ARocq_tProj (proj, t)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tInt then
       match args with
-        t::_ -> ACoq_tInt t
+        t::_ -> ARocq_tInt t
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tFloat then
       match args with
-        t::_ -> ACoq_tFloat t
+        t::_ -> ARocq_tFloat t
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tString then
       match args with
-        t::_ -> ACoq_tString t
+        t::_ -> ARocq_tString t
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else if constr_equall h tArray then
       match args with
-        u::v::def::ty::_ -> ACoq_tArray (u, Array.of_list (unquote_list v), def, ty)
+        u::v::def::ty::_ -> ARocq_tArray (u, Array.of_list (unquote_list v), def, ty)
       | _ -> CErrors.user_err (print_term t ++ Pp.str ("has bad structure"))
     else
       CErrors.user_err (str"inspect_term: cannot recognize " ++ print_term t ++ str" (maybe you forgot to reduce it?)")

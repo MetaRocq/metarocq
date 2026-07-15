@@ -8,12 +8,12 @@ open Ast_denoter
 
 let to_reduction_strategy (s : Common0.reductionStrategy) : Plugin_core.reduction_strategy =
   match s with
-   | Common0.Coq_cbv -> Plugin_core.rs_cbv
-   | Common0.Coq_cbn -> Plugin_core.rs_cbn
-   | Common0.Coq_hnf -> Plugin_core.rs_hnf
-   | Common0.Coq_all -> Plugin_core.rs_all
-   | Common0.Coq_lazy -> Plugin_core.rs_lazy
-   | Common0.Coq_unfold x -> failwith "not yet implemented: to_reduction_strategy"
+   | Common0.Rocq_cbv -> Plugin_core.rs_cbv
+   | Common0.Rocq_cbn -> Plugin_core.rs_cbn
+   | Common0.Rocq_hnf -> Plugin_core.rs_hnf
+   | Common0.Rocq_all -> Plugin_core.rs_all
+   | Common0.Rocq_lazy -> Plugin_core.rs_lazy
+   | Common0.Rocq_unfold x -> failwith "not yet implemented: to_reduction_strategy"
 
 let to_qualid c : Libnames.qualid =
   Libnames.qualid_of_string (unquote_string c)
@@ -166,41 +166,41 @@ let tmOfConstantBody ~opaque_access (t : Plugin_core.constant_body) : Ast0.Env.c
 
 (*
 let dbg = function
-    Coq_tmReturn _ -> "tmReturn"
-  | Coq_tmBind _ -> "tmBind"
-  | Coq_tmPrint _ -> "tmPrint"
-  | Coq_tmMsg msg -> "tmMsg"
-  | Coq_tmFail err -> "tmFail"
-  | Coq_tmEval (r,t) -> "tmEval"
-  | Coq_tmDefinition (nm, typ, trm) -> "tmDefinition"
-  | Coq_tmAxiom (nm, typ) -> "tmAxiom"
-  | Coq_tmLemma (nm, typ) -> "tmLemma"
-  | Coq_tmFreshName nm -> "tmFreshName"
-  | Coq_tmLocate id -> "tmLocate"
-  | Coq_tmLocateModule id -> "tmLocateModule"
-  | Coq_tmLocateModType id -> "tmLocateModType"
-  | Coq_tmCurrentModPath -> "tmCurrentModPath"
-  | Coq_tmQuoteInductive kn -> "tmQuoteInductive"
-  | Coq_tmQuoteUniverses -> "tmQuoteUniverses"
-  | Coq_tmQuoteConstant (kn, b) -> "tmQuoteConstant"
-  | Coq_tmInductive i -> "tmInductive"
-  | Coq_tmExistingInstance (l, k) -> "tmExistingInstance"
-  | Coq_tmInferInstance t -> "tmInferInstance"
+    Rocq_tmReturn _ -> "tmReturn"
+  | Rocq_tmBind _ -> "tmBind"
+  | Rocq_tmPrint _ -> "tmPrint"
+  | Rocq_tmMsg msg -> "tmMsg"
+  | Rocq_tmFail err -> "tmFail"
+  | Rocq_tmEval (r,t) -> "tmEval"
+  | Rocq_tmDefinition (nm, typ, trm) -> "tmDefinition"
+  | Rocq_tmAxiom (nm, typ) -> "tmAxiom"
+  | Rocq_tmLemma (nm, typ) -> "tmLemma"
+  | Rocq_tmFreshName nm -> "tmFreshName"
+  | Rocq_tmLocate id -> "tmLocate"
+  | Rocq_tmLocateModule id -> "tmLocateModule"
+  | Rocq_tmLocateModType id -> "tmLocateModType"
+  | Rocq_tmCurrentModPath -> "tmCurrentModPath"
+  | Rocq_tmQuoteInductive kn -> "tmQuoteInductive"
+  | Rocq_tmQuoteUniverses -> "tmQuoteUniverses"
+  | Rocq_tmQuoteConstant (kn, b) -> "tmQuoteConstant"
+  | Rocq_tmInductive i -> "tmInductive"
+  | Rocq_tmExistingInstance (l, k) -> "tmExistingInstance"
+  | Rocq_tmInferInstance t -> "tmInferInstance"
 *)
 
-let interp_tm ~opaque_access (t : 'a coq_TM) : 'a tm =
+let interp_tm ~opaque_access (t : 'a rocq_TM) : 'a tm =
   let rec interp_tm t =
 (*  Feedback.msg_debug Pp.(str (dbg t)) ; *)
   match t with
-  | Coq_tmReturn x -> tmReturn x
-  | Coq_tmBind (c, k) -> tmBind (interp_tm c) (fun x -> interp_tm (k x))
-  | Coq_tmPrint t -> Obj.magic (tmPrint (to_constr t))
-  | Coq_tmMsg msg -> Obj.magic (tmMsg (unquote_string msg))
-  | Coq_tmFail err -> tmFailString (unquote_string err)
-  | Coq_tmEval (r,t) ->
+  | Rocq_tmReturn x -> tmReturn x
+  | Rocq_tmBind (c, k) -> tmBind (interp_tm c) (fun x -> interp_tm (k x))
+  | Rocq_tmPrint t -> Obj.magic (tmPrint (to_constr t))
+  | Rocq_tmMsg msg -> Obj.magic (tmMsg (unquote_string msg))
+  | Rocq_tmFail err -> tmFailString (unquote_string err)
+  | Rocq_tmEval (r,t) ->
     tmBind (tmEval (to_reduction_strategy r) (to_constr t))
            (fun x -> Obj.magic (tmOfConstr x))
-  | Coq_tmDefinition_ (opaque, nm, typ, trm) ->
+  | Rocq_tmDefinition_ (opaque, nm, typ, trm) ->
     let typ =
       match typ with
         None -> None
@@ -208,53 +208,53 @@ let interp_tm ~opaque_access (t : 'a coq_TM) : 'a tm =
     in
     tmMap (fun x -> Obj.magic (quote_kn x))
           (tmDefinition (unquote_ident nm) ~opaque typ (to_constr trm))
-  | Coq_tmAxiom (nm, typ) ->
+  | Rocq_tmAxiom (nm, typ) ->
     tmMap (fun x -> Obj.magic (quote_kn x))
           (tmAxiom (unquote_ident nm) (to_constr typ))
-  | Coq_tmLemma (nm, typ) ->
+  | Rocq_tmLemma (nm, typ) ->
     tmMap (fun x -> Obj.magic (quote_kn x))
           (tmLemma (unquote_ident nm) (to_constr typ))
-  | Coq_tmFreshName nm ->
+  | Rocq_tmFreshName nm ->
     tmMap (fun x -> Obj.magic (quote_ident x))
           (tmFreshName (unquote_ident nm))
-  | Coq_tmLocate id ->
+  | Rocq_tmLocate id ->
     tmMap (fun x -> Obj.magic (List.map quote_global_reference x))
           (tmLocate (to_qualid id))
-  | Coq_tmLocateModule id ->
+  | Rocq_tmLocateModule id ->
     tmMap (fun mp -> Obj.magic (List.map quote_modpath mp))
           (tmLocateModule (to_qualid id))
-  | Coq_tmLocateModType id ->
+  | Rocq_tmLocateModType id ->
     tmMap (fun mp -> Obj.magic (List.map quote_modpath mp))
           (tmLocateModType (to_qualid id))
-  | Coq_tmCurrentModPath ->
+  | Rocq_tmCurrentModPath ->
     tmMap (fun mp -> Obj.magic (quote_modpath mp))
           tmCurrentModPath
-  | Coq_tmQuoteInductive kn ->
+  | Rocq_tmQuoteInductive kn ->
     tmBind (tmQuoteInductive (unquote_kn kn))
            (function
              None -> Obj.magic (tmFail Pp.(str "inductive does not exist"))
            | Some (mi, mib) -> Obj.magic (tmOfMib mi mib))
-  | Coq_tmQuoteUniverses ->
+  | Rocq_tmQuoteUniverses ->
     tmMap (fun x -> failwith "tmQuoteUniverses") tmQuoteUniverses
-  | Coq_tmQuoteModule id ->
+  | Rocq_tmQuoteModule id ->
     tmMap (fun x -> Obj.magic (List.map quote_global_reference x)) (tmQuoteModule (to_qualid id))
-  | Coq_tmQuoteModFunctor id ->
+  | Rocq_tmQuoteModFunctor id ->
     tmMap (fun x -> Obj.magic (List.map quote_global_reference x)) (tmQuoteModFunctor (to_qualid id))
-  | Coq_tmQuoteModType id ->
+  | Rocq_tmQuoteModType id ->
     tmMap (fun x -> Obj.magic (List.map quote_global_reference x)) (tmQuoteModType (to_qualid id))
-  | Coq_tmQuoteConstant (kn, b) ->
+  | Rocq_tmQuoteConstant (kn, b) ->
     tmBind (tmQuoteConstant (unquote_kn kn) b)
            (fun x -> Obj.magic (tmOfConstantBody ~opaque_access x))
-  | Coq_tmInductive (inferu, i) ->
+  | Rocq_tmInductive (inferu, i) ->
     tmMap (fun _ -> Obj.magic ()) (tmInductive (unquote_bool inferu) (to_mie i))
-  | Coq_tmExistingInstance (locality, k) ->
+  | Rocq_tmExistingInstance (locality, k) ->
     Obj.magic (tmExistingInstance (unquote_hint_locality locality) (unquote_global_reference k))
-  | Coq_tmInferInstance t ->
+  | Rocq_tmInferInstance t ->
     tmBind (tmInferInstance (to_constr t))
       (function
           None -> Obj.magic None
         | Some inst -> Obj.magic (tmMap (fun x -> Some x) (tmOfConstr inst)))
   in interp_tm t
 
-let run_vernac ~opaque_access ~pm (c : 'a coq_TM) : Plugin_core.coq_state =
+let run_vernac ~opaque_access ~pm (c : 'a rocq_TM) : Plugin_core.rocq_state =
   Plugin_core.run_vernac ~st:pm (interp_tm ~opaque_access (Obj.magic c))
