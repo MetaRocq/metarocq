@@ -1,0 +1,82 @@
+name: Dependency graph (HTML)
+
+# Regenerate the interactive HTML dependency graph and commit it back to the
+# repo on every push to main (i.e. whenever a PR is merged). The graph is a
+# coqdep source scan -- no MetaRocq compilation is required; we only regenerate
+# the (git-ignored) _RocqProject files so coqdep has an accurate file listing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # allow manual runs / testing
+
+permissions:
+  contents: write           # to commit the regenerated graph back
+
+concurrency:
+  group: depgraph-html-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  depgraph:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Generate dependency graph
+        uses: coq-community/docker-coq-action@v1   # provides `rocq` (for coqdep)
+        with:
+          coq_version: 'dev'
+          ocaml_version: '4.14-flambda'
+          before_install: |
+            startGroup "Workaround permission issue"
+              sudo chown -R 1000:1000 .
+            endGroup
+          script: |
+            startGroup "Install graph dependencies"
+              sudo apt-get update
+              sudo apt-get install -y graphviz python3
+            endGroup
+            startGroup "Regenerate _RocqProject files (no compilation)"
+              opam exec -- ./configure.sh local
+              # utils ships a static, committed _RocqProject; the others generate
+              # theirs from _RocqProject.in + metarocq-config. Guard on the target
+              # so we only regenerate where it exists.
+              for d in utils common template-rocq template-pcuic pcuic \
+                       safechecker safechecker-plugin erasure erasure-plugin \
+                       quotation translations; do
+                if grep -q '^_RocqProject:' "$d/Makefile"; then
+                  opam exec -- make -C "$d" _RocqProject
+                fi
+              done
+            endGroup
+            startGroup "Generate the graph (coqdep scan only)"
+              opam exec -- python3 dependency_graph_html/gen_graph.py --repo . --fresh \
+                --lib utils common template-rocq template-pcuic pcuic \
+                      safechecker safechecker-plugin erasure erasure-plugin \
+                      quotation translations \
+                --title "MetaRocq dependency graph" \
+                -o dependency_graph_html/metarocq_dependency_graph.html \
+                --group "Utils:utils" \
+                --group "Common:common" \
+                --group "Template:template-rocq,template-pcuic" \
+                --group "PCUIC:pcuic" \
+                --group "SafeChecker:safechecker,safechecker-plugin" \
+                --group "Erasure:erasure,erasure-plugin" \
+                --group "Quotation:quotation" \
+                --group "Translations:translations"
+            endGroup
+          uninstall: |
+            startGroup "Clean project"
+            endGroup
+
+      - name: Revert permissions
+        if: ${{ always() }}
+        run: sudo chown -R $(id -u):$(id -g) .
+
+      - name: Commit regenerated graph
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "CI: regenerate dependency graph"
+          file_pattern: dependency_graph_html/metarocq_dependency_graph.html
