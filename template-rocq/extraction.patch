@@ -2,10 +2,10 @@
 +++ gen-src/cRelationClasses.mli	2022-04-26 15:05:26.000000000 +0200
 @@ -98,7 +98,7 @@
  val flip_Equivalence :
-   ('a1, 'a2) coq_Equivalence -> ('a1, 'a2) coq_Equivalence
+   ('a1, 'a2) rocq_Equivalence -> ('a1, 'a2) rocq_Equivalence
  
--val eq_equivalence : ('a1, __) coq_Equivalence
-+val eq_equivalence : (__, __) coq_Equivalence
+-val eq_equivalence : ('a1, __) rocq_Equivalence
++val eq_equivalence : (__, __) rocq_Equivalence
  
- val iff_equivalence : (__, __) coq_Equivalence
+ val iff_equivalence : (__, __) rocq_Equivalence
  

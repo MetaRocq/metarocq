@@ -21,19 +21,19 @@ val rs_unfold : Environ.env -> global_reference -> reduction_strategy
 
 type 'a tm
 
-type coq_state = Declare.OblState.t
-type 'a cont = st:coq_state -> Environ.env -> Evd.evar_map -> 'a -> coq_state
+type rocq_state = Declare.OblState.t
+type 'a cont = st:rocq_state -> Environ.env -> Evd.evar_map -> 'a -> rocq_state
 
-val run : st:coq_state
+val run : st:rocq_state
   -> 'a tm
   -> Environ.env
   -> Evd.evar_map
   -> 'a cont
-  -> coq_state
+  -> rocq_state
 
 val with_env_evm : (Environ.env -> Evd.evar_map -> 'a tm) -> 'a tm
 
-val run_vernac : st:coq_state -> 'a tm -> coq_state
+val run_vernac : st:rocq_state -> 'a tm -> rocq_state
 
 val tmReturn : 'a -> 'a tm
 val tmBind : 'a tm -> ('a -> 'b tm) -> 'b tm

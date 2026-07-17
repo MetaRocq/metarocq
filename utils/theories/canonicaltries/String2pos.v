@@ -30,14 +30,14 @@ Definition ascii_cons_pos (c: ascii) (n: positive) : positive :=
 Extract Constant ascii_cons_pos =>
   "(fun c n ->
       let c = Char.code c in
-      let n1 = if c land 1 = 0 then Coq_xO n else Coq_xI n in
-      let n2 = if c land 2 = 0 then Coq_xO n1 else Coq_xI n1 in
-      let n3 = if c land 4 = 0 then Coq_xO n2 else Coq_xI n2 in
-      let n4 = if c land 8 = 0 then Coq_xO n3 else Coq_xI n3 in
-      let n5 = if c land 16 = 0 then Coq_xO n4 else Coq_xI n4 in
-      let n6 = if c land 32 = 0 then Coq_xO n5 else Coq_xI n5 in
-      let n7 = if c land 64 = 0 then Coq_xO n6 else Coq_xI n6 in
-      if c land 128 = 0 then Coq_xO n7 else Coq_xI n7)".
+      let n1 = if c land 1 = 0 then Rocq_xO n else Rocq_xI n in
+      let n2 = if c land 2 = 0 then Rocq_xO n1 else Rocq_xI n1 in
+      let n3 = if c land 4 = 0 then Rocq_xO n2 else Rocq_xI n2 in
+      let n4 = if c land 8 = 0 then Rocq_xO n3 else Rocq_xI n3 in
+      let n5 = if c land 16 = 0 then Rocq_xO n4 else Rocq_xI n4 in
+      let n6 = if c land 32 = 0 then Rocq_xO n5 else Rocq_xI n5 in
+      let n7 = if c land 64 = 0 then Rocq_xO n6 else Rocq_xI n6 in
+      if c land 128 = 0 then Rocq_xO n7 else Rocq_xI n7)".
 
 Fixpoint pos_of_string (s: string) : positive :=
   match s with

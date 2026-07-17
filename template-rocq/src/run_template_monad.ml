@@ -349,7 +349,7 @@ let declare_inductive (env: Environ.env) (evm: Evd.evar_map) (infer_univs : bool
 let not_in_tactic s =
   CErrors.user_err  (str ("You can not use " ^ s ^ " in a tactic."))
 
-let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Constr.t Plugin_core.cont) ~st env ((evm, pgm) : Evd.evar_map * Constr.t) : Plugin_core.coq_state =
+let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Constr.t Plugin_core.cont) ~st env ((evm, pgm) : Evd.evar_map * Constr.t) : Plugin_core.rocq_state =
   let (kind, universes) = next_action env evm pgm in
   match kind with
     TmReturn h ->
