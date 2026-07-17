@@ -363,7 +363,6 @@ Qed.
 Hint Rewrite substlg_mkApps : rw_hints.
 
 
-(* TODO: See if generalize to substlg *)
 Lemma substlg_tRel Γ n v : 
   closed v ->
   nth_error Γ n = Some v ->
@@ -376,7 +375,6 @@ Proof.
 Qed.
 
 
-(* TODO: See if generalize to substlg *)
 Lemma substlg_tRel_None Γ n : 
   nth_error Γ n = None ->
   substlg Γ 0 (tRel n) = tRel (n - #|Γ|).

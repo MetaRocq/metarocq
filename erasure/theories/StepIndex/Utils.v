@@ -36,7 +36,6 @@ Fixpoint map_All3_dep {A B C : Type} (P : A -> B -> C -> Type) {hP : ∀ a b c, 
     end.
 
 
-(* TODO: See to change the original def which forces X = term *)
 Definition has_prim {X} {epfl : EPrimitiveFlags} (p : prim_val X) :=
   match p.π1 with
   | Primitive.primInt => has_primint
