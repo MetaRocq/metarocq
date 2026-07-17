@@ -429,7 +429,7 @@ Section transform_blocks.
   Qed.
 
   Definition switch_constructor_as_block fl : WcbvFlags :=
-    EWcbvEval.Build_WcbvFlags fl.(@with_prop_case) fl.(@with_guarded_fix) true.
+    EWcbvEval.Build_WcbvFlags fl.(@with_prop_case) fl.(@with_guarded_fix) true fl.(with_productive_cofix).
 
 End transform_blocks.
 
@@ -458,7 +458,7 @@ Definition switch_cstr_as_blocks (fl : EEnvFlags) :=
      cstr_as_blocks := true |}.
 
 Definition block_wcbv_flags :=
-  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true |}.
+  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true ; with_productive_cofix := true |}.
 
 Local Hint Resolve wellformed_closed : core.
 

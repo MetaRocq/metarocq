@@ -287,7 +287,7 @@ Definition implement_lazy_force_program (p : eprogram) :=
   (implement_lazy_force_env p.1, implement_lazy_force p.2).
 
 Definition block_wcbv_flags :=
-  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true |}.
+  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true ; with_productive_cofix := true |}.
 
 Local Hint Resolve wellformed_closed : core.
 

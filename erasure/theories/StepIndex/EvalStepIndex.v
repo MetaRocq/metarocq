@@ -69,7 +69,7 @@ Section Wcbv.
       eval Γ (tLetIn na b0 b1) res ((c1 + 1) + (c2 + 1))
 
   (** Case *)
-  | eval_iota_block ind cdecl discr c args brs br res c1 c2 : (* Changed pars to not be 0 *)
+  | eval_iota_block ind cdecl discr c args brs br res c1 c2 :
       eval Γ discr (vConstruct ind c args) c1 ->
       constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) ->
       nth_error brs c = Some br ->
@@ -80,9 +80,10 @@ Section Wcbv.
 
   | eval_proj p cdecl discr args a n :
       eval Γ discr (vConstruct (proj_ind p) 0 args) n ->
-      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
-      #|args| = proj_npars p + cstr_nargs cdecl ->
-      nth_error args (proj_npars p + proj_arg p) = Some a ->
+      proj_npars p = 0 -> (* Doesn't seem provable otherwise *)
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl) ->
+      #|args| = cstr_nargs cdecl ->
+      nth_error args (proj_arg p) = Some a ->
       eval Γ (tProj p discr) a (n + 1)
 
 
@@ -118,49 +119,28 @@ Section Wcbv.
       #|con_args| = cdecl.(cstr_nargs) ->
       #|con_args| = #|br.1| ->
       eval ((List.rev con_args) ++ Γ) br.2 res n3 ->
-      eval Γ (tCase (ind, 0) discr brs) res (n1 + n2 + n3 + 1)
+      eval Γ (tCase (ind, 0) discr brs) res ((n1 + 1) + (n2 + 1) + (n3 + 1))
 
-    (* 
-      Problèmes:
-      - Pas d'hypothèse de récurrence sur `mkApps fn (map term_of_val args')`
-      - On est pas sûr que `mkApps fn (map term_of_val args')` se réduise en construct, ça pourrait être un cofix
-        (techniquement évité par la contrainte de productivité je pense, mais l'info est probablement pas conservée à l'effacement)
-      Solution envisageable:
-      evaluer `tCase (mkApps (substl (cofix_env mfix env ++ env) fn) (map term_of_val args)) brs`, on perd un peu l'intérêt de l'environnement, mais on gagne le fait que ce qu'on veut prouver est prouvable
-
-    *)
-  (* TODO: change if above works *)
   | eval_cofix_proj discr mfix idx env args fn con_args p cdecl a n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       cunfold_cofix mfix idx = Some fn ->
       eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct (proj_ind p) 0 con_args) n2 ->
+      proj_npars p = 0 -> (* Doesn't seem provable otherwise *)
       constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl) ->
       #|con_args| = cdecl.(cstr_nargs) ->
       nth_error con_args (proj_arg p) = Some a ->
-      eval Γ (tProj p discr) a (n1 + n2 + 1)
-  (*
-  eval_cofix_proj
-     : ∀ (Σ0 : global_context) (p : projection) (mfix : mfixpoint term) (idx : nat) (args : list
-  term) (discr : term) (narg : nat) (fn
-  res : term),
-  eval Σ0 discr (mkApps (tCoFix mfix idx) args)
-  → EGlobalEnv.cunfold_cofix mfix idx = Some (narg, fn)
-  → eval Σ0 (tProj p (mkApps fn args)) res
-  → eval Σ0 (tProj p discr) res
-*)
-
+      eval Γ (tProj p discr) a ((n1 + 1) + (n2 + 1))
+  
       (** Constant unfolding *)
   | eval_delta c decl body (isdecl : declared_constant Σ c decl) res cost :
       decl.(cst_body) = Some body ->
       eval [] body res cost ->
       eval Γ (tConst c) res (cost + 1)
-      (* TODO see if +1 needed, I think so *)
-    (* TODO: see interactions with Σ consisting of values *)
 
   (** Constructor congruence: we do not allow over-applications *)
   | eval_construct_block ind c mdecl idecl cdecl args args' cs  :
       lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
-      #|args| = ind_npars mdecl + cstr_nargs cdecl -> (* see if we add `ind_npars mdecl` or ask for no params *)
+      #|args| = cstr_nargs cdecl ->
       All3 (eval Γ) args args' cs ->
       eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + #|cs|)
 
@@ -173,7 +153,7 @@ Section Wcbv.
   | eval_force Γ' t t' v c1 c2 :
       eval Γ t (vLazy t' Γ') c1 ->
       eval Γ' t' v c2 ->
-      eval Γ (tForce t) v (c1 + c2 + 1)
+      eval Γ (tForce t) v ((c1 + 1) + (c2 + 1))
   .
 
   Section EvalInd.
@@ -205,9 +185,9 @@ Section Wcbv.
         P Γ discr (vConstruct ind c args) c1 e ->
         P (List.rev args ++ Γ) br.2 res c2 e4 ->
         P Γ (tCase (ind, 0) discr brs) res _ (eval_iota_block Γ ind cdecl discr c args brs br res c1 c2 e e0 e1 e2 e3 e4).
-    Variable f_proj : ∀ {Γ p cdecl discr args a n e1 e2 e3 e4},
+    Variable f_proj : ∀ {Γ p cdecl discr args a n e1 e2 e3 e4 e5},
       P Γ discr (vConstruct (proj_ind p) 0 args) n e1 ->
-      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n e1 e2 e3 e4).
+      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n e1 e2 e3 e4 e5).
     Variable f_fix_unfold :
       ∀ {Γ f mfix idx a av fn res Γ' c1 c2 c3 e e0 e1 e2},
       P Γ f (vRecClos mfix idx Γ') c1 e ->
@@ -244,20 +224,20 @@ Section Wcbv.
           (eval_cofix_case 
             Γ discr mfix idx env args fn ind c con_args cdecl 
             brs br res n1 n2 n3 e1 heq1 e2 heq2 heq3 heq4 heq5 e3). 
-
       Variable f_cofix_proj : 
       ∀ {Γ discr mfix idx env args fn p con_args cdecl a n1 n2}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { heq1 : cunfold_cofix mfix idx = Some fn }
         { e2 : eval (cofix_env mfix env ++ env) (mkApps fn (map term_of_val args)) (vConstruct (proj_ind p) 0 con_args) n2 }
-        { heq2 : constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl)}
-        { heq3 : #|con_args| = cstr_nargs cdecl }
-        { heq4 : nth_error con_args (proj_arg p) = Some a }
+        { heq2 : proj_npars p = 0}
+        { heq3 : constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl)}
+        { heq4 : #|con_args| = cstr_nargs cdecl }
+        { heq5 : nth_error con_args (proj_arg p) = Some a }
         ,
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
         P Γ _ _ _
-          (eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 heq1 e2 heq2 heq3 heq4 ). 
+          (eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 heq1 e2 heq2 heq3 heq4 heq5). 
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -265,7 +245,7 @@ Section Wcbv.
     Variable f_constr_block : 
         ∀ {Γ ind c mdecl idecl cdecl args args' cs}
           (e : lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl)) 
-          (l : #|args| = ind_npars mdecl + cstr_nargs cdecl) 
+          (l : #|args| = cstr_nargs cdecl) 
           (a : All3 (eval Γ) args args' cs) (IHa : All3_over a (P Γ)), 
         P Γ (tConstruct ind c args) (vConstruct ind c args') _
           (eval_construct_block Γ ind c mdecl idecl cdecl args args' cs  e l a).
@@ -281,9 +261,9 @@ Section Wcbv.
       ∀ {Γ Γ' t t' v c1 c2} 
         {ev0 : eval Γ t (vLazy t' Γ') c1} 
         {ev1 : eval Γ' t' v c2},
-      P _ _ _ c1 ev0 -> 
-      P _ _ _ c2 ev1 ->
-      P _ _ _ (c1 + c2 + 1) (eval_force _ _ _ _ _ c1 c2 ev0 ev1).
+      P _ _ _ _ ev0 -> 
+      P _ _ _ _ ev1 ->
+      P _ _ _ _ (eval_force _ _ _ _ _ c1 c2 ev0 ev1).
 
     Fixpoint eval_rect {Γ t v c} t_eval_v
       : P Γ t v c t_eval_v :=
@@ -295,7 +275,7 @@ Section Wcbv.
         | @eval_lambda _ na b => f_lambda
         | @eval_zeta _ na b0 b0' b1 res c1 c2 e0 e1 => f_zeta (eval_rect e0) (eval_rect e1)
         | @eval_iota_block _ ind cdecl discr c args brs br res c1 c2 e0 e1 e2 e3 e4 e5 => f_iota_block (eval_rect e0) (eval_rect e5)
-        | @eval_proj _ _ _ _ _ _ _ e _ _ _  => f_proj (eval_rect e)
+        | @eval_proj _ _ _ _ _ _ _ e _ _ _ _  => f_proj (eval_rect e)
         | @eval_fix_unfold _ f10 mfix idx a av fn res Γ' c1 c2 c3 e0 e1 e2 e3 =>
             f_fix_unfold (eval_rect e0) (eval_rect e2) (eval_rect e3)
         | @eval_fix _ mfix idx => f_fix
@@ -304,7 +284,7 @@ Section Wcbv.
             f_cofix_app (eval_rect e1) (eval_rect e2)
         | @eval_cofix_case _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ e1 _ e2 _ _ _ _ e3 =>
             f_cofix_case (eval_rect e1) (eval_rect e2) (eval_rect e3)
-        | @eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 heq1 e2 heq2 heq3 heq4 => 
+        | @eval_cofix_proj _ _ _ _ _ _ _ _ _ _ _ _ _ e1 _ e2 _ _ _ _ => 
               f_cofix_proj (eval_rect e1) (eval_rect e2)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_block _ ind c mdecl idecl cdecl args args' cs e0 l a =>
@@ -323,6 +303,7 @@ End Wcbv.
 
 
 Lemma eval_SI_wellformed_val {efl : EEnvFlags} Σ Γ e v n :
+  ~~ has_cstr_params ->
   cstr_as_blocks ->
   has_tApp ->
   wf_glob Σ ->
@@ -331,7 +312,7 @@ Lemma eval_SI_wellformed_val {efl : EEnvFlags} Σ Γ e v n :
   eval Σ Γ e v n ->
   wellformed_val Σ v.
 Proof.
-  intros cstr_blocks htApp wf_Σ wf_Γ wf_e h_eval.
+  intros no_cstr_params cstr_blocks htApp wf_Σ wf_Γ wf_e h_eval.
   induction h_eval; simple.
   - easy.
   - now eapply wf_Γ, nth_error_In.
@@ -401,13 +382,17 @@ Proof.
         injection heq1 as ?; subst.
         now apply nth_error_In in heq.
       - intros. now apply wellformed_val_wellformed. }
-      now apply nth_error_In in heq4.
+      now apply nth_error_In in heq5.
   - apply IHh_eval; first easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
     simple.
   - rewrite /lookup_constructor_pars_args e;
     rewrite cstr_blocks /lookup_constructor_pars_args e in wf_e; simple.
-    assert (ind_npars mdecl + cstr_nargs cdecl = #|args|) as heq by now apply eqb_eq.
+    assert (#|args| == ind_npars mdecl + cstr_nargs cdecl).
+    { assert (ind_npars mdecl = 0) as ->.
+      { eapply wellformed_lookup_constructor_pars; try easy.
+        now destruct has_cstr_params. }
+      now apply Nat.eqb_eq. }
     assert (#|args'| = #|args|) as heq'.
     { revert a IHa; clear; intros a _. induction a in |- *; now simple. }
     simple. repeat split; try easy.
@@ -515,16 +500,18 @@ Qed.
 
 
 Lemma eval_SI_val {efl : EEnvFlags} Σ Γ v :
+  ~~ has_cstr_params ->
   has_tApp ->
   cstr_as_blocks ->
+  wf_glob Σ ->
   wellformed_val Σ v ->
   ∑ (n : nat) v', term_of_val v = term_of_val v' × eval Σ Γ (term_of_val v) v' n.
 Proof.
-  intros hApp cstr_blocks h_wf.
+  intros h_cstr_params hApp cstr_blocks wf_Σ wf_v.
   induction v.
   - repeat econstructor.
   - simple.
-    unfold lookup_constructor_pars_args in h_wf.
+    unfold lookup_constructor_pars_args in wf_v.
     destruct (lookup_constructor Σ ind c) as [[[mdecl idecl] cdecl] |] eqn:heq; simpl in *; last easy.
     assert (All (wellformed_val Σ) args) as X' by now simple.
     pose args' := @extract_vs efl _ _ _ X X'.
@@ -535,7 +522,10 @@ Proof.
       now f_equal. }
     eexists. exists (vConstruct ind c args'); simple; split; try (f_equal; easy).
     eapply eval_construct_block with (cs := extract_ns X X'); simple; try easy.
-    { now assert (#|args| = ind_npars mdecl + cstr_nargs cdecl) as h by now apply eqb_eq. }
+    { assert (#|args| = ind_npars mdecl + cstr_nargs cdecl) as h by now apply eqb_eq.
+      assert (ind_npars mdecl = 0); last easy.
+      eapply wellformed_lookup_constructor_pars; try easy.
+      now destruct has_cstr_params. }
     unfold args', extract_vs, extract_ns.
     clear. funelim (extract X X'); simple; constructor; try easy.
     { now destruct a. }
@@ -560,7 +550,7 @@ Proof.
     unshelve epose proof closed_substlg #|b| (dbody x) (map term_of_val env) _ _ as h.
     { simple; intros ? (? & <- & ?)%in_map_iff n.
       now eapply wellformed_closed, wellformed_val_wellformed. }
-    { unfold wf_fix, test_def in h_wf; simple.
+    { unfold wf_fix, test_def in wf_v; simple.
       simple. now eapply wellformed_closed. }
     revert h. clear.
     induction Γ; simple; first reflexivity; intros h.
@@ -588,8 +578,8 @@ Proof.
       unfold map_def; simple.
       f_equal.
       erewrite (substlg_closed (substlg _ _ _)); try easy.
-      unfold wf_fix, test_def in h_wf; simple.
-      apply h_wf in hIn; simple.
+      unfold wf_fix, test_def in wf_v; simple.
+      apply wf_v in hIn; simple.
       apply closed_substlg; simple; try easy.
       * intros ? (x & ? & hIn')%in_map_iff k; subst.
         now eapply wellformed_closed, wellformed_val_wellformed.

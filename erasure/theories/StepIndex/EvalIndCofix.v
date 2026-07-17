@@ -11,6 +11,8 @@ From Stdlib Require Import ssreflect ssrbool.
 Set Default Proof Using "Type*".
 
 Axiom eval_case_unfold_constr :
+  ∀ (wfl : WcbvFlags),
+  with_productive_cofix -> 
   ∀ (wfl : WcbvFlags) Σ mfix idx args nargs fn v,
   cunfold_cofix mfix idx = Some (nargs, fn) -> 
   eval Σ (mkApps fn args) v ->
@@ -22,7 +24,7 @@ Axiom eval_case_unfold_constr :
 *)
 
 Section eval_cofix_ind_dep.
-  Context {wfl : WcbvFlags} {Σ : global_context} (P : ∀ x y : term, eval Σ x y -> Type).
+  Context {wfl : WcbvFlags} {Σ : global_context} (prod_cofix : with_productive_cofix) (P : ∀ x y : term, eval Σ x y -> Type).
   Variable f_box :
     ∀ (a t t' : term) (e : eval Σ a tBox), 
     P a tBox e -> 
@@ -328,14 +330,14 @@ Section eval_cofix_ind_dep.
       + now apply f_cofix_case_cstr_as_blocks.
       + now apply f_cofix_case_prop.
       + exfalso.
-        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; try easy.
         * now rewrite /isConstructApp head_mkApps in h.
         * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
           now rewrite h in h'.
       + exfalso. easy.
     - depelim e3.
       + exfalso.
-        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; try easy.
         * now rewrite /isConstructApp head_mkApps in h.
         * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
           now rewrite h in h'.
@@ -367,7 +369,7 @@ From MetaRocq.Erasure.StepIndex Require Import Utils SubstLemmas.
 Section eval_cofix_ind.
   Context {wfl : WcbvFlags} {efl : EEnvFlags} {Σ : global_context} (wf_Σ : wf_glob Σ) 
           (h_app : has_tApp) (no_prop_case : ~~ with_prop_case) (no_guarded_fix : ~~ with_guarded_fix)
-          (no_cstr_params : ~~ has_cstr_params) (cstr_blocks : cstr_as_blocks) (cstr_blocks' : with_constructor_as_block).
+          (no_cstr_params : ~~ has_cstr_params) (cstr_blocks : cstr_as_blocks) (cstr_blocks' : with_constructor_as_block) (prod_cofix : with_productive_cofix).
   Context (P : ∀ x y : term, Type).
   Variable f_box :
     ∀ (a t t' : term), 
@@ -396,24 +398,22 @@ Section eval_cofix_ind.
     P (tLetIn na b0 b1) res.
 
   Variable f_iota_block :
-    ∀ (ind : inductive) (pars : nat) (cdecl : constructor_body) 
+    ∀ (ind : inductive) (cdecl : constructor_body) 
       (discr : term) (c : nat) (args : list term) (brs : list (list name × term)) 
       (br : list name × term) (res : term),
-    with_constructor_as_block ->
     eval Σ discr (tConstruct ind c args) ->
     P discr (tConstruct ind c args) -> 
-    constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
+    constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) ->
     nth_error brs c = Some br ->
-    #|args| = pars + cstr_nargs cdecl ->
-    #|skipn pars args| = #|br.1| ->
-    eval Σ (iota_red pars args br) res ->
-    P (iota_red pars args br) res -> 
-    P (tCase (ind, pars) discr brs) res.
+    #|args| = cstr_nargs cdecl ->
+    #|args| = #|br.1| ->
+    eval Σ (iota_red 0 args br) res ->
+    P (iota_red 0 args br) res -> 
+    P (tCase (ind, 0) discr brs) res.
 
   Variable f_fix' :
     ∀ (f5 : term) (mfix : mfixpoint term) (idx : nat) (a av : term)
       (fn : term) na d res,
-    with_guarded_fix = false ->
     eval Σ f5 (tFix mfix idx) ->
     P f5 (tFix mfix idx) ->
     nth_error mfix idx = Some d ->
@@ -426,32 +426,31 @@ Section eval_cofix_ind.
 
   Variable f_cofix_case :
     ∀ discr mfix idx args nargs fn ind c con_args
-      npars0 cdecl brs br res,
-      with_constructor_as_block ->
+      cdecl brs br res,
       eval Σ discr (mkApps (tCoFix mfix idx) args) ->
       P discr (mkApps (tCoFix mfix idx) args) ->
       EGlobalEnv.cunfold_cofix mfix idx = Some (nargs, fn) ->
       eval Σ (mkApps fn args) (tConstruct ind c con_args) ->
       P (mkApps fn args) (tConstruct ind c con_args) ->
-      constructor_isprop_pars_decl Σ ind c = Some (false, npars0, cdecl) ->
+      constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) ->
       nth_error brs c = Some br ->
-      #|con_args| = npars0 + cstr_nargs cdecl ->
-      #|skipn npars0 con_args| = #|br.1| ->
-      eval Σ (iota_red npars0 con_args br) res ->
-      P (iota_red npars0 con_args br) res ->
-      P (tCase (ind, npars0) discr brs) res.
+      #|con_args| = cstr_nargs cdecl ->
+      #|con_args| = #|br.1| ->
+      eval Σ (iota_red 0 con_args br) res ->
+      P (iota_red 0 con_args br) res ->
+      P (tCase (ind, 0) discr brs) res.
 
   Variable f_cofix_proj :
     ∀ discr mfix idx args nargs fn p con_args cdecl a res,
-      with_constructor_as_block ->
       eval Σ discr (mkApps (tCoFix mfix idx) args) ->
       P discr (mkApps (tCoFix mfix idx) args) ->
       EGlobalEnv.cunfold_cofix mfix idx = Some (nargs, fn) ->
       eval Σ (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
       P (mkApps fn args) (tConstruct (proj_ind p) 0 con_args) ->
-      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
-      #|con_args| = proj_npars p + cstr_nargs cdecl ->
-      nth_error con_args (proj_npars p + proj_arg p) = Some a  ->
+      proj_npars p = 0 ->
+      constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false,0, cdecl) ->
+      #|con_args| = cstr_nargs cdecl ->
+      nth_error con_args (proj_arg p) = Some a  ->
       eval Σ a res ->
       P a res ->
       P (tProj p discr) res.
@@ -466,12 +465,12 @@ Section eval_cofix_ind.
 
   Variable f_proj_block :
     ∀ (p : projection) (cdecl : constructor_body) (discr : term) (args : list term) (a res : term),
-    with_constructor_as_block ->
     eval Σ discr (tConstruct (proj_ind p) 0 args) ->
     P discr (tConstruct (proj_ind p) 0 args) ->
-    constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
-    #|args| = proj_npars p + cstr_nargs cdecl ->
-    nth_error args (proj_npars p + proj_arg p) = Some a ->
+    proj_npars p = 0 ->
+    constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, 0, cdecl) ->
+    #|args| = cstr_nargs cdecl ->
+    nth_error args (proj_arg p) = Some a ->
     eval Σ a res ->
     P a res ->
     P (tProj p discr) res.
@@ -479,7 +478,6 @@ Section eval_cofix_ind.
   Variable f_construct_block :
     ∀ (ind : inductive) (c : nat) (mdecl : mutual_inductive_body) 
       (idecl : one_inductive_body) (cdecl : constructor_body) (args args' : list term),
-    with_constructor_as_block ->
     lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
     #|args| = cstr_arity mdecl cdecl ->
     All2 (eval Σ) args args' -> 
@@ -540,7 +538,10 @@ Section eval_cofix_ind.
       apply eval_wellformed in e1; try easy.
       now apply wellformed_csubst.
     - now exfalso.
-    - eapply f_iota_block; try easy.
+    - assert (pars = 0); last subst.
+      { eapply constructor_isprop_pars_decl_params; try easy.
+        now destruct has_cstr_params. }
+      eapply f_iota_block; try easy.
       { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
       eapply eval_cofix_ind; try easy.
       rewrite /= /wf_brs !andb_and in wf_x.
@@ -614,6 +615,9 @@ Section eval_cofix_ind.
           split; last easy.
           eapply wellformed_cunfold_cofix; try easy.
           now rewrite /= !andb_and. }
+        assert (pars = 0); last subst.
+        { eapply constructor_isprop_pars_decl_params; try easy.
+          now destruct has_cstr_params. }
         eapply f_cofix_case; try easy.
         { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
         eapply eval_cofix_ind; try easy.
@@ -625,14 +629,14 @@ Section eval_cofix_ind.
         now eapply nth_error_forallb in e3; last easy.
       + exfalso. now destruct with_prop_case.
       + exfalso.
-        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; try easy.
         * now rewrite /isConstructApp head_mkApps in h.
         * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
           now rewrite h in h'.
       + now exfalso.
     - depelim e3.
       + exfalso.
-        eapply eval_case_unfold_constr in e3_1 as [h | h]; last easy.
+        eapply eval_case_unfold_constr in e3_1 as [h | h]; try easy.
         * now rewrite /isConstructApp head_mkApps in h.
         * pose proof (nisBox_mkApps (tCoFix mfix0 idx0) args0) eq_refl as h'.
           now rewrite h in h'.
@@ -645,6 +649,10 @@ Section eval_cofix_ind.
           split; last easy.
           eapply wellformed_cunfold_cofix; try easy.
           now rewrite /= !andb_and. }
+        assert (proj_npars p = 0) as heq.
+        { eapply constructor_isprop_pars_decl_params; try easy.
+          now destruct has_cstr_params. }
+        rewrite ->heq in *.
         eapply f_cofix_proj; try easy.
         { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
         eapply eval_cofix_ind; try easy.
@@ -660,7 +668,11 @@ Section eval_cofix_ind.
       unfold wf_global_decl in isdecl.
       now rewrite e in isdecl.
     - now exfalso.
-    - eapply f_proj_block; try easy.
+    - assert (proj_npars p = 0) as heq.
+      { eapply constructor_isprop_pars_decl_params; try easy.
+        now destruct has_cstr_params. }
+      rewrite ->heq in *.
+      eapply f_proj_block; try easy.
       { now eapply eval_cofix_ind; try rewrite /= !andb_and in wf_x. }
       eapply eval_cofix_ind; try easy.
       rewrite /= !andb_and in wf_x.
@@ -702,8 +714,6 @@ Section eval_cofix_ind.
   Qed.
 End eval_cofix_ind.
 
-
-Print Assumptions eval_cofix_ind.
 
 (* (
   ∀ (ip : inductive × nat) (mfix : mfixpoint term) (idx : nat) (args : list term) (discr : term) (narg : nat) (fn : term) (brs : list

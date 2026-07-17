@@ -9,7 +9,6 @@ From MetaRocq.Utils Require Import bytestring MRString.
 From Stdlib Require Import ssreflect ssrbool.
 Set Default Proof Using "Type*".
 
-Print cunfold_fix.
 Definition cunfold_fix (mfix : mfixpoint term) (idx : nat) :=
   match nth_error mfix idx with
   | Some {| dbody := tLambda _ d |} => Some d
@@ -166,55 +165,3 @@ Proof.
   do 2 destruct nth_error => //.
   eapply wellformed_lookup_inductive_pars in hl => //. congruence.
 Qed.
-
-
-
-(* Search tCoFix tConstruct.
-
-Definition make_construct_app {wfl : WcbvFlags} ind c args :=
-  if with_constructor_as_block
-  then tConstruct ind c args
-  else mkApps (tConstruct ind c []) args.
-
-Definition eval_cofix_case' {wfl : WcbvFlags} Σ := 
-  ∀ discr mfix idx args narg fn ind c con_args pars cdecl brs br res,
-  eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-  EGlobalEnv.cunfold_cofix mfix idx = Some (narg, fn) ->
-  eval Σ (mkApps fn args) (make_construct_app ind c con_args) ->
-  constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
-  nth_error brs c = Some br ->
-  #|con_args| = pars + cdecl.(cstr_nargs) ->
-  #|skipn pars con_args| = #|br.1| ->
-  eval Σ (iota_red pars con_args br) res ->
-  eval Σ (tCase (ind, pars) discr brs) res.
-
-
-Lemma case_inv {wfl : WcbvFlags} Σ ip discr brs res :
-  eval Σ (tCase ip discr brs) res ->
-  (eval Σ discr tBox) + (∑ l ind c args,
-    forall n t1 t2, 
-    nth_error l n = Some (mkApps (tCoFix (mfix1 idx1) args1)) -> 
-    nth_error l (S n) = Some (mkApps (tCoFix (mfix2 idx2) args2)) -> 
-  
-  eval Σ discr (make_construct_app ind c args)).
-Proof.
-  intros e.
-  depind e; unfold make_construct_app.
-  - rewrite e1. eauto.
-  - rewrite e1. eauto.
-  - eauto.
-  - pose proof IHe2 _ _ _ eq_refl. (* Maybe sized induction ? *)
-  - easy.
-
-
-
-Lemma test {wfl : WcbvFlags} Σ discr mfix idx args narg fn ip brs res :
-  eval_cofix_case' Σ ->
-  eval Σ discr (mkApps (tCoFix mfix idx) args) ->
-  EGlobalEnv.cunfold_cofix mfix idx = Some (narg, fn) ->
-  eval Σ (tCase ip (mkApps fn args) brs) res ->
-  eval Σ (tCase ip discr brs) res.
-Proof.
-  intros my_eval_cofix_case' e1 heq1 e2.
-  destruct ip as (ind, pars).
-  eapply my_eval_cofix_case'; tea. *)

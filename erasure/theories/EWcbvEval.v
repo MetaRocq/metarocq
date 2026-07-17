@@ -31,7 +31,12 @@ Local Ltac inv H := inversion H; subst.
 
 (* Tells if the evaluation relation should include match-prop and proj-prop reduction rules.
   Also, are constructors represented as blocks or higher-order. *)
-Class WcbvFlags := { with_prop_case : bool ; with_guarded_fix : bool ; with_constructor_as_block : bool }.
+Class WcbvFlags := {
+  with_prop_case : bool ;
+  with_guarded_fix : bool ;
+  with_constructor_as_block : bool ;
+  with_productive_cofix : bool 
+}.
 
 Definition atom `{wfl : WcbvFlags} Σ t :=
   match t with
@@ -61,14 +66,14 @@ Proof.
 Qed.
 
 Definition disable_prop_cases fl : WcbvFlags :=
-  {| with_prop_case := false; with_guarded_fix := fl.(@with_guarded_fix) ; with_constructor_as_block := fl.(@with_constructor_as_block) |}.
+  {| with_prop_case := false; with_guarded_fix := fl.(@with_guarded_fix) ; with_constructor_as_block := fl.(@with_constructor_as_block) ; with_productive_cofix := fl.(with_productive_cofix) |}.
 
 Definition switch_unguarded_fix fl : WcbvFlags :=
-  EWcbvEval.Build_WcbvFlags fl.(@with_prop_case) false fl.(@with_constructor_as_block).
+  EWcbvEval.Build_WcbvFlags fl.(@with_prop_case) false fl.(@with_constructor_as_block) fl.(with_productive_cofix).
 
-Definition default_wcbv_flags := {| with_prop_case := true ; with_guarded_fix := true ; with_constructor_as_block := false |}.
-Definition opt_wcbv_flags := {| with_prop_case := false ; with_guarded_fix := true ; with_constructor_as_block := false|}.
-Definition target_wcbv_flags := {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := false |}.
+Definition default_wcbv_flags := {| with_prop_case := true ; with_guarded_fix := true ; with_constructor_as_block := false ; with_productive_cofix := true |}.
+Definition opt_wcbv_flags := {| with_prop_case := false ; with_guarded_fix := true ; with_constructor_as_block := false ; with_productive_cofix := true |}.
+Definition target_wcbv_flags := {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := false ; with_productive_cofix := true |}.
 
 Section Wcbv.
   Context {wfl : WcbvFlags}.
