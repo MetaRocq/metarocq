@@ -16,7 +16,10 @@ Class checker_flags := {
   indices_matter : bool ;
 
   (* Lets in constructor types are allowed iff [true] *)
-  lets_in_constructor_types : bool
+  lets_in_constructor_types : bool ;
+
+  (* Use the *unverified* eta rule in the checker *)
+  with_eta : bool;
 }.
 
 (** Should correspond to Rocq *)
@@ -24,21 +27,24 @@ Local Instance default_checker_flags : checker_flags := {|
   check_univs := true ;
   prop_sub_type := true;
   indices_matter := false;
-  lets_in_constructor_types := true
+  lets_in_constructor_types := true;
+  with_eta := false;
 |}.
 
 Local Instance type_in_type : checker_flags := {|
   check_univs := false ;
   prop_sub_type := true;
   indices_matter := false;
-  lets_in_constructor_types := true
+  lets_in_constructor_types := true;
+  with_eta := false;
 |}.
 
 Local Instance extraction_checker_flags : checker_flags := {|
   check_univs := true ;
   prop_sub_type := false;
   indices_matter := false;
-  lets_in_constructor_types := false
+  lets_in_constructor_types := false;
+  with_eta := false;
 |}.
 
 (** [cf1 -> cf2] means that typing under [cf1] implies typing under [cf2] *)
@@ -76,14 +82,16 @@ Definition laxest_checker_flags : checker_flags := {|
   check_univs := false ;
   prop_sub_type := true;
   indices_matter := false;
-  lets_in_constructor_types := true
+  lets_in_constructor_types := true;
+  with_eta := true;
 |}.
 
 Definition strictest_checker_flags : checker_flags := {|
   check_univs := true ;
   prop_sub_type := false;
   indices_matter := true;
-  lets_in_constructor_types := false
+  lets_in_constructor_types := false;
+  with_eta := false;
 |}.
 
 Lemma laxest_checker_flags_laxest : forall cf, impl cf laxest_checker_flags.
@@ -107,14 +115,18 @@ Definition union_checker_flags (cf1 cf2 : checker_flags) : checker_flags
   := {| check_univs := andb cf2.(@check_univs) cf1.(@check_univs)
      ; prop_sub_type := orb cf1.(@prop_sub_type) cf2.(@prop_sub_type)
      ; indices_matter := andb cf2.(@indices_matter) cf1.(@indices_matter)
-     ; lets_in_constructor_types := orb cf1.(@lets_in_constructor_types) cf2.(@lets_in_constructor_types) |}.
+     ; lets_in_constructor_types := orb cf1.(@lets_in_constructor_types) cf2.(@lets_in_constructor_types)
+     ; with_eta := orb cf1.(@with_eta) cf2.(@with_eta)
+      |}.
 
 (** can check everything that both can check *)
 Definition inter_checker_flags (cf1 cf2 : checker_flags) : checker_flags
   := {| check_univs := orb cf2.(@check_univs) cf1.(@check_univs)
      ; prop_sub_type := andb cf1.(@prop_sub_type) cf2.(@prop_sub_type)
      ; indices_matter := orb cf2.(@indices_matter) cf1.(@indices_matter)
-     ; lets_in_constructor_types := andb cf1.(@lets_in_constructor_types) cf2.(@lets_in_constructor_types) |}.
+     ; lets_in_constructor_types := andb cf1.(@lets_in_constructor_types) cf2.(@lets_in_constructor_types)
+     ; with_eta := andb cf1.(@with_eta) cf2.(@with_eta)
+      |}.
 
 Lemma union_checker_flags_spec cf1 cf2 (cf' := union_checker_flags cf1 cf2)
   : impl cf1 cf' /\ impl cf2 cf' /\ (forall cf'', impl cf1 cf'' -> impl cf2 cf'' -> impl cf' cf'').
