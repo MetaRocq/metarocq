@@ -580,7 +580,7 @@ Section LogRelProps.
       + constructor.
       + admit.
       + repeat intro.
-  Admitted.
+  Abort.
 
 End LogRelProps.
  *)
