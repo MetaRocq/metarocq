@@ -156,7 +156,7 @@ The extracted safe erasure is available in Rocq through a new vernacular command
 
     MetaRocq Erase <term>
 
-After importing `MetaRocq.Erasure.Loader`.
+After importing `MetaRocq.ErasurePlugin.Loader`.
 
 The erasure pipeline includes verified optimizations to remove lets in constructors,
 remove cases on propositional terms, switch to an unguarded fixpoint reduction rule and
