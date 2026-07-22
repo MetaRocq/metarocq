@@ -289,7 +289,7 @@ Definition implement_box_program (p : eprogram) :=
   (implement_box_env p.1, implement_box p.2).
 
 Definition block_wcbv_flags :=
-  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true |}.
+  {| with_prop_case := false ; with_guarded_fix := false ; with_constructor_as_block := true ; with_productive_cofix := true |}.
 
 Local Hint Resolve wellformed_closed : core.
 

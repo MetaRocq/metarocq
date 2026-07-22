@@ -66,3 +66,14 @@ theories/Typed/Transform.v
 theories/Typed/TypeAnnotations.v
 theories/Typed/Utils.v
 theories/Typed/WcbvEvalAux.v
+
+theories/StepIndex/EvalIndCofix.v
+theories/StepIndex/Tactics.v
+theories/StepIndex/Utils.v
+theories/StepIndex/SubstLemmas.v
+theories/StepIndex/Values.v
+theories/StepIndex/Primitives.v
+theories/StepIndex/EvalStepIndex.v
+theories/StepIndex/EvalToEvalSI.v
+theories/StepIndex/EvalSIToEval.v
+theories/StepIndex/LogicalRelation.v

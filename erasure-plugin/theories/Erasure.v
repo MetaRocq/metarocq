@@ -119,7 +119,7 @@ Qed.
 Definition final_wcbv_flags := {|
   with_prop_case := false;
   with_guarded_fix := false;
-  with_constructor_as_block := true |}.
+  with_constructor_as_block := true ; with_productive_cofix := true |}.
 
 Import EWellformed.
 
