@@ -342,23 +342,38 @@ Section Wcbv.
 
 End Wcbv.
 
-(** Characterisation of an environment where all declarations with a body map to a value *)
-Definition value_decl {wfl : WcbvFlags} (Σ : global_context) (d : global_decl) :=
+(** Characterisation of an environment where all definition bodies satisfy some predicate *)
+Definition decl_pred (pred : term -> Type) (d : global_decl) :=
   match d with
-  | ConstantDecl {| cst_body := Some v |} => value Σ v
+  | ConstantDecl {| cst_body := Some v |} => pred v
   | _ => True
   end.
 
-Inductive values_glob {wfl : WcbvFlags} : global_context -> Type :=
-| values_glob_nil : values_glob []
-| values_glob_cons 
+Inductive glob_pred (pred : global_context -> term -> Type) : global_context -> Type :=
+| glob_pred_nil : glob_pred pred []
+| glob_cons 
     (kn : kername) (d : global_decl) (Σ : global_context) :
-    values_glob Σ ->
-    value_decl Σ d ->
-    values_glob ((kn, d) :: Σ)
+    glob_pred pred Σ ->
+    decl_pred (pred Σ) d ->
+    glob_pred pred ((kn, d) :: Σ)
 .
-Derive Signature for values_glob.
+Derive Signature for glob_pred.
 
+(** Characterisation of an environment where all definition bodies are values *)
+Definition values_glob {wfl : WcbvFlags} := glob_pred (@value wfl).
+
+Definition lazy_value_pred (Σ : global_context) (v : term) :=
+  exists t, v = tLazy t.
+
+(** Characterisation of an environment where all declarations with a body map to a lazy value *)
+Definition lazy_glob : global_context -> Type :=
+  glob_pred lazy_value_pred.
+
+Definition lambda_value_pred (Σ : global_context) (v : term) :=
+  exists na t, v = tLambda na t.
+
+Definition lambda_glob : global_context -> Type :=
+  glob_pred lambda_value_pred.
 
 Notation atomic Σ := (atomic_value Σ (value Σ)).
 

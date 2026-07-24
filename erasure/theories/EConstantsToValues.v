@@ -600,12 +600,17 @@ Proof.
   now simple.
 Qed.
 
-
-
-
 Theorem consts_to_values_env_values {wfl : WcbvFlags} (Σ : global_context) :
   values_glob (consts_to_values_env Σ).
 Proof.
   induction Σ as [|[kn [[[v|]]|?]] Σ IH]; simpl;
     repeat constructor; assumption.
+Qed.
+
+Theorem consts_to_values_env_lazy {wfl : WcbvFlags} (Σ : global_context) :
+  lazy_glob (consts_to_values_env Σ).
+Proof.
+  induction Σ as [|[kn [[[v|]]|?]] Σ IH]; simpl;
+    repeat constructor; try assumption.
+  cbn. red. now eexists.
 Qed.
