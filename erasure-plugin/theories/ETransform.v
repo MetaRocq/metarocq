@@ -1215,7 +1215,7 @@ Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : Wcbv
   {| name := "Constants to values";
     transform p _ := consts_to_values_program p ;
     pre p := wf_eprogram efl p ;
-    post (p : eprogram) := wf_eprogram efl p /\ ∥values_glob p.1∥ ;
+    post (p : eprogram) := wf_eprogram efl p /\ ∥ lazy_glob p.1∥ ;
     obseq p hp (p' : eprogram) v v' := v' = consts_to_values v |}.
 
 Next Obligation.
@@ -1223,7 +1223,7 @@ Next Obligation.
   split.
   + now apply wf_consts_to_values.
   + constructor.
-    now apply consts_to_values_env_values.
+    now apply consts_to_values_env_lazy.
 Qed.
 
 Next Obligation.
