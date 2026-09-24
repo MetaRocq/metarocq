@@ -265,13 +265,30 @@ module RetypeMindEntry =
       in
       { mind with mind_entry_params = pars; mind_entry_inds = inds }
 
+  let subst_mentry_univs usubst mind =
+    let nf c = Vars.subst_univs_level_constr usubst c in
+    let inds =
+      List.map
+        (fun oib ->
+          { oib with mind_entry_arity = nf oib.mind_entry_arity;
+                     mind_entry_lc = List.map nf oib.mind_entry_lc })
+        mind.mind_entry_inds
+    in
+    { mind with
+      mind_entry_params = Vars.subst_univs_level_context usubst mind.mind_entry_params;
+      mind_entry_inds = inds }
+
+  let abstract_mentry_univs uctx mind =
+    let inst, auctx = UVars.abstract_universes uctx in
+    auctx, subst_mentry_univs (UVars.make_instance_subst inst) mind
+
   let infer_mentry_univs env evm mind =
     let evm =
       match mind.mind_entry_universes with
       | Entries.Monomorphic_ind_entry -> evm
       | Entries.Template_ind_entry uctx -> evm
       | Entries.Polymorphic_ind_entry uctx ->
-        let (qs, qcst), (us, ucst) = UVars.UContext.to_context_set uctx in
+        let (qs, qcst), (us, ucst) = UVars.UContext.to_context_set (UVars.AbstractContext.repr uctx) in
         Evd.merge_sort_context_set (UState.UnivFlexible false) evm ((qs, us), (qcst, ucst))
     in
     let evm, mind = infer_mentry_univs env evm mind in
@@ -285,9 +302,9 @@ module RetypeMindEntry =
       | Entries.Template_ind_entry ctx ->
         let gctx = Evd.universe_context_set evm in
         gctx, { mind with mind_entry_universes = Entries.Template_ind_entry ctx }
-      | Entries.Polymorphic_ind_entry uctx ->
-        let uctx' = Evd.to_universe_context evm in
-        Univ.ContextSet.empty, { mind with mind_entry_universes = Entries.Polymorphic_ind_entry uctx' }
+      | Entries.Polymorphic_ind_entry _ ->
+        let auctx, mind = abstract_mentry_univs (Evd.to_universe_context evm) mind in
+        Univ.ContextSet.empty, { mind with mind_entry_universes = Entries.Polymorphic_ind_entry auctx }
     in ctx, mind
 end
 

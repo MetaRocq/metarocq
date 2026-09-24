@@ -206,7 +206,7 @@ struct
 
   let quote_universes_entry = function
     | Monomorphic_entry -> Q.mkMonomorphic_entry ()
-    | Polymorphic_entry ctx -> Q.mkPolymorphic_entry (Q.quote_univ_context ctx)
+    | Polymorphic_entry ctx -> Q.mkPolymorphic_entry (Q.quote_univ_context (UVars.AbstractContext.repr ctx))
 
   let quote_universes_decl decl templ =
     match decl with
@@ -692,7 +692,7 @@ struct
   let quote_constant_entry bypass opaque_access env evm cd =
     let (ty, body) = quote_constant_body_aux bypass opaque_access env evm cd in
     let uctx = match cd.const_universes with
-      | Polymorphic auctx -> Polymorphic_entry (UVars.AbstractContext.repr auctx)
+      | Polymorphic auctx -> Polymorphic_entry auctx
       | Monomorphic -> Monomorphic_entry
     in
     let univs = quote_universes_entry uctx in
