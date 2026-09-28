@@ -1,0 +1,96 @@
+{
+  "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1710146030,
+        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "makes": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1722040633,
+        "narHash": "sha256-d7/emJX5BmM6dpGBRR66gSwywHQT8K2aoweG2R2/74U=",
+        "owner": "fluidattacks",
+        "repo": "makes",
+        "rev": "9b48d0e155d7fb08fc4e8318380e7a0cf359a202",
+        "type": "github"
+      },
+      "original": {
+        "owner": "fluidattacks",
+        "ref": "24.02",
+        "repo": "makes",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1667092106,
+        "narHash": "sha256-ZQwHNd/RemupaV52ePNNv4Kp+LHzPjssEAumLijum4E=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "2c15a4c90737d33309daf869bae0daaa35eeb264",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1722435350,
+        "narHash": "sha256-Ga464yboezJHH8XIPVIelDn9ZsLMCN3TqnuFNXvHO2w=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "e17b82b20adb7f20511da210429eac1bd2fa7bf7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "release-24.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "makes": "makes",
+        "nixpkgs": "nixpkgs_2"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
