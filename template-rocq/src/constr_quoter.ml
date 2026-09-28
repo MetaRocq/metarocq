@@ -324,7 +324,7 @@ struct
     | Entries.Monomorphic_entry ->
       mkMonomorphic_entry ()
     | Entries.Polymorphic_entry uctx ->
-      let ctx = quote_univ_context uctx in
+      let ctx = quote_univ_context (UVars.AbstractContext.repr uctx) in
       constr_mkApp (cPolymorphic_entry, [| ctx |])
 
   let quote_ugraph (g : UGraph.t) =

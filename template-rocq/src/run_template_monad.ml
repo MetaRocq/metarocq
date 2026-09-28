@@ -282,7 +282,15 @@ let unquote_mutual_inductive_entry env evm trm (* of type mutual_inductive_entry
            variance
        in
        let priv = unquote_map_option unquote_bool priv in
-       let ctx, univs = match univs with
+       let mind = { mind_entry_record = record;
+              mind_entry_finite = finite;
+              mind_entry_params = params;
+              mind_entry_inds = inds;
+              mind_entry_universes = Entries.Monomorphic_ind_entry;
+              mind_entry_variance = variance;
+              mind_entry_private = priv }
+       in
+       let ctx, mind = match univs with
          | UState.Monomorphic_entry ctx ->
            if template then
              let mk_anon_names u =
@@ -291,17 +299,14 @@ let unquote_mutual_inductive_entry env evm trm (* of type mutual_inductive_entry
              in
              let uctx = UVars.UContext.of_context_set mk_anon_names ((Sorts.QVar.Set.empty, Sorts.ElimConstraints.empty), ctx)  in
              let default_univs = UVars.UContext.instance uctx in
-             Univ.ContextSet.empty, Entries.Template_ind_entry { uctx; default_univs }
-          else ctx, Entries.Monomorphic_ind_entry
-       | UState.Polymorphic_entry uctx -> Univ.ContextSet.empty, Entries.Polymorphic_ind_entry uctx
+             let auctx, mind = Tm_util.RetypeMindEntry.abstract_mentry_univs uctx mind in
+             Univ.ContextSet.empty, { mind with mind_entry_universes = Entries.Template_ind_entry { uctx = auctx; default_univs } }
+          else ctx, mind
+       | UState.Polymorphic_entry uctx ->
+         let auctx, mind = Tm_util.RetypeMindEntry.abstract_mentry_univs uctx mind in
+         Univ.ContextSet.empty, { mind with mind_entry_universes = Entries.Polymorphic_ind_entry auctx }
        in
-       evm, ctx, { mind_entry_record = record;
-              mind_entry_finite = finite;
-              mind_entry_params = params;
-              mind_entry_inds = inds;
-              mind_entry_universes = univs;
-              mind_entry_variance = variance;
-              mind_entry_private = priv }
+       evm, ctx, mind
     | _ -> bad_term_verb trm "unquote_mutual_inductive_entry"
   else
     not_supported_verb trm "unquote_mutual_inductive_entry"
