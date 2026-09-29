@@ -210,7 +210,7 @@ Definition mind_body_to_entry (decl : mutual_inductive_body)
   : mutual_inductive_entry.
 Proof.
   refine {| mind_entry_record := None; (* not a record *)
-            mind_entry_finite := Finite; (* inductive *)
+            mind_entry_finite := decl.(ind_finite); (* inductive *)
             mind_entry_params := _ (* Should be ind_params, but translations are broken: for Simon decl.(ind_params) *);
             mind_entry_inds := _;
             mind_entry_universes := universes_entry_of_decl decl.(ind_universes);

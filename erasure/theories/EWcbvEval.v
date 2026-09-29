@@ -339,7 +339,41 @@ Section Wcbv.
    | value_app_nonnil f args : value_head #|args| f -> args <> [] -> All value args -> value (mkApps f args).
    Derive Signature for value.
 
+
 End Wcbv.
+
+(** Characterisation of an environment where all definition bodies satisfy some predicate *)
+Definition decl_pred (pred : term -> Type) (d : global_decl) :=
+  match d with
+  | ConstantDecl {| cst_body := Some v |} => pred v
+  | _ => True
+  end.
+
+Inductive glob_pred (pred : global_context -> term -> Type) : global_context -> Type :=
+| glob_pred_nil : glob_pred pred []
+| glob_cons 
+    (kn : kername) (d : global_decl) (Σ : global_context) :
+    glob_pred pred Σ ->
+    decl_pred (pred Σ) d ->
+    glob_pred pred ((kn, d) :: Σ)
+.
+Derive Signature for glob_pred.
+
+(** Characterisation of an environment where all definition bodies are values *)
+Definition values_glob {wfl : WcbvFlags} := glob_pred (@value wfl).
+
+Definition lazy_value_pred (Σ : global_context) (v : term) :=
+  exists t, v = tLazy t.
+
+(** Characterisation of an environment where all declarations with a body map to a lazy value *)
+Definition lazy_glob : global_context -> Type :=
+  glob_pred lazy_value_pred.
+
+Definition lambda_value_pred (Σ : global_context) (v : term) :=
+  exists na t, v = tLambda na t.
+
+Definition lambda_glob : global_context -> Type :=
+  glob_pred lambda_value_pred.
 
 Abbreviation atomic Σ := (atomic_value Σ (value Σ)).
 

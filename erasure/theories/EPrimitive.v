@@ -18,7 +18,11 @@ Section PrimModel.
     array_value : list term }.
   Derive NoConfusion for array_model.
   Arguments array_model : clear implicits.
-
+  (* 
+    TODO: 
+    For strings: MR bytestrings
+    For int and floats: have a look at Trocq using the models already defined 
+  *)
   #[global]
   Instance array_model_eqdec (e : EqDec term) : EqDec array_model.
   Proof. eqdec_proof. Qed.
