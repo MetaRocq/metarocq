@@ -91,96 +91,87 @@ Proof.
     now rewrite <- IHl.
 Qed.
 
+Fixpoint rev_acc {A} (l acc : list A) {struct l} : list A :=
+  match l with
+  | [] => acc
+  | x :: l => rev_acc l (x :: acc)
+  end.
+
 Definition rev {A} (l : list A) : list A :=
-  let fix aux (l : list A) (acc : list A) : list A :=
-      match l with
-      | [] => acc
-      | x :: l => aux l (x :: acc)
-      end
-  in aux l [].
+  rev_acc l [].
+
+Fixpoint rev_map_acc {A B} (f : A -> B) (l : list A) (acc : list B) {struct l} : list B :=
+  match l with
+  | [] => acc
+  | x :: l => rev_map_acc f l (f x :: acc)
+  end.
 
 Definition rev_map {A B} (f : A -> B) (l : list A) : list B :=
-  let fix aux (l : list A) (acc : list B) : list B :=
-      match l with
-      | [] => acc
-      | x :: l => aux l (f x :: acc)
-      end
-  in aux l [].
+  rev_map_acc f l [].
+
+Lemma rev_acc_app {A} (l acc : list A) :
+  rev_acc l acc = (rev_acc l [] ++ acc)%list.
+Proof.
+  induction l in acc |- *.
+  - cbn. reflexivity.
+  - cbn. rewrite (IHl [a]). rewrite IHl.
+    change (a :: acc) with ([a] ++ acc)%list.
+    auto with datatypes.
+Defined.
 
 Fact rev_cons :
   forall {A} {l} {a : A},
     rev (a :: l) = (rev l ++ [a])%list.
 Proof.
-  intro A.
-  unfold rev.
-  match goal with
-  | |- forall l a, ?faux _ _ = _ => set (aux := faux)
-  end.
-  assert (h : forall l acc, aux l acc = (aux l [] ++ acc)%list).
-  { intro l. induction l ; intro acc.
-    - cbn. reflexivity.
-    - cbn. rewrite (IHl [a]). rewrite IHl.
-      change (a :: acc) with ([a] ++ acc)%list.
-      auto with datatypes.
-  }
-  intros l a.
-  apply h.
+  intros A l a. exact (rev_acc_app l [a]).
+Defined.
+
+Lemma rev_map_acc_app {A B} (f : A -> B) (l : list A) (acc : list B) :
+  rev_map_acc f l acc = (rev_map_acc f l [] ++ acc)%list.
+Proof.
+  induction l in acc |- *.
+  - cbn. reflexivity.
+  - cbn. rewrite (IHl [f a]). rewrite IHl.
+    change (f a :: acc) with ([f a] ++ acc)%list.
+    auto with datatypes.
 Defined.
 
 Fact rev_map_cons :
   forall {A B} {f : A -> B} {l} {a : A},
     rev_map f (a :: l) = (rev_map f l ++ [f a])%list.
 Proof.
-  intros A B f.
-  unfold rev_map.
-  match goal with
-  | |- forall l a, ?faux _ _ = _ => set (aux := faux)
-  end.
-  assert (h : forall l acc, aux l acc = (aux l [] ++ acc)%list).
-  { intro l. induction l ; intro acc.
-    - cbn. reflexivity.
-    - cbn. rewrite (IHl [f a]). rewrite IHl.
-      change (f a :: acc) with ([f a] ++ acc)%list.
-      auto with datatypes.
-  }
-  intros l a.
-  apply h.
+  intros A B f l a. exact (rev_map_acc_app f l [f a]).
+Defined.
+
+Lemma length_rev_acc {A} (l acc : list A) :
+  List.length (rev_acc l acc) = (List.length acc + List.length l)%nat.
+Proof.
+  induction l in acc |- *.
+  - cbn. auto with arith.
+  - cbn. rewrite IHl. cbn. auto with arith.
 Defined.
 
 Fact length_rev :
   forall {A} {l : list A},
     List.length (rev l) = List.length l.
 Proof.
-  intro A.
-  unfold rev.
-  match goal with
-  | |- context [ List.length (?faux _ _) ] => set (aux := faux)
-  end.
-  assert (h : forall l acc, List.length (aux l acc) = (List.length acc + List.length l)%nat).
-  { intro l. induction l ; intro acc.
-    - cbn. auto with arith.
-    - cbn. rewrite IHl. cbn. auto with arith.
-  }
-  intro l. apply h.
+  intros A l. unfold rev. rewrite length_rev_acc. reflexivity.
 Defined.
 #[global] Hint Rewrite @length_rev : len.
+
+Lemma length_rev_map_acc {A B} (f : A -> B) (l : list A) (acc : list B) :
+  List.length (rev_map_acc f l acc) = (List.length acc + List.length l)%nat.
+Proof.
+  induction l in acc |- *.
+  - cbn. auto with arith.
+  - cbn. rewrite IHl. cbn. auto with arith.
+Defined.
 
 Fact length_rev_map :
   forall {A B} {f : A -> B} {l : list A},
     List.length (rev_map f l) = List.length l.
 Proof.
-  intros A B f.
-  unfold rev_map.
-  match goal with
-  | |- context [ List.length (?faux _ _) ] => set (aux := faux)
-  end.
-  assert (h : forall l acc, List.length (aux l acc) =
-                       (List.length acc + List.length l)%nat).
-  { intro l. induction l ; intro acc.
-    - cbn. auto with arith.
-    - cbn. rewrite IHl. cbn. auto with arith.
-  }
-  intro l. apply h.
+  intros A B f l. unfold rev_map. rewrite length_rev_map_acc. reflexivity.
 Defined.
 #[global] Hint Rewrite @length_rev_map : len.
 

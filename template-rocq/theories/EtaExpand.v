@@ -831,9 +831,8 @@ Proof.
  intros.
  rewrite subst_instance_mkApps, subst_mkApps.
  f_equal.
- - subst head. unfold subst_instance.
-   change TemplateTerm.subst_instance_constr with subst_instance_constr.
-   cbn[subst_instance_constr].
+ - change (subst s (#|arity| + #|ind_params mdecl|) head = tInd ind u).
+   subst head.
    rewrite (subst_rel_eq _ _ (#|ind_bodies mdecl| - S (inductive_ind ind)) (tInd ind u)); cbn; try lia; auto.
    subst s. rewrite inds_spec, rev_mapi, nth_error_mapi.
    elim nth_error_spec.

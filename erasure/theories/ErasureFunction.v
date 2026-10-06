@@ -1477,12 +1477,11 @@ Proof.
 Qed.
 
 (* TODO: Should this live elsewhere? *)
-Definition iter {A} (f : A -> A) : nat -> (A -> A)
-  := fix iter (n : nat) : A -> A
-    := match n with
-       | O => fun x => x
-       | S n => fun x => iter n (f x)
-       end.
+Fixpoint iter {A} (f : A -> A) (n : nat) : A -> A :=
+  match n with
+  | O => fun x => x
+  | S n => fun x => iter f n (f x)
+  end.
 
 (* we use the [match] trick to get typeclass resolution to pick up the right instances without leaving any evidence in the resulting term, and without having to pass them manually everywhere *)
 Abbreviation NormalizationIn_erase_global_deps X decls

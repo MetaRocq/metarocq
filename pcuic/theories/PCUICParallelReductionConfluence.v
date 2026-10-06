@@ -375,7 +375,9 @@ Section Rho.
   fold_fix_context_wf (d :: mfix) rho Γ acc =>
     fold_fix_context_wf mfix (fun Γ x Hx => rho Γ x _) Γ (vass (dname d) (lift0 #|acc| (rho Γ (dtype d) _)) :: acc).
   Proof.
-    lia. unfold def_depth_gen. lia.
+    change (depth x <= max (def_depth_gen depth d) (mfixpoint_depth mfix)). lia.
+    change (depth (dtype d) <= max (def_depth_gen depth d) (mfixpoint_depth mfix)).
+    unfold def_depth_gen. lia.
   Qed.
   Transparent fold_fix_context_wf.
 

@@ -77,7 +77,7 @@ Proof.
   injection Hf. intros <- <-.
   apply wf_subst; auto. clear wfd Hf eqnth.
   assert(forall n, WfAst.wf Σ (tFix mfix n)). constructor; auto.
-  unfold fix_subst. generalize #|mfix|; intros. induction n; auto.
+  unfold fix_subst. generalize #|mfix|; intros. induction n; cbn; auto.
 Qed.
 
 Lemma unfold_cofix_wf Σ:
@@ -92,7 +92,7 @@ Proof.
   injection Hf. intros <- <-.
   apply wf_subst; auto. clear wfd Hf eqnth.
   assert(forall n, WfAst.wf Σ (tCoFix mfix n)). constructor; auto.
-  unfold cofix_subst. generalize #|mfix|; intros. induction n; auto.
+  unfold cofix_subst. generalize #|mfix|; intros. induction n; cbn; auto.
 Qed.
 
 Lemma red1_isLambda Σ Γ t u :

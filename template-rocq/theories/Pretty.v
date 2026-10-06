@@ -51,16 +51,17 @@ Section print_term.
     | _ => "U"
     end.
 
+  Fixpoint fresh_id_from_aux Γ n id (i : nat) : ident :=
+    match i with
+    | 0 => id
+    | S i' =>
+      let id' := id ^ string_of_nat (n - i) in
+      if is_fresh Γ id' then id'
+      else fresh_id_from_aux Γ n id i'
+    end.
+
   Definition fresh_id_from Γ n id :=
-    let fix aux i :=
-      match i with
-      | 0 => id
-      | S i' =>
-        let id' := id ^ string_of_nat (n - i) in
-        if is_fresh Γ id' then id'
-        else aux i'
-      end
-    in aux n.
+    fresh_id_from_aux Γ n id n.
 
   Definition fresh_name (Γ : list ident) (na : name) (t : option term) : ident :=
     let id := match na with
@@ -101,15 +102,16 @@ Section print_term.
     | None => None
     end.
 
+  Fixpoint fresh_names_acc (Γids : list ident) (Γ : context) {struct Γ} : list ident :=
+    match Γ with
+    | [] => Γids
+    | decl :: Γ =>
+      fresh_names_acc
+        (fresh_name Γids (binder_name (decl_name decl)) (Some (decl_type decl)) :: Γids) Γ
+    end.
+
   Definition fresh_names (Γ : list ident) (Γ' : context) : list ident :=
-    let fix aux Γids Γ :=
-        match Γ with
-        | [] => Γids
-        | decl :: Γ => aux (fresh_name Γids (binder_name (decl_name decl))
-                                       (Some (decl_type decl)) :: Γids)
-                           Γ
-        end in
-    aux Γ (MRList.rev Γ').
+    fresh_names_acc Γ (MRList.rev Γ').
 
 End print_term.
 
@@ -144,6 +146,15 @@ Module PrintTermTree.
     end.
 
   (* TODO: SPROP: we ignore relevance on printing, maybe add print config? *)
+  Fixpoint print_branch (Γ : list ident) (names : list aname)
+           (prbr : list ident -> Tree.t) {struct names} : Tree.t :=
+    match names with
+    | [] => "⇒ " ^ prbr Γ
+    | na :: l =>
+      let na' := fresh_name Σ Γ na.(binder_name) None in
+      na' ^ "  " ^ print_branch (na' :: Γ) l prbr
+    end.
+
   Fixpoint print_term (Γ : list ident) (top : bool) (t : term) {struct t} : Tree.t :=
   match t with
   | tRel n =>
@@ -209,15 +220,6 @@ Module PrintTermTree.
         let (as_name, indices) := (hd "_" ret_binders, MRList.rev (tail ret_binders)) in
         let in_args := (repeat "_" #|pparams p| ++ indices)%list in
         let in_str := oib.(ind_name) ^ concat "" (map (fun a : bytestring.string => " " ^ a) in_args) in
-
-        let fix print_branch Γ names prbr {struct names} :=
-            match names with
-            | [] => "⇒ " ^ prbr Γ
-            | na :: l =>
-              let na' := (fresh_name Σ Γ na.(binder_name) None) in
-                na' ^ "  " ^ print_branch (na' :: Γ) l prbr
-            end
-        in
 
         let brs := map (fun br => print_branch Γ (List.rev br.(bcontext)) (fun Γ => print_term Γ true br.(bbody))) brs in
         let brs := combine brs oib.(ind_ctors) in

@@ -54,13 +54,14 @@ Definition lookup (E : environment) x :=
   | _ => None
   end.
 
+Fixpoint fix_env_aux (l : list (ident * term)) (Γ : environment) (n : nat) : list value :=
+  match n with
+  | 0 => []
+  | S n0 => vRecClos l n0 Γ :: fix_env_aux l Γ n0
+  end.
+
 Definition fix_env (l : list (ident * term)) Γ :=
-  let fix aux (n : nat) : list value :=
-    match n with
-    | 0 => []
-    | S n0 => vRecClos l n0 Γ :: aux n0
-    end in
-  aux #|l|.
+  fix_env_aux l Γ #|l|.
 
 (*
 Definition cunfold_fix (mfix : list (ident * term)) (idx : nat) Γ :=

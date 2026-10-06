@@ -84,15 +84,16 @@ Definition testmemo := Eval lazy in test memo.
 From Stdlib Require Import StreamMemo.
 
 (** Ackermann **)
-Fixpoint ack (n m:nat) {struct n} : nat :=
+Fixpoint ack_aux (rec : nat -> nat) (m : nat) : nat :=
+  match m with
+  | 0 => rec 1
+  | S q => rec (ack_aux rec q)
+  end.
+
+Fixpoint ack (n m : nat) {struct n} : nat :=
   match n with
-    | 0 => S m
-    | S p => let fix ackn (m:nat) {struct m} :=
-                 match m with
-                   | 0 => ack p 1
-                   | S q => ack p (ackn q)
-                 end
-             in ackn m
+  | 0 => S m
+  | S p => ack_aux (ack p) m
   end.
 Definition ack35 := (ack 3 5).
 MetaRocq Quote Recursively Definition cbv_ack35 :=

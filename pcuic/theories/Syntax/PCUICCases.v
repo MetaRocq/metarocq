@@ -30,7 +30,7 @@ Lemma inds_spec ind u l :
 Proof.
   unfold inds, mapi. induction l using rev_ind.
   - simpl. reflexivity.
-  - now rewrite length_app /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
+  - now rewrite length_app /= Nat.add_1_r /= IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
 Qed.
 
 Definition ind_predicate_context ind mdecl idecl : context :=
@@ -367,13 +367,14 @@ Qed.
 
 (** *** Helper functions for reduction/conversion *)
 
+Fixpoint fix_subst_aux (f : nat -> term) (n : nat) : list term :=
+  match n with
+  | 0 => []
+  | S n => f n :: fix_subst_aux f n
+  end.
+
 Definition fix_subst (l : mfixpoint term) :=
-  let fix aux n :=
-      match n with
-      | 0 => []
-      | S n => tFix l n :: aux n
-      end
-  in aux (List.length l).
+  fix_subst_aux (tFix l) (List.length l).
 
 Definition unfold_fix (mfix : mfixpoint term) (idx : nat) :=
   match List.nth_error mfix idx with
@@ -381,13 +382,14 @@ Definition unfold_fix (mfix : mfixpoint term) (idx : nat) :=
   | None => None
   end.
 
+Fixpoint cofix_subst_aux (f : nat -> term) (n : nat) : list term :=
+  match n with
+  | 0 => []
+  | S n => f n :: cofix_subst_aux f n
+  end.
+
 Definition cofix_subst (l : mfixpoint term) :=
-  let fix aux n :=
-      match n with
-      | 0 => []
-      | S n => tCoFix l n :: aux n
-      end
-  in aux (List.length l).
+  cofix_subst_aux (tCoFix l) (List.length l).
 
 Definition unfold_cofix (mfix : mfixpoint term) (idx : nat) :=
   match List.nth_error mfix idx with

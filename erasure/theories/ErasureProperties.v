@@ -329,8 +329,7 @@ Proof.
     cbn. econstructor. eauto.
     eapply lift_typing_fu_impl with (1 := X0) => // ?? HT; eauto using relevance_subst_opt.
     now apply typing_subst_instance.
-  - unfold subst_instance.
-    cbn [subst_instance_constr]. econstructor; eauto.
+  - econstructor; eauto.
     eapply All2_map_left.
     eapply (All2i_All2_All2 X6 X9).
     intros ? ? [] [] (? & ? & (? & ?) & (? & ?)) (? & ?). split.

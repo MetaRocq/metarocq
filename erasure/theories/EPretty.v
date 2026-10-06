@@ -48,16 +48,17 @@ Section freshnames.
     | _ => "U"
     end.
 
+  Fixpoint fresh_id_from_aux Γ n id (i : nat) : ident :=
+    match i with
+    | 0 => id
+    | S i' =>
+      let id' := id ^ (string_of_nat (n - i)) in
+      if is_fresh Γ id' then id'
+      else fresh_id_from_aux Γ n id i'
+    end.
+
   Definition fresh_id_from Γ n id :=
-    let fix aux i :=
-      match i with
-      | 0 => id
-      | S i' =>
-        let id' := id ^ (string_of_nat (n - i)) in
-        if is_fresh Γ id' then id'
-        else aux i'
-      end
-    in aux n.
+    fresh_id_from_aux Γ n id n.
 
   Definition fresh_name (Γ : context) (na : name) (t : term) :=
     let id := match na with
@@ -90,6 +91,14 @@ Module PrintTermTree.
       | primFloatModel f => "(float: " ^ show f ^ ")"
       | primStringModel f => "(string: " ^ show f ^ ")"
       | primArrayModel a => "(array:" ^ soft a.(array_default) ^ " , " ^ string_of_list soft a.(array_value) ^ ")"
+      end.
+
+    Fixpoint print_args (Γ : context) (nas : list name)
+             (br : context -> Tree.t) {struct nas} : Tree.t :=
+      match nas with
+      | [] => "=>" ^ " " ^ br Γ
+      | na :: nas =>
+        string_of_name na ^ "  " ^ print_args (vass na :: Γ) nas br
       end.
 
     Fixpoint print_term (Γ : context) (top : bool) (inapp : bool) (t : term) {struct t} : Tree.t :=
@@ -136,13 +145,6 @@ Module PrintTermTree.
     | tCase (mkInd mind i as ind, pars) t brs =>
       match lookup_ind_decl Σ mind i with
       | Some oib =>
-        let fix print_args Γ nas br {struct nas} :=
-          match nas with
-          | [] => "=>" ^ " " ^ br Γ
-          | na :: nas =>
-            string_of_name na ^ "  " ^ print_args (vass na :: Γ) nas br
-          end
-        in
         let brs := map (fun '(nas, br) => print_args Γ (List.rev nas) (fun Γ => print_term Γ true false br)) brs in
         let brs := combine brs oib.(ind_ctors) in
         parens top ("match " ^ print_term Γ true false t ^
