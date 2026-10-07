@@ -317,7 +317,11 @@ Proof.
   apply typing_ind_env; intros; cbn -[subst_instance] in *; auto.
   { destruct X as (Htm & s & (_ & Hty) & _). split; eauto. destruct j_term => // ?. cbn in *. now eapply Htm. }
   all: match goal with [ H : erases _ _ ?a _ |- ?G ] => tryif is_var a then idtac else invs H end.
-  all: try now (econstructor; eauto 2 using isErasable_subst_instance).
+  all: try match goal with
+  | |- erases _ _ (subst_instance _ (tApp _ _)) (E.tApp _ _) => cbn
+  | |- erases _ _ (subst_instance _ (tProj _ _)) (E.tProj _ _) => cbn
+  end.
+  all: try solve [econstructor; eauto 2 using isErasable_subst_instance].
   - cbn. econstructor.
     eapply H in X3; eauto. apply X3.
     cbn. econstructor. eauto.
@@ -329,7 +333,7 @@ Proof.
     cbn. econstructor. eauto.
     eapply lift_typing_fu_impl with (1 := X0) => // ?? HT; eauto using relevance_subst_opt.
     now apply typing_subst_instance.
-  - econstructor; eauto.
+  - cbn in *. econstructor; eauto.
     eapply All2_map_left.
     eapply (All2i_All2_All2 X6 X9).
     intros ? ? [] [] (? & ? & (? & ?) & (? & ?)) (? & ?). split.
@@ -763,10 +767,10 @@ Proof.
   - pose proof (eval_trans' Hc He1); subst discr.
     econstructor; eauto.
   - pose proof (eval_trans' Hc He1); subst discr.
-    now econstructor; tea.
+    solve [econstructor; tea].
   - pose proof (eval_trans' Hc He1); subst discr.
-    now econstructor; tea.
+    solve [econstructor; tea].
   - pose proof (eval_trans' Hc He); subst discr.
-    now econstructor; tea.
+    solve [econstructor; tea].
   - cbn in i. discriminate.
 Qed.

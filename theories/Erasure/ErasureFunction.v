@@ -471,7 +471,8 @@ Lemma term_global_deps_cunfold_fix mfix idx n f :
 Proof.
   unfold EGlobalEnv.cunfold_fix.
   destruct nth_error eqn:E => //.
-  intros [= <- <-].
+  intros H. apply some_inj in H.
+  apply pair_equal_spec in H as [Hn Hf]. subst n f.
   intros kn hin.
   eapply term_global_deps_substl in hin.
   rw KernameSet.union_spec in hin.
@@ -500,7 +501,8 @@ Lemma term_global_deps_cunfold_cofix mfix idx n f :
 Proof.
   unfold EGlobalEnv.cunfold_cofix.
   destruct nth_error eqn:E => //.
-  intros [= <- <-].
+  intros H. apply some_inj in H.
+  apply pair_equal_spec in H as [Hn Hf]. subst n f.
   intros kn hin.
   eapply term_global_deps_substl in hin.
   rw KernameSet.union_spec in hin.
@@ -1924,11 +1926,11 @@ Proof.
   { eapply Alli_impl; eauto.
     simpl. intros n x []. simpl in *. rw ind_arity_eq.
     rw !destArity_it_mkProd_or_LetIn /= //. } clear oni.
-  induction X; constructor; auto.
+  induction X; cbn; constructor; auto.
   destruct hd; constructor; simpl; auto.
   clear.
-  induction ind_ctors0; constructor; auto.
+  induction ind_ctors0; cbn; constructor; auto.
   cbn in *.
   intuition auto.
-  induction ind_projs0; constructor; auto.
+  induction ind_projs0; cbn; constructor; auto.
 Qed.

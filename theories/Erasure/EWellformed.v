@@ -374,7 +374,7 @@ Section EEnvFlags.
     destruct nth_error eqn:heq => //.
     cbn in cl. move/andP: cl => [/andP[] hastf isfix /andP[] hidx cl].
     have := (nth_error_forallb heq cl) => cld.
-    move=> [=] _ <-.
+    intro Hf; apply some_inj in Hf; apply pair_equal_spec in Hf; destruct Hf as [_ <-].
     eapply wellformed_substl => //. now eapply wellformed_fix_subst.
     rw fix_subst_length.
     apply cld.
@@ -390,7 +390,7 @@ Section EEnvFlags.
     destruct nth_error eqn:heq => //.
     cbn in cl. move/andP: cl => [hastf /andP[] _ cl].
     have := (nth_error_forallb heq cl) => cld.
-    move=> [=] _ <-.
+    intro Hf; apply some_inj in Hf; apply pair_equal_spec in Hf; destruct Hf as [_ <-].
     eapply wellformed_substl => //. now eapply wellformed_cofix_subst.
     rw cofix_subst_length.
     apply cld.

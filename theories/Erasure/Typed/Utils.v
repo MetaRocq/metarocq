@@ -37,7 +37,7 @@ Lemma Forall_repeat {A} (P : A -> Prop) (a : A) (n : nat) :
   Forall P (repeat a n).
 Proof.
   intros pa.
-  now induction n; constructor.
+  now induction n; cbn; constructor.
 Qed.
 
 Lemma skipn_firstn_slice {A} n n' (l : list A) :
@@ -75,11 +75,8 @@ Proof.
   fix map_In 1.
   intros [|x xs] f.
   - exact [].
-  - refine (f x (or_introl eq_refl) :: map_In xs _).
-    intros x' isin.
-    apply (f x').
-    right.
-    assumption.
+  - refine (f x (@or_introl (x = x) (In x xs) eq_refl) :: map_In xs (fun (x' : X) (isin : In x' xs) => _)).
+    exact (f x' (@or_intror (x = x') (In x' xs) isin)).
 Defined.
 
 Definition monad_map_In {T : Type -> Type} {M : Monad T} {X Y : Type}
@@ -88,12 +85,9 @@ Proof.
   fix monad_map_In 1.
   intros [|x xs] f.
   - exact (ret []).
-  - refine (y <- f x (or_introl eq_refl);;
-            tl <- monad_map_In xs _;; ret (y :: tl)).
-    intros x' isin.
-    apply (f x').
-    right.
-    assumption.
+  - refine (y <- f x (@or_introl (x = x) (In x xs) eq_refl);;
+            tl <- monad_map_In xs (fun (x' : X) (isin : In x' xs) => _);; ret (y :: tl)).
+    exact (f x' (@or_intror (x = x') (In x' xs) isin)).
 Defined.
 
 Section bigprod.

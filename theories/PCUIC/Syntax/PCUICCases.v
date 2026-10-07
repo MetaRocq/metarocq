@@ -177,7 +177,7 @@ Lemma map2_length {A B C} (l : list A) (l' : list B) (f : A -> B -> C) : #|l| = 
   #|map2 f l l'| = #|l|.
 Proof.
   induction l in l' |- *; destruct l' => /= //.
-  intros [= eq]. now rw IHl.
+  intro eq; apply Nat.succ_inj in eq. now rw IHl.
 Qed.
 
 Lemma map2_set_binder_name_context_assumptions
@@ -185,7 +185,7 @@ Lemma map2_set_binder_name_context_assumptions
   context_assumptions (map2 set_binder_name l l') = context_assumptions l'.
 Proof.
   induction l in l' |- *; destruct l' => /= //.
-  intros [= eq]. now rw IHl.
+  intro eq; apply Nat.succ_inj in eq. now rw IHl.
 Qed.
 
 Definition idecl_binder idecl :=

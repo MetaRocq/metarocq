@@ -105,14 +105,14 @@ Lemma map_predicate_map_predicate
   map_predicate finst f g (map_predicate finst' f' g' p) =
   map_predicate (finst ∘ finst') (f ∘ f') (g ∘ g') p.
 Proof.
-  destruct p; cbv.
+  destruct p; cbv [map_predicate puinst pparams pcontext preturn id].
   f_equal.
   apply map_map.
 Qed.
 
 Lemma map_predicate_id {t} x : map_predicate (@id _) (@id t) (@id t) x = id x.
 Proof.
-  destruct x; cbv.
+  destruct x; cbv [map_predicate puinst pparams pcontext preturn id].
   f_equal.
   apply map_id.
 Qed.

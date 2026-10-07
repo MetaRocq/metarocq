@@ -883,7 +883,7 @@ Proof.
   - now apply Nat.ltb_lt in clt.
   - revert l clt.
     fix auxl' 1.
-    destruct l; constructor; [|apply auxl'].
+    destruct l; cbn in *; constructor; [|apply auxl'].
     apply auxt. simpl in clt. now move/andP: clt  => [clt cll].
     now move/andP: clt => [clt cll].
 
@@ -939,7 +939,7 @@ Proof.
     generalize (#|mfix|).
     revert mfix.
     fix auxm 1.
-    destruct mfix; intros; constructor.
+    destruct mfix; intros; cbn in *; constructor.
     simpl in clt. move/andP: clt  => [clt cll].
     simpl in clt. move/andP: clt. intuition auto.
     move/andP: clt => [cd cmfix]. apply auxm; auto.
@@ -950,7 +950,7 @@ Proof.
     generalize (#|mfix|).
     revert mfix.
     fix auxm 1.
-    destruct mfix; intros; constructor.
+    destruct mfix; intros; cbn in *; constructor.
     simpl in clt. move/andP: clt  => [clt cll].
     simpl in clt. move/andP: clt. intuition auto.
     move/andP: clt => [cd cmfix]. apply auxm; auto.
@@ -1004,7 +1004,7 @@ Proof.
 
   - revert l clt.
     fix auxl' 1.
-    destruct l; constructor; [|apply auxl'].
+    destruct l; cbn in *; constructor; [|apply auxl'].
     apply auxt. simpl in clt. now move/andP: clt  => [clt cll].
     now move/andP: clt => [clt cll].
 
@@ -1051,7 +1051,7 @@ Proof.
     generalize (#|mfix|).
     revert mfix.
     fix auxm 1.
-    destruct mfix; intros; constructor.
+    destruct mfix; intros; cbn in *; constructor.
     simpl in clt. move/andP: clt  => [clt cll].
     simpl in clt. move/andP: clt. intuition auto.
     move/andP: clt => [cd cmfix]. apply auxm; auto.
@@ -1062,7 +1062,7 @@ Proof.
     generalize (#|mfix|).
     revert mfix.
     fix auxm 1.
-    destruct mfix; intros; constructor.
+    destruct mfix; intros; cbn in *; constructor.
     simpl in clt. move/andP: clt  => [clt cll].
     simpl in clt. move/andP: clt. intuition auto.
     move/andP: clt => [cd cmfix]. apply auxm; auto.

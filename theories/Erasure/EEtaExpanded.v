@@ -310,7 +310,7 @@ Section WeakEtaExp.
   Proof using Type.
     unfold EGlobalEnv.fix_subst. generalize #|mfix|.
     solve_all. solve_all. revert n.
-    induction n; intros; simp_eta; constructor; auto.
+    induction n; intros; cbn [fix_subst_aux]; simp_eta; constructor; auto.
     simp isEtaExp. solve_all.
   Qed.
 
@@ -320,7 +320,7 @@ Section WeakEtaExp.
   Proof using Type.
     unfold EGlobalEnv.cofix_subst. generalize #|mfix|.
     solve_all. solve_all. revert n.
-    induction n; intros; simp_eta; constructor; auto.
+    induction n; intros; cbn [cofix_subst_aux]; simp_eta; constructor; auto.
     simp isEtaExp. solve_all.
   Qed.
 
@@ -332,7 +332,10 @@ Section WeakEtaExp.
     intros heta.
     unfold EGlobalEnv.cunfold_fix.
     destruct nth_error eqn:heq => //.
-    intros [= <- <-] => /=.
+    intro Hunfold.
+    apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn.
     apply isEtaExp_substl.
     now apply isEtaExp_fix_subst.
     eapply forallb_nth_error in heta; tea.
@@ -347,7 +350,10 @@ Section WeakEtaExp.
     intros heta.
     unfold EGlobalEnv.cunfold_cofix.
     destruct nth_error eqn:heq => //.
-    intros [= <- <-] => /=.
+    intro Hunfold.
+    apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn.
     apply isEtaExp_substl.
     now apply isEtaExp_cofix_subst.
     eapply forallb_nth_error in heta; tea.

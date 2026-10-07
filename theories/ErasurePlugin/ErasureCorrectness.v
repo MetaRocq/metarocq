@@ -2092,6 +2092,7 @@ Section PCUICErase.
     change (trans_global_env _) with (global_env_ext_map_global_env_ext trexp.1).1 in axfree.
     clearbody trexp. clear nise pr wf Σ f. destruct trexp as [Σ f].
     pose proof pre as pre'; destruct pre' as [[[wf _]] _].
+    cbn in H.
     pose proof (map_squash (pcuic_function_value wf axfree) H) as [[v ev]].
     epose proof (Transform.preservation erase_transform).
     specialize (H0 _ v pre (sq ev)).
@@ -2146,6 +2147,7 @@ Section PCUICErase.
     change (trans_global_env _) with (global_env_ext_map_global_env_ext trexp.1).1 in axfree.
     clearbody trexp. clear nise pr wf Σ f. destruct trexp as [Σ f].
     pose proof pre as pre'; destruct pre' as [[[wf _]] _].
+    cbn in H.
     pose proof (map_squash (pcuic_function_value wf axfree) H) as [[v ev]].
     epose proof (Transform.preservation erase_transform).
     specialize (H0 _ v pre (sq ev)).
@@ -2434,8 +2436,8 @@ Section pipeline_cond.
     (Hlookup := lookup_env_in_erase_global_deps optimized_abstract_env_impl w t0
     _ kn _ Hyp0 decl' _ Heq).
   { epose proof (wf_fresh_globals _ HΣ). clear - H9.
-    revert H9. cbn. set (Σ.1). induction 1; econstructor; eauto.
-    cbn. clear -H. induction H; econstructor; eauto. }
+    revert H9. cbn. set (Σ.1). induction 1; cbn; econstructor; eauto.
+    cbn. clear -H. induction H; cbn; econstructor; eauto. }
   destruct Hlookup as [decl'' [? ?]]. exists decl''; split ; eauto.
   cbn in H11. inversion H11.
   set (b := Erasure.inlining econf) in H13 |- *. clearbody b.
