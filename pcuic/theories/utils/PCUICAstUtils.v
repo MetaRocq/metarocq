@@ -918,7 +918,7 @@ Lemma destArity_app_Some {Γ t ctx s}
 Proof.
   intros H. rewrite destArity_app in H.
   destruct (destArity [] t) as [[ctx' s']|]; cbn in *.
-  exists ctx'. inversion H. now subst.
+  exists ctx'. apply some_inj in H. apply pair_equal_spec in H. now destruct H as [-> ->].
   discriminate H.
 Qed.
 
@@ -989,15 +989,16 @@ Section MapInP.
 
   Equations map_InP (l : list A) (H : forall x, In x l -> P x) : list B :=
   map_InP nil _ := nil;
-  map_InP (cons x xs) H := cons (f x (H x (or_introl eq_refl))) (map_InP xs (fun x inx => H x _)).
+  map_InP (cons x xs) H :=
+    cons (f x (H x (@or_introl (x = x) (In x xs) eq_refl)))
+      (map_InP xs (fun y (iny : In y xs) => H y (@or_intror (x = y) (In y xs) iny))).
 End MapInP.
 
 Lemma map_InP_spec {A B : Type} {P : A -> Type} (f : A -> B) (l : list A) (H : forall x, In x l -> P x) :
   map_InP (fun (x : A) (_ : P x) => f x) l H = List.map f l.
 Proof.
-  remember (fun (x : A) (_ : P x) => f x) as g.
-  funelim (map_InP g l H) => //; simpl. f_equal.
-  now rewrite H0.
+  induction l in H |- *; cbn; auto.
+  f_equal. apply IHl.
 Qed.
 
 Lemma nth_error_map_InP {A B : Type} {P : A -> Type} (f : forall x : A, P x -> B) (l : list A) (H : forall x, In x l -> P x) n x :
@@ -1006,10 +1007,13 @@ Lemma nth_error_map_InP {A B : Type} {P : A -> Type} (f : forall x : A, P x -> B
   ∑ p : P a, x = f a p.
 Proof.
   induction l in n, H |- *. simpl. rewrite nth_error_nil => //.
-  destruct n; simpl; intros [=].
-  subst x.
-  eexists; intuition eauto.
-  eapply IHl. eapply H1.
+  change (map_InP f (a :: l) H) with
+    (f a (H a (@or_introl (a = a) (In a l) eq_refl)) ::
+     map_InP f l (fun x (hx : In x l) => H x (or_intror hx))).
+  destruct n; cbn [nth_error].
+  - intro Heq. apply some_inj in Heq. subst x.
+    eexists; split; [reflexivity |]. eexists; reflexivity.
+  - apply IHl.
 Qed.
 
 Lemma map_InP_length {A B : Type} {P : A -> Type} (f : forall x : A, P x -> B) (l : list A) (H : forall x, In x l -> P x) :

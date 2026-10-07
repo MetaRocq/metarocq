@@ -24,6 +24,11 @@ Proof.
   apply Hfg.
 Qed.
 
+(** Inject list constructors without reducing their arguments. *)
+Lemma cons_inj {A} (x y : A) (l r : list A) :
+  x :: l = y :: r -> x = y /\ l = r.
+Proof. intro H; injection H; auto. Qed.
+
 Lemma app_tip_assoc {A} (l : list A) x l' : (l ++ [x]) ++ l' = l ++ (x :: l').
 Proof. now rewrite <- app_assoc. Qed.
 
@@ -193,7 +198,7 @@ Proof. apply map_map. Qed.
 
 Lemma map_cst_repeat {A B} (f : B) (l: list A) : map (fun _ => f) l = repeat f #|l|.
 Proof.
-  unfold map. induction l; cbn; auto. now rewrite IHl.
+  apply List.map_const.
 Qed.
 
 Lemma map_id_f {A} (l : list A) (f : A -> A) :
@@ -519,7 +524,7 @@ Lemma mapi_nth {A B} (l : list A) (l' : list B) (default : A) : #|l| = #|l'| ->
     mapi (fun i _ => nth i l default) l' = l.
 Proof.
   induction l' in l |- *; destruct l => /= //.
-  simpl. intros [= Hl]. cbn. f_equal. now rewrite mapi_rec_Sk.
+  simpl. intro Hl; apply Nat.succ_inj in Hl. cbn. f_equal. now rewrite mapi_rec_Sk.
 Qed.
 
 Lemma length_skipn {A} n (l : list A) : length (skipn n l) = length l - n.
@@ -538,12 +543,7 @@ Local Ltac invs H := inversion H; subst; try clear H.
 
 Lemma last_inv A (l1 l2 : list A) x y :
   (l1 ++ [x] = l2 ++ [y] -> l1 = l2 /\ x = y)%list.
-Proof.
-  revert l2. induction l1; cbn; intros.
-  - destruct l2; cbn in H; invs H. eauto. destruct l2; invs H2.
-  - destruct l2; invs H. destruct l1; invs H2.
-    eapply IHl1 in H2 as []. split; congruence.
-Qed.
+Proof. apply List.app_inj_tail. Qed.
 
 Lemma skipn_all2 :
   forall {A n} (l : list A),
@@ -870,7 +870,8 @@ Proof.
   intros A B f l l' h e.
   induction l in l', e |- *.
   - destruct l' ; try discriminate. reflexivity.
-  - destruct l' ; try discriminate. inversion e.
+  - destruct l' ; try discriminate. cbn in e.
+    apply cons_inj in e as [ehead etail].
     f_equal ; eauto.
 Qed.
 
@@ -998,7 +999,7 @@ Lemma mapi_irrel_list {A B} (f : nat -> A) (l l' : list B) :
   mapi (fun i (x : B) => f i) l = mapi (fun i x => f i) l'.
 Proof.
   induction l in f, l' |- *; destruct l' => //; simpl; auto.
-  intros [= eq]. unfold mapi. simpl. f_equal.
+  intro eq; apply Nat.succ_inj in eq. unfold mapi. simpl. f_equal.
   rewrite !mapi_rec_Sk.
   now rewrite [mapi_rec _ _ _](IHl (fun x => (f (S x))) l').
 Qed.
@@ -1188,7 +1189,8 @@ Proof.
   simpl in H.
   change (l ++ a :: r) with (l ++ [a] ++ r) in H.
   change (l' ++ a0 :: r') with (l' ++ [a0] ++ r') in H.
-  rewrite !app_assoc in H. destruct (IHr _ _ _ H). now injection H0.
+  rewrite !app_assoc in H. destruct (IHr _ _ _ H).
+  { change (S #|r| = S #|r'|) in H0. now apply Nat.succ_inj in H0. }
   subst. now apply app_inj_tail in H1 as [-> ->].
 Qed.
 
@@ -1196,7 +1198,7 @@ Lemma app_inj_length_l {A} (l l' r r' : list A) :
   app l r = app l' r' -> #|l| = #|l'| -> l = l' /\ r = r'.
 Proof.
   induction l in r, r', l' |- *. destruct l'; intros; simpl in *; intuition auto; try discriminate.
-  intros. destruct l'; try discriminate. simpl in *. injection H as [= -> ?].
+  intros. destruct l'; try discriminate. simpl in *. apply cons_inj in H as [-> H].
   specialize (IHl _ _ _ H).
   destruct IHl; intuition congruence.
 Qed.

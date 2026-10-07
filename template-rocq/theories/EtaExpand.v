@@ -530,12 +530,20 @@ Proof.
   destruct args' in t, args, H, H0, H1 |- *.
   - destruct args; cbn in *; try lia. eauto.
   - destruct args; cbn in *.
-    + destruct t; try now (eapply expanded_tApps_inv; eauto).
+    + destruct t; cbn; try now (
+        lazymatch goal with
+        | |- expanded _ _ (tApp _ (_ ++ _)) => fail
+        | _ => eapply expanded_tApps_inv; eauto
+        end).
       * invs H. econstructor; eauto.
       * eapply expanded_tApps_inv. eauto. len; lia.
         eapply app_Forall; eauto. eapply expanded_tApp_args; eauto.
       * invs H. eapply expanded_tConstruct_app; eauto. cbn; lia.
-    + destruct t; try now (eapply expanded_tApps_inv; eauto).
+    + destruct t; cbn; try now (
+        lazymatch goal with
+        | |- expanded _ _ (tApp _ (_ ++ _)) => fail
+        | _ => eapply expanded_tApps_inv; eauto
+        end).
       eapply expanded_tApps_inv. eauto. len; lia.
       eapply app_Forall; eauto. eapply expanded_tApp_args in H.
       eapply Forall_app in H. eapply H.
@@ -625,7 +633,12 @@ Proof.
     eapply expanded_tFix.
     + shelve.
     + eapply Forall_map_inv in H0, H1, H3. cbn in *.
-      solve_all. now apply isLambda_unlift in H0. rewrite app_assoc.
+      pose proof (Forall_mix _ _ _ H0 H1) as Hmix.
+      clear H0 H1.
+      eapply (Forall_impl Hmix).
+      intros x [[Hlambda _] b]; split.
+      now apply isLambda_unlift in Hlambda.
+      rewrite app_assoc.
       eapply b. autorewrite with list. f_equal. f_equal.
       rewrite mapi_map. eapply mapi_ext. intros. cbn. reflexivity.
       f_equal. now len.
@@ -634,7 +647,10 @@ Proof.
     + eauto.
     + revert H6. len. lia.
      Unshelve. revert H6. len. cbn in *. rewrite <- context_assumptions_lift in H. lia.
-  - econstructor. solve_all. rewrite app_assoc.
+  - econstructor.
+    eapply Forall_map_inv in H0.
+    eapply (Forall_impl H0).
+    intros x b. cbn in b. rewrite app_assoc.
     eapply b. autorewrite with len list. reflexivity. now len.
   - destruct t; invs H4.
     eapply expanded_tConstruct_app; eauto. revert H0.
@@ -1095,7 +1111,11 @@ Proof.
       cbn in *.
       eapply expanded_fold_lambda.
 
-      eapply expanded_mkApps_tFix; fold lift.
+      match goal with
+      | |- expanded _ _ (mkApps (lift0 ?n (tFix ?mf ?i)) _) =>
+        eapply expanded_mkApps_tFix with
+          (mfix := map (map_def (Ast.lift n 0) (Ast.lift n (#|mf| + 0))) mf)
+      end; fold lift.
       2:{ rewrite !nth_error_map Eid. cbn. len. reflexivity. }
       ++ cbn. rewrite <- context_assumptions_lift.
         eapply wf_fixpoint_rarg; eauto. 2: eapply nth_error_In; eauto.
@@ -1211,7 +1231,11 @@ Proof.
     eapply expanded_fold_lambda.
     assert (#|(decompose_prod (dtype decl)).1.1| = #|(decompose_prod (dtype decl)).1.2|) as E1. { eapply decompose_prod12. }
     assert (rarg decl < context_assumptions (decompose_prod_assum [] (dtype decl)).1) as E2. { eapply wf_fixpoint_rarg; eauto. now eapply nth_error_In. }
-    eapply expanded_mkApps_tFix.
+    match goal with
+    | |- expanded _ _ (mkApps (lift0 ?n (tFix ?mf ?i)) _) =>
+      eapply expanded_mkApps_tFix with
+        (mfix := map (map_def (Ast.lift n 0) (Ast.lift n (#|mf| + 0))) mf)
+    end.
     + shelve.
     + fold lift. rewrite !nth_error_map H0. cbn. len. reflexivity.
     + len. rewrite length_seq. lia.
@@ -1411,7 +1435,7 @@ Proof.
     * cbn. intros H; depelim H. constructor; auto.
   - induction Γ; auto.
     * intros; constructor.
-    * intros H; depelim H. constructor; auto.
+    * intros H; depelim H. cbn. constructor; auto.
 Qed.
 
 #[export] Hint Rewrite @fold_context_k_defs_length @context_assumptions_fold_context_k_defs : len.
@@ -1508,14 +1532,14 @@ Proof.
     pose proof oni.(onConstructors).
     red in X.
     eapply All2_All_left; tea; cbn => cdecl cunivs onc.
-    constructor. cbn. len.
+    cbn. constructor. cbn. len.
     pose proof onc.(on_cargs).
     eapply eta_expand_context_sorts in X0. now len in X0. exact hrepr.
     len. len.
     pose proof onc.(on_ctype). destruct X0 as (_ & s & t0 & _).
     epose proof (eta_expand_expanded (Σ := Σ) _ (repeat None #|ind_bodies m|) _ _ wf t0).
     forward H. rewrite -arities_context_length.
-    clear. induction (arities_context _); constructor; auto.
+    clear. induction (arities_context _); cbn; constructor; auto.
     specialize (H _ hrepr).
     now rewrite map_repeat in H.
 Qed.

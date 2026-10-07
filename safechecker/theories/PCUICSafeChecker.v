@@ -201,7 +201,9 @@ Section OnUdecl.
   Proof using Type.
     intros wfctx wfext.
     unfold variance_universes. destruct ctx as [|[inst cstrs]] => //.
-    intros [= eq].
+    intros heq.
+    apply some_inj in heq; apply pair_equal_spec in heq as [hctx hu'].
+    apply pair_equal_spec in hctx as [hctx hu].
     set (vcstrs := ConstraintSet.union _ _) in *.
     subst univs. simpl.
     subst u u'. autorewrite with len.

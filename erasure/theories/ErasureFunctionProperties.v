@@ -2092,7 +2092,7 @@ Lemma firstorder_erases_deterministic X_type (X : X_type.π1)
 Proof.
   intros wv Σ Hrel Hty Hvalue Hfo Herase.
   destruct (firstorder_lookup_inv Hfo) as [mind Hdecl].
-  assert (Hext : ∥ wf_ext Σ∥) by now eapply ErasureFunction.heΣ.
+  assert (Hext : ∥ wf_ext Σ∥) by (eapply ErasureFunction.heΣ; eassumption).
   sq. eapply firstorder_value_spec in Hty as Hfov; eauto.
   clear - Hrel Hext Hfov Herase.
   revert t' wv Herase.
@@ -2108,12 +2108,13 @@ Proof.
   - intros. eapply erases_mkApps_inv in Herase as [(? & ? & ? & -> & [Herasable] & ? & ? & ->)|(? & ? & -> & ? & ?)]. all:eauto.
     + exfalso. eapply isErasable_Propositional in Herasable; eauto. now rewrite Herasable in H1.
     + inv H2.
-      * cbn. unfold erase_clause_1. destruct (inspect_bool (is_erasableb X_type Xext [] (tConstruct i n ui) Hyp0)).
+      * rewrite erase_equation_1. unfold erase_clause_1. destruct (inspect_bool (is_erasableb X_type Xext [] (tConstruct i n ui) Hyp0)).
         -- exfalso. sq. destruct (@is_erasableP _ _ _ [] (tConstruct i n ui) Hyp0) => //.
            specialize_Σ Hrel. sq.
            eapply (isErasable_Propositional (args := [])) in s; eauto.
            now rewrite s in H1.
-        -- f_equal. eapply Forall2_eq. clear X0 H wv. induction H3.
+        -- simp erase; rewrite -?erase_equation_1.
+           f_equal. eapply Forall2_eq. clear X0 H wv. induction H3.
            ++ cbn. econstructor.
            ++ cbn. econstructor.
                ** inv H0. eapply H5. eauto.
@@ -2751,7 +2752,8 @@ Proof.
     forward H.
     { intros ? h. rewrite -(abstract_env_irr _ HX h). now exists p. }
     forward IHn.
-    { intros ? H0. now specialize (H _ _ HX H0). }
+    { intros ? H0. specialize (H _ _ HX H0) as [Hdecl _].
+      exists decls'. split; [cbn in hlen; exact (Nat.succ_inj _ _ hlen) | exact Hdecl]. }
     pose proof (abstract_env_exists (abstract_pop_decls X)) as [[Σpop hpop]].
     specialize (IHn _ _ hpop HX').
     destruct IHn. split => //.

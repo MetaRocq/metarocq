@@ -1053,7 +1053,7 @@ Next Obligation.
   rewrite <- (subst_rel0_lift_id 0 (mkNormalArity ar_ctx univ)).
   eapply validity in typ as typ_valid;auto.
   destruct typ_valid as (_ & u & Hty & _).
-  eapply type_App.
+  eapply type_App with (A := lift0 1 A) (B := lift 1 1 (mkNormalArity ar_ctx univ)).
   + eapply validity in typ as (_ & ? & typ & _);auto.
     eapply (PCUICWeakeningTyp.weakening _ _ [_] _ _ _ wflext Hty).
   + eapply (PCUICWeakeningTyp.weakening _ _ [_] _ _ _ wflext typ).

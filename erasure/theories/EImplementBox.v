@@ -96,16 +96,16 @@ Section implement_box.
   Lemma closed_implement_box t k : closedn k t -> closedn k (implement_box t).
   Proof using Type.
     funelim (implement_box t); simp implement_box; rewrite <-?implement_box_equation_1; toAll; simpl;
-    intros; try easy;
+    intros; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction];
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
     simpl closed in *;
-    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try easy.
+    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
     rtoProp. split. eauto.
     solve_all.
     replace (#|x.1| + S k) with (#|x.1| + k + 1) by lia.
     eapply closedn_lift. eauto.
-    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all_k 6]; try easy.
+    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all_k 6]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
   Qed.
 
   Hint Rewrite @forallb_InP_spec : isEtaExp.
@@ -115,7 +115,8 @@ Section implement_box.
     implement_box (lift a k b) = lift a k (implement_box b).
   Proof.
     revert k.
-    funelim (implement_box b); intros k; cbn; simp implement_box; try easy.
+    funelim (implement_box b); intros k; cbn; simp implement_box; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction];
+      try solve [f_equal; auto].
     - destruct (Nat.leb_spec k i); reflexivity.
     - f_equal. rewrite !map_map_compose. solve_all.
       eapply In_All. eauto.
@@ -172,8 +173,8 @@ Section implement_box.
   Proof using Type.
     intros Ha.
     revert k.
-    funelim (implement_box b); intros k; cbn; simp implement_box; try easy.
-    all: try now (cbn; f_equal; eauto).
+    funelim (implement_box b); intros k; cbn; simp implement_box; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
+    all: try solve [cbn; f_equal; eauto].
     - destruct Nat.compare => //.
     - f_equal. rewrite !map_map_compose. solve_all.
       eapply In_All. eauto.
@@ -244,7 +245,9 @@ Section implement_box.
     unfold cunfold_fix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn. f_equal. f_equal.
     rewrite implement_box_substl //. 2:congruence.
     f_equal. f_equal. apply implement_box_fix_subst.
   Qed.
@@ -258,7 +261,9 @@ Section implement_box.
     unfold cunfold_cofix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn. f_equal.
     rewrite implement_box_substl //. 2:congruence.
     f_equal. f_equal. apply implement_box_cofix_subst.
   Qed.
@@ -473,7 +478,7 @@ Proof.
   revert n. funelim (implement_box t); simp_eta; cbn -[implement_box
     lookup_inductive lookup_constructor lookup_constructor_pars_args
     GlobalContextMap.lookup_constructor_pars_args isEtaExp]; intros m Hwf Hw; rtoProp; try split; eauto.
-  all: rewrite ?map_InP_spec; toAll; eauto; try now solve_all.
+  all: rewrite ?map_InP_spec; toAll; eauto; try solve [solve_all].
   - rewrite lookup_env_implement_box. destruct (lookup_env Σ n) => //. destruct g => //=.
     destruct (cst_body c) => //=.
   - unfold lookup_constructor_pars_args in *.
@@ -695,6 +700,7 @@ Proof.
   - intros evt evt' [] [].
     simp implement_box. simp implement_box in e.
     econstructor; eauto.
-  - intros. destruct t; try solve [constructor; cbn in H, H0 |- *; try congruence].
+  - intros. destruct t; try solve [simp implement_box;
+      rewrite -?implement_box_equation_1; constructor; cbn in H, H0 |- *; try congruence].
     cbn -[lookup_constructor] in H |- *. destruct args => //.
 Qed.

@@ -3488,7 +3488,7 @@ Lemma eq_term_inds {cf:checker_flags} (Σ : global_env_ext) u u' ind mdecl :
 Proof.
   move=> equ.
   unfold inds. generalize #|ind_bodies mdecl|.
-  induction n; constructor; auto.
+  induction n; cbn; constructor; auto.
   clear IHn.
   repeat constructor. destruct ind; simpl in *.
   apply cmp_instance_opt_variance; simpl; assumption.
@@ -3502,7 +3502,7 @@ Lemma conv_inds {cf:checker_flags} (Σ : global_env_ext) Γ u u' ind mdecl :
 Proof.
   move=> equ.
   unfold inds. generalize #|ind_bodies mdecl|.
-  induction n; constructor; auto.
+  induction n; cbn; constructor; auto.
   clear IHn.
   repeat constructor; auto. destruct ind; simpl in *.
   apply cmp_instance_opt_variance; simpl; assumption.
@@ -3777,13 +3777,13 @@ Proof using Type.
       rewrite nth_error_app2; [lia|].
       rewrite Nat.add_comm Nat.add_sub; auto. }
     eapply red_case.
-    + induction IHparams; pcuic.
+    + induction IHparams; cbn in *; pcuic.
     + apply IHret; auto.
       rewrite nth_error_app_ge ?inst_case_predicate_context_length; try lia.
       rewrite -H. lia_f_equal.
     + eapply IHt; auto.
     + clear -wfΣ X0 ctxapp.
-      induction X0; pcuic.
+      induction X0; cbn in *; pcuic.
       constructor; auto.
       unfold on_Trel.
       rewrite map_branch_k_map_branch_k => //.
@@ -4156,7 +4156,7 @@ Section IteratedBetaReduction.
       + rewrite -PCUICClosedTyp.is_open_term_closed //.
       + rewrite on_free_vars_ctx_on_ctx_free_vars -PCUICClosedTyp.is_closed_ctx_closed //.
     - move: l=> /snocP [//|/=l x].
-      rewrite length_app /= Nat.add_comm PCUICAstUtils.mkApps_app /= => [=] eq.
+      rewrite length_app /= Nat.add_comm PCUICAstUtils.mkApps_app /=. intro eq; apply Nat.succ_inj in eq.
       move: (eq)=> /ih ih0 clt clctx red.
       move: (clctx); rewrite Nat.add_0_r => /andP [clctx0 cld].
       etransitivity.

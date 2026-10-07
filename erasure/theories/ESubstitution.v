@@ -360,14 +360,22 @@ Proof.
     eapply substitution in t; eauto.
 Qed.
 
+Local Ltac depelim_subslet H :=
+  depelim_nosimpl H;
+  try match goal with
+  | |- _ :: _ = _ :: _ -> _ =>
+    let Heq := fresh in intro Heq; apply cons_inj in Heq as [? ?]; subst
+  end;
+  simpl_dep_elim; unblock_goal.
+
 Lemma substlet_typable (Σ : global_env_ext) Γ s Γ' n t :
   subslet Σ Γ s Γ' -> nth_error s n = Some t -> {T & Σ ;;; Γ |- t : T}.
 Proof.
   induction n in s, t, Γ, Γ' |- *; intros; cbn in *.
   - destruct s. inv H.
-    inv H. depelim X; eauto.
+    inv H. depelim_subslet X; eauto.
   - destruct s; inv H.
-    depelim X. eapply IHn in H1. eauto.  eauto.
+    depelim_subslet X. eapply IHn in H1. eauto.  eauto.
     eauto.
 Qed.
 

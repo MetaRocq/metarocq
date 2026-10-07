@@ -499,7 +499,8 @@ Proof.
   unfold TT.unfold_fix, unfold_fix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef => //.
   cbn.
-  intros [= <- <-]. simpl.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn. simpl.
   repeat f_equal.
   rewrite trans_subst.
   f_equal. clear Hdef. simpl.
@@ -516,7 +517,8 @@ Lemma trans_unfold_cofix mfix idx narg fn :
 Proof.
   unfold TT.unfold_cofix, unfold_cofix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef => //.
-  intros [= <- <-]. simpl. repeat f_equal.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn. simpl. repeat f_equal.
   rewrite trans_subst.
   f_equal. clear Hdef.
   unfold cofix_subst, TT.cofix_subst. rewrite length_map.
@@ -917,7 +919,7 @@ Lemma context_assumptions_map2_set_binder_name nas Γ :
   context_assumptions (map2 set_binder_name nas Γ) = context_assumptions Γ.
 Proof.
   induction Γ in nas |- *; destruct nas; simpl; auto; try discriminate.
-  intros [=]. destruct (decl_body a); auto.
+  intro Hlen. apply Nat.succ_inj in Hlen. destruct (decl_body a); auto.
   f_equal; auto.
 Qed.
 
@@ -1216,7 +1218,7 @@ Lemma trans_eq_binder_annot (Γ : list aname) Δ :
   Forall2 (fun na decl => eq_binder_annot na (decl_name decl)) Γ Δ ->
   Forall2 (fun na decl => eq_binder_annot na (decl_name decl)) Γ (trans_local Δ).
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma map_context_trans Γ : map_context trans Γ = trans_local Γ.
@@ -1307,11 +1309,11 @@ Proof.
   - rewrite trans_mkApps.
     rewrite !trans_mkApps; eauto with wf.
     apply trans_unfold_cofix in H; eauto with wf.
-    eapply TT.red_cofix_case; eauto.
+    eapply TT.red_cofix_case with (mfix := map (map_def trans trans) mfix); eauto.
 
   - rewrite !trans_mkApps.
     apply trans_unfold_cofix in H; eauto with wf.
-    eapply TT.red_cofix_proj; eauto.
+    eapply TT.red_cofix_proj with (mfix := map (map_def trans trans) mfix); eauto.
 
   - rewrite trans_subst_instance. econstructor.
     apply (trans_declared_constant _ c decl H).
@@ -2119,7 +2121,7 @@ Lemma All2i_All2_mapi {A B C D} P (f : nat -> A -> B) (g : nat -> C -> D) l l' :
   All2 P (mapi f l) (mapi g l').
 Proof.
   rewrite /mapi. generalize 0.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma All2i_sym {A B} (P : nat -> A -> B -> Type) n l l' :
@@ -2237,10 +2239,10 @@ Proof.
     eapply TT.type_Rel; eauto.
     + now apply map_nth_error.
   - econstructor; eauto.
-  - eapply TT.type_Prod;assumption.
-  - eapply TT.type_Lambda;eassumption.
-  - eapply TT.type_LetIn;eassumption.
-  - simpl. rewrite trans_subst10.
+  - cbn. eapply TT.type_Prod;assumption.
+  - cbn. eapply TT.type_Lambda;eassumption.
+  - cbn. eapply TT.type_LetIn;eassumption.
+  - cbn. rewrite trans_subst10.
     destruct (isApp t) eqn:isapp.
     move: (type_app Ht wfΣ). rewrite isapp.
     destruct (decompose_app t) eqn:da.
@@ -2256,7 +2258,7 @@ Proof.
       apply trans_isApp in da.
       eapply type_mkApps_napp. rewrite da //.
       eassumption.
-      eapply TT_typing_spine_app. simpl in X1. eapply X0.
+      eapply TT_typing_spine_app with (A := trans A) (B := trans B). simpl in X1. eapply X0.
       apply IH. apply TT.cumul_refl'.
       apply X4.
     * destruct p as [hcum _].
@@ -2267,14 +2269,14 @@ Proof.
       apply trans_isApp in da.
       eapply type_mkApps_napp. rewrite da //.
       eassumption.
-      eapply TT_typing_spine_app. simpl in X0. eapply X0.
+      eapply TT_typing_spine_app with (A := trans A) (B := trans B). simpl in X0. eapply X0.
       apply IH. apply hcum.
       apply X4.
     * rewrite mkApp_mkApps.
       eapply type_mkApps_napp.
       apply trans_isApp in isapp. rewrite isapp //.
       now simpl in X2.
-      econstructor. eapply X0.
+      eapply TT.type_spine_cons with (A := trans A) (B := trans B). eapply X0.
       apply TT.cumul_refl'. assumption. constructor.
   - rewrite trans_subst_instance.
     rewrite trans_cst_type.

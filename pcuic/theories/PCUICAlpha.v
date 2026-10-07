@@ -957,7 +957,7 @@ Section Alpha.
       eexists. split; reflexivity.
     - intros X Y. rewrite destArity_app in X.
       case_eq (destArity [] u2); [|intro e; rewrite e in X; discriminate].
-      intros [ctx' s'] e; rewrite e in X; cbn in X; inv X.
+      intros [ctx' s'] e; rewrite e in X; cbn in X; apply some_inj in X; apply pair_equal_spec in X as [Xctx Xs]; subst ctx s.
       destruct v; inv Y.
       eapply IHu2 in e; tea. destruct e as [ctx'' [e1 e2]].
       eexists; split. cbn. rewrite destArity_app e1; reflexivity.
@@ -965,7 +965,7 @@ Section Alpha.
       constructor; auto.
     - intros X Y. rewrite destArity_app in X.
       case_eq (destArity [] u3); [|intro e; rewrite e in X; discriminate].
-      intros [ctx' s'] e; rewrite e in X; cbn in X; inv X.
+      intros [ctx' s'] e; rewrite e in X; cbn in X; apply some_inj in X; apply pair_equal_spec in X as [Xctx Xs]; subst ctx s.
       destruct v; inv Y.
       eapply IHu3 in e; tea. destruct e as [ctx'' [e1 e2]].
       eexists; split. cbn. rewrite destArity_app e1; reflexivity.

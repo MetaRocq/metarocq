@@ -858,7 +858,7 @@ Section Wcbv.
       solve_all.
       unfold fix_subst.
       move: #|mfix| => n.
-      induction n. constructor.
+      induction n; cbn. constructor.
       constructor; auto.
       simpl. solve_all. }
     move: (fix_subst mfix) (dbody d) clfix.
@@ -883,7 +883,7 @@ Section Wcbv.
       solve_all.
       unfold cofix_subst.
       move: #|mfix| => n.
-      induction n. constructor.
+      induction n; cbn. constructor.
       constructor; auto.
       simpl. solve_all. }
     move: (cofix_subst mfix) (dbody d) clfix.
@@ -919,7 +919,7 @@ Section Wcbv.
       solve_all.
       unfold cofix_subst.
       move: #|mfix| => n.
-      induction n. constructor.
+      induction n; cbn. constructor.
       constructor; auto.
       simpl. solve_all. }
     move: (cofix_subst mfix) (dbody d) clfix.
@@ -1356,12 +1356,14 @@ Proof.
   - rewrite !closedn_mkApps in H |- *. solve_all.
     eapply closed_unfold_fix; tea.
   - rewrite !closedn_mkApps in Hcl |- *. solve_all.
-    unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; inversion e.
+    unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try discriminate.
+    apply some_inj in e; apply pair_equal_spec in e as [earg efn].
     eapply closed_unfold_cofix with (narg := narg); eauto.
     unfold unfold_cofix. rewrite E. subst. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto.
   - rewrite !closedn_mkApps in H1 |- *. solve_all.
-    unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; inversion e.
+    unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try discriminate.
+    apply some_inj in e; apply pair_equal_spec in e as [earg efn].
     eapply closed_unfold_cofix with (narg := narg); eauto.
     unfold unfold_cofix. rewrite E. subst. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto.
@@ -1382,11 +1384,11 @@ Proof.
   - rewrite !tApp_mkApps -!mkApps_app. econstructor. eauto.
     unfold is_constructor. now rewrite nth_error_app2 // Nat.sub_diag.
   - unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try congruence.
-    inversion e; subst.
+    apply some_inj in e; apply pair_equal_spec in e as [earg efn]; subst narg fn.
     econstructor. unfold unfold_cofix. rewrite E. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto. rewrite closedn_mkApps in Hcl. solve_all.
   - unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try congruence.
-    inversion e; subst.
+    apply some_inj in e; apply pair_equal_spec in e as [earg efn]; subst narg fn.
     econstructor. unfold unfold_cofix. rewrite E. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto. rewrite closedn_mkApps in H1. solve_all.
   - now constructor.

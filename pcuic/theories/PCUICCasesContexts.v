@@ -172,7 +172,7 @@ Lemma All2_eq_binder_subst_instance (l : list (binder_annot name)) u (Γ : conte
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l Γ ->
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l (subst_instance u Γ).
 Proof.
-  induction 1; rewrite ?subst_context_snoc //; constructor; auto.
+  induction 1; rewrite ?subst_context_snoc //; cbn; constructor; auto.
 Qed.
 
 Lemma inst_case_branch_context_eq {ind mdecl cdecl p br} :

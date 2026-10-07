@@ -117,12 +117,15 @@ Section transform_blocks.
 
   Lemma closed_transform_blocks t k : closedn k t -> closedn k (transform_blocks t).
   Proof using Type.
-    funelim (transform_blocks t); simp transform_blocks; rewrite <-?transform_blocks_equation_1; toAll; simpl;
-    intros; try easy;
-    rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
-    unfold test_def in *;
-    simpl closed in *;
-    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try easy.
+    funelim (transform_blocks t).
+    all: simp transform_blocks.
+    all: rewrite <-?transform_blocks_equation_1.
+    all: toAll.
+    all: simpl; intros; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
+    all: rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map.
+    all: unfold test_def in *.
+    all: simpl closed in *.
+    all: try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
     - solve_all_k 6.
     - rewrite !closedn_mkApps in H1 *.
       rtoProp; intuition auto. solve_all.
@@ -281,10 +284,10 @@ Section transform_blocks.
   Proof using Type.
     intros cla etaa. move b at bottom.
     funelim (transform_blocks b); cbn; simp transform_blocks isEtaExp; rewrite -?isEtaExp_equation_1 -?transform_blocks_equation_1; toAll; simpl;
-    intros; try easy;
+    intros; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction];
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
-    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
+    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
 
     - destruct Nat.compare => //.
     - f_equal. solve_all. move/andP: b => [] _ he. solve_all.
@@ -395,7 +398,9 @@ Section transform_blocks.
     unfold cunfold_fix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn. f_equal. f_equal.
     rewrite transform_blocks_substl //.
     now apply isEtaExp_fix_subst.
     solve_all. eapply nth_error_all in heta; tea. cbn in heta.
@@ -415,7 +420,9 @@ Section transform_blocks.
     unfold cunfold_cofix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn. f_equal.
     rewrite transform_blocks_substl //.
     now apply isEtaExp_cofix_subst.
     solve_all. now eapply nth_error_all in heta; tea.
@@ -725,7 +732,7 @@ Proof.
   funelim (transform_blocks Σ t); simp_eta; cbn -[transform_blocks transform_blocks_env
     lookup_inductive lookup_constructor lookup_constructor_pars_args lookup_constant
     GlobalContextMap.lookup_constructor_pars_args isEtaExp]; intros m Hwf Hw; rtoProp; try split; eauto.
-  all: rewrite ?map_InP_spec; toAll; intuition eauto; try now solve_all.
+  all: rewrite ?map_InP_spec; toAll; intuition eauto; try solve [solve_all].
   - rewrite /lookup_constant lookup_env_transform_blocks in H0 *.
     destruct lookup_env => //=; cbn in H0. destruct g => //; rewrite /transform_blocks_decl //=.
     destruct (cst_body c) => //.
@@ -1218,7 +1225,8 @@ Proof.
     simp transform_blocks; rewrite -!transform_blocks_equation_1.
     econstructor; eauto.
     now simp transform_blocks in evt; rewrite -!transform_blocks_equation_1 in evt.
-  - intros. destruct t; try solve [constructor; cbn in H, H0 |- *; try congruence].
+  - intros. destruct t; try solve [simp transform_blocks;
+      rewrite -?transform_blocks_equation_1; constructor; cbn in H, H0 |- *; try congruence].
     cbn -[lookup_constructor] in H |- *. destruct args => //.
     destruct lookup_constructor eqn:hl => //.
     destruct p as [[mdecl idecl] cdecl].
