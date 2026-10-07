@@ -159,24 +159,26 @@ struct
       not_supported_verb trm "unquote_aname"
 
   let get_level evm s =
-    if CString.string_contains ~where:s ~what:"." then
-      match List.rev (CString.split_on_char '.' s) with
-      | [] -> CErrors.anomaly (str"Invalid universe name " ++ str s ++ str".")
-      | n :: dp ->
-        let num = int_of_string n in
-        let dp = DirPath.make (List.map Id.of_string dp) in
-        (* TODO handle univs created in workers *)
-        let l = Univ.Level.make (Univ.UGlobal.make dp "" num) in
-        try
-          let evm = Evd.add_forgotten_univ evm l in
-          if !strict_unquote_universe_mode then
-            CErrors.user_err (str ("Level "^s^" is not a declared level and you are in Strict Unquote Universe Mode."))
-          else (evm, l)
-        with
-        | UGraph.AlreadyDeclared -> evm, l
+    if CString.string_contains ~where:s ~what:":" then
+      let dp, n = match CString.split_on_char ':' s with
+        | [dp;i] -> dp, i
+        | _ -> CErrors.anomaly (str"Invalid universe name " ++ str s ++ str".")
+      in
+      let num = int_of_string n in
+      let dp = Libnames.dirpath_of_string dp in
+      (* TODO handle univs created in workers *)
+      let l = Univ.Level.make (Univ.UGlobal.make dp "" num) in
+      try
+        let evm = Evd.add_forgotten_univ evm l in
+        if !strict_unquote_universe_mode then
+          CErrors.user_err (str ("Level "^s^" is not a declared level and you are in Strict Unquote Universe Mode."))
+        else (evm, l)
+      with
+      | UGraph.AlreadyDeclared -> evm, l
     else
       try
-        evm, Evd.universe_of_name evm (Id.of_string s)
+        if CString.string_contains ~where:s ~what:"." then raise_notrace Not_found
+        else evm, Evd.universe_of_name evm (Id.of_string s)
       with Not_found ->
       try
         let univ = Nametab.locate_universe (Libnames.qualid_of_string s) in

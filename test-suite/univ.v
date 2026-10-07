@@ -35,7 +35,7 @@ Fail MetaRocq Unquote Definition t1 := (tSort (sType (Universe.make' (Level.leve
 
 Unset MetaRocq Strict Unquote Universe Mode.
 MetaRocq Unquote Definition t2 := (tSort (sType fresh_universe)).
-MetaRocq Unquote Definition t3 := (tSort (sType (Universe.make' (Level.level "Top.400")))).
+MetaRocq Unquote Definition t3 := (tSort (sType (Universe.make' (Level.level "Top:400")))).
 
 Monomorphic Universe i j.
 
@@ -195,7 +195,7 @@ Definition nNamedR (s : string) := mkBindAnn (nNamed s) Relevant.
 Definition nAnonR := mkBindAnn nAnon Relevant.
 
 Unset MetaRocq Strict Unquote Universe Mode.
-MetaRocq Unquote Definition bla' := (tLambda (nNamedR "T") (tSort (sType (Universe.make' (Level.level "Top.46")))) (tLambda (nNamedR "T2") (tSort (sType (Universe.make' (Level.level "Top.477")))) (tProd nAnonR (tRel 1) (tRel 1)))).
+MetaRocq Unquote Definition bla' := (tLambda (nNamedR "T") (tSort (sType (Universe.make' (Level.level "Top:46")))) (tLambda (nNamedR "T2") (tSort (sType (Universe.make' (Level.level "Top:477")))) (tProd nAnonR (tRel 1) (tRel 1)))).
 
 (*
 Set Printing Universes.
