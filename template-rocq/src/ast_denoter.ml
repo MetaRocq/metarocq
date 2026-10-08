@@ -203,7 +203,7 @@ struct
       let s = unquote_string s in
       let comps = CString.split_on_char '.' s in
       let last, dp = CList.sep_last comps in
-      let dp = DirPath.make (List.map Id.of_string comps) in
+      let dp = DirPath.make (List.rev_map Id.of_string dp) in
       let idx = int_of_string last in
       (* TODO handle universes from workers *)
       Univ.Level.make (Univ.UGlobal.make dp "" idx)
