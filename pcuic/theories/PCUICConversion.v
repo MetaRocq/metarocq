@@ -103,7 +103,7 @@ Section CumulSpecIsCumulAlgo.
     induction X; econstructor; eauto; try reflexivity.
     * exact p.2.
   - eapply cumul_Fix. unfold cumul_mfixpoint. set (Ξ := fix_context mfix0). clearbody Ξ.
-    induction X; econstructor; eauto; try reflexivity.
+    induction X; econstructor; eauto.
     * destruct p as [ [ _ hdtype ] e ].
       pose proof (erarg := snd_eq e). pose proof (edbody := snd_eq (fst_eq e)).
       pose proof (edname := fst_eq (fst_eq e)). clear e. destruct erarg, edbody, edname.
@@ -111,7 +111,7 @@ Section CumulSpecIsCumulAlgo.
     * apply All2_reflexivity. repeat eapply Prod_reflexivity; intro x; reflexivity.
     * repeat split; reflexivity.
   - eapply cumul_Fix. unfold cumul_mfixpoint. set (Ξ := fix_context mfix0) in *. clearbody Ξ.
-    induction X; econstructor; eauto; try reflexivity.
+    induction X; econstructor; eauto.
     * destruct p as [ [ _ hdtype ] e ].
       pose proof (erarg := snd_eq e). pose proof (edbody := snd_eq (fst_eq e)).
       pose proof (edname := fst_eq (fst_eq e)). clear e. destruct erarg, edbody, edname.
@@ -119,7 +119,7 @@ Section CumulSpecIsCumulAlgo.
     * apply All2_reflexivity. repeat eapply Prod_reflexivity; intro x; reflexivity.
     * repeat split; reflexivity.
   - eapply cumul_CoFix. unfold cumul_mfixpoint. set (Ξ := fix_context mfix0) in *. clearbody Ξ.
-    induction X; econstructor; eauto; try reflexivity.
+    induction X; econstructor; eauto.
     * destruct p as [ [ _ hdtype ] e ].
       pose proof (erarg := snd_eq e). pose proof (edbody := snd_eq (fst_eq e)).
       pose proof (edname := fst_eq (fst_eq e)). clear e. destruct erarg, edbody, edname.
@@ -127,7 +127,7 @@ Section CumulSpecIsCumulAlgo.
     * apply All2_reflexivity. repeat eapply Prod_reflexivity; intro x; reflexivity.
     * repeat split; reflexivity.
   - eapply cumul_CoFix. unfold cumul_mfixpoint. set (Ξ := fix_context mfix0) in *. clearbody Ξ.
-    induction X; econstructor; eauto; try reflexivity.
+    induction X; econstructor; eauto.
     * destruct p as [ [ _ hdtype ] e ].
       pose proof (erarg := snd_eq e). pose proof (edbody := snd_eq (fst_eq e)).
       pose proof (edname := fst_eq (fst_eq e)). clear e. destruct erarg, edbody, edname.
@@ -2485,7 +2485,7 @@ Section ConvRedConv.
       - apply hbo.
       - apply hbo. }
     { eapply red_fix_or_cofix_body. rewrite H0.
-      eapply All2_app; try reflexivity.
+      eapply All2_app.
       { eapply All2_refl; intuition auto. }
       constructor.
       - cbn. intuition auto.
@@ -2498,8 +2498,9 @@ Section ConvRedConv.
         intuition auto. }
     { cbn. apply eq_term_fix_or_cofix. eapply All2_app.
       * eapply All2_refl; intuition auto; reflexivity.
-      * constructor; intuition auto; try reflexivity.
-        eapply All2_refl; intuition auto; reflexivity. }
+      * constructor; intuition auto.
+        - try reflexivity.
+        - eapply All2_refl; intuition auto; reflexivity. }
   Qed.
 
   Lemma is_open_fix_onone2 {Γ Δ mfix mfix'} :

@@ -350,7 +350,7 @@ Proof. reflexivity. Qed.
 #[global] Instance eq_binder_annots_refl {A} : CRelationClasses.Equivalence (All2 (@eq_binder_annot A A)).
 Proof.
   split.
-  intros x. apply All2_reflexivity; tc.
+  intros x. apply All2_reflexivity.
   * intros l. reflexivity.
   * intros l l' H. eapply All2_symmetry => //.
   * intros l l' H. eapply All2_transitivity => //.
