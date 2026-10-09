@@ -23,6 +23,7 @@ type erasure_command_args =
   | Unsafe
   | Time
   | Typed
+  | Inlining
   | BypassQeds
 
 let pr_char c = str (Char.escaped c)
@@ -44,12 +45,14 @@ type erasure_config =
   { unsafe : bool;
     time : bool;
     typed : bool;
+    inlining : bool;
     bypass_qeds : bool }
 
 let default_config =
   { unsafe = false;
     time = false;
     typed = false;
+    inlining = false;
     bypass_qeds = false }
 
 let make_erasure_config config =
@@ -57,6 +60,7 @@ let make_erasure_config config =
   { enable_unsafe = if config.unsafe then all_unsafe_passes else no_unsafe_passes ;
     enable_typed_erasure = config.typed;
     dearging_config = default_dearging_config;
+    inlining = config.inlining;
     inlined_constants = Kernames.KernameSet.empty;
     extracted_inductives = [] }
 
@@ -89,6 +93,7 @@ let interp_erase ~opaque_access args env evm c =
         | Unsafe -> aux {config with unsafe = true} args
         | Time -> aux {config with time = true} args
         | Typed -> aux {config with typed = true} args
+        | Inlining -> aux {config with inlining = true} args
         | BypassQeds -> aux {config with bypass_qeds = true} args
     in aux default_config args
   in
@@ -104,6 +109,7 @@ Valid options:\n\
 -typed       :  Run the typed erasure pipeline including a dearging phase. By default we run the pipeline without this phase.\n\
 -unsafe      :  Run also partially verified passes of the pipeline. This includes the cofix to lazy translation.\n\
 -time        :  Time each compilation phase\n\
+-inlining    :  Enable verified inlining phase\n\
 -bypass-qeds :  Bypass the use of Qed and quote opaque proofs. Beware, this can result in large memory\n\
                 consumption due to reification of large proof terms.\n\
                 By default, we use the (trusted) Template-Rocq quoting optimization that quotes every opaque term as an axiom.\n\
@@ -119,6 +125,7 @@ ARGUMENT EXTEND erase_args
 | [ "-unsafe" ] -> { Unsafe }
 | [ "-time" ] -> { Time }
 | [ "-typed" ] -> { Typed }
+| [ "-inlining" ] -> { Inlining }
 | [ "-bypass-qeds" ] -> { BypassQeds }
 END
 
