@@ -1728,7 +1728,7 @@ Section Stacks.
     revert l H1.
     induction args ; intros l h.
     - assumption.
-    - apply IHargs. cbn in h. inversion h. rewrite H0. assumption.
+    - apply IHargs. cbn in h. apply cons_inj in h as [_ h]. exact h.
   Qed.
 
   Lemma zipc_stack_cat :
@@ -1822,7 +1822,7 @@ Proof.
     len; ring_simplify; rewrite - !andb_assoc; repeat bool_congr.
   - cbn. bool_congr.
   - cbn; rewrite -!andb_assoc; bool_congr.
-  - cbn. rewrite !forallb_app -!andb_assoc; repeat bool_congr.
+  - cbn. rewrite !forallb_app. cbn. rewrite -!andb_assoc; repeat bool_congr.
 Qed.
 
 Lemma closedn_zip k t π : closedn k (zipc t π) = closedn_stack k π && closedn (#|stack_context π| + k) t.

@@ -639,9 +639,8 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
       | @pathOf_step x y z e p => negb (VSet.mem x (nodes p)) && is_simple p
       end.
 
-    Program Definition to_simple : forall {x y} (p : PathOf x y),
-        is_simple p = true -> SPath (nodes p) x y
-      := fix to_simple {x y} p (Hp : is_simple p = true) {struct p} :=
+    Program Fixpoint to_simple {x y} (p : PathOf x y)
+        (Hp : is_simple p = true) {struct p} : SPath (nodes p) x y :=
            match
              p in PathOf t t0
              return is_simple p = true -> SPath (nodes p) t t0
@@ -893,7 +892,7 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     Proof using Type.
       revert s p; induction q.
       - cbn; intros. intuition. now rewrite weight_SPath_sub.
-      - intros s p s' Hs H; cbn in H. simpl.
+      - intros s p s' Hs H; cbn in H. simpl. fold @nodes in *.
         set (F0 := proj2 (VSetFact.not_mem_iff s x)); clearbody F0.
         set (F1 := @VSetFact.mem_2 s x); clearbody F1.
         set (F2 := @simplify_aux2 s x); clearbody F2.

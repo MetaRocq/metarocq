@@ -41,7 +41,7 @@ Proof.
   intros. rewrite mkApp_mkApps. now constructor.
 
   intros. simpl.
-  constructor. clear -X. induction X; constructor; auto.
+  constructor. now apply OnOne2_app_r.
 
   rewrite mkApp_tApp; auto.
   now apply red1_tApp_mkApp.

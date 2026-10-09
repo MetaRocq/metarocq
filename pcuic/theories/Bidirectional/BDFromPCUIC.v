@@ -351,7 +351,9 @@ Proof.
     }
     constructor ; eauto.
     + apply (All_impl Alltypes) => d. apply conv_lift_judgment with (na := d.(dname)).
-    + apply (All_impl Allbodies) => d. apply conv_lift_judgment with (na := d.(dname)).
+    + apply (All_impl Allbodies) => d.
+      apply conv_lift_judgment with (na := d.(dname))
+        (ty := lift0 #|types| d.(dtype)).
 
   - intros mfix n decl types ? ? ? Htypes Alltypes Hbodies Allbodies.
     eexists.
@@ -363,7 +365,9 @@ Proof.
     }
     constructor ; eauto.
     + apply (All_impl Alltypes) => d. apply conv_lift_judgment with (na := d.(dname)).
-    + apply (All_impl Allbodies) => d. apply conv_lift_judgment with (na := d.(dname)).
+    + apply (All_impl Allbodies) => d.
+      apply conv_lift_judgment with (na := d.(dname))
+        (ty := lift0 #|types| d.(dtype)).
 
   - intros p prim_ty cdecl wfΓ' hp hdecl pinv.
     eexists. split; [econstructor; tea|].

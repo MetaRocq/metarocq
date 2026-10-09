@@ -525,7 +525,8 @@ Proof.
     {
       rewrite /wf_branches.
       elim: (ind_ctors oib) {brstyp}brs brslen=> [|decl ctors ih] //= [|br brs] //=.
-      move=> [=] /ih h; constructor=> // {h}.
+      intro hlen; apply Nat.succ_inj in hlen.
+      move/ih: hlen => h; constructor=> // {h}.
       hnf=>/=.
       rewrite /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx.
       rewrite /subst_context /lift_context !forget_types_fold_context_k.

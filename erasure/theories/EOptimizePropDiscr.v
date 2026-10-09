@@ -250,7 +250,8 @@ Section remove_match_on_box.
     unfold cunfold_fix.
     rewrite nth_error_map.
     destruct nth_error.
-    intros [= <- <-] => /=. f_equal.
+    intros Heq. apply some_inj in Heq.
+    apply pair_equal_spec in Heq as [<- <-]. cbn. f_equal.
     now rewrite remove_match_on_box_substl // remove_match_on_box_fix_subst.
     discriminate.
   Qed.
@@ -264,7 +265,8 @@ Section remove_match_on_box.
     unfold cunfold_cofix.
     rewrite nth_error_map.
     destruct nth_error.
-    intros [= <- <-] => /=. f_equal.
+    intros Heq. apply some_inj in Heq.
+    apply pair_equal_spec in Heq as [<- <-]. cbn. f_equal.
     now rewrite remove_match_on_box_substl // remove_match_on_box_cofix_subst.
     discriminate.
   Qed.
@@ -647,15 +649,15 @@ Proof.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp => //.
     destruct brs as [|[a b] []]; simpl in *; auto.
     simpl in IHev1.
-    eapply EWcbvEval.eval_cofix_case. tea.
+    eapply EWcbvEval.eval_cofix_case with (mfix := map (map_def (remove_match_on_box Σ)) mfix). tea.
     apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
     apply IHev2.
-    eapply EWcbvEval.eval_cofix_case; tea.
+    eapply EWcbvEval.eval_cofix_case with (mfix := map (map_def (remove_match_on_box Σ)) mfix); tea.
     apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
     simpl in *.
-    eapply EWcbvEval.eval_cofix_case; tea.
+    eapply EWcbvEval.eval_cofix_case with (mfix := map (map_def (remove_match_on_box Σ)) mfix); tea.
     apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
-    eapply EWcbvEval.eval_cofix_case; tea.
+    eapply EWcbvEval.eval_cofix_case with (mfix := map (map_def (remove_match_on_box Σ)) mfix); tea.
     apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
 
   - intros cd. specialize (IHev1 cd).
@@ -751,7 +753,7 @@ Proof. destruct t => //. Qed.
 Lemma remove_match_on_box_expanded {Σ : GlobalContextMap.t} t : expanded Σ t -> expanded Σ (remove_match_on_box Σ t).
 Proof.
   induction 1 using expanded_ind.
-  all:try solve[constructor; eauto; solve_all].
+  all:try solve[cbn -[GlobalContextMap.inductive_isprop_and_pars]; constructor; eauto; solve_all].
   all:rewrite ?remove_match_on_box_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn -[GlobalContextMap.inductive_isprop_and_pars]. unfold isprop_ind.
@@ -1023,7 +1025,7 @@ Section ExpandedFix.
   Lemma remove_match_on_box_expanded_fix {Σ : GlobalContextMap.t} t : expanded Σ [] t -> expanded Σ [] (remove_match_on_box Σ t).
   Proof.
     induction 1 using expanded_ind.
-    all:try solve[constructor; eauto; solve_all].
+    all:try solve[cbn -[GlobalContextMap.inductive_isprop_and_pars]; constructor; eauto; solve_all].
     all:rewrite ?remove_match_on_box_mkApps.
     - cbn. eapply expanded_tRel_app; tea. now len. solve_all.
     - eapply expanded_mkApps_expanded; eauto; solve_all.

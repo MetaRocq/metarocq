@@ -898,18 +898,25 @@ Fixpoint omapl {A B : Type} (f : A -> option B) (l : list A) : list B :=
   | nil => nil
   end.
 
-Fixpoint merge {A: Type} (cmp : A -> A -> comparison) l1 l2 :=
-  let fix merge_aux l2 :=
-  match l1, l2 with
-  | [], _ => l2
-  | _, [] => l1
-  | a1::l1', a2::l2' =>
-      match cmp a1 a2 with
-      | Eq => a1 :: merge cmp l1' l2'
-      | Gt => a1 :: merge cmp l1' l2
-      | _ => a2 :: merge_aux l2' end
-  end
-  in merge_aux l2.
+Fixpoint merge_aux {A : Type} (cmp : A -> A -> comparison)
+         (a1 : A) (l1 : list A) (rec : list A -> list A) (l2 : list A)
+         {struct l2} : list A :=
+  match l2 with
+  | [] => a1 :: l1
+  | a2 :: l2' =>
+    match cmp a1 a2 with
+    | Eq => a1 :: rec l2'
+    | Gt => a1 :: rec l2
+    | _ => a2 :: merge_aux cmp a1 l1 rec l2'
+    end
+  end.
+
+Fixpoint merge {A : Type} (cmp : A -> A -> comparison) (l1 l2 : list A)
+         {struct l1} : list A :=
+  match l1 with
+  | [] => l2
+  | a1 :: l1' => merge_aux cmp a1 l1' (merge cmp l1') l2
+  end.
 
 Abbreviation sortu_atms := (rsort_uniq pure_atom_cmp).
 Abbreviation insu_atm := (insert_uniq pure_atom_cmp).

@@ -652,6 +652,7 @@ Proof.
   intros hU hS hS' t wt.
   induction t in pb, napp, hS', wt |- * using term_forall_list_ind.
   all: repeat (cbn in wt; apply andb_and in wt as [? wt]).
+  all: cbn -[Universe.make'] in wt.
   all: try constructor. all: eauto.
   - apply forallb_All in wt; eapply All_mix in wt; try exact X; eapply All_All2 ; try exact wt;
     intros ? [? ?]; eauto.

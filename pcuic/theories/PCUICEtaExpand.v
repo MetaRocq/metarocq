@@ -1131,7 +1131,9 @@ Lemma expanded_unfold_fix Σ Γ' mfix idx narg fn :
 Proof.
   unfold unfold_fix.
   destruct nth_error eqn:e => //.
-  intros [= <- <-] hf.
+  intros heq hf.
+  apply some_inj in heq. apply pair_equal_spec in heq as [Harg Hfn].
+  subst narg fn.
   pose proof (nth_error_all e hf) as [hl hf'].
   eapply (expanded_fix_subst _ _ _ _ []) => //; tea.
   rewrite rev_map_spec.
@@ -1156,12 +1158,14 @@ Lemma expanded_unfold_cofix Σ Γ' mfix idx narg fn :
 Proof.
   unfold unfold_cofix.
   destruct nth_error eqn:e => //.
-  intros [= <- <-] hf.
+  intros heq hf.
+  apply some_inj in heq. apply pair_equal_spec in heq as [Harg Hfn].
+  subst narg fn.
   pose proof (nth_error_all e hf) as hf'.
   eapply (expanded_subst _ _ _ _ []) => //; tea.
   rewrite /cofix_subst.
   generalize #|mfix|.
-  induction n; repeat constructor; eauto. solve_all.
+  induction n; cbn; repeat constructor; eauto. solve_all.
   len.
 Qed.
 

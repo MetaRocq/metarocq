@@ -129,6 +129,10 @@ Proof.
   now rewrite mkApps_app mkApps_head_spine.
 Qed.
 
+Lemma tApp_inj f a f' a' :
+  tApp f a = tApp f' a' -> f = f' /\ a = a'.
+Proof. intro H; injection H; auto. Qed.
+
 Lemma mkApps_eq_decompose_app_rec {f args t l} :
   mkApps f args = t ->
   ~~ isApp f ->
@@ -143,7 +147,7 @@ Proof.
     specialize (IHargs f).
     destruct (isApp t) eqn:Heq.
     destruct t; try discriminate.
-    simpl in Heq. inv H. simpl.
+    simpl in Heq. cbn in H. apply tApp_inj in H as [Hf Ha]. subst t1 x. simpl.
     specialize (IHargs (mkApps f args) (t2 :: l) eq_refl H0).
     destruct decompose_app_rec. intuition.
     subst t.

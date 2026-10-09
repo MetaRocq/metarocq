@@ -54,13 +54,14 @@ Definition lookup (E : environment) x :=
   | _ => None
   end.
 
+Fixpoint fix_env_aux (l : list (ident * term)) (Γ : environment) (n : nat) : list value :=
+  match n with
+  | 0 => []
+  | S n0 => vRecClos l n0 Γ :: fix_env_aux l Γ n0
+  end.
+
 Definition fix_env (l : list (ident * term)) Γ :=
-  let fix aux (n : nat) : list value :=
-    match n with
-    | 0 => []
-    | S n0 => vRecClos l n0 Γ :: aux n0
-    end in
-  aux #|l|.
+  fix_env_aux l Γ #|l|.
 
 (*
 Definition cunfold_fix (mfix : list (ident * term)) (idx : nat) Γ :=
@@ -814,12 +815,16 @@ Proof.
       * left. exists (S i). firstorder. lia.
 Qed.
 
+Local Lemma string_tail_inj a b s t :
+  String.String a s = String.String b t -> s = t.
+Proof. intro H; injection H; auto. Qed.
+
 Lemma append_inv (s s1 s2 : string) :
   append s s1 = append s s2 ->
   s1 = s2.
 Proof.
   induction s; cbn; eauto.
-  inversion 1; eauto.
+  intro H; apply string_tail_inj in H; eauto.
 Qed.
 
 Lemma append_Empty_r s :
@@ -831,9 +836,16 @@ Qed.
 Lemma NoDup_map {X Y} (f : X -> Y) l :
   (forall x1 x2, In x1 l -> In x2 l -> f x1 = f x2 -> x1 = x2) -> NoDup l -> NoDup (map f l).
 Proof.
-  induction 2; cbn; econstructor.
-  1: intros (? & ? & ?) % in_map_iff.
-  all: firstorder congruence.
+  intros Hinj Hnodup; revert Hinj.
+  induction Hnodup as [|x l Hnot Hnodup IH]; intros Hinj.
+  - constructor.
+  - cbn; constructor.
+    + intro Hmap. apply in_map_iff in Hmap as [y [Heq Hy]].
+      assert (y = x) by
+        (apply Hinj; [cbn; now right | cbn; now left | exact Heq]).
+      subst y; exact (Hnot Hy).
+    + apply IH. intros x1 x2 H1 H2 Heq.
+      apply Hinj; [cbn; now right | cbn; now right | exact Heq].
 Qed.
 
 From Stdlib Require Import DecimalNat.
@@ -855,7 +867,7 @@ Lemma string_of_uint_inj n1 n2 :
 Proof.
   revert n2.
   induction n1; intros []; cbn; intros Heq; f_equal; try congruence.
-  all: inversion Heq; eauto.
+  all: apply string_tail_inj in Heq; eauto.
 Qed.
 
 From Stdlib Require Import DecimalNat.
@@ -1009,16 +1021,16 @@ Proof.
   - econstructor; eauto. econstructor.
     + intros H % IHl. eapply H. now left.
     + eapply IHl.
-    + intros x [<- | ?]. 1: eapply gen_fresh_fresh. eapply IHl in H. firstorder.
+    + intros x [<- | ?]. 1: eapply gen_fresh_fresh. eapply IHl in H. intro HΓ; apply H; cbn; now right.
   - destruct in_dec; cbn.
     + split. econstructor.
       * intros H % IHl. eapply H. now left.
       * eapply IHl.
-      * intros x [<- | ?]. 1: eapply gen_fresh_fresh. eapply IHl in H. firstorder.
+      * intros x [<- | ?]. 1: eapply gen_fresh_fresh. eapply IHl in H. intro HΓ; apply H; cbn; now right.
     + split. econstructor.
       * intros H % IHl. eapply H. now left.
       * eapply IHl.
-      * intros x [<- | ?]. 1: eauto. eapply IHl in H. firstorder.
+      * intros x [<- | ?]. 1: eauto. eapply IHl in H. intro HΓ; apply H; cbn; now right.
 Qed.
 
 Definition named_extraction_term_flags :=
@@ -1206,7 +1218,7 @@ Proof.
     { eapply All_All2. eapply H1. cbn. intros [] []; cbn in *.
       len. now rewrite gen_many_fresh_length. }
     solve_all.
-    clear - Γ H1. induction H1; econstructor; eauto.
+    clear - Γ H1. induction H1; cbn; econstructor; eauto.
     rename x into br. exists (gen_many_fresh Γ br.1). cbn. split.
     + eapply All2_All2_Set. solve_all. now eapply All2_refl.
     + split.
@@ -1593,7 +1605,7 @@ Lemma wf_fix_env mfix Γ' :
   All wf (fix_env mfix Γ').
 Proof.
   intros H.
-  unfold fix_env. induction #|mfix|; econstructor.
+  unfold fix_env. induction #|mfix|; cbn [fix_env_aux]; econstructor.
   - econstructor; eauto.
   - eapply IHn; eauto.
 Qed.
@@ -2037,7 +2049,7 @@ Proof.
       { clear - H14. unfold fix_env, fix_subst.
         eapply All2_length in H14 as Hlen. rewrite Hlen. clear Hlen.
         generalize #|mfix|.
-        induction n; econstructor; eauto.
+        induction n; cbn [fix_env_aux fix_subst_aux]; econstructor; eauto.
       }
       now rewrite app_nil_r.
       { cbn. rewrite map_fst_add_multiple.
@@ -2047,7 +2059,7 @@ Proof.
         eapply sunny_subset; eauto.
         intros ?; cbn in *. rewrite !in_app_iff. rewrite <- !in_rev. eauto.
       }
-      { econstructor.
+      { cbn [add_multiple]. econstructor.
         - cbn. eapply eval_wf. 4: eauto. all:eauto.
         - eapply wf_add_multiple.
           + eauto.

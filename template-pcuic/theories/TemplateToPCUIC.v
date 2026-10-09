@@ -38,7 +38,7 @@ Section Map2Bias.
   Proof using Type.
     induction l in l' |- *; destruct l'; simpl; auto.
     - discriminate.
-    - intros [= hlen]. rewrite IHl; tas. reflexivity.
+    - intro hlen. apply Nat.succ_inj in hlen. rewrite IHl; tas. reflexivity.
   Qed.
 End Map2Bias.
 

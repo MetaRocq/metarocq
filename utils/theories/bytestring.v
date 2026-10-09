@@ -446,14 +446,12 @@ Module Tree.
 
   Definition to_string t := to_string_acc t "". *)
 
-  Definition string_of_list_aux {A} (f : A -> t) (sep : t) (l : list A) :=
-    let fix aux l :=
-        match l return t with
-        | nil => ""
-        | cons a nil => f a
-        | cons a l => f a ++ sep ++ aux l
-      end
-    in aux l.
+  Fixpoint string_of_list_aux {A} (f : A -> t) (sep : t) (l : list A) {struct l} : t :=
+    match l with
+    | nil => ""
+    | cons a nil => f a
+    | cons a l => f a ++ sep ++ string_of_list_aux f sep l
+    end.
 
   Definition string_of_list {A} (f : A -> t) l :=
     "[" ++ string_of_list_aux f "," l ++ "]".

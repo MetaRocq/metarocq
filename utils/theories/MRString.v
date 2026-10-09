@@ -8,14 +8,12 @@ Abbreviation string := String.t.
     start a new line for better printing. [nl] is a shorthand for it. *)
 Definition nl : string := String.String "010"%byte String.EmptyString.
 
-Definition string_of_list_aux {A} (f : A -> string) (sep : string) (l : list A) : string :=
-  let fix aux l :=
-      match l return string with
-      | nil => ""
-      | cons a nil => f a
-      | cons a l => f a ++ sep ++ aux l
-      end
-  in aux l.
+Fixpoint string_of_list_aux {A} (f : A -> string) (sep : string) (l : list A) {struct l} : string :=
+  match l with
+  | nil => ""
+  | cons a nil => f a
+  | cons a l => f a ++ sep ++ string_of_list_aux f sep l
+  end.
 
 Definition string_of_list {A} (f : A -> string) (l : list A) : string :=
   "[" ++ string_of_list_aux f "," l ++ "]".

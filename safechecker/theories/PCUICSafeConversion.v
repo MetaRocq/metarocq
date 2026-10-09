@@ -1266,7 +1266,8 @@ Section Conversion.
       1,2: constructor; [|apply All2_same; reflexivity].
       1-2: eapply r.
       inversion H1. unfold unfold_fix in H0.
-      case_eq (nth_error mfix idx); [intros d e | intro e]; rewrite e in H0; inversion H0.
+      case_eq (nth_error mfix idx); [intros d e | intro e]; rewrite e in H0; try discriminate H0.
+      apply some_inj in H0; apply pair_equal_spec in H0 as [Harg Hfn]; subst.
       apply whnf_ne.
       econstructor.
       + eauto.
@@ -5044,7 +5045,8 @@ Qed.
   Defined.
   Next Obligation.
     split. 1: reflexivity.
-    rewrite !stack_position_cons.
+    rewrite (stack_position_cons (App_r (mkApps t1 args1)) (appstack l1 π1))
+      (stack_position_cons (App_l u1) (appstack l1 π1)).
     eapply positionR_poscat. constructor.
   Qed.
   Next Obligation.
@@ -5061,13 +5063,14 @@ Qed.
     rewrite length_app in h. cbn in h.
       simpl. split.
       + rewrite mkApps_app in H. assumption.
-      + rewrite !stack_position_cons !stack_position_appstack.
+      + rewrite (stack_position_cons (App_r (mkApps t1 c)) (appstack d π1))
+          (stack_position_cons (App_l u1) (appstack l1 π1)) !stack_position_appstack.
         rewrite <- !app_assoc. apply positionR_poscat.
         assert (h' : forall n m, positionR (repeat app_l n ++ [app_r]) (repeat app_l m)).
         { clear. intro n. induction n ; intro m.
-          - destruct m ; constructor.
+          - destruct m ; cbn; constructor.
           - destruct m.
-            + constructor.
+            + cbn. constructor.
             + cbn. constructor. apply IHn.
         }
         simpl.

@@ -383,7 +383,7 @@ Proof using Type.
       now sigma.
     + move: h2.
       destruct (decl_body decl) => /= //; destruct (decl_body decl') => /= //.
-      setoid_rewrite shiftn_1_S => [=] h2.
+      setoid_rewrite shiftn_1_S. intro h2; apply some_inj in h2.
       now rewrite -rename_compose h2; sigma.
 Qed.
 
@@ -411,7 +411,7 @@ Proof using Type.
       now sigma.
     + move: h2.
       destruct (decl_body decl) => /= //; destruct (decl_body decl') => /= //.
-      setoid_rewrite shiftn_1_S => [=] h2.
+      setoid_rewrite shiftn_1_S. intro h2; apply some_inj in h2.
       now rewrite -rename_compose h2; sigma.
 Qed.
 
@@ -433,7 +433,7 @@ Proof using Type.
   - move: h3. destruct (decl_body decl) => /= //.
     rewrite /rshiftk.
     destruct (decl_body decl') => /= //.
-    intros [=]; f_equal.
+    intro Heq; apply some_inj in Heq; f_equal.
     now setoid_rewrite <- (hfg _).
 Qed.
 
@@ -496,7 +496,7 @@ Proof using Type.
   case_eq (nth_error mfix idx).
   2: intro neq ; rewrite neq in h ; discriminate.
   intros d e. rewrite e in h.
-  inversion h. clear h.
+  apply some_inj in h. apply pair_equal_spec in h as [Harg Hfn]. subst.
   simpl.
   f_equal. f_equal.
   rewrite rename_subst0. rewrite fix_subst_length.
@@ -521,7 +521,7 @@ Proof using Type.
   case_eq (nth_error mfix idx).
   2: intro neq ; rewrite neq in h ; discriminate.
   intros d e. rewrite e in h.
-  inversion h.
+  apply some_inj in h. apply pair_equal_spec in h as [Harg Hfn]. subst.
   simpl. f_equal. f_equal.
   rewrite rename_subst0. rewrite cofix_subst_length.
   f_equal.
@@ -725,7 +725,7 @@ Lemma rename_context_set_binder_name f ctx ctx' :
 Proof using Type.
   induction ctx in ctx' |- *; destruct ctx'; simpl; auto.
   rewrite !rename_context_snoc /= /snoc.
-  intros [=]. f_equal; auto.
+  intro H0; apply Nat.succ_inj in H0. f_equal; auto.
   rewrite /set_binder_name /map_decl /=; f_equal.
   - rewrite map2_length // H0 //.
   - rewrite map2_length // H0 //.

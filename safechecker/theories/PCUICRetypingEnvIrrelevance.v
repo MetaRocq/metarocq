@@ -503,7 +503,7 @@ Proof.
     destruct t', t''. cbn in H0. subst x0. cbn.
     eapply same_prod_last; eauto.
     now eapply infer_as_prod_irrel.
-  - unfold infer. rewrite Heq /= //.
+  - simp infer. rewrite Heq /= //.
   - assert (abstract_env_lookup X cst = abstract_env_lookup X' cst).
     { epose proof (abstract_env_ext_exists X) as [[Σ wfΣ]].
       epose proof (abstract_env_ext_wf X wfΣ) as [hwfΣ].
@@ -518,7 +518,7 @@ Proof.
     }
     move: e Heq.
     cbn -[infer].
-    rewrite H. unfold infer.
+    rewrite H. simp infer.
     now intros e -> => /=.
   - destruct decl as [decl [body hd]].
     cbn -[infer].
@@ -621,8 +621,8 @@ Proof.
     clear -e0 eq'. destruct pdecl. rewrite -e0 in eq'. noconf eq'. now cbn.
     exfalso.
     clear -e0 eq'. congruence.
-  - cbn -[infer]. unfold infer; rewrite Heq /= //.
-  - cbn -[infer]. unfold infer; rewrite Heq /= //.
+  - cbn -[infer]. simp infer; rewrite Heq /= //.
+  - cbn -[infer]. simp infer; rewrite Heq /= //.
   - cbn -[infer]. simp infer.
     eapply elim_inspect => y eq.
     assert (forall tag, abstract_primitive_constant X tag = abstract_primitive_constant X' tag).

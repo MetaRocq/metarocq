@@ -925,7 +925,7 @@ Proof.
     unfold unfold_fix in H.
     case_eq (nth_error mfix idx) ;
       try (intros hnth ; rewrite hnth in H ; discriminate H).
-    intros d hnth. rewrite hnth in H. inversion H. subst. clear H.
+    intros d hnth. rewrite hnth in H. cbn in H. apply some_inj in H; apply pair_equal_spec in H as [Harg Hfn]; subst.
     eapply All2_nth_error_Some in e as hh ; try eassumption.
     destruct hh as [d' [e' (? & ? & erarg & eann)]].
     unfold is_constructor in H0.
@@ -946,7 +946,7 @@ Proof.
         -- unfold fix_subst.
            apply All2_length in e as el. rewrite <- el.
            generalize #|mfix|. intro n.
-           induction n.
+           induction n; cbn.
            ++ constructor.
            ++ constructor ; eauto.
               constructor. assumption.
@@ -969,7 +969,7 @@ Proof.
       unfold cofix_subst.
       apply All2_length in e0 as el. rewrite <- el.
       generalize #|mfix|. intro n.
-      induction n.
+      induction n; cbn.
       * constructor.
       * constructor ; eauto.
         constructor. assumption.
@@ -979,7 +979,7 @@ Proof.
     unfold unfold_cofix in H.
     case_eq (nth_error mfix idx) ;
       try (intros hnth ; rewrite hnth in H ; discriminate H).
-    intros d hnth. rewrite hnth in H. inversion H. subst. clear H.
+    intros d hnth. rewrite hnth in H. cbn in H. apply some_inj in H; apply pair_equal_spec in H as [Harg Hfn]; subst.
     eapply All2_nth_error_Some in e as hh ; try eassumption.
     destruct hh as [d' [e' (? & ? & erarg & eann)]].
     eexists. split.
@@ -993,7 +993,7 @@ Proof.
       unfold cofix_subst.
       apply All2_length in e as el. rewrite <- el.
       generalize #|mfix|. intro n.
-      induction n.
+      induction n; cbn.
       * constructor.
       * constructor ; eauto.
         constructor. assumption.
@@ -3515,7 +3515,7 @@ Section RedConfluence.
     eq_context_upto_names (Γ ,,, Δ) (Γ' ,,, Δ).
   Proof using Type.
     intros.
-    induction Δ; auto. constructor; auto. reflexivity.
+    induction Δ; cbn; auto. constructor; auto. reflexivity.
   Qed.
 
   Lemma red1_eq_context_upto_names Γ Γ' t u :

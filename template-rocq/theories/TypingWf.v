@@ -74,10 +74,10 @@ Proof.
   unfold unfold_fix in Hf. inv Hwf.
   destruct nth_error eqn:eqnth; try congruence.
   pose proof (nth_error_all eqnth X) as [ _ wfd].
-  injection Hf. intros <- <-.
-  apply wf_subst; auto. clear wfd Hf eqnth.
+  cbn in Hf. apply some_inj in Hf. apply pair_equal_spec in Hf. destruct Hf as [<- <-].
+  apply wf_subst; auto. clear wfd eqnth.
   assert(forall n, WfAst.wf Σ (tFix mfix n)). constructor; auto.
-  unfold fix_subst. generalize #|mfix|; intros. induction n; auto.
+  unfold fix_subst. generalize #|mfix|; intros. induction n; cbn; auto.
 Qed.
 
 Lemma unfold_cofix_wf Σ:
@@ -89,10 +89,10 @@ Proof.
   unfold unfold_cofix in Hf. inv Hwf.
   destruct nth_error eqn:eqnth; try congruence.
   pose proof (nth_error_all eqnth X) as [_ wfd].
-  injection Hf. intros <- <-.
-  apply wf_subst; auto. clear wfd Hf eqnth.
+  cbn in Hf. apply some_inj in Hf. apply pair_equal_spec in Hf. destruct Hf as [<- <-].
+  apply wf_subst; auto. clear wfd eqnth.
   assert(forall n, WfAst.wf Σ (tCoFix mfix n)). constructor; auto.
-  unfold cofix_subst. generalize #|mfix|; intros. induction n; auto.
+  unfold cofix_subst. generalize #|mfix|; intros. induction n; cbn; auto.
 Qed.
 
 Lemma red1_isLambda Σ Γ t u :
@@ -111,7 +111,7 @@ Lemma All_mapi {A B} (P : B -> Type) (l : list A) (f : nat -> A -> B) :
   Alli (fun i x => P (f i x)) 0 l -> All P (mapi f l).
 Proof.
   unfold mapi. generalize 0.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma Alli_id {A} (P : nat -> A -> Type) n (l : list A) :
@@ -449,7 +449,7 @@ Section WfAst.
     All (wf_decl Σ) Γ ->
     All (wf_decl Σ) (subst_instance u Γ).
   Proof using Type.
-    induction 1; constructor; auto.
+    induction 1; cbn; constructor; auto.
     destruct x as [na [b|] ty]; simpl in *.
     destruct p. now split; apply wf_subst_instance.
     destruct p. now split; auto; apply wf_subst_instance.
@@ -524,7 +524,7 @@ Section WfAst.
   Lemma wf_inds mind u mdecl :
     All (WfAst.wf Σ) (inds mind u mdecl.(ind_bodies)).
   Proof using Type.
-    unfold inds. induction #|ind_bodies mdecl|; constructor; auto.
+    unfold inds. induction #|ind_bodies mdecl|; cbn; constructor; auto.
     now constructor.
   Qed.
 
@@ -642,7 +642,7 @@ Section WfLookup.
 
   Lemma wf_projs ind npars p : All (WfAst.wf Σ) (projs ind npars p).
   Proof using Type.
-    unfold projs. induction p; constructor; wf.
+    induction p; cbn; constructor; wf.
   Qed.
 
   Lemma on_global_inductive_wf_bodies {kn mdecl} :
@@ -1131,12 +1131,7 @@ Section TypingWf.
   Proof using Type.
     intros wf.
     induction wf using term_wf_forall_list_ind; simpl; intros; auto; noconf H;
-    try noconf H0;
-      rewrite ?map_map_compose  ?compose_on_snd ?compose_map_def ?length_map;
-        f_equal; solve_all; eauto.
-    - now noconf H1.
-    - now noconf H1.
-    - now noconf H2.
+    try noconf H0; try noconf H1; try noconf H2; cbn; reflexivity.
   Qed.
 
   Lemma mkApps_tApp f args :

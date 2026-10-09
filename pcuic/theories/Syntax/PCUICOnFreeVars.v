@@ -822,7 +822,7 @@ Proof.
   induction ctx as [|d ctx] in bctx |- *; simpl; auto.
   - destruct bctx; reflexivity.
   - destruct bctx => /= //.
-    intros [= hlen].
+    intro hlen; apply Nat.succ_inj in hlen.
     rewrite alli_app (IHctx bctx) // alli_app. f_equal.
     len. rewrite map2_length // hlen. f_equal.
 Qed.
@@ -893,7 +893,8 @@ Lemma on_free_vars_unfold_fix P mfix idx narg fn :
   on_free_vars P fn.
 Proof.
   rewrite /unfold_fix.
-  destruct nth_error eqn:hnth => // [=] _ <- /=.
+  destruct nth_error eqn:hnth => //.
+  intro Hf; apply some_inj in Hf; apply pair_equal_spec in Hf; destruct Hf as [_ <-]; cbn.
   intros hmfix; generalize hmfix.
   move/forallb_All/(nth_error_all hnth) => /andP [] _ Hbody.
   eapply on_free_vars_subst; len => //.
@@ -916,7 +917,8 @@ Lemma on_free_vars_unfold_cofix P mfix idx narg fn :
   on_free_vars P fn.
 Proof.
   rewrite /unfold_cofix.
-  destruct nth_error eqn:hnth => // [=] _ <- /=.
+  destruct nth_error eqn:hnth => //.
+  intro Hf; apply some_inj in Hf; apply pair_equal_spec in Hf; destruct Hf as [_ <-]; cbn.
   intros hmfix; generalize hmfix.
   move/forallb_All/(nth_error_all hnth) => /andP [] _ Hbody.
   eapply on_free_vars_subst; len => //.
@@ -1410,7 +1412,7 @@ Proof.
   - solve_all.
   - revert l clt.
     fix auxl' 1.
-    destruct l; constructor; [|apply auxl'].
+    destruct l; cbn in *; constructor; [|apply auxl'].
     * apply auxt. simpl in clt. now move/andP: clt  => [clt cll].
     * now move/andP: clt => [clt cll].
 
@@ -1485,14 +1487,14 @@ Proof.
   - destruct prim as [? []]; cbn => //. cbn in clt.
     rtoProp. split => //. split => //.
     revert H. generalize (array_value a).
-    fix auxm 1; destruct l; constructor.
+    fix auxm 1; destruct l; cbn in *; constructor.
     * now move/andP: H.
     * apply auxm. now move/andP: H.
 
   - destruct prim as [? []]; cbn => //. cbn in clt.
     rtoProp. split => //; eauto. split; eauto.
     move: (array_value a) H.
-    fix auxm 1; destruct array_value; constructor; eauto.
+    fix auxm 1; destruct array_value; cbn in *; constructor; eauto.
     * eapply auxt. now move/andP: H.
     * eapply auxm; now move/andP: H.
 Defined.

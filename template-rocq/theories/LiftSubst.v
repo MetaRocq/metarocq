@@ -187,6 +187,46 @@ Proof.
   simpl in H. discriminate.
 Qed.
 
+Local Ltac solve_mapped_terms :=
+  lazymatch goal with
+  | |- map _ ?l = map _ ?l =>
+      match type of l with list term => idtac end
+  end;
+  apply All_map_eq;
+  match goal with H : All _ ?l |- All _ ?l => eapply (All_impl H) end;
+  intros t IH; auto.
+
+Local Ltac solve_mapped_branches :=
+  cbn [map_branches_k];
+  lazymatch goal with
+  | |- map _ ?l = map _ ?l =>
+      match type of l with list (branch term) => idtac end
+  end;
+  apply All_map_eq;
+  unfold tCaseBrsProp in *;
+  match goal with
+  | H : All _ ?l |- All _ ?l => eapply (All_impl H)
+  | H : All2 _ _ ?l |- All _ ?l => eapply (All2_All_right H); intro
+  end;
+  intros b IH; try destruct IH as [_ IH];
+  cbn [map_branch bcontext bbody];
+  apply (f_equal (fun body => {| bcontext := bcontext b; bbody := body |}));
+  cbn [bbody map_branch];
+  rewrite ?Nat.add_assoc; eauto.
+
+Local Ltac solve_mapped_fixpoints :=
+  lazymatch goal with
+  | |- tFix _ ?idx = tFix _ ?idx =>
+      apply (f_equal (fun m => tFix m idx))
+  | |- tCoFix _ ?idx = tCoFix _ ?idx =>
+      apply (f_equal (fun m => tCoFix m idx))
+  end;
+  (apply All_map_eq || apply All_map_id);
+  unfold tFixProp in *;
+  eapply All_impl; [eassumption |];
+  intros d [IHty IHbody];
+  (apply map_def_eq_spec || apply map_def_id_spec); auto; try lia.
+
 Lemma simpl_subst_rec :
   forall Σ M (H : wf Σ M) N n p k,
     p <= n + k ->
@@ -196,7 +236,14 @@ Proof.
     intros; simpl;
       rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map,
                  ?map_predicate_map_predicate;
-      try solve [f_equal; auto; solve_all]; repeat nth_leb_simpl.
+      try solve [solve_mapped_fixpoints];
+      try solve [lazymatch goal with
+                 | |- context [mkApps _ _] => fail
+                 | _ => idtac
+                 end; f_equal; auto; solve_all]; try (lazymatch goal with
+                 | |- context [mkApps _ _] => fail
+                 | _ => repeat nth_leb_simpl
+                 end).
 
   - rewrite IHwfM; auto.
     apply (lift_isApp n k) in H.
@@ -256,12 +303,17 @@ Proof.
             end; try easy;
       rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map, ?Nat.add_assoc,
                  ?map_predicate_map_predicate;
-      try solve [f_equal; auto; solve_all].
+      try solve [solve_mapped_fixpoints];
+      try solve [lazymatch goal with
+                 | |- context [mkApps _ _] => fail
+                 | |- context [tRel _] => fail
+                 | _ => idtac
+                 end; f_equal; auto; first [solve [solve_mapped_terms] | solve [solve_mapped_branches] | solve_all]].
 
   - unfold subst at 1. unfold lift at 4.
     repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    revert e0. intros [= <-].
+    cbn in e0. apply some_inj in e0. rewrite <- e0.
     now rewrite (permute_lift x n0 k p 0).
   - rewrite lift_mkApps. f_equal; auto.
     rewrite map_map_compose; solve_all.
@@ -311,7 +363,12 @@ Proof.
             end; try easy;
       rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map, ?Nat.add_assoc,
                  ?map_predicate_map_predicate;
-      try solve [f_equal; auto; solve_all].
+      try solve [solve_mapped_fixpoints];
+      try solve [lazymatch goal with
+                 | |- context [mkApps _ _] => fail
+                 | |- context [tRel _] => fail
+                 | _ => idtac
+                 end; f_equal; auto; first [solve [solve_mapped_terms] | solve [solve_mapped_branches] | solve_all]].
 
   - unfold subst at 2.
     elim (leb_spec p n); intros; try easy.
@@ -379,7 +436,11 @@ Qed.
 Lemma subst_empty Σ k a : wf Σ a -> subst [] k a = a.
 Proof.
   induction 1 in k |- * using term_wf_forall_list_ind; simpl; try congruence;
-    try solve [f_equal; eauto; solve_all].
+    try solve [solve_mapped_fixpoints];
+    try solve [lazymatch goal with
+               | |- context [mkApps _ _] => fail
+               | _ => idtac
+               end; f_equal; eauto; solve_all].
 
   - elim (Nat.compare_spec k n); destruct (Nat.leb_spec k n); intros; try easy.
     subst. rewrite Nat.sub_diag. simpl. rewrite Nat.sub_0_r. reflexivity.
@@ -415,13 +476,19 @@ Proof.
   intros wft wfl.
   induction wft in k |- * using term_wf_forall_list_ind; simpl; auto;
     rewrite ?subst_mkApps; try change_Sk;
-    try (f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map,
+    rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map,
+            ?map_predicate_map_predicate;
+    try solve [solve_mapped_fixpoints];
+    try (lazymatch goal with
+           | |- context [tRel _] => fail
+           | _ => idtac
+           end; f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map,
                              ?map_predicate_map_predicate;
-         eauto; solve_all).
+         eauto; first [solve [solve_mapped_terms] | solve [solve_mapped_branches] | solve_all]).
 
   - repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    injection e0; intros <-.
+    cbn in e0. apply some_inj in e0. rewrite <- e0.
     rewrite -> permute_lift by auto.
     rewrite <- (Nat.add_0_r #|l'|).
     erewrite -> simpl_subst_rec, lift0_id; auto with wf; try lia. apply wf_lift.

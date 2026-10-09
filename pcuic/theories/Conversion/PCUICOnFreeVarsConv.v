@@ -139,7 +139,7 @@ Lemma urename_is_open_term P Γ Δ f u : let sP := shiftnP #|Γ| P in
    urenaming sP Γ Δ f -> is_closed_context Γ -> is_closed_context Δ -> is_open_term Γ u -> is_open_term Δ (rename f u).
 Proof.
   intros sP hf HΓ HΔ Hu.
-  unfold is_open_term.
+  change (on_free_vars (shiftnP #|Δ| xpred0) (rename f u)).
   rewrite <- (shiftnP0 (shiftnP #|Δ| xpred0)).
   rewrite <- (shiftn0 f).
   eapply urename_on_free_vars_shift with (Ξ:=[]); eauto.

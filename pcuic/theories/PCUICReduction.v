@@ -1008,7 +1008,7 @@ Section ReductionCongruence.
       induction l in l', e1, e2 |- *.
       - destruct l' ; try discriminate. reflexivity.
       - destruct l' ; try discriminate.
-        simpl in *. inversion e1. inversion e2.
+        simpl in *. apply cons_inj in e1 as [eh1 et1]. apply cons_inj in e2 as [eh2 et2].
         f_equal ; eauto.
         destruct a, p. simpl in *. subst. reflexivity.
     Qed.
@@ -1027,7 +1027,8 @@ Section ReductionCongruence.
       induction l in l', h |- *.
       - destruct l' ; try discriminate. reflexivity.
       - destruct l' ; try discriminate.
-        cbn in h. inversion h.
+        cbn in h. apply cons_inj in h as [eh et].
+        apply pair_equal_spec in eh as [eh1 eh2].
         f_equal ; eauto.
         destruct a, b. cbn in *. subst. reflexivity.
     Qed.
@@ -1041,7 +1042,8 @@ Section ReductionCongruence.
       induction l in l', h |- *.
       - destruct l' ; try discriminate. reflexivity.
       - destruct l' ; try discriminate.
-        cbn in h. inversion h.
+        cbn in h. apply cons_inj in h as [eh et].
+        apply pair_equal_spec in eh as [eh1 eh2].
         f_equal ; eauto.
         destruct a, b. cbn in *. subst. reflexivity.
     Qed.
@@ -1084,11 +1086,7 @@ Section ReductionCongruence.
         map f l = map f l' ->
         l = l'.
     Proof using Type.
-      intros A B f l l' h e.
-      induction l in l', e |- *.
-      - destruct l' ; try discriminate. reflexivity.
-      - destruct l' ; try discriminate. inversion e.
-        f_equal ; eauto.
+      exact MRList.map_inj.
     Qed.
 
     Context {Γ : context}.
@@ -1656,7 +1654,7 @@ Section ReductionCongruence.
               induction l1 in l2, e, n |- *.
               + destruct l2 ; try discriminate e. cbn. reflexivity.
               + destruct l2 ; try discriminate e. cbn.
-                cbn in e. inversion e.
+                cbn in e. apply cons_inj in e as [H0 H1].
                 specialize (IHl1 _ H1 (S n)).
                 destruct a as [? [[? ?] ?]], p as [? [[? ?] ?]].
                 simpl in *. inversion H0. subst.
@@ -1697,8 +1695,8 @@ Section ReductionCongruence.
               induction y in z, e, n |- *.
               + destruct z ; try discriminate e. reflexivity.
               + destruct z ; try discriminate e. cbn.
-                cbn in e. inversion e.
-                destruct a as [? ? ? ?], d as [? ? ? ?]. simpl in *. subst.
+                cbn in e. apply cons_inj in e as [H0 H1].
+                destruct a as [? ? ? ?], d as [? ? ? ?]. simpl in *. inversion H0. subst.
                 f_equal. eapply IHy. assumption.
           }
           rewrite <- e. assumption.
@@ -1841,7 +1839,7 @@ Section ReductionCongruence.
               induction l1 in l2, e, n |- *.
               + destruct l2 ; try discriminate e. cbn. reflexivity.
               + destruct l2 ; try discriminate e. cbn.
-                cbn in e. inversion e.
+                cbn in e. apply cons_inj in e as [H0 H1].
                 specialize (IHl1 _ H1 (S n)).
                 destruct a as [? [[? ?] ?]], p as [? [[? ?] ?]].
                 simpl in *. inversion H0. subst.
@@ -1882,8 +1880,8 @@ Section ReductionCongruence.
               induction y in z, e, n |- *.
               + destruct z ; try discriminate e. reflexivity.
               + destruct z ; try discriminate e. cbn.
-                cbn in e. inversion e.
-                destruct a as [? ? ? ?], d as [? ? ? ?]. simpl in *. subst.
+                cbn in e. apply cons_inj in e as [H0 H1].
+                destruct a as [? ? ? ?], d as [? ? ? ?]. simpl in *. inversion H0. subst.
                 f_equal. eapply IHy. assumption.
           }
           rewrite <- e. assumption.
@@ -2141,7 +2139,7 @@ Lemma split_nth {A B} {l : list A} (l' l'' : list B) :
 Proof.
   induction l in l', l'' |- *; simpl; auto.
   - rewrite Nat.add_succ_r //.
-  - rewrite Nat.add_succ_r => [= len].
+  - rewrite Nat.add_succ_r. intro len; apply Nat.succ_inj in len.
     destruct l'; simpl.
     * exists a; auto.
     * simpl in len. rewrite -Nat.add_succ_r in len.

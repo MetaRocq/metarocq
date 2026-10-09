@@ -1944,7 +1944,7 @@ Abbreviation eq_annots Γ Δ :=
 Lemma eq_context_upto_names_binder_annot Γ Δ :
   eq_context_upto_names Γ Δ -> eq_annots (forget_types Γ) Δ.
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
   destruct r; auto.
 Qed.
 

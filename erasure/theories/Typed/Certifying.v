@@ -10,49 +10,48 @@ Open Scope bs.
 Import MonadNotation.
 
 (* TODO: at some point we should provide StringExtra for byte strings *)
-Definition replace_char (orig : ascii) (new : ascii) : String.string -> String.string :=
-  fix f s :=
-    match s with
-    | EmptyString => EmptyString
-    | String c s => if (c =? orig)%char then
-                      String new (f s)
-                    else
-                      String c (f s)
-    end.
+Fixpoint replace_char (orig : ascii) (new : ascii) (s : String.string) : String.string :=
+  match s with
+  | EmptyString => EmptyString
+  | String c s =>
+    if (c =? orig)%char then
+      String new (replace_char orig new s)
+    else
+      String c (replace_char orig new s)
+  end.
 
 Definition get_def_name (name : kername) : string :=
   let s_name := bytestring.String.to_string (string_of_kername name) in
   bytestring.String.of_string (replace_char "." "_" s_name).
 
-Definition change_modpath (mpath : modpath) (suffix : string) (to_rename : kername -> bool)
-  : term -> term :=
-  fix go (t : term) : term :=
+Fixpoint change_modpath (mpath : modpath) (suffix : string)
+         (to_rename : kername -> bool) (t : term) {struct t} : term :=
     match t with
     | tRel n => t
     | tVar id => t
     | tSort s => t
-    | tEvar ev args => tEvar ev (map go args)
-    | tCast t kind v => tCast (go t) kind (go v)
-    | tProd na ty body => tProd na (go ty) (go body)
-    | tLambda na ty body => tLambda na (go ty) (go body)
+    | tEvar ev args => tEvar ev (map (change_modpath mpath suffix to_rename) args)
+    | tCast t kind v => tCast ((change_modpath mpath suffix to_rename) t) kind ((change_modpath mpath suffix to_rename) v)
+    | tProd na ty body => tProd na ((change_modpath mpath suffix to_rename) ty) ((change_modpath mpath suffix to_rename) body)
+    | tLambda na ty body => tLambda na ((change_modpath mpath suffix to_rename) ty) ((change_modpath mpath suffix to_rename) body)
     | tLetIn na def def_ty body =>
-      tLetIn na (go def) (go def_ty) (go body)
-    | tApp f args => tApp (go f) (map go args)
+      tLetIn na ((change_modpath mpath suffix to_rename) def) ((change_modpath mpath suffix to_rename) def_ty) ((change_modpath mpath suffix to_rename) body)
+    | tApp f args => tApp ((change_modpath mpath suffix to_rename) f) (map (change_modpath mpath suffix to_rename) args)
     | tConst kn u => if to_rename kn then
                       tConst (mpath, get_def_name kn ++ suffix) u
                     else t
     | tInd ind u => t
     | tConstruct ind idx u => t
     | tCase ci p discr branches =>
-      tCase ci (map_predicate id go go p)
-            (go discr) (map_branches go branches)
-    | tProj proj t => tProj proj (go t)
-    | tFix mfix idx => tFix (map (map_def go go) mfix) idx
-    | tCoFix mfix idx => tCoFix (map (map_def go go) mfix) idx
+      tCase ci (map_predicate id (change_modpath mpath suffix to_rename) (change_modpath mpath suffix to_rename) p)
+            ((change_modpath mpath suffix to_rename) discr) (map_branches (change_modpath mpath suffix to_rename) branches)
+    | tProj proj t => tProj proj ((change_modpath mpath suffix to_rename) t)
+    | tFix mfix idx => tFix (map (map_def (change_modpath mpath suffix to_rename) (change_modpath mpath suffix to_rename)) mfix) idx
+    | tCoFix mfix idx => tCoFix (map (map_def (change_modpath mpath suffix to_rename) (change_modpath mpath suffix to_rename)) mfix) idx
     | tInt n => tInt n
     | tFloat n => tFloat n
     | tString n => tString n
-    | tArray l v def ty => tArray l (map go v) (go def) (go ty)
+    | tArray l v def ty => tArray l (map (change_modpath mpath suffix to_rename) v) ((change_modpath mpath suffix to_rename) def) ((change_modpath mpath suffix to_rename) ty)
   end.
 
 Fixpoint map_constants_global_decls (k : kername -> kername) (f : constant_body -> constant_body) (Σ : global_declarations) : global_declarations :=
@@ -119,30 +118,33 @@ Definition map_global_env_decls (f : global_declarations -> global_declarations)
     for (syntactic) equality. If they are not equal, we expect them to be convertible, so
     we generate a new definition and save the name to [affected] list, which is returned
     when we traversed all definition in [Σ1] *)
-Definition traverse_env (mpath : modpath) (suffix : string) (Σ1 Σ2 : global_declarations) :=
-  let f := fix go (affected : KernameSet.t) (dΣ1 dΣ2 : global_declarations) : TemplateMonad KernameSet.t :=
-      match dΣ1 with
-      | [] => ret affected
-      | (kn, ConstantDecl cb1) :: Σtail =>
-          match lookup_global Σ2 kn with
-          | Some (ConstantDecl cb2) =>
-              match cb1, cb2 with
-              | Build_constant_body ty1 (Some body1) _ _,
-                (Build_constant_body ty2 (Some body2) _ _ ) =>
-                  new_body2 <- tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) body2);;
-                  new_ty2 <-tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) ty2);;
-                  if @Checker.eq_term config.default_checker_flags init_graph body1 new_body2 then
-                    go affected Σtail dΣ2
-                  else
-                    gen_prog new_ty2 new_body2 (mpath, get_def_name kn ++ suffix);;
-                    go (KernameSet.add kn affected) Σtail dΣ2
-              | _,_ => go affected Σtail dΣ2
-              end
-          | Some _ | None => go affected Σtail dΣ2
+Fixpoint traverse_env_aux (mpath : modpath) (suffix : string) (Σ2 : global_declarations)
+         (affected : KernameSet.t) (dΣ1 : global_declarations) {struct dΣ1}
+         : TemplateMonad KernameSet.t :=
+  match dΣ1 with
+  | [] => ret affected
+  | (kn, ConstantDecl cb1) :: Σtail =>
+      match lookup_global Σ2 kn with
+      | Some (ConstantDecl cb2) =>
+          match cb1, cb2 with
+          | Build_constant_body ty1 (Some body1) _ _,
+            (Build_constant_body ty2 (Some body2) _ _ ) =>
+              new_body2 <- tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) body2);;
+              new_ty2 <-tmEval lazy (change_modpath mpath suffix (fun kn => KernameSet.mem kn affected) ty2);;
+              if @Checker.eq_term config.default_checker_flags init_graph body1 new_body2 then
+                traverse_env_aux mpath suffix Σ2 affected Σtail
+              else
+                gen_prog new_ty2 new_body2 (mpath, get_def_name kn ++ suffix);;
+                traverse_env_aux mpath suffix Σ2 (KernameSet.add kn affected) Σtail
+          | _,_ => traverse_env_aux mpath suffix Σ2 affected Σtail
           end
-      | _ :: Σtail => go affected Σtail dΣ2
-      end in
-  f KernameSet.empty Σ1 Σ2.
+      | Some _ | None => traverse_env_aux mpath suffix Σ2 affected Σtail
+      end
+  | _ :: Σtail => traverse_env_aux mpath suffix Σ2 affected Σtail
+  end.
+
+Definition traverse_env (mpath : modpath) (suffix : string) (Σ1 Σ2 : global_declarations) :=
+  traverse_env_aux mpath suffix Σ2 KernameSet.empty Σ1.
 
 (** We generate new definitions using [traverse_env] and then generate the proofs for all
    affected seeds. The proof is just [eq_refl], since we expect that the generated

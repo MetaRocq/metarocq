@@ -1413,30 +1413,29 @@ Proof.
   - cbn. rewrite !subst_instance_mkApps. cbn.
     econstructor.
     + unfold unfold_fix in *. destruct (nth_error mfix idx) eqn:E.
-      * inversion H.
+      * apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
         rewrite nth_error_map E. cbn.
         destruct d. cbn in *. cbn in *; try congruence.
         f_equal. f_equal.
         now rewrite subst_instance_subst fix_subst_instance_subst.
-      * inversion H.
+      * discriminate H.
     + unfold is_constructor in *.
       destruct (nth_error args narg) eqn:E; inversion H0; clear H0.
       rewrite nth_error_map E. cbn.
       eapply isConstruct_app_subst_instance.
   - cbn. rewrite !subst_instance_mkApps.
     unfold unfold_cofix in *. destruct (nth_error mfix idx) eqn:E.
-    + inversion H.
-      econstructor. fold subst_instance_constr.
+    + apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
+      cbn. econstructor.
       unfold unfold_cofix.
       rewrite nth_error_map E. cbn.
       rewrite subst_instance_subst.
       now rewrite cofix_subst_instance_subst.
-    + cbn.
-      inversion H.
+    + discriminate H.
   - cbn. unfold unfold_cofix in *.
-    destruct nth_error eqn:E; inversion H.
+    destruct nth_error eqn:E; try discriminate H; apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
     rewrite !subst_instance_mkApps.
-    econstructor. fold subst_instance.
+    cbn. econstructor.
     unfold unfold_cofix.
     rewrite nth_error_map. destruct nth_error; cbn.
     1: rewrite subst_instance_subst cofix_subst_instance_subst.
@@ -1905,7 +1904,7 @@ Section SubstIdentity.
     - destruct cu as [decl' [sizeu vc]].
       clear sizeu vc.
       induction u; simpl; auto.
-      move/andb_and: decl' => [ina au]. specialize (IHu au).
+      cbn -[global_ext_levels] in decl'. move/andb_and: decl' => [ina au]. specialize (IHu au).
       rewrite [List.map _ u]IHu. f_equal. clear au.
       destruct a; simpl; auto.
       eapply LevelSet.mem_spec in ina.
@@ -1998,7 +1997,7 @@ Section SubstIdentity.
     l = l0 /\ l' = l0'.
   Proof using Type.
     induction l in l', l0, l0' |- *; destruct l0; simpl in * => //; auto.
-    intros [= eq] [= -> eql].
+    intros eq e. apply Nat.succ_inj in eq. apply cons_inj in e as [-> eql].
     now destruct (IHl _ _ _ eq eql).
   Qed.
 

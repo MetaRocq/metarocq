@@ -1093,7 +1093,7 @@ Lemma conv_context_app_same {cf:checker_flags} Σ Γ Γ' Δ :
 Proof.
   intros HΔ.
   induction Δ; auto.
-  destruct a as [na [b|] ty]; constructor; auto;
+  destruct a as [na [b|] ty]; cbn in *; constructor; auto;
     constructor; reflexivity.
 Qed.
 
@@ -1103,7 +1103,7 @@ Lemma cumul_context_app_same {cf:checker_flags} Σ Γ Γ' Δ :
 Proof.
   intros HΔ.
   induction Δ; auto.
-  destruct a as [na [b|] ty]; constructor; auto;
+  destruct a as [na [b|] ty]; cbn in *; constructor; auto;
     constructor; reflexivity.
 Qed.
 

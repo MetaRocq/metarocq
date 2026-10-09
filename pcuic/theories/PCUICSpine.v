@@ -209,7 +209,7 @@ Lemma ctx_inst_inst {cf:checker_flags} Σ ext u Γ i Δ  :
     (subst_instance u Δ).
 Proof.
   intros wfext ctxi cu.
-  induction ctxi; simpl; constructor; auto.
+  induction ctxi; cbn; constructor; auto.
   * destruct Σ as [Σ univs].
     eapply (typing_subst_instance'' Σ); eauto.
   * rewrite (subst_telescope_subst_instance u [i]).
@@ -719,7 +719,7 @@ Qed.*)
     - eapply substitution in t0; eauto. simpl.
       rewrite -(subslet_length subl).
       rewrite !distr_subst in t0.
-      epose proof (cons_let_def _  _ _ _ _  _ _ IHsubl t0).
+      epose proof (cons_let_def _ _ _ _ na _ _ IHsubl t0).
       now rewrite - !distr_subst in X.
   Qed.
 
@@ -816,13 +816,12 @@ Qed.*)
     rewrite -subst_instance_app_ctx.
     eapply wf_local_subst_instance; eauto.
     clear -cs cu wfext wfΣ.
-    induction cs; simpl; rewrite ?map_app; try constructor; auto.
-    rewrite subst_instance_cons; simpl.
+    induction cs; cbn; rewrite ?map_app; cbn; try constructor; auto.
     rewrite subst_instance_subst.
     constructor; auto.
 
     clear -subsl cu wfΣ wfext.
-    induction subsl; simpl; rewrite ?subst_instance_subst; constructor; auto.
+    induction subsl; cbn; rewrite ?subst_instance_subst; cbn; constructor; auto.
     * destruct Σ as [Σ' univs].
       rewrite -subst_instance_subst.
       eapply (typing_subst_instance'' Σ'); simpl; eauto.
@@ -1213,7 +1212,7 @@ Qed.*)
     - depelim cs. constructor.
     - depelim cs.
       specialize (IHsubsl _ cs).
-      unshelve eapply ctx_inst_app; tea. cbn.
+      cbn. unshelve eapply ctx_inst_app; tea. cbn.
       rewrite /map_decl /=. repeat constructor.
       pose proof (ctx_inst_sub_spec IHsubsl) as msub.
       eapply make_context_subst_spec in msub.
@@ -1310,10 +1309,10 @@ Proof.
   simpl. destruct i; simpl; discriminate.
   destruct i; simpl.
   destruct a as [? [?|] ?]; simpl.
-  intros [= <-].
+  intro heq; apply some_inj in heq; subst x.
   eexists; split; eauto. simpl.
   now rewrite skipn_S skipn_0 Nat.add_0_r all_rels_length.
-  intros [= <-].
+  intro heq; apply some_inj in heq; subst x.
   eexists; split; eauto. simpl.
   now rewrite Nat.add_0_r.
   intros. destruct (decl_body a);  try discriminate.
@@ -1655,7 +1654,7 @@ Section WfEnv.
         set (s := l0.2.π1).
         change (tSort s) with
           (subst0 (all_rels c (S #|l|) #|Δ|) (lift #|Δ| #|c| (tSort s))).
-        { eapply (substitution (Γ' := lift_context #|Δ| 0 c) (Δ := [])); cbn; auto.
+        { eapply (substitution (Γ := Γ ,,, Δ) (Γ' := lift_context #|Δ| 0 c) (Δ := [])); cbn; auto.
           change (tSort s) with (lift #|Δ| #|c| (tSort s)).
           eapply (weakening_typing); eauto. }
         eapply ws_cumul_pb_eq_le. simpl.
@@ -2049,7 +2048,7 @@ Section WfEnv.
       eapply isType_apply in i0; tea.
       constructor; auto. eauto with fvs pcuic.
     - intros arg Harg.
-      econstructor; eauto.
+      cbn; econstructor; eauto.
   Qed.
 
   Lemma typing_spine_nth_error {Γ Δ T args n arg concl} :

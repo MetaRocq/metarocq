@@ -17,6 +17,12 @@ Set Keyed Unification.
 Set Default Goal Selector "!".
 Implicit Types cf : checker_flags.
 
+Local Ltac change_open_term :=
+  lazymatch goal with
+  | |- context [is_open_term ?ctx ?t] =>
+      change (on_free_vars (shiftnP #|ctx| xpred0) t)
+  end.
+
 (** * Type preservation for σ-calculus instantiation *)
 
 Open Scope sigma_scope.
@@ -165,23 +171,23 @@ Proof.
   - cbn. eapply cumul_Evar. cbn in *.
     repeat toAll. eapply All2_impl. 1:tea. cbn; intros.
     eapply X0.1.2; intuition.
-  - eapply cumul_App; try apply IHe1; try apply IHe2; eauto.
-  - pose proof hσ.1. cbn; eapply cumul_Lambda; try apply IHe1; try apply IHe2; eauto;
+  - cbn; eapply cumul_App; try apply IHe1; try apply IHe2; eauto.
+  - pose proof hσ.1. cbn [snoc List.length] in *; cbn; eapply cumul_Lambda; try apply IHe1; try apply IHe2; eauto;
     try rewrite shiftnP_S; eauto.
     * eapply closed_subst_up_vass; eauto. eapply inst_is_open_term; eauto.
     * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
-  - eapply cumul_Prod; try apply IHe1; try apply IHe2; eauto;
+  - cbn [snoc List.length] in *; cbn; eapply cumul_Prod; try apply IHe1; try apply IHe2; eauto;
     try rewrite shiftnP_S; eauto.
     * eapply closed_subst_up_vass; eauto. eapply inst_is_open_term; eauto.
     * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
-  - eapply cumul_LetIn; try apply IHe1; try apply IHe2; eauto; try apply IHe3;
+  - cbn [snoc List.length] in *; cbn; eapply cumul_LetIn; try apply IHe1; try apply IHe2; eauto; try apply IHe3;
     try rewrite shiftnP_S; eauto.
     * eapply closed_subst_up_vdef; eauto; eapply inst_is_open_term; eauto.
     * rewrite on_free_vars_ctx_snoc_def; eauto.
   - rename p0 into Hp'; rename p1 into Hreturn'; rename p2 into Hcontext'; rename p3 into Hc'; rename p4 into Hbrs'.
     rename Hp into Hpold.
     rename p5 into Hp; rename p6 into Hreturn; rename p7 into Hcontext; rename p8 into Hc; rename p9 into Hbrs.
-    eapply cumul_Case; fold inst.
+    cbn; eapply cumul_Case.
     * unfold cumul_predicate in *; destruct_head'_prod.
       repeat split; eauto.
       + eapply All2_map. repeat toAll.
@@ -201,12 +207,12 @@ Proof.
         ++ unfold PCUICCases.inst_case_predicate_context.
             apply on_free_vars_ctx_inst_case_context; eauto.
         ++ unfold PCUICCases.inst_case_predicate_context.
-            unfold is_open_term. rewrite length_app.
+            change_open_term. rewrite length_app.
             rewrite <- shiftnP_add.
             rewrite inst_case_predicate_context_length.
             eassumption.
         ++ unfold PCUICCases.inst_case_predicate_context.
-            unfold is_open_term. rewrite length_app.
+            change_open_term. rewrite length_app.
             rewrite <- shiftnP_add.
             rewrite inst_case_predicate_context_length.
             unshelve erewrite (All2_length _ : #|pcontext _| = #|pcontext _|); shelve_unifiable; tea.
@@ -234,16 +240,16 @@ Proof.
         apply on_free_vars_ctx_inst_case_context; eauto.
         repeat toAll; eauto.
       + unfold PCUICCases.inst_case_predicate_context.
-        unfold is_open_term. rewrite length_app.
+        change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite inst_case_branch_context_length.
         eassumption.
       + unfold PCUICCases.inst_case_predicate_context.
-        unfold is_open_term. rewrite length_app.
+        change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite inst_case_branch_context_length.
         unshelve erewrite (All2_length _ : #|bcontext _| = #|bcontext _|); shelve_unifiable; tea.
-   - eapply cumul_Proj; try apply X0; eauto.
+   - cbn; eapply cumul_Proj; try apply X0; eauto.
    - cbn. eapply cumul_Fix. cbn in HfreeA, HfreeB. unfold cumul_mfixpoint in *.
      repeat toAll. eapply All2_impl. 1: tea. cbn; intros.
      destruct_head'_prod.
@@ -277,15 +283,15 @@ Proof.
          apply on_free_vars_fix_context.
          eapply All2_All_left. 1: tea. cbn; intros.
          apply X0.1.
-         + unfold is_open_term. rewrite length_app.
+         + change_open_term. rewrite length_app.
          rewrite <- shiftnP_add.
          rewrite fix_context_length. eauto.
-         + unfold is_open_term. rewrite length_app.
+         + change_open_term. rewrite length_app.
          rewrite <- shiftnP_add.
          rewrite fix_context_length.
          rewrite (All2_length X). eauto.
    - cbn. rewrite (All2_length X).
-     eapply cumul_CoFix. cbn in HfreeA, HfreeB. unfold cumul_mfixpoint in *.
+     cbn. eapply cumul_CoFix. cbn in HfreeA, HfreeB. unfold cumul_mfixpoint in *.
      repeat toAll.
      eapply All2_impl. 1: tea. cbn; intros.
      destruct_head'_prod.
@@ -319,10 +325,10 @@ Proof.
          apply on_free_vars_fix_context.
          eapply All2_All_left. 1: tea. cbn; intros.
          apply X0.1.
-         + unfold is_open_term. rewrite length_app.
+         + change_open_term. rewrite length_app.
          rewrite <- shiftnP_add.
          rewrite fix_context_length. eauto.
-         + unfold is_open_term. rewrite length_app.
+         + change_open_term. rewrite length_app.
          rewrite <- shiftnP_add.
          rewrite fix_context_length.
          rewrite (All2_length X). eauto.
@@ -339,8 +345,8 @@ Proof.
        eapply All2_impl. 1: tea. cbn; intros.
        destruct_head'_prod.
        eauto.
-   - eapply cumul_Sort; eauto.
-   - eapply cumul_Const; eauto.
+   - cbn; eapply cumul_Sort; eauto.
+   - cbn; eapply cumul_Const; eauto.
 Defined.
 
 Lemma inst_convSpec {cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ Δ σ A B} :
