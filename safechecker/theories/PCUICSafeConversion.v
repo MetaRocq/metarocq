@@ -3372,8 +3372,6 @@ Equations (noeqns) isconv_array_values_aux
     all:eapply into_closed_red; tea; fvs.
   Qed.
 
-
-
   (* See https://github.com/coq/coq/blob/master/kernel/reduction.ml#L367 *)
   Opaque reduce_stack.
   Equations(noeqns) _isconv_prog (Γ : context) (leq : conv_pb)
@@ -3608,8 +3606,7 @@ Equations (noeqns) isconv_array_values_aux
         }
     } ;
 
-    | prog_view_other t1 t2 h :=
-      isconv_fallback leq t1 π1 t2 π2 aux
+    | prog_view_other t1 t2 h := isconv_fallback leq t1 π1 t2 π2 aux
     }.
 
   (* tApp *)
@@ -5653,6 +5650,65 @@ Qed.
         auto.
   Qed.
 
+  Inductive is_eta_conv : term -> term -> Type :=
+    | eta_left na A t x : is_eta_conv (tLambda na A t) x
+    | eta_right na A t x : is_eta_conv x (tLambda na A t)
+    | eta_none t1 t2 : ~~ isLambda t1 -> ~~ isLambda t2 -> is_eta_conv t1 t2.
+
+  Equations eta_conv_view (t1 t2 : term) : is_eta_conv t1 t2 :=
+    | tLambda na A t, x := eta_left na A t x ;
+    | x, tLambda na A t := eta_right na A t x ;
+    | t1, t2 := eta_none t1 t2 eq_refl eq_refl.
+  Axiom with_eta_cheat : with_eta = true -> forall {A}, A.
+
+  Equations? isconv_eta (Γ : context) (leq : conv_pb)
+            (t1 : term) (π1 : stack) (h1 : wtp Γ t1 π1)
+            (t2 : term) (π2 : stack) (h2 : wtp Γ t2 π2)
+            (ir1 : isred_full Γ t1 π1) (ir2 : isred_full Γ t2 π2)
+            (hx : conv_stack_ctx Γ π1 π2)
+            (we : with_eta)
+            (ise : is_eta_conv t1 t2)
+            (aux : Aux Fallback Γ t1 π1 t2 π2 h2)
+            : ConversionResult (conv_term leq Γ t1 π1 t2 π2) :=
+    isconv_eta Γ leq ?(tLambda na A t) π1 h1 t2 π2 h2 ir1 ir2 hx we (eta_left na A t t2) aux :=
+      isconv_red leq t (Lambda_bd na A :: π1) (tApp (lift 1 0 t2) (tRel 0)) (Lambda_bd na A :: π2) aux;
+    isconv_eta Γ leq t1 π1 h1 ?(tLambda na A t) π2 h2 ir1 ir2 hx we (eta_right na A t t1) aux :=
+      isconv_red leq (tApp (lift 1 0 t1) (tRel 0)) (Lambda_bd na A :: π1) t (Lambda_bd na A :: π2) aux;
+    isconv_eta Γ leq t1 π1 h1 t2 π2 h2 ir1 ir2 hx we (eta_none t1 t2 nlam1 nlam2) aux
+      := no (
+              HeadMismatch
+                leq
+                (Γ ,,, stack_context π1) t1
+                (Γ ,,, stack_context π2) t2
+            ).
+  Proof.
+    all:clear aux. all: try specialize_Σ wfΣ.
+    - destruct h1 as (?&?); auto.
+      eapply isred_full_nobeta in ir1 => //.
+      now eapply with_eta_cheat.
+    - by apply with_eta_cheat.
+    - specialize (hx _ H). specialize_Σ H.
+      (* have h := abstract_env_ext_wf X H. as [[Σ' wfΣ]]. *)
+      eapply welltyped_zipc_zipp in h1 as hh1; eauto with pcuic.
+      + unfold zipp in hh1.
+        eapply isred_full_nobeta in ir1 => //.
+        eapply fst_decompose_stack_nil in ir1.
+        destruct (decompose_stack π1) as [l1 s1]. cbn in ir1. subst.
+        cbn in hh1.
+        now apply with_eta_cheat.
+      + now apply with_eta_cheat.
+    - now apply with_eta_cheat. (* Clearly false!*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+    - now apply with_eta_cheat. (* Likely true !*)
+  Defined.
+
+  Definition inspect_rev {A} (x : A) : {y : A | x = y} := exist x eq_refl.
+
   (* TODO Factorise *)
   Equations(noeqns) _isconv_fallback (Γ : context) (leq : conv_pb)
             (t1 : term) (π1 : stack) (h1 : wtp Γ t1 π1)
@@ -5681,13 +5737,16 @@ Qed.
         } ;
       | exist None nored2 with inspect (cmpb_term_napp leq #|(decompose_stack π1).1| t1 t2) := {
         | exist true eq1 := isconv_args leq t1 π1 t2 π2 aux;
-        | exist false noteq :=
-          no (
+        | exist false noteq with inspect_rev with_eta := {
+          | exist true we := isconv_eta Γ leq t1 π1 _ t2 π2 _ ir1 ir2 hx we (eta_conv_view t1 t2) aux ;
+          | exist false we :=
+            no (
               HeadMismatch
                 leq
                 (Γ ,,, stack_context π1) t1
                 (Γ ,,, stack_context π2) t2
             )
+          }
         }
       }
     }.
