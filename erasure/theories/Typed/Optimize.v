@@ -52,16 +52,12 @@ Fixpoint bitmask_and (bs1 bs2 : bitmask) : bitmask :=
   | _, _ => []
   end.
 
-Definition trim_start (b : bool) : bitmask -> bitmask :=
-  fix f bs :=
-    match bs with
-    | b' :: bs =>
-      if eqb b' b then
-        f bs
-      else
-        b' :: bs
-    | [] => []
-    end.
+Fixpoint trim_start (b : bool) (bs : bitmask) : bitmask :=
+  match bs with
+  | b' :: bs =>
+    if eqb b' b then trim_start b bs else b' :: bs
+  | [] => []
+  end.
 
 Definition trim_end (b : bool) (bs : bitmask) : bitmask :=
   List.rev (trim_start b (List.rev bs)).
@@ -502,14 +498,13 @@ Definition debox_type_constant (cst : constant_body) : constant_body :=
   {| cst_type := on_snd debox_box_type (cst_type cst);
      cst_body := cst_body cst; |}.
 
-Definition reindex (tvars : list type_var_info) :=
-  fix f (bt : box_type) : box_type :=
-    match bt with
-    | TArr dom cod => TArr (f dom) (f cod)
-    | TApp hd arg => TApp (f hd) (f arg)
-    | TVar i => TVar #|filter keep_tvar (firstn i tvars)|
-    | _ => bt
-    end.
+Fixpoint reindex (tvars : list type_var_info) (bt : box_type) : box_type :=
+  match bt with
+  | TArr dom cod => TArr (reindex tvars dom) (reindex tvars cod)
+  | TApp hd arg => TApp (reindex tvars hd) (reindex tvars arg)
+  | TVar i => TVar #|filter keep_tvar (firstn i tvars)|
+  | _ => bt
+  end.
 
 Definition debox_type_oib (oib : one_inductive_body) : one_inductive_body :=
   let debox := reindex (ind_type_vars oib) ∘ debox_box_type in
@@ -569,20 +564,22 @@ Definition remove_vars (s : analyze_state) (n : nat) : analyze_state :=
 Definition remove_var (s : analyze_state) : analyze_state :=
   (tl s.1, s.2).
 
+Fixpoint update_mib_masks_aux (kn : kername) (mm : mib_masks)
+         (l : list (kername × mib_masks)) : list (kername × mib_masks) :=
+  match l with
+  | [] => []
+  | (kn', mm') :: l =>
+    if eq_kername kn' kn then
+      (kn, mm) :: l
+    else
+      (kn', mm') :: update_mib_masks_aux kn mm l
+  end.
+
 Definition update_mib_masks
            (s : analyze_state)
            (kn : kername)
            (mm : mib_masks) : analyze_state :=
-  let fix update_list l :=
-      match l with
-      | [] => []
-      | (kn', mm') :: l =>
-        if eq_kername kn' kn then
-          (kn, mm) :: l
-        else
-          (kn', mm') :: update_list l
-      end in
-  (s.1, update_list s.2).
+  (s.1, update_mib_masks_aux kn mm s.2).
 
 Fixpoint update_ind_ctor_mask
          (ind : nat)
@@ -598,12 +595,12 @@ Fixpoint update_ind_ctor_mask
       (ind', c', mask') :: update_ind_ctor_mask ind c ctor_masks f
   end.
 
-Definition fold_lefti {A B} (f : nat -> A -> B -> A) :=
-  fix fold_lefti (n : nat) (l : list B) (a0 : A) :=
-    match l with
-    | [] => a0
-    | b :: t => fold_lefti (S n) t (f n a0 b)
-    end.
+Fixpoint fold_lefti {A B} (f : nat -> A -> B -> A)
+         (n : nat) (l : list B) (a0 : A) {struct l} : A :=
+  match l with
+  | [] => a0
+  | b :: t => fold_lefti f (S n) t (f n a0 b)
+  end.
 
 Section AnalyzeTop.
   Context (analyze : analyze_state -> term -> analyze_state).

@@ -842,9 +842,11 @@ Module Environment (T : Term).
     : forall Σ c, KernameSet.In c (declared_kername_set Σ) <-> List.In c (map fst Σ).
   Proof.
     elim => //=; try setoid_rewrite KernameSetFact.empty_iff => //=.
-    move => [? ?] ? IH c //=.
-    rewrite KernameSet.add_spec.
-    intuition auto with *.
+    move => [a b] l IH c //=.
+    change (KernameSet.In c (KernameSet.add a (declared_kername_set l)) <->
+      a = c \/ In c (map fst l)).
+    rewrite KernameSet.add_spec IH.
+    intuition congruence.
   Qed.
 
   Lemma declared_kername_set_mem_iff Σ c

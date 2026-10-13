@@ -725,7 +725,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     All_local_env (fun Γ j => P (map (map_decl f) Γ) (judgment_map f j)) Γ ->
     All_local_env P (map (map_decl f) Γ).
   Proof using Type.
-    induction 1; econstructor; eauto.
+    induction 1; cbn; econstructor; eauto.
   Qed.
 
   Lemma All_local_env_fold P f Γ :
@@ -782,7 +782,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     intros hΓ.
     induction n in Δ, hΓ |- * => //.
     destruct Δ; cbn; eauto.
-    apply All_local_env_tip in hΓ as [].
+    cbn in hΓ. apply All_local_env_tip in hΓ as [].
     eauto.
   Qed.
 
@@ -1104,7 +1104,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
   Proof.
     intros tu Xc Xs.
     eapply lift_sorting_size_gen_impl with (tu := tu).
-    all: intros.
+    all: intros; cbn [lift_sorting_size_gen Nat.add] in *.
     1: eapply Xc. 2: eapply Xs.
     all: apply le_n_S, H.
   Qed.

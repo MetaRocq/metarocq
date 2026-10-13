@@ -119,6 +119,12 @@ Qed.
 - all levels used in cs are in lvls
 - and constraints mentioning levels not in the original [lvls] are refreshed
  *)
+Local Lemma level_lvar_inj x y : Level.lvar x = Level.lvar y -> x = y.
+Proof. intro H; now injection H. Qed.
+
+Local Lemma level_level_inj x y : Level.level x = Level.level y -> x = y.
+Proof. intro H; now injection H. Qed.
+
 Definition uniquify_level_level (shared_levels : LevelSet.t) (shared_prefix : Byte.byte) (prefix : Byte.byte) (x : string) : string
   := (String.String
         (if LevelSet.mem (Level.level x) shared_levels
@@ -482,8 +488,8 @@ Proof.
                     | lia
                     | progress subst
                     | match goal with
-                      | [ H : Level.lvar _ = Level.lvar _ |- _ ] => inversion H; clear H
-                      | [ H : Level.level _ = Level.level _ |- _ ] => inversion H; clear H
+                      | [ H : Level.lvar _ = Level.lvar _ |- _ ] => apply level_lvar_inj in H
+                      | [ H : Level.level _ = Level.level _ |- _ ] => apply level_level_inj in H
                       | [ H : (@eqb ?T ?R ?x ?y) = true |- _ ]
                         => destruct (@eqb_spec T R x y)
                       | [ H : (@eqb ?T ?R ?x ?y) = false |- _ ]

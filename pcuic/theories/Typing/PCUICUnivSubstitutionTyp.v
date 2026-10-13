@@ -65,7 +65,9 @@ Proof.
   - rewrite !subst_instance_mkApps. cbn.
     eapply cumul_fix.
     + unfold unfold_fix in *. destruct (nth_error mfix idx) eqn:E.
-      * match goal with H : Some _ = Some _ |- _ => inversion H; clear H end.
+      * match goal with H : Some _ = Some _ |- _ =>
+      apply some_inj in H; apply pair_equal_spec in H as [Harg Hfn]; subst
+    end.
         rewrite nth_error_map E. cbn.
         destruct d. cbn in *. cbn in *; try congruence.
         f_equal. f_equal.
@@ -77,17 +79,21 @@ Proof.
       now rewrite isConstruct_app_subst_instance.
   - rewrite !subst_instance_mkApps.
     unfold unfold_cofix in *. destruct (nth_error mfix idx) eqn:E; try congruence.
-    match goal with H : Some _ = Some _ |- _ => inversion H; clear H end.
-    eapply cumul_cofix_case.  fold subst_instance_constr.
+    match goal with H : Some _ = Some _ |- _ =>
+      apply some_inj in H; apply pair_equal_spec in H as [Harg Hfn]; subst
+    end.
+    cbn. eapply cumul_cofix_case.
     unfold unfold_cofix.
     rewrite nth_error_map E. cbn.
     rewrite subst_instance_subst.
     now rewrite cofix_subst_instance_subst.
   - unfold unfold_cofix in *.
     destruct nth_error eqn:E; try congruence.
-    match goal with H : Some _ = Some _ |- _ => inversion H; clear H end.
+    match goal with H : Some _ = Some _ |- _ =>
+      apply some_inj in H; apply pair_equal_spec in H as [Harg Hfn]; subst
+    end.
     rewrite !subst_instance_mkApps.
-    eapply cumul_cofix_proj. fold subst_instance.
+    cbn. eapply cumul_cofix_proj.
     unfold unfold_cofix.
     rewrite nth_error_map. destruct nth_error; cbn.
      1: rewrite subst_instance_subst cofix_subst_instance_subst.
@@ -97,7 +103,10 @@ Proof.
     eapply cumul_proj. now rewrite nth_error_map Hargs.
   - eapply cumul_Trans; intuition eauto.
     * rewrite on_free_vars_ctx_subst_instance; eauto.
-    * rewrite on_free_vars_subst_instance. unfold is_open_term.
+    * rewrite on_free_vars_subst_instance. lazymatch goal with
+      | |- context [is_open_term ?ctx ?t] =>
+          change (on_free_vars (shiftnP #|ctx| (fun _ : nat => false)) t)
+      end.
       replace #|Γ@[u]| with #|Γ|; eauto. rewrite length_map; eauto.
   - eapply cumul_Evar. eapply All2_map.
     repeat toAll.

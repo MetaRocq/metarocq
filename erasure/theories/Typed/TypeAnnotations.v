@@ -99,7 +99,9 @@ Section annotate.
     annotate_branches Γ erΓ ((mk_branch Γ0 t) :: brs) ((_, et) :: ebrs) _ wf :=
       let Γ0 := inst_case_context (pparams pr) (puinst pr) Γ0 in
       let erΓ1 := Vector.append (Vector.const RelOther #|Γ0|) erΓ in
-      (annotate_types (Γ,,,Γ0) (Vector.cast erΓ1 (length_app_transparent _ _)) t _ et _, annotate_branches Γ _ brs ebrs pr _);
+      @pair (annots A et) (bigprod (annots A ∘ snd) ebrs)
+        (annotate_types (Γ,,,Γ0) (Vector.cast erΓ1 (length_app_transparent _ _)) t _ et _)
+        (annotate_branches Γ _ brs ebrs pr _);
     annotate_branches _ _ _ _ _ _ := !.
   Proof. all: try now depelim wf. Defined.
 
@@ -151,7 +153,9 @@ Section annotate.
     : bigprod (annots A ∘ E.dbody) edefs by struct edefs :=
     annotate_defs Γ _ _ [] _ := tt;
     annotate_defs Γ _ (d :: defs) (ed :: edefs) wf :=
-      (annotate_types Γ erΓ (dbody d) _ (E.dbody ed) _, annotate_defs Γ erΓ defs edefs _);
+      @pair (annots A (E.dbody ed)) (bigprod (annots A ∘ E.dbody) edefs)
+        (annotate_types Γ erΓ (dbody d) _ (E.dbody ed) _)
+        (annotate_defs Γ erΓ defs edefs _);
     annotate_defs _ _ _ _ _ := !.
   Proof.
     all: now depelim wf.
@@ -261,27 +265,39 @@ annot bt (E.tLambda na eB) (tLambda na' A B) wt0 er0 =>
   let last_vl := get_last_type_var erΓ in
   let (i, _) := type_flag_to_tRel_kind (flag_of_type_impl Σ eq_refl Γ A _) last_vl in
   let erΓ1 := (i :: erΓ)%vector in
-  (bt, annotate_types (Γ,, vass na' A) erΓ1 B _ eB _);
+  @pair box_type (annots box_type eB) bt
+    (annotate_types (Γ,, vass na' A) erΓ1 B _ eB _);
 annot bt (E.tLetIn na eb eb') (tLetIn na' b ty b') wt0 er0 =>
   let last_vl := get_last_type_var erΓ in
   let (i, _) := type_flag_to_tRel_kind (flag_of_type_impl Σ eq_refl Γ ty _) last_vl in
   let erΓ1 := (i :: erΓ)%vector in
-  (bt, (annotate_types Γ erΓ b _ eb _, annotate_types (Γ,, vdef na' b ty) erΓ1 b' _ eb' _));
+  @pair box_type (annots box_type eb * annots box_type eb') bt
+    (@pair (annots box_type eb) (annots box_type eb')
+      (annotate_types Γ erΓ b _ eb _)
+      (annotate_types (Γ,, vdef na' b ty) erΓ1 b' _ eb' _));
 annot bt (E.tApp ehd earg) (tApp hd arg) wt0 er0 =>
-  (bt, (annotate_types Γ erΓ hd _ ehd _, annotate_types Γ erΓ arg _ earg _));
+  @pair box_type (annots box_type ehd * annots box_type earg) bt
+    (@pair (annots box_type ehd) (annots box_type earg)
+      (annotate_types Γ erΓ hd _ ehd _) (annotate_types Γ erΓ arg _ earg _));
 annot bt (E.tConst _) _ wt0 er0 => bt;
 annot bt (E.tConstruct _ _ _) _ wt0 er0 => bt; (* NOTE: we ignore the arguments if constructors-as-block is enabled *)
 annot bt (E.tCase _ ediscr ebrs) (tCase _ pr discr brs) wt0 er0 =>
-  (bt, (annotate_types Γ erΓ discr _ ediscr _, annotate_branches annotate_types Γ erΓ brs ebrs pr _));
-annot bt (E.tProj _ et0) (tProj _ t0) wt0 er0 => (bt, annotate_types Γ erΓ t0 _ et0 _);
+  @pair box_type (annots box_type ediscr * bigprod (annots box_type ∘ snd) ebrs) bt
+    (@pair (annots box_type ediscr) (bigprod (annots box_type ∘ snd) ebrs)
+      (annotate_types Γ erΓ discr _ ediscr _)
+      (annotate_branches annotate_types Γ erΓ brs ebrs pr _));
+annot bt (E.tProj _ et0) (tProj _ t0) wt0 er0 =>
+  @pair box_type (annots box_type et0) bt (annotate_types Γ erΓ t0 _ et0 _);
 annot bt (E.tFix edefs _) (tFix defs _) wt0 er0 =>
   let last_vl := get_last_type_var erΓ in
   let erΓ1 := Vector.append (context_to_erased Γ last_vl (List.rev defs) _) erΓ in
-  (bt, annotate_defs annotate_types (Γ,,, fix_context defs) (VectorEq.cast erΓ1 (rev_mapi_length_app _ _)) defs edefs _);
+  @pair box_type (bigprod (annots box_type ∘ E.dbody) edefs) bt
+    (annotate_defs annotate_types (Γ,,, fix_context defs) (VectorEq.cast erΓ1 (rev_mapi_length_app _ _)) defs edefs _);
 annot bt (E.tCoFix edefs _) (tCoFix defs _) wt0 er0 =>
   let last_vl := get_last_type_var erΓ in
   let erΓ1 := Vector.append (context_to_erased Γ last_vl (List.rev defs) _) erΓ in
-  (bt, annotate_defs annotate_types (Γ,,, fix_context defs) (VectorEq.cast erΓ1 (rev_mapi_length_app _ _)) defs edefs _);
+  @pair box_type (bigprod (annots box_type ∘ E.dbody) edefs) bt
+    (annotate_defs annotate_types (Γ,,, fix_context defs) (VectorEq.cast erΓ1 (rev_mapi_length_app _ _)) defs edefs _);
 annot bt (E.tPrim _) _ _ _ => bt; (* TODO *)
 annot bt _ _ wt0 er0 => !
 }.
@@ -451,7 +467,7 @@ Proof.
   fix f 1.
   intros [] ta mask; cbn in *; try exact ta.
   - destruct mask; [exact ta|].
-    destruct b.
+    destruct b; cbn.
     + apply annot_subst1; [exact ta.1|].
       apply (f _ ta.2).
     + exact (ta.1, f _ ta.2 _).
@@ -488,10 +504,10 @@ Proof.
   - apply annot_mkApps; assumption.
   - destruct a.
     + (* arg is being removed but overall type does not change. *)
-      destruct argsa.
+      destruct argsa; cbn.
       * (* there is no arg. Lambda has original type so body has type of codomain *)
         refine (annot hda, _).
-        apply IHmask; [|exact All_nil].
+        apply IHmask; [|exact All_nil]. cbn.
         apply annot_lift.
         (* type of body is now the codomain *)
         exact (map_annot
@@ -502,9 +518,9 @@ Proof.
                     end) hda).
       * (* arg was removed. We take the new type to be the old type of the application
          instead of the codomain as the old type of the application is more specialized. *)
-        apply IHmask; [|exact argsa].
+        apply IHmask; [|exact argsa]. cbn.
         exact (map_annot (fun _ => p.1) hda).
-    + destruct argsa.
+    + destruct argsa; cbn.
       * refine (annot hda, _).
         apply IHmask; [|exact All_nil].
         cbn.
@@ -512,7 +528,7 @@ Proof.
                 | TArr dom cod => (cod, (annot_lift _ _ hda, dom))
                 | t => (t, (annot_lift _ _ hda, t))
                 end).
-      * apply IHmask; [|exact argsa].
+      * apply IHmask; [|exact argsa]. cbn.
         exact (p.1, (hda, p.2)).
 Defined.
 
@@ -553,11 +569,11 @@ Proof.
     refine (ta.1, bigprod_map _ ta.2).
     apply f.
     exact All_nil.
-  - apply annot_mkApps; [|exact argsa].
+  - apply annot_mkApps; [|exact argsa]. cbn in ta |- *.
     exact (ta.1, f _ All_nil _ ta.2).
-  - apply annot_mkApps; [|exact argsa].
+  - apply annot_mkApps; [|exact argsa]. cbn in ta |- *.
     exact (ta.1, (f _ All_nil _ ta.2.1, f _ All_nil _ ta.2.2)).
-  - apply f; [|exact ta.2.1].
+  - cbn in ta. apply f; [|exact ta.2.1].
     apply All_cons; [|exact argsa].
     exact (ta.1, f _ All_nil _ ta.2.2).
   - exact (annot_dearg_single _ ta argsa).
@@ -573,16 +589,16 @@ Proof.
     intros.
     exact (f _ All_nil _ X).
   - destruct p.
-    refine (annot_mkApps _ argsa).
+    refine (annot_mkApps _ argsa). cbn in ta |- *.
     refine (ta.1, _).
     exact (f _ All_nil _ ta.2).
-  - refine (annot_mkApps _ argsa).
+  - refine (annot_mkApps _ argsa). cbn in ta |- *.
     refine (ta.1, _).
     fold (annots box_type).
     apply bigprod_map; [|exact ta.2].
     intros.
     exact (f _ All_nil _ X).
-  - refine (annot_mkApps _ argsa).
+  - refine (annot_mkApps _ argsa). cbn in ta |- *.
     refine (ta.1, _).
     fold (annots box_type).
     apply bigprod_map; [|exact ta.2].
@@ -689,20 +705,20 @@ Module AnnotOptimizePropDiscr.
     fix f 2.
     intros n t0.
     revert n.
-    destruct t0;intros n0 bt;try exact bt.
+    destruct t0;intros n0 bt;cbn;try exact bt.
     - cbn. destruct (n0 ?= n);exact (annot bt).
-    - cbn. exact (bt.1, bigprod_map (f n0) bt.2).
+    - cbn in bt |- *. exact (bt.1, bigprod_map (f n0) bt.2).
     - cbn in *. exact (bt.1, f _ _ bt.2).
-    - exact (bt.1, (f _ _ bt.2.1, f _ _ bt.2.2)).
-    - exact (bt.1, (f _ _ bt.2.1, f _ _ bt.2.2)).
+    - cbn in bt. exact (bt.1, (f _ _ bt.2.1, f _ _ bt.2.2)).
+    - cbn in bt. exact (bt.1, (f _ _ bt.2.1, f _ _ bt.2.2)).
     - cbn in *.
       refine (bt.1, (f _ _ bt.2.1, _)).
       refine (bigprod_map _ bt.2.2).
       intros ? a'. apply (f _ _ a').
     - cbn in *. exact (bt.1, f _ _ bt.2).
-    - refine (bt.1, bigprod_map _ bt.2).
+    - cbn in bt. refine (bt.1, bigprod_map _ bt.2).
       intros ? a'; exact (f _ _ a').
-    - refine (bt.1, bigprod_map _ bt.2).
+    - cbn in bt. refine (bt.1, bigprod_map _ bt.2).
       intros ? a'; exact (f _ _ a').
   Defined.
 

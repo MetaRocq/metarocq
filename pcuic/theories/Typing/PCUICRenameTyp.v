@@ -25,6 +25,12 @@ Section Renaming.
 
 Context `{cf : checker_flags}.
 
+Local Ltac change_open_term :=
+  lazymatch goal with
+  | |- context [is_open_term ?ctx ?t] =>
+      change (on_free_vars (shiftnP #|ctx| xpred0) t)
+  end.
+
 Lemma renaming_vass :
   forall P Σ Γ Δ na A f,
     wf_local Σ (Δ ,, vass na (rename f A)) ->
@@ -194,7 +200,7 @@ Proof.
      rewrite rename_iota_red //.
     * rewrite length_skipn; lia.
     * change (bcontext br) with (bcontext (rename_branch f br)).
-     move/and5P: HfreeB => [_ _ _ _ hbrs].
+     cbn in HfreeB. move/and5P: HfreeB => [_ _ _ _ hbrs].
      eapply nth_error_forallb in hbrs; tea. simpl in hbrs.
      move/andP: hbrs => [] clbctx clbod.
      rewrite closedn_ctx_on_free_vars.
@@ -229,21 +235,21 @@ Proof.
    - cbn in *. rtoProp.
      eapply cumul_App; try apply X0; try apply X2; eauto.
    - cbn in HfreeB, HΓ; rtoProp.
-     eapply cumul_Lambda; try apply IHe1; try apply IHe2; eauto;
+     cbn [snoc List.length] in *. eapply cumul_Lambda; try apply IHe1; try apply IHe2; eauto;
      try rewrite shiftnP_S; eauto.
      * eapply urenaming_impl. 1: intro; rewrite shiftnP_S; eauto. apply urenaming_vass; eauto.
      * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
      * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
        cbn. eapply urename_is_open_term; eauto.
    - cbn in HfreeB, HΓ. rtoProp.
-     eapply cumul_Prod; try apply IHe1; try apply IHe2; eauto;
+     cbn [snoc List.length] in *. eapply cumul_Prod; try apply IHe1; try apply IHe2; eauto;
      try rewrite shiftnP_S; eauto.
      * eapply urenaming_impl. 1: intro; rewrite shiftnP_S; eauto. apply urenaming_vass; eauto.
      * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
      * rewrite on_free_vars_ctx_snoc. apply andb_and; split; eauto.
        cbn. eapply urename_is_open_term; eauto.
    - cbn in HfreeB, HΓ; rtoProp.
-     eapply cumul_LetIn; try apply IHe1; try apply IHe2; eauto; try apply IHe3;
+     cbn [snoc List.length] in *. eapply cumul_LetIn; try apply IHe1; try apply IHe2; eauto; try apply IHe3;
      try rewrite shiftnP_S; eauto.
      * eapply urenaming_impl. 1: intro; rewrite shiftnP_S; eauto. apply urenaming_vdef; eauto.
      * rewrite on_free_vars_ctx_snoc_def; eauto.
@@ -273,12 +279,12 @@ Proof.
             unfold inst_case_predicate_context.
             apply on_free_vars_ctx_inst_case_context; eauto.
          ++ unfold inst_case_predicate_context.
-            unfold is_open_term. rewrite length_app.
+            change_open_term. rewrite length_app.
             rewrite <- shiftnP_add.
             rewrite inst_case_predicate_context_length.
             eassumption.
          ++ unfold inst_case_predicate_context.
-            unfold is_open_term. rewrite length_app.
+            change_open_term. rewrite length_app.
             rewrite <- shiftnP_add.
             rewrite inst_case_predicate_context_length.
             unshelve erewrite (All2_length _ : #|pcontext _| = #|pcontext _|); shelve_unifiable; tea.
@@ -310,12 +316,12 @@ Proof.
          apply on_free_vars_ctx_inst_case_context; eauto.
          repeat toAll; eauto.
       + unfold inst_case_predicate_context.
-         unfold is_open_term. rewrite length_app.
+         change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite inst_case_branch_context_length.
         eassumption.
       + unfold inst_case_predicate_context.
-        unfold is_open_term. rewrite length_app.
+        change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite inst_case_branch_context_length.
        unshelve erewrite (All2_length _ : #|bcontext _| = #|bcontext _|); shelve_unifiable; tea.
@@ -352,10 +358,10 @@ Proof.
         apply on_free_vars_fix_context.
         eapply All2_All_left. 1: tea. cbn; intros.
         destruct_head'_prod; eauto.
-      + unfold is_open_term. rewrite length_app.
+      + change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite fix_context_length. eauto.
-      + unfold is_open_term. rewrite length_app.
+      + change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite fix_context_length.
         rewrite (All2_length X). eauto.
@@ -399,10 +405,10 @@ Proof.
         apply on_free_vars_fix_context.
         eapply All2_All_left. 1: tea. cbn; intros.
         destruct_head'_prod; eauto.
-      + unfold is_open_term. rewrite length_app.
+      + change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite fix_context_length. eauto.
-      + unfold is_open_term. rewrite length_app.
+      + change_open_term. rewrite length_app.
         rewrite <- shiftnP_add.
         rewrite fix_context_length.
         rewrite (All2_length X). eauto.
@@ -826,7 +832,7 @@ Proof.
     + rewrite /=. econstructor; tas.
       eapply ihB; eauto.
       simpl.
-      eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
+      cbn [snoc List.length] in *. eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
       eapply renaming_vass. 2: eauto.
       constructor.
       * destruct hf as [hΔ hf]. assumption.
@@ -836,7 +842,7 @@ Proof.
     + eapply ihA; eauto.
     + simpl. econstructor; tas.
       eapply iht; eauto; simpl.
-      eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
+      cbn [snoc List.length] in *. eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
       eapply renaming_vass. 2: eauto.
       constructor; tas.
       destruct hf as [hΔ hf]. assumption.
@@ -845,7 +851,7 @@ Proof.
     + eapply ihbB; tea.
     + simpl. econstructor; tas.
       eapply iht; tea.
-      eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
+      cbn [snoc List.length] in *. eapply renaming_extP. { now rewrite -(shiftnP_add 1). }
       eapply renaming_vdef. 2: eauto.
       constructor; tas.
       destruct hf as [hΔ hf]. assumption.

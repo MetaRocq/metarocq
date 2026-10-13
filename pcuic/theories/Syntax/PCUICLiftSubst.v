@@ -233,7 +233,7 @@ Proof.
 
   - repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    invs e0. now rewrite (permute_lift x n0 k p 0).
+    cbn in e0. apply some_inj in e0. rewrite <- e0. now rewrite (permute_lift x n0 k p 0).
 Qed.
 
 Lemma distr_lift_subst M N n k :
@@ -377,7 +377,7 @@ Proof.
 
   - repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    injection e0; intros <-.
+    cbn in e0. apply some_inj in e0. rewrite <- e0.
     rewrite -> permute_lift by auto.
     rewrite <- (Nat.add_0_r #|l'|).
     rewrite -> simpl_subst_rec, lift0_id; auto with wf; try lia.

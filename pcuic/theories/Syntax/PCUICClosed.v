@@ -703,7 +703,7 @@ Qed.
 Lemma assumption_context_app_inv Γ Δ : assumption_context Γ -> assumption_context Δ ->
   assumption_context (Γ ++ Δ).
 Proof.
-  induction 1; try constructor; auto.
+  induction 1; cbn; try constructor; auto.
 Qed.
 
 Lemma closed_ctx_decl k d Γ : closedn_ctx k (d :: Γ) =

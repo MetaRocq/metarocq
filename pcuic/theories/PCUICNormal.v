@@ -173,7 +173,52 @@ Hint Constructors whnf whne : core.
 #[global]
 Hint Constructors whnf whne : pcuic.
 
-Local Ltac inv H := inversion H; subst; clear H.
+Local Lemma tApp_inj f a g b :
+  tApp f a = tApp g b -> f = g /\ a = b.
+Proof.
+  intro H; split.
+  - exact (f_equal (fun t => match t with tApp f _ => f | _ => f end) H).
+  - exact (f_equal (fun t => match t with tApp _ a => a | _ => a end) H).
+Qed.
+
+Local Lemma tCase_inj i p c brs i' p' c' brs' :
+  tCase i p c brs = tCase i' p' c' brs' ->
+  i = i' /\ p = p' /\ c = c' /\ brs = brs'.
+Proof.
+  intro H; repeat split.
+  - exact (f_equal (fun t => match t with tCase i _ _ _ => i | _ => i end) H).
+  - exact (f_equal (fun t => match t with tCase _ p _ _ => p | _ => p end) H).
+  - exact (f_equal (fun t => match t with tCase _ _ c _ => c | _ => c end) H).
+  - exact (f_equal (fun t => match t with tCase _ _ _ brs => brs | _ => brs end) H).
+Qed.
+
+Local Lemma tProj_inj p c p' c' :
+  tProj p c = tProj p' c' -> p = p' /\ c = c'.
+Proof.
+  intro H; split.
+  - exact (f_equal (fun t => match t with tProj p _ => p | _ => p end) H).
+  - exact (f_equal (fun t => match t with tProj _ c => c | _ => c end) H).
+Qed.
+
+Local Ltac depelim_folded H :=
+  depelim_nosimpl H;
+  try match goal with
+  | |- tCase _ _ _ _ = tCase _ _ _ _ -> _ =>
+    let Heq := fresh in intro Heq; apply tCase_inj in Heq as [? [? [? ?]]]; subst
+  | |- tProj _ _ = tProj _ _ -> _ =>
+    let Heq := fresh in intro Heq; apply tProj_inj in Heq as [? ?]; subst
+  | |- tApp _ _ = tApp _ _ -> _ =>
+    let Heq := fresh in intro Heq; apply tApp_inj in Heq as [? ?]; subst
+  end;
+  simpl_dep_elim; unblock_goal.
+
+Local Ltac inv H :=
+  lazymatch type of H with
+  | tApp _ _ = tApp _ _ => apply tApp_inj in H as [? ?]; subst
+  | Some (_, _) = Some (_, _) =>
+    apply some_inj in H; apply pair_equal_spec in H as [? ?]; subst
+  | _ => inversion H; subst; clear H
+  end.
 
 Ltac help' := try repeat match goal with
 | [ H0 : _ = mkApps _ _ |- _ ] =>
@@ -819,7 +864,7 @@ Proof using Type.
     cbn in *.
     unfold is_constructor in e1.
     rewrite nth_error_nil in e1; discriminate.
-  - depelim r; eauto.
+  - depelim_folded r; eauto.
     + apply whne_mkApps_inv in wh; [|easy].
       destruct wh as [|(?&?&?&?&?&?&?)]; [|discriminate].
       depelim w.
@@ -830,7 +875,7 @@ Proof using Type.
       depelim w.
       solve_discr.
   - eauto.
-  - depelim r; eauto.
+  - depelim_folded r; eauto.
     + solve_discr.
     + apply whne_mkApps_inv in wh; [|easy].
       destruct wh as [|(?&?&?&?&?&?&?)]; [|discriminate].
@@ -840,7 +885,7 @@ Proof using Type.
       destruct wh as [|(?&?&?&?&?&?&?)]; [|discriminate].
       depelim w.
       solve_discr.
-  - depelim r; eauto.
+  - depelim_folded r; eauto.
     solve_discr.
 Qed.
 End whne_red1_ind.
@@ -852,7 +897,11 @@ Lemma whne_pres1 {cf:checker_flags} Σ {wfΣ : wf Σ} Γ t t' :
 Proof.
   intros r wh.
   apply (whne_red1_ind RedFlags.default Σ Γ (fun _ => whne RedFlags.default Σ Γ))
-         with (t := t) (t' := t'); intros; try easy.
+         with (t := t) (t' := t').
+  all: intros.
+  all: cbn in *.
+  all: try discriminate.
+  all: try easy.
   - eapply OnOne2_nth_error in H0; eauto.
     destruct H0 as (?&?&[->|]).
     + eapply whne_fixapp; eauto.
@@ -1861,7 +1910,9 @@ Section Normal.
     (nf Γ t -> (forall u, red1 Σ Γ t u -> False)).
   Proof.
     intros wfΣ.
-    refine (ne_nf_ind_all (fun Γ t => forall u, red1 Σ Γ t u -> False) (fun Γ t => forall u, red1 Σ Γ t u -> False) _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _); intros; try solve [depelim X; solve_discr; eauto].
+    refine (ne_nf_ind_all (fun Γ t => forall u, red1 Σ Γ t u -> False) (fun Γ t => forall u, red1 Σ Γ t u -> False) _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _).
+    all: intros.
+    all: try solve [depelim_folded X; solve_discr; eauto].
     - depelim X. congruence.
       solve_discr.
     - depelim X0. solve_discr. induction o. depelim X. intuition eauto. apply IHo. now depelim X.
@@ -1889,7 +1940,7 @@ Section Normal.
         intuition eauto.
       * rewrite /unfold_fix H /is_constructor H0. eapply ne_nisConstruct_app in H1.
         now move/negPf: H1.
-    - depelim X4; solve_discr.
+    - depelim_folded X4; solve_discr.
       * eapply isConstruct_app_ne in H => //.
         rewrite /isConstruct_app decompose_app_mkApps //.
       * now eapply ne_tCoFix_app in H.
@@ -1901,7 +1952,7 @@ Section Normal.
       * eapply OnOne2_All_mix_left in o; tea.
         eapply OnOne2_nth_error in o as [n [? [? []]]].
         intuition eauto.
-    - depelim X; solve_discr; eauto.
+    - depelim_folded X; solve_discr; eauto.
       * now eapply ne_tCoFix_app in H.
       * eapply isConstruct_app_ne in H => //.
         rewrite /isConstruct_app decompose_app_mkApps //.

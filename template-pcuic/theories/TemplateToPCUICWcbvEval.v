@@ -358,7 +358,8 @@ Proof.
   intros wf a.
   unfold WcbvEval.cunfold_fix.
   destruct nth_error eqn:hnth => //.
-  intros [= <- <-].
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn.
   eapply wf_substl. now eapply wf_fix_subst.
   eapply nth_error_all in a; tea. cbn in a.
   now destruct a.
@@ -373,7 +374,8 @@ Proof.
   intros wf a.
   unfold WcbvEval.cunfold_cofix.
   destruct nth_error eqn:hnth => //.
-  intros [= <- <-].
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn.
   eapply wf_substl. now eapply wf_cofix_subst.
   eapply nth_error_all in a; tea. cbn in a.
   now destruct a.
@@ -393,7 +395,8 @@ Proof.
   unfold WcbvEval.cunfold_fix, cunfold_fix.
   intros a; rewrite nth_error_map.
   destruct nth_error => /= //.
-  intros [= <- <-]. f_equal. f_equal.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn. f_equal. f_equal.
   rewrite (trans_substl Σ (Typing.fix_subst mfix) (dbody d)).
   now eapply wf_fix_subst. f_equal.
   now rewrite trans_fix_subst.
@@ -413,7 +416,8 @@ Proof.
   unfold WcbvEval.cunfold_cofix, cunfold_cofix.
   intros a; rewrite nth_error_map.
   destruct nth_error => /= //.
-  intros [= <- <-]. f_equal. f_equal.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [? ?]; subst narg fn. f_equal. f_equal.
   rewrite (trans_substl Σ (Typing.cofix_subst mfix) (dbody d)).
   now eapply wf_cofix_subst. f_equal.
   now rewrite trans_cofix_subst.

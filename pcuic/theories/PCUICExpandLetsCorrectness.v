@@ -634,7 +634,8 @@ Proof.
   unfold unfold_fix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef => //.
   cbn.
-  intros onfvs [= <- <-]. simpl.
+  intros onfvs hunfold. apply some_inj in hunfold.
+  apply pair_equal_spec in hunfold as [harg hfn]; subst narg fn. simpl.
   repeat f_equal.
   rewrite (trans_subst (shiftnP #|mfix| p) p).
   unshelve eapply nth_error_forallb in onfvs; tea. now move/andP: onfvs => //.
@@ -656,7 +657,8 @@ Proof.
   unfold unfold_cofix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef => //.
   cbn.
-  intros onfvs [= <- <-]. simpl.
+  intros onfvs hunfold. apply some_inj in hunfold.
+  apply pair_equal_spec in hunfold as [harg hfn]; subst narg fn. simpl.
   repeat f_equal.
   rewrite (trans_subst (shiftnP #|mfix| p) p).
   unshelve eapply nth_error_forallb in onfvs; tea. now move/andP: onfvs => //.
@@ -1449,7 +1451,7 @@ Lemma trans_eq_binder_annot (Γ : list aname) Δ :
   Forall2 (fun na decl => eq_binder_annot na (decl_name decl)) Γ Δ ->
   Forall2 (fun na decl => eq_binder_annot na (decl_name decl)) Γ (trans_local Δ).
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma map_context_trans Γ : map_context trans Γ = trans_local Γ.
@@ -1864,7 +1866,7 @@ Lemma untyped_subslet_length Γ s s' Δ :
   untyped_subslet Γ s Δ -> #|s| = #|s'| -> assumption_context Δ -> untyped_subslet Γ s' Δ.
 Proof.
   induction 1 in s' |- *; cbn; destruct s' => /= //. constructor.
-  intros [=]. constructor ; auto. eapply IHX; auto. now depelim H.
+  intro H0; apply Nat.succ_inj in H0. constructor ; auto. eapply IHX; auto. now depelim H.
   intros. exfalso; depelim H0.
 Qed.
 
@@ -2746,7 +2748,7 @@ Lemma All2i_All2_mapi {A B C D} P (f : nat -> A -> B) (g : nat -> C -> D) l l' :
   All2 P (mapi f l) (mapi g l').
 Proof.
   rewrite /mapi. generalize 0.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma All2i_sym {A B} (P : nat -> A -> B -> Type) n l l' :
@@ -2799,7 +2801,7 @@ Lemma context_assumptions_set_binder_name nas Γ :
   context_assumptions (map2 set_binder_name nas Γ) = context_assumptions Γ.
 Proof.
   induction nas in Γ |- *; destruct Γ; cbn => //.
-  intros [=]. destruct c as [na [b|] ty]; cbn; auto.
+  intro H0; apply Nat.succ_inj in H0. destruct c as [na [b|] ty]; cbn; auto.
   rewrite IHnas //.
 Qed.
 
@@ -2809,7 +2811,7 @@ Lemma extended_subst_set_binder_name nas Γ k :
   extended_subst Γ k.
 Proof.
   induction nas in Γ, k |- *; destruct Γ; cbn => //.
-  intros [=]. destruct c as [na [b|] ty]; cbn; f_equal; eauto.
+  intro H0; apply Nat.succ_inj in H0. destruct c as [na [b|] ty]; cbn; f_equal; eauto.
   len. rewrite map2_length //. rewrite H0.
   rewrite IHnas //. rewrite context_assumptions_set_binder_name //.
 Qed.
@@ -2819,7 +2821,7 @@ Lemma expand_lets_set_binder_name nas Γ t :
   expand_lets (map2 set_binder_name nas Γ) t = expand_lets Γ t.
 Proof.
   induction nas in Γ |- *; destruct Γ; cbn => //.
-  intros [=]. rewrite /expand_lets /expand_lets_k.
+  intro H0; apply Nat.succ_inj in H0. rewrite /expand_lets /expand_lets_k.
   destruct c as [na [b|] ty]; cbn; try len;
   rewrite extended_subst_set_binder_name // map2_length // H0
     !context_assumptions_set_binder_name //.
@@ -2889,7 +2891,7 @@ Lemma to_extended_list_smash_context_eq Δ Δ' k :
   to_extended_list_k Δ' k.
 Proof.
   induction Δ in Δ', k |- *; cbn; destruct Δ' => /= //.
-  intros [=].
+  intro H0; apply Nat.succ_inj in H0.
   intros ass ass'. destruct a as [na [b|] ty]. exfalso; depelim ass.
   destruct c as [na' [b'|] ty']; cbn. exfalso; depelim ass'.
   rewrite !(reln_acc [_]). f_equal. eapply IHΔ => //.
@@ -3110,7 +3112,7 @@ Proof.
   simpl. rewrite /arities_context rev_map_spec /=.
   rewrite map_app /= rev_app_distr /=.
   rewrite /= Nat.add_1_r /=.
-  constructor.
+  cbn. constructor.
   rewrite -rev_map_spec. apply IHl. lia.
 Qed.
 
@@ -3981,7 +3983,7 @@ Proof.
   move: l'. induction l using rev_ind; destruct l' using rev_case => /= //.
   - rewrite List.rev_app_distr /= //.
   - rewrite List.rev_app_distr /= //.
-  - rewrite !List.rev_app_distr /= => [=] <- H.
+  - rewrite !List.rev_app_distr /=. intro heq; apply cons_inj in heq as [<- H].
     f_equal; eauto.
 Qed.
 
@@ -4601,7 +4603,7 @@ Lemma Alli_map {A B} (P : nat -> B -> Type) {f : A -> B} {n l} :
   Alli (fun n x => P n (f x)) n l ->
   Alli P n (map f l).
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma trans_projs ind n n' :
@@ -4724,7 +4726,8 @@ Proof.
   set (Σ0 := {| universes := gunivs; declarations := Σd; retroknowledge := retro |}).
   rename X into Xd.
   set (X := (onu, Xd) : wf Σ0).
-  constructor; try constructor; auto; try apply IHX.
+  eapply globenv_decl with (Σ := map (on_snd trans_global_decl) Σd);
+    try constructor; auto; try apply IHX.
   { now apply (fresh_global_map (Σ := Σ0)). }
   destruct d; cbn in *.
   * apply lift_typing_f_impl with (1 := ond) => //.
@@ -5542,6 +5545,10 @@ Proof.
   induction T => //.
 Qed.
 
+Local Lemma trans_tApp_inj f a f' a' :
+  tApp f a = tApp f' a' -> f = f' /\ a = a'.
+Proof. intro h; injection h; auto. Qed.
+
 Lemma mkApps_trans_inv fn args T :
   mkApps fn args = trans T ->
   ∑ fn' args', T = mkApps fn' args' × fn = trans fn' × args = List.map trans args'.
@@ -5549,7 +5556,7 @@ Proof.
   revert T; induction args using rev_ind; cbn; intros T.
   - intros ->. exists T, []; split => //.
   - rewrite mkApps_app /=. destruct T => //=.
-    intros [=]. subst x. eapply IHargs in H0 as [fn' [args' [? []]]]; subst.
+    intro heq; apply trans_tApp_inj in heq as [H0 hx]. subst x. eapply IHargs in H0 as [fn' [args' [? []]]]; subst.
     exists fn', (args' ++ [T2])%list. rewrite mkApps_app. split => //.
     split => //. now rewrite List.map_app.
 Qed.

@@ -399,7 +399,7 @@ Proof.
   - unfold subst at 1. unfold lift at 4.
     repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    revert e0. intros [= <-].
+    cbn in e0. apply some_inj in e0. rewrite <- e0.
     now rewrite (permute_lift x n0 k p 0).
   - f_equal; auto; solve_all.
     f_equal. rewrite !Nat.add_assoc.
@@ -456,7 +456,7 @@ Proof.
     repeat nth_leb_simpl.
     erewrite <- simpl_subst. f_equal. rewrite length_map. arith_congr. lia.
     rewrite nth_error_map in e0. rewrite e in e0.
-    simpl in e0. injection e0 as <-.
+    simpl in e0. apply some_inj in e0. rewrite <- e0.
     rewrite commut_lift_subst_rec. arith_congr. lia.
   - f_equal; auto; solve_all. f_equal.
     now rewrite -> !Nat.add_assoc, H0.
@@ -548,7 +548,7 @@ Proof.
 
   - repeat nth_leb_simpl.
     rewrite nth_error_map in e0. rewrite e in e0.
-    injection e0; intros <-.
+    cbn in e0. apply some_inj in e0. rewrite <- e0.
     rewrite -> permute_lift by auto.
     rewrite <- (Nat.add_0_r #|l'|).
     rewrite -> simpl_subst_rec, lift0_id; auto with wf; try lia.

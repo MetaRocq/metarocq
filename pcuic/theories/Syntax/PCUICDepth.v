@@ -12,12 +12,11 @@ Import PCUICEnvTyping.
 Definition def_depth_gen (depth : term -> nat) (x : def term)
   := max (depth (dtype x)) (depth (dbody x)).
 
-Definition list_depth_gen {A} (depth : A -> nat) :=
-  fix list_depth (l : list A) : nat :=
-    match l with
-    | [] => 0
-    | a :: v => (max (depth a) (list_depth v))
-    end.
+Fixpoint list_depth_gen {A} (depth : A -> nat) (l : list A) : nat :=
+  match l with
+  | [] => 0
+  | a :: v => max (depth a) (list_depth_gen depth v)
+  end.
 
 Definition mfixpoint_depth_gen (depth : term -> nat) (l : mfixpoint term) :=
   list_depth_gen (def_depth_gen depth) l.
@@ -82,7 +81,8 @@ Lemma mfixpoint_depth_In {mfix d} :
   depth (dbody d) <= mfixpoint_depth mfix /\
   depth (dtype d) <= mfixpoint_depth mfix.
 Proof.
-  induction mfix in d |- *; simpl; auto.
+  unfold mfixpoint_depth_gen.
+  induction mfix in d |- *; cbn [list_depth_gen In]; auto.
   move=> [->|H]. unfold def_depth_gen. split; try lia.
   destruct (IHmfix d H). split; lia.
 Qed.
@@ -91,6 +91,7 @@ Lemma mfixpoint_depth_nth_error {mfix i d} :
   nth_error mfix i = Some d ->
   depth (dbody d) <= mfixpoint_depth mfix.
 Proof.
+  unfold mfixpoint_depth_gen.
   induction mfix in i, d |- *; destruct i; simpl; try congruence.
   move=> [] ->. unfold def_depth_gen. lia.
   move/IHmfix. lia.
@@ -246,13 +247,15 @@ Qed.
 Lemma depth_subst_context s k ctx :
   context_depth (subst_context s k ctx) <= context_depth ctx + list_depth s.
 Proof.
-  induction ctx; simpl; try lia.
-  rewrite subst_context_snoc /=.
-  pose proof (depth_subst_decl s (#|ctx| + k) a). lia.
+  unfold context_depth_gen.
+  induction ctx; [cbn; lia |].
+  rewrite subst_context_snoc. cbn.
+  pose proof (depth_subst_decl s (#|ctx| + k) a) as H. cbn in H. lia.
 Qed.
 
 Lemma depth_subst_instance_context u (ctx : context) : context_depth (subst_instance u ctx) = context_depth ctx.
 Proof.
+  unfold context_depth_gen.
   induction ctx; simpl; auto.
   rewrite IHctx. f_equal.
   rewrite /decl_depth_gen /=.
@@ -382,7 +385,7 @@ Proof.
     induction Δ; cbn.
     - constructor.
     - case: a => [na [b|] ty] /=;
-      rewrite {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
+      rewrite /context_depth_gen /= {1}/decl_depth_gen /= => Hlt; constructor; auto.
       + eapply IHΔ => //. unfold context_depth. lia.
       + split.
         * apply aux => //. red. lia.
@@ -508,7 +511,7 @@ Proof.
     induction Γ; cbn.
     - constructor.
     - move: a h => [na bo ty] /=.
-      rewrite {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
+      rewrite /context_depth_gen /= {1}/decl_depth_gen /= => Hlt; constructor; auto.
       2: apply IHΓ => //; unfold context_depth; lia.
       split.
       + destruct bo => //. cbn in Hlt.

@@ -405,34 +405,34 @@ Fixpoint noccur_between k n (t : term) : bool :=
   Substitution of universe levels for universe level variables, used to
   implement universe polymorphism. *)
 
-#[global]
-Instance subst_instance_constr : UnivSubst term :=
-  fix subst_instance_constr u c {struct c} : term :=
+Fixpoint subst_instance_constr_aux (u : Instance.t) (c : term) {struct c} : term :=
   match c with
   | tRel _ | tVar _ => c
-  | tEvar ev args => tEvar ev (List.map (subst_instance_constr u) args)
+  | tEvar ev args => tEvar ev (List.map (subst_instance_constr_aux u) args)
   | tSort s => tSort (subst_instance_sort u s)
   | tConst c u' => tConst c (subst_instance_instance u u')
   | tInd i u' => tInd i (subst_instance_instance u u')
   | tConstruct ind k u' => tConstruct ind k (subst_instance_instance u u')
-  | tLambda na T M => tLambda na (subst_instance_constr u T) (subst_instance_constr u M)
-  | tApp f v => tApp (subst_instance_constr u f) (subst_instance_constr u v)
-  | tProd na A B => tProd na (subst_instance_constr u A) (subst_instance_constr u B)
-  | tLetIn na b ty b' => tLetIn na (subst_instance_constr u b) (subst_instance_constr u ty)
-                                (subst_instance_constr u b')
+  | tLambda na T M => tLambda na (subst_instance_constr_aux u T) (subst_instance_constr_aux u M)
+  | tApp f v => tApp (subst_instance_constr_aux u f) (subst_instance_constr_aux u v)
+  | tProd na A B => tProd na (subst_instance_constr_aux u A) (subst_instance_constr_aux u B)
+  | tLetIn na b ty b' => tLetIn na (subst_instance_constr_aux u b) (subst_instance_constr_aux u ty)
+                                (subst_instance_constr_aux u b')
   | tCase ind p c brs =>
-    let p' := map_predicate (subst_instance_instance u) (subst_instance_constr u) (subst_instance_constr u) id p in
-    let brs' := List.map (map_branch (subst_instance_constr u) id) brs in
-    tCase ind p' (subst_instance_constr u c) brs'
-  | tProj p c => tProj p (subst_instance_constr u c)
+    let p' := map_predicate (subst_instance_instance u) (subst_instance_constr_aux u) (subst_instance_constr_aux u) id p in
+    let brs' := List.map (map_branch (subst_instance_constr_aux u) id) brs in
+    tCase ind p' (subst_instance_constr_aux u c) brs'
+  | tProj p c => tProj p (subst_instance_constr_aux u c)
   | tFix mfix idx =>
-    let mfix' := List.map (map_def (subst_instance_constr u) (subst_instance_constr u)) mfix in
+    let mfix' := List.map (map_def (subst_instance_constr_aux u) (subst_instance_constr_aux u)) mfix in
     tFix mfix' idx
   | tCoFix mfix idx =>
-    let mfix' := List.map (map_def (subst_instance_constr u) (subst_instance_constr u)) mfix in
+    let mfix' := List.map (map_def (subst_instance_constr_aux u) (subst_instance_constr_aux u)) mfix in
     tCoFix mfix' idx
-  | tPrim p => tPrim (mapu_prim (subst_instance_level u) (subst_instance_constr u) p)
+  | tPrim p => tPrim (mapu_prim (subst_instance_level u) (subst_instance_constr_aux u) p)
   end.
+
+#[global] Instance subst_instance_constr : UnivSubst term := subst_instance_constr_aux.
 
 (** Tests that the term is closed over [k] universe variables *)
 Fixpoint closedu (k : nat) (t : term) : bool :=
@@ -498,13 +498,14 @@ Fixpoint destArity Γ (t : term) :=
   end.
 
 (** Inductive substitution, to produce a constructors' type *)
+Fixpoint inds_aux ind u (n : nat) : list term :=
+  match n with
+  | 0 => []
+  | S n => tInd (mkInd ind n) u :: inds_aux ind u n
+  end.
+
 Definition inds ind u (l : list one_inductive_body) :=
-  let fix aux n :=
-      match n with
-      | 0 => []
-      | S n => tInd (mkInd ind n) u :: aux n
-      end
-  in aux (List.length l).
+  inds_aux ind u (List.length l).
 
 Module PCUICTermUtils <: TermUtils PCUICTerm PCUICEnvironment.
 

@@ -203,7 +203,7 @@ Proof.
       rewrite app_nil_r. split; auto.
       rewrite skipn_app_le; try lia.
       rewrite subst_context_snoc.
-      now constructor.
+      cbn. now constructor.
 
     * specialize (IHctx _ _ _ Hc).
       split; try now rewrite skipn_S.
@@ -216,7 +216,7 @@ Proof.
       rewrite -{4}(firstn_skipn #|ctx| s0).
       rewrite subst_app_simpl. simpl.
       rewrite subst_context_length in H0. rewrite -H0.
-      now constructor.
+      cbn. now constructor.
 Qed.
 
 Lemma make_context_subst_recP ctx args s tele args' s' :
@@ -309,7 +309,7 @@ Proof.
   elim: Δ args s=> [|[?[?|]?] Δ ih].
   + move=> []//=;eexists; reflexivity.
   + move=> /= ??; apply:ih.
-  + move=> /= [//|hd tl /=] s [=]. apply: ih.
+  + move=> /= [//|hd tl /=] s eq. apply Nat.succ_inj in eq. apply: ih. exact eq.
 Qed.
 
 Definition mk_ctx_subst Δ args := option_get [] (make_context_subst (List.rev Δ) args []).

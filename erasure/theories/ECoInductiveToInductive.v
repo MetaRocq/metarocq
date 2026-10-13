@@ -227,7 +227,8 @@ Section trans.
     unfold cunfold_fix.
     rewrite nth_error_map.
     destruct nth_error.
-    intros [= <- <-] => /=. f_equal.
+    intros Heq. apply some_inj in Heq.
+    apply pair_equal_spec in Heq as [<- <-]. cbn. f_equal.
     now rewrite trans_substl // trans_fix_subst.
     discriminate.
   Qed.
@@ -622,11 +623,13 @@ Proof.
   eapply
   (eval_preserve_mkApps_ind fl wcon (efl := efl) Σ _
     (wellformed Σ) (Qpres := Qpreserves_wellformed efl _ wfΣ)) => //; eauto;
-    intros; repeat destruct_times; try solve [econstructor; eauto 3].
+    intros; repeat destruct_times;
+    try solve [cbn -[GlobalContextMap.lookup_inductive_kind]; eapply eval_force with (v := trans Σ t'); eauto 3];
+    try solve [cbn -[GlobalContextMap.lookup_inductive_kind]; econstructor; eauto 3].
 
   - intros. eapply eval_wellformed in H; tea.
 
-  - econstructor; eauto.
+  - eapply eval_beta with (f := trans Σ f0) (b := trans Σ b) (a := trans Σ a); eauto.
     rewrite trans_csubst // in e. now eapply wellformed_closed.
 
   - rewrite trans_csubst // in e. now eapply wellformed_closed.
@@ -835,7 +838,7 @@ Proof. destruct t => //. Qed.
 Lemma trans_expanded {Σ : GlobalContextMap.t} t : expanded Σ t -> expanded Σ (trans Σ t).
 Proof.
   induction 1 using expanded_ind.
-  all:try solve[constructor; eauto; solve_all].
+  all:try solve[cbn -[GlobalContextMap.lookup_inductive_kind]; constructor; eauto; solve_all].
   all:rewrite ?trans_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn -[GlobalContextMap.lookup_inductive_kind].

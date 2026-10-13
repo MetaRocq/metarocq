@@ -237,7 +237,7 @@ Lemma subst_unfold_fix n k mfix idx narg fn :
 Proof.
   unfold unfold_fix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef; try congruence.
-  move=> [= <- <-] /=. f_equal. f_equal.
+  intro h; apply some_inj in h; apply pair_equal_spec in h as [harg hfn]; subst narg fn. cbn. f_equal. f_equal.
   solve_all.
   erewrite (distr_subst_rec _ _ _ k 0).
   rewrite fix_subst_length. simpl. f_equal.
@@ -254,7 +254,7 @@ Lemma subst_unfold_cofix n k mfix idx narg fn :
 Proof.
   unfold unfold_cofix.
   rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef; try congruence.
-  intros [= <- <-]. simpl. do 2 f_equal. solve_all.
+  intro h; apply some_inj in h; apply pair_equal_spec in h as [harg hfn]; subst narg fn. simpl. do 2 f_equal. solve_all.
   erewrite (distr_subst_rec _ _ _ k 0).
   rewrite cofix_subst_length. simpl. f_equal.
   unfold cofix_subst. rewrite !length_map.
@@ -570,7 +570,7 @@ Proof.
   fold (arities_context l) in *.
   cbn in Her.
   repeat (eexists; cbn; tea).
-  now eapply weaken_ctx in Hs.
+  exact (weaken_ctx (arities_context l) wfΣ IHl Hs).
 Qed.
 
 Lemma wf_arities_context {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} {mind mdecl} :
@@ -1063,11 +1063,11 @@ Lemma untyped_subslet_nth_error Γ s Δ decl n t :
   end.
 Proof.
   induction 1 in n |- *; simpl; auto; destruct n; simpl; try congruence.
-  - intros [= <-]. intros [= ->].
+  - intros hdecl ht; apply some_inj in hdecl; subst decl; apply some_inj in ht; subst t.
     simpl. auto.
   - intros. destruct decl as [na' [b|] ty]; cbn in *. 2: auto.
     specialize (IHX _ H H0). intuition auto.
-  - intros [= <-]. intros [= <-].
+  - intros hdecl ht; apply some_inj in hdecl; subst decl; apply some_inj in ht; subst t.
     simpl. split; auto.
   - apply IHX.
 Qed.

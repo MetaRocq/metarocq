@@ -24,6 +24,10 @@ Proof.
   - cbn in i. easy.
 Qed.
 
+Local Ltac inject_cunfold H :=
+  apply some_inj in H;
+  apply pair_equal_spec in H as [? ?]; subst.
+
 Section expanded.
 
 Variable Σ : global_declarations.
@@ -481,10 +485,10 @@ Section isEtaExp.
     assert (Hcl : closed a) by now eapply isEtaExp_closed in H. revert H.
     remember (Γ ++ [n] ++ Δ)%list as Γ_.
     move Hcl at top.
-    funelim (isEtaExp Γ_ b); simp_eta; simpl; intros; try simp_eta; eauto; try fold csubst;
+    funelim (isEtaExp Γ_ b); cbn [csubst]; simp_eta; simpl; intros; try simp_eta; eauto; try fold csubst;
       try toAll; repeat solve_all; subst.
     - intros. simp isEtaExp ; cbn. destruct (Nat.compare_spec #|Γ0| i) => //; simp_eta.
-      + eapply expanded_weakening with (Γ := []). eauto.
+      + eapply expanded_weakening with (Γ := []) (Γ' := Γ0 ++ Δ). eauto.
       + rewrite nth_error_app2. lia.
         rewrite !nth_error_app2 in H0. lia. cbn.
         erewrite option_default_ext; eauto.
@@ -523,7 +527,7 @@ Section isEtaExp.
       + solve_all.
     - rewrite csubst_mkApps /=. rtoProp. destruct (Nat.compare_spec #|Γ0| n) => //; simp_eta.
       + eapply isEtaExp_mkApps_intro => //. 2: solve_all.
-        now eapply expanded_weakening with (Γ := []).
+        now eapply expanded_weakening with (Γ := []) (Γ' := Γ0 ++ Δ).
       + rewrite isEtaExp_mkApps; eauto. cbn [expanded_head_viewc].
         rtoProp. split. 2: solve_all.
         rewrite !nth_error_app2 in H1 |- *; cbn; try lia.
@@ -553,7 +557,7 @@ Section isEtaExp.
   Proof using Type*.
     intros Hk Hnth Hcl.
     remember (Γ ++ [1 + d.(EAst.rarg)] ++ Δ)%list as Γ_.
-    funelim (isEtaExp Γ_ b); try simp_eta; eauto; try fold csubst;
+    funelim (isEtaExp Γ_ b); cbn [csubst]; try simp_eta; eauto; try fold csubst;
       try toAll; try solve_all; subst.
     - intros. simp isEtaExp ; cbn. destruct (Nat.compare_spec #|Γ0| i) => //; simp_eta.
       + rewrite nth_error_app2 in H0; try lia; cbn in H0; try easy. subst. rewrite Nat.sub_diag in H0. cbn in H0. easy.
@@ -647,8 +651,8 @@ Section isEtaExp.
     induction s in Γ, t |- *; simpl; auto;
     rtoProp; intuition eauto using etaExp_csubst.
     - destruct Γ; eauto; cbn in *; lia.
-    - destruct Γ; cbn in H; invs H.
-      eapply IHs; eauto. eapply etaExp_csubst' with (Γ := []); eauto.
+    - destruct Γ; cbn in H; try discriminate; apply Nat.succ_inj in H; subst.
+      eapply IHs; eauto. eapply etaExp_csubst' with (Γ := []) (Δ := Γ ++ Δ); eauto.
   Qed.
 
   Lemma isEtaExp_fixsubstl Δ mfix t :
@@ -678,7 +682,7 @@ Section isEtaExp.
       eapply IHmfix0.
       + subst. now rewrite <- app_assoc.
       + solve_all.
-      + eapply etaExp_fixsubst with (Γ := []); eauto.
+      + eapply etaExp_fixsubst with (Γ := []) (Δ := rev_map (S ∘ rarg) mfix0 ++ Δ); eauto.
         2: cbn; solve_all. 2: solve_all.
         2:{ cbn -[isEtaExp] in *. revert Heta.
             rewrite !rev_map_spec map_app rev_app_distr. cbn -[isEtaExp] in *. intros.
@@ -725,7 +729,7 @@ Section isEtaExp.
   Proof.
     intros. solve_all.
     unfold EGlobalEnv.cofix_subst.
-    unfold cofix_subst. generalize #|mfix|. intros n. solve_all. induction n.
+    unfold cofix_subst. generalize #|mfix|. intros n. solve_all. induction n; cbn [cofix_subst_aux].
       + econstructor.
       + econstructor. simp_eta. solve_all. now rewrite app_nil_r. solve_all.
   Qed.
@@ -738,7 +742,10 @@ Section isEtaExp.
     intros heta.
     unfold EGlobalEnv.cunfold_fix.
     destruct nth_error eqn:heq => //.
-    intros [= <- <-] => /=.
+    intro Hunfold.
+    apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn.
     eapply isEtaExp_fixsubstl.
     - solve_all; rtoProp; intuition auto.
     - rewrite app_nil_r. solve_all. eapply All_nth_error in heta; eauto.
@@ -753,11 +760,14 @@ Section isEtaExp.
     intros heta.
     unfold EGlobalEnv.cunfold_cofix.
     destruct nth_error eqn:heq => //.
-    intros [= <- <-] => /=.
+    intro Hunfold.
+    apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [Hn Hf].
+    subst n f; cbn.
     eapply isEtaExp_substl.
     3:{ solve_all. eapply nth_error_all in heta; eauto. rewrite app_nil_r. eapply heta. }
     - len. now rewrite cofix_subst_length.
-    - solve_all. unfold cofix_subst. generalize #|mfix|. clear - heta. induction n; econstructor; eauto.
+    - solve_all. unfold cofix_subst. generalize #|mfix|. clear - heta. induction n; cbn [cofix_subst_aux]; econstructor; eauto.
       simp_eta. solve_all. now rewrite app_nil_r.
   Qed.
 
@@ -1088,11 +1098,11 @@ Proof.
        -- rewrite !isEtaExp_mkApps in IHeval1 |- * => //.
           cbn [expanded_head_viewc] in *. forward IHeval1; rtoProp.
           ++ repeat split; solve_all. 2:{ unfold remove_last. now eapply All_firstn. }
-             unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; invs H1. clear IHeval1.
-             destruct nth_error; invs H4. eapply Nat.ltb_lt in etal. eapply Nat.ltb_lt. len.
+             unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; try discriminate; inject_cunfold H1. clear IHeval1.
+             destruct nth_error; try discriminate; inject_cunfold H4. eapply Nat.ltb_lt in etal. eapply Nat.ltb_lt. len.
           ++ repeat split; solve_all. 2:{ eapply All_app_inv; eauto. repeat econstructor; eauto. eapply IHeval2. rewrite ha. eapply Forall_last; eauto. solve_all. }
-             unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; invs H1.
-             destruct nth_error; invs H4. eapply Nat.ltb_lt in H6, etal. eapply Nat.ltb_lt. len.
+             unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; try discriminate; inject_cunfold H1.
+             destruct nth_error; try discriminate; inject_cunfold H4. eapply Nat.ltb_lt in H6, etal. eapply Nat.ltb_lt. len.
       * intros (? & ? & ? & ?). rtoProp. solve_all.
         rewrite nth_error_nil in H6. easy.
       * move/and4P => [] etat etal etaf etaa.
@@ -1100,7 +1110,7 @@ Proof.
         specialize (IHeval1 etaf).
         rewrite !isEtaExp_mkApps in IHeval1 |- * => //.
         cbn [expanded_head_viewc] in *. rtoProp. repeat split; solve_all.
-        -- unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; invs H1.
+        -- unfold isEtaExp_fixapp, cunfold_fix in *. destruct nth_error; try discriminate; inject_cunfold H1.
            len. eapply Nat.ltb_lt. eapply Nat.ltb_lt in H3. lia.
         -- eapply All_app_inv; solve_all.
   }
@@ -1133,8 +1143,8 @@ Proof.
           cbn [expanded_head_viewc]. rtoProp. repeat split; solve_all.
           2: eapply All_firstn; eauto.
           unfold isEtaExp_fixapp, cunfold_fix in *.
-          destruct nth_error; try easy. invs H1.
-          destruct nth_error; try easy. invs H5. eapply Nat.ltb_lt. lia.
+          destruct nth_error; try discriminate. inject_cunfold H1.
+          destruct nth_error; try discriminate. inject_cunfold H5. eapply Nat.ltb_lt. lia.
           rewrite isEtaExp_mkApps in IHeval1 => //.
           cbn [expanded_head_viewc] in IHeval1. rtoProp.
           eapply isEtaExp_mkApps_intro.
@@ -1178,8 +1188,8 @@ Proof.
       repeat split; solve_all.
       2: eapply All_firstn; eauto.
       unfold isEtaExp_fixapp,  cunfold_fix in *.
-      destruct nth_error; try easy.
-      invs H4. eapply Nat.ltb_lt. lia.
+      destruct nth_error; try discriminate.
+      inject_cunfold H4. eapply Nat.ltb_lt. lia.
 
     }
     {
@@ -1237,7 +1247,7 @@ Proof.
           repeat split; solve_all.
           2: eapply All_firstn; eauto.
           unfold isEtaExp_fixapp,  cunfold_fix in *.
-          destruct nth_error; try easy. noconf H4.
+          destruct nth_error; try discriminate. inject_cunfold H4.
           eapply Nat.ltb_lt. lia.
       }
       {
@@ -1278,7 +1288,7 @@ Proof.
            cbn [expanded_head_viewc]. rtoProp; solve_all; solve_all.
            2: eapply All_firstn; solve_all.
            unfold isEtaExp_fixapp, cunfold_fix in *.
-           destruct nth_error; try easy. invs H8. eapply Nat.ltb_lt. lia.
+           destruct nth_error; try discriminate. inject_cunfold H8. eapply Nat.ltb_lt. lia.
            simp_eta in IHeval1. eauto.
       }
       {
@@ -1432,7 +1442,9 @@ Proof.
       right. len.
       move: e1; unfold isEtaExp_fixapp.
       unfold EGlobalEnv.cunfold_fix. destruct nth_error eqn:hnth => //.
-      intros [=]. rewrite H3. rewrite -(All2_length a0). eapply Nat.ltb_lt; lia.
+      intro Hunfold; apply some_inj in Hunfold.
+      apply pair_equal_spec in Hunfold as [Hn _].
+      rewrite Hn. rewrite -(All2_length a0). eapply Nat.ltb_lt; lia.
     * right. len. eapply isEtaExp_fixapp_mon; tea. lia.
   + eapply mkApps_eq in H1 as [? []] => //; subst.
     specialize (IHeval1 mfix0 idx0 (remove_last args) _ withguard eq_refl) as [args' []].
@@ -1807,7 +1819,7 @@ Proof.
         eapply neval_to_stuck_fix_app in H => //.
         apply isEtaExp_FixApp => //.
         move: hunf. rewrite /cunfold_fix /isEtaExp_fixapp.
-        destruct nth_error => //. intros [=]. eapply Nat.ltb_lt. now subst n.
+        destruct nth_error => //. intro Hunfold; inject_cunfold Hunfold. now eapply Nat.ltb_lt.
         now eapply forallb_remove_last. }
     * move=> [] hl [] ha [] ht /andP[] hnth.
       now rewrite nth_error_nil /= in hnth.
@@ -1832,7 +1844,7 @@ Proof.
         unfold isStuckFix' in hstuck. rewrite H2 in hstuck.
         move: H2. rewrite /cunfold_fix.
         destruct nth_error eqn:hnth => //.
-        intros [=]. subst narg. rewrite -(All2_length hargs) in hstuck, H3.
+        intro Hunfold; inject_cunfold Hunfold. rewrite -(All2_length hargs) in hstuck, H3.
         move/Nat.ltb_lt. apply Nat.leb_le in hstuck.
         rewrite remove_last_length' // in hstuck, H3. lia. }
       eapply neval_to_stuck_fix_app in Hfix; tea.

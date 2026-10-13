@@ -112,11 +112,11 @@ Section strip.
   Lemma closed_strip t k : closedn k t -> closedn k (strip t).
   Proof using Type.
     funelim (strip t); simp strip; rewrite -?strip_equation_1; toAll; simpl;
-    intros; try easy;
+    intros; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction];
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
     simpl closed in *;
-    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try easy.
+    try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
     - solve_all_k 6.
     - rewrite !closedn_mkApps in H1 *.
       rtoProp; intuition auto.
@@ -185,10 +185,10 @@ Section strip.
   Proof using Type.
     intros cla etaa; move cla before a. move etaa before a.
     funelim (strip b); cbn; simp strip isEtaExp; rewrite -?isEtaExp_equation_1 -?strip_equation_1; toAll; simpl;
-    intros; try easy;
+    intros; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction];
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
-    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
+    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try solve [trivial with eq_true | reflexivity | symmetry; trivial | contradiction].
 
     - destruct Nat.compare => //.
     - f_equal. rtoProp. solve_all. destruct block_args; inv H0. eauto.
@@ -328,7 +328,8 @@ Section strip.
     unfold cunfold_fix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [? ?]; subst n f. cbn. f_equal. f_equal.
     rewrite strip_substl //.
     now apply isEtaExp_fix_subst.
     solve_all. eapply nth_error_all in heta; tea. cbn in heta.
@@ -348,7 +349,8 @@ Section strip.
     unfold cunfold_cofix.
     rewrite nth_error_map.
     destruct nth_error eqn:heq.
-    intros [= <- <-] => /=. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [? ?]; subst n f. cbn. f_equal.
     rewrite strip_substl //.
     now apply isEtaExp_cofix_subst.
     solve_all. now eapply nth_error_all in heta; tea.
@@ -1254,7 +1256,7 @@ Proof.
     rewrite strip_mkApps // /=.
     move: Heq.
     rewrite GlobalContextMap.lookup_inductive_pars_spec.
-    unfold wellformed in wfc. move/andP: wfc => [] /andP[] hacc hc bargs.
+    cbn -[lookup_constructor lookup_inductive lookup_minductive] in wfc. move/andP: wfc => [] /andP[] hacc hc bargs.
     unfold lookup_inductive_pars. destruct lookup_minductive eqn:heq => //.
     unfold lookup_constructor, lookup_inductive in hc. rewrite heq /= // in hc.
 Qed.

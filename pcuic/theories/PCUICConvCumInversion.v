@@ -80,7 +80,7 @@ Proof.
   - constructor.
   - intros h; exfalso; inv h.
   - intros h; exfalso; inv h.
-  - intros h [=]. constructor. apply IHΔ => //.
+  - intros h Hlen. apply Nat.succ_inj in Hlen. constructor. apply IHΔ => //.
     now inv h.
 Qed.
 

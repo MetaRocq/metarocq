@@ -472,7 +472,8 @@ Lemma term_global_deps_cunfold_fix mfix idx n f :
 Proof.
   unfold EGlobalEnv.cunfold_fix.
   destruct nth_error eqn:E => //.
-  intros [= <- <-].
+  intros H. apply some_inj in H.
+  apply pair_equal_spec in H as [Hn Hf]. subst n f.
   intros kn hin.
   eapply term_global_deps_substl in hin.
   rewrite KernameSet.union_spec in hin.
@@ -501,7 +502,8 @@ Lemma term_global_deps_cunfold_cofix mfix idx n f :
 Proof.
   unfold EGlobalEnv.cunfold_cofix.
   destruct nth_error eqn:E => //.
-  intros [= <- <-].
+  intros H. apply some_inj in H.
+  apply pair_equal_spec in H as [Hn Hf]. subst n f.
   intros kn hin.
   eapply term_global_deps_substl in hin.
   rewrite KernameSet.union_spec in hin.
@@ -1477,12 +1479,11 @@ Proof.
 Qed.
 
 (* TODO: Should this live elsewhere? *)
-Definition iter {A} (f : A -> A) : nat -> (A -> A)
-  := fix iter (n : nat) : A -> A
-    := match n with
-       | O => fun x => x
-       | S n => fun x => iter n (f x)
-       end.
+Fixpoint iter {A} (f : A -> A) (n : nat) : A -> A :=
+  match n with
+  | O => fun x => x
+  | S n => fun x => iter f n (f x)
+  end.
 
 (* we use the [match] trick to get typeclass resolution to pick up the right instances without leaving any evidence in the resulting term, and without having to pass them manually everywhere *)
 Abbreviation NormalizationIn_erase_global_deps X decls
@@ -1925,11 +1926,11 @@ Proof.
   { eapply Alli_impl; eauto.
     simpl. intros n x []. simpl in *. rewrite ind_arity_eq.
     rewrite !destArity_it_mkProd_or_LetIn /= //. } clear oni.
-  induction X; constructor; auto.
+  induction X; cbn; constructor; auto.
   destruct hd; constructor; simpl; auto.
   clear.
-  induction ind_ctors0; constructor; auto.
+  induction ind_ctors0; cbn; constructor; auto.
   cbn in *.
   intuition auto.
-  induction ind_projs0; constructor; auto.
+  induction ind_projs0; cbn; constructor; auto.
 Qed.

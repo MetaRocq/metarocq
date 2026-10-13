@@ -86,7 +86,7 @@ Proof.
   intros hasfix qfix qpre; unfold fix_subst.
   generalize (Nat.le_refl #|mfix|).
   generalize #|mfix| at 1 4.
-  induction n. intros. constructor; auto.
+  induction n; cbn [fix_subst_aux]. intros. constructor; auto.
   intros. constructor. eapply qfix => //. 2:tea. tea.
   eapply IHn. lia. 2:tea. assumption.
 Qed.
@@ -96,7 +96,7 @@ Proof.
   intros hascofix qcofix qpre; unfold cofix_subst.
   generalize (Nat.le_refl #|mfix|).
   generalize #|mfix| at 1 4.
-  induction n. intros. constructor; auto.
+  induction n; cbn [cofix_subst_aux]. intros. constructor; auto.
   intros. constructor. eapply qcofix => //. 2:tea. tea.
   eapply IHn. lia. 2:tea. assumption.
 Qed.
@@ -111,7 +111,9 @@ Proof.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qfix_subst _ _ hasfix qfix qpres idx H hfix).
-  intros [= <-]. subst fn.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [Hargs Hfn].
+  subst args fn.
   eapply Hs. rewrite fix_subst_length //.
   eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
   assumption.
@@ -127,7 +129,9 @@ Proof.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qcofix_subst _ _ hasfix qfix qpres idx H hfix).
-  intros [= <-]. subst fn.
+  intro Hunfold. apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [Hargs Hfn].
+  subst args fn.
   eapply Hs. rewrite cofix_subst_length //.
   eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
   assumption.

@@ -320,6 +320,24 @@ Proof using Type.
     all:tea.
 Qed.
 
+Local Lemma instantiated_prod_inj na A B na' A' B' :
+  tProd na A B = tProd na' A' B' -> na = na' /\ A = A' /\ B = B'.
+Proof. intro h; injection h; auto. Qed.
+
+Local Lemma instantiated_prod_inv {Σ Γ na A B} :
+  instantiated (Σ := Σ) Γ (tProd na A B) ->
+  ∑ i u args, (A = mkApps (tInd i u) args) ×
+    firstorder_ind Σ (firstorder_env Σ) i ×
+    (forall x, instantiated (Σ := Σ) Γ (subst10 x B)).
+Proof.
+  intro hi. remember (tProd na A B) as T eqn:heq in hi.
+  destruct hi as [i u args | na' d b ty hi | na' B' i u args hfo hinst].
+  - apply (f_equal head) in heq. rewrite head_mkApps in heq. discriminate.
+  - discriminate heq.
+  - apply instantiated_prod_inj in heq as [_ [hA hB]]. subst B'.
+    exists i, u, args. repeat split; auto.
+Qed.
+
 Lemma instantiated_typing_spine_firstorder_spine {Σ : global_env_ext} {wfΣ : wf Σ} Γ T args T' :
   instantiated (Σ := Σ) Γ T ->
   arity_spine Σ Γ T args T' ->
@@ -332,8 +350,8 @@ Proof using Type.
   - econstructor; eauto.
   - depelim hi. solve_discr. eapply firstorder_spine_let; eauto. eapply IHhsp => //.
     now eapply isType_tLetIn_red in isty; pcuic.
-  - depelim hi. solve_discr.
-    specialize (i1 hd). specialize (IHhsp i1).
+  - apply instantiated_prod_inv in hi as [i [u [pars [hA [hfo hinst]]]]]. subst.
+    specialize (hinst hd). specialize (IHhsp hinst).
     destruct (validity t) as (_ & s & Hs & _). eapply inversion_mkApps in Hs as [? [hi _]].
     eapply inversion_Ind in hi as [mdecl [idecl [decli [? ?]]]].
     econstructor; tea. 2:{ eapply IHhsp. eapply isType_apply in isty; tea. }
@@ -705,7 +723,7 @@ Proof using Type.
        eapply invert_fix_ind in Hty. auto.
        unfold unfold_fix. unfold PCUICWcbvEval.cunfold_fix in E.
        destruct (nth_error mfix idx); auto.
-       inversion E; subst; clear E.
+       apply some_inj in E; apply pair_equal_spec in E as [Earg Ebody]; subst.
        eapply nth_error_None. lia.
     + exfalso. eapply (typing_cofix_coind (args := args')) in Hty.
       red in Hfo. unfold firstorder_ind in Hfo.

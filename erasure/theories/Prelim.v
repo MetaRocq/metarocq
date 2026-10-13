@@ -204,7 +204,8 @@ Proof.
   eapply PCUICValidity.inversion_mkApps in ht as (? & ? & ?); eauto.
   eapply inversion_CoFix in t; auto.
   destruct_sigma t.
-  rewrite /unfold_cofix e => [=] harg hfn.
+  rewrite /unfold_cofix e. intro Hunfold.
+  apply some_inj in Hunfold; apply pair_equal_spec in Hunfold as [harg hfn].
   subst fn.
   eapply PCUICSpine.typing_spine_strengthen in t0; eauto.
   eapply PCUICSpine.type_mkApps; eauto.

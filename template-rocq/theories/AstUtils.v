@@ -562,14 +562,14 @@ Import MonadLetNotation.
 
 Context {M : Type -> Type} `{Monad M} {Acc : Type} {A : Type} {a : A} {liftM : aname -> A -> M A}.
 
+Fixpoint lift_namesM_aux (names : list aname) (a : A) {struct names} : M A :=
+  match names with
+  | [] => ret a
+  | n :: names => lift_namesM_aux names =<< liftM n a
+  end.
+
 Definition lift_namesM (names : list aname) (a : A) : M A :=
-  let fix loop names a :=
-    match names with
-    | [] => ret a
-    | n :: names => loop names =<< liftM n a
-    end
-  in
-  loop (List.rev names) a.
+  lift_namesM_aux (List.rev names) a.
 
 Definition map_defM {A B} (tyf bodyf : A -> M B) (d : def A) : M (def B) :=
   let* dtype := tyf d.(dtype) in
@@ -721,13 +721,14 @@ Definition fold_termM {M} `{Monad M} {Acc} (f : Acc -> term -> M Acc) (acc : Acc
 
 
 
-  Definition fix_decls (l : mfixpoint term) :=
-    let fix aux acc ds :=
-        match ds with
-        | nil => acc
-        | d :: ds => aux (vass d.(dname) d.(dtype) :: acc) ds
-        end
-    in aux [] l.
+Fixpoint fix_decls_acc (acc : context) (ds : mfixpoint term) {struct ds} : context :=
+  match ds with
+  | nil => acc
+  | d :: ds => fix_decls_acc (vass d.(dname) d.(dtype) :: acc) ds
+  end.
+
+Definition fix_decls (l : mfixpoint term) :=
+  fix_decls_acc [] l.
 
 Section Lookups.
   Context (Σ : global_env).

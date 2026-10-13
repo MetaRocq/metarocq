@@ -589,7 +589,8 @@ Proof.
     rename e0 into hcum.
     rename e1 into e.
     destruct Hfix as (? & ? & ? & ? & ? & ? & e1).
-    unfold cunfold_fix in e. rewrite e0 in e. invs e.
+    unfold cunfold_fix in e. rewrite e0 in e.
+    apply some_inj in e. apply pair_equal_spec in e as [H3 e_fn]. subst.
     depelim He; first last.
 
     + exists EAst.tBox. split; [|now constructor; constructor].
@@ -884,7 +885,9 @@ Proof.
           econstructor; eauto.
           eapply erases_mkApps.
           move: e0 e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
+          unfold unfold_cofix. intros hnth; rewrite hnth.
+          intros Heq. apply some_inj in Heq.
+          apply pair_equal_spec in Heq as [Hnarg Hfn].
           subst fn narg.
           eapply All_nth_error in a0 as a'; tea. apply unlift_TermTyp in a'.
           eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
@@ -921,7 +924,9 @@ Proof.
           forward IHeval2.
           econstructor; eauto. cbn.
           move: e0 e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
+          unfold unfold_cofix. intros hnth; rewrite hnth.
+          intros Heq. apply some_inj in Heq.
+          apply pair_equal_spec in Heq as [Hnarg Hfn].
           subst fn narg.
           constructor.
           eapply isErasable_unfold_cofix; tea.
@@ -935,7 +940,7 @@ Proof.
       exists E.tBox. split; repeat constructor; auto.
       assert (PCUICReduction.red Σ [] (tCase ip p discr brs) res).
       eapply wcbveval_red in Heval; tea.
-      now eapply isErasable_red.
+      solve [eapply isErasable_red; tea].
 
   - assert (Hty' := Hty).
     eapply inversion_Proj in Hty' as (? & ? & ? & ? & [] & ? & ? & ? & e0 & e1); auto.
@@ -981,7 +986,8 @@ Proof.
           pose proof X as X0'. destruct X0' as [tyapp [u [Htyapp Hu]]].
           eapply Is_proof_ty; eauto.
           move: e. rewrite -closed_unfold_cofix_cunfold_eq // /unfold_cofix e2.
-          intros [= <- <-].
+          intros Heq. apply some_inj in Heq.
+          apply pair_equal_spec in Heq as [<- <-].
           eapply unfold_cofix_type; eauto.
           2:{ unfold unfold_cofix; erewrite e2. reflexivity. }
           now rewrite app_nil_r. }
@@ -1004,7 +1010,9 @@ Proof.
           econstructor; eauto.
           eapply erases_mkApps.
           move: hnth e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth'; rewrite hnth'. intros [=].
+          unfold unfold_cofix. intros hnth'; rewrite hnth'.
+          intros Heq. apply some_inj in Heq.
+          apply pair_equal_spec in Heq as [Hnarg Hfn].
           subst fn narg. rewrite hnth' in e2. noconf e2.
           eapply All_nth_error in a0 as a'; tea. eapply unlift_TermTyp in a'.
           eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
@@ -1041,7 +1049,9 @@ Proof.
           forward IHeval2.
           econstructor; eauto. cbn.
           move: hnth e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
+          unfold unfold_cofix. intros hnth; rewrite hnth.
+          intros Heq. apply some_inj in Heq.
+          apply pair_equal_spec in Heq as [Hnarg Hfn].
           subst fn narg.
           constructor.
           eapply isErasable_unfold_cofix; tea.

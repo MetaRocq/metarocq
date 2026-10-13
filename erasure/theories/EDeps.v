@@ -65,7 +65,7 @@ Proof.
     clear H3.
     induction X; [easy|].
     depelim H4.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now cbn.
   - depelim er.
     now econstructor.
@@ -75,7 +75,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim er.
     constructor.
@@ -83,7 +83,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim X; depelim er; constructor; cbn. solve_all.
     destruct p. solve_all.
@@ -106,7 +106,7 @@ Proof.
     constructor.
     induction H; [simpl; easy|].
     depelim X.
-    now constructor.
+    now cbn; constructor.
   - depelim er.
     now constructor.
   - depelim er.
@@ -119,7 +119,7 @@ Proof.
     econstructor; eauto. now len. clear H3.
     induction X; [easy|].
     depelim H4.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now cbn.
   - depelim er.
     now econstructor.
@@ -129,7 +129,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim er.
     constructor.
@@ -137,7 +137,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim X; depelim er; constructor; cbn; intuition auto; solve_all.
   - depelim er.
@@ -166,7 +166,7 @@ Proof.
     constructor.
     induction H; [simpl; easy|].
     depelim X.
-    now constructor.
+    now cbn; constructor.
   - depelim er.
     now constructor.
   - depelim er.
@@ -180,7 +180,7 @@ Proof.
     now len. clear H3.
     induction X; [easy|].
     depelim H4.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now cbn.
   - depelim er.
     now econstructor.
@@ -190,7 +190,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim er.
     constructor.
@@ -198,7 +198,7 @@ Proof.
     cbn in *.
     rewrite <- !Nat.add_succ_r.
     depelim X.
-    constructor; [|easy].
+    cbn; constructor; [|easy].
     now apply e.
   - depelim X; depelim er; constructor; cbn; intuition auto; solve_all.
   - depelim er.
@@ -226,7 +226,7 @@ Lemma Forall_erases_deps_fix_subst Σ Σ' defs :
 Proof.
   intros all.
   unfold EGlobalEnv.fix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn in *; constructor.
   - now constructor.
   - now apply IHl.
 Qed.
@@ -237,7 +237,7 @@ Lemma Forall_erases_deps_cofix_subst Σ Σ' defs :
 Proof.
   intros all.
   unfold EGlobalEnv.cofix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn in *; constructor.
   - now constructor.
   - now apply IHl.
 Qed.
@@ -251,7 +251,7 @@ Proof.
   unfold cunfold_fix in *.
   destruct (nth_error _ _) eqn:nth; [|congruence].
   eapply nth_error_forall in nth; [|eassumption].
-  noconf cuf.
+  apply some_inj in cuf; apply pair_equal_spec in cuf as [? ?]; subst narg f.
   apply erases_deps_substl; [|easy].
   now apply Forall_erases_deps_fix_subst.
 Qed.
@@ -265,7 +265,7 @@ Proof.
   unfold cunfold_cofix in *.
   destruct (nth_error _ _) eqn:nth; [|congruence].
   eapply nth_error_forall in nth; [|eassumption].
-  noconf cuf.
+  apply some_inj in cuf; apply pair_equal_spec in cuf as [? ?]; subst narg f.
   apply erases_deps_substl; [|easy].
   now apply Forall_erases_deps_cofix_subst.
 Qed.

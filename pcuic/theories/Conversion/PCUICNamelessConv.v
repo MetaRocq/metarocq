@@ -308,7 +308,7 @@ Lemma eq_context_nl Σ cmp_universe cmp_sort pb ctx ctx' :
   eq_context_gen (fun pb => eq_term_upto_univ (nl_global_env Σ) cmp_universe cmp_sort pb) pb (nlctx ctx) (nlctx ctx').
 Proof.
   intros H.
-  induction H; constructor; simpl; destruct p; intuition
+  induction H; cbn; constructor; simpl; destruct p; intuition
     (constructor; auto using nl_eq_term_upto_univ).
 Qed.
 
@@ -1249,7 +1249,7 @@ Proof.
       cbn.
       replace (isLambda (nl (dbody d))) with (isLambda (dbody d))
         by (destruct (dbody d) ; reflexivity).
-      inversion H. subst. rewrite nl_subst.
+      apply some_inj in H. apply pair_equal_spec in H as [Hrarg Hfn]. subst. rewrite nl_subst.
       repeat f_equal. clear.
       unfold fix_subst. rewrite length_map.
       induction #|mfix|.
@@ -1265,7 +1265,7 @@ Proof.
     unfold unfold_cofix in *. rewrite nth_error_map.
     destruct (nth_error mfix idx). 2: discriminate.
     cbn.
-    inversion H. subst. rewrite nl_subst.
+    apply some_inj in H. apply pair_equal_spec in H as [Hrarg Hfn]. subst. rewrite nl_subst.
     repeat f_equal. clear.
     unfold cofix_subst. rewrite length_map.
     induction #|mfix|.
@@ -1275,7 +1275,7 @@ Proof.
     unfold unfold_cofix in *. rewrite nth_error_map.
     destruct (nth_error mfix idx). 2: discriminate.
     cbn.
-    inversion H. subst. rewrite nl_subst.
+    apply some_inj in H. apply pair_equal_spec in H as [Hrarg Hfn]. subst. rewrite nl_subst.
     repeat f_equal. clear.
     unfold cofix_subst. rewrite length_map.
     induction #|mfix|.
@@ -1416,7 +1416,7 @@ Lemma All2i_map {A B C D} (f : A -> B) (g : C -> D) P n l l' :
   All2i P n (map f l) (map g l').
 Proof.
   split.
-  - induction 1; constructor; auto.
+  - induction 1; cbn; constructor; auto.
   - induction l in n, l' |- *; destruct l'; intros H; depelim H; constructor; auto.
 Qed.
 

@@ -53,16 +53,17 @@ Section fresh.
     | _ => "U"
     end.
 
+  Fixpoint fresh_id_from_aux Γ n id (i : nat) : ident :=
+    match i with
+    | 0 => id
+    | S i' =>
+      let id' := id ^ string_of_nat (n - i) in
+      if is_fresh Γ id' then id'
+      else fresh_id_from_aux Γ n id i'
+    end.
+
   Definition fresh_id_from Γ n id :=
-    let fix aux i :=
-      match i with
-      | 0 => id
-      | S i' =>
-        let id' := id ^ string_of_nat (n - i) in
-        if is_fresh Γ id' then id'
-        else aux i'
-      end
-    in aux n.
+    fresh_id_from_aux Γ n id n.
 
   Definition fresh_name (Γ : list ident) (na : name) (t : option term) : ident :=
     let id := match na with
@@ -100,15 +101,16 @@ Section fresh.
     | None => None
     end. *)
 
+  Fixpoint fresh_names_acc (Γids : list ident) (Γ : context) {struct Γ} : list ident :=
+    match Γ with
+    | [] => Γids
+    | decl :: Γ =>
+      fresh_names_acc
+        (fresh_name Γids (binder_name (decl_name decl)) (Some (decl_type decl)) :: Γids) Γ
+    end.
+
   Definition fresh_names (Γ : list ident) (Γ' : context) : list ident :=
-    let fix aux Γids Γ :=
-        match Γ with
-        | [] => Γids
-        | decl :: Γ => aux (fresh_name Γids (binder_name (decl_name decl))
-                                        (Some (decl_type decl)) :: Γids)
-                            Γ
-        end in
-    aux Γ (MRList.rev Γ').
+    fresh_names_acc Γ (MRList.rev Γ').
 End fresh.
 
 Module PrintTermTree.

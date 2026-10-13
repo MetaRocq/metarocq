@@ -375,7 +375,9 @@ Section Rho.
   fold_fix_context_wf (d :: mfix) rho Γ acc =>
     fold_fix_context_wf mfix (fun Γ x Hx => rho Γ x _) Γ (vass (dname d) (lift0 #|acc| (rho Γ (dtype d) _)) :: acc).
   Proof.
-    lia. unfold def_depth_gen. lia.
+    change (depth x <= max (def_depth_gen depth d) (mfixpoint_depth mfix)). lia.
+    change (depth (dtype d) <= max (def_depth_gen depth d) (mfixpoint_depth mfix)).
+    unfold def_depth_gen. lia.
   Qed.
   Transparent fold_fix_context_wf.
 
@@ -2362,7 +2364,7 @@ Section Rho.
       2:solve_all.
       move: H1.
       rewrite /unfold_fix. destruct nth_error eqn:hnth => //.
-      intros [= <- <-].
+      intro hunfold; apply some_inj in hunfold; apply pair_equal_spec in hunfold as [harg hfn]; subst.
       assert (on_ctx_free_vars (shiftnP #|mfix0| P) (Γ,,, fix_context mfix0)) by t.
       assert (forallb (test_def (on_free_vars P) (on_free_vars (shiftnP #|mfix1| P))) mfix1).
       { solve_all. eapply All2_All_mix_left in X1; tea.
@@ -2385,7 +2387,7 @@ Section Rho.
       move: H1. rewrite /unfold_cofix.
       destruct nth_error eqn:hnth => //.
       eapply nth_error_all in hnth; tea.
-      intros [= <- <-].
+      intro hunfold; apply some_inj in hunfold; apply pair_equal_spec in hunfold as [harg hfn]; subst.
       eapply on_free_vars_subst.
       eapply (on_free_vars_cofix_subst _ _ idx); cbn; tea. solve_all.
       cbn in hnth. now len; inv_on_free_vars.
@@ -2399,7 +2401,7 @@ Section Rho.
       move: H1. rewrite /unfold_cofix.
       destruct nth_error eqn:hnth => //.
       eapply nth_error_all in hnth; tea.
-      intros [= <- <-].
+      intro hunfold; apply some_inj in hunfold; apply pair_equal_spec in hunfold as [harg hfn]; subst.
       eapply on_free_vars_subst.
       eapply (on_free_vars_cofix_subst _ _ idx); cbn; tea. solve_all.
       cbn in hnth. now len; inv_on_free_vars.

@@ -146,9 +146,11 @@ Module NoGuard.
   (* idk why this is needed... *)
   #[local] Hint Extern 1 (Monad _) => refine TemplateMonad_Monad : typeclass_instances.
   Local Unset Guard Checking. (* Inconsistent!  See https://coq.zulipchat.com/#narrow/stream/237658-MetaRocq/topic/.60tmFix.60point.20combinator/near/311488798 *)
-  Definition tmFix {A B} (f : (A -> TemplateMonad B) -> (A -> TemplateMonad B)) : A -> TemplateMonad B
-    := (fix tmFix (dummy : unit) {struct dummy} : A -> @TemplateMonad B
-        := f (fun a => tmFix tt a)) tt.
+  Fixpoint tmFix_aux {A B} (f : (A -> TemplateMonad B) -> (A -> TemplateMonad B))
+           (dummy : unit) {struct dummy} : A -> TemplateMonad B :=
+    f (fun a => tmFix_aux f tt a).
+  Definition tmFix {A B} (f : (A -> TemplateMonad B) -> (A -> TemplateMonad B)) : A -> TemplateMonad B :=
+    tmFix_aux f tt.
   Local Set Guard Checking.
   Definition six := tmFix (fun f a => if (6 <? a) then ret 6 else f (S a))%nat 0%nat.
   Goal True.
@@ -206,9 +208,11 @@ Proof.
 Defined.
 Module NoGuardFix.
   Local Unset Guard Checking. (* Inconsistent! *)
-  Definition Fix {A B} (f : (A -> B) -> (A -> B)) : A -> B
-    := (fix Fix (dummy : unit) {struct dummy} : A -> B
-        := f (fun a => Fix tt a)) tt.
+  Fixpoint Fix_aux {A B} (f : (A -> B) -> (A -> B))
+           (dummy : unit) {struct dummy} : A -> B :=
+    f (fun a => Fix_aux f tt a).
+  Definition Fix {A B} (f : (A -> B) -> (A -> B)) : A -> B :=
+    Fix_aux f tt.
   Local Set Guard Checking.
 End NoGuardFix.
 Definition count_down_noguard (v : N) : N

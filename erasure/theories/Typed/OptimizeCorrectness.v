@@ -37,6 +37,12 @@ Unset SsrRewrite.
 Local Set Firstorder Solver auto.
 Ltac Tauto.intuition_solver ::= auto with *.
 
+(* Close simple side conditions without speculatively inverting recursive
+   induction hypotheses. *)
+Local Ltac solve_simple :=
+  solve [eassumption | discriminate | trivial with eq_true | reflexivity |
+         symmetry; trivial | contradiction | intuition (trivial with eq_true) | lia].
+
 Lemma lookup_env_trans_env Σ kn :
   EGlobalEnv.lookup_env (trans_env Σ) kn =
   option_map trans_global_decl (lookup_env Σ kn).
@@ -418,11 +424,11 @@ Proof.
     + now rewrite IH by easy.
     + destruct mask as [|[] mask].
       * easy.
-      * rewrite IH by easy.
+      * rewrite IH by (exact (Nat.succ_inj #|vasses Γ| #|mask| len_eq)).
         cbn in *.
         unfold subst1.
         now rewrite !distr_subst.
-      * now rewrite IH.
+      * rewrite IH; [reflexivity | exact (Nat.succ_inj #|vasses Γ| #|mask| len_eq)].
 Qed.
 
 Lemma dearg_single_masked mask t args :
@@ -433,7 +439,7 @@ Proof.
   induction mask in mask, t, args, le |- *.
   - now destruct args.
   - destruct args; [easy|].
-    now destruct a; cbn in *; apply IHmask.
+    destruct a; cbn in *; apply IHmask; lia.
 Qed.
 
 Lemma eval_dearg_lambdas_inv {wfl : WcbvFlags} Σ mask Γ inner v :
@@ -453,7 +459,7 @@ Proof.
     + easy.
     + apply eval_tLetIn_inv in ev as (bodyv & ev_body & ev_let).
       propify.
-      assert (closed bodyv) by (now eapply eval_closed).
+      assert (closed bodyv) by (eapply eval_closed; [exact env_clos | | exact ev_body]; intuition assumption).
       rewrite closed_subst in ev_let by easy.
       rewrite <- dearg_lambdas_subst in ev_let by easy.
       rewrite <- closed_subst in ev_let by easy.
@@ -462,13 +468,13 @@ Proof.
       apply IH in ev_let as (tv & ev_tv).
       * exists tv.
         rewrite <- subst_it_mkLambda_or_LetIn in ev_tv.
-        now econstructor.
+        solve [econstructor; try solve_simple].
       * rewrite <- subst_it_mkLambda_or_LetIn.
-        now apply closed_csubst.
+        solve [apply closed_csubst; try solve_simple].
       * now rewrite vasses_subst_context.
       * now rewrite length_subst_context.
     + destruct mask as [|[] mask].
-      * easy.
+      * solve_simple.
       * eexists.
         now eapply eval_atom.
       * eexists.
@@ -574,20 +580,20 @@ Proof.
     apply eval_tLetIn_inv in ev_let as ev_subst.
     destruct ev_subst as (bodyv & ev_body & ev_subst).
     propify.
-    assert (closed bodyv) by (now eapply eval_closed).
+    assert (closed bodyv) by (eapply eval_closed; [exact env_clos | | exact ev_body]; intuition assumption).
     unshelve epose proof
              (IH args mask
                  (subst_context bodyv 0 Γ)
                  (csubst bodyv #|Γ| inner)
                  _ _ _ _ _ _ _) as IH.
     + rewrite <- subst_it_mkLambda_or_LetIn.
-      now apply closed_csubst.
+      solve [apply closed_csubst; try solve_simple].
     + easy.
     + rewrite <- subst_it_mkLambda_or_LetIn.
       now apply valid_dearg_mask_csubst.
     + easy.
     + rewrite <- subst_it_mkLambda_or_LetIn.
-      eapply (eval_mkApps_heads _ _ _ letv); [easy|easy|].
+      eapply (eval_mkApps_heads _ _ _ letv); [solve_simple|solve_simple|].
       now eapply eval_mkApps_heads; [exact ev_let| |]; easy.
     + now rewrite vasses_subst_context.
     + now rewrite length_subst_context.
@@ -598,24 +604,24 @@ Proof.
       apply eval_dearg_lambdas_inv in ev_top as ev_sub_top; cycle 1.
       * easy.
       * rewrite <- subst_it_mkLambda_or_LetIn.
-        now apply closed_csubst.
+        solve [apply closed_csubst; try solve_simple].
       * now rewrite vasses_subst_context.
       * destruct ev_sub_top as (sub_top & ev_sub_top).
         rewrite <- subst_it_mkLambda_or_LetIn in ev_top.
         eapply eval_mkApps_heads; [| |now eauto]; [now eauto|].
-        econstructor; [easy|].
+        econstructor; [solve_simple|].
         rewrite !closed_subst in * by easy.
         now rewrite <- dearg_lambdas_subst.
   - destruct mask as [|b mask]; [easy|];
       cbn in *; refold.
-    destruct args as [|a args]; cbn in *; [easy|].
+    destruct args as [|a args]; cbn in *; [lia|].
     apply eval_mkApps_head in ev as ev_app.
     destruct ev_app as (appv & ev_app).
     apply eval_tApp_tLambda_inv in ev_app as ev_subst.
     destruct ev_subst as (av & ev_a & ev_subst).
     assert (closed av).
     { apply Forall_inv in args_clos.
-      now eapply eval_closed. }
+      eapply eval_closed; [exact env_clos | | exact ev_a]; intuition assumption. }
     unshelve epose proof
     (IH args mask
         (subst_context av 0 Γ)
@@ -626,8 +632,8 @@ Proof.
     + now apply Forall_inv_tail in args_clos.
     + rewrite <- subst_it_mkLambda_or_LetIn.
       propify.
-      now apply valid_dearg_mask_csubst.
-    + easy.
+      solve [apply valid_dearg_mask_csubst; try solve_simple].
+    + solve_simple.
     + rewrite <- subst_it_mkLambda_or_LetIn.
       now eapply eval_mkApps_heads; [exact ev_app| |]; easy.
     + now rewrite vasses_subst_context.
@@ -647,11 +653,11 @@ Proof.
            unfold subst1.
            rewrite <- dearg_lambdas_subst by easy.
            propify.
-           now erewrite no_use_subst.
+           solve [erewrite no_use_subst; try solve_simple].
         -- eapply eval_mkApps_heads; [| |now eauto]; [now eauto|].
            rewrite dearg_lambdas_subst in ev_top by easy.
            rewrite <- closed_subst in ev_top by easy.
-           eapply eval_beta; [|easy|easy].
+           eapply eval_beta; [|solve_simple|solve_simple].
            now eapply eval_atom.
 Qed.
 
@@ -1321,7 +1327,7 @@ Proof.
   induction t in t, k, k', le |- * using term_forall_list_ind; cbn in *; auto.
   - destruct (_ <=? _) eqn:?; propify; cbn.
     + destruct (nth_error _ _) eqn:nth.
-      * replace n with k' in * by (now apply nth_error_Some_length in nth; cbn in * ).
+      * replace n with k' in * by (apply nth_error_Some_length in nth; cbn in * ; try solve_simple).
         rewrite Nat.sub_diag in nth.
         cbn in *.
         noconf nth.
@@ -1660,8 +1666,9 @@ Proof.
     f_equal.
     now apply (p _ _ []).
   - rewrite subst_mkApps, map_map; cbn; f_equal. f_equal.
-    solve_all. eapply map_prim_eq_prop; tea; cbn; intuition eauto.
-    specialize (a s k []). eauto.
+    primProp. autorewrite with map. eapply map_prim_eq_prop; tea; cbn.
+    intros x [ih valid]. specialize (ih s k []). cbn in ih.
+    exact (ih valid es).
   - rewrite subst_mkApps, map_map; cbn; f_equal.
     f_equal. specialize (IHt s k []); cbn in IHt. eauto.
   - rewrite subst_mkApps, map_map; cbn; f_equal.
@@ -1852,7 +1859,7 @@ Lemma Forall_is_expanded_fix_subst defs :
 Proof.
   intros all.
   unfold fix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - now apply forallb_Forall.
   - now apply IHl.
 Qed.
@@ -1863,7 +1870,7 @@ Lemma Forall_is_expanded_cofix_subst defs :
 Proof.
   intros all.
   unfold cofix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - now apply forallb_Forall.
   - now apply IHl.
 Qed.
@@ -2451,7 +2458,7 @@ Lemma Alli_map {A B P n} {f : A -> B} l :
   Alli (fun n x => P n (f x)) n l ->
   Alli P n (map f l).
 Proof.
-  induction 1; constructor; eauto.
+  induction 1; cbn; constructor; eauto.
 Qed.
 
 
@@ -2521,7 +2528,7 @@ Lemma Forall_closed_fix_subst defs :
 Proof.
   intros all.
   unfold fix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - apply forallb_Forall.
     eapply Forall_impl; [eassumption|].
     intros.
@@ -2535,7 +2542,7 @@ Lemma Forall_closed_cofix_subst defs :
 Proof.
   intros all.
   unfold cofix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - apply forallb_Forall.
     eapply Forall_impl; [eassumption|].
     intros.
@@ -2549,7 +2556,7 @@ Lemma Forall_valid_cases_fix_subst defs :
 Proof.
   intros all.
   unfold fix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - now apply forallb_Forall.
   - now apply IHl.
 Qed.
@@ -2560,7 +2567,7 @@ Lemma Forall_valid_cases_cofix_subst defs :
 Proof.
   intros all.
   unfold cofix_subst.
-  induction defs at 2; constructor; cbn in *.
+  induction defs at 2; cbn; constructor; cbn in *.
   - now apply forallb_Forall.
   - now apply IHl.
 Qed.
@@ -3179,10 +3186,10 @@ Proof.
   - now destruct xs.
   - destruct xs; cbn in *; [easy|].
     destruct a; cbn in *.
-    + rewrite IHm by easy.
-      now unfold count_zeros.
-    + rewrite IHm by easy.
-      now unfold count_zeros.
+    + rewrite IHm by solve_simple.
+      solve [unfold count_zeros; try solve_simple].
+    + rewrite IHm by solve_simple.
+      solve [unfold count_zeros; try solve_simple].
 Qed.
 
 
@@ -3198,7 +3205,7 @@ Lemma isEtaExp_dearg_single Σ Γ t m l :
 Proof.
   induction m in Γ, l, t |- *; intros etat etal.
   - cbn. eapply isEtaExp_mkApps_intro; solve_all.
-  - cbn. destruct a; destruct l; simp_eta; eauto. eapply IHm; eauto.
+  - cbn. destruct a; destruct l; cbn in etal; simp_eta; eauto. eapply IHm; eauto.
     now eapply (isEtaExp_lift _ _ [_] []).
     eapply IHm; eauto. now move/andP: etal.
     eapply IHm. eapply (isEtaExp_mkApps_intro _ _ _ [_]).
@@ -3328,18 +3335,18 @@ Section dearg.
     intros ? clos_hd valid_hd exp_hd clos_arg valid_arg exp_arg ev ev_len.
     depind ev; cbn in *;try congruence.
     - apply eval_box with (dearg t').
-      + now unshelve eapply (IH _ _ _ _ _ ev1).
-      + now unshelve eapply (IH _ _ _ _ _ ev2).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev1); try solve_simple].
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2); try solve_simple].
     - apply (eval_beta _ _ na (dearg b) _ (dearg a')).
-      + now unshelve eapply (IH _ _ _ _ _ ev1).
-      + now unshelve eapply (IH _ _ _ _ _ ev2).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev1); try solve_simple].
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2); try solve_simple].
       + facts.
         clear IHev1 IHev2 IHev3.
         revert ev3 ev_len.
         cbn in *.
         rewrite !closed_subst; eauto. 2:now apply closedn_dearg_aux.
         intros.
-        rewrite <- (dearg_subst [a']) by easy.
+        rewrite <- (dearg_subst [a']) by eauto with dearg.
         unshelve eapply (IH _ _ _ _ _ ev3); t.
         * now apply is_expanded_aux_subst.
         * lia.
@@ -3357,7 +3364,7 @@ Section dearg.
         1: lia.
         rewrite dearg_mkApps in ev.
         apply ev.
-      + now unshelve eapply (IH _ _ _ _ _ ev2).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2); try solve_simple].
       + invert_facts.
         rewrite length_map.
         now apply dearg_cunfold_fix.
@@ -3371,7 +3378,7 @@ Section dearg.
         * apply closed_mkApps; t.
         * apply valid_cases_mkApps; t.
         * apply is_expanded_aux_mkApps; t.
-          erewrite is_expanded_aux_upwards; [|eassumption|easy].
+          erewrite is_expanded_aux_upwards; [|eassumption|solve_simple].
           cbn.
           easy.
         * lia.
@@ -3386,7 +3393,7 @@ Section dearg.
         1: lia.
         rewrite dearg_mkApps in ev.
         apply ev.
-      + now unshelve eapply (IH _ _ _ _ _ ev2).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2); try solve_simple].
       + invert_facts.
         now apply dearg_cunfold_fix.
       + rewrite length_map.
@@ -3435,7 +3442,7 @@ Section dearg.
         change (dearg_single (get_ctor_mask ind c) (tConstruct ind c []) (map dearg args)) with
           (dearg_aux (map dearg args) (tConstruct ind c [])).
         rewrite <- dearg_mkApps.
-        now unshelve eapply (IH _ _ _ _ _ ev1 _).
+        solve [unshelve eapply (IH _ _ _ _ _ ev1 _); try solve_simple].
         now rewrite length_map.
       + propify. cbn.
         unfold trans_mib,dearg_mib, cstr_arity in *;cbn.
@@ -3452,12 +3459,12 @@ Section dearg.
         assert (count_zeros bm <= #|bm|) by apply count_zeros_le.
         assert (count_zeros bm + count_ones bm = #|bm| ) by apply count_ones_zeros.
         lia.
-      + now unshelve eapply (IH _ _ _ _ _ ev2 _).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2 _); try solve_simple].
     - facts.
       rewrite dearg_expanded by trivial.
       cbn.
       apply eval_app_cong.
-      + now unshelve eapply (IH _ _ _ _ _ ev1 _).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev1 _); try solve_simple].
       + destruct (dearg_elim f'); cbn.
         * invert_facts.
           cbn in *; propify.
@@ -3468,7 +3475,11 @@ Section dearg.
           now rewrite EOptimizePropDiscr.isFix_mkApps;cbn.
         * rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps in *;cbn in *.
           propify.
-          destruct with_guarded_fix;cbn in *; intuition.
+          destruct with_guarded_fix; cbn -[map] in *;
+            intuition (first [match goal with
+              | H : false = true |- ?G => exact (@False_ind G (diff_false_true H))
+              | H : true = false |- ?G => exact (@False_ind G (diff_false_true (eq_sym H)))
+              end | auto]).
         * unfold dearg_case.
           destruct with_guarded_fix;cbn.
           now rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps, isPrimApp_mkApps, isLazyApp_mkApps;cbn.
@@ -3483,7 +3494,7 @@ Section dearg.
           rewrite length_map.
           destruct with_guarded_fix;cbn;auto;
             destruct args;cbn;auto;destruct hd;try congruence;cbn;auto.
-      + now unshelve eapply (IH _ _ _ _ _ ev2 _).
+      + solve [unshelve eapply (IH _ _ _ _ _ ev2 _); try solve_simple].
   Qed.
 
   Lemma eval_mkApps_dearg hd args v :
@@ -3591,6 +3602,14 @@ Section dearg.
       + intros hnth. eapply IHl; eauto.
   Qed.
 
+  Local Ltac solve_all_simple :=
+    unfold BasicAst.tFixProp in *;
+    primProp; autorewrite with map;
+    repeat toAll; try All_map; try close_Forall;
+    change_Sk;
+    cbn beta match fix cofix iota zeta in *;
+    auto using Forall_nil; intuition (eauto 5 using Forall_nil).
+
   Lemma wellformed_dearg_aux (efl := all_env_flags) k args t :
     valid_cases t ->
     wellformed (trans_env Σ) k t ->
@@ -3601,8 +3620,20 @@ Section dearg.
     intros valid_t clos_t clos_args.
     induction t in k, args, valid_t, clos_t, clos_args |- * using term_forall_list_ind;
       cbn -[EGlobalEnv.lookup_projection EGlobalEnv.lookup_inductive EGlobalEnv.lookup_constructor] in *; intros;
-      try solve [intros; rewrite ?wellformed_mkApps; try easy; intros; repeat (rtoProp; cbn; intuition eauto; solve_all)];
-      repeat (rtoProp; cbn; intuition eauto; solve_all).
+      try solve [intros; rewrite ?wellformed_mkApps; try solve_simple; intros; repeat (rtoProp; cbn; intuition eauto; solve_all_simple)];
+      repeat (rtoProp; cbn; intuition eauto; solve_all_simple).
+    all: try solve [rewrite wellformed_mkApps; cbn; auto;
+      first [apply/andP; split; [first [assumption | repeat (rtoProp; cbn); intuition (eauto 5 using Forall_nil)] | apply forallb_Forall; exact clos_args]
+            | apply forallb_Forall; exact clos_args]].
+    - rewrite wellformed_mkApps; auto.
+      change ((forallb (wellformed (trans_env (dearg_env Σ)) k) (map (dearg_aux []) l) &&
+        forallb (wellformed (trans_env (dearg_env Σ)) k) args) = true).
+      rewrite forallb_map; apply/andP; split.
+      2: apply forallb_Forall; exact clos_args.
+      apply forallb_All in valid_t; apply forallb_All in clos_t.
+      apply All_forallb.
+      eapply All_impl; [exact (All_mix X (All_mix valid_t clos_t)) |].
+      intros t [IHt [Hv Hc]]. exact (IHt k [] Hv Hc (Forall_nil _)).
     - intros. eapply wellformed_dearg_single; eauto. cbn.
       rewrite !lookup_env_trans_env in clos_t |- *.
       rewrite lookup_env_dearg_env. destruct lookup_env => //=. cbn in clos_t.
@@ -3801,7 +3832,6 @@ Section dearg.
     apply_funelim (isEtaExp (trans_env Σ) Γ t); intros.
     all:match goal with H : is_true (valid_cases _) |- _ => cbn in H; MRUtils.bool end; intros; simp_eta.
     all:cbn; simp_eta; toAll; MRUtils.bool; try rewrite -> forallb_InP_spec in *.
-    all:try solve [solve_all].
     all:try solve [eapply isEtaExp_mkApps_intro; simp_eta; eauto; MRUtils.bool; solve_all].
     - eapply isEtaExp_dearg_single; simp_eta.
     - eapply isEtaExp_dearg_single; simp_eta => //.
@@ -4254,7 +4284,7 @@ Proof.
   - now destruct l;cbn;try congruence.
   - destruct l;cbn in *;try congruence.
     destruct a;cbn in *;auto.
-    now f_equal.
+    f_equal; apply IHmsk; exact (Nat.succ_inj #|msk| #|l| H).
 Qed.
 
 Lemma mask_rev : forall {A} msk (l0 : list A),
@@ -4265,8 +4295,8 @@ Proof.
   destruct l0;cbn.
   * now rewrite masked_nil.
   * cbn in *. rewrite mask_last by now repeat rewrite List.length_rev.
-    destruct a;cbn. now rewrite app_nil_r.
-    now f_equal.
+    destruct a;cbn. rewrite app_nil_r. apply IHmsk. exact (Nat.succ_inj #|msk| #|l0| Hl0).
+    f_equal. apply IHmsk. exact (Nat.succ_inj #|msk| #|l0| Hl0).
 Qed.
 
 Lemma dearg_branch_body_rec_substl_correct : forall mm args0 t ctx0,
@@ -4293,7 +4323,7 @@ Proof.
      rewrite app_assoc in Hv.
      apply valid_dearg_mask_branch_last_true in Hv as [??].
      destruct ctx0;simpl in *;try congruence.
-     inversion Hctx as [Hctx0];clear Hctx.
+     pose proof (Nat.succ_inj #|args0| #|ctx0| Hctx) as Hctx0; clear Hctx.
      assert (Hmm : #|mm| <= #|args0|) by lia.
      clear Hlen.
      unfold substl,dearg_branch_body_rec.
@@ -4355,7 +4385,7 @@ Proof.
      unfold substl in IHmm.
      propify.
      subst.
-     now apply IHmm.
+     solve [apply IHmm; try solve_simple].
 Qed.
 
 Lemma masked_weakening : forall {A} msk (l : list A) n,
@@ -4693,7 +4723,7 @@ Proof.
           by now apply forallb_skipn.
         rewrite <- dearg_substl by eauto with dearg.
         rewrite Hparams.
-        rewrite dearg_branch_body_rec_substl_correct;try easy.
+        rewrite dearg_branch_body_rec_substl_correct;try solve_simple.
         eapply IH with (ev := ev2);try lia;eauto with dearg.
           ** apply closed_substl.
              now rewrite forallb_rev.
@@ -4738,7 +4768,7 @@ Proof.
           - cbn in *; propify. subst mm.
             destruct valid_brs_masks as (_ & (bound & _) & _).
             assert (Hlen : #|ctx_mask| = #|n|) by (subst; now apply complete_ctx_mask_length).
-            destruct (_ <=? _) eqn:Hbm;cbn;propify;try easy.
+            destruct (_ <=? _) eqn:Hbm;cbn;propify;try solve_simple.
             * rewrite Heqmasked_n.
               rewrite masked_count_zeros by lia.
               replace (count_zeros ctx_mask + _) with (count_zeros ctx_mask ) by lia.
@@ -4798,8 +4828,8 @@ Proof.
       invert_facts.
       cbn in *; propify.
       eapply (eval_cofix_case _ _ _ _ (map dearg args) _ narg (dearg fn)); [|eapply dearg_cunfold_cofix;eauto|].
-      * assert (closed fn) by now eapply closed_cunfold_cofix.
-        assert (valid_cases fn) by now eapply valid_cases_cunfold_cofix.
+      * assert (closed fn) by (eapply closed_cunfold_cofix; try solve_simple).
+        assert (valid_cases fn) by (eapply valid_cases_cunfold_cofix; try solve_simple).
         assert (is_expanded fn).
         { eapply is_expanded_cunfold_cofix; [eassumption|].
           now apply forallb_Forall. }
@@ -4844,7 +4874,7 @@ Proof.
       unshelve eapply (eval_cofix_proj _ _ ((map (map_def (dearg_aux [])) mfix)) idx (map dearg args) _ narg (dearg fn) _ _).
       * change (tCoFix (map _ _) _) with (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by easy.
-        eapply IH with (ev := ev1);now eauto with dearg.
+        eapply IH with (ev := ev1); eauto with dearg; try solve_simple.
       * now eapply dearg_cunfold_cofix.
       * assert (is_expanded fn).
         { eapply is_expanded_cunfold_cofix; [eassumption|].
@@ -4859,7 +4889,7 @@ Proof.
         (apply is_expanded_aux_mkApps;cbn;eauto with dearg;
          eapply is_expanded_aux_upwards;eauto; lia).
 
-        apply IH with (ev := ev2);cbn;propify;now eauto with dearg.
+        apply IH with (ev := ev2); cbn; propify; eauto with dearg; try solve_simple.
     + (* Regular projection *)
       clear IHev1 IHev2.
       propify.
@@ -4923,7 +4953,7 @@ Proof.
           lia. }
         rewrite length_firstn.
         rewrite Nat.min_l; cycle 1.
-        { rewrite masked_length by easy.
+        { rewrite masked_length by solve_simple.
           lia. }
         replace (count_zeros (param_mask mask) + (npars - count_ones (firstn npars (get_branch_mask mask (inductive_ind ind) 0))) -
             count_zeros (param_mask mask)) with (npars - count_ones (firstn npars (get_branch_mask mask (inductive_ind ind) 0)))
@@ -4962,7 +4992,7 @@ Proof.
     + intuition auto.
       facts.
       econstructor.
-      * now unshelve eapply (IH _ _ _ _ _ ev1 _).
+      * solve [unshelve eapply (IH _ _ _ _ _ ev1 _); try solve_simple].
       * revert ev2 deriv_len.
         rewrite !closed_subst by (auto; eapply eval_closed;eauto).
         intros.
@@ -4987,7 +5017,7 @@ Proof.
       unshelve eapply IH; tea; rtoProp; intuition eauto. lia.
     + facts. econstructor. specialize (IH _ _ clos_t valid_t exp_t ev1).
       cbn in IH. apply IH. lia.
-      now forward (IH v _ H2 H4 H6 ev2).
+      solve [forward (IH v _ H2 H4 H6 ev2); try solve_simple].
     + destruct t; cbn in *; try destruct y; try congruence; now constructor.
 Qed.
 End dearg_correct.
@@ -5174,6 +5204,9 @@ Proof.
   apply dearg_correct; eauto.
 Qed.
 
+Local Lemma result_Ok_inj {A E} (x y : A) : @Ok A E x = Ok y -> x = y.
+Proof. injection 1; auto. Qed.
+
 Lemma dearg_transform_correct {wfl : WcbvFlags} overridden_masks do_trim_const_masks do_trim_ctor_masks :
   ExtractTransformCorrect (dearg_transform overridden_masks do_trim_const_masks do_trim_ctor_masks true true true).
 Proof.
@@ -5184,7 +5217,7 @@ Proof.
   destruct analyze_env; cbn in *.
   destruct is_expanded_env eqn:exp; cbn in *; [|congruence].
   destruct valid_masks_env eqn:valid; cbn in *; [|congruence].
-  injection opt as <-.
+  apply result_Ok_inj in opt. subst Σopt.
   set (im := (if do_trim_ctor_masks then trim_ind_masks else id) ind_masks) in *; clearbody im.
   set (cm := (if do_trim_const_masks then trim_const_masks else id) const_masks) in *; clearbody cm.
   apply eval_debox_env_types;eauto.

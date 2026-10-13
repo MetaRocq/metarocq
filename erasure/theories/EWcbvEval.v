@@ -857,7 +857,7 @@ Section Wcbv.
       solve_all.
       unfold fix_subst.
       move: #|mfix| => n.
-      induction n. constructor.
+      induction n; cbn [fix_subst_aux]. constructor.
       constructor; auto.
       simpl. solve_all. }
     move: (fix_subst mfix) (dbody d) clfix.
@@ -892,7 +892,7 @@ Section Wcbv.
       solve_all.
       unfold cofix_subst.
       move: #|mfix| => n.
-      induction n. constructor.
+      induction n; cbn [cofix_subst_aux]. constructor.
       constructor; auto.
       simpl. solve_all. }
     move: (cofix_subst mfix) (dbody d) clfix.
@@ -1578,7 +1578,10 @@ Proof.
   destruct nth_error eqn:heq => //.
   cbn in cl.
   have := (nth_error_forallb heq cl) => cld.
-  move=> [=] _ <-.
+  intro Hunfold.
+  apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [_ Hf].
+  subst f.
   eapply closed_substl. now eapply closed_fix_subst.
   rewrite fix_subst_length.
   apply cld.
@@ -1594,7 +1597,10 @@ Proof.
   destruct nth_error eqn:heq => //.
   cbn in cl.
   have := (nth_error_forallb heq cl) => cld.
-  move=> [=] _ <-.
+  intro Hunfold.
+  apply some_inj in Hunfold.
+  apply pair_equal_spec in Hunfold as [_ Hf].
+  subst f.
   eapply closed_substl. now eapply closed_cofix_subst.
   rewrite cofix_subst_length.
   apply cld.

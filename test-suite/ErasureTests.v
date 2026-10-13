@@ -148,13 +148,13 @@ Definition print_name (na : name) : string :=
   | nAnon => "_"
   end.
 
-Program Definition print_box_type (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥) (tvars : list name) :=
-  fix f (bt : box_type) :=
+Program Fixpoint print_box_type (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥)
+        (tvars : list name) (bt : box_type) {struct bt} : string :=
     match bt with
     | TBox => "□"
     | TAny => "𝕋"
-    | TArr dom codom => parens (negb (is_arr dom)) (f dom) ++ " → " ++ f codom
-    | TApp t1 t2 => f t1 ++ " " ++ parens (parenthesize_arg t2) (f t2)
+    | TArr dom codom => parens (negb (is_arr dom)) ((print_box_type Σ wfextΣ tvars) dom) ++ " → " ++ (print_box_type Σ wfextΣ tvars) codom
+    | TApp t1 t2 => (print_box_type Σ wfextΣ tvars) t1 ++ " " ++ parens (parenthesize_arg t2) ((print_box_type Σ wfextΣ tvars) t2)
     | TVar i => match nth_error tvars i with
                 | Some na => print_name na
                 | None => "'a" ++ string_of_nat i
@@ -277,10 +277,13 @@ Example ex14_test :
   ("", "nat").
 Proof. vm_compute. reflexivity. Qed.
 
-MetaRocq Quote Recursively Definition ex15 := ((fix f n := match n with
-                                                          | 0 => nat
-                                                          | S n => nat -> f n
-                                                          end) 5).
+Fixpoint type_chain (n : nat) : Type :=
+  match n with
+  | 0 => nat
+  | S n => nat -> type_chain n
+  end.
+
+MetaRocq Quote Recursively Definition ex15 := type_chain 5.
 Example ex15_test :
   erase_and_print_type id ex15 =
   ("", "nat → nat → nat → nat → nat → nat").
@@ -330,23 +333,13 @@ Example ex22_test :
   ("", "nat").
 Proof. vm_compute. reflexivity. Qed.
 
-MetaRocq Quote Recursively Definition ex23 :=
-  ((fix f (n : nat) :=
-     match n with
-     | 0 => nat
-     | S n => nat -> f n
-     end) zero).
+MetaRocq Quote Recursively Definition ex23 := type_chain zero.
 Example ex23_test :
   erase_and_print_type id ex23 =
   ("", "𝕋").
 Proof. vm_compute. reflexivity. Qed.
 
-MetaRocq Quote Recursively Definition ex24 :=
-  ((fix f (n : nat) :=
-     match n with
-     | 0 => nat
-     | S n => nat -> f n
-     end) 2).
+MetaRocq Quote Recursively Definition ex24 := type_chain 2.
 Example ex24_test :
   erase_and_print_type id ex24 =
   ("", "nat → nat → nat").

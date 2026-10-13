@@ -216,13 +216,42 @@ Proof.
       cbn. now rewrite eqk.
 Qed.
 
+Local Lemma case_congr i p c brs p' c' brs' :
+  p = p' -> c = c' -> brs = brs' ->
+  tCase i p c brs = tCase i p' c' brs'.
+Proof. intros -> -> ->; reflexivity. Qed.
+
+Local Lemma primitive_array_congr u ty def values ty' def' values' :
+  ty = ty' -> def = def' -> values = values' ->
+  tPrim (primArray; primArrayModel
+    {| array_level := u; array_type := ty; array_default := def; array_value := values |}) =
+  tPrim (primArray; primArrayModel
+    {| array_level := u; array_type := ty'; array_default := def'; array_value := values' |}).
+Proof. intros -> -> ->; reflexivity. Qed.
+
+Local Ltac solve_array_maps :=
+  apply primitive_array_congr; [auto | auto | first [solve [solve_list] | solve_all]].
+
+Local Ltac solve_fixpoint_maps :=
+  lazymatch goal with
+  | |- tFix _ ?idx = tFix _ ?idx => apply (f_equal (fun m => tFix m idx))
+  | |- tCoFix _ ?idx = tCoFix _ ?idx => apply (f_equal (fun m => tCoFix m idx))
+  end;
+  rewrite ?map_map_compose ?compose_map_def ?length_map;
+  apply All_map_eq;
+  unfold BasicAst.tFixProp in *;
+  match goal with H : All _ ?l |- All _ ?l => eapply (All_impl H) end;
+  intros d IH; destruct IH as [IHty IHbody];
+  apply map_def_eq_spec; auto.
+
 Lemma trans_weakening {cf} Σ {Σ' : global_env_map} t :
   Typing.wf Σ -> extends (trans_global_env Σ) Σ' -> wf (trans_global_env Σ) -> wf Σ' ->
   WfAst.wf Σ t ->
   trans (trans_global_env Σ) t = trans Σ' t.
 Proof.
   intros wfΣ ext wftΣ wfΣ' wft.
-  induction wft using WfAst.term_wf_forall_list_ind; cbn; auto; try solve [f_equal; solve_all].
+  induction wft using WfAst.term_wf_forall_list_ind; cbn;
+    try solve [solve_fixpoint_maps]; try solve [solve_array_maps]; auto; try solve [f_equal; solve_all].
   rewrite !trans_lookup_inductive.
   destruct H as [H hnth].
   unshelve eapply Typing.TemplateDeclarationTyping.declared_minductive_to_gen in H; eauto.
@@ -239,7 +268,6 @@ Proof.
   red in X0.
   f_equal => //. rewrite /id. unfold trans_predicate. f_equal; solve_all.
   f_equal. solve_all.
-  do 4 f_equal; solve_all.
 Qed.
 
 Lemma trans_decl_weakening {cf} Σ {Σ' : global_env_map} t :
@@ -411,12 +439,12 @@ Qed.
 Lemma trans_subst t k u :
   trans (Template.Ast.subst t k u) = subst (map trans t) k (trans u).
 Proof.
-  revert k. induction u using Template.Induction.term_forall_list_ind; simpl; intros; try congruence.
+  revert k. induction u using Template.Induction.term_forall_list_ind; simpl; intros; try solve [solve_fixpoint_maps]; try congruence.
 
   - repeat nth_leb_simpl; auto.
     rewrite trans_lift.
     rewrite nth_error_map in e0. rewrite e in e0.
-    injection e0. congruence.
+    apply some_inj in e0. congruence.
 
   - f_equal; solve_list.
 
@@ -425,7 +453,10 @@ Proof.
     solve_list.
 
   - destruct X; red in X0.
-    dest_lookup; cbn; f_equal; auto; solve_list.
+    dest_lookup; cbn; try reflexivity; apply case_congr;
+      try assumption; try reflexivity;
+      try (lazymatch goal with |- @eq term _ _ => solve [auto] end);
+      try (lazymatch goal with |- @eq (list _) _ _ => solve_list end).
     unfold trans_predicate, map_predicate_k; cbn.
     f_equal; auto. solve_list.
     + rewrite e. f_equal.
@@ -440,8 +471,6 @@ Proof.
       now rewrite map2_bias_left_length.
     + unfold subst_predicate, id => /=.
       f_equal; auto; solve_all.
-  - f_equal; auto; solve_list.
-  - f_equal; auto; solve_list.
   - f_equal; auto.
   - f_equal; auto.
   - f_equal; auto.
@@ -473,7 +502,10 @@ Proof.
   2-3:f_equal; auto; unfold BasicAst.tFixProp, Ast.tCaseBrsProp in *;
     repeat toAll; solve_list.
   destruct X; red in X0.
-  dest_lookup; cbn; f_equal; auto; solve_list.
+  dest_lookup; cbn; try reflexivity; apply case_congr;
+      try assumption; try reflexivity;
+      try (lazymatch goal with |- @eq term _ _ => solve [auto] end);
+      try (lazymatch goal with |- @eq (list _) _ _ => solve_list end).
   - rewrite /trans_predicate /= /map_predicate /=.
     f_equal; solve_all.
   - rewrite PCUICUnivSubstitutionConv.map2_map_r. cbn.
@@ -1202,7 +1234,7 @@ Section Trans_Global.
     unfold ST.unfold_fix, unfold_fix. intros wffix.
     rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef => //.
     cbn.
-    intros [= <- <-]. simpl.
+    intro Heq. apply some_inj in Heq; apply pair_equal_spec in Heq as [<- <-]. simpl.
     repeat f_equal.
     rewrite trans_subst.
     f_equal. clear Hdef.
@@ -1220,7 +1252,7 @@ Section Trans_Global.
   Proof using Σ.
     unfold ST.unfold_cofix, unfold_cofix. intros wffix.
     rewrite nth_error_map. destruct (nth_error mfix idx) eqn:Hdef.
-    intros [= <- <-]. simpl. repeat f_equal.
+    intro Heq. apply some_inj in Heq; apply pair_equal_spec in Heq as [<- <-]. simpl. repeat f_equal.
     rewrite trans_subst.
     f_equal. clear Hdef.
     unfold cofix_subst, ST.cofix_subst. rewrite length_map.
@@ -1286,7 +1318,7 @@ Section Trans_Global.
     Ast.Env.context_assumptions (map2 Ast.Env.set_binder_name l l') = Ast.Env.context_assumptions l'.
   Proof.
     induction l in l' |- *; destruct l'; cbn => //.
-    intros [=]. destruct decl_body => //; eauto.
+    intro Hlen. apply Nat.succ_inj in Hlen. destruct decl_body => //; eauto.
     f_equal; auto.
   Qed.
 
@@ -1333,7 +1365,7 @@ Section Trans_Global.
     map2 (fun x y => x) l l' = l.
   Proof.
     induction l in l' |- *; destruct l'; cbn; auto. congruence.
-    intros [=]. f_equal; auto.
+    intro Hlen. apply Nat.succ_inj in Hlen. f_equal; auto.
   Qed.
 
   Lemma trans_inst_case_context pars puinst ctx :
@@ -1564,7 +1596,7 @@ Section Trans_Global.
       pose proof (unfold_cofix_wf _ _ _ _ _ H w). wf_inv w.
       rewrite !trans_mkApps; eauto with wf.
       apply trans_unfold_cofix in H; eauto with wf.
-      eapply red_cofix_case; eauto.
+      cbn. eapply red_cofix_case; eauto.
 
     - eapply WfAst.wf_mkApps_napp in Hwf; auto.
       intuition. pose proof (unfold_cofix_wf _ _ _ _ _ H a). wf_inv a.
@@ -2297,8 +2329,8 @@ Proof.
   - cbn. econstructor; trans. 1: now eapply X1.
     cbn in *. trans. cbn in *; trans. now apply X3.
 
-  - econstructor; eauto with trans.
-  - econstructor; eauto with trans.
+  - cbn. econstructor; eauto with trans.
+  - cbn. econstructor; eauto with trans.
 
   - (* The interesting application case *)
     cbn; eapply type_mkApps; eauto.
@@ -2306,7 +2338,7 @@ Proof.
     eapply typing_wf in X; eauto. destruct X.
     eapply PCUICValidity.validity in X0.
     clear H H0.
-    induction X1.
+    induction X1; cbn.
     * econstructor; eauto. reflexivity.
     * simpl in p.
       destruct (TypingWf.typing_wf _ wfΣ _ _ _ typrod) as [wfAB _].
@@ -2545,7 +2577,7 @@ Lemma Alli_map {A B} (P : nat -> B -> Type) n (f : A -> B) l :
   Alli (fun n x => P n (f x)) n l ->
   Alli P n (map f l).
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma trans_arities_context Σ m :
@@ -2606,7 +2638,7 @@ Lemma All2_All_map2 {A B C} {P : A -> Type} (f : B -> C -> A) l l' :
   All2 (fun x y => P (f x y)) l l' ->
   All P (map2 f l l').
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma trans_closedn {cf} {Σ k t} :
