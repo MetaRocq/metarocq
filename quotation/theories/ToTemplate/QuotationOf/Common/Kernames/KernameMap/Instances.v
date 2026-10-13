@@ -8,21 +8,21 @@ Local Open Scope list_scope.
 Module qKernameMap <: FMapAVL.QuotationOfMake Kername.OT KernameMap.
   Module qRaw.
     Module qProofs.
-      Module qMX <: QuotationOfOrderedTypeOrigFacts Kername.OT KernameMap.Raw.Proofs.MX.
+      Module qMX <: QuotationOfOrderedTypeOrigFactsT Kername.OT KernameMap.Raw.Proofs.MX.
         MetaRocq Run (tmMakeQuotationOfModule everything None "KernameMap.Raw.Proofs.MX").
       End qMX.
-      Module qPX <: QuotationOfKeyOrderedTypeOrig Kername.OT KernameMap.Raw.Proofs.PX.
-        Module qMO <: QuotationOfOrderedTypeOrigFacts Kername.OT KernameMap.Raw.Proofs.PX.MO.
+      Module qPX <: QuotationOfKeyOrderedTypeOrigT Kername.OT KernameMap.Raw.Proofs.PX.
+        Module qMO <: QuotationOfOrderedTypeOrigFactsT Kername.OT KernameMap.Raw.Proofs.PX.MO.
           MetaRocq Run (tmMakeQuotationOfModule everything None "KernameMap.Raw.Proofs.PX.MO").
         End qMO.
         MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["MO"]]%bs) None "KernameMap.Raw.Proofs.PX").
       End qPX.
-      Module qL <: FMapList.QuotationOfRaw Kername.OT KernameMap.Raw.Proofs.L.
-        Module qMX <: QuotationOfOrderedTypeOrigFacts Kername.OT KernameMap.Raw.Proofs.L.MX.
+      Module qL <: FMapList.QuotationOfRawT Kername.OT KernameMap.Raw.Proofs.L.
+        Module qMX <: QuotationOfOrderedTypeOrigFactsT Kername.OT KernameMap.Raw.Proofs.L.MX.
           MetaRocq Run (tmMakeQuotationOfModule everything None "KernameMap.Raw.Proofs.L.MX").
         End qMX.
-        Module qPX <: QuotationOfKeyOrderedTypeOrig Kername.OT KernameMap.Raw.Proofs.L.PX.
-          Module qMO <: QuotationOfOrderedTypeOrigFacts Kername.OT KernameMap.Raw.Proofs.L.PX.MO.
+        Module qPX <: QuotationOfKeyOrderedTypeOrigT Kername.OT KernameMap.Raw.Proofs.L.PX.
+          Module qMO <: QuotationOfOrderedTypeOrigFactsT Kername.OT KernameMap.Raw.Proofs.L.PX.MO.
             MetaRocq Run (tmMakeQuotationOfModule everything None "KernameMap.Raw.Proofs.L.PX.MO").
           End qMO.
           MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["MO"]]%bs) None "KernameMap.Raw.Proofs.L.PX").

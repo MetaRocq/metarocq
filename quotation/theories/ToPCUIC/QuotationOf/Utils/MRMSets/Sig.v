@@ -4,12 +4,16 @@ From MetaRocq.Quotation.ToPCUIC Require Import Init.
 Import List.ListNotations.
 Local Open Scope list_scope.
 
-Module Type QuotationOfWExtraPropertiesOn (E : DecidableType) (W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (WExtraProperties : WExtraPropertiesOnSig E W WProperties).
+Module QuotationOfWExtraPropertiesOnImpl (E : DecidableType) (W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (WExtraProperties : WExtraPropertiesOnSig E W WProperties).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "WExtraProperties").
+End QuotationOfWExtraPropertiesOnImpl.
+
+Module Type QuotationOfWExtraPropertiesOn (E : DecidableType) (W : WSetsOn E) (WP : WPropertiesOnSig E W) (WEP : WExtraPropertiesOnSig E W WP).
+Include QuotationOfWExtraPropertiesOnImpl E W WP WEP.
 End QuotationOfWExtraPropertiesOn.
 
 Module Type QuotationOfExtraOrdProperties (M : Sets) (MOrdProperties : OrdPropertiesSig M) (MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties).
-  Module qP := Nop <+ QuotationOfWExtraPropertiesOn M.E M MOrdProperties.P MExtraOrdProperties.P.
+  Module qP := Nop <+ QuotationOfWExtraPropertiesOnImpl M.E M MOrdProperties.P MExtraOrdProperties.P.
   Export (hints) qP.
   MetaRocq Run (tmDeclareQuotationOfModule (all_submodules_except [["P"]%bs]) (Some export) "MExtraOrdProperties").
 End QuotationOfExtraOrdProperties.

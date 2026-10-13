@@ -2,7 +2,24 @@ From Stdlib.Structures Require Import Equalities Orders OrdersFacts.
 From MetaRocq.Quotation.ToPCUIC Require Import Init.
 From MetaRocq.Quotation.ToPCUIC.QuotationOf.Stdlib Require Export Structures.Orders.Sig.
 
-Module Type QuotationOfCompareFacts (O : DecStrOrder) (F : CompareFacts O).
+Module Type CompareFactsT (O : DecStrOrder).
+Include CompareFacts O.
+End CompareFactsT.
+
+Module Type CompareBasedOrderFactsT (E : EqLtLe) (C : HasCmp E) (O : CompareBasedOrder E C).
+Include CompareBasedOrderFacts E C O.
+End CompareBasedOrderFactsT.
+
+Module Type BoolOrderFactsT
+  (E : EqLtLe)
+  (C : HasCmp E)
+  (F : HasBoolOrdFuns E)
+  (O : CompareBasedOrder E C)
+  (S : BoolOrdSpecs E F).
+Include BoolOrderFacts E C F O S.
+End BoolOrderFactsT.
+
+Module Type QuotationOfCompareFacts (O : DecStrOrder) (F : CompareFactsT O).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
 End QuotationOfCompareFacts.
 
@@ -14,9 +31,13 @@ End QuotationOfOrderedTypeFullFacts.
 
 Module Type OrderedTypeFactsSig (O : Orders.OrderedType) := Nop <+ OrderedTypeFacts O.
 
-Module Type QuotationOfOrderedTypeFacts (O : Orders.OrderedType) (F : OrderedTypeFactsSig O).
+Module QuotationOfOrderedTypeFacts (O : Orders.OrderedType) (F : OrderedTypeFactsSig O).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
 End QuotationOfOrderedTypeFacts.
+
+Module Type QuotationOfOrderedTypeFactsT (O : Orders.OrderedType) (F : OrderedTypeFactsSig O).
+Include QuotationOfOrderedTypeFacts O F.
+End QuotationOfOrderedTypeFactsT.
 
 Module Type OrderedTypeRevSig (O : OrderedTypeFull) <: OrderedTypeFull := Nop <+ OrderedTypeRev O.
 Module QuotationOfOrderedTypeRev (O : OrderedTypeFull) (S : OrderedTypeRevSig O) (Import qO : QuotationOfOrderedTypeFull O) <: QuotationOfOrderedTypeFull S.
@@ -37,16 +58,16 @@ Module Type QuotationOfCompareBasedOrder (E : EqLtLe) (C : HasCmp E) (S : Compar
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "S").
 End QuotationOfCompareBasedOrder.
 
-Module Type QuotationOfCompareBasedOrderFacts (E : EqLtLe) (C : HasCmp E) (O : CompareBasedOrder E C) (F : CompareBasedOrderFacts E C O).
+Module QuotationOfCompareBasedOrderFacts (E : EqLtLe) (C : HasCmp E) (O : CompareBasedOrder E C) (F : CompareBasedOrderFactsT E C O).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
 End QuotationOfCompareBasedOrderFacts.
 
-Module Type QuotationOfBoolOrderFacts
+Module QuotationOfBoolOrderFacts
   (E : EqLtLe)
   (C : HasCmp E)
   (F : HasBoolOrdFuns E)
   (O : CompareBasedOrder E C)
   (S : BoolOrdSpecs E F)
-  (Facts : BoolOrderFacts E C F O S).
+  (Facts : BoolOrderFactsT E C F O S).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "Facts").
 End QuotationOfBoolOrderFacts.

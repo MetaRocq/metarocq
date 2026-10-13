@@ -80,7 +80,7 @@ End QuotationOfMOT_to_OTOrig.
 
 Module Type OrderedTypeOrigFactsSig (O : OrderedTypeOrig) := Nop <+ OrderedType.OrderedTypeFacts O.
 
-Module Type QuotationOfOrderedTypeOrigFacts (O : OrderedTypeOrig) (F : OrderedTypeOrigFactsSig O).
+Module QuotationOfOrderedTypeOrigFacts (O : OrderedTypeOrig) (F : OrderedTypeOrigFactsSig O).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
   (*Module qTO.
    #[export] Instance qt : quotation_of F.TO.t := ltac:(unfold_quotation_of (); exact _).
@@ -101,10 +101,18 @@ Module Type QuotationOfOrderedTypeOrigFacts (O : OrderedTypeOrig) (F : OrderedTy
   Export (hints) qOrderTac.*)
 End QuotationOfOrderedTypeOrigFacts.
 
+Module Type QuotationOfOrderedTypeOrigFactsT (O : OrderedTypeOrig) (F : OrderedTypeOrigFactsSig O).
+Include QuotationOfOrderedTypeOrigFacts O F.
+End QuotationOfOrderedTypeOrigFactsT.
+
 Module Type KeyOrderedTypeOrigSig (O : OrderedTypeOrig) := Nop <+ OrderedType.KeyOrderedType O.
 
-Module Type QuotationOfKeyOrderedTypeOrig (O : OrderedTypeOrig) (K : KeyOrderedTypeOrigSig O).
+Module QuotationOfKeyOrderedTypeOrig (O : OrderedTypeOrig) (K : KeyOrderedTypeOrigSig O).
   Module qMO := Nop <+ QuotationOfOrderedTypeOrigFacts O K.MO.
   Export (hints) qMO.
   MetaRocq Run (tmDeclareQuotationOfModule (all_submodules_except [["MO"]]%bs) (Some export) "K").
 End QuotationOfKeyOrderedTypeOrig.
+
+Module Type QuotationOfKeyOrderedTypeOrigT (O : OrderedTypeOrig) (K : KeyOrderedTypeOrigSig O).
+  Include QuotationOfKeyOrderedTypeOrig O K.
+End QuotationOfKeyOrderedTypeOrigT.
