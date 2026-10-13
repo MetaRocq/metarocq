@@ -737,7 +737,7 @@ Proof.
 Qed.
 
 Program Definition remove_params_optimization {fl : EWcbvEval.WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags):
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
   Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env fl) (eval_eprogram fl) :=
   {| name := "stripping constructor parameters (using a view)";
     transform p pre := ERemoveParams.strip_program p;
@@ -745,7 +745,7 @@ Program Definition remove_params_optimization {fl : EWcbvEval.WcbvFlags} {wcon :
     post p := wf_eprogram (switch_no_params efl) p /\ EEtaExpanded.expanded_eprogram_cstrs p;
     obseq p hp p' v v' := v' = (ERemoveParams.strip p.1 v) |}.
 Next Obligation.
-  move=> fl wcon efl [Σ t] [wfp etap].
+  move=> fl wcon efl has_app cstrs [Σ t] [wfp etap].
   simpl.
   cbn -[ERemoveParams.strip] in *.
   split. now eapply ERemoveParams.strip_program_wf.
@@ -753,19 +753,19 @@ Next Obligation.
 Qed.
 
 Next Obligation.
-  red. move=> ? wcon [Σ t] /= v [[wfe wft] etap] [ev].
-  unshelve eapply ERemoveParams.strip_eval in ev; eauto.
-  eexists; split => /= //. now sq. cbn in *.
-  now move/andP: etap.
-  now eapply wellformed_closed_env.
-  now eapply wellformed_closed.
-  now move/andP: etap.
+  red. move=> ? wcon efl hasapp cstrs [Σ t] /= v [[wfe wft] etap] [ev].
+  unshelve eapply ERemoveParams.strip_eval in ev; cbn -[strip] in *; eauto.
+  eexists; split => /= //.
+  - now sq.
+  - now move/andP: etap.
+  - now eapply wellformed_closed_env.
+  - now move/andP: etap.
 Qed.
 
 #[global]
 Instance remove_params_extends {fl : EWcbvEval.WcbvFlags}  {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags):
-  TransformExt.t (remove_params_optimization (wcon:=wcon)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
+  TransformExt.t (remove_params_optimization (fl := fl) (wcon:=wcon) efl has_app cstrs) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /= /strip_program.
   red. cbn -[strip_env strip]. eapply strip_extends_env => //. apply pr. apply pr'.
@@ -773,8 +773,8 @@ Qed.
 
 #[global]
 Instance remove_params_extends' {fl : EWcbvEval.WcbvFlags}  {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags):
-  TransformExt.t (remove_params_optimization (wcon:=wcon)) extends_eprogram_env extends_eprogram.
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
+  TransformExt.t (remove_params_optimization (wcon:=wcon) efl has_app cstrs) extends_eprogram_env extends_eprogram.
 Proof.
   red. intros p p' pr pr' [ext eq]. rewrite /transform /= /strip_program. rewrite eq.
   red. cbn -[strip_env strip]. split. eapply strip_extends_env => //. apply pr. apply pr'.
@@ -782,7 +782,7 @@ Proof.
 Qed.
 
 Program Definition remove_params_fast_optimization {fl : EWcbvEval.WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags) :
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
   Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env fl) (eval_eprogram fl) :=
   {| name := "stripping constructor parameters (using accumulators)";
     transform p _ := (ERemoveParams.Fast.strip_env p.1, ERemoveParams.Fast.strip p.1 [] p.2);
@@ -790,31 +790,30 @@ Program Definition remove_params_fast_optimization {fl : EWcbvEval.WcbvFlags} {w
     post p := wf_eprogram (switch_no_params efl) p /\ EEtaExpanded.expanded_eprogram_cstrs p;
     obseq p hp p' v v' := v' = (ERemoveParams.strip p.1 v) |}.
 Next Obligation.
-  move=> fl wcon efl [Σ t] [wfp etap].
+  move=> fl wcon efl has_app cstrs [Σ t] [wfp etap].
   simpl.
   cbn -[ERemoveParams.strip] in *.
   rewrite -ERemoveParams.Fast.strip_fast -ERemoveParams.Fast.strip_env_fast.
   split.
-  now eapply (ERemoveParams.strip_program_wf (Σ, t)).
-  now eapply (ERemoveParams.strip_program_expanded (Σ, t)).
+  now eapply (ERemoveParams.strip_program_wf has_app cstrs (Σ, t)).
+  now eapply (ERemoveParams.strip_program_expanded has_app (Σ, t)).
 Qed.
 
 Next Obligation.
-  red. move=> ? wcon [Σ t] /= v [[wfe wft] etap] [ev].
+  red. move=> ? wcon efl has_app cstrs [Σ t] /= v [[wfe wft] etap] [ev].
   rewrite -ERemoveParams.Fast.strip_fast -ERemoveParams.Fast.strip_env_fast.
   unshelve eapply ERemoveParams.strip_eval in ev; eauto.
   eexists; split => /= //.
   now sq. cbn in *.
   now move/andP: etap.
   now eapply wellformed_closed_env.
-  now eapply wellformed_closed.
   now move/andP: etap.
 Qed.
 
 #[global]
 Instance remove_params_fast_extends {fl : EWcbvEval.WcbvFlags}  {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags):
-  TransformExt.t (remove_params_fast_optimization (wcon:=wcon)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
+  TransformExt.t (remove_params_fast_optimization (wcon:=wcon) efl has_app cstrs) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
   rewrite -!ERemoveParams.Fast.strip_env_fast.
@@ -823,8 +822,8 @@ Qed.
 
 #[global]
 Instance remove_params_fast_extends' {fl : EWcbvEval.WcbvFlags}  {wcon : EWcbvEval.with_constructor_as_block = false}
-  (efl := all_env_flags):
-  TransformExt.t (remove_params_fast_optimization (wcon:=wcon)) extends_eprogram_env extends_eprogram.
+  (efl : EEnvFlags) (has_app : has_tApp) (cstrs : cstr_as_blocks = false) :
+  TransformExt.t (remove_params_fast_optimization (wcon:=wcon) efl has_app cstrs) extends_eprogram_env extends_eprogram.
 Proof.
   red. intros p p' pr pr' [ext eq]. rewrite /transform /=. rewrite eq.
   rewrite -!ERemoveParams.Fast.strip_env_fast -!ERemoveParams.Fast.strip_fast.
@@ -877,7 +876,10 @@ Qed.
 
 From MetaRocq.Erasure Require Import EInlineProjections.
 
-Program Definition inline_projections_optimization {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} (efl := switch_no_params all_env_flags)
+Program Definition inline_projections_optimization {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+  (cstrs : cstr_as_blocks = false)
+  (no_pars : has_cstr_params = false)
+  {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
   Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env fl) (eval_eprogram fl) :=
   {| name := "primitive projection inlining";
@@ -887,31 +889,37 @@ Program Definition inline_projections_optimization {fl : WcbvFlags} {wcon : EWcb
     obseq p hp p' v v' := v' = EInlineProjections.optimize p.1 v |}.
 
 Next Obligation.
-  move=> fl wcon efl hastrel hastbox [Σ t] [wfp etap].
+  move=> fl wcon efl cstrs no_pars hasapp hastrel hastbox [Σ t] [wfp etap].
   cbn in *. split.
   - now eapply optimize_program_wf.
   - now eapply optimize_program_expanded.
 Qed.
 Next Obligation.
-  red. move=> fl wcon hastrel hastbox [Σ t] /= v [wfe wft] [ev].
+  red. move=> fl wcon efl cstrs no_pars hasapp hastrel hastbox [Σ t] /= v [wfe wft] [ev].
   eapply EInlineProjections.optimize_correct in ev; eauto.
   eexists; split => //. red. sq; auto. cbn. apply wfe.
   cbn. eapply wfe. Unshelve. auto.
 Qed.
 
 #[global]
-Instance inline_projections_optimization_extends {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} (efl := switch_no_params all_env_flags)
+Instance inline_projections_optimization_extends {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+  (cstrs : cstr_as_blocks = false)
+  (no_pars : has_cstr_params = false)
+  {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (inline_projections_optimization (wcon:=wcon) (hastrel := hastrel) (hastbox := hastbox)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+  TransformExt.t (inline_projections_optimization (wcon:=wcon) cstrs no_pars (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /= /optimize_program /=.
   eapply optimize_extends_env => //. apply pr. apply pr'.
 Qed.
 
 #[global]
-Instance inline_projections_optimization_extends' {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} (efl := switch_no_params all_env_flags)
+Instance inline_projections_optimization_extends' {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+  (cstrs : cstr_as_blocks = false)
+  (no_pars : has_cstr_params = false)
+  {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (inline_projections_optimization (wcon:=wcon) (hastrel := hastrel) (hastbox := hastbox)) extends_eprogram_env extends_eprogram.
+  TransformExt.t (inline_projections_optimization (wcon:=wcon) cstrs no_pars (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox)) extends_eprogram_env extends_eprogram.
 Proof.
   red. intros p p' pr pr' [ext eq]. rewrite /transform /= /optimize_program /=. split.
   eapply optimize_extends_env => //. apply pr. apply pr'.
@@ -920,6 +928,7 @@ Proof.
 Qed.
 
 From MetaRocq.Erasure Require Import EConstructorsAsBlocks.
+
 
 Program Definition constructors_as_blocks_transformation {efl : EEnvFlags}
   {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = false} :
@@ -971,23 +980,49 @@ Qed.
 
 From MetaRocq.Erasure Require ECoInductiveToInductive.
 
+
+Definition efl_coind_to_ind (efl : EEnvFlags) :=
+  {| has_axioms := has_axioms;
+    has_cstr_params := has_cstr_params;
+    term_switches := {|
+       has_tBox := has_tBox ;
+        has_tRel := has_tRel ;
+        has_tVar := has_tVar ;
+        has_tEvar := has_tEvar ;
+        has_tLambda := has_tLambda ;
+        has_tLetIn := has_tLetIn ;
+        has_tApp := has_tApp ;
+        has_tConst := has_tConst ;
+        has_tConstruct := has_tConstruct ;
+        has_tCase := has_tCase ;
+        has_tProj := has_tProj ;
+        has_tFix := has_tFix ;
+        has_tCoFix := false ;
+        has_tPrim := has_tPrim ;
+        has_tLazy_Force := has_tLazy_Force ;
+      |};
+    cstr_as_blocks := cstr_as_blocks;
+    |}.
+
 Program Definition coinductive_to_inductive_transformation (efl : EEnvFlags)
-  {has_app : has_tApp} {has_box : has_tBox} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
+  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
   {has_cstrblocks : cstr_as_blocks = true} :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram_env block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
   {| name := "transforming co-inductive to lazy inductive types";
     transform p _ := ECoInductiveToInductive.trans_program p ;
     pre p := wf_eprogram_env efl p ;
-    post p := wf_eprogram efl p ;
+    post p := wf_eprogram (efl_coind_to_ind efl) p ;
     obseq p hp p' v v' := v' = ECoInductiveToInductive.trans p.1 v |}.
 
 Next Obligation.
-  move=> efl hasapp hasbox hasrel haspars hascstrs [Σ t] [wftp wft].
+  move=> efl hasapp hasrel haspars hascstrs [Σ t] [wftp wft].
   cbn in *. eapply ECoInductiveToInductive.trans_program_wf; eauto. split => //.
+  - apply ECoInductiveToInductive.trust_cofix.
+  - apply ECoInductiveToInductive.trust_cofix.
 Qed.
 Next Obligation.
-  red. move=> efl hasapp hasbox hasrel haspars hascstrs [Σ t] /= v [wfe1 wfe2] [ev].
+  red. move=> efl hasapp hasrel haspars hascstrs [Σ t] /= v [wfe1 wfe2] [ev].
   eexists. split; [ | eauto].
   econstructor.
   cbn -[transform_blocks].
@@ -998,9 +1033,9 @@ Qed.
 
 #[global]
 Instance coinductive_to_inductive_transformation_ext (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
+  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
   TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_box := has_box) (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
@@ -1011,7 +1046,7 @@ Qed.
 Instance coinductive_to_inductive_transformation_ext' (efl : EEnvFlags)
   {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
   TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_box := has_box) (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
     extends_eprogram_env extends_eprogram.
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
@@ -1074,20 +1109,10 @@ Proof.
   move: pr'; cbn. now intros []. apply pr. apply pr'.
 Qed.
 
+
 From MetaRocq.Erasure Require Import EUnboxing.
 
-Axiom trust_unboxing_wf :
-  forall efl : EEnvFlags,
-  WcbvFlags ->
-  forall (input : Transform.program _ term),
-  wf_eprogram_env efl input -> wf_eprogram efl (unbox_program input).
-Axiom trust_unboxing_pres :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : Transform.program _ term)
-  (v : term),
-  wf_eprogram_env efl p ->
-  eval_eprogram_env wfl p v -> exists v' : term, eval_eprogram wfl (unbox_program p) v' /\ v' = unbox p.1 v.
-
-Program Definition unbox_transformation (efl : EEnvFlags) (wfl : WcbvFlags)  :
+Program Definition unbox_transformation (efl : EEnvFlags) (wfl : WcbvFlags) {has_app : has_tApp} {has_cofix : ~~ has_tCoFix} {has_prop_case : has_tBox || ~~with_prop_case} {has_letin : has_tLetIn} {has_cstrparams : ~~ has_cstr_params} {has_cstr_block: with_constructor_as_block} :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram_env wfl) (eval_eprogram wfl) :=
   {| name := "unbox singleton constructors ";
@@ -1097,23 +1122,43 @@ Program Definition unbox_transformation (efl : EEnvFlags) (wfl : WcbvFlags)  :
     obseq p hp p' v v' := v' = unbox p.1 v |}.
 
 Next Obligation.
-  move=> efl wfl m. cbn. now apply trust_unboxing_wf.
+  red. intros.
+  apply wf_unboxing; assumption.
 Qed.
 Next Obligation.
-  red. eapply trust_unboxing_pres.
+  red. intros.
+  exists (unbox p.1 v); split.
+  - eapply unbox_pres; try assumption.
+  - reflexivity.
 Qed.
 
 #[global]
-Axiom trust_unbox_transformation_ext :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags),
-  TransformExt.t (unbox_transformation efl wfl)
+Instance trust_unbox_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags)
+   {happ : has_tApp} {hcofix : ~~ has_tCoFix} {hprop_case : has_tBox || ~~with_prop_case} {hletin : has_tLetIn} {hcstrparams : ~~ has_cstr_params} {hcstrblocks: with_constructor_as_block},
+  TransformExt.t (@unbox_transformation efl wfl happ hcofix hprop_case hletin hcstrparams hcstrblocks)
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  red. intros * h_extends.
+  simpl in *.
+  unfold wf_eprogram_env in *.
+  now eapply unbox_extends.
+Qed.
 
 #[global]
-Axiom trust_unbox_transformation_ext' :
-  forall (efl : EEnvFlags) (wfl : WcbvFlags),
-  TransformExt.t (unbox_transformation efl wfl)
+Instance trust_unbox_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags)
+  {happ : has_tApp} {hcofix : ~~ has_tCoFix} {hprop_case : has_tBox || ~~with_prop_case} {hletin : has_tLetIn} {hcstrparams : ~~ has_cstr_params} {hcstrblocks: with_constructor_as_block},
+  TransformExt.t (@unbox_transformation efl wfl happ hcofix hprop_case hletin hcstrparams hcstrblocks)
     extends_eprogram_env extends_eprogram.
+Proof.
+  red; simpl; unfold extends_eprogram, extends_eprogram_env, wf_eprogram_env.
+  do 8 intro.
+  intros [? ?] [? ?] [? ?] [? ?] [? ?]; simpl in *; subst; split.
+  - now eapply unbox_extends.
+  - symmetry. unfold unbox_program; simpl.
+    now eapply unbox_extends_eq.
+Qed.
 
 Program Definition optional_transform {env env' term term' value value' eval eval'} (activate : bool)
   (tr : Transform.t env env' term term' value value' eval eval') :
@@ -1159,4 +1204,305 @@ Instance optional_self_transformation_ext {env term eval} activate tr extends :
   TransformExt.t (@optional_self_transform env term eval activate tr) extends extends.
 Proof.
   red; intros. destruct activate; cbn in * => //. now apply H.
+Qed.
+
+
+From MetaRocq.Erasure Require Import EConstantsToValues.
+
+Program Definition consts_to_values_transformation (efl : EEnvFlags) (wfl : WcbvFlags) (hApp : has_tApp) (hBox : has_tBox || ~~with_prop_case) (hLazy : has_tLazy_Force) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_eprogram wfl) :=
+  {| name := "Constants to values";
+    transform p _ := consts_to_values_program p ;
+    pre p := wf_eprogram efl p ;
+    post (p : eprogram) := wf_eprogram efl p /\ ∥ lazy_glob p.1∥ ;
+    obseq p hp (p' : eprogram) v v' := v' = consts_to_values v |}.
+
+Next Obligation.
+  repeat intro.
+  split.
+  + now apply wf_consts_to_values.
+  + constructor.
+    now apply consts_to_values_env_lazy.
+Qed.
+
+Next Obligation.
+  repeat intro.
+  pose proof consts_to_values_pres.
+  now eexists.
+Qed.
+
+#[global]
+Instance consts_to_values_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
+  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  intros efl wfl hApp hBox hLazy p p' h1 h2.
+  apply consts_to_values_extends.
+Qed.
+
+
+#[global]
+Instance consts_to_values_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) hApp hBox hLazy,
+  TransformExt.t (consts_to_values_transformation efl wfl hApp hBox hLazy)
+    extends_eprogram extends_eprogram.
+Proof.
+  intros efl wfl hApp hBox hLazy p p' h1 h2.
+  unfold TransformExt.t, transform, consts_to_values_transformation, consts_to_values_program, extends_eprogram.
+  intros [ctx ->]. split => //. now apply consts_to_values_extends.
+Qed.
+
+From MetaRocq.Erasure Require Import EInlining.
+
+Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inlining (hApp : has_tApp) (hBox : has_tBox || ~~ with_prop_case) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_inlined_program wfl) :=
+  {| name := "inlining ";
+    transform p _ := inline_program inlining p ;
+    pre p := wf_eprogram efl p;
+    post (p : inlined_program) := wf_eprogram efl p;
+    obseq p hp (p' : inlined_program) v v' := v' = inline p' v |}.
+
+Next Obligation.
+  intros. now apply inlining_wf.
+Qed.
+Next Obligation.
+  repeat intro.
+  now eapply inlining_pres.
+Qed.
+
+
+#[global]
+Instance inline_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
+  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1.1 p'.1.1).
+Proof.
+  intros ? ? inlining ? ?.
+  unfold TransformExt.t, transform, inline_transformation, inline_program.
+  intros [ctx e] [ctx' e'] [? ?] [? ?] h_extends.
+  EInlining.simple.
+  now eapply extends_inline_env.
+Qed.
+
+
+
+#[global]
+Instance inline_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags) inlining hApp hBox,
+  TransformExt.t (inline_transformation efl wfl inlining hApp hBox)
+    extends_eprogram extends_inlined_eprogram.
+Proof.
+  intros ? ? inlining ? ?.
+  unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
+  intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
+  pose proof extends_inline_env efl.
+  pose proof inline_extends efl inlining.
+  now simple.
+Qed.
+
+
+
+Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : WcbvFlags) :
+  Transform.t _ _ EAst.term EAst.term _ _
+      (eval_inlined_program wfl) (eval_eprogram wfl) :=
+    {| name := "forgetting about inlining info";
+      transform p _ := (p.1.1, p.2) ;
+      pre (p : inlined_program) := wf_eprogram efl p ;
+      post (p : eprogram) := wf_eprogram efl p ;
+      obseq p hp p' v v' := v' = v |}.
+
+  Next Obligation.
+    intros efl wfl [[Σ inls] t] p.
+    exact p.
+  Qed.
+  Next Obligation.
+    intros efl wfl [[Σ inls] t] v [wf_Σ wf_t] [h_eval] p'.
+    now exists v.
+  Qed.
+
+#[global]
+Instance forget_inlining_info_transformation_ext :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags),
+  TransformExt.t (forget_inlining_info_transformation efl wfl)
+    (fun p p' => extends p.1.1 p'.1.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  intros.
+  red. now intros [[] ?] [[] ?]; cbn.
+Qed.
+
+#[global]
+Instance forget_inlining_info_transformation_ext' :
+  forall (efl : EEnvFlags) (wfl : WcbvFlags),
+  TransformExt.t (forget_inlining_info_transformation efl wfl)
+    extends_inlined_eprogram extends_eprogram.
+Proof.
+  intros ? ? [[] ?] [[] ?]; cbn.
+   now rewrite /extends_inlined_eprogram /extends_eprogram /=.
+Qed.
+
+Definition conditionally (b : bool) (P : Prop) := 
+  if b then P else True.
+
+(* Implementing box *)
+
+From MetaRocq.Erasure Require Import EImplementBox.
+
+(* It preserves values in the environment *)
+Lemma implement_box_value_pres (efl : EEnvFlags) Σ t :
+  wf_glob Σ -> @value block_wcbv_flags Σ t -> 
+  @value block_wcbv_flags (implement_box_env Σ) (implement_box t).
+Proof.
+  intros wf. revert t.
+  eapply value_values_ind.
+  - move=> -[] //= ato; simp implement_box; try solve [repeat constructor].
+    intros n [] => //.
+  - intros p hp hp'. simp implement_box.
+    apply value_atom. constructor 2. depelim hp'; constructor; auto.
+    cbn. now apply All_map.
+  - intros ind c mdecl idecl cdecl args wcb hl hnargs H IH.
+    simp implement_box. econstructor 2; eauto.
+    * now rewrite lookup_constructor_implement_box; tea.
+    * now rewrite length_map.
+    * now apply All_map.
+  - intros f args hd hargs H IH.
+    rewrite implement_box_mkApps; simp implement_box.
+    depelim hd.
+    * now cbn in e.
+    * constructor 3. rewrite length_map; simp implement_box.
+      constructor. now eapply map_nil.
+      now eapply All_map.
+    * now cbn in y.
+Qed.
+
+Lemma implement_box_values_glob_pres (efl : EEnvFlags) Σ :
+  wf_glob Σ -> ∥ @values_glob block_wcbv_flags Σ ∥ -> 
+  ∥ @values_glob block_wcbv_flags (implement_box_env Σ) ∥.
+Proof.
+  intros wf v. induction wf. sq. constructor.
+  depelim v. depelim X. specialize (IHwf (sq X)). sq. cbn. constructor => //.
+  destruct d as [[[dbody|]]|]; cbn in * |-; try solve [constructor; auto].
+  cbn -[implement_box]. 
+  eapply implement_box_value_pres; tea.
+Qed.
+
+Lemma implement_box_lambda_glob_pres (efl : EEnvFlags) Σ :
+  wf_glob Σ -> ∥ lambda_glob Σ ∥ -> 
+  ∥ lambda_glob (implement_box_env Σ) ∥.
+Proof.
+  intros wf v. induction wf. sq. constructor.
+  depelim v. depelim X. specialize (IHwf (sq X)). sq. cbn. constructor => //.
+  destruct d as [[[dbody|]]|]; cbn in * |-; try solve [constructor; auto].
+  cbn -[implement_box]. destruct d1 as [na [b ->]]. simp implement_box.
+  now eexists.
+Qed.
+
+Program Definition implement_box_transformation (efl : EEnvFlags)
+  (has_app : has_tApp) (has_lam : has_tLambda) (has_letin : has_tLetIn) (nocofix : has_tCoFix = false)
+  (nopars : has_cstr_params = false) pres_values :
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  {| name := "implementing box";
+    transform p _ := EImplementBox.implement_box_program p ;
+    pre p := wf_eprogram efl p /\ conditionally pres_values (∥ lambda_glob p.1 ∥) ;
+    post p := wf_eprogram (switch_off_box efl) p /\ conditionally pres_values (∥ lambda_glob p.1 ∥);
+    obseq p hp p' v v' := v' = implement_box v |}.
+Next Obligation.
+  intros. destruct p as [p pres]; cbn in *. split.
+  * split.
+    - eapply implement_box_env_wf_glob; eauto. apply p.
+    - eapply transform_wellformed'. all:eauto. all: apply p.
+  * destruct pres_values => //=. cbn in pres.
+    destruct p as [wf _].
+    now eapply implement_box_lambda_glob_pres.
+    (* now eapply implement_box_values_glob_pres. *)
+Qed.
+Next Obligation.
+  intros efl hasapp haslam haslet nocof nopars pres_values.
+  intros pr v [wf pres] pre.
+  destruct pr. destruct wf, pre; cbn in * |-.
+  eexists. split; [ | eauto].
+  econstructor.
+  eapply implement_box_eval; cbn; eauto.
+Qed.
+
+From MetaRocq.Erasure Require Import EImplementLazyForce.
+
+Lemma lazy_to_lambda_pred Σ t :
+  lazy_value_pred Σ t -> lambda_value_pred (implement_lazy_force_env Σ) (implement_lazy_force t).
+Proof.
+  intros [body eq]. subst t; simp implement_lazy_force.
+  now eexists.
+Qed.
+
+Lemma lazy_to_lambda_glob Σ : lazy_glob Σ -> lambda_glob (implement_lazy_force_env Σ).
+Proof.
+  induction 1; cbn.
+  - constructor.
+  - constructor; tea.
+    destruct d as [[[dbody|]]|]; cbn -[implement_lazy_force] in * => //.
+    now eapply lazy_to_lambda_pred.
+Qed.
+
+Lemma value_pres (efl : EEnvFlags) Σ t :
+  wf_glob Σ -> @value block_wcbv_flags Σ t -> 
+  @value block_wcbv_flags (implement_lazy_force_env Σ) (implement_lazy_force t).
+Proof.
+  intros wf. revert t.
+  eapply value_values_ind.
+  - move=> -[] //= ato; simp implement_lazy_force; try solve [repeat constructor].
+    intros n [] => //.
+  - intros p hp hp'. simp implement_lazy_force.
+    apply value_atom. constructor 2. depelim hp'; constructor; auto.
+    cbn. now apply All_map.
+  - intros ind c mdecl idecl cdecl args wcb hl hnargs H IH.
+    simp implement_lazy_force. econstructor 2; eauto.
+    * now rewrite lookup_constructor_implement_lazy_force; tea.
+    * now rewrite length_map.
+    * now apply All_map.
+  - intros f args hd hargs H IH.
+    rewrite implement_lazy_force_mkApps; simp implement_lazy_force.
+    depelim hd.
+    * now cbn in e.
+    * constructor 3. rewrite length_map; simp implement_lazy_force.
+      constructor. now eapply map_nil.
+      now eapply All_map.
+    * now cbn in y.
+Qed.
+
+Lemma values_glob_pres (efl : EEnvFlags) Σ :
+  wf_glob Σ -> ∥ @values_glob block_wcbv_flags Σ ∥ -> 
+  ∥ @values_glob block_wcbv_flags (implement_lazy_force_env Σ) ∥.
+Proof.
+  intros wf v. induction wf. sq. constructor.
+  depelim v. depelim X. specialize (IHwf (sq X)). sq. cbn. constructor => //.
+  destruct d as [[[dbody|]]|]; cbn in * |-; try solve [constructor; auto].
+  cbn -[implement_lazy_force]. 
+  eapply value_pres; tea.
+Qed.
+
+Program Definition implement_lazy_force_transformation (efl : EEnvFlags) (has_app : has_tApp) (has_lam : has_tLambda) (has_tbox : has_tBox)
+  (nocofix : has_tCoFix = false) (nopars : has_cstr_params = false) (pres_values : bool) :
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  {| name := "implementing lazy and force using lambdas ";
+    transform p _ := implement_lazy_force_program p ;
+    pre p := wf_eprogram efl p /\ 
+      (if pres_values then ∥ lazy_glob p.1 ∥ else True) ;
+    post p := wf_eprogram (switch_off_thunk efl) p /\ 
+      (if pres_values then ∥ lambda_glob p.1 ∥ else True) ;
+    obseq p hp p' v v' := v' = implement_lazy_force v |}.
+Next Obligation.
+  intros efl hasapp haslam hasbox nocof nopars pvals p [wfp hpres].
+  split.
+  - split. eapply implement_lazy_force_env_wf_glob; eauto. apply wfp.
+    apply transform_wellformed'; eauto. all:apply wfp.
+  - destruct pvals => //. sq. now apply lazy_to_lambda_glob.
+Qed.
+Next Obligation.
+  intros efl hasapp haslam hasbox nocof nopars pvals p t [wf hpres] ev.
+  destruct p as [g p]. destruct wf, ev; cbn in * |-.
+  eexists. split; [| eauto].
+  split.
+  eapply implement_lazy_force_eval; eauto.
 Qed.
