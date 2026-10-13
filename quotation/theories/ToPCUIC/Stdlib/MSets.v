@@ -8,7 +8,7 @@ From MetaRocq.Quotation.ToPCUIC.QuotationOf.Utils Require Import MRMSets.Sig.
 
 #[export] Hint Unfold Int.Z_as_Int.t : quotation.
 
-Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (Import WExtraProperties : WExtraPropertiesOnSig E W WProperties) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOn E W WProperties) (qWExtraProperties : QuotationOfWExtraPropertiesOn E W WProperties WExtraProperties).
+Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (Import WExtraProperties : WExtraPropertiesOnSig E W WProperties) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOnT E W WProperties) (qWExtraProperties : QuotationOfWExtraPropertiesOn E W WProperties WExtraProperties).
   Import (hints) qE qW qWProperties qWExtraProperties.
 
   #[export] Hint Unfold Int.Z_as_Int.t : quotation.
@@ -50,9 +50,9 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
   #[export] Typeclasses Transparent W.elt.
 End QuoteWSetsOn.
 
-Module Type QuoteWSetsOnSig (E : DecidableType) (W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (WExtraProperties : WExtraPropertiesOnSig E W WProperties) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOn E W WProperties) (qWExtraProperties : QuotationOfWExtraPropertiesOn E W WProperties WExtraProperties) := Nop <+ QuoteWSetsOn E W WProperties WExtraProperties qE qW qWProperties qWExtraProperties.
+Module Type QuoteWSetsOnSig (E : DecidableType) (W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (WExtraProperties : WExtraPropertiesOnSig E W WProperties) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOnT E W WProperties) (qWExtraProperties : QuotationOfWExtraPropertiesOn E W WProperties WExtraProperties) := Nop <+ QuoteWSetsOn E W WProperties WExtraProperties qE qW qWProperties qWExtraProperties.
 
-Module QuoteOrdProperties (Import M : Sets) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (qE : QuotationOfOrderedType M.E) (qM : QuotationOfSets M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties).
+Module QuoteOrdProperties (Import M : Sets) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (qE : QuotationOfOrderedType M.E) (qM : QuotationOfSets M) (qMOrdProperties : QuotationOfOrdPropertiesT M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties).
   Import (hints) qE qM qMOrdProperties qMExtraOrdProperties.
 
   #[export] Instance quote_Above {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Above x s)
@@ -63,12 +63,12 @@ Module QuoteOrdProperties (Import M : Sets) (Import MOrdProperties : OrdProperti
   #[export] Typeclasses Opaque Below.
 End QuoteOrdProperties.
 
-Module QuoteSets (Import M : Sets) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (qE : QuotationOfOrderedType M.E) (qM : QuotationOfSets M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties).
+Module QuoteSets (Import M : Sets) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (qE : QuotationOfOrderedType M.E) (qM : QuotationOfSets M) (qMOrdProperties : QuotationOfOrdPropertiesT M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties).
   Include QuoteWSetsOn M.E M MOrdProperties.P MExtraOrdProperties.P qE qM qMOrdProperties.qP qMExtraOrdProperties.qP.
   Include QuoteOrdProperties M MOrdProperties MExtraOrdProperties qE qM qMOrdProperties qMExtraOrdProperties.
 End QuoteSets.
 
-Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (Import MDecide : MSetAVL.DecideSig T M) (Import qT : QuotationOfOrderedType T) (Import qM : MSetAVL.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties) (qMDecide : MSetAVL.QuotationOfDecide T M MDecide).
+Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProperties : OrdPropertiesSig M) (Import MExtraOrdProperties : ExtraOrdPropertiesSig M MOrdProperties) (Import MDecide : MSetAVL.DecideSig T M) (Import qT : QuotationOfOrderedType T) (Import qM : MSetAVL.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdPropertiesT M MOrdProperties) (qMExtraOrdProperties : QuotationOfExtraOrdProperties M MOrdProperties MExtraOrdProperties) (qMDecide : MSetAVL.QuotationOfDecide T M MDecide).
   Import (hints) qT qM qMOrdProperties qMExtraOrdProperties qMDecide.
   Include QuoteSets M MOrdProperties MExtraOrdProperties qT qM qMOrdProperties qMExtraOrdProperties.
 
@@ -96,7 +96,7 @@ Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProper
   #[export] Typeclasses Transparent M.t.
 End QuoteMSetAVL.
 
-Module QuoteWSetsOnIsUsual (E : UsualDecidableType) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties).
+Module QuoteWSetsOnIsUsual (E : UsualDecidableType) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOnT E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties).
 
   Import (hints) qE qM qMProperties qMExtraProperties.
 
@@ -107,13 +107,13 @@ Module QuoteWSetsOnIsUsual (E : UsualDecidableType) (Import M : WSetsOn E) (MPro
   #[export] Instance quote_forall2_In_usual {P s} {qP : quotation_of P} {qs : quotation_of s} {quote_elt : ground_quotable elt} {quote_P : forall x y, ground_quotable (P x y:Prop)} : ground_quotable (forall v1 v2, In v1 s -> In v2 s -> P v1 v2) := _.
 End QuoteWSetsOnIsUsual.
 
-Module QuoteUsualWSetsOn (E : UsualDecidableType) (M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties)
+Module QuoteUsualWSetsOn (E : UsualDecidableType) (M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOnT E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties)
   := QuoteWSetsOn E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties <+ QuoteWSetsOnIsUsual E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties.
 
-Module QuoteUsualSets (M : UsualSets) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qE : QuotationOfUsualOrderedType M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdProperties M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
+Module QuoteUsualSets (M : UsualSets) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qE : QuotationOfUsualOrderedType M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdPropertiesT M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
   := QuoteSets M MProperties MExtraProperties qE qM qMProperties qMExtraProperties <+ QuoteWSetsOnIsUsual M.E M MProperties.P MExtraProperties.P qE qM qMProperties.qP qMExtraProperties.qP.
 
-Module QuoteWSetsOnIsLeibniz (E : OrderedTypeWithLeibniz) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfOrderedTypeWithLeibniz E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties).
+Module QuoteWSetsOnIsLeibniz (E : OrderedTypeWithLeibniz) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (MExtraProperties : WExtraPropertiesOnSig E M MProperties) (qE : QuotationOfOrderedTypeWithLeibniz E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOnT E M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn E M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties MExtraProperties qE qM qMProperties qMExtraProperties).
   Import (hints) qE qM qMProperties qMExtraProperties.
 
   #[local] Instance all_P_Proper {P : E.t -> Prop} : Proper (E.eq ==> Basics.impl) P.
@@ -130,10 +130,10 @@ Module QuoteWSetsOnIsLeibniz (E : OrderedTypeWithLeibniz) (Import M : WSetsOn E)
   #[export] Instance quote_forall2_In_leibniz {P s} {qP : quotation_of P} {qs : quotation_of s} {quote_elt : ground_quotable elt} {quote_P : forall x y, ground_quotable (P x y:Prop)} : ground_quotable (forall v1 v2, In v1 s -> In v2 s -> P v1 v2) := _.
 End QuoteWSetsOnIsLeibniz.
 
-Module QuoteSWithLeibniz (M : SWithLeibniz) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qE : QuotationOfOrderedTypeWithLeibniz M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdProperties M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
+Module QuoteSWithLeibniz (M : SWithLeibniz) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qE : QuotationOfOrderedTypeWithLeibniz M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdPropertiesT M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
   := QuoteSets M MProperties MExtraProperties qE qM qMProperties qMExtraProperties <+ QuoteWSetsOnIsLeibniz M.E M MProperties.P MExtraProperties.P qE qM qMProperties.qP qMExtraProperties.qP.
 
-Module QuoteMSetIsList (T : OrderedType) (Import M : MSetList.MakeSig T) (Import MProperties : WPropertiesOnSig T M) (MExtraProperties : WExtraPropertiesOnSig T M MProperties) (Import qT : QuotationOfOrderedType T) (Import qM : MSetList.QuotationOfMake T M) (qMProperties : QuotationOfWPropertiesOn T M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn T M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig T M MProperties MExtraProperties qT qM qMProperties qMExtraProperties).
+Module QuoteMSetIsList (T : OrderedType) (Import M : MSetList.MakeSig T) (Import MProperties : WPropertiesOnSig T M) (MExtraProperties : WExtraPropertiesOnSig T M MProperties) (Import qT : QuotationOfOrderedType T) (Import qM : MSetList.QuotationOfMake T M) (qMProperties : QuotationOfWPropertiesOnT T M MProperties) (qMExtraProperties : QuotationOfWExtraPropertiesOn T M MProperties MExtraProperties) (Import QuoteM : QuoteWSetsOnSig T M MProperties MExtraProperties qT qM qMProperties qMExtraProperties).
   Import (hints) qT qM qMProperties qMExtraProperties.
 
   Module Raw.
@@ -146,8 +146,8 @@ Module QuoteMSetIsList (T : OrderedType) (Import M : MSetList.MakeSig T) (Import
   #[export] Typeclasses Transparent M.t M.elt.
 End QuoteMSetIsList.
 
-Module QuoteMSetList (T : OrderedType) (M : MSetList.MakeSig T) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qT : QuotationOfOrderedType T) (qM : MSetList.QuotationOfMake T M) (qMProperties : QuotationOfOrdProperties M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
+Module QuoteMSetList (T : OrderedType) (M : MSetList.MakeSig T) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qT : QuotationOfOrderedType T) (qM : MSetList.QuotationOfMake T M) (qMProperties : QuotationOfOrdPropertiesT M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
   := QuoteSets M MProperties MExtraProperties qT qM qMProperties qMExtraProperties <+ QuoteMSetIsList T M MProperties.P MExtraProperties.P qT qM qMProperties.qP qMExtraProperties.qP.
 
-Module QuoteMSetListWithLeibniz (T : OrderedTypeWithLeibniz) (M : MSetList.MakeWithLeibnizSig T) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qT : QuotationOfOrderedTypeWithLeibniz T) (qM : MSetList.QuotationOfMakeWithLeibniz T M) (qMProperties : QuotationOfOrdProperties M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
+Module QuoteMSetListWithLeibniz (T : OrderedTypeWithLeibniz) (M : MSetList.MakeWithLeibnizSig T) (MProperties : OrdPropertiesSig M) (MExtraProperties : ExtraOrdPropertiesSig M MProperties) (qT : QuotationOfOrderedTypeWithLeibniz T) (qM : MSetList.QuotationOfMakeWithLeibniz T M) (qMProperties : QuotationOfOrdPropertiesT M MProperties) (qMExtraProperties : QuotationOfExtraOrdProperties M MProperties MExtraProperties)
   := QuoteMSetList T M MProperties MExtraProperties qT qM qMProperties qMExtraProperties <+ QuoteWSetsOnIsLeibniz M.E M MProperties.P MExtraProperties.P qT qM qMProperties.qP qMExtraProperties.qP.

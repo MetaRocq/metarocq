@@ -1,6 +1,18 @@
 From Stdlib.Structures Require Import Equalities.
 From MetaRocq.Quotation.ToTemplate Require Import Init.
 
+Module Type HasUsualEq (T : Typ).
+Include HasUsualEq T.
+End HasUsualEq.
+
+Module Type UsualIsEq (T : UsualEq).
+Include UsualIsEq T.
+End UsualIsEq.
+
+Module Type UsualIsEqOrig (T : UsualEq).
+Include UsualIsEqOrig T.
+End UsualIsEqOrig.
+
 Module Type QuotationOfTyp (Import T : Typ).
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "T").
 End QuotationOfTyp.
@@ -111,17 +123,17 @@ Module Type QuotationOfBoolEqualityFacts (Import E : BooleanEqualityType) (Impor
   MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
 End QuotationOfBoolEqualityFacts.
 
-Module Type QuotationOfHasUsualEq (Import T : Typ) (Import E : HasUsualEq T) (Import qT : QuotationOfTyp T) <: QuotationOfHasEq T E.
+Module QuotationOfHasUsualEq (Import T : Typ) (Import E : HasUsualEq T) (Import qT : QuotationOfTyp T) <: QuotationOfHasEq T E.
   #[export] Instance qeq : quotation_of E.eq := ltac:(cbv [E.eq]; exact _).
 End QuotationOfHasUsualEq.
 
 Module Type QuotationOfUsualEq (E : UsualEq) <: QuotationOfEq E := QuotationOfTyp E <+ QuotationOfHasUsualEq E E.
 
-Module Type QuotationOfUsualIsEq (E : UsualEq) (Import E' : UsualIsEq E) (Import qE : QuotationOfTyp E) <: QuotationOfIsEq E E'.
+Module QuotationOfUsualIsEq (E : UsualEq) (Import E' : UsualIsEq E) (Import qE : QuotationOfTyp E) <: QuotationOfIsEq E E'.
   #[export] Instance qeq_equiv : quotation_of eq_equiv := ltac:(cbv [eq_equiv]; exact _).
 End QuotationOfUsualIsEq.
 
-Module Type QuotationOfUsualIsEqOrig (E : UsualEq) (Import E' : UsualIsEqOrig E) (Import qE : QuotationOfTyp E) <: QuotationOfIsEqOrig E E'.
+Module QuotationOfUsualIsEqOrig (E : UsualEq) (Import E' : UsualIsEqOrig E) (Import qE : QuotationOfTyp E) <: QuotationOfIsEqOrig E E'.
   #[export] Instance qeq_refl : quotation_of eq_refl := ltac:(cbv [eq_refl]; exact _).
   #[export] Instance qeq_sym : quotation_of eq_sym := ltac:(cbv [eq_sym]; exact _).
   #[export] Instance qeq_trans : quotation_of eq_trans := ltac:(cbv [eq_trans]; exact _).

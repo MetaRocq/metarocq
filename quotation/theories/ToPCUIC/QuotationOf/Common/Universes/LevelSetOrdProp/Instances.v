@@ -5,18 +5,18 @@ From MetaRocq.Quotation.ToPCUIC.QuotationOf.Stdlib.MSets Require Import MSetProp
 Import List.ListNotations.
 Local Open Scope list_scope.
 
-Module qLevelSetOrdProp <: QuotationOfOrdProperties LevelSet LevelSetOrdProp.
-  Module qME <: QuotationOfOrderedTypeFacts LevelSet.E LevelSetOrdProp.ME.
+Module qLevelSetOrdProp <: QuotationOfOrdPropertiesT LevelSet LevelSetOrdProp.
+  Module qME <: QuotationOfOrderedTypeFactsT LevelSet.E LevelSetOrdProp.ME.
     MetaRocq Run (tmMakeQuotationOfModule everything None "LevelSetOrdProp.ME").
   End qME.
   Module qML. (* OrderedTypeLists(M.E). *)
     MetaRocq Run (tmMakeQuotationOfModule everything None "LevelSetOrdProp.ML").
   End qML.
-  Module qP <: QuotationOfWProperties LevelSet LevelSetOrdProp.P.
-    Module qDec <: QuotationOfWDecideOn Level LevelSet LevelSetOrdProp.P.Dec.
+  Module qP <: QuotationOfWPropertiesT LevelSet LevelSetOrdProp.P.
+    Module qDec <: QuotationOfWDecideOnT Level LevelSet LevelSetOrdProp.P.Dec.
       MetaRocq Run (tmMakeQuotationOfModule everything None "LevelSetOrdProp.P.Dec").
     End qDec.
-    Module qFM <: QuotationOfWFactsOn Level LevelSet LevelSetOrdProp.P.FM.
+    Module qFM <: QuotationOfWFactsOnT Level LevelSet LevelSetOrdProp.P.FM.
       MetaRocq Run (tmMakeQuotationOfModule everything None "LevelSetOrdProp.P.FM").
     End qFM.
     MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["Dec"]; ["FM"]]%bs) None "LevelSetOrdProp.P").

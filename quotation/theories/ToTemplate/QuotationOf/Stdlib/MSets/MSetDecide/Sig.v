@@ -3,9 +3,13 @@ From MetaRocq.Utils Require Import MRMSets.
 From MetaRocq.Quotation.ToTemplate Require Import Init.
 
 Module Export MSets.
-  Module Type QuotationOfWDecideOn (E : DecidableType) (M : WSetsOn E) (F : WDecideOnSig E M).
+  Module QuotationOfWDecideOn (E : DecidableType) (M : WSetsOn E) (F : WDecideOnSig E M).
     MetaRocq Run (tmDeclareQuotationOfModule everything (Some export) "F").
   End QuotationOfWDecideOn.
 
-  Module Type QuotationOfWDecide (M : WSets) (F : WDecideSig M) := QuotationOfWDecideOn M.E M F.
+  Module Type QuotationOfWDecideOnT (E : DecidableType) (M : WSetsOn E) (F : WDecideOnSig E M).
+    Include QuotationOfWDecideOn E M F.
+  End QuotationOfWDecideOnT.
+
+  Module QuotationOfWDecide (M : WSets) (F : WDecideSig M) := QuotationOfWDecideOn M.E M F.
 End MSets.
