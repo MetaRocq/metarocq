@@ -607,13 +607,26 @@ struct
   let universes_of_mib mib =
     let pars = mib.mind_params_ctxt in
     let univs = universes_of_ctx pars in
-      Array.fold_left (fun univs oib ->
-        let univsty = universes_of_ctx oib.mind_arity_ctxt in
-        Array.fold_left (fun univs cty ->
-          let univscty = Vars.universes_of_constr cty in
-          Univ.Level.Set.union univs univscty)
-          univsty oib.mind_user_lc)
-        univs mib.mind_packets
+    Array.fold_left
+      (fun univs oib ->
+         let univs =
+           Univ.Level.Set.union univs
+             (universes_of_ctx oib.mind_arity_ctxt)
+         in
+         let univs =
+           Array.fold_left
+             (fun univs cty ->
+                Univ.Level.Set.union univs (Vars.universes_of_constr cty))
+             univs oib.mind_user_lc
+         in
+         Array.fold_left
+           (fun univs (ctx, cty) ->
+              let univs =
+                Univ.Level.Set.union univs (universes_of_ctx ctx)
+              in
+              Univ.Level.Set.union univs (Vars.universes_of_constr cty))
+           univs oib.mind_nf_lc)
+      univs mib.mind_packets
 
   let quote_term_rec ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
     let visited_terms = ref Names.KNset.empty in
