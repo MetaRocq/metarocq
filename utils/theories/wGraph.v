@@ -1,5 +1,5 @@
 From Stdlib Require Import ZArith Zcompare Lia ssrbool.
-From Stdlib Require Import MSetAVL MSetFacts MSetProperties.
+From Stdlib Require Import MSetAVL MSetFacts MSetProperties FMapAVL FMapFacts OrdersAlt.
 From MetaRocq.Utils Require Import MRUtils.
 From Stdlib Require Import ssreflect.
 From Equations Require Import Equations.
@@ -532,6 +532,18 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     (e..t, - e..w, e..s).
 
   Definition labelling := V.t -> nat.
+  Module VOT := OrdersAlt.Backport_OT V.
+  Module VMap := FMapAVL.Make VOT.
+  Module VMapFact := FMapFacts.WFacts_fun VOT VMap.
+
+  #[local]
+  Instance reflectEq_Z : ReflectEq Z :=
+    Build_ReflectEq Z Z.eqb (fun x y => reflect_reflectProp (Z.eqb_spec x y)).
+
+  #[local]
+  Instance reflectEq_nbar: ReflectEq Nbar.t :=
+    @reflect_option Z reflectEq_Z.
+
 
   Section graph.
     Context (G : t).
@@ -962,34 +974,10 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
   (* l is the list of authorized intermediate nodes *)
   (* lsp0 (a::l) x y = max (lsp0 l x y) (lsp0 l x a + lsp0 l a y) *)
 
-  Fixpoint lsp00_fast fuel (s : VSet.t) (x z : V.t) : Nbar.t :=
-    let base := if V.eq_dec x z then Some 0 else None in
-    match fuel with
-    | 0%nat => base
-    | Datatypes.S fuel =>
-      match VSet.mem x s with
-      | true =>
-        let s := VSet.remove x s in
-        EdgeSet.fold
-          (fun '(src, w, tgt) acc =>
-            if V.eq_dec src x then
-              Nbar.max acc (Some w + lsp00_fast fuel s tgt z)
-            else acc)%nbar
-           (E G) base
-      | false => base end
-    end.
-
   Lemma fold_left_map {A B C} (f : A -> B -> A) (g : C -> B) l acc : fold_left f (map g l) acc =
     fold_left (fun acc x => f acc (g x)) l acc.
   Proof using Type.
     induction l in acc |- *; cbn; auto.
-  Qed.
-
-  Lemma fold_left_filter {A B} (f : A -> B -> A) (g : B -> bool) l acc : fold_left f (filter g l) acc =
-    fold_left (fun acc x => if g x then f acc x else acc) l acc.
-  Proof using Type.
-    induction l in acc |- *; cbn; auto.
-    destruct (g a) => //=.
   Qed.
 
   #[global] Instance fold_left_proper {A B} : Proper (`=2` ==> `=2`) (@fold_left A B).
@@ -1010,20 +998,6 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     apply fold_left_proper. exact hfg.
   Qed.
 
-  Lemma lsp00_optim fuel s x z : lsp00_fast fuel s x z = lsp00 fuel s x z.
-  Proof using Type.
-    induction fuel in s, x, z |- *; auto. simpl.
-    destruct VSet.mem => //.
-    rewrite EdgeSet.fold_spec.
-    rewrite fold_left_map.
-    unfold succs. rewrite fold_left_map.
-    rewrite fold_left_filter.
-    eapply fold_left_proper => acc [[src w] tgt]; cbn.
-    destruct is_left => //. f_equal. now rewrite IHfuel.
-  Qed.
-
-  Definition lsp_fast := lsp00_fast (VSet.cardinal (V G)) (V G).
-
     (* Equations lsp0 (s : VSet.t) (x z : V.t) : Nbar.t by wf (VSet.cardinal s) *)
     (*   := *)
     (*   lsp0 s x z := *)
@@ -1041,11 +1015,6 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     (* Defined. *)
 
     Definition lsp := lsp0 (V G).
-
-    Lemma lsp_optim x y : lsp_fast x y = lsp x y.
-    Proof using Type.
-      now rewrite /lsp /lsp_fast /lsp0 lsp00_optim.
-    Qed.
 
     Lemma lsp0_VSet_Equal {s s' x y} :
       VSet.Equal s s' -> lsp0 s x y = lsp0 s' x y.
@@ -1525,6 +1494,490 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
       : reflect B f -> reflect A f.
     Proof using Type.
       destruct 1; constructor; intuition.
+    Qed.
+
+    Definition bf_state := VMap.t Nbar.t.
+
+    Definition bf_lookup (m : bf_state) (x : V.t) : Nbar.t :=
+      match VMap.find x m with
+      | Some n => n
+      | None => None
+      end.
+
+    Definition bf_relax_edge (e : Edge.t) (m : bf_state) : bf_state :=
+      VMap.add e..t
+        (Nbar.max (bf_lookup m e..t) (Nbar.add (Some e..w) (bf_lookup m e..s))) m.
+
+    Definition bf_relax_edges (m : bf_state) : bf_state :=
+      EdgeSet.fold bf_relax_edge (E G) m.
+
+    Definition bf_state_eqb (m1 m2 : bf_state) : bool :=
+      VMap.equal (@ReflectEq.eqb _ reflectEq_nbar) m1 m2.
+
+    Fixpoint bf_relax (fuel : nat) (m : bf_state) : bf_state :=
+      match fuel with
+      | 0%nat => m
+      | Datatypes.S fuel => bf_relax fuel (bf_relax_edges m)
+      end.
+
+    Fixpoint bf_relax_early (fuel : nat) (m : bf_state) : bf_state :=
+      match fuel with
+      | 0%nat => m
+      | Datatypes.S fuel =>
+        let m' := bf_relax_edges m in
+        if bf_state_eqb m m' then m
+        else bf_relax_early fuel m'
+      end.
+
+    Definition bf_initial (x : V.t) : bf_state :=
+      VMap.add x (Some 0) (@VMap.empty Nbar.t).
+
+    Lemma bf_state_eqb_lookup m1 m2 :
+      bf_state_eqb m1 m2 = true ->
+      forall x, bf_lookup m1 x = bf_lookup m2 x.
+    Proof using Type.
+      unfold bf_state_eqb, bf_lookup.
+      intro Heq. intro x.
+      assert (Hequiv := VMap.equal_2 Heq).
+      destruct Hequiv as [Hin Hcmp].
+      destruct (VMapFact.In_dec m1 x) as [[v1 Hmt1]|Hin1].
+      - assert (Hin2 : VMap.In x m2) by (apply Hin; exists v1; exact Hmt1).
+        destruct Hin2 as [v2 Hmt2].
+        rewrite (VMap.find_1 Hmt1).
+        rewrite (VMap.find_1 Hmt2).
+        f_equal. apply ReflectEq.eqb_eq. exact (Hcmp x v1 v2 Hmt1 Hmt2).
+      - assert (Hni2 : ~ VMap.In x m2).
+        { intro H2. apply Hin1. apply Hin. exact H2. }
+        apply VMapFact.not_find_in_iff in Hin1.
+        apply VMapFact.not_find_in_iff in Hni2.
+        rewrite Hin1.
+        rewrite Hni2. reflexivity.
+    Qed.
+
+
+    Definition bf_distances (x : V.t) : bf_state :=
+      bf_relax_early (VSet.cardinal (V G)) (bf_initial x).
+
+    Definition bf_distance (x y : V.t) : Nbar.t :=
+      bf_lookup (bf_distances x) y.
+
+    Lemma bf_lookup_add_eq (m : bf_state) x n :
+      bf_lookup (VMap.add x n m) x = n.
+    Proof using Type.
+      unfold bf_lookup.
+      rewrite VMapFact.add_eq_o; reflexivity.
+    Qed.
+
+    Lemma bf_lookup_add_neq (m : bf_state) x y n :
+      x <> y ->
+      bf_lookup (VMap.add x n m) y = bf_lookup m y.
+    Proof using Type.
+      intro H.
+      unfold bf_lookup.
+      rewrite (VMapFact.add_neq_o m n H); reflexivity.
+    Qed.
+
+    Lemma bf_lookup_relax_edge e m x :
+      bf_lookup (bf_relax_edge e m) x =
+        if V.eq_dec x e..t then
+          Nbar.max (bf_lookup m e..t)
+            (Nbar.add (Some e..w) (bf_lookup m e..s))
+        else bf_lookup m x.
+    Proof using Type.
+      unfold bf_relax_edge.
+      destruct (V.eq_dec x e..t) as [->|H].
+      - rewrite bf_lookup_add_eq.
+        now destruct (V.eq_dec e..t e..t).
+      - rewrite (bf_lookup_add_neq m e..t x _ (not_eq_sym H)).
+        now destruct (V.eq_dec x e..t).
+    Qed.
+
+    Lemma bf_nbar_add_reassociate w1 w2 n :
+      Nbar.le (Nbar.add (Some (w1 + w2)) n)
+        (Nbar.add (Some w2) (Nbar.add (Some w1) n)).
+    Proof using Type.
+      destruct n; cbn; lia.
+    Qed.
+
+    Lemma bf_nbar_add_comm n m :
+      Nbar.add n m = Nbar.add m n.
+    Proof using Type.
+      destruct n, m; cbn; try reflexivity.
+      f_equal; lia.
+    Qed.
+
+    Lemma bf_relax_edge_increases e m x :
+      Nbar.le (bf_lookup m x) (bf_lookup (bf_relax_edge e m) x).
+    Proof using Type.
+      rewrite bf_lookup_relax_edge.
+      destruct (V.eq_dec x e..t) as [->|H].
+      - destruct (V.eq_dec e..t e..t); try contradiction.
+        apply Nbar.max_le'; left; apply Nbar.le_refl.
+      - destruct (V.eq_dec x e..t); try contradiction.
+        apply Nbar.le_refl.
+    Qed.
+
+    Lemma bf_relax_edge_target e m :
+      Nbar.le (Nbar.add (Some e..w) (bf_lookup m e..s))
+        (bf_lookup (bf_relax_edge e m) e..t).
+    Proof using Type.
+      rewrite bf_lookup_relax_edge.
+      destruct (V.eq_dec e..t e..t); try contradiction.
+      apply Nbar.max_le'; right; apply Nbar.le_refl.
+    Qed.
+
+    Definition bf_le (m m' : bf_state) :=
+      forall x, Nbar.le (bf_lookup m x) (bf_lookup m' x).
+
+    Lemma bf_le_refl m : bf_le m m.
+    Proof using Type.
+      intro x. apply Nbar.le_refl.
+    Qed.
+
+    Lemma bf_relax_edge_monotone e m m' :
+      bf_le m m' -> bf_le (bf_relax_edge e m) (bf_relax_edge e m').
+    Proof using Type.
+      intros H x.
+      rewrite !bf_lookup_relax_edge.
+      destruct (V.eq_dec x e..t) as [->|Hxt].
+      - destruct (V.eq_dec e..t e..t); try contradiction.
+        apply Nbar.max_lub; apply Nbar.max_le'.
+        + left; apply H.
+        + right; apply Nbar.plus_le_compat_l, H.
+      - destruct (V.eq_dec x e..t); try contradiction.
+        apply H.
+    Qed.
+
+    Lemma bf_fold_increases es m :
+      bf_le m (fold_left (fun m e => bf_relax_edge e m) es m).
+    Proof using Type.
+      induction es in m |- *; cbn.
+      - apply bf_le_refl.
+      - intro x.
+        etransitivity.
+        + apply bf_relax_edge_increases.
+        + apply IHes.
+    Qed.
+
+    Lemma bf_fold_edge es e m :
+      List.In e es ->
+      Nbar.le (Nbar.add (Some e..w) (bf_lookup m e..s))
+        (bf_lookup (fold_left (fun m e => bf_relax_edge e m) es m) e..t).
+    Proof using Type.
+      induction es as [|e' es IH] in m |- *; cbn; try contradiction.
+      intros [->|He].
+      - etransitivity.
+        + apply bf_relax_edge_target.
+        + apply bf_fold_increases.
+      - etransitivity.
+        + apply Nbar.plus_le_compat_l, bf_relax_edge_increases.
+        + apply IH. exact He.
+    Qed.
+
+    Lemma bf_relax_edges_increases m : bf_le m (bf_relax_edges m).
+    Proof using Type.
+      unfold bf_relax_edges.
+      rewrite EdgeSet.fold_spec.
+      apply bf_fold_increases.
+    Qed.
+
+    Lemma bf_relax_edges_edge e m :
+      EdgeSet.In e (E G) ->
+      Nbar.le (Nbar.add (Some e..w) (bf_lookup m e..s))
+        (bf_lookup (bf_relax_edges m) e..t).
+    Proof using Type.
+      intro He.
+      unfold bf_relax_edges.
+      rewrite EdgeSet.fold_spec.
+      apply bf_fold_edge.
+      apply InA_In_eq, EdgeSet.elements_spec1; exact He.
+    Qed.
+
+    Lemma bf_relax_edges_monotone m m' :
+      bf_le m m' -> bf_le (bf_relax_edges m) (bf_relax_edges m').
+    Proof using Type.
+      intro H.
+      unfold bf_relax_edges.
+      rewrite !EdgeSet.fold_spec.
+      induction (EdgeSet.elements (E G)) as [|e es IH] in m, m', H |- *; cbn.
+      - exact H.
+      - apply IH, bf_relax_edge_monotone; exact H.
+    Qed.
+
+    Lemma bf_relax_increases fuel m :
+      bf_le m (bf_relax fuel m).
+    Proof using Type.
+      induction fuel in m |- *; cbn.
+      - apply bf_le_refl.
+      - intro x.
+        etransitivity.
+        + apply bf_relax_edges_increases.
+        + apply IHfuel.
+    Qed.
+
+
+    Lemma bf_relax_add (n k : nat) m :
+      bf_relax (n + k) m = bf_relax k (bf_relax n m).
+    Proof using Type.
+      induction n in m |- *; cbn.
+      - reflexivity.
+      - cbn.
+        apply IHn.
+    Qed.
+
+    Lemma bf_relax_le_fuel (n k : nat) m :
+      Nat.le n k ->
+      bf_le (bf_relax n m) (bf_relax k m).
+    Proof using Type.
+      intro H.
+      replace k with (Nat.add n (Nat.sub k n)) by lia.
+      rewrite bf_relax_add.
+      apply bf_relax_increases.
+    Qed.
+
+    Lemma bf_relax_monotone fuel m m' :
+      bf_le m m' -> bf_le (bf_relax fuel m) (bf_relax fuel m').
+    Proof using Type.
+      revert m m'; induction fuel; cbn; intros m m' H.
+      - exact H.
+      - apply IHfuel. apply bf_relax_edges_monotone. exact H.
+    Qed.
+
+    Lemma bf_relax_edges_idempotent m :
+      bf_state_eqb m (bf_relax_edges m) = true ->
+      forall fuel, bf_le (bf_relax fuel m) m.
+    Proof using Type.
+      intros Heq.
+      assert (Hlookup : forall x, bf_lookup m x = bf_lookup (bf_relax_edges m) x).
+      { apply bf_state_eqb_lookup; exact Heq. }
+      assert (Hle_back : bf_le (bf_relax_edges m) m).
+      { intro x. rewrite <- Hlookup. apply Nbar.le_refl. }
+      induction fuel; cbn.
+      - apply bf_le_refl.
+      - intro x. etransitivity.
+        + apply (bf_relax_monotone fuel _ _ Hle_back x).
+        + apply IHfuel.
+    Qed.
+
+    Lemma bf_relax_early_eq fuel m :
+      bf_le (bf_relax fuel m) (bf_relax_early fuel m) /\
+      bf_le (bf_relax_early fuel m) (bf_relax fuel m).
+    Proof using Type.
+      revert m; induction fuel; cbn; intro m.
+      - split; apply bf_le_refl.
+      - destruct (bf_state_eqb m (bf_relax_edges m)) eqn:Heq.
+        + split.
+          * exact (bf_relax_edges_idempotent m Heq (Datatypes.S fuel)).
+          * exact (bf_relax_increases (Datatypes.S fuel) m).
+        + exact (IHfuel (bf_relax_edges m)).
+    Qed.
+
+    Fixpoint bf_path_steps {x y} (p : PathOf x y) : nat :=
+      match p with
+      | pathOf_refl _ => 0%nat
+      | pathOf_step _ p => Datatypes.S (bf_path_steps p)
+      end.
+
+    Lemma spath_steps_le {s x y} (p : SPath s x y) :
+      Nat.le (bf_path_steps (to_pathOf p)) (VSet.cardinal s).
+    Proof using Type.
+      induction p; cbn; [lia|].
+      rewrite (VSetProp.cardinal_2 (proj2 d) (proj1 d)); lia.
+    Qed.
+
+    Lemma bf_path_lower {x y} (p : PathOf x y) m :
+      Nbar.le (Nbar.add (Some (weight p)) (bf_lookup m x))
+        (bf_lookup (bf_relax (bf_path_steps p) m) y).
+    Proof using Type.
+      induction p in m |- *; cbn.
+      - rewrite Nbar.add_0_l. apply Nbar.le_refl.
+      - eapply Nbar.le_trans with
+          (y := Nbar.add (Some (weight p)) (bf_lookup (bf_relax_edges m) y)).
+        + pose proof
+            (Nbar.plus_le_compat_l _ _ (Some (weight p))
+              (bf_relax_edges_edge (x, e.π1, y) m e.π2)) as Hedge.
+          eapply Nbar.le_trans with
+            (y := Nbar.add (Some (weight p))
+              (Nbar.add (Some e.π1) (bf_lookup m x))).
+          * apply bf_nbar_add_reassociate.
+          * exact Hedge.
+        + apply IHp.
+    Qed.
+
+    Lemma bf_initial_lookup x :
+      bf_lookup (bf_initial x) x = Some 0.
+    Proof using Type.
+      unfold bf_initial. apply bf_lookup_add_eq.
+    Qed.
+
+    Lemma bf_path_lower_initial {x y} (p : PathOf x y) :
+      Nbar.le (Some (weight p))
+        (bf_lookup (bf_relax (bf_path_steps p) (bf_initial x)) y).
+    Proof using Type.
+      rewrite <- (Nbar.add_0_r (Some (weight p))).
+      rewrite <- (bf_initial_lookup x).
+      apply bf_path_lower.
+    Qed.
+
+
+    Lemma bf_distance_lower {x y n} :
+      lsp x y = Some n ->
+      Nbar.le (Some n) (bf_distance x y).
+    Proof using Type.
+      unfold lsp.
+      intro H.
+      destruct (lsp0_spec_eq n H) as [p Hp].
+      pose proof (spath_steps_le p) as Hb.
+      unfold bf_distance, bf_distances.
+      eapply Nbar.le_trans.
+      - rewrite <- Hp, sweight_weight.
+        apply bf_path_lower_initial.
+      - eapply Nbar.le_trans.
+        + apply (bf_relax_le_fuel _ _ (bf_initial x) Hb y).
+        + apply (proj1 (bf_relax_early_eq (VSet.cardinal (V G)) (bf_initial x)) y).
+    Qed.
+
+    Definition bf_bounded (x : V.t) (m : bf_state) :=
+      forall y, Nbar.le (bf_lookup m y) (lsp x y).
+
+    Lemma bf_initial_bounded {HG : acyclic_no_loop} x :
+      bf_bounded x (bf_initial x).
+    Proof using HI.
+      intro y.
+      destruct (V.eq_dec x y) as [->|Hxy].
+      - unfold bf_initial. rewrite bf_lookup_add_eq.
+        unfold lsp. rewrite acyclic_lsp0_xx.
+        apply Nbar.le_refl.
+      - unfold bf_initial.
+        rewrite (bf_lookup_add_neq (@VMap.empty Nbar.t) x y (Some 0) Hxy).
+        unfold bf_lookup; cbn; exact I.
+    Qed.
+
+    Lemma bf_relax_edge_bounded {HG : acyclic_no_loop} x e m :
+      EdgeSet.In e (E G) ->
+      bf_bounded x m -> bf_bounded x (bf_relax_edge e m).
+    Proof using HI.
+      intros He H y.
+      rewrite bf_lookup_relax_edge.
+      destruct (V.eq_dec y e..t) as [->|Hyt].
+      - destruct (V.eq_dec e..t e..t); try contradiction.
+        destruct e as [[src w] tgt]; cbn in *.
+        apply Nbar.max_lub.
+        + apply H.
+        + eapply Nbar.le_trans.
+          * apply Nbar.plus_le_compat_l, H.
+          * rewrite bf_nbar_add_comm.
+            unfold lsp.
+            eapply (lsp0_triangle_inequality (V G) x src tgt w He).
+            now destruct (edges_vertices _ He).
+      - destruct (V.eq_dec y e..t); try contradiction.
+        apply H.
+    Qed.
+
+    Lemma bf_relax_edges_bounded {HG : acyclic_no_loop} x m :
+      bf_bounded x m -> bf_bounded x (bf_relax_edges m).
+    Proof using HI.
+      unfold bf_relax_edges.
+      rewrite EdgeSet.fold_spec.
+      remember (EdgeSet.elements (E G)) as es.
+      assert (Hall : forall e, List.In e es -> EdgeSet.In e (E G)). {
+        intros e He.
+        subst es. apply (EdgeSet.elements_spec1 _ _).p1, InA_In_eq; exact He. }
+      clear Heqes.
+      revert m Hall.
+      induction es as [|e es IH]; cbn.
+      - intros m _ H. exact H.
+      - intros m Hall H.
+        apply IH.
+        + intros e' He'. apply Hall. right; exact He'.
+        + apply bf_relax_edge_bounded.
+          * apply Hall. left; reflexivity.
+          * exact H.
+    Qed.
+
+    Lemma bf_relax_bounded {HG : acyclic_no_loop} fuel x m :
+      bf_bounded x m -> bf_bounded x (bf_relax fuel m).
+    Proof using HI.
+      induction fuel in m |- *; cbn.
+      - exact.
+      - intro H. apply IHfuel.
+        apply bf_relax_edges_bounded; exact H.
+    Qed.
+
+    Lemma bf_distance_upper {HG : acyclic_no_loop} x y :
+      Nbar.le (bf_distance x y) (lsp x y).
+    Proof using HI.
+      unfold bf_distance, bf_distances.
+      eapply Nbar.le_trans.
+      - apply (proj2 (bf_relax_early_eq (VSet.cardinal (V G)) (bf_initial x)) y).
+      - apply bf_relax_bounded. apply bf_initial_bounded.
+    Qed.
+
+    Lemma bf_distance_eq {HG : acyclic_no_loop} x y :
+      bf_distance x y = lsp x y.
+    Proof using HI.
+      apply Nbar.le_antisymm.
+      - apply bf_distance_upper.
+      - destruct (lsp x y) eqn:Hxy.
+        + apply bf_distance_lower; exact Hxy.
+        + exact I.
+    Qed.
+
+    Definition bf_labelling : labelling :=
+      let distances := bf_distances (s G) in
+      fun x => to_label (bf_lookup distances x).
+
+    Definition correct_labellingb (l : labelling) : bool :=
+      Nat.eqb (l (s G)) 0 &&
+        EdgeSet.for_all
+          (fun e => Z.leb (Z.of_nat (l e..s) + e..w) (Z.of_nat (l e..t)))
+          (E G).
+
+    Lemma correct_labellingb_spec l :
+      correct_labellingb l <-> correct_labelling l.
+    Proof using Type.
+      unfold correct_labellingb, correct_labelling.
+      rewrite andb_and.
+      apply Morphisms_Prop.and_iff_morphism.
+      - apply Nat.eqb_eq.
+      - etransitivity.
+        + symmetry. apply EdgeSetFact.for_all_iff.
+          intros x y []; reflexivity.
+        + apply iff_forall; intro e.
+          apply iff_forall; intro He.
+          apply Z.leb_le.
+    Qed.
+
+    Definition is_acyclic' := correct_labellingb bf_labelling.
+
+    Lemma bf_labelling_correct {HG : acyclic_no_loop} :
+      correct_labelling bf_labelling.
+    Proof using HI.
+      destruct (lsp_correctness (HG:=HG)) as [Hs He].
+      split.
+      - unfold bf_labelling.
+        change (to_label (bf_distance (s G) (s G)) = 0%nat).
+        rewrite bf_distance_eq.
+        exact Hs.
+      - intros e Hin.
+        unfold bf_labelling.
+        change (Z.of_nat (to_label (bf_distance (s G) e..s)) + e..w <=
+                  Z.of_nat (to_label (bf_distance (s G) e..t))).
+        rewrite !bf_distance_eq.
+        apply He; exact Hin.
+    Qed.
+
+    Lemma is_acyclic'_spec :
+      is_acyclic' <-> acyclic_no_loop.
+    Proof using HI.
+      split.
+      - intro H.
+        apply (acyclic_labelling bf_labelling).
+        apply (proj1 (correct_labellingb_spec bf_labelling)).
+        exact H.
+      - intro HG.
+        apply (proj2 (correct_labellingb_spec bf_labelling)).
+        apply bf_labelling_correct; exact HG.
     Qed.
 
     Definition is_acyclic := VSet.for_all (fun x => match lsp x x with
@@ -2499,14 +2952,14 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     Defined.
 
     Definition leqb_vertices z x y : bool :=
-      if VSet.mem y (V G) then if is_left (Nbar.le_dec (Some z) (lsp_fast G x y)) then true else false
-      else (Z.leb z 0 && (V.eq_dec x y || Nbar.le_dec (Some z) (lsp_fast G x (s G))))%bool.
+      if VSet.mem y (V G) then if is_left (Nbar.le_dec (Some z) (bf_distance G x y)) then true else false
+      else (Z.leb z 0 && (V.eq_dec x y || Nbar.le_dec (Some z) (bf_distance G x (s G))))%bool.
 
     Lemma leqb_vertices_correct n x y
       : leq_vertices G n x y <-> leqb_vertices n x y.
     Proof using HG HI.
       etransitivity. apply leq_vertices_caract.
-      rewrite /leqb_vertices !lsp_optim.
+      rewrite /leqb_vertices !(bf_distance_eq G).
       destruct (VSet.mem y (V G)).
       - destruct (le_dec (Some n) (lsp G x y)); cbn; intuition.
         discriminate.
@@ -3108,17 +3561,6 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     all: have := (@irreflexivity _ _ (@StrictOrder_Irreflexive _ _ VSet.E.lt_strorder) y)=> //.
   Qed.
 
-  #[program, local]
-  Instance reflectEq_Z : ReflectEq Z :=
-    Build_ReflectEq Z Z.eqb _.
-  Next Obligation.
-   intros; apply reflect_reflectProp; apply Z.eqb_spec.
-  Qed.
-
-  #[local]
-  Instance reflectEq_nbar: ReflectEq Nbar.t :=
-    @reflect_option Z reflectEq_Z.
-
 
   Module IsFullSubgraph.
     Section Border.
@@ -3291,6 +3733,16 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
       let bs := border_set G1 ext in
       VSet.for_all (fun x => VSet.for_all (fun y => lsp G1 x y == lsp G2 x y) bs) bs.
 
+    Definition is_full_extension' (G1 G2 : t) : bool :=
+      let ext := EdgeSet.diff (E G2) (E G1) in
+      let bs := border_set G1 ext in
+      VSet.for_all
+        (fun x =>
+           let d1 := bf_distances G1 x in
+           let d2 := bf_distances G2 x in
+           VSet.for_all (fun y => bf_lookup d1 y == bf_lookup d2 y) bs) bs.
+
+
     Lemma lsp_eq_is_full_extension (G1 G2 : t) :
       full_subgraph G1 G2 -> is_full_extension G1 G2.
     Proof.
@@ -3331,6 +3783,66 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
       move=> sub; split.
       - move=> ext; constructor=> //; by apply: is_full_extension_lsp_dominate.
       - apply: lsp_eq_is_full_extension.
+    Qed.
+
+    Lemma is_full_extension'_spec (G1 G2 : t)
+          `{invariants G1, invariants G2, acyclic_no_loop G2} :
+      subgraph G1 G2 ->
+      is_full_extension' G1 G2 <-> full_subgraph G1 G2.
+    Proof.
+      intro Hsub.
+      assert (Hac1 : acyclic_no_loop G1).
+      { apply (subgraph_acyclic G1 G2 Hsub); assumption. }
+      rewrite <- (is_full_extension_spec G1 G2 Hsub).
+      unfold is_full_extension', is_full_extension.
+      set (ext := EdgeSet.diff (E G2) (E G1)).
+      set (bs := border_set G1 ext).
+      assert (Hbf1 : forall x y, bf_distance G1 x y = lsp G1 x y).
+      { intros x y. apply bf_distance_eq; [exact H | exact Hac1]. }
+      assert (Hbf2 : forall x y, bf_distance G2 x y = lsp G2 x y).
+      { intros x y. apply bf_distance_eq; [exact H0 | exact H1]. }
+      split.
+      - intro Hfast.
+        apply/VSet.for_all_spec=> x Hx.
+        apply/VSet.for_all_spec=> y Hy.
+        apply/ReflectEq.eqb_spec.
+        move: Hfast=> /VSet.for_all_spec/(_ x Hx)/VSet.for_all_spec/(_ y Hy).
+        move=> /(@ReflectEq.eqb_spec _ reflectEq_nbar) Hbf.
+        change (bf_distance G1 x y = bf_distance G2 x y) in Hbf.
+        rewrite Hbf1 in Hbf.
+        rewrite Hbf2 in Hbf.
+        exact Hbf.
+      - intro Hslow.
+        apply/VSet.for_all_spec=> x Hx.
+        apply/VSet.for_all_spec=> y Hy.
+        apply/ReflectEq.eqb_spec.
+        change (bf_distance G1 x y = bf_distance G2 x y).
+        rewrite Hbf1.
+        rewrite Hbf2.
+        move: Hslow=> /VSet.for_all_spec/(_ x Hx)/VSet.for_all_spec/(_ y Hy).
+        now move=> /(@ReflectEq.eqb_spec _ reflectEq_nbar).
+    Qed.
+
+    Lemma is_acyclic_full_extension'_iff (G1 G2 : t)
+          `{invariants G1, invariants G2} :
+      subgraph G1 G2 ->
+      (is_acyclic' G2 && is_full_extension' G1 G2) <->
+      (is_acyclic G2 && is_full_extension G1 G2).
+    Proof.
+      intro Hsub.
+      split=> /andP [Hacy Hext]; apply/andP.
+      - assert (Hac : acyclic_no_loop G2).
+        { apply (proj1 (is_acyclic'_spec G2)); exact Hacy. }
+        split.
+        + apply (proj2 (is_acyclic_spec G2)); exact Hac.
+        + apply (is_full_extension_spec G1 G2 Hsub).
+          apply (is_full_extension'_spec G1 G2 Hsub); exact Hext.
+      - assert (Hac : acyclic_no_loop G2).
+        { apply (proj1 (is_acyclic_spec G2)); exact Hacy. }
+        split.
+        + apply (proj2 (is_acyclic'_spec G2)); exact Hac.
+        + apply (is_full_extension'_spec G1 G2 Hsub).
+          apply (is_full_extension_spec G1 G2 Hsub); exact Hext.
     Qed.
 
     (* Remove ? *)

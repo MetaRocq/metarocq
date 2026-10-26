@@ -18,7 +18,7 @@ Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract 
 Import EEnvMap EGlobalEnv EWellformed.
 
 Definition build_wf_env_from_env {cf : checker_flags} (Σ : global_env_map) (wfΣ : ∥ PCUICTyping.wf Σ ∥) : wf_env :=
-  {| wf_env_reference := {| reference_impl_env := Σ.(trans_env_env); reference_impl_wf := wfΣ |} ;
+  {| wf_env_reference := build_reference_impl Σ.(trans_env_env) wfΣ ;
      wf_env_map := Σ.(trans_env_map);
      wf_env_map_repr := Σ.(trans_env_repr);
  |}.

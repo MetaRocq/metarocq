@@ -100,8 +100,7 @@ Program Definition eval_compute_cheat (cf := default_checker_flags)
 := let p' := trans_program p in
   let tm := reduce_term RedFlags.default
      canonical_abstract_env_impl
-    {| reference_impl_env_ext := (p'.1 , φ);
-       reference_impl_ext_wf := (todo "wf") |}
+    (build_reference_impl_ext (p'.1 , φ) (todo "wf"))
     [] p'.2 (todo "welltyped") in
     PCUICToTemplate.trans tm.
 

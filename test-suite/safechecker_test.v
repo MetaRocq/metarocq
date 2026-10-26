@@ -11,6 +11,23 @@ Environment is well-formed and Ind(Stdlib.Init.Datatypes.nat,0,[]) has type: Sor
 
 MetaRocq SafeCheck (3 + 1).
 
+Unset Universe Checking.
+Polymorphic Definition bf_cycle@{u v | u < v, v < u} : Type@{v} := Type@{u}.
+(* SafeCheck must reject bf_cycle because its declared constraints form the
+   cycle u < v < u, which the universe consistency check finds. *)
+Fail MetaRocq SafeCheck bf_cycle.
+Set Universe Checking.
+
+Universe bf_lo bf_hi.
+Constraint bf_lo < bf_hi.
+Unset Universe Checking.
+Definition bf_level_too_low : Type@{bf_lo} := Type@{bf_hi}.
+Set Universe Checking.
+(* SafeCheck must reject bf_level_too_low: checking it needs bf_hi + 1 <= bf_lo,
+   which the stored constraint bf_lo < bf_hi makes false. Rocq adds no
+   constraint while universe checking is off, so the graph stays consistent. *)
+Fail MetaRocq SafeCheck bf_level_too_low.
+
 Definition bool_list := List.map negb (cons true (cons false nil)).
 (* was working a bit by accident *)
 (* MetaRocq SafeCheck bool_list. *)
