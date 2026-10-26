@@ -974,34 +974,10 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
   (* l is the list of authorized intermediate nodes *)
   (* lsp0 (a::l) x y = max (lsp0 l x y) (lsp0 l x a + lsp0 l a y) *)
 
-  Fixpoint lsp00_fast fuel (s : VSet.t) (x z : V.t) : Nbar.t :=
-    let base := if V.eq_dec x z then Some 0 else None in
-    match fuel with
-    | 0%nat => base
-    | Datatypes.S fuel =>
-      match VSet.mem x s with
-      | true =>
-        let s := VSet.remove x s in
-        EdgeSet.fold
-          (fun '(src, w, tgt) acc =>
-            if V.eq_dec src x then
-              Nbar.max acc (Some w + lsp00_fast fuel s tgt z)
-            else acc)%nbar
-           (E G) base
-      | false => base end
-    end.
-
   Lemma fold_left_map {A B C} (f : A -> B -> A) (g : C -> B) l acc : fold_left f (map g l) acc =
     fold_left (fun acc x => f acc (g x)) l acc.
   Proof using Type.
     induction l in acc |- *; cbn; auto.
-  Qed.
-
-  Lemma fold_left_filter {A B} (f : A -> B -> A) (g : B -> bool) l acc : fold_left f (filter g l) acc =
-    fold_left (fun acc x => if g x then f acc x else acc) l acc.
-  Proof using Type.
-    induction l in acc |- *; cbn; auto.
-    destruct (g a) => //=.
   Qed.
 
   #[global] Instance fold_left_proper {A B} : Proper (`=2` ==> `=2`) (@fold_left A B).
@@ -1022,20 +998,6 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     apply fold_left_proper. exact hfg.
   Qed.
 
-  Lemma lsp00_optim fuel s x z : lsp00_fast fuel s x z = lsp00 fuel s x z.
-  Proof using Type.
-    induction fuel in s, x, z |- *; auto. simpl.
-    destruct VSet.mem => //.
-    rewrite EdgeSet.fold_spec.
-    rewrite fold_left_map.
-    unfold succs. rewrite fold_left_map.
-    rewrite fold_left_filter.
-    eapply fold_left_proper => acc [[src w] tgt]; cbn.
-    destruct is_left => //. f_equal. now rewrite IHfuel.
-  Qed.
-
-  Definition lsp_fast := lsp00_fast (VSet.cardinal (V G)) (V G).
-
     (* Equations lsp0 (s : VSet.t) (x z : V.t) : Nbar.t by wf (VSet.cardinal s) *)
     (*   := *)
     (*   lsp0 s x z := *)
@@ -1053,11 +1015,6 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     (* Defined. *)
 
     Definition lsp := lsp0 (V G).
-
-    Lemma lsp_optim x y : lsp_fast x y = lsp x y.
-    Proof using Type.
-      now rewrite /lsp /lsp_fast /lsp0 lsp00_optim.
-    Qed.
 
     Lemma lsp0_VSet_Equal {s s' x y} :
       VSet.Equal s s' -> lsp0 s x y = lsp0 s' x y.
@@ -2995,14 +2952,14 @@ Module WeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module 
     Defined.
 
     Definition leqb_vertices z x y : bool :=
-      if VSet.mem y (V G) then if is_left (Nbar.le_dec (Some z) (lsp_fast G x y)) then true else false
-      else (Z.leb z 0 && (V.eq_dec x y || Nbar.le_dec (Some z) (lsp_fast G x (s G))))%bool.
+      if VSet.mem y (V G) then if is_left (Nbar.le_dec (Some z) (bf_distance G x y)) then true else false
+      else (Z.leb z 0 && (V.eq_dec x y || Nbar.le_dec (Some z) (bf_distance G x (s G))))%bool.
 
     Lemma leqb_vertices_correct n x y
       : leq_vertices G n x y <-> leqb_vertices n x y.
     Proof using HG HI.
       etransitivity. apply leq_vertices_caract.
-      rewrite /leqb_vertices !lsp_optim.
+      rewrite /leqb_vertices !(bf_distance_eq G).
       destruct (VSet.mem y (V G)).
       - destruct (le_dec (Some n) (lsp G x y)); cbn; intuition.
         discriminate.
