@@ -43,7 +43,7 @@ Existing Instance PCUICSN.extraction_normalizing.
 
 Existing Instance fake_guard_impl_instance.
 
-Program Definition flag_of_type_impl := @flag_of_type canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto))
+Program Definition flag_of_type_impl := @flag_of_type canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ)
   PCUICSN.extraction_normalizing _.
 Next Obligation. apply fake_normalization; eauto. Qed.
 
@@ -167,14 +167,14 @@ Fixpoint vec_repeat {A} (a : A) (n : nat) : Vector.t A n :=
 Existing Instance PCUICSN.extraction_normalizing.
 
 #[program] Definition type_of_impl :=
-  @type_of _ PCUICSN.extraction_normalizing canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto))
+  @type_of _ PCUICSN.extraction_normalizing canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ)
     _.
 Next Obligation.
   apply fake_normalization; eauto.
 Qed.
 
 #[program] Definition erase_type_aux_impl :=
-  @erase_type_aux canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)) PCUICSN.extraction_normalizing _.
+  @erase_type_aux canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ) PCUICSN.extraction_normalizing _.
 Next Obligation.
   apply fake_normalization; eauto.
 Qed.

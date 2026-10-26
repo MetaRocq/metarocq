@@ -30,7 +30,7 @@ Record type_flag_squashed :=
     is_arity : bool }.
 
 Program Definition flag_of_type_impl (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥) :=
-  @flag_of_type canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  @flag_of_type canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ).
 
 
 Program Definition flag_of_type_program (p : Ast.Env.program) : type_flag_squashed :=
@@ -117,7 +117,7 @@ Definition string_of_env_error Σ e :=
   end.
 
 Definition erase_type_impl (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥) :=
-  @erase_type canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  @erase_type canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ).
 
 Program Definition erase_type_program (p : Ast.Env.program) : global_env_ext * (list name * box_type) :=
   let Σ := trans_global_env p.1 in
@@ -160,7 +160,7 @@ Program Definition print_box_type (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ
                 | None => "'a" ++ string_of_nat i
                 end
     | TInd s =>
-      match @PCUICSafeRetyping.lookup_ind_decl _ canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)) s with
+      match @PCUICSafeRetyping.lookup_ind_decl _ canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ) s with
       | Checked (decl; oib; _) => oib.(ind_name)
       | TypeError te => "UndeclaredInductive("
                           ++ string_of_kername s.(inductive_mind)
@@ -386,7 +386,7 @@ Import PCUICSafeRetyping.
 Local Existing Instance PCUICSN.extraction_normalizing.
 
 Definition type_of_impl (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥) :=
-  type_of canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  type_of canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ).
 
 Program Definition type_of_program (p : Ast.Env.program) : term :=
   let Σ := trans_global_env p.1 in
@@ -411,7 +411,7 @@ Program Definition erase_and_print_type_of
   (erase_type_tests.print_box_type Σ (todo "assume wf") [] bt).
 
 Definition erase_ind_arity_impl (Σ : global_env_ext) (wfextΣ : ∥ wf_ext Σ∥) :=
-  @erase_ind_arity canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  @erase_ind_arity canonical_abstract_env_impl (build_reference_impl_ext Σ wfextΣ).
 
 Module erase_ind_arity_tests.
 Program Definition erase_arity_program (p : Ast.Env.program) : list type_var_info :=
@@ -481,7 +481,7 @@ Axiom assume_wellformed : forall {X}, X.
 Axiom cannot_happen : forall {X}, X.
 
 Definition erase_ind_impl (Σ : global_env_ext) (wf : ∥ wf_ext Σ ∥) :=
-  @erase_ind canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  @erase_ind canonical_abstract_env_impl (build_reference_impl_ext Σ wf).
 
 Definition erase_and_print_ind_prog (p : Ast.Env.program) : string :=
   let Σ := trans_global_env p.1 in
@@ -672,7 +672,7 @@ Axiom assume_wellformed : forall {X}, X.
 Axiom does_not_happen : forall {X}, X.
 
 Definition erase_constant_decl_impl (Σ : global_env_ext) (wf : ∥ wf_ext Σ ∥) :=
-  @erase_constant_decl canonical_abstract_env_impl (ltac:(now unshelve econstructor;eauto)).
+  @erase_constant_decl canonical_abstract_env_impl (build_reference_impl_ext Σ wf).
 
 Definition erase_and_print_type_scheme (p : Ast.Env.program) : string * string :=
   let Σ := trans_global_env p.1 in
