@@ -8,6 +8,7 @@ META.rocq-metarocq-template-rocq
 src/tm_util.ml
 
 src/reification.ml
+src/template_translation.ml
 src/quoter.ml
 src/denoter.ml
 src/constr_reification.ml

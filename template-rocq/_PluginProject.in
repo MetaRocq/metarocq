@@ -242,6 +242,7 @@ gen-src/templateEnvMap.ml
 gen-src/templateEnvMap.mli
 gen-src/templateProgram.ml
 gen-src/templateProgram.mli
+gen-src/template_translation.ml
 gen-src/termEquality.ml
 gen-src/termEquality.mli
 gen-src/tm_util.ml
