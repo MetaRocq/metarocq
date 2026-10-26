@@ -5,16 +5,23 @@ DECLARE PLUGIN "rocq-metarocq-test-plugin.plugin"
 (* Test-only commands. Each command checks one property and fails with an
    error if it does not hold. *)
 
+open Stdarg
+
 module Q = Template_rocq.Constr_quoter
 
 let fail msg = CErrors.user_err (Pp.str msg)
 
-(* The quoted domain and codomain of a quoted [Prod], as built by
-   [Constr_quoter.mkProd]. *)
-let quoted_prod_children q =
+(* The quoted type and body of a quoted [Prod] or [Lambda] ([what]), as built
+   by [Constr_quoter.mkProd] and [Constr_quoter.mkLambda]. *)
+let quoted_binder_children what q =
   match Constr.kind q with
   | Constr.App (_, [| _; t; b |]) -> t, b
-  | _ -> fail "Expected a quoted product."
+  | _ -> fail ("Expected a quoted " ^ what ^ ".")
+
+(* A new quotation closure for [Q], with its own cache, which translates
+   template inductives with [translation] when it is given. *)
+let new_quoter ?translation () =
+  fst (Q.quote_term_remember ?translation (fun _ () -> ()) (fun _ _ () -> ()))
 
 let empty_evar_map () =
   let env = Global.env () in
@@ -49,7 +56,7 @@ let test_quote_sharing () =
   let quoted = fst (quote () env sigma (build sharing_depth)) in
   let rec check level q =
     if level < sharing_depth then begin
-      let t, b = quoted_prod_children q in
+      let t, b = quoted_binder_children "product" q in
       if not (t == b) then
         fail (Printf.sprintf "MetaRocq Test Quotation Sharing: at level %d the two quoted children are not physically equal." level);
       check (level + 1) t
@@ -83,12 +90,11 @@ let test_quote_cache () =
       Constr.mkProd (Context.anonR, l, r)
   in
   let t = tree cache_tree_height in
-  let new_cache () = fst (Q.quote_term_remember (fun _ () -> ()) (fun _ _ () -> ())) in
   let quote cache trm = fst (cache () env sigma trm) in
-  let shared = new_cache () in
+  let shared = new_quoter () in
   let first = quote shared t in
   let second = quote shared t in
-  let fresh = quote (new_cache ()) t in
+  let fresh = quote (new_quoter ()) t in
   if not (Constr.equal first fresh) then
     fail "MetaRocq Test Quotation Cache: the quotation through the cache differs from a fresh quotation.";
   if not (Constr.equal second fresh) then
@@ -104,7 +110,7 @@ let test_quote_cache () =
   in
   let u = Constr.mkProd (Context.anonR, tl, tr) in
   let after_eviction = quote shared u in
-  if not (Constr.equal after_eviction (quote (new_cache ()) u)) then
+  if not (Constr.equal after_eviction (quote (new_quoter ()) u)) then
     fail "MetaRocq Test Quotation Cache: after eviction, the quotation through the cache differs from a fresh quotation.";
   (* Each subterm occurs once in [u], so a subterm whose quoted value is
      physically the one of the first quotation was a hit, and any other was
@@ -116,14 +122,14 @@ let test_quote_cache () =
       incr requoted;
       match Constr.kind trm with
       | Constr.Prod (_, l, r) ->
-        let l1, r1 = quoted_prod_children q1 and l2, r2 = quoted_prod_children q2 in
+        let l1, r1 = quoted_binder_children "product" q1 and l2, r2 = quoted_binder_children "product" q2 in
         count l l1 l2;
         count r r1 r2
       | _ -> ()
     end
   in
-  let first_l, first_r = quoted_prod_children first in
-  let after_l, after_r = quoted_prod_children after_eviction in
+  let first_l, first_r = quoted_binder_children "product" first in
+  let after_l, after_r = quoted_binder_children "product" after_eviction in
   if not (Constr.equal first_l after_l && Constr.equal first_r after_r) then
     fail "MetaRocq Test Quotation Cache: after eviction, a subterm's quotation differs from its first quotation.";
   count tl first_l after_l;
@@ -167,7 +173,7 @@ let test_quote_telescopes () =
       | Constr.App (_, args) -> args.(Array.length args - 1)
       | _ -> fail "MetaRocq Test Quotation Telescopes: expected a quoted binder."
     in
-    let cache = fst (Q.quote_term_remember (fun _ () -> ()) (fun _ _ () -> ())) in
+    let cache = new_quoter () in
     let t = build telescope_depth in
     let rec count level trm q hits =
       if level = 0 then hits
@@ -192,6 +198,516 @@ let test_quote_telescopes () =
     "MetaRocq Test Quotation Telescopes: of the %d levels of each telescope, hits: %s."
     telescope_depth summary))
 
+(* Template translation: the quoter's caches and declaration state.
+
+   [QT] is the translation module that [Q] uses.  The unqualified
+   [Template_translation] is the extracted plugin's copy, which [Ast_quoter]
+   uses. *)
+module QT = Template_rocq.Template_translation
+
+(* A translation for one test and a quotation closure that uses it. *)
+let new_translating_quoter env =
+  let translation = QT.create env in
+  translation, new_quoter ~translation ()
+
+let regression_kername name =
+  Names.KerName.make
+    (Names.ModPath.MPfile
+       (Names.DirPath.make
+          [Names.Id.of_string "MetaRocq";
+           Names.Id.of_string "Regression"]))
+    (Names.Label.of_id (Names.Id.of_string name))
+
+(* [env] with the constant [MetaRocq.Regression.<name>] of type [typ], with
+   [body] if given, and that constant. *)
+let add_regression_constant env name ~typ ?body universes =
+  let constant = Names.Constant.make1 (regression_kername name) in
+  let constant_body =
+    { Declarations.const_hyps = [];
+      const_univ_hyps = UVars.Instance.empty;
+      const_body =
+        (match body with
+         | Some body -> Declarations.Def body
+         | None -> Declarations.Undef None);
+      const_type = typ;
+      const_relevance = Sorts.Relevant;
+      const_body_code = None;
+      const_universes = universes;
+      const_inline_code = false;
+      const_typing_flags = Environ.typing_flags env }
+  in
+  Environ.add_constant constant constant_body env, constant
+
+let test_scope_dependency_cache env sigma =
+  let universe =
+    Univ.Universe.unrepr
+      [Univ.Level.var 0, 0; Univ.Level.var 1, 0]
+  in
+  let term =
+    Constr.mkProd
+      (Context.anonR,
+       Constr.mkSort (Sorts.make Sorts.Quality.qtype universe),
+       Constr.mkSort Sorts.prop)
+  in
+  if not (QT.quote_cache_usable sigma) then
+    fail "Scope cache regression received an unusable evar map.";
+  (* Quote [term] in [scope] through [quote], whose translation is
+     [translation]. *)
+  let run scope (translation, quote) =
+    QT.with_state translation
+      { translation.QT.state with
+        QT.ds_scope = scope;
+        ds_dependencies = QT.new_quote_dependencies env }
+      (fun () -> fst (quote () env sigma term))
+  in
+  let shared = new_translating_quoter env in
+  let scope1 = QT.new_local_scope 2 in
+  let first = run (Some scope1) shared in
+  let cached = run (Some scope1) shared in
+  let fresh = run (Some scope1) (new_translating_quoter env) in
+  let scope2 = QT.new_local_scope 2 in
+  let changed_scope = run (Some scope2) shared in
+  let fresh_changed = run (Some scope2) (new_translating_quoter env) in
+  let no_scope_rejected =
+    try
+      ignore (run None shared);
+      false
+    with CErrors.UserError _ -> true
+  in
+  if not (cached == first) then
+    fail "Scope-dependent parent cache missed in the same scope.";
+  if not (Constr.equal cached fresh) then
+    fail "Same-scope cached and fresh quotations differ.";
+  if changed_scope == cached then
+    fail "Scope-dependent parent cache hit after scope changed.";
+  if not (Constr.equal changed_scope fresh_changed) then
+    fail "Changed-scope cached and fresh quotations differ.";
+  if not no_scope_rejected then
+    fail "No-scope quotation reused a scoped cached result.";
+  Feedback.msg_info (Pp.str "Scope-dependent cache regression passed.")
+
+let test_rel_context_dependency_cache env sigma first_term second_type =
+  let name, first_type, body =
+    match Constr.kind first_term with
+    | Constr.Lambda (name, typ, body) -> name, typ, body
+    | _ ->
+      fail "MetaRocq Test Quoter Rel Context Cache: expected a lambda."
+  in
+  let second_term = Constr.mkLambda (name, second_type, body) in
+  let run quote term = fst (quote () env sigma term) in
+  let _, shared = new_translating_quoter env in
+  let first = run shared first_term in
+  let second = run shared second_term in
+  let fresh = run (snd (new_translating_quoter env)) second_term in
+  let _, first_body = quoted_binder_children "lambda" first in
+  let _, second_body = quoted_binder_children "lambda" second in
+  let _, fresh_body = quoted_binder_children "lambda" fresh in
+  if second_body == first_body then
+    fail "MetaRocq Test Quoter Rel Context Cache: retyped quotation was reused under a different Rel context.";
+  if Constr.equal second_body first_body then
+    fail "MetaRocq Test Quoter Rel Context Cache: the two Rel contexts produced the same quoted body.";
+  if not (Constr.equal second fresh && Constr.equal second_body fresh_body) then
+    fail "MetaRocq Test Quoter Rel Context Cache: quotation under the second Rel context differs from a fresh quotation.";
+  if Constr.equal first_type second_type then
+    fail "MetaRocq Test Quoter Rel Context Cache: the two Rel contexts have equal binder types.";
+  Feedback.msg_info
+    (Pp.str "Rel-context-dependent cache regression passed.")
+
+let level_of_type what term =
+  let universe =
+    match Constr.kind term with
+    | Constr.Sort (Sorts.Type universe | Sorts.QSort (_, universe)) -> universe
+    | _ -> fail (what ^ " is not a Type sort.")
+  in
+  match Univ.Universe.level universe with
+  | Some level -> level
+  | None -> fail (what ^ " is not at one global universe level.")
+
+let test_graph_dependency_cache env left_type right_type =
+  let left = level_of_type "The first graph-cache argument" left_type in
+  let right = level_of_type "The second graph-cache argument" right_type in
+  let universe = Univ.Universe.unrepr [left, 0; right, 0] in
+  let term =
+    Constr.mkSort (Sorts.make Sorts.Quality.qtype universe)
+  in
+  let constraints =
+    Univ.UnivConstraints.singleton (left, Univ.UnivConstraint.Lt, right)
+  in
+  let extended_env =
+    Environ.push_context_set ~strict:true
+      (Univ.Level.Set.empty, constraints) env
+  in
+  let run quote env =
+    fst (quote () env (Evd.from_env env) term)
+  in
+  let _, shared = new_translating_quoter env in
+  let first = run shared env in
+  let second = run shared extended_env in
+  let fresh = run (snd (new_translating_quoter env)) extended_env in
+  if second == first then
+    fail "MetaRocq Test Quoter Graph Cache: quotation was reused after push_context_set changed the universe graph.";
+  if Constr.equal second first then
+    fail "MetaRocq Test Quoter Graph Cache: the changed universe graph produced the same quotation.";
+  if not (Constr.equal second fresh) then
+    fail "MetaRocq Test Quoter Graph Cache: quotation under the changed universe graph differs from a fresh quotation.";
+  Feedback.msg_info
+    (Pp.str "Universe-graph-dependent cache regression passed.")
+
+let test_global_environment_dependency_cache env sigma template =
+  let ind =
+    match Constr.kind template with
+    | Constr.Ind (ind, _) -> ind
+    | _ ->
+      fail "MetaRocq Test Quoter Global Environment Cache: expected an inductive."
+  in
+  let extended_env, constant =
+    add_regression_constant env "cache_environment_argument"
+      ~typ:(Constr.mkType Univ.Universe.type0) Declarations.Monomorphic
+  in
+  let term =
+    Constr.mkApp
+      (Constr.mkIndU (ind, UVars.Instance.empty),
+       [| Constr.mkConstU (constant, UVars.Instance.empty) |])
+  in
+  let run quote env = fst (quote () env sigma term) in
+  let rejects quote env =
+    try
+      ignore (run quote env);
+      false
+    with _ -> true
+  in
+  let _, shared = new_translating_quoter env in
+  ignore (run shared extended_env);
+  if not (rejects (snd (new_translating_quoter env)) env) then
+    fail "MetaRocq Test Quoter Global Environment Cache: the fresh quotation unexpectedly accepted the missing constant.";
+  if not (rejects shared env) then
+    fail "MetaRocq Test Quoter Global Environment Cache: a retyped quotation was reused under a different global environment.";
+  Feedback.msg_info
+    (Pp.str "Global-environment-dependent cache regression passed.")
+
+(* The quoter refuses a universe at offset two over a bound level while it
+   quotes a polymorphic declaration.  The translation's declaration state
+   must be the one from before the declaration: name, scope, dependency root
+   and in-progress set. *)
+let test_declaration_state_restore env sigma =
+  let bad_type =
+    Constr.mkSort
+      (Sorts.make Sorts.Quality.qtype
+         (Univ.Universe.unrepr [Univ.Level.var 0, 2]))
+  in
+  let translation, quote = new_translating_quoter env in
+  let root_state = translation.QT.state in
+  let expected_failure =
+    "Quoting template universe offsets above one is not supported."
+  in
+  let failed_for_expected_reason =
+    try
+      ignore
+        (QT.with_declaration translation (regression_kername "state_restore")
+           ~name:"MetaRocq.Regression.state_restore"
+           ~scope:(Some (QT.new_local_scope 1))
+           (fun () -> quote () env sigma bad_type));
+      false
+    with
+    | CErrors.UserError message ->
+      CString.string_contains
+        ~where:(Pp.string_of_ppcmds message) ~what:expected_failure
+  in
+  let state = translation.QT.state in
+  let all_state_restored =
+    failed_for_expected_reason
+    && String.equal state.QT.ds_name "<toplevel>"
+    && Option.is_empty state.QT.ds_scope
+    && state.QT.ds_dependencies == root_state.QT.ds_dependencies
+    && Names.KNset.is_empty state.QT.ds_in_progress
+  in
+  (* A leaked scope would let a translating quotation outside any
+     declaration mint a level for a bound-variable universe in it, instead
+     of rejecting the universe. *)
+  let bound_universe_rejected () =
+    let universe =
+      Univ.Universe.unrepr
+        [Univ.Level.var 0, 0; Univ.Level.var 1, 0]
+    in
+    let bound_universe =
+      Constr.mkSort (Sorts.make Sorts.Quality.qtype universe)
+    in
+    try
+      ignore (quote () env sigma bound_universe);
+      false
+    with
+    | CErrors.UserError message ->
+      CString.string_contains
+        ~where:(Pp.string_of_ppcmds message)
+        ~what:"outside any polymorphic declaration"
+  in
+  if all_state_restored && bound_universe_rejected () then
+    Feedback.msg_info (Pp.str "Declaration-state restoration regression passed.")
+  else
+    fail "Recursive declaration quotation left state installed."
+
+let test_upper_bound_timeout env =
+  let graph = UGraph.set_type_in_type false (Environ.universes env) in
+  let level = QT.fresh_template_level graph (QT.create env) in
+  let definitions =
+    Univ.Level.Map.add level Univ.Universe.type0 Univ.Level.Map.empty
+  in
+  let propagated =
+    match
+      Control.timeout 1.
+        (fun () ->
+           QT.fresh_template_upper_bounds
+             (fun _ _ _ -> raise Control.Timeout)
+             graph
+             (Univ.Level.Set.singleton Univ.Level.set)
+             definitions
+             Univ.UnivConstraints.empty)
+        ()
+    with
+    | Error _ -> true
+    | Ok _ -> false
+  in
+  if propagated then
+    Feedback.msg_info (Pp.str "Fresh upper-bound timeout regression passed.")
+  else
+    fail "Fresh upper-bound pass swallowed Control.Timeout."
+
+(* The level a declaration's scope adds for [max(i, j)] gets the upper bound
+   [<= k] when the declaration's constraints prove [max(i, j) <= k], and no
+   upper bound when they prove only [i <= k]. *)
+let test_local_upper_bounds env =
+  let i = Univ.Level.var 0 and j = Univ.Level.var 1 and k = Univ.Level.var 2 in
+  let added = Univ.Level.var 3 in
+  let upper_bounds constraints =
+    let auctx =
+      UVars.AbstractContext.make
+        { UVars.quals = [||];
+          UVars.univs =
+            Array.map (fun name -> Names.Name (Names.Id.of_string name))
+              [| "i"; "j"; "k" |] }
+        (List.fold_left (fun pcon cstr -> PConstraints.add_univ cstr pcon)
+           PConstraints.empty constraints)
+    in
+    let scope = QT.new_local_scope 3 in
+    let level = QT.local_fresh_var scope (Univ.Universe.unrepr [i, 0; j, 0]) in
+    if not (Univ.Level.equal level added) then
+      fail "MetaRocq Test Quoter Local Upper Bounds: unexpected added level.";
+    QT.local_upper_bounds (QT.create env) env auctx scope
+  in
+  let both = upper_bounds [i, Univ.UnivConstraint.Le, k; j, Univ.UnivConstraint.Le, k] in
+  let one = upper_bounds [i, Univ.UnivConstraint.Le, k] in
+  if not (Univ.UnivConstraints.equal both
+            (Univ.UnivConstraints.singleton (added, Univ.UnivConstraint.Le, k))) then
+    fail "MetaRocq Test Quoter Local Upper Bounds: i <= k and j <= k did not give exactly max(i, j) <= k.";
+  if not (Univ.UnivConstraints.is_empty one) then
+    fail "MetaRocq Test Quoter Local Upper Bounds: i <= k alone gave an upper bound to max(i, j).";
+  Feedback.msg_info (Pp.str "Local upper-bound regression passed.")
+
+let quote_with_cache quote env term =
+  fst (quote () env (Evd.from_env env) term)
+
+let test_cache_typing_flags env evm c =
+  let term = EConstr.to_constr evm c in
+  let impredicative_env = Environ.set_impredicative_set true env in
+  let predicative_env = Environ.set_impredicative_set false env in
+  let new_ast_quoter () =
+    fst
+      (Ast_quoter.quote_term_remember
+         ~translation:(Template_translation.create env)
+         (fun _ () -> ()) (fun _ _ () -> ()))
+  in
+  let quote = new_ast_quoter () in
+  let first = quote_with_cache quote impredicative_env term in
+  let cached = quote_with_cache quote predicative_env term in
+  let fresh = quote_with_cache (new_ast_quoter ()) predicative_env term in
+  if cached = fresh && first <> cached then
+    Feedback.msg_info (Pp.str "Cache typing-flag regression passed.")
+  else
+    fail "Cache reused a quotation across changed typing flags."
+
+(* Template translation: negative fixtures for SafeCheck.
+
+   A negative fixture must be rejected, and rejected for its own reason: the
+   checker's message has to contain [reason], a part of the message that names
+   the failing check, and [subject], which says of what.  Accepting the
+   program, or refusing it with another message, fails the test.  On success
+   the full message is printed, so the log records why. *)
+let expect_safecheck_rejection what reason subject = function
+  | Datatypes.Coq_inr s ->
+    let open Pp in
+    let message = Caml_bytestring.caml_string_of_bytestring s in
+    let missing part = not (CString.string_contains ~where:message ~what:part) in
+    if missing reason || missing subject then
+      CErrors.user_err
+        (str what ++ str " was rejected, but not for the expected reason."
+         ++ fnl () ++ str "expected a message containing: " ++ str reason
+         ++ fnl () ++ str "and: " ++ str subject
+         ++ fnl () ++ str "got: " ++ str message)
+    else
+      Feedback.msg_info
+        (str what ++ str " was rejected as expected: " ++ str message)
+  | Datatypes.Coq_inl s ->
+    CErrors.user_err
+      Pp.(str what ++ str " was accepted, but it is ill-typed: "
+          ++ str (Caml_bytestring.caml_string_of_bytestring s))
+
+let safecheck_program = G_metarocq_safechecker.safecheck_program
+
+(* The declaration is already in the environment and already invalid, so the
+   obligation it breaks exists before quotation. *)
+let test_safecheck_rejects_source ~opaque_access env evm poly reason subject c =
+  expect_safecheck_rejection "The quoted source declaration" reason subject
+    (safecheck_program ~opaque_access env evm poly (EConstr.to_constr evm c))
+
+(* A polymorphic declaration whose body is
+   [fun (X : Type@{max(Set+1, u)}) => (X : Type@{u})], with a real kernel
+   [Cast] and with [u] its own bound universe.  Nothing constrains a bound
+   universe, so the cast obligation [max(Set+1, u) <= u] does not hold: an
+   instance may set [u] to [Set].  (A declared global universe cannot show
+   this: Rocq's graph already holds [Set < u] for each of those, which makes
+   [max(Set+1, u) = u] true there.)
+
+   Rocq's surface syntax cannot write an algebraic sort in a binder, so the
+   declaration is built here and added to the environment that the quoter
+   reads.  The invalid obligation therefore exists before quotation, exactly
+   as for a declaration that [Unset Universe Checking] let through. *)
+let set_successor_cast_declaration env =
+  let bound = Univ.Level.var 0 in
+  let algebraic = Univ.Universe.unrepr [Univ.Level.set, 1; bound, 0] in
+  let domain = Constr.mkSort (Sorts.make Sorts.Quality.qtype algebraic) in
+  let target =
+    Constr.mkSort (Sorts.make Sorts.Quality.qtype (Univ.Universe.make bound))
+  in
+  let body =
+    Constr.mkLambda
+      (Context.anonR, domain,
+       Constr.mkCast (Constr.mkRel 1, Constr.DEFAULTcast, target))
+  in
+  let typ = Constr.mkProd (Context.anonR, domain, target) in
+  let auctx =
+    UVars.AbstractContext.make
+      { UVars.quals = [||];
+        UVars.univs = [| Names.Name (Names.Id.of_string "u") |] }
+      PConstraints.empty
+  in
+  let env, constant =
+    add_regression_constant env "set_successor_cast" ~typ ~body
+      (Declarations.Polymorphic auctx)
+  in
+  (env,
+   Constr.mkConstU
+     (constant, UVars.Instance.of_array ([||], [| Univ.Level.set |])))
+
+let test_set_successor_cast ~opaque_access env evm reason subject =
+  let env, term = set_successor_cast_declaration env in
+  expect_safecheck_rejection "The max(Set+1, u) cast" reason subject
+    (safecheck_program ~opaque_access env evm false term)
+
+(* [bad : Type@{d} := I Type@{d}], where [d] is the template default universe
+   of the template inductive [I], read from [I]'s own metadata rather than
+   named here.  [Type@{d} : Type@{d+1}], so [I Type@{d}] lives in
+   [Type@{d+1}] and the declaration is invalid: checking it needs
+   [d+1 <= d].
+
+   The body's head is a template inductive, which is the path where a
+   substitution keyed on the body's inferred instance could rewrite the
+   declared [d] into the body's larger representative and hand the checker a
+   repaired declaration.  The declaration is stored in the environment the
+   quoter reads, so the obligation exists before quotation. *)
+let declared_default_declaration env ind =
+  let mib = Environ.lookup_mind (fst ind) env in
+  let template =
+    match mib.Declarations.mind_template with
+    | Some template -> template
+    | None -> fail "This test needs a template-polymorphic inductive."
+  in
+  let _, defaults =
+    UVars.Instance.to_array template.Declarations.template_defaults
+  in
+  let default =
+    if Int.equal (Array.length defaults) 0 then
+      fail "This test needs a template inductive with a universe parameter."
+    else defaults.(0)
+  in
+  let declared =
+    Constr.mkSort
+      (Sorts.make Sorts.Quality.qtype (Univ.Universe.make default))
+  in
+  let body =
+    Constr.mkApp (Constr.mkIndU (ind, UVars.Instance.empty), [| declared |])
+  in
+  let env, constant =
+    add_regression_constant env "declared_type_successor" ~typ:declared ~body
+      Declarations.Monomorphic
+  in
+  (env, Constr.mkConstU (constant, UVars.Instance.empty), default)
+
+(* [s] with every occurrence of [what] replaced by [by_]. *)
+let replace_all ~what ~by_ s =
+  let n = String.length what and len = String.length s in
+  let b = Buffer.create len in
+  let rec go i =
+    if i + n > len then Buffer.add_string b (String.sub s i (len - i))
+    else if String.equal (String.sub s i n) what then begin
+      Buffer.add_string b by_; go (i + n)
+    end else begin
+      Buffer.add_char b s.[i]; go (i + 1)
+    end
+  in
+  go 0; Buffer.contents b
+
+let test_declared_default ~opaque_access env evm reason subject c =
+  let ind =
+    match EConstr.kind evm c with
+    | Constr.Ind (ind, _) -> ind
+    | _ -> fail "This test needs an inductive type."
+  in
+  let env, term, default = declared_default_declaration env ind in
+  (* The checker names the default level as Rocq prints it; the fixture
+     writes [<default>] for it, so the test names no generated level. *)
+  let reason =
+    replace_all ~what:"<default>" ~by_:(Univ.Level.to_string default) reason
+  in
+  expect_safecheck_rejection
+    "The declaration typed at its inductive's default universe" reason subject
+    (safecheck_program ~opaque_access env evm false term)
+
+(* Quotes the term with the template translation, adds a quoted declaration
+   [successor_too_low : Type@{Set} := Type@{Set}] to the quoted program, and
+   runs the extracted checker on it with the default checker flags. *)
+let test_safecheck_rejection ~opaque_access env evm reason subject c =
+  let term = EConstr.to_constr evm c in
+  let prog =
+    Ast_quoter.quote_term_rec ~translate_template:true ~bypass:true
+      ~opaque_access ~with_universes:true env evm term
+  in
+  let bad_term =
+    Ast_quoter.mkSort
+      (Ast_quoter.quote_sort
+         (Sorts.make Sorts.Quality.qtype Univ.Universe.type0))
+  in
+  let bad_name = Ast_quoter.quote_kn (regression_kername "successor_too_low") in
+  let bad_decl =
+    Ast_quoter.mk_constant_decl
+      (Ast_quoter.mk_constant_body bad_term (Some bad_term)
+         (Ast_quoter.mkMonomorphic_ctx ())
+         (Ast_quoter.quote_relevance Sorts.Relevant))
+  in
+  let global_env, quoted_term = prog in
+  let bad_program =
+    ({ global_env with declarations = (bad_name, bad_decl) :: global_env.declarations },
+     quoted_term)
+  in
+  expect_safecheck_rejection "The successor-too-low quoted declaration" reason subject
+    (Extraction.infer_and_print_template_program_with_guard
+       Config0.default_checker_flags bad_program (Ast_quoter.mkMonomorphic_ctx ()))
+
+
+(* Interprets [c] as the production [MetaRocq SafeCheck] does: the universes
+   that elaboration creates are kept in the evar map. *)
+let interp_constr_merged env evm c =
+  let c, universes = Constrintern.interp_constr env evm c in
+  Evd.merge_universe_context evm universes, c
 }
 
 VERNAC COMMAND EXTEND MetaRocq_Test_Quotation_Sharing CLASSIFIED AS QUERY
@@ -204,4 +720,100 @@ END
 
 VERNAC COMMAND EXTEND MetaRocq_Test_Quotation_Telescopes CLASSIFIED AS QUERY
 | [ "MetaRocq" "Test" "Quotation" "Telescopes" ] -> { test_quote_telescopes () }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Scope_Cache CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Scope" "Cache" ] -> {
+    let env, evm = empty_evar_map () in
+    test_scope_dependency_cache env evm
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Rel_Context_Cache CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Rel" "Context" "Cache" constr(c) constr(ty) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, c = interp_constr_merged env evm c in
+    let evm, ty = interp_constr_merged env evm ty in
+    test_rel_context_dependency_cache env evm
+      (EConstr.to_constr evm c) (EConstr.to_constr evm ty)
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Graph_Cache CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Graph" "Cache" constr(left) constr(right) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, left = interp_constr_merged env evm left in
+    let evm, right = interp_constr_merged env evm right in
+    test_graph_dependency_cache env
+      (EConstr.to_constr evm left) (EConstr.to_constr evm right)
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Global_Environment_Cache CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Global" "Environment" "Cache" constr(template) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, template = interp_constr_merged env evm template in
+    test_global_environment_dependency_cache env evm
+      (EConstr.to_constr evm template)
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_State_Restore CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Restores" "State" ] -> {
+    let env, evm = empty_evar_map () in
+    test_declaration_state_restore env evm
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Upper_Bound_Timeout CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Propagates" "Timeout" ] -> {
+    let env, _ = empty_evar_map () in
+    test_upper_bound_timeout env
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Local_Upper_Bounds CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quoter" "Local" "Upper" "Bounds" ] -> {
+    let env, _ = empty_evar_map () in
+    test_local_upper_bounds env
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Cache_Typing_Flags CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Cache" "Typing" "Flags" constr(c) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, c = interp_constr_merged env evm c in
+    test_cache_typing_flags env evm c
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_SafeCheck_Rejects CLASSIFIED AS QUERY STATE opaque_access
+| [ "MetaRocq" "Test" "SafeCheck" "Rejects" string(reason) string(subject) constr(c) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, c = interp_constr_merged env evm c in
+    test_safecheck_rejection env evm reason subject c
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_SafeCheck_Rejects_Source CLASSIFIED AS QUERY STATE opaque_access
+| #[ poly = Attributes.polymorphic ] [ "MetaRocq" "Test" "SafeCheck" "Rejects" "Source" string(reason) string(subject) constr(c) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, c = interp_constr_merged env evm c in
+    test_safecheck_rejects_source env evm poly reason subject c
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Set_Successor_Cast CLASSIFIED AS QUERY STATE opaque_access
+| [ "MetaRocq" "Test" "Quoter" "Set" "Successor" "Cast" string(reason) string(subject) ] -> {
+    let env, evm = empty_evar_map () in
+    test_set_successor_cast env evm reason subject
+  }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quoter_Declared_Default CLASSIFIED AS QUERY STATE opaque_access
+| [ "MetaRocq" "Test" "Quoter" "Declared" "Default" string(reason) string(subject) constr(c) ] -> {
+    let env, evm = empty_evar_map () in
+    let evm, c = interp_constr_merged env evm c in
+    test_declared_default env evm reason subject c
+  }
 END

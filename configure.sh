@@ -28,7 +28,7 @@ then
         EXAMPLES_DEPS="-R ../safechecker-plugin/theories MetaRocq.SafeCheckerPlugin -R ../erasure-plugin/theories MetaRocq.ErasurePlugin -I ../erasure-plugin/src -I ../safechecker-plugin/src/"
         TEST_SUITE_DEPS="-R ../safechecker-plugin/theories MetaRocq.SafeCheckerPlugin -R ../erasure-plugin/theories MetaRocq.ErasurePlugin -I ../erasure-plugin/src -I ../safechecker-plugin/src/"
         PLUGIN_DEMO_DEPS="-R ../../utils/theories MetaRocq.Utils -R ../../common/theories MetaRocq.Common -R ../../template-rocq/theories MetaRocq.Template -I ../../template-rocq/  -I ../../erasure-plugin/src -I ../../safechecker-plugin/src/"
-        TEST_PLUGIN_DEPS="-R ../../utils/theories MetaRocq.Utils -R ../../common/theories MetaRocq.Common -R ../../template-rocq/theories MetaRocq.Template -I ../../template-rocq/"
+        TEST_PLUGIN_DEPS="-R ../../utils/theories MetaRocq.Utils -R ../../common/theories MetaRocq.Common -R ../../template-rocq/theories MetaRocq.Template -R ../../safechecker-plugin/theories MetaRocq.SafeCheckerPlugin -I ../../template-rocq/"
         echo "METAROCQ_CONFIG = local" > Makefile.conf
     else
         echo "Building MetaRocq globally (default)"
