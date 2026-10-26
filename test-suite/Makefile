@@ -1,6 +1,6 @@
-.PHONY: all bugd clean mrproper plugin-demo
+.PHONY: all bugd clean mrproper plugin-demo test-plugin
 
-all: bugs plugin-demo
+all: bugs plugin-demo test-plugin
 
 bugs: Makefile.rocq
 	$(MAKE) -f Makefile.rocq TIMED=$(TIMED)
@@ -21,6 +21,11 @@ mrproper:
 plugin-demo:
 	$(MAKE) -C plugin-demo
 
+# Test-only commands, in a plugin that is not installed. Needs the production
+# plugins, which the root test-suite target builds first.
+test-plugin:
+	$(MAKE) -C test-plugin
+
 vos: Makefile.rocq
 	$(MAKE) -f Makefile.rocq vos
 
@@ -34,6 +39,7 @@ TEST_SUITE_BLACKLIST := \
 	self_erasure.v \
 	primitive.v \
 	plugin-demo/.*.v \
+	test-plugin/.*.v \
 	#
 
 space := $(subst ,, )

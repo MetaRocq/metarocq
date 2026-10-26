@@ -296,6 +296,7 @@ test-suite/vs.ml
 test-suite/myMain.mli
 test-suite/myMain.ml
 test-suite/plugin-demo/Makefile.plugin
+test-suite/test-plugin/Makefile.plugin
 
 
 template-rocq/Makefile.plugin-e
@@ -363,6 +364,7 @@ erasure/src/eGlobalEnv.mli
 erasure/src/eGlobalEnv.ml
 Makefile.conf
 test-suite/plugin-demo/src/META.rocq-metarocq-demo-plugin
+test-suite/test-plugin/src/META.rocq-metarocq-test-plugin
 pcuic/src/META.rocq-metarocq-pcuic
 examples/_RocqProject
 test-suite/_RocqProject
@@ -372,6 +374,8 @@ test-suite/metarocq-config
 test-suite/plugin-demo/_RocqProject
 test-suite/plugin-demo/_PluginProject
 test-suite/plugin-demo/metarocq-config
+test-suite/test-plugin/_PluginProject
+test-suite/test-plugin/metarocq-config
 erasure/META
 safechecker/META
 template-rocq/META

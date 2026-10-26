@@ -1,0 +1,207 @@
+DECLARE PLUGIN "rocq-metarocq-test-plugin.plugin"
+
+{
+
+(* Test-only commands. Each command checks one property and fails with an
+   error if it does not hold. *)
+
+module Q = Template_rocq.Constr_quoter
+
+let fail msg = CErrors.user_err (Pp.str msg)
+
+(* The quoted domain and codomain of a quoted [Prod], as built by
+   [Constr_quoter.mkProd]. *)
+let quoted_prod_children q =
+  match Constr.kind q with
+  | Constr.App (_, [| _; t; b |]) -> t, b
+  | _ -> fail "Expected a quoted product."
+
+let empty_evar_map () =
+  let env = Global.env () in
+  env, Evd.from_env env
+
+(* [t 0 = c] for a constant [c], and [t (k+1) = forall _ : t k, t k], with the
+   same physical [t k] twice. The tree of [t sharing_depth] has
+   2^sharing_depth leaves, but only [sharing_depth + 1] distinct nodes. A miss
+   on [c] calls [add_constant] and a hit does not, so with sharing the
+   quotation calls it once. Without sharing the second call fails, before the
+   unshared quotation can allocate much. *)
+let sharing_depth = 60
+
+let test_quote_sharing () =
+  let env, sigma = empty_evar_map () in
+  let leaf =
+    Constr.UnsafeMonomorphic.mkConst (Names.Constant.make1 (Names.KerName.make
+      (Names.ModPath.MPfile (Names.DirPath.make [Names.Id.of_string "QuoteSharing"]))
+      (Names.Id.of_string "leaf")))
+  in
+  let rec build k =
+    if k = 0 then leaf
+    else let t = build (k - 1) in Constr.mkProd (Context.anonR, t, t)
+  in
+  let leaf_quotations = ref 0 in
+  let add_constant _ () =
+    incr leaf_quotations;
+    if !leaf_quotations > 1 then
+      fail "MetaRocq Test Quotation Sharing: the repeated leaf was quoted twice; the quoted value of a repeated subterm is not shared."
+  in
+  let quote = fst (Q.quote_term_remember add_constant (fun _ _ () -> ())) in
+  let quoted = fst (quote () env sigma (build sharing_depth)) in
+  let rec check level q =
+    if level < sharing_depth then begin
+      let t, b = quoted_prod_children q in
+      if not (t == b) then
+        fail (Printf.sprintf "MetaRocq Test Quotation Sharing: at level %d the two quoted children are not physically equal." level);
+      check (level + 1) t
+    end
+  in
+  check 0 quoted;
+  Feedback.msg_notice (Pp.str (Printf.sprintf
+    "MetaRocq Test Quotation Sharing: quoted a term with 2^%d leaves and %d distinct nodes; at every level both quoted children are physically equal."
+    sharing_depth (sharing_depth + 1)))
+
+(* A complete binary tree of products of height [cache_tree_height], with a
+   distinct primitive integer at each leaf, so all its 2^16 - 1 = 65535
+   subterms are distinct.
+
+   The first quotation misses on every subterm, so it adds 65535 entries. The
+   first add makes a table of 1024 slots, and later adds resize it after
+   [2 * size] adds: to 2048 slots at add 1 + 2048 + 1 = 2050, then 4096 at add
+   6146, 8192 at 14338, 16384 at 30722 and 32768 at 63490. The next resize
+   would be at add 63490 + 65536, so the table ends with 32768 slots after 5
+   resizes, and at least 65535 - 32768 = 32767 entries have been evicted. *)
+let cache_tree_height = 15
+
+let test_quote_cache () =
+  let env, sigma = empty_evar_map () in
+  let leaves = ref 0 in
+  let rec tree h =
+    if h = 0 then (incr leaves; Constr.mkInt (Uint63.of_int !leaves))
+    else
+      let l = tree (h - 1) in
+      let r = tree (h - 1) in
+      Constr.mkProd (Context.anonR, l, r)
+  in
+  let t = tree cache_tree_height in
+  let new_cache () = fst (Q.quote_term_remember (fun _ () -> ()) (fun _ _ () -> ())) in
+  let quote cache trm = fst (cache () env sigma trm) in
+  let shared = new_cache () in
+  let first = quote shared t in
+  let second = quote shared t in
+  let fresh = quote (new_cache ()) t in
+  if not (Constr.equal first fresh) then
+    fail "MetaRocq Test Quotation Cache: the quotation through the cache differs from a fresh quotation.";
+  if not (Constr.equal second fresh) then
+    fail "MetaRocq Test Quotation Cache: the second quotation differs from a fresh quotation.";
+  if not (second == first) then
+    fail "MetaRocq Test Quotation Cache: the second quotation of the same term did not hit the cache at the root.";
+  (* A new root over the same two children. They and many subterms below them
+     were evicted by the first quotation, so this quotation through the same
+     cache mixes hits on retained entries with new quotations of evicted ones. *)
+  let tl, tr = match Constr.kind t with
+    | Constr.Prod (_, l, r) -> l, r
+    | _ -> fail "MetaRocq Test Quotation Cache: the test term is not a product."
+  in
+  let u = Constr.mkProd (Context.anonR, tl, tr) in
+  let after_eviction = quote shared u in
+  if not (Constr.equal after_eviction (quote (new_cache ()) u)) then
+    fail "MetaRocq Test Quotation Cache: after eviction, the quotation through the cache differs from a fresh quotation.";
+  (* Each subterm occurs once in [u], so a subterm whose quoted value is
+     physically the one of the first quotation was a hit, and any other was
+     quoted again. *)
+  let hits = ref 0 and requoted = ref 0 in
+  let rec count trm q1 q2 =
+    if q1 == q2 then incr hits
+    else begin
+      incr requoted;
+      match Constr.kind trm with
+      | Constr.Prod (_, l, r) ->
+        let l1, r1 = quoted_prod_children q1 and l2, r2 = quoted_prod_children q2 in
+        count l l1 l2;
+        count r r1 r2
+      | _ -> ()
+    end
+  in
+  let first_l, first_r = quoted_prod_children first in
+  let after_l, after_r = quoted_prod_children after_eviction in
+  if not (Constr.equal first_l after_l && Constr.equal first_r after_r) then
+    fail "MetaRocq Test Quotation Cache: after eviction, a subterm's quotation differs from its first quotation.";
+  count tl first_l after_l;
+  count tr first_r after_r;
+  if !hits = 0 || !requoted = 0 then
+    fail (Printf.sprintf
+      "MetaRocq Test Quotation Cache: expected both hits and new quotations of evicted subterms, got %d hits and %d new quotations."
+      !hits !requoted);
+  Feedback.msg_notice (Pp.str (Printf.sprintf
+    "MetaRocq Test Quotation Cache: quoted %d distinct subterms; a second quotation hit at the root; under a new root, %d subterms hit and %d evicted ones were quoted again; every quotation equals a fresh one."
+    (2 * !leaves - 1) !hits !requoted))
+
+(* Telescopes of [telescope_depth] products, abstractions or lets over [Set],
+   each binder with its own name. The cache key looks 4 levels deep, so the
+   levels of such a telescope that are 4 or more binders above [Set] differ
+   only in their binder names. If the key ignored those names, all these
+   levels would share one slot, and each add would evict the level before it.
+   After one quotation the test quotes every level again through the same
+   cache, from the top down, and counts the levels whose quoted value is the
+   one from the first quotation: the hits. A key that keeps the names hits on
+   most levels; one that drops them hits on at most the top level and the
+   levels near [Set]. *)
+let telescope_depth = 64
+
+let test_quote_telescopes () =
+  let env, sigma = empty_evar_map () in
+  let check kind make =
+    let rec build k =
+      if k = 0 then Constr.mkSet
+      else
+        let name = Context.annotR (Names.Name.mk_name (Names.Id.of_string (Printf.sprintf "x%d" k))) in
+        make name (build (k - 1))
+    in
+    let body trm = match Constr.kind trm with
+      | Constr.Prod (_, _, b) | Constr.Lambda (_, _, b) | Constr.LetIn (_, _, _, b) -> b
+      | _ -> fail "MetaRocq Test Quotation Telescopes: expected a binder."
+    in
+    (* The quoted body is the last argument of [mkProd], [mkLambda] and
+       [mkLetIn]. *)
+    let quoted_body q = match Constr.kind q with
+      | Constr.App (_, args) -> args.(Array.length args - 1)
+      | _ -> fail "MetaRocq Test Quotation Telescopes: expected a quoted binder."
+    in
+    let cache = fst (Q.quote_term_remember (fun _ () -> ()) (fun _ _ () -> ())) in
+    let t = build telescope_depth in
+    let rec count level trm q hits =
+      if level = 0 then hits
+      else
+        let hit = fst (cache () env sigma trm) == q in
+        count (level - 1) (body trm) (quoted_body q) (if hit then hits + 1 else hits)
+    in
+    kind, count telescope_depth t (fst (cache () env sigma t)) 0
+  in
+  let products = check "products" (fun n b -> Constr.mkProd (n, Constr.mkSet, b)) in
+  let abstractions = check "abstractions" (fun n b -> Constr.mkLambda (n, Constr.mkSet, b)) in
+  let lets = check "lets" (fun n b -> Constr.mkLetIn (n, Constr.mkSet, Constr.mkSet, b)) in
+  let results = [products; abstractions; lets] in
+  let summary =
+    String.concat ", " (List.map (fun (kind, hits) -> Printf.sprintf "%s %d" kind hits) results)
+  in
+  if List.exists (fun (_, hits) -> 2 * hits <= telescope_depth) results then
+    fail (Printf.sprintf
+      "MetaRocq Test Quotation Telescopes: of the %d levels of each telescope, hits: %s; at most half of the levels of a telescope hit, so levels that differ only in their binder names share a cache slot."
+      telescope_depth summary);
+  Feedback.msg_notice (Pp.str (Printf.sprintf
+    "MetaRocq Test Quotation Telescopes: of the %d levels of each telescope, hits: %s."
+    telescope_depth summary))
+
+}
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quotation_Sharing CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quotation" "Sharing" ] -> { test_quote_sharing () }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quotation_Cache CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quotation" "Cache" ] -> { test_quote_cache () }
+END
+
+VERNAC COMMAND EXTEND MetaRocq_Test_Quotation_Telescopes CLASSIFIED AS QUERY
+| [ "MetaRocq" "Test" "Quotation" "Telescopes" ] -> { test_quote_telescopes () }
+END

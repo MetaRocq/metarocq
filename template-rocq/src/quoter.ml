@@ -272,10 +272,123 @@ struct
       Context.Rel.nhyps ctx
     in Array.map cofix_arity ts
 
+  (* A hash of the top of a kernel term: at most [depth] levels deep, and at
+     most the first two and last two elements of each array of children
+     (application arguments, case parameters, fixpoint types and bodies, array
+     elements). The binder names of products, abstractions and lets, universe
+     instances and sorts are hashed in full. So the cost
+     does not depend on the size of the term below [depth]. [Constr.hash]
+     traverses the whole term, which is exponential in the depth of sharing on
+     large proofs. *)
+  let rec bounded_constr_hash depth trm =
+    let open Hashset.Combine in
+    let sub trm = if depth <= 1 then 0 else bounded_constr_hash (depth - 1) trm in
+    let sub_array terms =
+      let n = Array.length terms in
+      let hash_at acc i = combine acc (sub (Array.unsafe_get terms i)) in
+      if n <= 4 then CArray.fold_left_i (fun i acc _ -> hash_at acc i) n terms
+      else hash_at (hash_at (hash_at (hash_at n 0) 1) (n - 2)) (n - 1)
+    in
+    match Constr.kind trm with
+    | Constr.Rel i -> combinesmall 1 i
+    | Constr.Var id -> combinesmall 2 (Id.hash id)
+    | Constr.Sort s -> combinesmall 3 (Sorts.hash s)
+    | Constr.Cast (c, _, t) -> combinesmall 4 (combine (sub c) (sub t))
+    | Constr.Prod (n, t, b) -> combinesmall 5 (combine3 (Names.Name.hash (Context.binder_name n)) (sub t) (sub b))
+    | Constr.Lambda (n, t, b) -> combinesmall 6 (combine3 (Names.Name.hash (Context.binder_name n)) (sub t) (sub b))
+    | Constr.LetIn (n, v, t, b) -> combinesmall 7 (combine4 (Names.Name.hash (Context.binder_name n)) (sub v) (sub t) (sub b))
+    | Constr.App (f, args) -> combinesmall 8 (combine (sub f) (sub_array args))
+    | Constr.Const (c, u) -> combinesmall 9 (combine (Constant.CanOrd.hash c) (UVars.Instance.hash u))
+    | Constr.Ind (ind, u) -> combinesmall 10 (combine (Ind.CanOrd.hash ind) (UVars.Instance.hash u))
+    | Constr.Construct (c, u) -> combinesmall 11 (combine (Construct.CanOrd.hash c) (UVars.Instance.hash u))
+    | Constr.Case (ci, _, pars, _, _, c, brs) ->
+      combinesmall 12 (combine4 (Ind.CanOrd.hash ci.Constr.ci_ind) (sub_array pars) (Array.length brs) (sub c))
+    | Constr.Fix ((_, i), (_, tys, bodies)) -> combinesmall 13 (combine3 i (sub_array tys) (sub_array bodies))
+    | Constr.CoFix (i, (_, tys, bodies)) -> combinesmall 14 (combine3 i (sub_array tys) (sub_array bodies))
+    | Constr.Proj (p, _, c) -> combinesmall 15 (combine (Projection.CanOrd.hash p) (sub c))
+    | Constr.Evar (e, _) -> combinesmall 16 (Evar.hash e)
+    | Constr.Meta n -> combinesmall 17 n
+    | Constr.Int i -> combinesmall 18 (Uint63.hash i)
+    | Constr.Float f -> combinesmall 19 (Float64.hash f)
+    | Constr.String s -> combinesmall 20 (Pstring.hash s)
+    | Constr.Array (_, elems, def, ty) -> combinesmall 21 (combine3 (sub_array elems) (sub def) (sub ty))
+
+  let initial_quote_cache_size = 1 lsl 10
+  let max_quote_cache_size = 1 lsl 22
+
   let quote_term_remember
       (add_constant : KerName.t -> 'a -> 'a)
       (add_inductive : Names.inductive -> Declarations.mutual_inductive_body -> 'a -> 'a) =
+    (* Kernel terms are hash-consed DAGs; quoting them as trees duplicates every
+       shared subterm. [quote_term] caches the quoted value of each kernel
+       subterm by physical equality, so a shared subterm that is still in the
+       cache when it is met again is not quoted again, and its quoted value is
+       shared. OCaml values are immutable, so sharing changes
+       no value. The cache is sound because the quoted value depends only on
+       the subterm and, for [Evar] nodes, on [sigma]: [env] only gives de Bruijn
+       indices their meaning (the quoted syntax keeps the indices) and the
+       global lookups below do not depend on the local context. Quoting an
+       [Evar] under an empty evar map raises, so every value computed under an
+       empty evar map is evar-free and holds under any empty evar map; under a
+       non-empty one the cache is bypassed. A hit skips the
+       [add_constant]/[add_inductive] calls of the subterm, which its miss made
+       on this same closure; so a caller whose callbacks count occurrences
+       sees fewer calls than without the cache.
+
+       The cache is direct-mapped: a slot holds one subterm and a collision
+       evicts it, so a lookup is one probe whatever the hash quality. (In one
+       short profile of an earlier version with a chained table, most samples
+       were in bucket scans.) A miss computes the hash once, before it quotes
+       the subterm, and the slot is taken from the hash when the entry is
+       stored, because quoting the subterm can resize the table. The arrays
+       start filled with the first entry, which is a valid entry in every
+       slot, and double up to [max_quote_cache_size] as entries are added. *)
+    let cache_keys = ref [||] and cache_values = ref [||] and cache_adds = ref 0 in
+    let cache_slot keys hash = hash land (Array.length keys - 1) in
+    let cache_find hash trm =
+      let keys = !cache_keys in
+      if Array.length keys = 0 then None
+      else
+        let slot = cache_slot keys hash in
+        if Array.unsafe_get keys slot == trm then Some (Array.unsafe_get !cache_values slot)
+        else None
+    in
+    let cache_store keys values hash trm quoted =
+      let slot = cache_slot keys hash in
+      Array.unsafe_set keys slot trm;
+      Array.unsafe_set values slot quoted
+    in
+    let cache_add hash trm quoted =
+      let size = Array.length !cache_keys in
+      if size = 0 then begin
+        cache_keys := Array.make initial_quote_cache_size trm;
+        cache_values := Array.make initial_quote_cache_size quoted
+      end else begin
+        if !cache_adds >= 2 * size && size < max_quote_cache_size then begin
+          let keys = Array.make (2 * size) trm and values = Array.make (2 * size) quoted in
+          let old_values = !cache_values in
+          Array.iteri (fun slot key ->
+              cache_store keys values (bounded_constr_hash 4 key) key (Array.unsafe_get old_values slot))
+            !cache_keys;
+          cache_keys := keys;
+          cache_values := values;
+          cache_adds := 0
+        end;
+        incr cache_adds;
+        cache_store !cache_keys !cache_values hash trm quoted
+      end
+    in
     let rec quote_term (acc : 'a) env sigma trm =
+      if not (Evd.is_empty sigma) then quote_term_uncached acc env sigma trm
+      else
+        let hash = bounded_constr_hash 4 trm in
+        match cache_find hash trm with
+        | Some quoted -> quoted, acc
+        | None ->
+          let quoted, acc = quote_term_uncached acc env sigma trm in
+          cache_add hash trm quoted;
+          quoted, acc
+    and quote_term_uncached (acc : 'a) env sigma trm =
       let aux acc env trm =
       match Constr.kind trm with
       | Constr.Rel i -> (Q.mkRel (Q.quote_int (i - 1)), acc)
