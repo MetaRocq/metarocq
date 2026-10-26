@@ -204,7 +204,8 @@ struct
     | Monomorphic -> Q.mkMonomorphic_ctx ()
     | Polymorphic ctx -> Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context ctx)
 
-  let quote_ugraph ?kept (g : UGraph.t) =
+  let quote_ugraph ?kept ?(extra_constraints = Univ.UnivConstraints.empty)
+      (g : UGraph.t) =
     debug Pp.(fun () -> str"Quoting ugraph");
     let levels, cstrs, eqs =
       match kept with
@@ -230,10 +231,32 @@ struct
             (Univ.Level.Set.add p levels, Univ.UnivConstraints.add (x, Univ.UnivConstraint.Eq, p) cstrs)) rest acc)
         eqs (levels, cstrs)
     in
+    let cstrs = Univ.UnivConstraints.union cstrs extra_constraints in
     let levels = Univ.Level.Set.add Univ.Level.set levels in
     debug Pp.(fun () -> str"Universe context: " ++ Univ.ContextSet.pr Univ.Level.raw_pr (levels, cstrs));
     time (Pp.str"Quoting universe context")
       (fun uctx -> Q.quote_contextset uctx) (levels, cstrs)
+
+  (* PCUIC sorts can contain algebraic universes, but template-inductive
+     instances cannot.  Use the same representative level for both: whenever
+     a template instance at [u] is represented by [lambda_u], rewrite each
+     explicit sort [Type@{u}] (and [QType@{u}]) in the translated declaration
+     to [Type@{lambda_u}].  In particular, this keeps the translated type of a
+     polymorphic body such as [iffT] aligned with its translated [prod]
+     instance. *)
+  let quote_sort_with_template translation env sort =
+    match sort with
+    | Sorts.Type universe ->
+      let level =
+        Template_translation.template_universe_level translation env universe
+      in
+      Q.quote_sort (Sorts.make Sorts.Quality.qtype (Univ.Universe.make level))
+    | Sorts.QSort (quality, universe) ->
+      let level =
+        Template_translation.template_universe_level translation env universe
+      in
+      Q.quote_sort (Sorts.qsort quality (Univ.Universe.make level))
+    | sort -> Q.quote_sort sort
 
   let quote_inductive' (ind, i) : Q.quoted_inductive =
     Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical ind), Q.quote_int i)
@@ -316,33 +339,17 @@ struct
   let initial_quote_cache_size = 1 lsl 10
   let max_quote_cache_size = 1 lsl 22
 
-  let quote_term_remember
-      (add_constant : KerName.t -> 'a -> 'a)
-      (add_inductive : Names.inductive -> Declarations.mutual_inductive_body -> 'a -> 'a) =
-    (* Kernel terms are hash-consed DAGs; quoting them as trees duplicates every
-       shared subterm. [quote_term] caches the quoted value of each kernel
-       subterm by physical equality, so a shared subterm that is still in the
-       cache when it is met again is not quoted again, and its quoted value is
-       shared. OCaml values are immutable, so sharing changes
-       no value. The cache is sound because the quoted value depends only on
-       the subterm and, for [Evar] nodes, on [sigma]: [env] only gives de Bruijn
-       indices their meaning (the quoted syntax keeps the indices) and the
-       global lookups below do not depend on the local context. Quoting an
-       [Evar] under an empty evar map raises, so every value computed under an
-       empty evar map is evar-free and holds under any empty evar map; under a
-       non-empty one the cache is bypassed. A hit skips the
-       [add_constant]/[add_inductive] calls of the subterm, which its miss made
-       on this same closure; so a caller whose callbacks count occurrences
-       sees fewer calls than without the cache.
-
-       The cache is direct-mapped: a slot holds one subterm and a collision
-       evicts it, so a lookup is one probe whatever the hash quality. (In one
-       short profile of an earlier version with a chained table, most samples
-       were in bucket scans.) A miss computes the hash once, before it quotes
-       the subterm, and the slot is taken from the hash when the entry is
-       stored, because quoting the subterm can resize the table. The arrays
-       start filled with the first entry, which is a valid entry in every
-       slot, and double up to [max_quote_cache_size] as entries are added. *)
+  (* A cache from kernel subterms, by physical equality, to values. It is
+     direct-mapped: a slot holds one subterm and a collision evicts it, so a
+     lookup is one probe whatever the hash quality. (In one short profile of
+     an earlier version with a chained table, most samples were in bucket
+     scans.) [find] and [add] take the subterm's [bounded_constr_hash 4]: a
+     miss computes it once, before it quotes the subterm, and the slot is
+     taken from the hash when the entry is stored, because quoting the
+     subterm can resize the table. The arrays start filled with the first
+     entry, which is a valid entry in every slot, and double up to
+     [max_quote_cache_size] as entries are added. *)
+  let new_quote_cache () =
     let cache_keys = ref [||] and cache_values = ref [||] and cache_adds = ref 0 in
     let cache_slot keys hash = hash land (Array.length keys - 1) in
     let cache_find hash trm =
@@ -378,16 +385,104 @@ struct
         cache_store !cache_keys !cache_values hash trm quoted
       end
     in
+    cache_find, cache_add
+
+  let quote_term_remember ?translation
+      (add_constant : KerName.t -> 'a -> 'a)
+      (add_inductive : Names.inductive -> Declarations.mutual_inductive_body -> 'a -> 'a) =
+    (* Kernel terms are hash-consed DAGs; quoting them as trees duplicates every
+       shared subterm. [quote_term] caches the quoted value of each kernel
+       subterm by physical equality, so a shared subterm that is still in the
+       cache when it is met again is not quoted again, and its quoted value is
+       shared. OCaml values are immutable, so sharing changes
+       no value. The cache is sound because the quoted value depends only on
+       the subterm and, for [Evar] nodes, on [sigma]: [env] only gives de Bruijn
+       indices their meaning (the quoted syntax keeps the indices) and the
+       global lookups below do not depend on the local context. Quoting an
+       [Evar] under an empty evar map raises, so every value computed under an
+       empty evar map is evar-free and holds under any empty evar map; under a
+       non-empty one the cache is bypassed. A hit skips the
+       [add_constant]/[add_inductive] calls of the subterm, which its miss made
+       on this same closure; so a caller whose callbacks count occurrences
+       sees fewer calls than without the cache.
+
+       With a [translation], which [quote_term_rec ~translate_template:true]
+       gives for SafeCheck, template inductives are translated
+       ([Template_translation]). Without one, quotation is the kernel's own
+       syntax: unquoting, [tmQuote], [tmQuoteRec] and erasure keep the
+       template instances the kernel stores, as they expect, and no function
+       of [Template_translation] runs.
+
+       A translated value can depend on more than the subterm, so
+       [quote_term_translated] has its own cache, whose entries also hold
+       what the quotation read (a [Template_translation.quote_dependencies],
+       checked by [Template_translation.quote_dependencies_hold]):
+       - The environment, when [template_instance] retypes an argument.
+         Retyping can inspect global declarations, reduction data, typing flags
+         and local contexts, so such a value is reused only with the exact
+         environment object that produced it.
+       - The local universe scope, for an algebraic universe over bound
+         variables. Reused only in the same scope, whose memo already holds
+         the levels the first quotation minted.
+       - The universe graph, for an algebraic universe over global levels.
+         Reused only under the same graph.
+       - The extended declarations ([extended_constants],
+         [extended_inductives]), which gain an entry when a declaration
+         finishes quoting. A value that read a declaration still in progress
+         is not cached ([qd_unstable]); every other entry is final.
+       - [sigma]: this cache is used only under an evar map that
+         [Template_translation.quote_cache_usable] accepts, and all such maps
+         give the same result.
+       A term's dependencies include those of its subterms. A hit also skips
+       the subterm's [Template_translation.note_*_levels] calls, which its
+       miss made on this same translation. *)
+    let cache_find, cache_add = new_quote_cache () in
+    let translated_find, translated_add = new_quote_cache () in
     let rec quote_term (acc : 'a) env sigma trm =
-      if not (Evd.is_empty sigma) then quote_term_uncached acc env sigma trm
-      else
-        let hash = bounded_constr_hash 4 trm in
-        match cache_find hash trm with
-        | Some quoted -> quoted, acc
-        | None ->
-          let quoted, acc = quote_term_uncached acc env sigma trm in
-          cache_add hash trm quoted;
-          quoted, acc
+      match translation with
+      | Some translation -> quote_term_translated translation acc env sigma trm
+      | None ->
+        if not (Evd.is_empty sigma) then quote_term_uncached acc env sigma trm
+        else
+          let hash = bounded_constr_hash 4 trm in
+          match cache_find hash trm with
+          | Some quoted -> quoted, acc
+          | None ->
+            let quoted, acc = quote_term_uncached acc env sigma trm in
+            cache_add hash trm quoted;
+            quoted, acc
+    and quote_term_translated translation (acc : 'a) env sigma trm =
+      let open Template_translation in
+      let parent_state = translation.state in
+      let parent = parent_state.ds_dependencies in
+      let usable = quote_cache_usable sigma in
+      let hash = bounded_constr_hash 4 trm in
+      let hit =
+        if not usable then None
+        else match translated_find hash trm with
+          | Some (quoted, deps) ->
+            if quote_dependencies_hold translation deps (snd env) then
+              Some (quoted, deps)
+            else None
+          | None -> None
+      in
+      match hit with
+      | Some (quoted, deps) ->
+        add_quote_dependencies parent deps;
+        quoted, acc
+      | None ->
+        let deps = new_quote_dependencies (snd env) in
+        let quoted, acc =
+          with_state translation
+            { parent_state with ds_dependencies = deps }
+            (fun () -> quote_term_translated_node translation acc env sigma trm)
+        in
+        add_quote_dependencies parent deps;
+        if usable && not deps.qd_unstable then begin
+          release_quote_dependencies deps;
+          translated_add hash trm (quoted, deps)
+        end;
+        quoted, acc
     and quote_term_uncached (acc : 'a) env sigma trm =
       let aux acc env trm =
       match Constr.kind trm with
@@ -441,24 +536,8 @@ struct
           add_inductive mind mib acc)
 
       | Constr.Case (ci,u,pars, ((predctx, pred), relevance), iv, discr, brs) ->
-        let ind = Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical (fst ci.Constr.ci_ind)),
-                                      Q.quote_int (snd ci.Constr.ci_ind)) in
-        let npar = Q.quote_int ci.Constr.ci_npar in
-        let q_relevance = Q.quote_relevance relevance in
         let acc, q_pars = CArray.fold_left_map (fun acc par -> let (qt, acc) = quote_term acc env sigma par in acc, qt) acc pars in
-        let qu = Q.quote_univ_instance u in
-        let pctx = CaseCompat.case_predicate_context (snd env) ci u pars predctx in
-        let qpctx = quote_name_annots predctx in
-        let (qpred,acc) = quote_term acc (push_rel_context pctx env) sigma pred in
-        let (qdiscr,acc) = quote_term acc env sigma discr in
-        let cbrs = CaseCompat.case_branches_contexts (snd env) ci u pars brs in
-        let (branches,acc) =
-          CArray.fold_left2 (fun (bodies,acc) (brnas, brctx, bbody) narg ->
-            let (qbody,acc) = quote_term acc (push_rel_context brctx env) sigma bbody in
-            let qctx = quote_name_annots brnas in
-              ((qctx, qbody) :: bodies, acc))
-          ([],acc) cbrs ci.Constr.ci_cstr_nargs in
-        (Q.mkCase (ind, npar, q_relevance) (qu, q_pars, qpctx, qpred) qdiscr (List.rev branches), acc)
+        quote_case acc env sigma (ci, u, pars, predctx, pred, relevance, discr, brs) u q_pars
 
       | Constr.Fix fp -> quote_fixpoint acc env sigma fp
       | Constr.CoFix fp -> quote_cofixpoint acc env sigma fp
@@ -482,6 +561,135 @@ struct
         Q.mkArray (Q.quote_univ_level u) arr' ~default:def' ~ty:ty', acc
       in
       aux acc env trm
+    (* The rest of a [Case], after its instance [pu] and its quoted parameters
+       [q_pars]. *)
+    and quote_case acc env sigma (ci, u, pars, predctx, pred, relevance, discr, brs) pu q_pars =
+        let ind = Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical (fst ci.Constr.ci_ind)),
+                                      Q.quote_int (snd ci.Constr.ci_ind)) in
+        let npar = Q.quote_int ci.Constr.ci_npar in
+        let q_relevance = Q.quote_relevance relevance in
+        let qu = Q.quote_univ_instance pu in
+        let pctx = CaseCompat.case_predicate_context (snd env) ci u pars predctx in
+        let qpctx = quote_name_annots predctx in
+        let (qpred,acc) = quote_term acc (push_rel_context pctx env) sigma pred in
+        let (qdiscr,acc) = quote_term acc env sigma discr in
+        let cbrs = CaseCompat.case_branches_contexts (snd env) ci u pars brs in
+        let (branches,acc) =
+          CArray.fold_left2 (fun (bodies,acc) (brnas, brctx, bbody) narg ->
+            let (qbody,acc) = quote_term acc (push_rel_context brctx env) sigma bbody in
+            let qctx = quote_name_annots brnas in
+              ((qctx, qbody) :: bodies, acc))
+          ([],acc) cbrs ci.Constr.ci_cstr_nargs in
+        (Q.mkCase (ind, npar, q_relevance) (qu, q_pars, qpctx, qpred) qdiscr (List.rev branches), acc)
+    (* The quotation of [trm] under [translation]: the node kinds that the
+       translation changes are handled here, every other kind by
+       [quote_term_uncached]. *)
+    and quote_term_translated_node translation (acc : 'a) env sigma trm =
+      match Constr.kind trm with
+      | Constr.Sort s ->
+        Template_translation.note_sort_levels translation s;
+        (Q.mkSort (quote_sort_with_template translation (snd env) s), acc)
+      | Constr.App (f, xs) ->
+        begin match Constr.kind f with
+        | Constr.Ind (mind, pu) ->
+          let pu, _, acc =
+            quote_mind_instance translation
+              (`Applied
+                 (fun mib ->
+                    mib.Declarations.mind_packets.(snd mind)
+                      .Declarations.mind_nrealargs))
+              acc env sigma mind xs pu
+          in
+          let xs', acc = quote_terms quote_term acc env sigma xs in
+          (Q.mkApp
+             (Q.mkInd (quote_inductive' mind) (Q.quote_univ_instance pu))
+             xs',
+           acc)
+        | Constr.Construct ((mind, c), pu) ->
+          let pu, _, acc =
+            quote_mind_instance translation
+              (`Applied
+                 (fun mib ->
+                    mib.Declarations.mind_packets.(snd mind)
+                      .Declarations.mind_consnrealargs.(c - 1)))
+              acc env sigma mind xs pu
+          in
+          let xs', acc = quote_terms quote_term acc env sigma xs in
+          (Q.mkApp
+             (Q.mkConstruct
+                (quote_inductive' mind, Q.quote_int (c - 1))
+                (Q.quote_univ_instance pu))
+             xs',
+           acc)
+        | _ -> quote_term_uncached acc env sigma trm
+        end
+      | Constr.Const (c, pu) ->
+        let kn = Constant.canonical c in
+        Template_translation.note_instance_levels translation pu;
+        (* Quote the declaration first so that, if its abstract context was
+           extended with extra bound levels, they can be supplied here. *)
+        let acc = add_constant kn acc in
+        let pu =
+          Template_translation.extend_constant_instance translation
+            (snd env) kn pu
+        in
+        Template_translation.note_instance_levels translation pu;
+        (Q.mkConst (Q.quote_kn kn) (Q.quote_univ_instance pu), acc)
+      | Constr.Construct ((mind, c), pu) ->
+        let pu, _, acc =
+          quote_mind_instance translation `Bare acc env sigma mind [||] pu
+        in
+        (Q.mkConstruct
+           (quote_inductive' mind, Q.quote_int (c - 1))
+           (Q.quote_univ_instance pu),
+         acc)
+      | Constr.Ind (mind, pu) ->
+        let pu, _, acc =
+          quote_mind_instance translation `Bare acc env sigma mind [||] pu
+        in
+        (Q.mkInd (quote_inductive' mind) (Q.quote_univ_instance pu), acc)
+      | Constr.Case (ci, u, pars, ((predctx, pred), relevance), _, discr, brs) ->
+        let pu, q_pars, acc =
+          quote_mind_instance translation `Case acc env sigma ci.Constr.ci_ind
+            pars u
+        in
+        quote_case acc env sigma (ci, u, pars, predctx, pred, relevance, discr, brs) pu q_pars
+      | Constr.Array (u, _, _, _) ->
+        Template_translation.note_instance_levels translation u;
+        quote_term_uncached acc env sigma trm
+      | _ -> quote_term_uncached acc env sigma trm
+    (* The instance of an occurrence of [mind] applied to [args] under a
+       translation.  [kind] says which occurrence it is (see
+       [Template_translation.template_instance]): a [Case], whose parameters
+       [args] are quoted here, after the inductive is added and before the
+       instance is computed; an application, whose arity [nrealargs] decides
+       whether it is partial; or a bare [Ind] or [Construct]. *)
+    and quote_mind_instance translation kind acc env sigma mind args pu =
+      Template_translation.note_instance_levels translation pu;
+      let mib = Environ.lookup_mind (fst mind) (snd env) in
+      let acc = add_inductive mind mib acc in
+      let canonical, quoted_args, acc =
+        match kind with
+        | `Case ->
+          let quoted_args, acc = quote_terms quote_term acc env sigma args in
+          Some `Case, quoted_args, acc
+        | `Applied nrealargs ->
+          let partial =
+            Array.length args < mib.Declarations.mind_nparams + nrealargs mib
+          in
+          (if partial then Some `Partial else None), [||], acc
+        | `Bare -> None, [||], acc
+      in
+      let pu =
+        Template_translation.template_instance translation ?canonical ~mib
+          (snd env) sigma args pu
+      in
+      let pu =
+        Template_translation.extend_inductive_instance translation (snd env)
+          mind pu
+      in
+      Template_translation.note_instance_levels translation pu;
+      pu, quoted_args, acc
     and quote_recdecl (acc : 'a) env sigma b (ns,ts,ds) =
       let ctxt =
         CArray.map2_i (fun i na t -> (Context.Rel.Declaration.LocalAssum (na, Vars.lift i t))) ns ts in
@@ -503,9 +711,29 @@ struct
     and quote_minductive_type (acc : 'a) env sigma (t : MutInd.t) mib =
       let uctx = get_abstract_inductive_universes mib.Declarations.mind_universes in
       let inst = UVars.UContext.instance uctx in
+      (* Under a translation, a template inductive becomes polymorphic over its
+         template context: its default levels are replaced by the bound
+         levels. *)
+      let translated_template =
+        match translation, mib.Declarations.mind_template with
+        | Some translation, Some template -> Some (translation, template)
+        | _ -> None
+      in
+      let output_instance, substitute_constr, substitute_context, substitute_sort =
+        match translated_template with
+        | None -> inst, (fun c -> c), (fun ctx -> ctx), (fun s -> s)
+        | Some (_, template) ->
+          let substitution, instance =
+            Template_translation.template_inverse_substitution template
+          in
+          instance,
+          Vars.subst_univs_level_constr substitution,
+          Vars.subst_univs_level_context substitution,
+          UVars.subst_sort_level_sort substitution
+      in
       let indtys =
         (CArray.map_to_list (fun oib ->
-           let ty = Inductive.type_of_inductive ((mib,oib),inst) in
+           let ty = substitute_constr (Inductive.type_of_inductive ((mib,oib),inst)) in
            (Context.Rel.Declaration.LocalAssum (Context.annotR (Names.Name oib.mind_typename), ty))) mib.mind_packets)
       in
       let envind = push_rel_context (List.rev indtys) env in
@@ -519,17 +747,22 @@ struct
               (Array.to_list oib.mind_nf_lc)
               (Array.to_list oib.mind_consnrealargs)
           in
-          let indty = Inductive.type_of_inductive ((mib,oib),inst) in
+          let indty = substitute_constr (Inductive.type_of_inductive ((mib,oib),inst)) in
           let indices, pars =
-            let ctx = oib.mind_arity_ctxt in
+            let ctx = substitute_context oib.mind_arity_ctxt in
             CList.chop (List.length ctx - List.length mib.mind_params_ctxt) ctx
           in
           let indices, acc = quote_rel_context quote_term acc (push_rel_context pars env) sigma indices in
           let indty, acc = quote_term acc env sigma indty in
-          let indsort = Q.quote_sort (inductive_sort oib) in
+          let indsort =
+            let sort = substitute_sort (inductive_sort oib) in
+            match translation with
+            | None -> Q.quote_sort sort
+            | Some translation -> quote_sort_with_template translation (snd env) sort
+          in
           let (reified_ctors,acc) =
             List.fold_left (fun (ls,acc) (nm,(ctx, ty),ar) ->
-              let ty = Term.it_mkProd_or_LetIn ty ctx in
+              let ty = Term.it_mkProd_or_LetIn (substitute_constr ty) (substitute_context ctx) in
               let ty = Inductive.abstract_constructor_type_relatively_to_inductive_types_context ntyps t ty in
               let ctx, concl = Term.decompose_prod_decls ty in
               let argctx, parsctx =
@@ -551,13 +784,13 @@ struct
             match mib.Declarations.mind_packets with
             (* TODO handle mutual records *)
             | [| { mind_record = PrimRecord { id; projections ; relevances; tys ; has_eta = _ } } |] ->
-                let ctxwolet = Vars.smash_rel_context mib.mind_params_ctxt in
-                let indty = Constr.mkApp (Constr.mkIndU ((t,0),inst),
+                let ctxwolet = substitute_context (Vars.smash_rel_context mib.mind_params_ctxt) in
+                let indty = Constr.mkApp (Constr.mkIndU ((t,0),output_instance),
                                         Context.Rel.instance Constr.mkRel 0 ctxwolet) in
                 let indbinder = Context.Rel.Declaration.LocalAssum (Context.annotR (Names.Name id),indty) in
                 let envpars = push_rel_context (indbinder :: ctxwolet) env in
                 let ps, acc = CArray.fold_right3 (fun proj ty rel (ls,acc) ->
-                  let (ty, acc) = quote_term acc envpars sigma ty in
+                  let (ty, acc) = quote_term acc envpars sigma (substitute_constr ty) in
                   let na = Q.quote_ident (Names.Label.to_id proj) in
                   let rel = Q.quote_relevance rel in
                   ((na, rel, ty) :: ls, acc)) projections tys relevances ([],acc)
@@ -575,9 +808,23 @@ struct
         ([],acc) (Array.to_list mib.mind_packets)
       in
       let nparams = Q.quote_int mib.Declarations.mind_nparams in
-      let paramsctx, acc = quote_rel_context quote_term acc env sigma mib.Declarations.mind_params_ctxt in
-      let uctx = quote_universes_decl mib.Declarations.mind_universes mib.Declarations.mind_template in
-      let var = Option.map (CArray.map_to_list Q.quote_variance) mib.Declarations.mind_variance in
+      let paramsctx, acc = quote_rel_context quote_term acc env sigma (substitute_context mib.Declarations.mind_params_ctxt) in
+      let uctx, var =
+        match translation with
+        | None ->
+          quote_universes_decl mib.Declarations.mind_universes mib.Declarations.mind_template,
+          mib.Declarations.mind_variance
+        | Some translation ->
+          let auctx, variance =
+            Template_translation.finish_inductive translation (snd env)
+              (MutInd.canonical t) mib
+          in
+          (match auctx with
+           | Some auctx -> Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context auctx)
+           | None -> Q.mkMonomorphic_ctx ()),
+          variance
+      in
+      let var = Option.map (CArray.map_to_list Q.quote_variance) var in
       let bodies = List.map Q.mk_one_inductive_body (List.rev ls) in
       let finite = Q.quote_mind_finiteness mib.Declarations.mind_finite in
       (* let templatePoly = Q.quote_bool mi.mind_template in *)
@@ -628,17 +875,32 @@ struct
            univs oib.mind_nf_lc)
       univs mib.mind_packets
 
-  let quote_term_rec ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
+  (* [~translate_template:true] gives PCUIC a universe-polymorphic inductive in
+     place of each template-polymorphic one (see [Template_translation]), as
+     SafeCheck needs.  By default the program is the kernel's own syntax, which
+     [tmQuoteRec], [MetaRocq Quote Recursively] and the erasure plugin return
+     and which unquoting expects. *)
+  let quote_term_rec ?(translate_template = false) ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
     let visited_terms = ref Names.KNset.empty in
     let visited_types = ref Mindset.empty in
     let universes = ref Univ.Level.Set.empty in
     let constants = ref [] in
+    let translation =
+      if translate_template then Some (Template_translation.create env) else None
+    in
+    (* Under a translation, each declaration is quoted in its own declaration
+       state ([Template_translation.with_declaration]). *)
+    let in_declaration enter f =
+      match translation with
+      | None -> f ()
+      | Some translation -> enter translation f
+    in
     let add quote_term quote_type trm acc =
       match trm with
       | Ind ((mi,idx), mib) ->
         let t = mi in
         if Mindset.mem t !visited_types then ()
-        else
+        else in_declaration (fun translation -> Template_translation.with_inductive translation mi mib) @@ fun () ->
           begin
             visited_types := Mindset.add t !visited_types;
             let univs = universes_of_mib mib in
@@ -658,6 +920,7 @@ struct
             visited_terms := Names.KNset.add kn !visited_terms ;
             let c = Names.Constant.make kn kn in
             let cd = Environ.lookup_constant c env in
+            in_declaration (fun translation -> Template_translation.with_constant translation kn cd) @@ fun () ->
             let body = match cd.const_body with
               | Undef _ -> None
               | Primitive t ->
@@ -691,8 +954,19 @@ struct
                   Feedback.msg_debug (str"Exception raised while checking body of " ++ KerName.print kn);
                   raise e
             in
-            let uctx = quote_universes_decl cd.const_universes None in
             let ty, acc =
+              (* The declaration's own type, as the kernel stores it: neither a
+                 type inferred from the body, nor one whose universes this
+                 code rewrites.  The checker is asked whether this body has
+                 this declared type, and that is the question it must get.
+                 Retyping assumes a well-typable input and checks nothing
+                 (Rocq pretyping/retyping.mli), so an inferred type would hand
+                 the checker a repaired declaration; a level substitution over
+                 the declared type would restate the claim, and being keyed on
+                 level identity it would also reach occurrences that have
+                 nothing to do with the body's head.  Template inductives
+                 inside the type are translated where they occur, by the same
+                 instance inference as anywhere else. *)
               let ty = cd.const_type in
               let univs = Vars.universes_of_constr ty in
               let () = universes := Univ.Level.Set.union univs !universes in
@@ -702,6 +976,14 @@ struct
                   raise e)
             in
             let rel = Q.quote_relevance cd.const_relevance in
+            let uctx =
+              match translation, cd.const_universes with
+              | Some translation, Declarations.Polymorphic auctx ->
+                Q.mkPolymorphic_ctx
+                  (Q.quote_abstract_univ_context
+                     (Template_translation.finish_constant_context translation env kn auctx))
+              | _ -> quote_universes_decl cd.const_universes None
+            in
             let cst_bdy = Q.mk_constant_body ty tm uctx rel in
             let decl = Q.mk_constant_decl cst_bdy in
             constants := (Q.quote_kn kn, decl) :: !constants
@@ -711,7 +993,8 @@ struct
       let a = ref (fun _ _ _ -> assert false) in
       let b = ref (fun _ _ _ -> assert false) in
       let (x,y) =
-	      quote_term_remember (fun x () -> add !a !b (Const x) ())
+	      quote_term_remember ?translation
+          (fun x () -> add !a !b (Const x) ())
           (fun y mib () -> add !a !b (Ind (y, mib)) ())
       in
       a := x ;
@@ -724,8 +1007,15 @@ struct
       if with_universes then
         if with_restriction then
           let univs = Univ.Level.Set.union (Vars.universes_of_constr trm) !universes in
-          let univs = Univ.Level.Set.filter (fun l -> Option.is_empty (Univ.Level.var_index l)) univs in
-          quote_ugraph ~kept:univs (Environ.universes env)
+          match translation with
+          | None ->
+            let univs = Univ.Level.Set.filter (fun l -> Option.is_empty (Univ.Level.var_index l)) univs in
+            quote_ugraph ~kept:univs (Environ.universes env)
+          | Some translation ->
+            let univs, extra_constraints =
+              Template_translation.program_universes translation env univs
+            in
+            quote_ugraph ~kept:univs ~extra_constraints (Environ.universes env)
         else quote_ugraph (Environ.universes env)
       else
         (debug Pp.(fun () -> str"Skipping universes: ");
