@@ -46,6 +46,8 @@ run_in_tactic.v
 safechecker_test.v
 # self_erasure.v
 sprop_tests.v
+# test-plugin/test/quote_cache.v
+# test-plugin/theories/Loader.v
 tmExistingInstance.v
 tmFix.v
 tmFreshName.v

@@ -1,0 +1,13 @@
+CAMLFLAGS+=-bin-annot # For merlin
+CAMLPKGS+=-package rocq-metarocq-template-rocq.plugin
+
+-include ../../Makefile.conf
+
+ifeq '$(METAROCQ_CONFIG)' 'local'
+  ifeq ($(shell which cygpath 2>/dev/null),)
+  OCAMLPATH := $(shell pwd)/../../template-rocq/:$(OCAMLPATH)
+  else
+  OCAMLPATH := $(shell cygpath -m `pwd`)/../../template-rocq/;$(OCAMLPATH)
+  endif
+  export OCAMLPATH
+endif

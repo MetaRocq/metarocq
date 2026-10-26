@@ -1,0 +1,10 @@
+-generate-meta-for-package rocq-metarocq-test-plugin
+
+-I src
+-R theories MetaRocq.TestPlugin
+
+src/g_metarocq_test.mlg
+src/metarocq_test_plugin.mlpack
+
+theories/Loader.v
+test/quote_cache.v
