@@ -63,7 +63,7 @@ Program Global Instance canonical_abstract_env_struct {cf:checker_flags} {guard 
   abstract_env_is_consistent X uctx :=
    let G := reference_impl_graph X in
    let G' := add_uctx uctx G in
-   wGraph.is_acyclic G' && wGraph.IsFullSubgraph.is_full_extension G G' ;
+   wGraph.is_acyclic' G' && wGraph.IsFullSubgraph.is_full_extension' G G' ;
   abstract_env_add_udecl X udecl Hglobal :=
     {| reference_impl_env_ext := (X.(reference_impl_env) , udecl); |} ;
   abstract_primitive_constant := fun X tag => primitive_constant X tag;
@@ -324,10 +324,19 @@ Next Obligation.
         split; apply LevelSet.union_spec; right;
         now cbn in H0.
      }
-  unfold reference_impl_graph; rewrite andb_and.
+  unfold reference_impl_graph.
   pose proof (reference_impl_graph_wf X) as HG.
   set (gph := (graph_of_wf X).π1) in *. clearbody gph. simpl in HG.
   pose proof (HG' := is_graph_of_uctx_add Hudecl' HG).
+  assert (Hinv : wGraph.invariants gph).
+  { apply (global_uctx_graph_invariants HG H0). }
+  assert (Hinv' : wGraph.invariants (add_uctx (t1, t2) gph)).
+  { apply (global_uctx_graph_invariants HG' H1). }
+  assert (Hsub : wGraph.subgraph gph (add_uctx (t1, t2) gph)).
+  { apply add_uctx_subgraph. }
+  rewrite (wGraph.IsFullSubgraph.is_acyclic_full_extension'_iff
+             gph (add_uctx (t1, t2) gph) Hsub).
+  rewrite andb_and.
   pose (global_ext_uctx := ContextSet.union udecl (global_uctx X)).
   pose (wf_consistent_extension_on_consistent udecl.2 s).
   assert (reorder : forall a a' b c : Prop, (b -> a) -> (a /\ b <-> a' /\ c) -> b <-> a' /\ c) by intuition; eapply reorder; try eassumption; clear reorder.
@@ -339,7 +348,6 @@ Next Obligation.
   cbn.
   change (CS.union _ _) with global_ext_uctx.2.
   apply: consistent_ext_on_full_ext=> //.
-  apply: add_uctx_subgraph.
 Qed.
 Next Obligation. apply guard_correct. Qed.
 
