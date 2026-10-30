@@ -11,7 +11,7 @@ Lemma nApp_mkApps t f args :
 Proof.
   intros -> napp.
   destruct args using rev_case; cbn in *; solve_discr; try discriminate => //. split => //.
-  now rewrite mkApps_app /= in napp.
+  now rw mkApps_app /= in napp.
 Qed.
 
 Ltac solve_discr :=
@@ -190,7 +190,7 @@ Proof.
     revert H0. induction 1; constructor; auto.
     split. destruct H as [[] ?]; constructor; auto.
     clear -X f. induction X; constructor; auto. destruct p; constructor; auto.
-    apply f. rewrite repeat_app. exact H.
+    apply f. rw repeat_app. exact H.
     eapply f, H.
   - assert (Forall (P Γ) args). { clear - H0 f. induction H0; econstructor; eauto. }
     eapply HFix; eauto.
@@ -251,12 +251,12 @@ Proof.
   destruct (isConstruct f || isFix f || isRel f) eqn:eqc.
   destruct f => //.
   - depelim H; solve_discr. eapply expanded_tRel; tea. cbn in Hle. lia. solve_all.
-    now rewrite eqc in H.
+    now rw eqc in H.
   - depelim H; solve_discr.
-    now rewrite eqc in H.
+    now rw eqc in H.
     eapply expanded_tConstruct_app; tea. cbn in H0. lia. solve_all.
-  - depelim H; solve_discr. now rewrite eqc in H.
-  - eapply expanded_mkApps. now rewrite eqc. auto. solve_all.
+  - depelim H; solve_discr. now rw eqc in H.
+  - eapply expanded_mkApps. now rw eqc. auto. solve_all.
 Qed.
 
 Lemma expanded_lift Σ n k b Γ Δ Δ' :
@@ -271,52 +271,52 @@ Proof.
   induction exp using expanded_ind; intros Γ' n' k Hn Hk ->.
   all:try solve[ cbn; econstructor => // ].
   2,7:try solve [cbn; econstructor => //; solve_all ].
-  - subst n'. rewrite lift_mkApps /=.
+  - subst n'. rw lift_mkApps /=.
     destruct (Nat.leb_spec k n).
-    * rewrite nth_error_app_ge in H. lia.
+    * rw nth_error_app_ge in H. lia.
       eapply expanded_tRel.
-      rewrite nth_error_app_ge; [lia|].
-      rewrite nth_error_app_ge; [lia|]. erewrite <- H. lia_f_equal.
+      rw nth_error_app_ge; [lia|].
+      rw nth_error_app_ge; [lia|]. erewrite <- H. lia_f_equal.
       now len. solve_all.
     * eapply expanded_tRel.
-      rewrite nth_error_app_lt in H; [lia|].
-      rewrite nth_error_app_lt; [lia|]. tea. now len. solve_all.
+      rw nth_error_app_lt in H; [lia|].
+      rw nth_error_app_lt; [lia|]. tea. now len. solve_all.
   - cbn. econstructor.
     eapply (IHexp (0 :: Γ') n' (S k)); cbn; auto; lia.
   - cbn. econstructor. apply IHexp1; auto.
     eapply (IHexp2 (0 :: Γ') n' (S k)); cbn; auto; lia.
-  - rewrite lift_mkApps.
+  - rw lift_mkApps.
     destruct (isConstruct (lift n' k f6) || isFix (lift n' k f6) || isRel (lift n' k f6)) eqn:eqc.
     specialize (IHexp  _ _ _ Hn Hk eq_refl).
     eapply expanded_mkApps_expanded => //. solve_all.
-    eapply expanded_mkApps => //. now rewrite eqc. now eapply IHexp. solve_all.
+    eapply expanded_mkApps => //. now rw eqc. now eapply IHexp. solve_all.
   - cbn. econstructor. eauto. solve_all. cbn. solve_all.
     solve_all.
     specialize (H1 (repeat 0 #|bcontext x| ++ Γ') n' (#|bcontext x| + k) Hn).
     forward H1. len.
-    forward H1. now rewrite app_assoc.
-    rewrite /id. rewrite app_assoc. apply H1.
-  - rewrite lift_mkApps. cbn.
+    forward H1. now rw app_assoc.
+    rw /id. rw app_assoc. apply H1.
+  - rw lift_mkApps. cbn.
     eapply expanded_tFix.
     + solve_all.
       specialize (a
       (rev_map (fun d0 : def term => S (rarg d0))
       (map (map_def (lift n' k) (lift n' (#|mfix| + k))) mfix) ++ Γ') n' (#|mfix| + k) Hn).
-      forward a. { rewrite rev_map_spec; len. }
-      forward a. { rewrite app_assoc. f_equal. f_equal.
-        rewrite !rev_map_spec. f_equal. now rewrite map_map_compose /=. }
-      rewrite app_assoc. eapply a.
+      forward a. { rw rev_map_spec; len. }
+      forward a. { rw app_assoc. f_equal. f_equal.
+        rw !rev_map_spec. f_equal. now rw map_map_compose /=. }
+      rw app_assoc. eapply a.
     + solve_all.
     + destruct args => //.
-    + rewrite nth_error_map /= H4 //.
+    + rw nth_error_map /= H4 //.
     + len.
   - cbn. constructor.
     solve_all.
     specialize (a (repeat 0 #|mfix| ++ Γ') n' (#|mfix| + k) Hn).
     forward a. { len. }
-    forward a. { rewrite app_assoc //. }
-    rewrite app_assoc. eapply a.
-  - rewrite lift_mkApps. cbn.
+    forward a. { rw app_assoc //. }
+    rw app_assoc. eapply a.
+  - rw lift_mkApps. cbn.
     eapply expanded_tConstruct_app; tea. now len.
     solve_all.
   - cbn; constructor. depelim H0; constructor; cbn; eauto. solve_all.
@@ -334,57 +334,57 @@ Proof.
   induction exp using expanded_ind; intros Γ' k Hk ->.
   all:try solve[ cbn; econstructor => // ].
   2,7:solve[ cbn; econstructor => //; solve_all ].
-  - rewrite subst_mkApps /=.
+  - rw subst_mkApps /=.
     destruct (Nat.leb_spec k n).
     destruct (nth_error a _) eqn:hnth.
     * eapply expanded_mkApps_expanded.
       eapply nth_error_forall in H; tea.
       eapply (expanded_lift Σ k 0 _ [] Δ Γ'); auto.
       solve_all.
-    * rewrite nth_error_app_ge in H0. lia.
+    * rw nth_error_app_ge in H0. lia.
       eapply nth_error_None in hnth.
-      rewrite nth_error_app_ge in H0. rewrite repeat_length. lia.
-      rewrite repeat_length in H0.
-      eapply expanded_tRel. rewrite nth_error_app_ge. lia. erewrite <- H0.
+      rw nth_error_app_ge in H0. rw repeat_length. lia.
+      rw repeat_length in H0.
+      eapply expanded_tRel. rw nth_error_app_ge. lia. erewrite <- H0.
       lia_f_equal. len. solve_all.
-    * rewrite nth_error_app_lt in H0. lia.
-      eapply expanded_tRel. rewrite nth_error_app_lt. lia. tea. now len.
+    * rw nth_error_app_lt in H0. lia.
+      eapply expanded_tRel. rw nth_error_app_lt. lia. tea. now len.
       solve_all.
   - cbn. econstructor.
     eapply (IHexp (0 :: Γ') (S k)); cbn; auto; lia.
   - cbn. econstructor. apply IHexp1; auto.
     eapply (IHexp2 (0 :: Γ') (S k)); cbn; auto; lia.
-  - rewrite subst_mkApps.
+  - rw subst_mkApps.
     destruct (isConstruct (subst a k f6) || isFix (subst a k f6) || isRel (subst a k f6)) eqn:eqc.
     specialize (IHexp  _ _ Hk eq_refl).
     eapply expanded_mkApps_expanded => //. solve_all.
-    eapply expanded_mkApps => //. now rewrite eqc. now eapply IHexp. solve_all.
+    eapply expanded_mkApps => //. now rw eqc. now eapply IHexp. solve_all.
   - cbn. econstructor. eauto. cbn. solve_all. solve_all.
     specialize (H2 (repeat 0 #|bcontext x| ++ Γ') (#|bcontext x| + k)).
     forward H2 by len.
-    forward H2. now rewrite app_assoc.
-    rewrite /id. rewrite app_assoc. apply H2.
-  - rewrite subst_mkApps. cbn.
+    forward H2. now rw app_assoc.
+    rw /id. rw app_assoc. apply H2.
+  - rw subst_mkApps. cbn.
     eapply expanded_tFix.
     + solve_all. now eapply isLambda_subst.
       specialize (a0
       (rev_map (fun d0 : def term => S (rarg d0))
       (map (map_def (subst a k) (subst a (#|mfix| + k))) mfix) ++ Γ') (#|mfix| + k)).
       forward a0 by len.
-      forward a0. { rewrite app_assoc. f_equal. f_equal.
-        rewrite !rev_map_spec. f_equal. now rewrite map_map_compose /=. }
-      rewrite app_assoc. eapply a0.
+      forward a0. { rw app_assoc. f_equal. f_equal.
+        rw !rev_map_spec. f_equal. now rw map_map_compose /=. }
+      rw app_assoc. eapply a0.
     + solve_all.
     + now destruct args.
-    + rewrite nth_error_map /= H5 //.
+    + rw nth_error_map /= H5 //.
     + len.
   - cbn. constructor.
     solve_all.
     specialize (a0 (repeat 0 #|mfix| ++ Γ') (#|mfix| + k)).
     forward a0 by len.
-    forward a0. { rewrite app_assoc //. }
-    rewrite app_assoc. eapply a0.
-  - rewrite subst_mkApps. cbn.
+    forward a0. { rw app_assoc //. }
+    rw app_assoc. eapply a0.
+  - rw subst_mkApps. cbn.
     eapply expanded_tConstruct_app; tea. now len.
     solve_all.
   - cbn; constructor; eauto.
@@ -399,35 +399,35 @@ Proof.
   intros [ha].
   revert Γ t ha.
   induction Δ using PCUICInduction.ctx_length_rev_ind.
-  - cbn; intros. now rewrite expand_lets_nil.
+  - cbn; intros. now rw expand_lets_nil.
   - intros Γ' t ha; destruct d as [na [b|] ty]; cbn; len; cbn.
-    * rewrite expand_lets_vdef /= //.
+    * rw expand_lets_vdef /= //.
       intros exp. relativize (context_assumptions Γ).
       eapply H. now len.
       { eapply All_fold_app_inv in ha as [].
         depelim a. depelim a. cbn in *.
-        rewrite /subst_context.
+        rw /subst_context.
         eapply PCUICParallelReduction.All_fold_fold_context_k.
         eapply All_fold_impl; tea. cbn; intros.
         depelim f.
         destruct decl_body => //; constructor. depelim H1.
         len in H1. cbn in H1.
-        cbn. len. eapply expanded_subst. now rewrite repeat_length. eauto.
-        auto. cbn. now rewrite repeat_app /= -app_assoc /= in H1. }
+        cbn. len. eapply expanded_subst. now rw repeat_length. eauto.
+        auto. cbn. now rw repeat_app /= -app_assoc /= in H1. }
       len.
-      rewrite repeat_app -app_assoc /= in exp.
+      rw repeat_app -app_assoc /= in exp.
       eapply All_fold_app_inv in ha as []. eapply All_fold_tip in a. cbn in a. depelim a.
-      eapply expanded_subst. rewrite repeat_length //. constructor; auto.
+      eapply expanded_subst. rw repeat_length //. constructor; auto.
       cbn. exact exp. now len.
-    * rewrite expand_lets_vass /= //.
-      rewrite !repeat_app -!app_assoc.
+    * rw expand_lets_vass /= //.
+      rw !repeat_app -!app_assoc.
       intros exp. relativize (context_assumptions Γ).
       eapply H. lia.
       { eapply All_fold_app_inv in ha as [].
         depelim a. cbn in f. depelim a.
         eapply All_fold_impl; tea. cbn; intros.
         destruct decl_body => //; constructor. depelim H0. len in H0. cbn in H0.
-        now rewrite repeat_app /= -app_assoc /= in H0. }
+        now rw repeat_app /= -app_assoc /= in H0. }
       exact exp. lia.
 Qed.
 
@@ -443,18 +443,18 @@ Proof. destruct t => //. Qed.
 Lemma expanded_subst_instance Σ Γ t u : expanded Σ Γ t -> expanded Σ Γ t@[u].
 Proof.
   induction 1 using PCUICEtaExpand.expanded_ind; cbn.
-  all:intros; rewrite ?subst_instance_mkApps.
+  all:intros; rw ?subst_instance_mkApps.
   all:try solve [econstructor; eauto 1].
-  - econstructor; eauto. now rewrite length_map. solve_all.
+  - econstructor; eauto. now rw length_map. solve_all.
   - econstructor; eauto. solve_all.
   - econstructor; eauto. 2:solve_all.
-    rewrite subst_instance_isConstruct subst_instance_isFix subst_instance_isRel //.
+    rw subst_instance_isConstruct subst_instance_isFix subst_instance_isRel //.
   - econstructor; eauto. cbn. solve_all.
     solve_all.
-  - cbn; eapply expanded_tFix. solve_all. rewrite subst_instance_isLambda //.
-    rewrite rev_map_spec map_map_compose -rev_map_spec //.
+  - cbn; eapply expanded_tFix. solve_all. rw subst_instance_isLambda //.
+    rw rev_map_spec map_map_compose -rev_map_spec //.
     solve_all. now destruct args => //.
-    rewrite nth_error_map H4 //.
+    rw nth_error_map H4 //.
     now len.
   - econstructor; eauto. solve_all.
   - eapply expanded_tConstruct_app; tea. now len. solve_all.
@@ -464,10 +464,10 @@ Qed.
 Lemma expanded_weakening Σ Γ t : expanded Σ Γ t -> forall Γ', expanded Σ (Γ ++ Γ') t.
 Proof.
   induction 1 using PCUICEtaExpand.expanded_ind; cbn.
-  1:{ intros. eapply expanded_tRel; tea. rewrite nth_error_app_lt.
+  1:{ intros. eapply expanded_tRel; tea. rw nth_error_app_lt.
      now eapply nth_error_Some_length in H. assumption.
     solve_all. }
-  all:intros; try solve [econstructor; cbn; eauto 1; solve_all; try now rewrite app_assoc].
+  all:intros; try solve [econstructor; cbn; eauto 1; solve_all; try now rw app_assoc].
   constructor. depelim H0; constructor; cbn; eauto; solve_all.
 Qed.
 
@@ -477,13 +477,13 @@ Lemma expanded_tApp (Σ : global_env) (Γ : list nat) (f : term) a :
   expanded Σ Γ (tApp f a).
 Proof.
   induction 1 using expanded_ind; intros expa.
-  all:rewrite -?[tApp _ a](mkApps_app _ _ [a]).
+  all:rw -?[tApp _ a](mkApps_app _ _ [a]).
   all:try (eapply (expanded_mkApps _ _ _ [a]) => //; econstructor; eauto).
 
-  - econstructor; tea. rewrite length_app. lia. eapply app_Forall;eauto.
+  - econstructor; tea. rw length_app. lia. eapply app_Forall;eauto.
   - econstructor; tea. eapply app_Forall; eauto.
-  - eapply expanded_tFix; tea. eapply app_Forall; eauto. eauto. rewrite length_app; cbn; eauto. lia.
-  - eapply expanded_tConstruct_app; tea. rewrite length_app ; lia. eapply app_Forall; eauto.
+  - eapply expanded_tFix; tea. eapply app_Forall; eauto. eauto. rw length_app; cbn; eauto. lia.
+  - eapply expanded_tConstruct_app; tea. rw length_app ; lia. eapply app_Forall; eauto.
 Qed.
 
 Lemma expanded_tApp_inv Σ Γ f a :
@@ -493,23 +493,23 @@ Lemma expanded_tApp_inv Σ Γ f a :
 Proof.
   intros hf exp; depind exp.
   - destruct args using rev_case; solve_discr; try discriminate.
-    rewrite mkApps_app in H3; noconf H3.
+    rw mkApps_app in H3; noconf H3.
     eapply Forall_app in H1 as [? ha]. depelim ha.
     destruct args using rev_case; cbn in hf => //.
-    now rewrite !head_mkApps /= in hf.
+    now rw !head_mkApps /= in hf.
   - destruct args using rev_case; solve_discr. subst f6.
     eapply IHexp => //.
-    rewrite mkApps_app in H2; noconf H2.
+    rw mkApps_app in H2; noconf H2.
     eapply Forall_app in H0 as [? H0]. depelim H0. split => //.
-    rewrite !head_mkApps in hf.
+    rw !head_mkApps in hf.
     eapply expanded_mkApps => //.
   - destruct args using rev_case; solve_discr. discriminate.
-    rewrite mkApps_app in H6; noconf H6.
+    rw mkApps_app in H6; noconf H6.
     eapply Forall_app in H1 as [? h]. depelim h. split => //.
-    now rewrite !head_mkApps /= in hf.
+    now rw !head_mkApps /= in hf.
   - destruct args using rev_case; solve_discr. discriminate.
-    rewrite mkApps_app in H3; noconf H3.
-    now rewrite !head_mkApps /= in hf.
+    rw mkApps_app in H3; noconf H3.
+    now rw !head_mkApps /= in hf.
 Qed.
 
 Lemma expanded_tLambda_inv Σ Γ na t b :
@@ -940,15 +940,15 @@ Module Red1Apps.
   Proof.
     induction 1.
     all:try solve [eapply (app_red_l _ _ _ _ [u]) => //; econstructor; eauto].
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]).
+    - rw -![tApp _ u](mkApps_app _ _ [u]).
       eapply red_beta.
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
+    - rw -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
       now apply is_constructor_app_ge.
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
+    - rw -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
+    - rw -![tApp _ u](mkApps_app _ _ [u]). econstructor; eauto.
       now eapply OnOne2_app_r.
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]). now eapply app_fix_red_ty.
-    - rewrite -![tApp _ u](mkApps_app _ _ [u]). now eapply app_fix_red_body.
+    - rw -![tApp _ u](mkApps_app _ _ [u]). now eapply app_fix_red_ty.
+    - rw -![tApp _ u](mkApps_app _ _ [u]). now eapply app_fix_red_body.
     - now eapply (app_fix_red_ty _ _ _ _ _ [_]).
     - now eapply (app_fix_red_body _ _ _ _ _ [_]).
   Qed.
@@ -971,13 +971,13 @@ Proof.
   - now eapply Red1Apps.red_tApp.
   - remember (decompose_app (tApp M1 M2)).
     destruct p as [hd args].
-    edestruct (decompose_app_rec_inv' M1 [M2]). rewrite /decompose_app in Heqp.
-    cbn in Heqp. rewrite -Heqp. reflexivity.
+    edestruct (decompose_app_rec_inv' M1 [M2]). rw /decompose_app in Heqp.
+    cbn in Heqp. rw -Heqp. reflexivity.
     destruct a as [napp [hm2 hm1]].
-    symmetry in Heqp; eapply decompose_app_inv in Heqp. rewrite Heqp.
+    symmetry in Heqp; eapply decompose_app_inv in Heqp. rw Heqp.
     assert (tApp M1 N2 = mkApps hd (firstn x args ++ [N2])) as ->.
-    { now rewrite mkApps_app -hm1. }
-    rewrite -{1}(firstn_skipn x args) -hm2. eapply Red1Apps.app_red_r => //.
+    { now rw mkApps_app -hm1. }
+    rw -{1}(firstn_skipn x args) -hm2. eapply Red1Apps.app_red_r => //.
     eapply OnOne2_app. now constructor.
 Qed.
 
@@ -996,10 +996,10 @@ Proof.
   intros happ hc.
   induction v using rev_ind; cbn.
   - intros exp; split => //.
-  - rewrite mkApps_app /=.
+  - rw mkApps_app /=.
     move/expanded_tApp_inv => e.
-    forward e. rewrite head_mkApps.
-    rewrite head_nApp //. now move/negbTE: hc ->.
+    forward e. rw head_mkApps.
+    rw head_nApp //. now move/negbTE: hc ->.
     intuition auto. eapply app_Forall; eauto.
 Qed.
 
@@ -1026,16 +1026,16 @@ Lemma expanded_mkApps_inv' Σ Γ f :
 Proof.
   induction 1 using expanded_ind; cbn.
   all: try solve [split; econstructor; eauto].
-  all:rewrite head_mkApps /=.
-  - rewrite arguments_mkApps_nApp //. split => //. now exists m.
-  - destruct IHexpanded. rewrite arguments_mkApps. split.
+  all:rw head_mkApps /=.
+  - rw arguments_mkApps_nApp //. split => //. now exists m.
+  - destruct IHexpanded. rw arguments_mkApps. split.
     eapply app_Forall => //.
-    rewrite length_app.
+    rw length_app.
     destruct (head f6) => //; firstorder (eauto; try lia).
     exists x. split => //. firstorder (eauto; try lia).
     intros heq; apply H5. now eapply app_eq_nil in heq.
-  - rewrite arguments_mkApps_nApp //. split => //. now exists d.
-  - rewrite arguments_mkApps_nApp //. split => //.
+  - rw arguments_mkApps_nApp //. split => //. now exists d.
+  - rw arguments_mkApps_nApp //. split => //.
     firstorder.
 Qed.
 
@@ -1063,61 +1063,61 @@ Proof.
   induction exp using expanded_ind; intros Γ' k Hk ->.
   all:try solve[ cbn; econstructor => // ].
   2,7:solve[ cbn; econstructor => //; solve_all ].
-  - rewrite subst_mkApps /=.
+  - rw subst_mkApps /=.
     destruct (Nat.leb_spec k n).
     destruct (nth_error a _) eqn:hnth.
     * pose proof (Forall2_length Hs).
       pose proof (Forall2_nth_error_Some_r _ _ _ _ _ _ _ hnth Hs) as [t' [hnth' hargs]].
       eapply hargs => //.
       eapply Forall_map.
-      2:{ len. rewrite nth_error_app_ge in H. lia. subst k.
-        rewrite nth_error_app_lt in H.
-        eapply nth_error_Some_length in hnth'. lia. rewrite hnth' in H. noconf H. exact H0. }
+      2:{ len. rw nth_error_app_ge in H. lia. subst k.
+        rw nth_error_app_lt in H.
+        eapply nth_error_Some_length in hnth'. lia. rw hnth' in H. noconf H. exact H0. }
       solve_all.
-    * rewrite nth_error_app_ge in H. lia.
+    * rw nth_error_app_ge in H. lia.
       eapply nth_error_None in hnth.
       pose proof (Forall2_length Hs).
-      rewrite nth_error_app_ge in H. lia.
-      eapply expanded_tRel. rewrite nth_error_app_ge. lia. erewrite <- H.
+      rw nth_error_app_ge in H. lia.
+      eapply expanded_tRel. rw nth_error_app_ge. lia. erewrite <- H.
       lia_f_equal. len. solve_all.
-    * rewrite nth_error_app_lt in H. lia.
-      eapply expanded_tRel. rewrite nth_error_app_lt. lia. tea. now len.
+    * rw nth_error_app_lt in H. lia.
+      eapply expanded_tRel. rw nth_error_app_lt. lia. tea. now len.
       solve_all.
   - cbn. econstructor.
     eapply (IHexp (0 :: Γ') (S k)); cbn; auto; try lia.
   - cbn. econstructor. apply IHexp1; auto.
     eapply (IHexp2 (0 :: Γ') (S k)); cbn; auto; lia.
-  - rewrite subst_mkApps.
+  - rw subst_mkApps.
     destruct (isConstruct (subst a k f6) || isFix (subst a k f6) || isRel (subst a k f6)) eqn:eqc.
     specialize (IHexp  _ _ Hk eq_refl).
     eapply expanded_mkApps_expanded => //. solve_all.
-    eapply expanded_mkApps => //. rewrite eqc //. now eapply IHexp. solve_all.
+    eapply expanded_mkApps => //. rw eqc //. now eapply IHexp. solve_all.
   - cbn. econstructor. eauto. cbn. solve_all. solve_all.
     specialize (H1 (repeat 0 #|bcontext x| ++ Γ') (#|bcontext x| + k)%nat).
     forward H1 by len.
-    forward H1. now rewrite app_assoc.
-    rewrite /id. rewrite app_assoc. apply H1.
-  - rewrite subst_mkApps. cbn.
+    forward H1. now rw app_assoc.
+    rw /id. rw app_assoc. apply H1.
+  - rw subst_mkApps. cbn.
     eapply expanded_tFix.
     + solve_all. now eapply isLambda_subst.
       specialize (a0
       (rev_map (fun d0 : def term => S (rarg d0))
       (map (map_def (subst a k) (subst a (#|mfix| + k))) mfix) ++ Γ') (#|mfix| + k)%nat).
       forward a0 by len.
-      forward a0. { rewrite app_assoc. f_equal. f_equal.
-        rewrite !rev_map_spec. f_equal. now rewrite map_map_compose /=. }
-      rewrite app_assoc. eapply a0.
+      forward a0. { rw app_assoc. f_equal. f_equal.
+        rw !rev_map_spec. f_equal. now rw map_map_compose /=. }
+      rw app_assoc. eapply a0.
     + solve_all.
     + now destruct args.
-    + rewrite nth_error_map /= H4 //.
+    + rw nth_error_map /= H4 //.
     + len.
   - cbn. constructor.
     solve_all.
     specialize (a0 (repeat 0 #|mfix| ++ Γ') (#|mfix| + k)%nat).
     forward a0 by len.
-    forward a0. { rewrite app_assoc //. }
-    rewrite app_assoc. eapply a0.
-  - rewrite subst_mkApps. cbn.
+    forward a0. { rw app_assoc //. }
+    rw app_assoc. eapply a0.
+  - rw subst_mkApps. cbn.
     eapply expanded_tConstruct_app; tea. now len.
     solve_all.
   - cbn; econstructor; eauto.
@@ -1134,18 +1134,18 @@ Proof.
   intros [= <- <-] hf.
   pose proof (nth_error_all e hf) as [hl hf'].
   eapply (expanded_fix_subst _ _ _ _ []) => //; tea.
-  rewrite rev_map_spec.
+  rw rev_map_spec.
   eapply Forall2_from_nth_error. len.
   intros n rarg f. len. intros hn hrarg hnthf args Γ'' k' hargs hrarg' <-.
   eapply PCUICParallelReductionConfluence.nth_error_fix_subst in hnthf. subst f.
   move: hrarg.
-  rewrite nth_error_rev; len. rewrite List.rev_involutive nth_error_map.
+  rw nth_error_rev; len. rw List.rev_involutive nth_error_map.
   intros hrarg.
   destruct (nth_error mfix (_ - _)) eqn:e'. cbn in hrarg. noconf hrarg.
   eapply expanded_tFix => //. solve_all.
-  eapply expanded_lift; len. rewrite !rev_map_spec in H1 *.
-  rewrite map_map => //. destruct args => //. cbn in hrarg'. lia.
-  rewrite nth_error_map /= e' /= //. cbn. lia.
+  eapply expanded_lift; len. rw !rev_map_spec in H1 *.
+  rw map_map => //. destruct args => //. cbn in hrarg'. lia.
+  rw nth_error_map /= e' /= //. cbn. lia.
   eapply nth_error_None in e'. lia.
 Qed.
 
@@ -1159,7 +1159,7 @@ Proof.
   intros [= <- <-] hf.
   pose proof (nth_error_all e hf) as hf'.
   eapply (expanded_subst _ _ _ _ []) => //; tea.
-  rewrite /cofix_subst.
+  rw /cofix_subst.
   generalize #|mfix|.
   induction n; repeat constructor; eauto. solve_all.
   len.
@@ -1174,7 +1174,7 @@ Proof.
   eapply expanded_ind; intros.
   all:try solve [econstructor; eauto].
   - econstructor; eauto. solve_all. sq. eapply All_fold_impl; tea. cbn.
-    intros. now rewrite repeat_app in H6.
+    intros. now rw repeat_app in H6.
   - eapply expanded_tFix; eauto. solve_all.
   - eapply expanded_tConstruct_app; eauto.
     eapply PCUICWeakeningEnv.weakening_env_declared_constructor; tea.
@@ -1215,19 +1215,19 @@ Lemma All_fold_nth_error P (ctx : context) n b :
   P (skipn (S n) ctx) b.
 Proof.
   induction 1 in n, b |- *.
-  - rewrite nth_error_nil //.
+  - rw nth_error_nil //.
   - destruct n => //=.
-    * intros [= <-]. now rewrite skipn_S skipn_0.
-    * intros hnth. now rewrite skipn_S.
+    * intros [= <-]. now rw skipn_S skipn_0.
+    * intros hnth. now rw skipn_S.
 Qed.
 
 Lemma skipn_repeat {A} k n (a : A) :
   skipn n (repeat a k) = repeat a (k - n).
 Proof.
   induction n in k |- *.
-  - rewrite skipn_0. lia_f_equal.
+  - rw skipn_0. lia_f_equal.
   - destruct k => //=.
-    rewrite skipn_S IHn. lia_f_equal.
+    rw skipn_S IHn. lia_f_equal.
 Qed.
 
 Lemma expanded_red1 {cf : checker_flags} {Σ : global_env_ext} Γ Γ' t v : wf Σ ->
@@ -1246,16 +1246,16 @@ Proof.
     eapply (expanded_subst _ _ _ _ [] Γ') => //. now constructor. solve_all.
   - eapply expanded_tLetIn_inv in exp as [].
     eapply (expanded_subst _ _ _ _ [] Γ') => //. now constructor.
-  - rewrite -(firstn_skipn (S i) Γ').
+  - rw -(firstn_skipn (S i) Γ').
     eapply expanded_mkApps_inv' in exp; cbn in exp.
     destruct exp as [_ [m []]]. eapply nth_error_Some_length in H0.
     eapply (expanded_lift _ _ _ _ []) => //.
-    rewrite firstn_length_le; try lia.
+    rw firstn_length_le; try lia.
     now eapply wfΓ.
   - eapply expanded_tCase_inv in exp as [? []].
     unfold iota_red.
     move/expanded_mkApps_inv': H3 => /=.
-    rewrite arguments_mkApps_nApp // head_mkApps //=.
+    rw arguments_mkApps_nApp // head_mkApps //=.
     intros [hargs [mind [idecl [cdecl [declc hargs']]]]].
     eapply nth_error_forall in H2; tea.
     destruct H2 as [[hbctx] hbod].
@@ -1263,50 +1263,50 @@ Proof.
     + eapply Forall_rev, Forall_skipn => //.
     + len. replace #|skipn (ci_npar ci) args| with (context_assumptions (inst_case_branch_context p br)).
       eapply expanded_let_expansion; len. red.
-      sq. rewrite /inst_case_branch_context /inst_case_context /subst_context.
+      sq. rw /inst_case_branch_context /inst_case_context /subst_context.
       eapply PCUICParallelReduction.All_fold_fold_context_k.
       eapply All_fold_map_context, All_fold_impl; tea; cbn.
       intros ? ? fo. len. destruct x as [? [] ?] => //; constructor.
       cbn in fo. depelim fo. eapply (expanded_subst _ _ _ _ (repeat 0 #|Γ0|) _); len.
       eapply Forall_rev; eauto.
-      eapply expanded_subst_instance. rewrite app_assoc. now eapply expanded_weakening.
-      rewrite length_skipn. len.
+      eapply expanded_subst_instance. rw app_assoc. now eapply expanded_weakening.
+      rw length_skipn. len.
   - move/expanded_mkApps_inv': exp. cbn.
-    rewrite arguments_mkApps_nApp // head_mkApps //=.
+    rw arguments_mkApps_nApp // head_mkApps //=.
     move=> [hargs [d [hf [hargs' []]]]] hnth hrarg.
     eapply expanded_mkApps_expanded => //; solve_all.
     eapply expanded_unfold_fix in H; tea.
   - eapply expanded_tCase_inv in exp as [? []].
     constructor => //.
-    eapply expanded_mkApps_inv' in H2. move: H2; rewrite arguments_mkApps_nApp // head_mkApps //=.
+    eapply expanded_mkApps_inv' in H2. move: H2; rw arguments_mkApps_nApp // head_mkApps //=.
     intros [hargs' hcof]. cbn in hcof. eapply expanded_tCoFix_inv in hcof.
     eapply expanded_unfold_cofix in H; tea. eapply expanded_mkApps_expanded; tea => //; solve_all. solve_all.
   - eapply expanded_tProj_inv in exp. econstructor.
-    eapply expanded_mkApps_inv' in exp. move: exp; rewrite arguments_mkApps_nApp // head_mkApps //=.
+    eapply expanded_mkApps_inv' in exp. move: exp; rw arguments_mkApps_nApp // head_mkApps //=.
     intros [hargs' hcof]. cbn in hcof. eapply expanded_tCoFix_inv in hcof.
     eapply expanded_mkApps_expanded => //; solve_all.
     eapply expanded_unfold_cofix in H; tea.
   - eapply expanded_subst_instance.
     eapply expanded_global_env_constant in expΣ; tea.
-    eapply (expanded_weakening _ []). rewrite H0 in expΣ. now depelim expΣ.
+    eapply (expanded_weakening _ []). rw H0 in expΣ. now depelim expΣ.
   - eapply expanded_tProj_inv in exp.
-    move/expanded_mkApps_inv': exp. rewrite arguments_mkApps_nApp // head_mkApps //=.
+    move/expanded_mkApps_inv': exp. rw arguments_mkApps_nApp // head_mkApps //=.
     intros [].
     eapply nth_error_forall in H0; tea.
   - constructor. now eapply expanded_tLambda_inv in exp.
   - constructor. eapply expanded_tLambda_inv in exp.
     eapply IHred => //.
-    { intros [] body; cbn => //. rewrite skipn_S. eapply wfΓ. }
+    { intros [] body; cbn => //. rw skipn_S. eapply wfΓ. }
   - eapply expanded_tLetIn_inv in exp; now constructor.
   - eapply expanded_tLetIn_inv in exp. now constructor.
   - eapply expanded_tLetIn_inv in exp. constructor; intuition eauto.
     eapply IHred => //.
-    { intros [] ? => //=. intros [=]. subst b. now rewrite skipn_S skipn_0.
-      rewrite skipn_S. eapply wfΓ. }
+    { intros [] ? => //=. intros [=]. subst b. now rw skipn_S skipn_0.
+      rw skipn_S. eapply wfΓ. }
   - eapply expanded_tCase_inv in exp as [? []].
     constructor; eauto. cbn.
     solve_all. eapply OnOne2_impl_All_r; tea. intuition eauto. now apply X0.
-    now rewrite /PCUICOnOne.set_pparams /= -(OnOne2_length X).
+    now rw /PCUICOnOne.set_pparams /= -(OnOne2_length X).
   - eapply expanded_tCase_inv in exp as [? []].
     constructor; eauto.
   - eapply expanded_tCase_inv in exp as [? []].
@@ -1314,77 +1314,77 @@ Proof.
   - eapply expanded_tCase_inv in exp as [? []].
     econstructor; eauto. solve_all.
     eapply OnOne2_impl_All_r; tea.
-    intros x y [? ?]. intros [[] ?]. rewrite -e0.
+    intros x y [? ?]. intros [[] ?]. rw -e0.
     solve_all. eapply e => //.
     intros n b.
     clear -H H2 wfΓ.
     destruct nth_error eqn:e' => //.
     cbn. intros [=]. destruct c as [? [] ?]. cbn in *. noconf H1.
     eapply nth_error_app_inv in e' as [[]|[]].
-    { rewrite inst_case_branch_context_length in H0. destruct H2.
-      rewrite /inst_case_branch_context /inst_case_context in H1.
+    { rw inst_case_branch_context_length in H0. destruct H2.
+      rw /inst_case_branch_context /inst_case_context in H1.
       destruct (nth_error (bcontext x) n) eqn:e.
-      2:{ eapply nth_error_None in e. rewrite skipn_app skipn_all2. len. cbn. len. }
-      rewrite /subst_context in H1.
-      erewrite nth_error_fold_context_k in H1. 4:{ rewrite nth_error_map e //. } 3:len. 2:exact [].
+      2:{ eapply nth_error_None in e. rw skipn_app skipn_all2. len. cbn. len. }
+      rw /subst_context in H1.
+      erewrite nth_error_fold_context_k in H1. 4:{ rw nth_error_map e //. } 3:len. 2:exact [].
       len in H1. noconf H1. destruct c as [? [] ?]; noconf H1.
-      rewrite skipn_app. len. eapply All_fold_nth_error in X; tea. cbn in X. depelim X.
-      rewrite length_skipn in H1.
-      eapply expanded_subst. rewrite length_skipn. len.
-      replace (S n - #|bcontext x|) with 0. 2:{ lia. } rewrite skipn_0. eapply Forall_rev. solve_all.
-      len. rewrite app_assoc. eapply expanded_weakening. eapply expanded_subst_instance.
-      now rewrite skipn_repeat. }
-    { rewrite inst_case_branch_context_length in H0, H1.
-      rewrite skipn_app skipn_all2 /=; len.
+      rw skipn_app. len. eapply All_fold_nth_error in X; tea. cbn in X. depelim X.
+      rw length_skipn in H1.
+      eapply expanded_subst. rw length_skipn. len.
+      replace (S n - #|bcontext x|) with 0. 2:{ lia. } rw skipn_0. eapply Forall_rev. solve_all.
+      len. rw app_assoc. eapply expanded_weakening. eapply expanded_subst_instance.
+      now rw skipn_repeat. }
+    { rw inst_case_branch_context_length in H0, H1.
+      rw skipn_app skipn_all2 /=; len.
       replace (S n - #|bcontext x|) with (S (n - #|bcontext x|)). 2:lia.
-      eapply wfΓ. rewrite H1 //. }
+      eapply wfΓ. rw H1 //. }
     noconf H1.
   - eapply expanded_tProj_inv in exp. now econstructor.
   - eapply expanded_mkApps_inv' in exp.
-    rewrite head_mkApps head_nApp in exp => //.
-    rewrite arguments_mkApps_nApp // in exp. destruct exp as [].
+    rw head_mkApps head_nApp in exp => //.
+    rw arguments_mkApps_nApp // in exp. destruct exp as [].
     specialize (IHred Γ' wfΓ).
     destruct M1; try solve [eapply expanded_mkApps_expanded => //; eauto; solve_all].
     * depelim red; solve_discr. eapply wfΓ in e.
       eapply expanded_mkApps_expanded => //; solve_all.
-      rewrite -(firstn_skipn (S n) Γ'). eapply (expanded_lift _ _ _ _ []) => //.
+      rw -(firstn_skipn (S n) Γ'). eapply (expanded_lift _ _ _ _ []) => //.
       destruct H3 as [m [hn ha]].
-      rewrite firstn_length_le //. now eapply nth_error_Some_length in hn.
+      rw firstn_length_le //. now eapply nth_error_Some_length in hn.
       depelim o.
     * depelim red; solve_discr. depelim o.
 
   - eapply expanded_mkApps_inv' in exp.
     move: exp.
-    rewrite head_mkApps head_nApp // arguments_mkApps_nApp //.
+    rw head_mkApps head_nApp // arguments_mkApps_nApp //.
     intros [].
     assert(Forall (expanded Σ Γ') N2).
     { clear H1. solve_all. eapply OnOne2_impl_All_r; tea. cbn. intuition auto. }
     destruct M1; try solve [eapply expanded_mkApps => //; eauto].
-    + rewrite (OnOne2_length X) in H1. destruct H1 as [m []]; eapply expanded_tRel; tea.
-    + rewrite (OnOne2_length X) in H1. destruct H1 as [m [? [? []]]]; eapply expanded_tConstruct_app; tea.
-    + rewrite (OnOne2_length X) in H1.
+    + rw (OnOne2_length X) in H1. destruct H1 as [m []]; eapply expanded_tRel; tea.
+    + rw (OnOne2_length X) in H1. destruct H1 as [m [? [? []]]]; eapply expanded_tConstruct_app; tea.
+    + rw (OnOne2_length X) in H1.
       destruct H1 as [d [? [? []]]]; eapply expanded_tFix; tea.
       destruct N2; cbn in *; eauto. lia. intros eq; discriminate.
 
   - move/expanded_mkApps_inv': exp.
-    rewrite head_mkApps head_nApp // arguments_mkApps_nApp // => [] [] hargs [d [hf [hm2 [hnth harg]]]].
+    rw head_mkApps head_nApp // arguments_mkApps_nApp // => [] [] hargs [d [hf [hm2 [hnth harg]]]].
     eapply OnOne2_nth_error in hnth as [t' [hnth hor]]; tea.
     eapply expanded_tFix; tea.
     { clear hor. solve_all. eapply OnOne2_impl_All_r; tea.
-      intros ? ? [] []. noconf e. rewrite -H2. split => //. solve_all.
+      intros ? ? [] []. noconf e. rw -H2. split => //. solve_all.
       clear -X H1.
       enough (rev_map (fun d1 : def term => S (rarg d1)) mfix0 = (rev_map (fun d1 : def term => S (rarg d1)) mfix1)) as <- => //.
-      clear -X. rewrite !rev_map_spec. f_equal. induction X. destruct p as []. cbn in *. congruence. cbn. congruence. }
+      clear -X. rw !rev_map_spec. f_equal. induction X. destruct p as []. cbn in *. congruence. cbn. congruence. }
     { destruct hor; subst => //. destruct p as [? e]; noconf e. now congruence. }
 
   - move/expanded_mkApps_inv': exp.
-    rewrite head_mkApps head_nApp // arguments_mkApps_nApp // => [] [] hargs [d [hf [hm2 [hnth harg]]]].
+    rw head_mkApps head_nApp // arguments_mkApps_nApp // => [] [] hargs [d [hf [hm2 [hnth harg]]]].
     eapply OnOne2_nth_error in hnth as [t' [hnth hor]]; tea.
     eapply expanded_tFix; tea.
     { clear hor. solve_all.
       assert (rev_map (fun d1 : def term => S (rarg d1)) mfix0 = (rev_map (fun d1 : def term => S (rarg d1)) mfix1)).
-      { clear -X. rewrite !rev_map_spec. f_equal. induction X. destruct p as []. cbn in *. congruence. cbn. congruence. }
-      rewrite -H.
+      { clear -X. rw !rev_map_spec. f_equal. induction X. destruct p as []. cbn in *. congruence. cbn. congruence. }
+      rw -H.
       eapply OnOne2_impl_All_r; tea.
       intros ? ? [] []. noconf e. destruct p.
       eapply Red1Apps.isLambda_red1 in r; tea. split => //.
@@ -1392,14 +1392,14 @@ Proof.
       eapply e => //.
       { intros n b hnth'.
         destruct (nth_error (fix_context mfix0) n) eqn:e'.
-        rewrite nth_error_app_lt in hnth'. now eapply nth_error_Some_length in e'.
-        rewrite e' in hnth'. noconf hnth'.
+        rw nth_error_app_lt in hnth'. now eapply nth_error_Some_length in e'.
+        rw e' in hnth'. noconf hnth'.
         pose proof (PCUICParallelReductionConfluence.fix_context_assumption_context mfix0).
         eapply PCUICParallelReductionConfluence.nth_error_assumption_context in H6; tea. congruence.
-        rewrite /Γ''.
+        rw /Γ''.
         eapply nth_error_None in e'. len in e'.
-        rewrite nth_error_app_ge in hnth' => //. now len.
-        rewrite skipn_app skipn_all2. len.
+        rw nth_error_app_ge in hnth' => //. now len.
+        rw skipn_app skipn_all2. len.
         cbn. len. replace (S n - #|mfix0|) with (S (n - #|mfix0|)). 2:{ lia. }
         eapply wfΓ. now len in hnth'. } }
     { destruct hor; subst => //. destruct p as [? e]; noconf e. now congruence. }
@@ -1412,10 +1412,10 @@ Proof.
   - depelim exp; solve_discr. now cbn in H.
   - depelim exp; solve_discr. now cbn in H.
   - eapply expanded_tCoFix_inv in exp. econstructor.
-    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
-    destruct X0. noconf e. now rewrite -H1.
+    rw -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
+    destruct X0. noconf e. now rw -H1.
   - eapply expanded_tCoFix_inv in exp. econstructor.
-    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
+    rw -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
     destruct X0. destruct p. noconf e. eapply e0 => //.
     intros n b.
     destruct nth_error eqn:e' => //.
@@ -1424,8 +1424,8 @@ Proof.
     { pose proof (PCUICParallelReductionConfluence.fix_context_assumption_context mfix0).
       eapply PCUICParallelReductionConfluence.nth_error_assumption_context in H5; tea. cbn in H5. congruence. }
     len in H3. len in H4.
-    rewrite skipn_app skipn_all2; len.
-    replace (S n - #|mfix0|) with (S (n - #|mfix0|)) by lia. eapply wfΓ. rewrite H4 /= //.
+    rw skipn_app skipn_all2; len.
+    replace (S n - #|mfix0|) with (S (n - #|mfix0|)) by lia. eapply wfΓ. rw H4 /= //.
     noconf H4.
   - constructor. eapply expanded_tPrim_inv in exp.
     depelim exp; eauto. constructor; cbn; eauto.
@@ -1451,6 +1451,6 @@ Qed.
 Lemma expanded_tApp_arg Σ Γ t u : expanded Σ Γ (tApp t u) -> expanded Σ Γ u.
 Proof.
   move/expanded_mkApps_inv' => [expa _].
-  move: expa; rewrite (arguments_mkApps t [u]).
+  move: expa; rw (arguments_mkApps t [u]).
   move/Forall_app => [] _ hu; now depelim hu.
 Qed.

@@ -61,7 +61,7 @@ Section Validity.
     destruct Σ as [Σ φ]. intros X X0 [isTy [ctx [s eq]]] X1.
     split. eapply isType_subst_instance_decl; eauto.
     exists (subst_instance u ctx), (subst_instance_sort u s).
-    rewrite (subst_instance_destArity []) eq. intuition auto.
+    rw (subst_instance_destArity []) eq. intuition auto.
   Qed.
 
   Lemma isType_weakening {Σ Γ T} :
@@ -99,7 +99,7 @@ Section Validity.
     intros a; unshelve eapply eq_binder_annots_eq_ctx in a; tea.
     induction a in T, U |- *.
     - auto.
-    - rewrite /= /mkProd_or_LetIn.
+    - rw /= /mkProd_or_LetIn.
       destruct r => /=; intros; eapply IHa;
       constructor; auto.
       all: reflexivity.
@@ -120,9 +120,9 @@ Section Validity.
     depind X.
     * destruct Γ; [|done]. constructor.
     * destruct Γ => //.
-      rewrite /expand_lets_ctx /expand_lets_k_ctx /=
+      rw /expand_lets_ctx /expand_lets_k_ctx /=
         !lift_context_snoc; simpl.
-      rewrite subst_context_snoc /= lift_context_length /=
+      rw subst_context_snoc /= lift_context_length /=
         subst_instance_cons subst_context_snoc subst_instance_length
         subst_context_length lift_context_length.
         constructor. simpl. simpl in H. now noconf H.
@@ -136,11 +136,11 @@ Section Validity.
       (pre_case_predicate_context_gen ci mdecl idecl (pparams p) (puinst p)).
   Proof using Type.
     move=> [] hlen /Forall2_All2.
-    rewrite /pre_case_predicate_context_gen /ind_predicate_context.
+    rw /pre_case_predicate_context_gen /ind_predicate_context.
     intros a; depelim a.
     destruct (pcontext p); noconf H.
     cbn.
-    rewrite /inst_case_context /= subst_instance_cons subst_context_snoc Nat.add_0_r /subst_decl /map_decl /=.
+    rw /inst_case_context /= subst_instance_cons subst_context_snoc Nat.add_0_r /subst_decl /map_decl /=.
     constructor. cbn. apply e.
     now eapply All2_eq_binder_subst_context_inst.
   Qed.
@@ -160,7 +160,7 @@ Section Validity.
 
   Lemma subst_instance_level_expr_0 u : subst_instance_level_expr [u] (LevelExpr.make (Level.lvar 0)) = u.
   Proof.
-    now rewrite /subst_instance_level_expr //= plus_0.
+    now rw /subst_instance_level_expr //= plus_0.
   Qed.
 
   Import PCUICOnFreeVars.
@@ -248,7 +248,7 @@ Section Validity.
       eapply (weaken_ctx (Γ:=[]) Γ); eauto.
       eapply (substitution (Γ := []) (s := inds _ _ _) (Δ := [])); eauto.
       eapply subslet_inds; eauto. destruct isdecl; eauto.
-      now rewrite app_context_nil_l.
+      now rw app_context_nil_l.
 
     - (* Case predicate application *)
       assert (cu : consistent_instance_ext Σ (ind_universes mdecl) (puinst p)).
@@ -262,7 +262,7 @@ Section Validity.
       now apply (on_minductive_wf_params_indices_inst isdecl _ cu).
       eapply spine_subst_smash in X6; tea.
       destruct (on_declared_inductive isdecl) as [onmind oib].
-      rewrite /ptm. eapply has_sort_isType with (s := ps).
+      rw /ptm. eapply has_sort_isType with (s := ps).
       eapply type_mkApps; eauto.
       eapply type_it_mkLambda_or_LetIn; tea.
       have typred : isType Σ Γ (it_mkProd_or_LetIn predctx (tSort ps)).
@@ -274,7 +274,7 @@ Section Validity.
       have wfps : wf_sort Σ ps.
       { pcuic. }
       eapply typing_spine_strengthen; tea.
-      2:{ rewrite /predctx /case_predicate_context /case_predicate_context_gen.
+      2:{ rw /predctx /case_predicate_context /case_predicate_context_gen.
           eapply ws_cumul_pb_compare. 1-2:eauto with fvs.
           2:{ red.
               instantiate (1 :=
@@ -283,20 +283,20 @@ Section Validity.
             eapply PCUICEquality.eq_term_leq_term.
             eapply eq_term_set_binder_name. 2:reflexivity.
             now eapply wf_pre_case_predicate_context_gen. }
-          rewrite subst_instance_app_ctx in X6.
+          rw subst_instance_app_ctx in X6.
           eapply spine_subst_smash_app_inv in X6 as [sppars spidx].
           epose proof (isType_case_predicate (puinst p) _ _ wfΓ isdecl cu wfps sppars).
           eauto with fvs. len.
-          rewrite (wf_predicate_length_pars H0).
-          now rewrite onmind.(onNpars). }
+          rw (wf_predicate_length_pars H0).
+          now rw onmind.(onNpars). }
       eapply wf_arity_spine_typing_spine; auto.
-      rewrite subst_instance_app_ctx in X6.
+      rw subst_instance_app_ctx in X6.
       eapply spine_subst_smash_app_inv in X6 as [sppars spidx].
       split; auto.
       apply (isType_case_predicate (puinst p) _ _ wfΓ isdecl cu wfps sppars).
-      2:{ rewrite (wf_predicate_length_pars H0).
-          rewrite context_assumptions_map.
-          now rewrite onmind.(onNpars). }
+      2:{ rw (wf_predicate_length_pars H0).
+          rw context_assumptions_map.
+          now rw onmind.(onNpars). }
       eapply arity_spine_case_predicate; tea.
 
     - (* Proj *)
@@ -311,21 +311,21 @@ Section Validity.
       eapply (typing_subst_instance_decl _ _ _ _ _ _ _ wf isdecl_.p1.p1.p1) in Hs; eauto.
       simpl in Hs.
       eapply (weaken_ctx Γ) in Hs; eauto.
-      rewrite -heq_length in sppar. rewrite firstn_all in sppar.
-      rewrite subst_instance_cons in Hs.
-      rewrite subst_instance_smash in Hs. simpl in Hs.
+      rw -heq_length in sppar. rw firstn_all in sppar.
+      rw subst_instance_cons in Hs.
+      rw subst_instance_smash in Hs. simpl in Hs.
       eapply spine_subst_smash in sppar => //.
       eapply (substitution (Δ := [_]) sppar) in Hs.
       simpl in Hs.
       eapply (substitution (Γ' := [_]) (s := [c]) (Δ := [])) in Hs.
-      simpl in Hs. rewrite !(subst_app_simpl [c] (List.rev _)) /=. eassumption.
+      simpl in Hs. rw !(subst_app_simpl [c] (List.rev _)) /=. eassumption.
       constructor. constructor.
-      simpl. rewrite subst_empty.
-      rewrite subst_instance_mkApps subst_mkApps /=.
-      rewrite [subst_instance_instance _ _](subst_instance_id_mdecl Σ u _ cu); auto.
-      rewrite subst_instance_to_extended_list.
-      rewrite subst_instance_smash.
-      rewrite (spine_subst_subst_to_extended_list_k sppar).
+      simpl. rw subst_empty.
+      rw subst_instance_mkApps subst_mkApps /=.
+      rw [subst_instance_instance _ _](subst_instance_id_mdecl Σ u _ cu); auto.
+      rw subst_instance_to_extended_list.
+      rw subst_instance_smash.
+      rw (spine_subst_subst_to_extended_list_k sppar).
       assumption.
 
     - (* Fix *)
@@ -339,14 +339,14 @@ Section Validity.
     - (* Primitive *)
       depelim X0; depelim X1; simp prim_type; cbn in *.
       1-3:destruct H1 as [hty hbod huniv]; eapply has_sort_isType with (s := _@[[]]); change (tSort ?s@[[]]) with (tSort s)@[[]];
-          rewrite <- hty; refine (type_Const _ _ _ [] _ wfΓ H0 _); rewrite huniv //.
+          rewrite <- hty; refine (type_Const _ _ _ [] _ wfΓ H0 _); rw huniv //.
       set (s := sType (array_universe a)).
       destruct H1 as [hty' hbod huniv].
       eapply has_sort_isType with s.
       eapply (type_App _ _ _ _ (tSort s) (tSort s)); tea; cycle 1.
-      + eapply (type_Const _ _ _ [array_universe a]) in H0; tea. rewrite hty' in H0. cbn in H0.
-        rewrite subst_instance_level_expr_0 in H0. exact H0.
-        red. rewrite huniv. simpl. rtoProp; intuition eauto. eapply LevelSet.subset_spec, subset_levels. eapply wfl.
+      + eapply (type_Const _ _ _ [array_universe a]) in H0; tea. rw hty' in H0. cbn in H0.
+        rw subst_instance_level_expr_0 in H0. exact H0.
+        red. rw huniv. simpl. rtoProp; intuition eauto. eapply LevelSet.subset_spec, subset_levels. eapply wfl.
         cbn. red. destruct check_univs => //. red. red. intros v H c. ucsets.
       + econstructor. 2: econstructor; eauto. 2: constructor; tas.
         all: repeat (eexists; tea; cbn).

@@ -101,8 +101,8 @@ Proof using Type.
   - econstructor.
     move: H; case: nth_error_spec => [x hnth hi|hi] /= // [=] hbod.
     eapply All2_fold_nth in HT as [d' [hnth' [_ pres]]]; eauto.
-    rewrite /pres_let_bodies hbod in pres.
-    now rewrite hnth' /= pres.
+    rw /pres_let_bodies hbod in pres.
+    now rw hnth' /= pres.
   - econstructor; eauto.
     eapply IHX0. eapply All2_fold_app; auto.
     eapply All2_fold_refl.

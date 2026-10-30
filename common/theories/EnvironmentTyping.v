@@ -121,7 +121,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     declared_minductive_gen lookup ind mdecl ->
     lookup_minductive_gen lookup ind = Some mdecl.
   Proof.
-    rewrite /declared_minductive_gen /lookup_minductive_gen.
+    rw /declared_minductive_gen /lookup_minductive_gen.
     now intros ->.
   Qed.
 
@@ -129,7 +129,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     lookup_minductive_gen lookup ind = Some mdecl ->
     declared_minductive_gen lookup ind mdecl.
   Proof.
-    rewrite /declared_minductive_gen /lookup_minductive_gen.
+    rw /declared_minductive_gen /lookup_minductive_gen.
     destruct lookup as [[]|] => //. congruence.
   Qed.
 
@@ -137,15 +137,15 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     declared_inductive_gen lookup ind mdecl idecl ->
     lookup_inductive_gen lookup ind = Some (mdecl, idecl).
   Proof.
-    rewrite /declared_inductive_gen /lookup_inductive_gen.
-    intros []. now rewrite (declared_minductive_lookup_gen H) H0.
+    rw /declared_inductive_gen /lookup_inductive_gen.
+    intros []. now rw (declared_minductive_lookup_gen H) H0.
   Qed.
 
   Lemma lookup_inductive_declared_gen {lookup ind mdecl idecl} :
     lookup_inductive_gen lookup ind = Some (mdecl, idecl) ->
     declared_inductive_gen lookup ind mdecl idecl.
   Proof.
-    rewrite /declared_inductive_gen /lookup_inductive_gen.
+    rw /declared_inductive_gen /lookup_inductive_gen.
     destruct lookup_minductive_gen as [[]|] eqn:hl => //=.
     destruct nth_error eqn:hnth => //. intros [= <- <-].
     split => //.
@@ -157,7 +157,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     lookup_constructor_gen lookup id.1 id.2 = Some (mdecl, idecl, cdecl).
   Proof.
     intros []. unfold lookup_constructor_gen.
-    rewrite (declared_inductive_lookup_gen (lookup := lookup) H) /= H0 //.
+    rw (declared_inductive_lookup_gen (lookup := lookup) H) /= H0 //.
   Qed.
 
   Lemma lookup_constructor_declared_gen {lookup id mdecl idecl cdecl} :
@@ -176,7 +176,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     lookup_projection_gen lookup p = Some (mdecl, idecl, cdecl, pdecl).
   Proof.
     intros [? []]. unfold lookup_projection_gen.
-    rewrite (declared_constructor_lookup_gen (lookup := lookup) H) /= H0 //.
+    rw (declared_constructor_lookup_gen (lookup := lookup) H) /= H0 //.
   Qed.
 
   Lemma lookup_projection_declared_gen {lookup p mdecl idecl cdecl pdecl} :
@@ -277,7 +277,7 @@ Module Lookup (T : Term) (E : EnvironmentSig T).
     destruct univs; simpl; auto.
     intros [_ [H _]].
     destruct cst; simpl in *.
-    now rewrite H; cbn; autorewrite with len.
+    now rw H; cbn; autorewrite with len.
   Qed.
 
   Definition wf_universe Σ (u : Universe.t) : Prop :=
@@ -412,13 +412,13 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     intros. rtoProp.
     repeat split; auto.
     1: destruct tm; cbn in *; auto.
-    destruct u; rewrite //= -H0 //. auto.
+    destruct u; rw //= -H0 //. auto.
   Defined.
 
   Lemma lift_wf_wfb_term (p : _ -> bool) j :
     reflectT (lift_wf_term p j) (lift_wfb_term p j).
   Proof.
-    rewrite /lift_wf_term /lift_wfb_term.
+    rw /lift_wf_term /lift_wfb_term.
     set (HP := @reflectT_pred _ p).
     destruct (HP (j_typ j)) => //;
     destruct (reflect_option_default HP (j_term j)) => /= //; now constructor.
@@ -428,7 +428,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     reflectT (lift_wfu_term p pu j) (lift_wfbu_term p pu j).
   Proof.
     set (HP := @reflectT_pred _ p); set (HPu := @reflectT_pred _ pu).
-    rewrite /lift_wfu_term /lift_wfbu_term.
+    rw /lift_wfu_term /lift_wfbu_term.
     destruct (HP (j_typ j)) => //;
     destruct (reflect_option_default HP (j_term j)) => /= //;
     destruct (reflect_option_default HPu (j_univ j)) => /= //; now constructor.
@@ -573,7 +573,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
   Proof.
     intros ?? HT HPQ Hf Hr.
     apply lift_sorting_fu_impl with (1 := HT); tas.
-    intros; rewrite -Hf; now apply HPQ.
+    intros; rw -Hf; now apply HPQ.
   Qed.
 
   Lemma lift_sorting_f_impl {Pc Qc Ps Qs j} :
@@ -597,7 +597,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
   Proof.
     intros ? HT HPQ Hf.
     apply lift_sorting_f_impl with (1 := HT); tas.
-    intros; rewrite -Hf; now apply HPQ.
+    intros; rw -Hf; now apply HPQ.
   Qed.
 
   Lemma lift_typing_map {P} f j :
@@ -661,7 +661,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     repeat split.
     - destruct j_term => //=. eapply fst, HPQ, Htm.
     - eapply fst, HPQ, Hty.
-    - destruct j_univ => //=. rewrite e. eapply HQQ', snd, HPQ, Hty.
+    - destruct j_univ => //=. rw e. eapply HQQ', snd, HPQ, Hty.
   Qed.
 
   Section TypeLocal.
@@ -733,8 +733,8 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     All_local_env P (fold_context_k f Γ).
   Proof.
     split.
-    - induction 1; simpl; try unfold snoc; rewrite ?fold_context_k_snoc0; try constructor; auto.
-    - induction Γ; simpl; try unfold snoc; rewrite ?fold_context_k_snoc0; intros H.
+    - induction 1; simpl; try unfold snoc; rw ?fold_context_k_snoc0; try constructor; auto.
+    - induction Γ; simpl; try unfold snoc; rw ?fold_context_k_snoc0; intros H.
       * constructor.
       * destruct a as [na [b|] ty]; depelim H; specialize (IHΓ H); constructor; simpl; auto.
   Qed.
@@ -843,14 +843,14 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
       intros P Γ h. eapply All_local_env_impl.
       - exact h.
       - intros.
-        rewrite app_context_nil_l. assumption.
+        rw app_context_nil_l. assumption.
     Defined.
 
     Lemma All_local_local_rel P Γ :
       All_local_rel P [] Γ -> All_local_env P Γ.
     Proof.
       intro X. eapply All_local_env_impl. exact X.
-      intros Γ0 j XX; cbn in XX; rewrite app_context_nil_l in XX; assumption.
+      intros Γ0 j XX; cbn in XX; rw app_context_nil_l in XX; assumption.
     Defined.
 
     Lemma All_local_app_rel {P Γ Γ'} :
@@ -876,7 +876,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
       eapply All_local_env_app_inv in H as [H H'].
       split; tas.
       apply All_local_env_impl with (1 := H').
-      intros; now rewrite -app_context_assoc.
+      intros; now rw -app_context_assoc.
     Defined.
 
     Lemma All_local_env_app {P Γ Γ'} :
@@ -890,7 +890,7 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
       All_local_rel P Γ Γ' -> All_local_rel P (Γ ,,, Γ') Γ'' -> All_local_rel P Γ (Γ' ,,, Γ'').
     Proof.
       induction 2 using All_local_rel_ind1 => //=.
-      apply All_local_rel_snoc; tas. now rewrite app_context_assoc.
+      apply All_local_rel_snoc; tas. now rw app_context_assoc.
     Defined.
 
     Lemma All_local_env_prod_inv :
@@ -1152,11 +1152,11 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
       dependent inversion wfΓ' ; subst ; intros.
       + cbn.
         etransitivity.
-        2: rewrite Nat.add_comm -Nat.add_assoc [X in _ + X]Nat.add_comm -IHΓ' Nat.add_assoc ; reflexivity.
+        2: rw Nat.add_comm -Nat.add_assoc [X in _ + X]Nat.add_comm -IHΓ' Nat.add_assoc ; reflexivity.
         reflexivity.
       + cbn.
         etransitivity.
-        2: rewrite Nat.add_comm -Nat.add_assoc [X in _ + X]Nat.add_comm -IHΓ' Nat.add_assoc ; reflexivity.
+        2: rw Nat.add_comm -Nat.add_assoc [X in _ + X]Nat.add_comm -IHΓ' Nat.add_assoc ; reflexivity.
         reflexivity.
   Qed.
 
@@ -1760,17 +1760,17 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     Lemma fresh_global_iff_not_In kn Σ
       : fresh_global kn Σ <-> ~ In kn (map fst Σ).
     Proof using Type.
-      rewrite /fresh_global; split; [ induction 1 | induction Σ; constructor ]; cbn in *.
+      rw /fresh_global; split; [ induction 1 | induction Σ; constructor ]; cbn in *.
       all: tauto.
     Qed.
 
     Lemma fresh_global_iff_lookup_global_None kn Σ
       : fresh_global kn Σ <-> lookup_global Σ kn = None.
-    Proof using Type. rewrite fresh_global_iff_not_In lookup_global_None //. Qed.
+    Proof using Type. rw fresh_global_iff_not_In lookup_global_None //. Qed.
 
     Lemma fresh_global_iff_lookup_globals_nil kn Σ
       : fresh_global kn Σ <-> lookup_globals Σ kn = [].
-    Proof using Type. rewrite fresh_global_iff_not_In lookup_globals_nil //. Qed.
+    Proof using Type. rw fresh_global_iff_not_In lookup_globals_nil //. Qed.
 
     Lemma NoDup_on_global_decls univs retro decls
       : on_global_decls univs retro decls -> NoDup (List.map fst decls).
@@ -1779,7 +1779,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
       let H := match goal with H : on_global_decls_data _ _ _ _ _ |- _ => H end in
       move: H.
       case.
-      rewrite fresh_global_iff_not_In; auto.
+      rw fresh_global_iff_not_In; auto.
     Qed.
 
     Definition on_global_univs (c : ContextSet.t) :=
@@ -1915,7 +1915,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     All (fun Pcmp' => @cstr_respects_variance Pcmp' Σ mdecl v cs) args ->
     @cstr_respects_variance Pcmp Σ mdecl v cs.
   Proof.
-    rewrite /cstr_respects_variance/cumul_ctx_rel/cumul_pb_decls.
+    rw /cstr_respects_variance/cumul_ctx_rel/cumul_pb_decls.
     destruct variance_universes; destr_prod; try now case.
     move => Hexists HPQ HP.
     apply All_prod_inv in HP.
@@ -1948,7 +1948,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     @cstr_respects_variance Pcmp Σ mdecl v cs ->
     @cstr_respects_variance Pcmp' Σ' mdecl v cs.
   Proof.
-    rewrite /cstr_respects_variance/cumul_ctx_rel/cumul_pb_decls.
+    rw /cstr_respects_variance/cumul_ctx_rel/cumul_pb_decls.
     destruct variance_universes; destr_prod; try now case.
     move => HPQ [HP1 HP2].
     split; first [ eapply All2_fold_impl | eapply All2_impl ]; tea; intros *; cbn; eauto.
@@ -2036,7 +2036,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     @ind_respects_variance Pcmp Σ mdecl v cs ->
     @ind_respects_variance Pcmp' Σ' mdecl v cs.
   Proof.
-    rewrite /ind_respects_variance/cumul_ctx_rel/cumul_pb_decls.
+    rw /ind_respects_variance/cumul_ctx_rel/cumul_pb_decls.
     destruct variance_universes; destr_prod; try now case.
     move => HPQ HP.
     eapply All2_fold_impl; tea; intros *; cbn; eauto.
@@ -2048,7 +2048,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
     @on_variance cf' Σ univs variances ->
     @on_variance cf Σ univs variances.
   Proof.
-    rewrite /on_variance; case: univs; case: variances => //; intros.
+    rw /on_variance; case: univs; case: variances => //; intros.
     repeat first [ match goal with
                    | [ H : sigT _ |- _ ] => destruct H
                    | [ H : and4 _ _ _ _ |- _ ] => destruct H
@@ -2116,9 +2116,9 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
           intros; now eapply Xcmp.
         * move: on_lets_in_type0.
           move: Xcf.
-          rewrite /config.impl.
+          rw /config.impl.
           do 3 destruct lets_in_constructor_types => //=.
-          all: rewrite ?andb_false_r //=.
+          all: rw ?andb_false_r //=.
       + exact (onProjections X).
       + pose proof (ind_sorts X) as X1. unfold check_ind_sorts in *.
         destruct Sort.to_family; auto.
@@ -2128,7 +2128,7 @@ Module GlobalMaps (T: Term) (E: EnvironmentSig T) (TU : TermUtils T E) (ET: EnvT
         * unfold config.impl in Xcf.
           revert type_local_ctx.
           do 2 destruct indices_matter => //=.
-          2: now rewrite ?andb_false_r //= in Xcf.
+          2: now rw ?andb_false_r //= in Xcf.
           intro. eapply type_local_ctx_impl; eauto.
       + apply (ind_relevance_compat X).
       + generalize (X.(onIndices)). destruct ind_variance => //.
@@ -2336,7 +2336,7 @@ Module DeclarationTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E)
     intro H. eapply lookup_global_Some_if_In.
     red in H. unfold lookup_env in H.
     apply lookup_constant_declared_gen => //.
-    unfold lookup_constant_gen. now rewrite H.
+    unfold lookup_constant_gen. now rw H.
   Qed.
 
   Lemma declared_constant_to_gen {Σ kn cdecl}

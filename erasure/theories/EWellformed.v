@@ -255,9 +255,9 @@ Section EEnvFlags.
       unfold wf_fix, test_def, test_snd in *;
         try solve [simpl lift; simpl closed; f_equal; auto; repeat (rtoProp; simpl in *; solve_all)]; try easy.
 
-    - elim (Nat.leb_spec k' n0); intros. simpl; rewrite H0 /=.
+    - elim (Nat.leb_spec k' n0); intros. simpl; rw H0 /=.
       elim (Nat.ltb_spec); auto. apply Nat.ltb_lt in H1. lia.
-      simpl; rewrite H0 /=. elim (Nat.ltb_spec); auto. intros.
+      simpl; rw H0 /=. elim (Nat.ltb_spec); auto. intros.
       apply Nat.ltb_lt in H1. lia.
     - destruct cstr_as_blocks; eauto. destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all.
       destruct args; firstorder.
@@ -279,31 +279,31 @@ Section EEnvFlags.
 
     - elim (Nat.leb_spec k' n); intros. simpl.
       destruct nth_error eqn:Heq.
-      -- simpl. rewrite wellformed_lift //.
+      -- simpl. rw wellformed_lift //.
         now eapply nth_error_all in Heq; simpl; eauto; simpl in *.
       -- simpl. elim (Nat.ltb_spec); auto. rtoProp; intuition auto.
         apply nth_error_None in Heq. intros.
         apply Nat.ltb_lt in H0. lia.
-      -- simpl. f_equal. rewrite H /=.
+      -- simpl. f_equal. rw H /=.
         elim: Nat.ltb_spec => //. intros. apply Nat.ltb_lt in H0. lia.
     - f_equal. simpl. solve_all.
       specialize (IHt (S k')).
       rewrite <- Nat.add_succ_comm in IHt.
-      rewrite IHt //.
+      rw IHt //.
     - specialize (IHt2 (S k')).
       rewrite <- Nat.add_succ_comm in IHt2.
       eapply IHt2; auto.
     - destruct cstr_as_blocks; eauto.
       destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all. now destruct args; inv H0.
     - specialize (a (#|x.1| + k')) => //.
-      rewrite Nat.add_assoc (Nat.add_comm k) in a.
-      rewrite !Nat.add_assoc. eapply a => //.
-      now rewrite !Nat.add_assoc in b.
+      rw Nat.add_assoc (Nat.add_comm k) in a.
+      rw !Nat.add_assoc. eapply a => //.
+      now rw !Nat.add_assoc in b.
     - destruct (dbody x) => //.
     - specialize (a (#|m| + k')).
-      len. now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
+      len. now rw !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
     - specialize (a (#|m| + k')); len.
-      now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b |- *.
+      now rw !Nat.add_assoc !(Nat.add_comm k) in a, b |- *.
   Qed.
 
   Lemma wellformed_subst s k t :
@@ -312,8 +312,8 @@ Section EEnvFlags.
   Proof using Type.
     intros.
     unshelve epose proof (wellformed_subst_eq (k':=0) (t:=t) H); auto.
-    rewrite Nat.add_0_r in H1.
-    now rewrite Nat.add_comm in H1.
+    rw Nat.add_0_r in H1.
+    now rw Nat.add_comm in H1.
   Qed.
 
   Lemma wellformed_csubst t k u :
@@ -322,10 +322,10 @@ Section EEnvFlags.
     wellformed k (ECSubst.csubst t 0 u).
   Proof using Type.
     intros.
-    rewrite ECSubst.closed_subst //.
+    rw ECSubst.closed_subst //.
     now eapply wellformed_closed.
     eapply wellformed_subst => /= //.
-    rewrite andb_true_r. eapply wellformed_up; tea. lia.
+    rw andb_true_r. eapply wellformed_up; tea. lia.
   Qed.
 
   Lemma wellformed_substl ts k u :
@@ -348,8 +348,8 @@ Section EEnvFlags.
     generalize (Nat.le_refl #|mfix|).
     move: {1 3}#|mfix| => n.
     induction n => //.
-    intros hn. cbn. rewrite hast /=. rewrite /wf_fix_gen hm' /= andb_true_r.
-    rewrite hm. cbn.
+    intros hn. cbn. rw hast /=. rw /wf_fix_gen hm' /= andb_true_r.
+    rw hm. cbn.
     apply/andP; split. apply Nat.ltb_lt. lia. apply IHn. lia.
   Qed.
 
@@ -361,7 +361,7 @@ Section EEnvFlags.
     generalize (Nat.le_refl #|mfix|).
     move: {1 3}#|mfix| => n.
     induction n => //.
-    intros hn. cbn. rewrite hasco /=. rewrite /wf_fix_gen hm /= andb_true_r.
+    intros hn. cbn. rw hasco /=. rw /wf_fix_gen hm /= andb_true_r.
     apply/andP; split. apply Nat.ltb_lt. lia. apply IHn. lia.
   Qed.
 
@@ -371,13 +371,13 @@ Section EEnvFlags.
     wellformed 0 f.
   Proof using Type.
     move=> cl.
-    rewrite /cunfold_fix.
+    rw /cunfold_fix.
     destruct nth_error eqn:heq => //.
     cbn in cl. move/andP: cl => [/andP[] hastf isfix /andP[] hidx cl].
     have := (nth_error_forallb heq cl) => cld.
     move=> [=] _ <-.
     eapply wellformed_substl => //. now eapply wellformed_fix_subst.
-    rewrite fix_subst_length.
+    rw fix_subst_length.
     apply cld.
   Qed.
 
@@ -387,13 +387,13 @@ Section EEnvFlags.
     wellformed 0 f.
   Proof using Type.
     move=> cl.
-    rewrite /cunfold_cofix.
+    rw /cunfold_cofix.
     destruct nth_error eqn:heq => //.
     cbn in cl. move/andP: cl => [hastf /andP[] _ cl].
     have := (nth_error_forallb heq cl) => cld.
     move=> [=] _ <-.
     eapply wellformed_substl => //. now eapply wellformed_cofix_subst.
-    rewrite cofix_subst_length.
+    rw cofix_subst_length.
     apply cld.
   Qed.
 
@@ -405,10 +405,10 @@ Section EEnvFlags.
     wellformed 0 (iota_red pars args br).
   Proof using Type.
     intros clargs hnth hskip clbr.
-    rewrite /iota_red.
+    rw /iota_red.
     eapply wellformed_substl => //.
-    now rewrite forallb_rev forallb_skipn.
-    now rewrite List.length_rev hskip Nat.add_0_r.
+    now rw forallb_rev forallb_skipn.
+    now rw List.length_rev hskip Nat.add_0_r.
   Qed.
 
   Lemma wellformed_iota_red_brs pars c args brs br :
@@ -421,14 +421,14 @@ Section EEnvFlags.
     intros clargs hnth hskip clbr.
     eapply wellformed_iota_red; tea => //.
     eapply nth_error_forallb in clbr; tea.
-    now rewrite Nat.add_0_r in clbr.
+    now rw Nat.add_0_r in clbr.
   Qed.
 
   Lemma wellformed_mkApps n f args {hast : has_tApp} : wellformed n (mkApps f args) = wellformed n f && forallb (wellformed n) args.
   Proof using Type.
     induction args using rev_ind; cbn; auto => //.
-    - now rewrite andb_true_r.
-    - now rewrite mkApps_app /= IHargs hast /= forallb_app /= // !andb_assoc andb_true_r.
+    - now rw andb_true_r.
+    - now rw mkApps_app /= IHargs hast /= forallb_app /= // !andb_assoc andb_true_r.
   Qed.
 
 End EEnvFlags.
@@ -458,9 +458,9 @@ Lemma extends_lookup_inductive {efl} {Σ Σ'} :
     lookup_inductive Σ' ind = Some b.
 Proof.
   intros wf ex ind b.
-  rewrite /lookup_inductive /lookup_minductive.
+  rw /lookup_inductive /lookup_minductive.
   destruct lookup_env eqn:lookup => //=.
-  now rewrite (extends_lookup wf ex lookup).
+  now rw (extends_lookup wf ex lookup).
 Qed.
 
 
@@ -470,9 +470,9 @@ Lemma extends_lookup_constructor {efl} {Σ Σ'} :
     lookup_constructor Σ' ind c = Some b.
 Proof.
   intros wf ex ind c b.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
   destruct lookup_env eqn:lookup => //.
-  now rewrite (extends_lookup wf ex lookup).
+  now rw (extends_lookup wf ex lookup).
 Qed.
 
 Lemma extends_constructor_isprop_pars_decl {efl} {Σ Σ'} :
@@ -481,9 +481,9 @@ Lemma extends_constructor_isprop_pars_decl {efl} {Σ Σ'} :
     constructor_isprop_pars_decl Σ' ind c = Some b.
 Proof.
   intros wf ex ind c b.
-  rewrite /constructor_isprop_pars_decl.
+  rw /constructor_isprop_pars_decl.
   destruct lookup_constructor eqn:lookup => //.
-  now rewrite (extends_lookup_constructor wf ex _ _ _ lookup).
+  now rw (extends_lookup_constructor wf ex _ _ _ lookup).
 Qed.
 
 Lemma extends_is_propositional {efl} {Σ Σ'} :
@@ -491,9 +491,9 @@ Lemma extends_is_propositional {efl} {Σ Σ'} :
   forall ind b, inductive_isprop_and_pars Σ ind = Some b -> inductive_isprop_and_pars Σ' ind = Some b.
 Proof.
   intros wf ex ind b.
-  rewrite /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
+  rw /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
   destruct lookup_env eqn:lookup => //.
-  now rewrite (extends_lookup wf ex lookup).
+  now rw (extends_lookup wf ex lookup).
 Qed.
 
 Lemma extends_wellformed {efl} {Σ Σ'} :
@@ -502,14 +502,14 @@ Lemma extends_wellformed {efl} {Σ Σ'} :
 Proof.
   intros wf ex t.
   induction t using EInduction.term_forall_list_ind; cbn => //; intros; rtoProp; intuition auto; solve_all.
-  all:try destruct lookup_env eqn:hl => //; try rewrite (extends_lookup wf ex hl).
+  all:try destruct lookup_env eqn:hl => //; try rw (extends_lookup wf ex hl).
   all:try destruct g => //.
   - destruct cstr_as_blocks; eauto; solve_all.
     destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all.
-  - move: H0. rewrite /wf_brs. destruct lookup_inductive eqn:hl => //.
-    now rewrite (extends_lookup_inductive wf ex _ _ hl).
-  - move/andP: H0 => [] hn hf. unfold wf_fix. rewrite hn /=. solve_all.
-  - move/andP: H0 => [] hn hf. unfold wf_fix. rewrite hn /=. solve_all.
+  - move: H0. rw /wf_brs. destruct lookup_inductive eqn:hl => //.
+    now rw (extends_lookup_inductive wf ex _ _ hl).
+  - move/andP: H0 => [] hn hf. unfold wf_fix. rw hn /=. solve_all.
+  - move/andP: H0 => [] hn hf. unfold wf_fix. rw hn /=. solve_all.
 Qed.
 
 Lemma extends_wf_global_decl {efl} {Σ Σ'} :
@@ -535,7 +535,7 @@ Proof.
   - intros hl.
     destruct (eqb_spec kn' kn) => //.
     subst. eapply (IHForall d) in hl.
-    now cbn in hl; move: hl; rewrite eqb_refl.
+    now cbn in hl; move: hl; rw eqb_refl.
 Qed.
 
 Lemma lookup_env_wellformed {efl} {Σ kn decl} : wf_glob Σ ->

@@ -164,14 +164,14 @@ Next Obligation.
   PCUICSR.forward_keep H0.
   { red. unfold EnvMap.equal. reflexivity. }
   unfold EnvMap.repr.
-  rewrite H /=. unfold KernameMapFact.uncurry; cbn.
+  rw H /=. unfold KernameMapFact.uncurry; cbn.
   unfold EnvMap.add in H0.
   unfold reference_pop. cbn. set (reference_pop_obligation_1 cf _).
   clearbody s.
   destruct (declarations Σ); cbn in *; inversion Heq_anonymous; clear Heq_anonymous s.
   subst. unfold KernameMapFact.uncurry in *; cbn in *.
   unfold Σ0 in * ; clear Σ0. unfold EnvMap.equal, KernameMap.Equal in H0.
-  specialize (H0 y). cbn in H0. rewrite H0. reflexivity.
+  specialize (H0 y). cbn in H0. rw H0. reflexivity.
 Qed.
 
 Program Global Instance optimized_abstract_env_struct {cf:checker_flags} {guard : abstract_guard_impl} :
@@ -218,7 +218,7 @@ Section WfEnv.
 
   Lemma lookup_lookup_env Σ kn : lookup Σ kn = lookup_env Σ kn.
   Proof using Type.
-    rewrite /lookup. destruct Σ as [Σ map repr]. pose (reference_impl_sq_wf Σ).
+    rw /lookup. destruct Σ as [Σ map repr]. pose (reference_impl_sq_wf Σ).
     sq. apply EnvMap.lookup_spec; auto. now eapply wf_fresh_globals.
   Qed.
 
@@ -271,7 +271,7 @@ Section GraphSpec.
     LevelSet.mem l (global_ext_levels Σ).
   Proof using HG.
     destruct HG as [-> _].
-    rewrite ![is_true _]LevelSet.mem_spec LevelSet.union_spec LevelSet.singleton_spec.
+    rw ![is_true _]LevelSet.mem_spec LevelSet.union_spec LevelSet.singleton_spec.
     split => //. intros [] => //. subst.
     apply global_ext_levels_InSet. intuition.
   Qed.
@@ -285,7 +285,7 @@ From Stdlib Require Import Morphisms.
 Instance wf_uctx_ext_proper : Morphisms.Proper (LevelSet.Equal ==> eq ==> iff) wf_uctx_ext.
 Proof.
   intros ? ? ls ? ? ->.
-  rewrite /wf_uctx_ext. now setoid_rewrite ls.
+  rw /wf_uctx_ext. now setoid_rewrite ls.
 Qed.
 
 Program Global Instance canonical_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
@@ -307,11 +307,11 @@ Next Obligation.
   pose proof (reference_impl_ext_wf X); sq.
   assert (consistent (global_ext_uctx X).2) as HC.
       { sq; apply (global_ext_uctx_consistent _ H0). }
-  rewrite (checkb_spec (reference_impl_ext_graph X) (clean_uctx (global_ext_uctx X))).
+  rw (checkb_spec (reference_impl_ext_graph X) (clean_uctx (global_ext_uctx X))).
   + eapply wf_ext_global_uctx_invariants, H0.
   + eapply model_of_clean_uctx.
     apply (reference_impl_ext_graph_wf X).
-  + rewrite /clean_uctx. destruct c as [[l d] r]; cbn; rewrite levelset_add_remove. exact H.
+  + rw /clean_uctx. destruct c as [[l d] r]; cbn; rw levelset_add_remove. exact H.
   + reflexivity.
 Qed.
 Next Obligation. pose (reference_impl_ext_wf X). sq. symmetry; apply LevelSet.Raw.mem_spec. typeclasses eauto. Defined.
@@ -328,25 +328,25 @@ Next Obligation.
     eapply push_uctx_model in hp; tea.
     exists (to_valuation (LoopCheck.valuation u.(model))).
     destruct hp as [hl hc].
-    have hv := model_satisfies u. rewrite hc in hv.
+    have hv := model_satisfies u. rw hc in hv.
     apply satisfies_union in hv as [hv hv'].
     apply satisfies_union in hv as [ht hg].
     apply satisfies_union => //.
   - split=> // hcon.
     pose proof (reference_impl_graph_wf X) as HG. simpl in HG.
     have hs := push_uctx_spec (reference_impl_graph X) udecl.
-    rewrite hp in hs. cbn in hs.
+    rw hp in hs. cbn in hs.
     apply push_uctx_model_unsat in hp.
     * exfalso; apply hp.
       destruct hcon as [v h]. exists v. apply satisfies_union in h as [].
       apply satisfies_union => //. split => //.
       unfold reference_impl_graph. unfold global_constraints in H.
-      destruct HG as [hl hc]. rewrite hc.
+      destruct HG as [hl hc]. rw hc.
       apply satisfies_union. split => //. apply satisfies_init.
     * clear H. move: Hudecl.
       destruct HG as [hl hc].
       move=> [hl' hc'].
-      rewrite /reference_impl_graph hl. cbn.
+      rw /reference_impl_graph hl. cbn.
       split.
       { move=> l hin hin'. specialize (hl' l hin).
         apply hl'. apply LevelSet.union_spec in hin' as [] => //.
@@ -389,7 +389,7 @@ Next Obligation.
   now erewrite (abstract_env_level_mem_correct X.(wf_env_ext_reference)).
 Qed.
 Next Obligation.
-  rewrite (abstract_env_is_consistent_correct X.(wf_env_reference)) //.
+  rw (abstract_env_is_consistent_correct X.(wf_env_reference)) //.
 Qed.
 Next Obligation. eapply guard_correct. Qed.
 

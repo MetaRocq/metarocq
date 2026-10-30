@@ -212,7 +212,7 @@ Section LevelSetMoreFacts.
   Definition LevelSet_mem_union (s s' : LevelSet.t) x :
     LevelSet.mem x (LevelSet.union s s') <-> LevelSet.mem x s \/ LevelSet.mem x s'.
   Proof.
-    rewrite LevelSetFact.union_b.
+    rw LevelSetFact.union_b.
     apply orb_true_iff.
   Qed.
 
@@ -225,13 +225,13 @@ Section LevelSetMoreFacts.
       * eapply LevelSet.add_spec; left; auto.
       * eapply LevelSet.add_spec; right; auto.
     - induction l; simpl => //.
-      * now rewrite LevelSetFact.empty_iff.
-      * rewrite LevelSet.add_spec. intuition auto.
+      * now rw LevelSetFact.empty_iff.
+      * rw LevelSet.add_spec. intuition auto.
   Qed.
 
   Lemma LevelSet_union_empty s : LevelSet.Equal (LevelSet.union LevelSet.empty s) s.
   Proof.
-    intros x; rewrite LevelSet.union_spec. lsets.
+    intros x; rw LevelSet.union_spec. lsets.
   Qed.
 
   Lemma levelset_add_remove {l s} : LevelSet.add l (LevelSet.remove l s) =_lset LevelSet.add l s.
@@ -332,7 +332,7 @@ Module LevelExpr.
   Qed.
 
   Definition lt_compat : Proper (Logic.eq ==> Logic.eq ==> iff) lt.
-    intros x x' H1 y y' H2; now rewrite H1 H2.
+    intros x x' H1 y y' H2; now rw H1 H2.
   Qed.
 
   Definition compare (x y : t) : comparison :=
@@ -425,12 +425,12 @@ Module Universe.
 
     Instance add_inj_eq n : Injective (add n) eq eq.
     Proof.
-      red. intros x y; rewrite /eq /add //=. lia.
+      red. intros x y; rw /eq /add //=. lia.
     Qed.
 
     Instance add_inj_lt n : Injective (add n) lt lt.
     Proof.
-      red. intros x y; rewrite /eq /add //=. lia.
+      red. intros x y; rw /eq /add //=. lia.
     Qed.
 
     Definition reflect_eq : ReflectEq t := _.
@@ -505,7 +505,7 @@ Module Universe.
 
   Definition lt : t -> t -> Prop := LevelExprSet.lt.
   Definition lt_compat : Proper (eq ==> eq ==> iff) lt.
-  Proof. unfold eq, lt. repeat intro; subst; try reflexivity. now rewrite H H0. Qed.
+  Proof. unfold eq, lt. repeat intro; subst; try reflexivity. now rw H H0. Qed.
   #[global] Instance lt_strorder : StrictOrder lt.
   Proof.
     cbv [lt]; constructor.
@@ -535,8 +535,8 @@ Module Universe.
   Proof.
     induction l; cbn.
     - intros le. firstorder.
-    - intros le. rewrite LevelExprSet.union_spec.
-      rewrite IHl. split.
+    - intros le. rw LevelExprSet.union_spec.
+      rw IHl. split.
       * intros [H|[H|H]].
         right. exists a. split => //. now left.
         now left.
@@ -550,26 +550,26 @@ Module Universe.
 
   Lemma in_map {le} {f} {u : NES.t} : In le (ListDef.map f (LevelExprSet.elements u)) <-> LevelExprSet.In le (map f u).
   Proof.
-    rewrite map_spec.
+    rw map_spec.
     split.
-    - intros hin. rewrite in_map_iff in hin. destruct hin as [x [<- hin]].
-      exists x; split => //. now rewrite -LevelExprSet.elements_spec1 InA_In_eq.
-    - intros [x [hin ->]]. rewrite in_map_iff. exists x. split => //.
-      now rewrite -LevelExprSet.elements_spec1 InA_In_eq in hin.
+    - intros hin. rw in_map_iff in hin. destruct hin as [x [<- hin]].
+      exists x; split => //. now rw -LevelExprSet.elements_spec1 InA_In_eq.
+    - intros [x [hin ->]]. rw in_map_iff. exists x. split => //.
+      now rw -LevelExprSet.elements_spec1 InA_In_eq in hin.
   Qed.
 
   Definition fold_union_add {f le u} :
     fold_union f (add le u) = sup (f le) (fold_union f u).
   Proof.
-    rewrite /fold_union.
+    rw /fold_union.
     have hs := to_nonempty_list_spec (add le u).
     have hs' := to_nonempty_list_spec u.
     destruct to_nonempty_list.
     destruct to_nonempty_list.
-    rewrite fold_right_map (fold_right_map _ _ (f p0)).
+    rw fold_right_map (fold_right_map _ _ (f p0)).
     apply equal_exprsets. intros le'.
-    rewrite LevelExprSet.union_spec.
-    rewrite !in_fold_sup.
+    rw LevelExprSet.union_spec.
+    rw !in_fold_sup.
     eapply (f_equal (List.map f)) in hs.
     eapply (f_equal (List.map f)) in hs'.
     cbn [List.map ListDef.map] in hs, hs'.
@@ -577,28 +577,28 @@ Module Universe.
        LevelExprSet.In le' (f p) \/ (exists le'0 : t, In le'0 (ListDef.map f l) /\ LevelExprSet.In le' le'0) <->
        exists le, In le (f p :: ListDef.map f l) /\ LevelExprSet.In le' le.
     { firstorder. subst x. now left. }
-    rewrite equ.
+    rw equ.
     have equ' :
        LevelExprSet.In le' (f p0) \/ (exists le'0 : t, In le'0 (ListDef.map f l0) /\ LevelExprSet.In le' le'0) <->
        exists le, In le (f p0 :: ListDef.map f l0) /\ LevelExprSet.In le' le.
     { firstorder. subst x. now left. }
-    rewrite equ'. rewrite hs. rewrite hs'.
+    rw equ'. rw hs. rw hs'.
     split.
-    - move=> [] lk. rewrite !in_map_iff.
-      move=> [] [x] [] hfx /In_elements; rewrite add_spec => inadd inlk.
+    - move=> [] lk. rw !in_map_iff.
+      move=> [] [x] [] hfx /In_elements; rw add_spec => inadd inlk.
       subst lk.
       destruct inadd. subst x. now left. right.
-      exists (f x). split => //. rewrite in_map_iff. exists x. split => //.
+      exists (f x). split => //. rw in_map_iff. exists x. split => //.
       now apply In_elements.
     - move=> [] fle.
       * exists (f le). split => //.
-        rewrite in_map_iff. exists le. split => //.
+        rw in_map_iff. exists le. split => //.
         apply In_elements. apply LevelExprSet.add_spec; now left.
       * destruct fle as [le2 [hin hin']].
         exists le2. split => //.
-        rewrite in_map_iff in hin. destruct hin as [x [hfx hin]]. subst le2.
-        apply In_elements in hin. rewrite in_map_iff. exists x. split => //.
-        rewrite -In_elements. apply LevelExprSet.add_spec; now right.
+        rw in_map_iff in hin. destruct hin as [x [hfx hin]]. subst le2.
+        apply In_elements in hin. rw in_map_iff. exists x. split => //.
+        rw -In_elements. apply LevelExprSet.add_spec; now right.
   Qed.
 
    Lemma fold_union_spec {f u} :
@@ -611,7 +611,7 @@ Module Universe.
       * exists le'. split => //. now apply singleton_spec.
       * now move=> [] le [] /LevelExprSet.singleton_spec ->.
     - move=> le' x hin hnin inm.
-      rewrite fold_union_add /sup union_spec hin.
+      rw fold_union_add /sup union_spec hin.
       setoid_rewrite add_spec. firstorder.
       subst. now left.
   Qed.
@@ -645,13 +645,13 @@ Lemma val_fold_right (u : Universe.t) v :
 Proof.
   unfold val at 1, Universe.Evaluable.
   destruct (exprs u).
-  now rewrite fold_left_rev_right.
+  now rw fold_left_rev_right.
 Qed.
 
 Lemma val_In_le (u : Universe.t) v e :
   LevelExprSet.In e u -> val v e <= val v u.
 Proof.
-  intro H. rewrite val_fold_right.
+  intro H. rw val_fold_right.
   apply Universe.In_to_nonempty_list_rev in H. u.
   fold exprs in H; destruct (exprs u); cbn in *.
   destruct H as [H|H].
@@ -666,13 +666,13 @@ Lemma val_In_max (u : Universe.t) v :
 Proof.
   eapply iff_ex. {
     intro. eapply and_iff_compat_r. apply Universe.In_to_nonempty_list_rev. }
-  rewrite val_fold_right. fold exprs; destruct (exprs u) as [e l]; cbn in *.
+  rw val_fold_right. fold exprs; destruct (exprs u) as [e l]; cbn in *.
   clear. u; induction (List.rev l); cbn.
   - exists e. split; cbnr. left; reflexivity.
   - destruct IHl0 as [e' [H1 H2]].
     destruct (Nat.max_dec (val v a) (fold_right (fun e0 x0 => Nat.max (val v e0) x0)
                                                (val v e) l0)) as [H|H];
-      rewrite H; clear H.
+      rw H; clear H.
     + exists a. split; cbnr. right. now constructor.
     + rewrite <- H2. exists e'. split; cbnr.
       destruct H1 as [H1|H1]; [now left|right]. now constructor 2.
@@ -685,14 +685,14 @@ Proof.
   - eapply imp_iff_compat_r. {
       eapply iff_forall; intro. eapply imp_iff_compat_r.
       apply Universe.In_to_nonempty_list_rev. }
-    rewrite val_fold_right.
+    rw val_fold_right.
     fold exprs; destruct (exprs u) as [e l]; cbn; clear.
     u; induction (List.rev l); cbn.
     + intros H. apply H. left; reflexivity.
     + intros H.
       destruct (Nat.max_dec (val v a) (fold_right (fun e0 x => Nat.max (val v e0) x)
                                                  (val v e) l0)) as [H'|H'];
-        rewrite H'; clear H'.
+        rw H'; clear H'.
       * apply H. right. now constructor.
       * apply IHl0. intros x [H0|H0]; apply H. now left.
         right; now constructor 2.
@@ -705,7 +705,7 @@ Proof.
   split.
   - eapply imp_iff_compat_r. {
       eapply iff_ex; intro. eapply and_iff_compat_r. apply Universe.In_to_nonempty_list_rev. }
-    rewrite val_fold_right.
+    rw val_fold_right.
     fold exprs; destruct (exprs u) as [e l]; cbn; clear.
     u; induction (List.rev l); cbn.
     + intros H. destruct H as [e' [[H1|H1] H2]].
@@ -717,7 +717,7 @@ Proof.
         -- u; lia.
         -- forward IHl0; [|lia]. exists e'. split; tas. right; assumption.
   - intros H. destruct (val_In_max u v) as [e [H1 H2]].
-    exists e. rewrite H2; split; assumption.
+    exists e. rw H2; split; assumption.
 Qed.
 
 
@@ -745,7 +745,7 @@ Proof.
   - intros e' H. apply LevelExprSet.add_spec in H. destruct H as [H|H].
     + subst. u; lia.
     + eapply val_In_le with (v:=v) in H. lia.
-  - destruct (Nat.max_dec (val v e) (val v s)) as [H|H]; rewrite H; clear H.
+  - destruct (Nat.max_dec (val v e) (val v s)) as [H|H]; rw H; clear H.
     + exists e. split; cbnr. apply LevelExprSetFact.add_1. reflexivity.
     + destruct (val_In_max s v) as [e' [H1 H2]].
       exists e'. split; tas. now apply LevelExprSetFact.add_2.
@@ -758,7 +758,7 @@ Proof.
   - intros e' H. eapply LevelExprSet.union_spec in H. destruct H as [H|H].
     + eapply val_In_le with (v:=v) in H. lia.
     + eapply val_In_le with (v:=v) in H. lia.
-  - destruct (Nat.max_dec (val v s1) (val v s2)) as [H|H]; rewrite H; clear H.
+  - destruct (Nat.max_dec (val v s1) (val v s2)) as [H|H]; rw H; clear H.
     + destruct (val_In_max s1 v) as [e' [H1 H2]].
       exists e'. split; tas. apply LevelExprSet.union_spec. now left.
     + destruct (val_In_max s2 v) as [e' [H1 H2]].
@@ -792,7 +792,7 @@ Lemma sup0_comm x1 x2 :
   Universe.sup x1 x2 = Universe.sup x2 x1.
 Proof.
   apply Universe.equal_exprsets; simpl. unfold LevelExprSet.Equal.
-  intros H. rewrite !LevelExprSet.union_spec. firstorder.
+  intros H. rw !LevelExprSet.union_spec. firstorder.
 Qed.
 
 Lemma val_singleton v le : val v (Universe.singleton le) = val v le.
@@ -801,8 +801,8 @@ Proof. reflexivity. Qed.
 Lemma val_zero_exprs v (l : Universe.t) : 0 <= val v l.
 Proof.
   revert l. apply: Universe.elim.
-  - intros le. rewrite val_singleton. lia.
-  - intros le x. rewrite val_add. lia.
+  - intros le. rw val_singleton. lia.
+  - intros le x. rw val_add. lia.
 Qed.
 
 Module UnivConstraint.
@@ -898,7 +898,7 @@ Definition is_declared_univ_cstr_levels levels (cstr : UnivConstraint.t) : bool 
 
 Lemma CS_union_empty s : UnivConstraintSet.union UnivConstraintSet.empty s =_ucset s.
 Proof.
-  intros x; rewrite UnivConstraintSet.union_spec. lsets.
+  intros x; rw UnivConstraintSet.union_spec. lsets.
 Qed.
 
 Lemma CS_For_all_union f cst cst' : UnivConstraintSet.For_all f (UnivConstraintSet.union cst cst') ->
@@ -1057,13 +1057,13 @@ Module ContextSet.
 
   Lemma equal_spec s s' : equal s s' <-> Equal s s'.
   Proof.
-    rewrite /equal/Equal/is_true Bool.andb_true_iff LevelSet.equal_spec UnivConstraintSet.equal_spec.
+    rw /equal/Equal/is_true Bool.andb_true_iff LevelSet.equal_spec UnivConstraintSet.equal_spec.
     reflexivity.
   Qed.
 
   Lemma subset_spec s s' : subset s s' <-> Subset s s'.
   Proof.
-    rewrite /subset/Subset/is_true Bool.andb_true_iff LevelSet.subset_spec UnivConstraintSet.subset_spec.
+    rw /subset/Subset/is_true Bool.andb_true_iff LevelSet.subset_spec UnivConstraintSet.subset_spec.
     reflexivity.
   Qed.
 
@@ -1193,7 +1193,7 @@ Section Universe.
     eapply LevelExprSetProp.fold_rec.
     - intros s' emp hin. now specialize (emp _ hin).
     - intros x a s' s'' hin hnin hadd hk. intros hin'.
-      rewrite LevelSet.add_spec.
+      rw LevelSet.add_spec.
       apply hadd in hin'. destruct hin'. subst. now left.
       firstorder.
   Qed.
@@ -1206,7 +1206,7 @@ Section Universe.
     fold_right f (f acc acc') l = f acc (fold_right f acc' l).
   Proof.
     intros hf. induction l in acc |- *; cbn; auto.
-    now rewrite IHl hf.
+    now rw IHl hf.
   Qed.
 
   Lemma fold_right_assoc_comm {A} (f : A -> A -> A) acc l :
@@ -1215,13 +1215,13 @@ Section Universe.
     fold_right f acc l = fold_right f acc (List.rev l).
   Proof.
     intros hf hf'. induction l in acc |- *; cbn; auto.
-    rewrite fold_right_app /= -IHl fold_right_assoc //.
+    rw fold_right_app /= -IHl fold_right_assoc //.
   Qed.
 
   Lemma max_ne_list_rev {x l} : max_ne_list x l = max_ne_list x (List.rev l).
   Proof.
     unfold max_ne_list.
-    rewrite fold_right_assoc_comm //; lia.
+    rw fold_right_assoc_comm //; lia.
   Qed.
 
   Lemma val_max (l : Universe.t) (v : valuation) :
@@ -1229,8 +1229,8 @@ Section Universe.
       max_ne_list (val v nel.1) (List.map (val v) nel.2).
   Proof.
     cbn.
-    rewrite val_fold_right. unfold Universe.exprs.
-    rewrite fold_right_map max_ne_list_rev /max_ne_list map_rev //.
+    rw val_fold_right. unfold Universe.exprs.
+    rw fold_right_map max_ne_list_rev /max_ne_list map_rev //.
   Qed.
 
   Lemma val_eq_level_expr v v' levels :
@@ -1238,7 +1238,7 @@ Section Universe.
     forall le : LevelExpr.t, LevelSet.In le.1 levels -> val v le = val v' le.
   Proof.
     intros hl [l k] hin; cbn.
-    rewrite hl //.
+    rw hl //.
   Qed.
 
   Lemma val_eq_levels_alg v v' levels :
@@ -1248,15 +1248,15 @@ Section Universe.
     val v le = val v' le.
   Proof.
     move=> hl le /subset_levels_exprs sub.
-    rewrite !val_max.
+    rw !val_max.
     move: (Universe.to_nonempty_list_spec le). destruct Universe.to_nonempty_list as [hd tl]. cbn.
     intros heq. f_equal.
     - cbn. eapply val_eq_level_expr; tea.
       eapply sub.
-      apply LevelExprSetFact.elements_2. rewrite -heq. now left.
+      apply LevelExprSetFact.elements_2. rw -heq. now left.
     - eapply map_ext_in => x inx.
       eapply val_eq_level_expr; tea.
-      apply sub, LevelExprSetFact.elements_2. rewrite -heq. now right.
+      apply sub, LevelExprSetFact.elements_2. rw -heq. now right.
   Qed.
 
   Lemma succ_inj x y : LevelExpr.succ x = LevelExpr.succ y -> x = y.
@@ -1269,14 +1269,14 @@ Section Universe.
     LevelExprSet.In x (Universe.succ l) <->
     exists x', LevelExprSet.In x' l /\ x = LevelExpr.succ x'.
   Proof using Type.
-    rewrite Universe.map_spec. reflexivity.
+    rw Universe.map_spec. reflexivity.
   Qed.
 
   Lemma spec_plus l n x :
     LevelExprSet.In x (Universe.plus n l) <->
     exists x', LevelExprSet.In x' l /\ x = LevelExpr.add n x'.
   Proof using Type.
-    rewrite Universe.map_spec. reflexivity.
+    rw Universe.map_spec. reflexivity.
   Qed.
 
   Lemma val_levelexpr_succ v l : val v (LevelExpr.succ l) = val v l + 1.
@@ -1294,18 +1294,18 @@ Section Universe.
     pose proof (spec_plus l n).
     set (un := Universe.plus n l) in *.
     destruct (val_In_max l v) as [max [inmax eqv]]. rewrite <-eqv.
-    rewrite val_caract. split.
+    rw val_caract. split.
     intros.
     specialize (proj1 (H _) H0) as [x' [inx' eq]]. subst e.
-    rewrite val_levelexpr_plus. eapply (val_In_le _ v) in inx'. rewrite <- eqv in inx'.
+    rw val_levelexpr_plus. eapply (val_In_le _ v) in inx'. rewrite <- eqv in inx'.
     simpl in *. unfold LevelExprSet.elt, LevelExpr.t in *. lia.
     exists (LevelExpr.add n max). split. apply H.
     exists max; split; auto.
-    now rewrite val_levelexpr_plus.
+    now rw val_levelexpr_plus.
   Qed.
 
   Lemma val_succ v l : val v (Universe.succ l) = val v l + 1.
-  Proof. by rewrite (val_plus v 1). Qed.
+  Proof. by rw (val_plus v 1). Qed.
 
   Definition leq0_universe φ (u u' : Universe.t) :=
     forall v, satisfies v φ -> val v u <= val v u'%Z.
@@ -1453,16 +1453,16 @@ Section Universe.
   Qed.
 
   Lemma leq_universe_sup_l φ u1 u2 : leq_universe φ u1 (Universe.sup u1 u2).
-  Proof using Type. unfold_univ_rel. rewrite val_sup; lia. Qed.
+  Proof using Type. unfold_univ_rel. rw val_sup; lia. Qed.
 
   Lemma leq_universe_sup_r φ u1 u2 : leq_universe φ u2 (Universe.sup u1 u2).
-  Proof using Type. unfold_univ_rel. rewrite val_sup; lia. Qed.
+  Proof using Type. unfold_univ_rel. rw val_sup; lia. Qed.
 
   Lemma leq_universe_sup_mon φ u1 u1' u2 u2' : leq_universe φ u1 u1' -> leq_universe φ u2 u2' ->
     leq_universe φ (Universe.sup u1 u2) (Universe.sup u1' u2').
   Proof using Type.
     intros H1 H2; unfold_univ_rel.
-    rewrite !val_sup. lia.
+    rw !val_sup. lia.
   Qed.
 
   Global Instance eq_leq_universe φ : subrelation (eq_universe φ) (leq_universe φ).
@@ -1475,7 +1475,7 @@ Section Universe.
     intro u. unfold complement.
     unfold_univ_rel => //.
     destruct H as [v Hv]; intros nH. specialize (nH v Hv).
-    rewrite val_succ in nH. lia.
+    rw val_succ in nH. lia.
   Qed.
 
   Global Instance lt_universe_trans {c: check_univs} φ : Transitive (lt_universe φ).
@@ -1485,7 +1485,7 @@ Section Universe.
     move => v1 v2 v Hv.
     specialize (v1 v Hv).
     specialize (v2 v Hv).
-    rewrite !val_succ in v1, v2 |- *. lia.
+    rw !val_succ in v1, v2 |- *. lia.
   Qed.
 
   Global Instance lt_universe_str_order {c: check_univs} φ (H: consistent φ) : StrictOrder (lt_universe φ).
@@ -2430,7 +2430,7 @@ Section UniverseLemmas.
   Lemma univ_sup_idem s : Universe.sup s s = s.
   Proof using Type.
     apply Universe.equal_exprsets; cbn.
-    intro; rewrite !LevelExprSet.union_spec. intuition.
+    intro; rw !LevelExprSet.union_spec. intuition.
   Qed.
 
   Lemma sup_idem s : Sort.sup s s = s.
@@ -2458,7 +2458,7 @@ Section UniverseLemmas.
   Proof using Type.
     intros u1 u1' H1 u2 u2' H2.
     unfold_univ_rel.
-    rewrite !val_sup. lia.
+    rw !val_sup. lia.
   Qed.
 
   Instance proper_sort_sup_eq_sort φ :
@@ -2473,7 +2473,7 @@ Section UniverseLemmas.
     = Sort.sort_of_product u s.
   Proof using Type.
     destruct u,s; cbnr.
-    now rewrite univ_sup_assoc univ_sup_idem.
+    now rw univ_sup_assoc univ_sup_idem.
   Qed.
 End UniverseLemmas.
 
@@ -2488,7 +2488,7 @@ Section no_prop_leq_type.
   Proof using Type.
     destruct s as [| | u1], s' as [| | u1']; cbnr; try absurd;
     intros H; unfold_univ_rel;
-    rewrite !val_succ; lia.
+    rw !val_succ; lia.
   Qed.
 
   Lemma leq_sort_prop_no_prop_sub_type s1 s2 :
@@ -2498,7 +2498,7 @@ Section no_prop_leq_type.
   Proof using Type.
     intros ps.
     destruct s1; cbn; [ | absurd | absurd].
-    rewrite ps.
+    rw ps.
     destruct s2; cbn; [ auto | absurd | absurd].
   Qed.
 
@@ -2509,7 +2509,7 @@ Section no_prop_leq_type.
   Proof using Type.
     intros ps.
     destruct s1, s2; cbn; try absurd; intros H; split; trivial.
-    now rewrite ps in H.
+    now rw ps in H.
   Qed.
 
 
@@ -2690,14 +2690,14 @@ Section UniverseClosedSubst.
     : closedu_level_expr 0 e -> subst_instance_level_expr u e = Universe.make e.
   Proof.
     destruct e as [t b]. move/(closedu_subst_instance_level u); cbn.
-    rewrite /subst_instance_level_expr => ->. cbn.
-    rewrite /Universe.plus /Universe.of_level. cbn.
+    rw /subst_instance_level_expr => ->. cbn.
+    rw /Universe.plus /Universe.of_level. cbn.
     apply Universe.equal_exprsets => l. cbn.
-    rewrite LevelExprSet.add_spec LevelExprSet.singleton_spec.
+    rw LevelExprSet.add_spec LevelExprSet.singleton_spec.
     split.
-    * intros [->|le]; cbn. rewrite /LevelExpr.add /LevelExpr.make. cbn. now rewrite Nat.add_0_r.
+    * intros [->|le]; cbn. rw /LevelExpr.add /LevelExpr.make. cbn. now rw Nat.add_0_r.
       now apply LevelExprSet.empty_spec in le.
-    * intros ->. left. rewrite /LevelExpr.add /LevelExpr.make. cbn. now rewrite Nat.add_0_r.
+    * intros ->. left. rw /LevelExpr.add /LevelExpr.make. cbn. now rw Nat.add_0_r.
   Qed.
 
   Lemma closedu_subst_level_instance_universe u e
@@ -2705,16 +2705,16 @@ Section UniverseClosedSubst.
   Proof.
     Import Universe.
     intros.
-    rewrite /subst_level_instance_universe.
+    rw /subst_level_instance_universe.
     apply Universe.equal_exprsets => l.
-    rewrite Universe.map_spec.
+    rw Universe.map_spec.
     apply LevelExprSet.for_all_spec in H.
     split.
-    - intros [le' [hin heq]]. rewrite closedu_subst_level_instance_level_expr in heq.
+    - intros [le' [hin heq]]. rw closedu_subst_level_instance_level_expr in heq.
       unfold closedu_universe in H.
       now specialize (H le' hin). tc. now subst le'.
     - intros hin. exists l. split => //.
-      rewrite closedu_subst_level_instance_level_expr.
+      rw closedu_subst_level_instance_level_expr.
       now apply H. reflexivity.
     - tc.
   Qed.
@@ -2724,17 +2724,17 @@ Section UniverseClosedSubst.
   Proof.
     Import Universe.
     intros.
-    rewrite /subst_instance_universe.
+    rw /subst_instance_universe.
     apply Universe.equal_exprsets => l.
-    rewrite /Universe.concat_map Universe.fold_union_spec.
+    rw /Universe.concat_map Universe.fold_union_spec.
     apply LevelExprSet.for_all_spec in H.
     split.
-    - intros [le' [hin heq]]. rewrite closedu_subst_instance_level_expr in heq.
+    - intros [le' [hin heq]]. rw closedu_subst_instance_level_expr in heq.
       unfold closedu_universe in H.
       now specialize (H le' hin). tc.
       apply LevelExprSet.singleton_spec in heq. now subst le'.
     - intros hin. exists l. split => //.
-      rewrite closedu_subst_instance_level_expr.
+      rw closedu_subst_instance_level_expr.
       now apply H. now apply LevelExprSet.singleton_spec.
     - tc.
   Qed.
@@ -2745,7 +2745,7 @@ Section UniverseClosedSubst.
     intro H.
     destruct s as [| | t]; cbnr.
     apply f_equal. unfold subst_level_instance.
-    now rewrite closedu_subst_level_instance_universe.
+    now rw closedu_subst_level_instance_universe.
   Qed.
 
   Lemma closedu_subst_instance_univ u s
@@ -2754,7 +2754,7 @@ Section UniverseClosedSubst.
     intro H.
     destruct s as [| | t]; cbnr.
     apply f_equal. unfold subst_instance.
-    now rewrite closedu_subst_instance_universe.
+    now rw closedu_subst_instance_universe.
   Qed.
 
   Lemma closedu_subst_level_instance_level_instance u t
@@ -2812,7 +2812,7 @@ Section SubstLevelInstanceClosed.
     unfold closedu_level_instance in Hcl.
     destruct (nth_in_or_default n u Level.lzero).
     - intros _. eapply forallb_forall in Hcl; tea.
-    - rewrite e; reflexivity.
+    - rw e; reflexivity.
   Qed.
 
   Lemma subst_level_instance_level_expr_closedu e :
@@ -2876,10 +2876,10 @@ Proof. intros []; destruct b, b'; auto. elim (H eq_refl). reflexivity. Qed.
 Lemma closedu_universe_plus {u k n} : closedu_universe k u = closedu_universe k (Universe.plus n u).
 Proof.
   apply eqb_iff.
-  rewrite /closedu_universe /Universe.plus.
-  rewrite !LevelExprSet.for_all_spec /LevelExprSet.For_all.
+  rw /closedu_universe /Universe.plus.
+  rw !LevelExprSet.for_all_spec /LevelExprSet.For_all.
   setoid_rewrite Universe.map_spec. firstorder.
-  - subst x. rewrite /closedu_level_expr. cbn. now apply H.
+  - subst x. rw /closedu_level_expr. cbn. now apply H.
   - specialize (H (LevelExpr.add n x)). forward H. exists x. split => //.
     now unfold closedu_level_expr in *; destruct x; cbn in *.
 Qed.
@@ -2896,7 +2896,7 @@ Section SubstInstanceClosed.
     case_eq (nth_error u n); cbnr. intros u' Hl; cbnr.
     apply nth_error_In in Hl. cbn in Hl.
     intros hn.
-    rewrite -closedu_universe_plus. cbn.
+    rw -closedu_universe_plus. cbn.
     destruct nth_error eqn:hnth => //.
     eapply forallb_forall in Hcl; tea.
     now eapply nth_error_In.
@@ -2909,7 +2909,7 @@ Section SubstInstanceClosed.
   Proof using Hcl.
     intro H.
     apply LevelExprSet.for_all_spec; proper.
-    intros e He. rewrite /subst_instance_universe in He.
+    intros e He. rw /subst_instance_universe in He.
     eapply Universe.fold_union_spec in He.
     apply LevelExprSet.for_all_spec in H.
     destruct He as [le [hin hin']].

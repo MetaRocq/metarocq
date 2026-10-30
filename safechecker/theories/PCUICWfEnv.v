@@ -157,7 +157,7 @@ forall Σ Σ', abstract_env_rel X Σ -> abstract_env_ext_rel X' Σ' -> Σ' = (Σ
 Proof.
   unfold abstract_make_wf_env_ext. intros.
   rewrite <- abstract_env_add_udecl_rel in H0. destruct Σ' , H0; cbn in *.
-  now rewrite (abstract_env_irr X H H0).
+  now rw (abstract_env_irr X H H0).
 Defined.
 
 From Stdlib Require Import MSetFacts.
@@ -166,17 +166,17 @@ From Stdlib Require Import Morphisms.
 
 Global Instance consistent_proper : Proper (UCS.Equal ==> iff) consistent.
 Proof.
-  intros c c' eq. rewrite /consistent.
+  intros c c' eq. rw /consistent.
   now setoid_rewrite eq.
 Qed.
 
 Lemma on_udecl_mono {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} : on_udecl Σ Monomorphic_ctx.
 Proof.
   repeat split; cbn.
-  - intros i; rewrite LevelSetFact.empty_iff //.
-  - intros i; rewrite UnivConstraintSetFact.empty_iff //.
-  - red. rewrite /univs_ext_constraints /=.
-    rewrite CS_union_empty.
+  - intros i; rw LevelSetFact.empty_iff //.
+  - intros i; rw UnivConstraintSetFact.empty_iff //.
+  - red. rw /univs_ext_constraints /=.
+    rw CS_union_empty.
     apply wfΣ.
 Qed.
 
@@ -252,7 +252,7 @@ Proof.
     pose (Hleq := abstract_env_check_correct X wfΣ).
     eapply (check_constraints_spec_gen (clean_uctx (global_ext_uctx Σ))); eauto.
     - apply check_spec_clean, Hleq.
-    - split. rewrite /clean_uctx //=. lsets. exact Huctx.
+    - split. rw /clean_uctx //=. lsets. exact Huctx.
 Defined.
 
 Lemma check_constraints_complete {cf:checker_flags} {X_type : abstract_env_impl}
@@ -264,7 +264,7 @@ Proof.
     pose (Hleq := abstract_env_check_correct X wfΣ).
     eapply (check_constraints_spec_gen (clean_uctx (global_ext_uctx Σ))); eauto.
     - apply check_spec_clean, Hleq.
-    - split. rewrite /clean_uctx //=. lsets. exact Huctx.
+    - split. rw /clean_uctx //=. lsets. exact Huctx.
 Qed.
 
 Lemma abstract_env_check_constraints_correct {cf:checker_flags} {X_type : abstract_env_impl}
@@ -301,10 +301,10 @@ Lemma abstract_env_level_mem_correct' {cf:checker_flags} {X_type : abstract_env_
 ( X:X_type.π2.π1) {Σ} (wfΣ : abstract_env_ext_rel X Σ) levels u :
   LevelSet.mem u (LevelSet.union levels (global_ext_levels Σ)) = abstract_env_level_mem' X levels u.
 Proof.
-  unfold abstract_env_level_mem'. rewrite LevelSetProp.Dec.F.union_b. f_equal.
+  unfold abstract_env_level_mem'. rw LevelSetProp.Dec.F.union_b. f_equal.
   have h := (abstract_env_level_mem_correct X wfΣ u).
-  apply eqb_iff. rewrite -[abstract_env_level_mem _ _ = true]h.
-  now rewrite LevelSet.mem_spec.
+  apply eqb_iff. rw -[abstract_env_level_mem _ _ = true]h.
+  now rw LevelSet.mem_spec.
 Qed.
 
 Lemma abstract_env_lookup_correct' {cf:checker_flags} {X_type : abstract_env_impl}
@@ -314,7 +314,7 @@ Proof.
   intro wfΣ; pose proof (HΣ := abstract_env_ext_wf X wfΣ); sq.
   set (odecl := lookup_env _ _). case_eq odecl => [decl Hdecl| Hnotin].
   - intros. destruct (abstract_env_lookup_correct X kn decl wfΣ) as [H _].
-    rewrite H; eauto. apply lookup_global_Some_iff_In_NoDup => //.
+    rw H; eauto. apply lookup_global_Some_iff_In_NoDup => //.
     destruct HΣ as [[] _]. now eapply NoDup_on_global_decls.
   - apply lookup_global_None in Hnotin. case_eq (abstract_env_lookup X kn) => //.
     intros decl Hdecl. eapply abstract_env_lookup_correct in Hdecl; eauto.

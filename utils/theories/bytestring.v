@@ -171,7 +171,7 @@ Module String.
   Lemma eqb_compare xs ys : eqb xs ys = match compare xs ys with Eq => true | _ => false end.
   Proof.
     induction xs in ys |- *; destruct ys => /= //.
-    rewrite ByteCompareSpec.eqb_compare.
+    rw ByteCompareSpec.eqb_compare.
     destruct ByteCompare.compare => //.
   Qed.
 
@@ -247,7 +247,7 @@ Module OT_byte <: OrderedType.OrderedType with Definition t := Byte.byte.
     | Gt => fun pf => OrderedType.GT _
     end (Logic.eq_refl)).
     now apply ByteCompareSpec.compare_eq in pf.
-    rewrite ByteCompareSpec.compare_opp in pf.
+    rw ByteCompareSpec.compare_opp in pf.
     apply CompOpp_iff in pf. apply pf.
   Defined.
 
@@ -273,9 +273,9 @@ Module StringOT <: UsualOrderedType.
     - constructor. reflexivity.
     - unfold lt; simpl. destruct (ByteCompareSpec.compare_spec b b0); simpl.
       + subst. destruct (IHx y); constructor; eauto.
-        congruence. now rewrite ByteCompareSpec.compare_eq_refl.
+        congruence. now rw ByteCompareSpec.compare_eq_refl.
       + constructor; auto.
-      + red in H. rewrite H. constructor; auto.
+      + red in H. rw H. constructor; auto.
   Qed.
 
   Theorem eq_refl : forall x : t, eq x x.
@@ -302,9 +302,9 @@ Module StringOT <: UsualOrderedType.
       + destruct z; auto.
         red in H.
         destruct (ByteCompareSpec.compare_spec b0 b1).
-        * subst. intros _. now rewrite H.
+        * subst. intros _. now rw H.
         * generalize (OT_byte.lt_trans _ _ _ H H0). unfold OT_byte.lt.
-          intro X; rewrite X. auto.
+          intro X; rw X. auto.
         * congruence.
       + congruence.
   Qed.
@@ -313,7 +313,7 @@ Module StringOT <: UsualOrderedType.
     unfold lt, eq.
     intros. intro. subst.
     induction y; simpl in *; try congruence.
-    rewrite ByteCompareSpec.compare_eq_refl in H. auto.
+    rw ByteCompareSpec.compare_eq_refl in H. auto.
   Qed.
 
   #[global] Program Instance reflect_eq_string : ReflectEq t := {
@@ -322,9 +322,9 @@ Module StringOT <: UsualOrderedType.
   Next Obligation.
     rename x into s, y into s'.
     destruct (eqb s s') eqn:e; constructor.
-    - rewrite String.eqb_compare in e. fold (compare s s') in e.
+    - rw String.eqb_compare in e. fold (compare s s') in e.
       now destruct (compare_spec s s').
-    - rewrite String.eqb_compare in e.
+    - rw String.eqb_compare in e.
       fold (compare s s') in e.
       destruct (compare_spec s s') => //.
       now apply lt_not_eq. now apply not_eq_sym, lt_not_eq.
@@ -351,7 +351,7 @@ Module StringOT <: UsualOrderedType.
     destruct (compare_spec x y).
     all:split; try congruence; subst.
     - intros hc.
-      fold (compare y y) in hc. now rewrite compare_refl in hc.
+      fold (compare y y) in hc. now rw compare_refl in hc.
     - intros _.
       destruct (compare_spec y x); subst.
       * eapply lt_not_eq in H. elim H; reflexivity.
@@ -369,9 +369,9 @@ Module StringOT <: UsualOrderedType.
   Proof.
     destruct (compare_spec x y).
     - subst.
-      rewrite (proj2 (compare_eq _ _)); auto. reflexivity.
-    - rewrite (proj1 (compare_lt _ _)); auto.
-    - rewrite (proj2 (compare_lt _ _)); auto.
+      rw (proj2 (compare_eq _ _)); auto. reflexivity.
+    - rw (proj1 (compare_lt _ _)); auto.
+    - rw (proj2 (compare_lt _ _)); auto.
       red in H.
       now apply compare_lt.
   Qed.
@@ -388,7 +388,7 @@ Module StringOT <: UsualOrderedType.
   Definition lt_irreflexive : Irreflexive lt.
   Proof.
     intro x. red; unfold lt.
-    now rewrite compare_refl.
+    now rw compare_refl.
   Qed.
 
   Global Instance lt_strorder : StrictOrder lt.

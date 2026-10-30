@@ -15,9 +15,9 @@ Lemma ctx_inst_length {ty Γ args Δ} :
   #|args| = context_assumptions Δ.
 Proof.
   induction 1; simpl; auto.
-  rewrite /subst_telescope in IHX.
-  rewrite context_assumptions_mapi in IHX. congruence.
-  rewrite context_assumptions_mapi in IHX. congruence.
+  rw /subst_telescope in IHX.
+  rw context_assumptions_mapi in IHX. congruence.
+  rw context_assumptions_mapi in IHX. congruence.
 Qed.
 
 
@@ -29,15 +29,15 @@ Proof.
   induction Δ using ctx_length_ind; intros.
   1: constructor.
   depelim c; simpl.
-  - specialize (X (subst_telescope [i] 0 Γ0) ltac:(now rewrite /subst_telescope mapi_length)).
-    rewrite subst_telescope_app in c.
+  - specialize (X (subst_telescope [i] 0 Γ0) ltac:(now rw /subst_telescope mapi_length)).
+    rw subst_telescope_app in c.
     specialize (X _ _ c).
-    rewrite context_assumptions_subst_telescope in X.
+    rw context_assumptions_subst_telescope in X.
     constructor; auto.
-  - specialize (X (subst_telescope [b] 0 Γ0) ltac:(now rewrite /subst_telescope mapi_length)).
-    rewrite subst_telescope_app in c.
+  - specialize (X (subst_telescope [b] 0 Γ0) ltac:(now rw /subst_telescope mapi_length)).
+    rw subst_telescope_app in c.
     specialize (X _ _ c).
-    rewrite context_assumptions_subst_telescope in X.
+    rw context_assumptions_subst_telescope in X.
     constructor; auto.
 Qed.
 
@@ -200,7 +200,7 @@ Proof.
     1: econstructor ; tea.
     apply ws_cumul_pb_refl.
     1: fvs.
-    rewrite on_free_vars_subst_instance.
+    rw on_free_vars_subst_instance.
     now eapply closed_on_free_vars, declared_constant_closed_type.
 
   - intros.
@@ -209,7 +209,7 @@ Proof.
     1: econstructor ; tea.
     apply ws_cumul_pb_refl.
     1: fvs.
-    rewrite on_free_vars_subst_instance.
+    rw on_free_vars_subst_instance.
     now eapply closed_on_free_vars, declared_inductive_closed_type.
 
   - intros.
@@ -232,14 +232,14 @@ Proof.
       * eapply is_allowed_elimination_monotone.
         all: eassumption.
       * eapply geq_relevance; eassumption.
-      * rewrite subst_instance_app_ctx rev_app_distr in Hinst.
+      * rw subst_instance_app_ctx rev_app_distr in Hinst.
         replace (pparams p) with (firstn (context_assumptions (List.rev (subst_instance (puinst p)(ind_params mdecl)))) (pparams p ++ indices)).
         eapply ctx_inst_app_impl ; tea.
         1: intros ?? [] ; by apply conv_check.
-        rewrite context_assumptions_rev context_assumptions_subst_instance.
+        rw context_assumptions_rev context_assumptions_subst_instance.
         erewrite PCUICGlobalMaps.onNpars.
         2: eapply on_declared_minductive ; eauto.
-        rewrite firstn_app_left //.
+        rw firstn_app_left //.
         now destruct wfpred. apply isdecl.
 
       * replace #|x1| with #|pparams p ++ indices|.
@@ -248,15 +248,15 @@ Proof.
         eapply All2_length.
         eassumption.
       * move: (a) => /All2_length alen.
-        rewrite -(firstn_skipn (ci_npar ci) x1) in a.
+        rw -(firstn_skipn (ci_npar ci) x1) in a.
         eapply All2_app_inv in a as [].
         1: now eapply All2_impl ; tea ; intros ; eapply ws_cumul_pb_forget_conv.
-        rewrite -epar ; destruct wfpred as [->].
+        rw -epar ; destruct wfpred as [->].
         apply ctx_inst_length in Hinst; tea.
         move: alen.
-        rewrite Hinst context_assumptions_rev context_assumptions_subst_instance
+        rw Hinst context_assumptions_rev context_assumptions_subst_instance
           context_assumptions_app -(declared_minductive_ind_npars isdecl) => alen.
-        rewrite firstn_length_le.
+        rw firstn_length_le.
         all: lia.
 
       * eapply All2i_impl.

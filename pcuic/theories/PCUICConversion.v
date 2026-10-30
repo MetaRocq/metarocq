@@ -94,7 +94,7 @@ Section CumulSpecIsCumulAlgo.
     * change (fun Γ t u => Σ ;;; Γ ⊢ t ≤s[Conv] u) with (convSpec Σ).
       destruct p as [p x]. cbn in *. try repeat split; cbn; try reflexivity; eauto.
     * induction X; econstructor.
-      + unfold cumul_branch. destruct p0 as [ [ _ hbody ] hhd ]. rewrite hhd. split; eauto. reflexivity.
+      + unfold cumul_branch. destruct p0 as [ [ _ hbody ] hhd ]. rw hhd. split; eauto. reflexivity.
       + apply All2_reflexivity. eapply Prod_reflexivity; intro x; reflexivity.
       + split; reflexivity.
       + exact IHX.
@@ -227,27 +227,27 @@ Lemma isFixApp_mkApps :
 Proof.
   intros t l. induction l in t |- *.
   - cbn. reflexivity.
-  - cbn. rewrite IHl. reflexivity.
+  - cbn. rw IHl. reflexivity.
 Qed.
 
 Lemma on_fvs_prod {n na M1 M2} :
   on_free_vars (shiftnP n xpred0) (tProd na M1 M2) =
   on_free_vars (shiftnP n xpred0) M1 &&
   on_free_vars (shiftnP (S n) xpred0) M2.
-Proof. cbn. rewrite shiftnP_add. reflexivity. Qed.
+Proof. cbn. rw shiftnP_add. reflexivity. Qed.
 
 Lemma on_fvs_lambda {n na M1 M2} :
   on_free_vars (shiftnP n xpred0) (tLambda na M1 M2) =
   on_free_vars (shiftnP n xpred0) M1 &&
   on_free_vars (shiftnP (S n) xpred0) M2.
-Proof. cbn. rewrite shiftnP_add. reflexivity. Qed.
+Proof. cbn. rw shiftnP_add. reflexivity. Qed.
 
 Lemma on_fvs_letin {n na M1 M2 M3} :
   on_free_vars (shiftnP n xpred0) (tLetIn na M1 M2 M3) =
   [&& on_free_vars (shiftnP n xpred0) M1,
   on_free_vars (shiftnP n xpred0) M2 &
   on_free_vars (shiftnP (S n) xpred0) M3].
-Proof. cbn. rewrite shiftnP_add. reflexivity. Qed.
+Proof. cbn. rw shiftnP_add. reflexivity. Qed.
 
 Lemma on_free_vars_shiftnP_S (ctx : context) t d :
   on_free_vars (shiftnP #|ctx ,, d| xpred0) t ->
@@ -407,7 +407,7 @@ Section ConvCongruences.
     eapply on_free_vars_impl.
     2:eapply on_free_vars_subst_gen; tea.
     intros i.
-    rewrite /substP /shiftnP /strengthenP !orb_false_r.
+    rw /substP /shiftnP /strengthenP !orb_false_r.
     repeat nat_compare_specs => //.
   Qed.
 
@@ -417,10 +417,10 @@ Section ConvCongruences.
     #|s| = #|Δ| ->
     is_closed_context (Γ,,, subst_context s 0 Γ').
   Proof using Type.
-    rewrite !on_free_vars_ctx_app.
+    rw !on_free_vars_ctx_app.
     move/andP => [] /andP[] -> /= onΔ onΓ' ons Hs.
     apply on_free_vars_ctx_subst_context0.
-    * rewrite shiftnP_add Hs. now len in onΓ'.
+    * rw shiftnP_add Hs. now len in onΓ'.
     * eapply All_forallb. solve_all; eauto with fvs.
   Qed.
 
@@ -433,8 +433,8 @@ Section ConvCongruences.
     is_open_term (Γ,,, subst_context s 0 Γ') (subst s' #|Γ'| b).
   Proof using Type.
     len; intros. apply on_free_vars_subst. 1:solve_all; eauto with fvs.
-    len in H2. rewrite -H3 H2.
-    red. rewrite -H4; lia_f_equal.
+    len in H2. rw -H3 H2.
+    red. rw -H4; lia_f_equal.
   Qed.
 
   Lemma is_open_term_subst {Γ Δ Γ' s b} :
@@ -457,14 +457,14 @@ Section ConvCongruences.
     intros.
     split; eauto with fvs.
     - eapply is_closed_subst_context; tea. 1:solve_all; eauto with fvs.
-      now rewrite (untyped_subslet_length X0).
+      now rw (untyped_subslet_length X0).
     - eapply is_open_term_subst; tea.
       1:solve_all; eauto with fvs.
-      now rewrite (untyped_subslet_length X0).
+      now rw (untyped_subslet_length X0).
     - eapply red_red; tea; eauto with fvs.
       * solve_all. exact X.
       * solve_all. len.
-        rewrite Nat.add_assoc -shiftnP_add addnP_shiftnP; eauto with fvs.
+        rw Nat.add_assoc -shiftnP_add addnP_shiftnP; eauto with fvs.
   Qed.
 
   Lemma closed_red_red_subst0 {Γ Δ s s' b} :
@@ -534,7 +534,7 @@ Section ConvCongruences.
 
   Lemma untyped_subslet_def_tip {Γ na d ty} : untyped_subslet Γ [d] [vdef na d ty].
   Proof using Type.
-    rewrite -{1}(subst_empty 0 d). constructor. constructor.
+    rw -{1}(subst_empty 0 d). constructor. constructor.
   Qed.
   Hint Resolve untyped_subslet_def_tip : pcuic.
 
@@ -595,9 +595,9 @@ Section ConvCongruences.
     eapply clos_rt_rt1n_iff in red.
     induction red; simplify_dep_elim.
     - move: clt.
-      rewrite on_fvs_prod => /andP[] ondom oncodom.
+      rw on_fvs_prod => /andP[] ondom oncodom.
       exists dom, codom; repeat split; eauto with fvs.
-    - move: clt; rewrite on_fvs_prod => /andP [] ondom oncodom.
+    - move: clt; rw on_fvs_prod => /andP [] ondom oncodom.
       forward IHred. { eapply red1_on_free_vars; tea; eauto with fvs. }
       depelim r; solve_discr.
       * specialize (IHred _ _ _ eq_refl).
@@ -676,7 +676,7 @@ Section ConvCongruences.
     destruct pb.
     - depelim eqp.
       generalize (closed_red_open_right tv').
-      rewrite on_fvs_prod => /andP[] // ona' onb'.
+      rw on_fvs_prod => /andP[] // ona' onb'.
       exists na', a', b'; split => //.
       * transitivity dom'; pcuic.
         eapply ws_cumul_pb_compare; eauto with fvs.
@@ -684,7 +684,7 @@ Section ConvCongruences.
         eapply ws_cumul_pb_compare; eauto with fvs.
     - depelim eqp.
       generalize (closed_red_open_right tv').
-      rewrite on_fvs_prod => /andP[] // ona' onb'.
+      rw on_fvs_prod => /andP[] // ona' onb'.
       exists na', a', b'; split => //.
       * transitivity dom'; pcuic.
         eapply ws_cumul_pb_compare; eauto with fvs.
@@ -706,7 +706,7 @@ Section ConvCongruences.
     destruct pb.
     - depelim eqp.
       generalize (closed_red_open_right tv).
-      rewrite on_fvs_prod => /andP[] // ona' onb'.
+      rw on_fvs_prod => /andP[] // ona' onb'.
       exists na0, a, b; split => //.
       * transitivity dom'; pcuic.
         eapply ws_cumul_pb_compare; eauto with fvs.
@@ -714,7 +714,7 @@ Section ConvCongruences.
         eapply ws_cumul_pb_compare; eauto with fvs.
     - depelim eqp.
       generalize (closed_red_open_right tv).
-      rewrite on_fvs_prod => /andP[] // ona' onb'.
+      rw on_fvs_prod => /andP[] // ona' onb'.
       exists na0, a, b; split => //.
       * transitivity dom'; pcuic.
         eapply ws_cumul_pb_compare; eauto with fvs.
@@ -793,17 +793,17 @@ Section ConvCongruences.
     - simpl. intros; eapply invert_red_axiom in hbod; tea.
       2:{ eapply closed_red1_red; tea. }
       subst. exists []. split => //.
-    - rewrite mkApps_app /=; intros.
+    - rw mkApps_app /=; intros.
       depelim X; solve_discr.
       depind clrel_rel; solve_discr.
       * destruct args using rev_case; solve_discr; noconf H.
-        rewrite mkApps_app in H; noconf H. solve_discr.
+        rw mkApps_app in H; noconf H. solve_discr.
       * specialize (IHargs N1); forward IHargs.
         { constructor; fvs. cbn in clrel_src. rtoProp; intuition auto. }
-        destruct IHargs as [args' []]. exists (args' ++ [M2]). subst N1. rewrite mkApps_app /=; split => //.
+        destruct IHargs as [args' []]. exists (args' ++ [M2]). subst N1. rw mkApps_app /=; split => //.
         eapply All2_app => //. constructor; eauto. eapply closed_red_refl; fvs. cbn in clrel_src; bool.
-      * exists (args ++ [N2]). rewrite mkApps_app /=. split => //.
-        cbn in clrel_src; bool. rewrite on_free_vars_mkApps in H; bool. toAll.
+      * exists (args ++ [N2]). rw mkApps_app /=. split => //.
+        cbn in clrel_src; bool. rw on_free_vars_mkApps in H; bool. toAll.
         eapply All2_app => //.
         + eapply All_All2; tea; cbn; bool. eapply closed_red_refl; fvs.
         + constructor; [|constructor]. eapply into_closed_red; tea. now constructor.
@@ -837,7 +837,7 @@ Section ConvCongruences.
     remember (mkApps (tConst cst u) args) as U. revert red args HeqU.
     revert Γ U T.
     apply: closed_red_ind; intros; subst.
-    - exists args. split => //. rewrite on_free_vars_mkApps /= in H0. toAll. eapply All_All2; tea; bool. now eapply closed_red_refl.
+    - exists args. split => //. rw on_free_vars_mkApps /= in H0. toAll. eapply All_All2; tea; bool. now eapply closed_red_refl.
     - eapply invert_red1_axiom_app in X; tea.
     - specialize (X1 _ eq_refl) as [args' []].
       subst u0. specialize (X2 _ eq_refl) as [args'' []]. subst v.
@@ -943,7 +943,7 @@ Lemma on_free_vars_ctx_snoc_ass_inv P Γ na t :
   on_free_vars_ctx P (Γ ,, vass na t) ->
   on_free_vars_ctx P Γ /\ on_free_vars (shiftnP #|Γ| P) t.
 Proof.
-  rewrite on_free_vars_ctx_snoc => /andP[]; auto.
+  rw on_free_vars_ctx_snoc => /andP[]; auto.
 Qed.
 
 Lemma on_free_vars_ctx_snoc_def_inv P Γ na b t :
@@ -952,7 +952,7 @@ Lemma on_free_vars_ctx_snoc_def_inv P Γ na b t :
       on_free_vars (shiftnP #|Γ| P) b &
       on_free_vars (shiftnP #|Γ| P) t].
 Proof.
-  rewrite on_free_vars_ctx_snoc => /andP[] onΓ /andP[] /=; split; auto.
+  rw on_free_vars_ctx_snoc => /andP[] onΓ /andP[] /=; split; auto.
 Qed.
 
 Lemma closed_red_letin_body {Σ Γ na d t b0 b1} :
@@ -1014,10 +1014,10 @@ Section Inversions.
           -- instantiate (1 := [],, vdef na T1 T2).
              replace (untyped_subslet Γ [T1] ([],, vdef na T1 T2))
               with (untyped_subslet Γ [subst0 [] T1] ([],, vdef na T1 T2))
-              by (now rewrite subst_empty).
+              by (now rw subst_empty).
              eapply untyped_cons_let_def.
              constructor.
-          -- inv_on_free_vars. cbn. now rewrite p.
+          -- inv_on_free_vars. cbn. now rw p.
       + right. eexists. constructor.
         etransitivity.
         * eapply into_closed_red; tas. eapply red1_red, red_zeta.
@@ -1025,10 +1025,10 @@ Section Inversions.
           -- simpl in r. eassumption.
           -- replace (untyped_subslet Γ [T1] ([],, vdef na T1 T2))
               with (untyped_subslet Γ [subst0 [] T1] ([],, vdef na T1 T2))
-              by (now rewrite subst_empty).
+              by (now rw subst_empty).
             eapply untyped_cons_let_def.
             constructor.
-          -- cbn. inv_on_free_vars. now rewrite p.
+          -- cbn. inv_on_free_vars. now rw p.
       + inv_on_free_vars. apply on_free_vars_ctx_snoc_def => //.
       + inv_on_free_vars. cbn. now setoid_rewrite shiftnP_add in p1.
   Qed.
@@ -1061,7 +1061,7 @@ Section Inversions.
     induction H; simplify *.
     - depind r. solve_discr.
     - reflexivity.
-    - rewrite IHclos_refl_trans2; eauto with fvs.
+    - rw IHclos_refl_trans2; eauto with fvs.
   Qed.
 
   Lemma eq_term_upto_univ_conv_arity_l :
@@ -1085,7 +1085,7 @@ Section Inversions.
         exists (tProd na' a' b''). split.
         + constructor. now eapply closed_red_prod_codom.
         + simpl. assumption.
-      * rewrite on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= a0 clΓ //.
+      * rw on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= a0 clΓ //.
       * len. now setoid_rewrite shiftnP_add in b0.
       * len. now setoid_rewrite shiftnP_add in b.
     - repeat inv_on_free_vars.
@@ -1094,7 +1094,7 @@ Section Inversions.
         exists (tLetIn na' t' ty' u''). split.
         + constructor. now eapply closed_red_letin_body.
         + simpl. assumption.
-      * now rewrite on_free_vars_ctx_snoc clΓ /on_free_vars_decl /test_decl /= p p0.
+      * now rw on_free_vars_ctx_snoc clΓ /on_free_vars_decl /test_decl /= p p0.
       * len. now setoid_rewrite shiftnP_add in p4.
       * len. now setoid_rewrite shiftnP_add in p1.
   Qed.
@@ -1121,7 +1121,7 @@ Section Inversions.
         exists (tProd na0 a0 b''). split.
         + constructor. now eapply closed_red_prod_codom.
         + simpl. assumption.
-      * rewrite on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= a1 clΓ //.
+      * rw on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= a1 clΓ //.
       * len. now setoid_rewrite shiftnP_add in b1.
       * len. now setoid_rewrite shiftnP_add in b0.
     - repeat inv_on_free_vars.
@@ -1130,7 +1130,7 @@ Section Inversions.
         exists (tLetIn na0 t ty u''). split.
         + constructor. now eapply closed_red_letin_body.
         + simpl. assumption.
-      * now rewrite on_free_vars_ctx_snoc clΓ /on_free_vars_decl /test_decl /= p p0.
+      * now rw on_free_vars_ctx_snoc clΓ /on_free_vars_decl /test_decl /= p p0.
       * len. now setoid_rewrite shiftnP_add in p4.
       * len. now setoid_rewrite shiftnP_add in p1.
   Qed.
@@ -1157,12 +1157,12 @@ Section Inversions.
     induction u in Γ, v, h, a |- *. all: try (cbn [isArity] in *; congruence).
     - dependent destruction h.
       apply (f_equal nApp) in H as eq. simpl in eq.
-      rewrite nApp_mkApps in eq. simpl in eq.
+      rw nApp_mkApps in eq. simpl in eq.
       destruct args. 2: discriminate.
       simpl in H. discriminate.
     - dependent destruction h.
       + apply (f_equal nApp) in H as eq. simpl in eq.
-        rewrite nApp_mkApps in eq. simpl in eq.
+        rw nApp_mkApps in eq. simpl in eq.
         destruct args. 2: discriminate.
         simpl in H. discriminate.
       + assumption.
@@ -1170,7 +1170,7 @@ Section Inversions.
     - dependent destruction h.
       + simpl in *. apply isArity_subst. assumption.
       + apply (f_equal nApp) in H as eq. simpl in eq.
-        rewrite nApp_mkApps in eq. simpl in eq.
+        rw nApp_mkApps in eq. simpl in eq.
         destruct args. 2: discriminate.
         simpl in H. discriminate.
       + assumption.
@@ -1265,7 +1265,7 @@ Section Inversions.
     intros u v t l h e.
     induction l in u, v, t, e, h |- * using list_rect_rev.
     - cbn in e. subst. cbn in h. discriminate.
-    - rewrite mkApps_app in e. cbn in e.
+    - rw mkApps_app in e. cbn in e.
       exists l. inversion e. subst. auto.
   Qed.
 
@@ -1275,7 +1275,7 @@ Section Inversions.
     [× c = mkApps (tInd ind u) args', is_closed_context Γ & All2 (closed_red Σ Γ) args args'].
   Proof using wfΣ.
     move=> [clΓ].
-    rewrite PCUICOnFreeVars.on_free_vars_mkApps => /= hargs r.
+    rw PCUICOnFreeVars.on_free_vars_mkApps => /= hargs r.
     destruct (red_mkApps_tInd (Γ := exist Γ clΓ) hargs r) as [args' [eq red]].
     exists args'; split => //.
     solve_all; split; eauto with fvs.
@@ -1314,14 +1314,14 @@ Section Inversions.
     eapply compare_term_mkApps_l_inv in leqvv' as [u [l'' [e ? ?]]].
     subst. depelim e.
     eexists _,_. split ; eauto.
-    - now rewrite (All2_length ha).
+    - now rw (All2_length ha).
     - eapply All2_trans.
       * intros x y z h1 h2. etransitivity; tea.
       * eapply All2_impl ; eauto with pcuic.
       * assert (forallb (is_open_term Γ) l'). { eapply All_forallb, All2_All_right; tea; eauto with fvs. }
         assert (forallb (is_open_term Γ) l''). {
           eapply closed_red_open_right in redv'.
-          now rewrite PCUICOnFreeVars.on_free_vars_mkApps /= in redv'. }
+          now rw PCUICOnFreeVars.on_free_vars_mkApps /= in redv'. }
         solve_all; eauto with fvs.
         constructor; eauto with fvs.
   Qed.
@@ -1364,13 +1364,13 @@ Section Inversions.
     eapply compare_term_mkApps_r_inv in leqvv' as [u [l'' [e ? ?]]].
     subst. depelim e.
     eexists _,_. split ; eauto.
-    - now rewrite (All2_length ha).
+    - now rw (All2_length ha).
     - eapply All2_trans.
       * intros x y z h1 h2. etransitivity; tea.
       * assert (forallb (is_open_term Γ) l'). { eapply All_forallb, (All2_All_right ha); tea; eauto with fvs. }
         assert (forallb (is_open_term Γ) l''). {
           eapply closed_red_open_right in redv.
-          now rewrite PCUICOnFreeVars.on_free_vars_mkApps /= in redv. }
+          now rw PCUICOnFreeVars.on_free_vars_mkApps /= in redv. }
         solve_all; eauto with fvs.
         constructor; eauto with fvs.
       * eapply All2_impl.
@@ -1391,7 +1391,7 @@ Section Inversions.
     eapply compare_term_mkApps_l_inv in leqvv' as [u [l'' [e ? ?]]].
     depelim e; solve_discr.
     split => //.
-    + now rewrite (All2_length ha).
+    + now rw (All2_length ha).
     + eapply red_terms_ws_cumul_pb_terms in ha.
       eapply red_terms_ws_cumul_pb_terms in ha'.
       eapply eq_terms_ws_cumul_pb_terms in a; tea; fvs.
@@ -1413,7 +1413,7 @@ Section Inversions.
     eapply compare_term_mkApps_l_inv in eqp as [t' [l' []]]; subst v'.
     depelim c.
     exists u', l'. split => //.
-    eapply closed_red_open_right in tv'. rewrite on_free_vars_mkApps /= in tv'.
+    eapply closed_red_open_right in tv'. rw on_free_vars_mkApps /= in tv'.
     solve_all.
     eapply All2_All2_All2; tea. cbn.
     intros x y z red [eq op].
@@ -1435,7 +1435,7 @@ Section Inversions.
     eapply compare_term_mkApps_r_inv in eqp as [t' [l' []]]; subst v.
     depelim c.
     exists u0, l'. split => //.
-    eapply closed_red_open_right in tv. rewrite on_free_vars_mkApps /= in tv.
+    eapply closed_red_open_right in tv. rw on_free_vars_mkApps /= in tv.
     solve_all.
     eapply All2_sym in a0. eapply All2_sym.
     eapply All2_All2_All2; tea. cbn.
@@ -1496,7 +1496,7 @@ Section Inversions.
       hr as [[[[i' []]|[f' []]]|[s' []]]|[a1 [a2' []]]]; subst; try congruence;
      intros eq; depelim eq; depelim o; cbn in cl', cl'';
       rtoProp; intuition eauto; constructor; eauto.
-    - rewrite e1 e4 //.
+    - rw e1 e4 //.
     - etransitivity.
       * eapply red_ws_cumul_pb; tea.
       * symmetry. etransitivity; [eapply red_ws_cumul_pb; tea|].
@@ -1611,11 +1611,11 @@ Proof.
   intros. exists (removelast ctx).
   revert na A B s H.
   induction ctx using rev_ind; intros; noconf H.
-  rewrite it_mkProd_or_LetIn_app in H. simpl in H.
+  rw it_mkProd_or_LetIn_app in H. simpl in H.
   destruct x as [na' [b'|] ty']; noconf H; simpl in *.
-  rewrite removelast_app. 1: congruence.
-  simpl. rewrite app_nil_r. intuition auto.
-  rewrite destArity_it_mkProd_or_LetIn. simpl. now rewrite app_context_nil_l.
+  rw removelast_app. 1: congruence.
+  simpl. rw app_nil_r. intuition auto.
+  rw destArity_it_mkProd_or_LetIn. simpl. now rw app_context_nil_l.
 Qed.
 
 Definition ws_cumul_pb_predicate {cf} Σ Γ p p' :=
@@ -1690,7 +1690,7 @@ Section Inversions.
   Proof using Type.
     intros r cl.
     split; eauto with fvs.
-    - rewrite on_free_vars_mkApps (clrel_src r) //.
+    - rw on_free_vars_mkApps (clrel_src r) //.
     - eapply red1_mkApps_f, r.
   Qed.
 
@@ -2048,7 +2048,7 @@ Section ConvRedConv.
   Lemma is_open_case_split {Γ p c brs} : is_open_case Γ p c brs =
     [&& is_open_predicate Γ p, is_open_term Γ c & is_open_brs Γ p brs].
   Proof using Type.
-    rewrite /is_open_case. now repeat bool_congr.
+    rw /is_open_case. now repeat bool_congr.
   Qed.
 
   Lemma is_open_case_set_pparams Γ p c brs pars' :
@@ -2059,9 +2059,9 @@ Section ConvRedConv.
   Proof using Type.
     move=> onpars' Hlen.
     move/and5P => [] onpars.
-    rewrite /is_open_case => ->.
-    rewrite -Hlen => -> -> -> /=.
-    rewrite andb_true_r //.
+    rw /is_open_case => ->.
+    rw -Hlen => -> -> -> /=.
+    rw andb_true_r //.
   Qed.
 
   Lemma is_open_case_set_preturn Γ p c brs pret' :
@@ -2070,9 +2070,9 @@ Section ConvRedConv.
     is_open_case Γ (set_preturn p pret') c brs.
   Proof using Type.
     move=> onpret' /and5P[] onpars onpret onpctx onc onbrs.
-    rewrite /is_open_case onc onbrs !andb_true_r onpctx /= onpars /= andb_true_r.
-    rewrite length_app inst_case_predicate_context_length in onpret'.
-    now rewrite shiftnP_add.
+    rw /is_open_case onc onbrs !andb_true_r onpctx /= onpars /= andb_true_r.
+    rw length_app inst_case_predicate_context_length in onpret'.
+    now rw shiftnP_add.
   Qed.
 
   Instance red_brs_refl p Γ : Reflexive (@red_brs Σ p Γ).
@@ -2103,7 +2103,7 @@ Section ConvRedConv.
       - cbn. eapply red_case; try reflexivity.
          apply redl.
       - apply is_open_case_set_preturn => //; eauto with fvs.
-      - rewrite -[set_preturn _ v'](set_preturn_two _ (preturn p')).
+      - rw -[set_preturn _ v'](set_preturn_two _ (preturn p')).
         eapply red_case; try reflexivity.
         cbn. apply redr.
       - constructor; try reflexivity.
@@ -2140,7 +2140,7 @@ Section ConvRedConv.
           { eapply All_forallb in axy.
             eapply is_open_case_set_pparams => //.
             now apply rtrans_clos_length in cpars. }
-          rewrite -[set_pparams _ (x1 ++ v :: _)](set_pparams_two (x1 ++ x :: x2)).
+          rw -[set_pparams _ (x1 ++ v :: _)](set_pparams_two (x1 ++ x :: x2)).
           eapply red_case; try reflexivity.
           { cbn. eapply All2_app.
             { eapply All2_refl. reflexivity. }
@@ -2150,8 +2150,8 @@ Section ConvRedConv.
           { eapply All_forallb in az.
             eapply is_open_case_set_pparams => //.
             apply rtrans_clos_length in cpars.
-            now rewrite !length_app /= in cpars *. }
-          rewrite -[set_pparams _ (x1 ++ v' :: _)](set_pparams_two (x1 ++ x0 :: x2)).
+            now rw !length_app /= in cpars *. }
+          rw -[set_pparams _ (x1 ++ v' :: _)](set_pparams_two (x1 ++ x0 :: x2)).
           eapply red_case; try reflexivity.
           { cbn. eapply All2_app; try reflexivity.
             constructor; [apply redr|]; reflexivity. } }
@@ -2167,7 +2167,7 @@ Section ConvRedConv.
     cbn.
     move/and3P: onp' => [] -> -> -> /=.
     move/and5P: oncase => [] _ _ _ -> /=.
-    now rewrite (All2_length cpars).
+    now rw (All2_length cpars).
   Qed.
 
   Lemma ws_cumul_pb_Case_c :
@@ -2180,16 +2180,16 @@ Section ConvRedConv.
     intros Γ ci p brs u v onp onbrs h.
     induction h.
     - constructor; auto with fvs.
-      + rewrite [is_open_term _ _]is_open_case_split onp onbrs !andb_true_r /= //.
-      + rewrite [is_open_term _ _]is_open_case_split onp onbrs !andb_true_r /= //.
+      + rw [is_open_term _ _]is_open_case_split onp onbrs !andb_true_r /= //.
+      + rw [is_open_term _ _]is_open_case_split onp onbrs !andb_true_r /= //.
       + cbn. constructor; auto; try reflexivity.
     - eapply red_ws_cumul_pb_left ; eauto.
       eapply into_closed_red; tea.
       { constructor. constructor. assumption. }
-      rewrite [is_open_term _ _]is_open_case_split onp onbrs /= andb_true_r //.
+      rw [is_open_term _ _]is_open_case_split onp onbrs /= andb_true_r //.
     - eapply red_ws_cumul_pb_right; tea.
       constructor; pcuic.
-      rewrite [is_open_term _ _]is_open_case_split onp onbrs /= andb_true_r //.
+      rw [is_open_term _ _]is_open_case_split onp onbrs /= andb_true_r //.
   Qed.
 
   Lemma eq_context_upto_names_subst_context :
@@ -2200,8 +2200,8 @@ Section ConvRedConv.
     intros u v n k.
     induction 1.
     - constructor.
-    - rewrite !subst_context_snoc; constructor; eauto.
-      rewrite -(All2_length X).
+    - rw !subst_context_snoc; constructor; eauto.
+      rw -(All2_length X).
       destruct r; constructor; assumption.
   Qed.
 
@@ -2211,7 +2211,7 @@ Section ConvRedConv.
   Proof using Type.
     intros.
     apply All2_app; [|reflexivity].
-    rewrite /inst_case_context.
+    rw /inst_case_context.
     now eapply eq_context_upto_names_subst_context, eq_context_upto_names_univ_subst_preserved.
   Qed.
 
@@ -2231,14 +2231,14 @@ Section ConvRedConv.
     simpl in *. subst brs brs'.
     induction h.
     * constructor => //.
-      + rewrite [is_open_term _ _]is_open_case_split onp onc /=.
+      + rw [is_open_term _ _]is_open_case_split onp onc /=.
         move: onbrs i0.
-        rewrite !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
-        now rewrite andb_true_r shiftnP_add length_app inst_case_branch_context_length /=.
-      + rewrite [is_open_term _ _]is_open_case_split onp onc /=.
+        rw !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
+        now rw andb_true_r shiftnP_add length_app inst_case_branch_context_length /=.
+      + rw [is_open_term _ _]is_open_case_split onp onc /=.
         move: onbrs' i1.
-        rewrite !forallb_app => /andP[] -> /= /andP[] =>  /andP[] => -> /= _ ->.
-        now rewrite andb_true_r shiftnP_add length_app inst_case_branch_context_length /= -(All2_length a).
+        rw !forallb_app => /andP[] -> /= /andP[] =>  /andP[] => -> /= _ ->.
+        now rw andb_true_r shiftnP_add length_app inst_case_branch_context_length /= -(All2_length a).
       + constructor; try reflexivity.
         eapply All2_app; try reflexivity.
         constructor; try split; try reflexivity; cbn => //.
@@ -2247,22 +2247,22 @@ Section ConvRedConv.
       eapply into_closed_red; eauto.
       { constructor. constructor.
         eapply OnOne2_app. constructor; auto. }
-      rewrite [is_open_term _ _]is_open_case_split onp onc /=.
+      rw [is_open_term _ _]is_open_case_split onp onc /=.
       move: onbrs i0.
-      rewrite !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
-      now rewrite andb_true_r shiftnP_add length_app inst_case_branch_context_length /=.
+      rw !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
+      now rw andb_true_r shiftnP_add length_app inst_case_branch_context_length /=.
     * eapply red_ws_cumul_pb_right; tea.
       2:{ eapply IHh => //.
           move: onbrs' i2.
-          rewrite !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
-          now rewrite andb_true_r shiftnP_add length_app inst_case_branch_context_length /= (All2_length a). }
+          rw !forallb_app => /andP[] -> /= /andP[] => /andP[] => -> /= _ ->.
+          now rw andb_true_r shiftnP_add length_app inst_case_branch_context_length /= (All2_length a). }
       eapply into_closed_red; eauto => //.
       { constructor. constructor.
         eapply OnOne2_app. constructor; auto. cbn. split; auto.
         eapply red1_eq_context_upto_names; tea.
-        rewrite /inst_case_branch_context /=.
+        rw /inst_case_branch_context /=.
         now eapply eq_context_upto_names_inst_case_context. }
-      rewrite [is_open_term _ _]is_open_case_split onp onc /= //.
+      rw [is_open_term _ _]is_open_case_split onp onc /= //.
   Qed.
 
 
@@ -2277,11 +2277,11 @@ Section ConvRedConv.
     induction 1.
     - cbn. destruct p0 as [e e0].
       move: op => /= /andP[] /andP[] cl clb ->.
-      rewrite andb_true_r /=. apply/andP; split.
+      rw andb_true_r /=. apply/andP; split.
       2:{ eapply ws_cumul_pb_is_open_term_left in e0.
-        rewrite length_app inst_case_branch_context_length in e0.
-        now rewrite shiftnP_add. }
-      rewrite !test_context_k_closed_on_free_vars_ctx in cl *.
+        rw length_app inst_case_branch_context_length in e0.
+        now rw shiftnP_add. }
+      rw !test_context_k_closed_on_free_vars_ctx in cl *.
       eapply eq_context_upto_names_on_free_vars; tea.
       now symmetry.
     - now move: op => /= /andP[] => ->.
@@ -2310,7 +2310,7 @@ Section ConvRedConv.
         now eapply eq_context_upto_names_inst_case_context. }
     induction h.
     - apply ws_cumul_pb_compare; tas.
-      1-2:rewrite [is_open_term _ _]is_open_case_split onp onc /= //.
+      1-2:rw [is_open_term _ _]is_open_case_split onp onc /= //.
       cbn; reflexivity.
     - destruct r as [o [ony onz]].
       etransitivity.
@@ -2329,21 +2329,21 @@ Section ConvRedConv.
     Σ ;;; Γ ⊢ tCase ci p c brs = tCase ci p' c' brs'.
   Proof using wfΣ.
     intros onc0. generalize onc0.
-    rewrite !is_open_case_split => /and3P[onp onc onbrs] /and3P[onp' onc' onbrs'].
+    rw !is_open_case_split => /and3P[onp onc onbrs] /and3P[onp' onc' onbrs'].
     move=> cvp cvc.
     assert (clΓ := ws_cumul_pb_is_closed_context cvc).
     etransitivity.
     { eapply ws_cumul_pb_Case_brs. 6:tea. all:tas.
       destruct cvp as [onpars oninst onctx onr].
-      now rewrite (All2_length onpars). }
+      now rw (All2_length onpars). }
     etransitivity.
     { eapply ws_cumul_pb_Case_c; tea.
       destruct cvp as [onpars oninst onctx onr].
-      now rewrite (All2_length onpars). }
+      now rw (All2_length onpars). }
     eapply ws_cumul_pb_Case_p; tea.
     destruct cvp as [onpars oninst onctx onr].
-    rewrite is_open_case_split onp onc' /=.
-    now rewrite (All2_length onpars).
+    rw is_open_case_split onp onc' /=.
+    now rw (All2_length onpars).
   Qed.
 
   Definition fix_or_cofix b mfix idx :=
@@ -2380,7 +2380,7 @@ Section ConvRedConv.
     Σ ;;; Γ ⊢ fix_or_cofix b mfix idx = fix_or_cofix b mfix' idx.
   Proof using wfΣ.
     intros onΓ onmfix onmfix' h.
-    eapply into_ws_cumul_pb => //; rewrite ?is_open_fix_or_cofix //.
+    eapply into_ws_cumul_pb => //; rw ?is_open_fix_or_cofix //.
     clear onmfix onmfix'.
     apply OnOne2_split in h
       as [[na ty bo ra] [[na' ty' bo' ra'] [l1 [l2 [[h [? ?]] [? ?]]]]]].
@@ -2421,16 +2421,16 @@ Section ConvRedConv.
     eapply All2_All_mix_left in h; tea.
     eapply All2_All_mix_right in h; tea.
     eapply (All2_many_OnOne2_pres _ (is_open_def Γ #|mfix|)) in h.
-    2:{ intuition auto. now rewrite (All2_length h). }
+    2:{ intuition auto. now rw (All2_length h). }
     induction h.
     - constructor => //.
-      1-2:rewrite is_open_fix_or_cofix //.
+      1-2:rw is_open_fix_or_cofix //.
       cbn; reflexivity.
     - etransitivity.
       + eapply IHh.
       + destruct r as [hlen [onone [ay az]]].
         eapply ws_cumul_pb_fix_one_type; tea; solve_all.
-        all:now rewrite -?hlen -(rtrans_clos_length h).
+        all:now rw -?hlen -(rtrans_clos_length h).
   Qed.
 
   Lemma red_fix_or_cofix_body b (Γ : context) (mfix : mfixpoint term) (idx : nat) (mfix' : list (def term)) :
@@ -2463,7 +2463,7 @@ Section ConvRedConv.
         cbn.
         eapply All2_app; [eapply All2_refl; reflexivity|].
         constructor; cbn; [|constructor].
-        rewrite -hty. constructor; auto.
+        rw -hty. constructor; auto.
       + cbn.
         eapply All2_app; eauto.
         constructor; auto. constructor; auto. }
@@ -2475,20 +2475,20 @@ Section ConvRedConv.
     set (declv' := {| dname := na'; dtype := ty; dbody := v'; rarg := ra |}).
     eapply ws_cumul_pb_red.
     exists (fix_or_cofix b (l1 ++ declv :: l2) idx), (fix_or_cofix b (l1 ++ declv' :: l2) idx).
-    repeat split; auto; rewrite ?is_open_fix_or_cofix //.
-    { destruct b; [eapply red_fix_body | eapply red_cofix_body]; rewrite H;
+    repeat split; auto; rw ?is_open_fix_or_cofix //.
+    { destruct b; [eapply red_fix_body | eapply red_cofix_body]; rw H;
       eapply All2_app.
       all:try eapply All2_refl; intuition auto.
       all:constructor; [|eapply All2_refl; intuition auto].
-      all:cbn; intuition auto; rewrite -H //; tas.
+      all:cbn; intuition auto; rw -H //; tas.
       - apply hbo.
       - apply hbo. }
-    { eapply red_fix_or_cofix_body. rewrite H0.
+    { eapply red_fix_or_cofix_body. rw H0.
       eapply All2_app.
       { eapply All2_refl; intuition auto. }
       constructor.
       - cbn. intuition auto.
-        rewrite -H0.
+        rw -H0.
         eapply red_eq_context_upto_names; tea.
         2:exact hbo'.
         eapply All2_app; auto.
@@ -2514,16 +2514,16 @@ Section ConvRedConv.
   Proof using wfΣ.
     cbn.
     intros a hlen hmfix.
-    rewrite (OnOne2_length a).
+    rw (OnOne2_length a).
     eapply OnOne2_split in a as [? [? [? [? []]]]].
     destruct a. subst.
-    red; rewrite -hmfix.
-    rewrite !forallb_app /=. bool_congr. f_equal.
-    destruct p. rewrite /test_def /on_free_vars_decl /test_decl /=.
-    rewrite e. f_equal.
+    red; rw -hmfix.
+    rw !forallb_app /=. bool_congr. f_equal.
+    destruct p. rw /test_def /on_free_vars_decl /test_decl /=.
+    rw e. f_equal.
     destruct p as [e0 w]. apply ws_cumul_pb_is_open_term in e0.
     move/and3P: e0 => [].
-    now rewrite !length_app hlen !length_app /= shiftnP_add => _ -> ->.
+    now rw !length_app hlen !length_app /= shiftnP_add => _ -> ->.
   Qed.
 
   Lemma ws_cumul_pb_fix_bodies {b Γ mfix mfix' idx} :
@@ -2548,12 +2548,12 @@ Section ConvRedConv.
       2:intuition.
       induction h.
       - repeat split; try reflexivity.
-        constructor => //; rewrite ?is_open_fix_or_cofix //.
+        constructor => //; rw ?is_open_fix_or_cofix //.
         cbn; reflexivity.
       - destruct r as [hl [r _]].
         assert (is_open_mfix Γ y).
         { eapply (is_open_fix_onone2) in r; intuition auto.
-          now rewrite fix_context_length -(OnOne2_length r) -(rtrans_clos_length h). }
+          now rw fix_context_length -(OnOne2_length r) -(rtrans_clos_length h). }
         destruct (IHh H) as [? []].
         repeat split. 2: lia.
         + etransitivity.
@@ -2564,19 +2564,19 @@ Section ConvRedConv.
             simpl in *. intuition eauto.
             eapply ws_cumul_pb_eq_context_upto. 3: eassumption.
             1: apply eq_context_upto_names_eq_context_upto; tas; tc.
-            rewrite on_free_vars_ctx_app onΓ /=.
+            rw on_free_vars_ctx_app onΓ /=.
             apply on_free_vars_fix_context. solve_all.
         + etransitivity.
           * eassumption.
           * apply OnOne2_split in r
               as [[na ty bo ra] [[na' ty' bo' ra'] [l1 [l2 [[? [? [? ?]]] [? ?]]]]]].
             simpl in *. subst.
-            rewrite 2!fix_context_fix_context_alt.
-            rewrite 2!map_app. simpl.
+            rw 2!fix_context_fix_context_alt.
+            rw 2!map_app. simpl.
             unfold def_sig at 2 5. simpl.
             eapply All2_app; try reflexivity.
             eapply All2_rev.
-            rewrite 2!mapi_app. cbn.
+            rw 2!mapi_app. cbn.
             eapply All2_app; try reflexivity.
             constructor; try reflexivity.
             constructor. assumption.
@@ -2596,15 +2596,15 @@ Section ConvRedConv.
   Proof using wfΣ.
     intros onΓ h.
     assert (is_open_mfix Γ mfix /\ is_open_mfix Γ mfix') as [opl opr].
-    { cbn. rewrite -(All2_length h). solve_all.
+    { cbn. rw -(All2_length h). solve_all.
       - move: a a0 => /ws_cumul_pb_is_open_term /and3P[] _ onty onty'.
         move/ws_cumul_pb_is_open_term => /and3P[] _.
-        rewrite !length_app !fix_context_length => onbody onbody'.
-        rewrite /test_def /= onty /= shiftnP_add //.
+        rw !length_app !fix_context_length => onbody onbody'.
+        rw /test_def /= onty /= shiftnP_add //.
       - move: a a0 => /ws_cumul_pb_is_open_term/and3P[] _ onty onty'.
         move/ws_cumul_pb_is_open_term => /and3P[] _.
-        rewrite !length_app !fix_context_length => onbody onbody'.
-        rewrite /test_def /= onty' /= shiftnP_add //. }
+        rw !length_app !fix_context_length => onbody onbody'.
+        rw /test_def /= onty' /= shiftnP_add //. }
     assert (h' : ∑ mfix'',
       All2 (fun u v =>
         Σ;;; Γ ⊢ dtype u = dtype v ×
@@ -2654,12 +2654,12 @@ Section ConvRedConv.
     assert (is_open_mfix Γ mfix'').
     { cbn in opl. eapply forallb_All in opl.
       eapply All2_All_mix_left in h2; tea.
-      cbn. rewrite -(All2_length h2). solve_all.
+      cbn. rw -(All2_length h2). solve_all.
       move: a => /andP[].
       move: a2 => /ws_cumul_pb_is_open_term/and3P[] _.
-      rewrite !length_app !fix_context_length => onbody onbody'.
-      rewrite /test_def /= a1 => -> /= _.
-      rewrite shiftnP_add //. }
+      rw !length_app !fix_context_length => onbody onbody'.
+      rw /test_def /= a1 => -> /= _.
+      rw shiftnP_add //. }
     etransitivity.
     - eapply ws_cumul_pb_fix_bodies. 4:tea. all:assumption.
     - eapply ws_cumul_pb_fix_types. all: assumption.
@@ -2701,7 +2701,7 @@ Section ConvRedConv.
       - eapply cumul_red_l; tea; pcuic.
       - eapply cumul_red_r; tea; pcuic. }
     { eauto with fvs. }
-    all:rewrite on_fvs_lambda; eauto with fvs.
+    all:rw on_fvs_lambda; eauto with fvs.
   Qed.
 
   Lemma ws_cumul_pb_Lambda_r {pb Γ na A b b'} :
@@ -2710,7 +2710,7 @@ Section ConvRedConv.
   Proof using wfΣ.
     intros h.
     generalize (ws_cumul_pb_is_closed_context h).
-    rewrite on_free_vars_ctx_snoc /on_free_vars_decl /test_decl => /andP[] onΓ /= onA.
+    rw on_free_vars_ctx_snoc /on_free_vars_decl /test_decl => /andP[] onΓ /= onA.
     eapply into_ws_cumul_pb => //.
     { induction h.
       - destruct pb; now repeat constructor.
@@ -2718,7 +2718,7 @@ Section ConvRedConv.
          eapply cumul_red_l ; try eassumption; try econstructor; assumption.
       - destruct pb;
          eapply cumul_red_r ; pcuic. }
-    all:rewrite on_fvs_lambda onA /=; eauto with fvs.
+    all:rw on_fvs_lambda onA /=; eauto with fvs.
   Qed.
 
   Lemma ws_cumul_pb_LetIn_bo {pb Γ na ty t u u'} :
@@ -2727,8 +2727,8 @@ Section ConvRedConv.
   Proof using wfΣ.
     intros h.
     generalize (ws_cumul_pb_is_open_term h).
-    rewrite on_free_vars_ctx_snoc /= => /and3P[]/andP[] onΓ.
-    rewrite /on_free_vars_decl /test_decl => /andP[] /= onty ont onu onu'.
+    rw on_free_vars_ctx_snoc /= => /and3P[]/andP[] onΓ.
+    rw /on_free_vars_decl /test_decl => /andP[] /= onty ont onu onu'.
     eapply into_ws_cumul_pb => //.
     { clear -h. induction h.
       - eapply cumul_red_l; pcuic.
@@ -2739,8 +2739,8 @@ Section ConvRedConv.
         eapply cumul_red_l; tea; pcuic.
       - destruct pb;
         eapply cumul_red_r ; pcuic. }
-    { rewrite on_fvs_letin onty ont //. }
-    { rewrite on_fvs_letin onty ont //. }
+    { rw on_fvs_letin onty ont //. }
+    { rw on_fvs_letin onty ont //. }
   Qed.
 
   Lemma ws_cumul_pb_it_mkLambda_or_LetIn_codom {Δ Γ u v pb} :
@@ -2768,7 +2768,7 @@ Section ConvRedConv.
     - simpl. cbn. eapply ih.
       eapply ws_cumul_pb_Prod; try reflexivity; tas.
       move/ws_cumul_pb_is_closed_context: h.
-      rewrite /= on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= => /andP[] onΓΔ ont.
+      rw /= on_free_vars_ctx_snoc /on_free_vars_decl /test_decl /= => /andP[] onΓΔ ont.
       apply ws_cumul_pb_refl => //.
   Qed.
 
@@ -2822,7 +2822,7 @@ Section ConvRedConv.
       - econstructor 2; tea. now constructor.
       - econstructor 3; tea. now constructor. }
     { eauto with fvs. }
-    all:rewrite on_fvs_letin onty; eauto with fvs.
+    all:rw on_fvs_letin onty; eauto with fvs.
   Qed.
 
   Lemma ws_cumul_pb_LetIn_ty {Γ na na' ty ty' t u} :
@@ -2840,7 +2840,7 @@ Section ConvRedConv.
       - econstructor 2; tea. now constructor.
       - econstructor 3; tea. now constructor. }
     { eauto with fvs. }
-    all:rewrite on_fvs_letin ont onu andb_true_r; eauto with fvs.
+    all:rw on_fvs_letin ont onu andb_true_r; eauto with fvs.
   Qed.
 
   Lemma ws_cumul_pb_LetIn {pb Γ na1 na2 t1 t2 A1 A2 u1 u2} :
@@ -2869,9 +2869,9 @@ Section ConvRedConv.
     - apply All2_fold_length in X.
       destruct Δ2; cbn in *; [trivial|].
       1: by apply ws_cumul_eq_pb.
-      rewrite length_app in X; lia.
+      rw length_app in X; lia.
     - apply All2_fold_length in X as X'.
-      destruct Δ2 as [|c Δ2]; simpl in *; [rewrite length_app in X'; lia|].
+      destruct Δ2 as [|c Δ2]; simpl in *; [rw length_app in X'; lia|].
       dependent destruction X.
       + eapply IHΔ1; tas; cbn.
         depelim w.
@@ -2885,7 +2885,7 @@ Section ConvRedConv.
         Σ ;;; Γ ⊢ A1 ⇝ A2 & Σ ;;; (Γ ,, vass na A1) ⊢ b1 ⇝ b2].
   Proof using wfΣ.
     intros [onΓ onl ont].
-    rewrite on_fvs_lambda in onl.
+    rw on_fvs_lambda in onl.
     move: onl => /=/andP [] onA1 onb1.
     eapply clos_rt_rt1n_iff in ont. depind ont.
     - eexists _, _. split => //.
@@ -2902,7 +2902,7 @@ Section ConvRedConv.
           split; tas; pcuic.
       + forward IHont.
         { eapply red1_on_free_vars; tea.
-          rewrite (@on_free_vars_ctx_on_ctx_free_vars _ (Γ ,, vass na A1)).
+          rw (@on_free_vars_ctx_on_ctx_free_vars _ (Γ ,, vass na A1)).
           eauto with fvs. }
           destruct IHont as [A2 [B2 [-> [? ?]]]].
           eexists _, _; split => //.
@@ -2978,9 +2978,9 @@ Section ConvSubst.
   Proof using wfΣ.
     induction 1; simpl; auto.
     - apply subject_closed in t0.
-      rewrite (closedn_on_free_vars t0) //.
+      rw (closedn_on_free_vars t0) //.
     - eapply subject_closed in t0.
-      rewrite (closedn_on_free_vars t0) //.
+      rw (closedn_on_free_vars t0) //.
   Qed.
   Hint Resolve subslet_open : fvs.
 
@@ -3091,12 +3091,12 @@ Section ConvSubst.
     (map_decl (f #|Γ|) d) (map_decl (g #|Γ'|) d')) ctx ctx' ->
     All2_fold P (fold_context_k f ctx) (fold_context_k g ctx').
   Proof using Type.
-    intros a. rewrite - !mapi_context_fold.
+    intros a. rw - !mapi_context_fold.
     eapply All2_fold_mapi.
     eapply All2_fold_impl_ind; tea.
     intros par par' x y H IH; cbn.
-    rewrite !mapi_context_fold.
-    now rewrite -(length_of H).
+    rw !mapi_context_fold.
+    now rw -(length_of H).
   Qed.
 
   Lemma All_decls_alpha_pb_impl le P Q d d' :
@@ -3136,20 +3136,20 @@ Section ConvSubst.
     { eapply is_closed_subst_context; tea; solve_all; eauto with fvs.
       apply (untyped_subslet_length X0). }
     { eapply is_closed_subst_context; tea; solve_all; eauto with fvs.
-      rewrite -(All2_length X). apply (untyped_subslet_length X0). }
+      rw -(All2_length X). apply (untyped_subslet_length X0). }
     eapply All2_fold_app; len => //; try reflexivity.
     eapply All2_fold_fold_context_k.
     induction Γ'; constructor; auto.
-    { apply IHΓ'. move: H; rewrite /= on_free_vars_ctx_snoc => /andP[] //. }
-    move: H; rewrite /= on_free_vars_ctx_snoc => /andP[] // iscl wsdecl.
+    { apply IHΓ'. move: H; rw /= on_free_vars_ctx_snoc => /andP[] //. }
+    move: H; rw /= on_free_vars_ctx_snoc => /andP[] // iscl wsdecl.
     eapply test_decl_conv_decls_map; tea.
     intros x hx.
     eapply PCUICCumulativity.red_conv.
-    rewrite - !/(subst_context _ _ _) Nat.add_0_r.
+    rw - !/(subst_context _ _ _) Nat.add_0_r.
     eapply red_red; tea.
     { erewrite on_free_vars_ctx_on_ctx_free_vars; tea. }
     { solve_all; pcuic. exact X1. }
-    { solve_all. rewrite !length_app Nat.add_assoc -shiftnP_add addnP_shiftnP.
+    { solve_all. rw !length_app Nat.add_assoc -shiftnP_add addnP_shiftnP.
       eauto with fvs. }
   Qed.
 
@@ -3157,7 +3157,7 @@ Section ConvSubst.
     subst_context s 0 Γ ,,, subst_context s #|Γ| Γ' =
     subst_context s 0 (Γ ,,, Γ').
   Proof using Type.
-    now rewrite -(Nat.add_0_r #|Γ|) subst_context_app.
+    now rw -(Nat.add_0_r #|Γ|) subst_context_app.
   Qed.
 
   Lemma eq_context_upto_ws_cumul_ctx_pb {pb Γ Γ'} :
@@ -3187,9 +3187,9 @@ Section ConvSubst.
     { eapply substitution_ws_cumul_ctx_pb_red_subst; revgoals; tea. }
     eapply eq_context_upto_ws_cumul_ctx_pb.
     { clear eqs; eapply is_closed_subst_context; tea; solve_all; eauto with fvs.
-      rewrite -(All2_length rs'0). apply (untyped_subslet_length subs'). }
+      rw -(All2_length rs'0). apply (untyped_subslet_length subs'). }
     { clear eqs; eapply is_closed_subst_context; tea; solve_all; eauto with fvs.
-      rewrite -(All2_length rs') (All2_length eqsub). apply (untyped_subslet_length subs'). }
+      rw -(All2_length rs') (All2_length eqsub). apply (untyped_subslet_length subs'). }
     eapply eq_context_upto_cat; try reflexivity.
     apply eq_context_upto_subst_context; tc; try reflexivity.
     eapply All2_symP; tc. assumption.
@@ -3213,8 +3213,8 @@ Section ConvSubst.
     * symmetry; etransitivity.
     ** eapply ws_cumul_pb_ws_cumul_ctx; revgoals.
       + apply red_conv. eapply (closed_red_red_subst (Δ := Δ') (s' := s'0)); tea.
-        rewrite !length_app -(untyped_subslet_length subs') -(All2_length eqsub).
-        rewrite (untyped_subslet_length subs) - !length_app //.
+        rw !length_app -(untyped_subslet_length subs') -(All2_length eqsub).
+        rw (untyped_subslet_length subs) - !length_app //.
       + eapply substitution_ws_cumul_ctx_pb; tea.
     ** assert (All (is_open_term Γ) s0) by (eapply (All2_All_right redl); eauto with fvs).
       assert (All (is_open_term Γ) s'0) by (eapply (All2_All_right redr); eauto with fvs).
@@ -3223,10 +3223,10 @@ Section ConvSubst.
         apply (untyped_subslet_length subs). }
       { eapply is_open_term_subst_gen. 6:tea. all:tea; solve_all; eauto with fvs.
         1:apply (untyped_subslet_length subs).
-        now rewrite (All2_length eqsub) (All2_length redr). }
+        now rw (All2_length eqsub) (All2_length redr). }
       { eapply is_open_term_subst_gen. 6:tea. all:tea; solve_all; eauto with fvs.
         1:apply (untyped_subslet_length subs).
-        now rewrite (All2_length redl). }
+        now rw (All2_length redl). }
       cbn; symmetry.
       eapply eq_term_upto_univ_substs; tc; try reflexivity.
       solve_all.
@@ -3243,15 +3243,15 @@ Section ConvSubst.
     move=> subss subss' eqsub cl eqty.
     generalize (ws_cumul_pb_is_open_term eqty) => /and3P[] clctx clT clU.
     assert (#|Γ0| = #|Γ1|).
-    { rewrite -(untyped_subslet_length subss) -(untyped_subslet_length subss').
+    { rw -(untyped_subslet_length subss) -(untyped_subslet_length subss').
       apply (All2_length eqsub). }
     assert (is_open_term (Γ ,,, Γ1 ,,, Δ) U).
-    { move: clU. now rewrite !app_context_length H. }
+    { move: clU. now rw !app_context_length H. }
     assert (is_open_term (Γ ,,, Γ1 ,,, Δ) T).
-    { move: clT. now rewrite !app_context_length H. }
+    { move: clT. now rw !app_context_length H. }
     assert (is_closed_context (Γ ,,, Γ1 ,,, Δ)).
-    { rewrite on_free_vars_ctx_app cl /=.
-      move: clctx. rewrite on_free_vars_ctx_app !app_context_length H => /andP[] //. }
+    { rw on_free_vars_ctx_app cl /=.
+      move: clctx. rw on_free_vars_ctx_app !app_context_length H => /andP[] //. }
     etransitivity.
     * eapply untyped_substitution_ws_cumul_pb; tea. fvs.
     * eapply ws_cumul_eq_pb.
@@ -3274,10 +3274,10 @@ Section ConvSubst.
     is_closed_context (Γ,,, Γ'',,, lift_context #|Γ''| 0 Γ').
   Proof using Type.
     move=> cl cl'.
-    rewrite on_free_vars_ctx_app cl' /=.
-    rewrite on_free_vars_ctx_lift_context0 //.
-    rewrite length_app -shiftnP_add addnP_shiftnP //.
-    move: cl. rewrite on_free_vars_ctx_app => /andP[] //.
+    rw on_free_vars_ctx_app cl' /=.
+    rw on_free_vars_ctx_lift_context0 //.
+    rw length_app -shiftnP_add addnP_shiftnP //.
+    move: cl. rw on_free_vars_ctx_app => /andP[] //.
   Qed.
   Hint Resolve is_closed_context_lift : fvs.
 
@@ -3289,7 +3289,7 @@ Section ConvSubst.
     eapply on_free_vars_impl.
     2:erewrite on_free_vars_lift; tea.
     intros i.
-    rewrite /strengthenP /shiftnP /= !orb_false_r !length_app lift_context_length.
+    rw /strengthenP /shiftnP /= !orb_false_r !length_app lift_context_length.
     repeat nat_compare_specs => //.
   Qed.
   Hint Resolve is_open_term_lift : fvs.
@@ -3322,11 +3322,11 @@ Section ConvSubst.
   Proof using wfΣ.
     move=> clΔ a.
     epose proof (weakening_ws_cumul_pb (Γ := []) (Γ'' := Δ)).
-    rewrite !app_context_nil_l in X.
+    rw !app_context_nil_l in X.
     specialize (X a clΔ).
-    rewrite !lift_closed in X => //; eauto with fvs.
-    rewrite closed_ctx_lift in X.
-    1:rewrite is_closed_ctx_closed //; eauto with fvs.
+    rw !lift_closed in X => //; eauto with fvs.
+    rw closed_ctx_lift in X.
+    1:rw is_closed_ctx_closed //; eauto with fvs.
     assumption.
   Qed.
 
@@ -3389,38 +3389,38 @@ Proof.
       + apply IHΔ => //.
       + destruct d as [na [b|] ty]; constructor; cbn in *; auto; try congruence.
         constructor. 1:eauto with fvs.
-        { now eapply subject_closed in Hs; rewrite is_open_term_closed in Hs. }
+        { now eapply subject_closed in Hs; rw is_open_term_closed in Hs. }
         { erewrite on_free_vars_subst_instance.
-          eapply subject_closed in Hs; rewrite is_open_term_closed in Hs.
-          now rewrite on_free_vars_subst_instance in Hs. }
+          eapply subject_closed in Hs; rw is_open_term_closed in Hs.
+          now rw on_free_vars_subst_instance in Hs. }
         destruct pb; apply eq_term_upto_univ_subst_instance; try typeclasses eauto; auto.
     * cbn; constructor.
       + apply IHΔ => //.
       + destruct d as [na [b'|] ty]; constructor; cbn in *; auto; try congruence; noconf H.
         { constructor. 1:eauto with fvs.
-          { now eapply subject_closed in Hb; rewrite is_open_term_closed in Hb. }
+          { now eapply subject_closed in Hb; rw is_open_term_closed in Hb. }
           { erewrite on_free_vars_subst_instance.
-            eapply subject_closed in Hb; rewrite is_open_term_closed in Hb.
-            now rewrite on_free_vars_subst_instance in Hb. }
+            eapply subject_closed in Hb; rw is_open_term_closed in Hb.
+            now rw on_free_vars_subst_instance in Hb. }
           apply eq_term_upto_univ_subst_instance; try typeclasses eauto. auto. }
         { constructor. 1:eauto with fvs.
-          { now eapply subject_closed in Hs; rewrite is_open_term_closed in Hs. }
+          { now eapply subject_closed in Hs; rw is_open_term_closed in Hs. }
           { erewrite on_free_vars_subst_instance.
-            eapply subject_closed in Hs; rewrite is_open_term_closed in Hs.
-            now rewrite on_free_vars_subst_instance in Hs. }
+            eapply subject_closed in Hs; rw is_open_term_closed in Hs.
+            now rw on_free_vars_subst_instance in Hs. }
           destruct pb; apply eq_term_upto_univ_subst_instance; try typeclasses eauto; auto. }
 Qed.
 
 Lemma is_closed_context_subst_instance Γ Δ u :
   is_closed_context (Γ ,,, Δ @[u]) = is_closed_context (Γ ,,, Δ).
 Proof.
-  rewrite !on_free_vars_ctx_app. eauto with fvs.
+  rw !on_free_vars_ctx_app. eauto with fvs.
 Qed.
 
 Lemma is_open_term_subst_instance Γ Δ t u u' :
   is_open_term (Γ ,,, Δ @[u]) t@[u'] = is_open_term (Γ ,,, Δ) t.
 Proof.
-  rewrite !app_context_length; len. eauto with fvs.
+  rw !app_context_length; len. eauto with fvs.
 Qed.
 #[global]
 Hint Rewrite is_closed_context_subst_instance is_open_term_subst_instance : fvs.
@@ -3440,13 +3440,13 @@ Lemma subst_instance_ws_cumul_ctx_pb_rel {cf:checker_flags} {Σ} {wfΣ : wf Σ} 
 Proof.
   move=> equ.
   split; eauto with fvs.
-  { rewrite on_free_vars_ctx_app in equ. now move/andP: equ. }
+  { rw on_free_vars_ctx_app in equ. now move/andP: equ. }
   induction Δ as [|d Δ].
   - constructor.
   - simpl.
     destruct d as [na [b|] ty] => /=.
-    * move: equ; rewrite /= on_free_vars_ctx_snoc => /= /andP[] clΔ /andP[] /= onb onty.
-      rewrite !subst_instance_cons; constructor; eauto. simpl. constructor.
+    * move: equ; rw /= on_free_vars_ctx_snoc => /= /andP[] clΔ /andP[] /= onb onty.
+      rw !subst_instance_cons; constructor; eauto. simpl. constructor.
       + reflexivity.
       + constructor; cbn.
         4:eapply eq_term_upto_univ_subst_instance; try typeclasses eauto; auto.
@@ -3455,8 +3455,8 @@ Proof.
         4:cbn; eapply eq_term_compare_term;
           eapply eq_term_upto_univ_subst_instance; try typeclasses eauto; auto.
         all:eauto with fvs.
-    * move: equ; rewrite /= on_free_vars_ctx_snoc => /= /andP[] clΔ /andP[] /= onb onty.
-      rewrite !subst_instance_cons; constructor; eauto. simpl. constructor.
+    * move: equ; rw /= on_free_vars_ctx_snoc => /= /andP[] clΔ /andP[] /= onb onty.
+      rw !subst_instance_cons; constructor; eauto. simpl. constructor.
       + reflexivity.
       + cbn. constructor; auto.
         4:cbn; eapply eq_term_compare_term;
@@ -3538,18 +3538,18 @@ Proof.
       autorewrite with len in H; simpl in H. lia. }
     apply All2_fold_app_inv in H as [cd cctx] => //.
     depelim cd; depelim a.
-    - rewrite !it_mkProd_or_LetIn_app => //=.
+    - rw !it_mkProd_or_LetIn_app => //=.
       simpl. move=> HB. apply ws_cumul_pb_Prod => /= //.
       eapply IHΓ.
       * unshelve eapply (All2_fold_impl cctx).
-        simpl. intros ? ? * X. now rewrite !app_context_assoc in X.
-      * now rewrite app_context_assoc in HB.
-    - rewrite !it_mkProd_or_LetIn_app => //=.
+        simpl. intros ? ? * X. now rw !app_context_assoc in X.
+      * now rw app_context_assoc in HB.
+    - rw !it_mkProd_or_LetIn_app => //=.
       simpl. intros HB. cbn. apply ws_cumul_pb_LetIn => //; auto.
       eapply IHΓ.
       * unshelve eapply (All2_fold_impl cctx).
-        simpl. intros ?? * X. now rewrite !app_context_assoc in X.
-      * now rewrite app_context_assoc in HB.
+        simpl. intros ?? * X. now rw !app_context_assoc in X.
+      * now rw app_context_assoc in HB.
 Qed.
 
 Lemma ws_cumul_pb_rel_it_mkLambda_or_LetIn {cf pb Σ} {wfΣ : wf Σ} (Δ Γ Γ' : context) (B B' : term) :
@@ -3707,11 +3707,11 @@ Section CumulSubst.
     eapply All_decls_alpha_pb_map.
     eapply All_decls_alpha_pb_impl; tea.
     intros pb' x y; cbn => leq.
-    rewrite -/(subst_context _ _ _).
-    rewrite -app_context_assoc (subst_context_app0 s Γ'' Δ0).
-    rewrite - !length_app.
+    rw -/(subst_context _ _ _).
+    rw -app_context_assoc (subst_context_app0 s Γ'' Δ0).
+    rw - !length_app.
     relativize #|Δ'0 ++ Γ''|; [apply (substitution_ws_cumul_pb_subst_conv (pb:=pb') hs hs' eqs)|] => //.
-    1:rewrite app_context_assoc //.
+    1:rw app_context_assoc //.
     len.
   Qed.
 
@@ -3722,7 +3722,7 @@ Section CumulSubst.
   Proof using wfΣ.
     intros wf [cl eq].
     split.
-    { rewrite on_free_vars_ctx_app wf /=.
+    { rw on_free_vars_ctx_app wf /=.
       eapply on_free_vars_ctx_impl; tea => //.
       congruence. }
     induction eq.
@@ -3730,7 +3730,7 @@ Section CumulSubst.
     - constructor; auto.
       eapply All_decls_alpha_pb_impl; tea.
       move=> /= le' x y c.
-      rewrite -app_context_assoc.
+      rw -app_context_assoc.
       eapply weaken_ws_cumul_pb; tea; eauto with fvs.
   Qed.
 
@@ -3743,9 +3743,9 @@ Lemma map_branches_k_map_branches_k
   map_branches_k f id k (map_branches_k f' id k' l) =
   map (map_branch_k (fun (i : nat) (x : term) => f (i + k) (f' (i + k') x)) id 0) l.
 Proof using Type.
-  rewrite map_map.
+  rw map_map.
   eapply map_ext => b.
-  rewrite map_branch_k_map_branch_k; auto.
+  rw map_branch_k_map_branch_k; auto.
 Qed.
 
 Lemma red_rel_all {Γ i body t} :
@@ -3759,50 +3759,50 @@ Proof using Type.
       case_eq (n - i); intros; cbn.
       * apply red1_red.
         assert (n = i) by lia; subst.
-        rewrite simpl_lift; cbn; try lia.
+        rw simpl_lift; cbn; try lia.
         now constructor.
       * enough (nth_error (@nil term) n0 = None) as ->;
           [cbn|now destruct n0].
         enough (i <=? n - 1 = true) as ->; try (apply Nat.leb_le; lia).
         enough (S (n - 1) = n) as ->; try lia. auto.
-    + cbn. rewrite H0. auto.
+    + cbn. rw H0. auto.
   - eapply red_evar. repeat eapply All2_map_right.
     eapply All_All2; tea. intro; cbn; eauto.
   - destruct X as (IHparams&IHctx&IHret).
-    rewrite map_predicate_k_map_predicate_k.
+    rw map_predicate_k_map_predicate_k.
     assert (ctxapp: forall Γ',
                option_map decl_body (nth_error (Γ,,, Γ') (#|Γ'| + i)) = Some (Some body)).
     { unfold app_context.
       intros.
-      rewrite nth_error_app2; [lia|].
-      rewrite Nat.add_comm Nat.add_sub; auto. }
+      rw nth_error_app2; [lia|].
+      rw Nat.add_comm Nat.add_sub; auto. }
     eapply red_case.
     + induction IHparams; pcuic.
     + apply IHret; auto.
-      rewrite nth_error_app_ge ?inst_case_predicate_context_length; try lia.
-      rewrite -H. lia_f_equal.
+      rw nth_error_app_ge ?inst_case_predicate_context_length; try lia.
+      rw -H. lia_f_equal.
     + eapply IHt; auto.
     + clear -wfΣ X0 ctxapp.
       induction X0; pcuic.
       constructor; auto.
       unfold on_Trel.
-      rewrite map_branch_k_map_branch_k => //.
+      rw map_branch_k_map_branch_k => //.
       split.
       * eapply b.
-        rewrite Nat.add_0_r.
+        rw Nat.add_0_r.
         eauto.
-        rewrite nth_error_app_ge ?inst_case_branch_context_length; try lia.
-        rewrite -(ctxapp []) /=. lia_f_equal.
+        rw nth_error_app_ge ?inst_case_branch_context_length; try lia.
+        rw -(ctxapp []) /=. lia_f_equal.
       * cbn. auto.
   - eapply red_fix_congr. repeat eapply All2_map_right.
     eapply All_All2; tea. intros; cbn in *; rdest; eauto.
-    rewrite length_map. eapply r0.
-    rewrite nth_error_app_context_ge; rewrite fix_context_length; try lia.
+    rw length_map. eapply r0.
+    rw nth_error_app_context_ge; rw fix_context_length; try lia.
     enough (#|m| + i - #|m| = i) as ->; tas; lia.
   - eapply red_cofix_congr. repeat eapply All2_map_right.
     eapply All_All2; tea. intros; cbn in *; rdest; eauto.
-    rewrite length_map. eapply r0.
-    rewrite nth_error_app_context_ge; rewrite fix_context_length; try lia.
+    rw length_map. eapply r0.
+    rw nth_error_app_context_ge; rw fix_context_length; try lia.
     enough (#|m| + i - #|m| = i) as ->; tas; lia.
   - destruct p as [? []]; cbn in X; cbn; trea.
     eapply red_primArray_congr; cbn; intuition eauto; solve_all.
@@ -3855,13 +3855,13 @@ Section MoreCongruenceLemmas.
     intros [Rglob Rclosed Hll']. apply ws_cumul_pb_terms_alt in Hll'. destruct Hll' as [l0 [l0'  [Hl0 Hl0' Hl0l0']]].
     assert (Σ ;;; Γ ⊢ mkApps (tInd ind ui) l0 ≤[pb] mkApps (tInd ind ui') l0').
     { econstructor 1; eauto.
-      - cbn. clear -cf wfΣ Hl0. rewrite on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0; eauto; intros. cbn in *. econstructor; eauto.
+      - cbn. clear -cf wfΣ Hl0. rw on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0; eauto; intros. cbn in *. econstructor; eauto.
         destruct r; eapply red_is_open_term; eauto.
-      - cbn. clear -cf wfΣ Hl0'. rewrite on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0'; eauto; intros. cbn in *. econstructor; eauto.
+      - cbn. clear -cf wfΣ Hl0'. rw on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0'; eauto; intros. cbn in *. econstructor; eauto.
         destruct r; eapply red_is_open_term; eauto.
-      - apply All2_length in Hl0.  rewrite Hl0 in Rglob. clear Hl0 Hl0'.
+      - apply All2_length in Hl0.  rw Hl0 in Rglob. clear Hl0 Hl0'.
         apply eq_term_upto_univ_napp_mkApps; eauto.
-        econstructor; eauto. assert (#|l0| + 0 = #|l0|) by lia. rewrite H. destruct pb; eauto.
+        econstructor; eauto. assert (#|l0| + 0 = #|l0|) by lia. rw H. destruct pb; eauto.
     }
     apply red_terms_ws_cumul_pb_terms in Hl0, Hl0'.
     etransitivity.
@@ -3881,13 +3881,13 @@ Section MoreCongruenceLemmas.
   intros [Rglob Rclosed Hll']. apply ws_cumul_pb_terms_alt in Hll'. destruct Hll' as [l0 [l0'  [Hl0 Hl0' Hl0l0']]].
   assert (Σ ;;; Γ ⊢ mkApps (tConstruct i k ui) l0 ≤[pb] mkApps (tConstruct i k ui') l0').
   { econstructor 1; eauto.
-    - cbn. clear -cf wfΣ Hl0. rewrite on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0; eauto; intros. cbn in *. econstructor; eauto.
+    - cbn. clear -cf wfΣ Hl0. rw on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0; eauto; intros. cbn in *. econstructor; eauto.
       destruct r; eapply red_is_open_term; eauto.
-    - cbn. clear -cf wfΣ Hl0'. rewrite on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0'; eauto; intros. cbn in *. econstructor; eauto.
+    - cbn. clear -cf wfΣ Hl0'. rw on_free_vars_mkApps; cbn. apply All_forallb. induction Hl0'; eauto; intros. cbn in *. econstructor; eauto.
       destruct r; eapply red_is_open_term; eauto.
-    - apply All2_length in Hl0.  rewrite Hl0 in Rglob. clear Hl0 Hl0'.
+    - apply All2_length in Hl0.  rw Hl0 in Rglob. clear Hl0 Hl0'.
       apply eq_term_upto_univ_napp_mkApps; eauto.
-      econstructor; eauto. assert (#|l0| + 0 = #|l0|) by lia. rewrite H. destruct pb; eauto.
+      econstructor; eauto. assert (#|l0| + 0 = #|l0|) by lia. rw H. destruct pb; eauto.
   }
   apply red_terms_ws_cumul_pb_terms in Hl0, Hl0'.
   etransitivity.
@@ -3935,9 +3935,9 @@ Lemma on_free_vars_ctx_inst_case_context_xpred0 (Γ : list context_decl) (pars :
   on_free_vars_ctx xpred0 Γ ->
   on_free_vars_ctx xpred0 (Γ,,, inst_case_context pars puinst pctx).
 Proof using Type.
-  intros. rewrite on_free_vars_ctx_app H1 /=.
+  intros. rw on_free_vars_ctx_app H1 /=.
   eapply on_free_vars_ctx_inst_case_context; trea; solve_all.
-  rewrite test_context_k_closed_on_free_vars_ctx //.
+  rw test_context_k_closed_on_free_vars_ctx //.
 Qed.
 
 Proposition cumulSpec_cumulAlgo {pb} (Γ : closed_context) (M N : open_term Γ) :
@@ -3965,30 +3965,30 @@ Proof.
   - intros Γ na na' ty ty' t t' Hna Htyty' Heqtyty' Htt' Heqtt' HΓ HM HN.
     cbn in *. apply andb_andI in HM; apply andb_andI in HN; destruct HM as [Hty Ht]; destruct HN as [Hty' Ht'].
     eapply ws_cumul_pb_Lambda; eauto. eapply Heqtt'; eauto.
-    * change (is_closed_context (Γ,, vass na ty)). rewrite on_free_vars_ctx_snoc. apply andb_and. split; eauto.
-    * rewrite shiftnP_S; eauto.
-    * rewrite shiftnP_S; eauto.
+    * change (is_closed_context (Γ,, vass na ty)). rw on_free_vars_ctx_snoc. apply andb_and. split; eauto.
+    * rw shiftnP_S; eauto.
+    * rw shiftnP_S; eauto.
   - intros Γ na na' a a' b b' Hna Haa' foo IHe1 IHe2 HΓ HM HN. cbn in *; apply andb_andI in HM; apply andb_andI in HN; destruct HM as [Ha Hb]; destruct HN as [Ha' Hb'].
     eapply ws_cumul_pb_Prod; eauto. eapply IHe2; eauto.
-    * change (is_closed_context (Γ,, vass na a)). rewrite on_free_vars_ctx_snoc. apply andb_and. split; eauto.
-    * rewrite shiftnP_S; eauto.
-    * rewrite shiftnP_S; eauto.
+    * change (is_closed_context (Γ,, vass na a)). rw on_free_vars_ctx_snoc. apply andb_and. split; eauto.
+    * rw shiftnP_S; eauto.
+    * rw shiftnP_S; eauto.
   - intros Γ na na' t t' ty ty' u u' Hna _ Heqtt' _ Heqtyty' _ Hequu' HΓ HM HN.
     cbn in *. apply andb_andI in HM; apply andb_andI in HN; destruct HM as [Ht Htyu]; destruct HN as [Ht' Htyu'].
     apply andb_andI in Htyu; apply andb_andI in Htyu'; destruct Htyu as [Hty Hu]; destruct Htyu' as [Hty' Hu'].
     eapply ws_cumul_pb_LetIn; eauto. apply ws_cumul_eq_pb. eapply Hequu'; eauto.
-    * change (is_closed_context (Γ,, vdef na t ty)). rewrite on_free_vars_ctx_snoc. apply andb_and. split; eauto.
-      rewrite /on_free_vars_decl /test_decl. apply andb_and. split; eauto.
-    * rewrite shiftnP_S; eauto.
-    * rewrite shiftnP_S; eauto.
+    * change (is_closed_context (Γ,, vdef na t ty)). rw on_free_vars_ctx_snoc. apply andb_and. split; eauto.
+      rw /on_free_vars_decl /test_decl. apply andb_and. split; eauto.
+    * rw shiftnP_S; eauto.
+    * rw shiftnP_S; eauto.
   - intros Γ indn p p' c c' brs brs' Hpp' Hpp'_dep _ Hcc' Hbrsbrs' Hbrsbrs'_dep HΓ H H'.
     cbn in *. apply andb_andI in H; apply andb_andI in H'; destruct H as [Hp H]; destruct H' as [Hp' H'].
     apply andb_andI in H; apply andb_andI in H'; destruct H as [Hreturn H]; destruct H' as [Hreturn' H'].
     apply andb_andI in H; apply andb_andI in H'; destruct H as [Hcontext H]; destruct H' as [Hcontext' H'].
     apply andb_andI in H; apply andb_andI in H'; destruct H as [Hc Hbrs]; destruct H' as [Hc' Hbrs'].
     eapply ws_cumul_eq_pb. eapply ws_cumul_pb_Case; eauto.
-    * rewrite is_open_case_split. repeat (apply andb_and; split); eauto.
-    * rewrite is_open_case_split. repeat (apply andb_and; split); eauto.
+    * rw is_open_case_split. repeat (apply andb_and; split); eauto.
+    * rw is_open_case_split. repeat (apply andb_and; split); eauto.
     * unfold cumul_predicate in Hpp'. unfold ws_cumul_pb_predicate. destruct Hpp' as [Hpp' [Hinst [Hpcon Hpret]]].
       unfold cumul_predicate_dep in *; destruct_head'_prod.
       split; eauto.
@@ -3996,11 +3996,11 @@ Proof.
         eapply All2_impl. 1: tea. cbn; intros; destruct_head'_prod.
         eauto.
       + exactly_once (idtac; multimatch goal with H : _ |- _ => eapply H end); eauto.
-        ++ rewrite test_context_k_closed_on_free_vars_ctx in Hcontext.
+        ++ rw test_context_k_closed_on_free_vars_ctx in Hcontext.
            unfold inst_case_predicate_context. apply PCUICOnFreeVarsConv.on_free_vars_ctx_inst_case_context ; eauto.
-        ++ rewrite shiftnP_add in Hreturn. rewrite <- inst_case_predicate_context_length in Hreturn.
+        ++ rw shiftnP_add in Hreturn. rewrite <- inst_case_predicate_context_length in Hreturn.
           rewrite <- length_app in Hreturn. eassumption.
-        ++ rewrite shiftnP_add in Hreturn'. rewrite <- (All2_length Hpcon) in Hreturn'.
+        ++ rw shiftnP_add in Hreturn'. rewrite <- (All2_length Hpcon) in Hreturn'.
            rewrite <- inst_case_predicate_context_length in Hreturn'.
            rewrite <- length_app in Hreturn'. eassumption.
     * unfold cumul_branches, cumul_branch, ws_cumul_pb_brs in *.
@@ -4021,7 +4021,7 @@ Proof.
     unfold test_def in *; repeat toProp; destruct_head'_and.
     repeat split; eauto.
     exactly_once (idtac; multimatch goal with H : _ |- _ => eapply H end); eauto.
-    * rewrite on_free_vars_ctx_app; solve_all. rewrite on_free_vars_fix_context; eauto; solve_all.
+    * rw on_free_vars_ctx_app; solve_all. rw on_free_vars_fix_context; eauto; solve_all.
     * rewrite -> shiftnP_add, <- fix_context_length, <- length_app in *; tea.
     * rewrite -> shiftnP_add, <- Hfix, <- fix_context_length, <- length_app in *; tea.
   - intros Γ mfix mfix' idx Hmfixmfix' Hmfixmfix'_dep HΓ H H'. cbn in *.
@@ -4031,7 +4031,7 @@ Proof.
     repeat toProp; destruct_head'_and.
     repeat split; eauto.
     exactly_once (idtac; multimatch goal with H : _ |- _ => eapply H end); eauto.
-    * rewrite on_free_vars_ctx_app; solve_all. rewrite on_free_vars_fix_context; eauto; solve_all.
+    * rw on_free_vars_ctx_app; solve_all. rw on_free_vars_fix_context; eauto; solve_all.
     * rewrite -> shiftnP_add, <- fix_context_length, <- length_app in *; tea.
     * rewrite -> shiftnP_add, <- Hfix, <- fix_context_length, <- length_app in *; tea.
   - intros Γ p p' e h; cbn => H0 H1 H2.
@@ -4039,12 +4039,12 @@ Proof.
     depelim h; constructor; cbn in *; rtoProp; intuition eauto.
     repeat toAll. solve_all.
   - intros Γ i u u' args args' H X X_dep H0 H1 H2. eapply ws_cumul_pb_Ind; eauto. split; eauto.
-    rewrite on_free_vars_mkApps in H1. rewrite on_free_vars_mkApps in H2.
+    rw on_free_vars_mkApps in H1. rw on_free_vars_mkApps in H2.
     repeat toProp; destruct_head'_and.
     repeat match goal with H : ?x = true |- _ => change (is_true x) in H end.
     solve_all.
   - intros Γ i k u u' args args' H X X_dep H0 H1 H2. eapply ws_cumul_pb_Construct; eauto ; split; eauto.
-    rewrite on_free_vars_mkApps in H1. rewrite on_free_vars_mkApps in H2.
+    rw on_free_vars_mkApps in H1. rw on_free_vars_mkApps in H2.
     repeat toProp; destruct_head'_and.
     repeat match goal with H : ?x = true |- _ => change (is_true x) in H end.
     solve_all.
@@ -4097,31 +4097,31 @@ Lemma expand_lets_k_app (Γ Γ' : context) t k : expand_lets_k (Γ ++ Γ') k t =
 Proof.
   revert Γ k t.
   induction Γ' as [|[na [b|] ty] Γ'] using ctx_length_rev_ind; intros Γ k t.
-  - simpl. now rewrite /expand_lets_k /= subst_empty lift0_id app_nil_r.
-  - simpl; rewrite app_assoc !expand_lets_k_vdef /=; len; simpl.
-    rewrite subst_context_app. specialize (H (subst_context [b] 0 Γ') ltac:(now len)).
-    specialize (H (subst_context [b] #|Γ'| Γ)). rewrite Nat.add_0_r /app_context H; len.
+  - simpl. now rw /expand_lets_k /= subst_empty lift0_id app_nil_r.
+  - simpl; rw app_assoc !expand_lets_k_vdef /=; len; simpl.
+    rw subst_context_app. specialize (H (subst_context [b] 0 Γ') ltac:(now len)).
+    specialize (H (subst_context [b] #|Γ'| Γ)). rw Nat.add_0_r /app_context H; len.
     f_equal.
-    rewrite /expand_lets_k; len.
-    rewrite -Nat.add_assoc.
-    rewrite distr_subst_rec; len.
+    rw /expand_lets_k; len.
+    rw -Nat.add_assoc.
+    rw distr_subst_rec; len.
     epose proof (subst_extended_subst_k [b] Γ #|Γ'| 0).
-    rewrite Nat.add_0_r Nat.add_comm in H0. rewrite -H0. f_equal.
-    rewrite commut_lift_subst_rec. 1:lia. lia_f_equal.
-  - simpl. rewrite app_assoc !expand_lets_k_vass /=; len; simpl.
-    now rewrite (H Γ' ltac:(reflexivity)).
+    rw Nat.add_0_r Nat.add_comm in H0. rw -H0. f_equal.
+    rw commut_lift_subst_rec. 1:lia. lia_f_equal.
+  - simpl. rw app_assoc !expand_lets_k_vass /=; len; simpl.
+    now rw (H Γ' ltac:(reflexivity)).
 Qed.
 
 Lemma expand_lets_app Γ Γ' t : expand_lets (Γ ++ Γ') t =
   expand_lets_k Γ' (context_assumptions Γ) (expand_lets Γ t).
 Proof.
-  now rewrite /expand_lets expand_lets_k_app.
+  now rw /expand_lets expand_lets_k_app.
 Qed.
 
 Lemma subst_rel0_lift_id n t : subst [tRel 0] n (lift 1 (S n) t) = t.
 Proof using Type.
-  rewrite subst_reli_lift_id; try lia.
-  now rewrite lift0_id.
+  rw subst_reli_lift_id; try lia.
+  now rw lift0_id.
 Qed.
 
 
@@ -4141,24 +4141,24 @@ Section IteratedBetaReduction.
   Proof using cf.
     elim: Δ t t' l=> [|[na[a|]ty] ls ih] /= t t' l.
     - move=> /length_nil -> * /=.
-      rewrite PCUICLiftSubst.subst_empty PCUICSigmaCalculus.expand_lets_nil //.
-    - move=> /ih ih0 clt clctx red. rewrite -/([_] ++ _).
-      move: (clctx); rewrite Nat.add_0_r => /andP [clctx0 cld].
-      rewrite expand_lets_app /= -/(expand_lets ls).
+      rw PCUICLiftSubst.subst_empty PCUICSigmaCalculus.expand_lets_nil //.
+    - move=> /ih ih0 clt clctx red. rw -/([_] ++ _).
+      move: (clctx); rw Nat.add_0_r => /andP [clctx0 cld].
+      rw expand_lets_app /= -/(expand_lets ls).
       refine (ih0 _ _ _ _ _)=> //.
       1: apply: PCUICClosed.closedn_mkLambda_or_LetIn=> //.
-      rewrite /mkLambda_or_LetIn /= /expand_lets /expand_lets_k /=.
-      rewrite PCUICLiftSubst.subst_empty PCUICLiftSubst.lift0_p.
+      rw /mkLambda_or_LetIn /= /expand_lets /expand_lets_k /=.
+      rw PCUICLiftSubst.subst_empty PCUICLiftSubst.lift0_p.
       apply: PCUICReduction.red_step; first exact: PCUICReduction.red_zeta.
-      rewrite PCUICLiftSubst.lift0_id.
+      rw PCUICLiftSubst.lift0_id.
       refine (substitution_untyped_red (Σ:=Σ) (Γ := Γ,,, ls) (Δ := [_]) (Γ':=nil) (M := t) (N:=t') _ _ _ red).
       + apply: untyped_subslet_def_tip=> //.
-      + rewrite -PCUICClosedTyp.is_open_term_closed //.
-      + rewrite on_free_vars_ctx_on_ctx_free_vars -PCUICClosedTyp.is_closed_ctx_closed //.
+      + rw -PCUICClosedTyp.is_open_term_closed //.
+      + rw on_free_vars_ctx_on_ctx_free_vars -PCUICClosedTyp.is_closed_ctx_closed //.
     - move: l=> /snocP [//|/=l x].
-      rewrite length_app /= Nat.add_comm PCUICAstUtils.mkApps_app /= => [=] eq.
+      rw length_app /= Nat.add_comm PCUICAstUtils.mkApps_app /= => [=] eq.
       move: (eq)=> /ih ih0 clt clctx red.
-      move: (clctx); rewrite Nat.add_0_r => /andP [clctx0 cld].
+      move: (clctx); rw Nat.add_0_r => /andP [clctx0 cld].
       etransitivity.
       1:{
         apply: PCUICReduction.red_app; last reflexivity.
@@ -4171,10 +4171,10 @@ Section IteratedBetaReduction.
       set t0 := (t in PCUICReduction.red _ _ t _).
       set t1 := (t in PCUICReduction.red _ _ _ t).
       have -> // : t0 = t1.
-      rewrite {}/t0 {}/t1.
-      rewrite /subst1 -PCUICLiftSubst.subst_app_simpl -(rev_app_distr _ [x]).
-      f_equal; rewrite -/([_]++ls) expand_lets_app /= /expand_lets.
-      rewrite {-1}/expand_lets_k /=subst_rel0_lift_id //.
+      rw {}/t0 {}/t1.
+      rw /subst1 -PCUICLiftSubst.subst_app_simpl -(rev_app_distr _ [x]).
+      f_equal; rw -/([_]++ls) expand_lets_app /= /expand_lets.
+      rw {-1}/expand_lets_k /=subst_rel0_lift_id //.
   Qed.
 
   Lemma red_betas (Σ:global_env_ext) (wfΣ:wf Σ) Γ (Δ : context) l t :
@@ -4206,25 +4206,25 @@ Section IteratedBetaReduction.
     Σ ;;; Γ |- mkApps (it_mkLambda_or_LetIn Δ t) l =s subst0 (mk_ctx_subst Δ l) t.
   Proof using cf.
     move=> tws /[dup] ?.
-    rewrite PCUICClosed.closedn_ctx_app=> /andP[??] lcl eqlen.
+    rw PCUICClosed.closedn_ctx_app=> /andP[??] lcl eqlen.
     apply: cumulAlgo_cumulSpec.
     apply PCUICContextConversion.ws_cumul_pb_red.
     set (u:= mkApps _ _).
     set (w := subst0 _ _).
     exists w, w; split; last reflexivity.
     + constructor.
-      * by rewrite  -PCUICClosedTyp.is_closed_ctx_closed.
-      * rewrite /u -PCUICClosedTyp.is_open_term_closed PCUICClosed.closedn_mkApps lcl andb_true_r.
+      * by rw  -PCUICClosedTyp.is_closed_ctx_closed.
+      * rw /u -PCUICClosedTyp.is_open_term_closed PCUICClosed.closedn_mkApps lcl andb_true_r.
         apply: PCUICClosed.closedn_it_mkLambda_or_LetIn => //.
-        by rewrite Nat.add_comm -length_app.
+        by rw Nat.add_comm -length_app.
       * apply: red_betas=> //.
     + constructor.
-      * by rewrite  -PCUICClosedTyp.is_closed_ctx_closed.
-      * rewrite -PCUICClosedTyp.is_open_term_closed.
+      * by rw  -PCUICClosedTyp.is_closed_ctx_closed.
+      * rw -PCUICClosedTyp.is_open_term_closed.
         move: (eqlen)=> /mk_ctx_subst_spec /closedn_ctx_subst_forall h.
         apply: PCUICClosed.closedn_subst0; first by apply: h.
-        rewrite mk_ctx_subst_length //.
-        by rewrite Nat.add_comm -length_app.
+        rw mk_ctx_subst_length //.
+        by rw Nat.add_comm -length_app.
       * reflexivity.
   Qed.
 

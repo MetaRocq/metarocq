@@ -258,5 +258,5 @@ Proof with auto.
     now apply (H (m a)).
   + apply (@well_founded_ind M R wf (fun mm => forall a, m a = mm -> Acc _ a)).
     intros. apply Acc_intro.
-    intros. rewrite H0 in H1. now apply (H (m y)).
+    intros. rw H0 in H1. now apply (H (m y)).
 Defined.

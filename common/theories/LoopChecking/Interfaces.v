@@ -150,7 +150,7 @@ Lemma not_in_union_inv l ls ls' :
   ~ LevelSet.In l (LevelSet.union ls ls') ->
   ~ LevelSet.In l ls /\ ~ LevelSet.In l ls'.
 Proof.
-  rewrite LevelSet.union_spec. firstorder.
+  rw LevelSet.union_spec. firstorder.
 Qed.
 
 Lemma levelmap_add_spec {A} (m m' : LevelMap.t A) {k v}:
@@ -181,8 +181,8 @@ Proof. lsets. Qed.
 Lemma LevelSet_In_elements l s :
   In l (LevelSet.elements s) <-> LevelSet.In l s.
 Proof.
-  rewrite LevelSetFact.elements_iff.
-  now rewrite InA_In_eq.
+  rw LevelSetFact.elements_iff.
+  now rw InA_In_eq.
 Qed.
 
 Lemma In_elements {x} {s : LevelExprSet.t} : LevelExprSet.In x s <-> List.In x (LevelExprSet.elements s).
@@ -202,25 +202,25 @@ Definition non_W_atoms W (l : LevelExprSet.t) :=
 
 Lemma non_W_atoms_spec W l : forall x, LevelExprSet.In x (non_W_atoms W l) <-> LevelExprSet.In x l /\ ~ LevelSet.In x.1 W.
 Proof.
-  intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec -not_mem.
+  intros x. now rw /non_W_atoms LevelExprSet.filter_spec -not_mem.
 Qed.
 
 Lemma non_W_atoms_subset W l : non_W_atoms W l ⊂_leset l.
-Proof. intros x. now rewrite /non_W_atoms LevelExprSet.filter_spec. Qed.
+Proof. intros x. now rw /non_W_atoms LevelExprSet.filter_spec. Qed.
 
 Lemma levels_exprs_non_W_atoms {W prem} :
   LevelSet.Equal (leset_levels (non_W_atoms W prem)) (LevelSet.diff (leset_levels prem) W).
 Proof.
   intros e. unfold non_W_atoms.
-  rewrite leset_levels_spec LevelSet.diff_spec leset_levels_spec.
+  rw leset_levels_spec LevelSet.diff_spec leset_levels_spec.
   firstorder eauto.
-  rewrite LevelExprSet.filter_spec in H. now exists x.
-  rewrite LevelExprSet.filter_spec in H. destruct H.
-  rewrite LevelSetFact.not_mem_iff.
+  rw LevelExprSet.filter_spec in H. now exists x.
+  rw LevelExprSet.filter_spec in H. destruct H.
+  rw LevelSetFact.not_mem_iff.
   destruct LevelSet.mem => //.
   exists x.
-  rewrite LevelExprSet.filter_spec. split => //.
-  rewrite LevelSetFact.not_mem_iff in H0. now rewrite H0.
+  rw LevelExprSet.filter_spec. split => //.
+  rw LevelSetFact.not_mem_iff in H0. now rw H0.
 Qed.
 
 Lemma levelexprset_empty_levels x : LevelExprSet.Empty x <-> LevelSet.Empty (leset_levels x).
@@ -274,14 +274,14 @@ Qed.
 Lemma strict_subset_leq_right U V W :
   strict_subset U V -> V ⊂_lset W -> strict_subset U W.
 Proof.
-  intros [] le. split. lsets. intros eq. rewrite -eq in le.
+  intros [] le. split. lsets. intros eq. rw -eq in le.
   apply H0. lsets.
 Qed.
 
 Lemma strict_subset_leq_left U V W :
   U ⊂_lset V -> strict_subset V W -> strict_subset U W.
 Proof.
-  intros le []. split. lsets. intros eq. rewrite eq in le.
+  intros le []. split. lsets. intros eq. rw eq in le.
   apply H0. lsets.
 Qed.
 
@@ -305,7 +305,7 @@ Qed.
 Lemma diff_cardinal V W : W ⊂_lset V -> #|LevelSet.diff V W| = #|V| - #|W|.
 Proof.
   intros hsub.
-  rewrite diff_cardinal_inter LevelSetProp.inter_sym LevelSetProp.inter_subset_equal //.
+  rw diff_cardinal_inter LevelSetProp.inter_sym LevelSetProp.inter_subset_equal //.
 Qed.
 
 
@@ -331,19 +331,19 @@ Ltac lset :=
   | [ H : LevelExprSet.In _ (union _ _) |- _ ] =>
     apply LevelExprSet.union_spec in H as []
   | [ H : LevelMap.MapsTo _ _ (LevelMap.add _ _ _) |- _ ] =>
-    rewrite LevelMapFact.F.add_mapsto_iff in H; unfold Level.eq in H
+    rw LevelMapFact.F.add_mapsto_iff in H; unfold Level.eq in H
   | [ H : LevelMap.MapsTo _ _ (LevelMap.empty _) |- _ ] =>
-    rewrite LevelMapFact.F.empty_mapsto_iff in H; unfold Level.eq in H
+    rw LevelMapFact.F.empty_mapsto_iff in H; unfold Level.eq in H
   | [ H : LevelSet.In _ (LevelSet.union _ _) |- _ ] =>
     apply LevelSet.union_spec in H as []
   | [ |- LevelSet.In _ (LevelSet.singleton _) ] =>
-    apply LevelSet.singleton_spec; rewrite ?/LevelSet.E.eq
+    apply LevelSet.singleton_spec; rw ?/LevelSet.E.eq
   | [ |- LevelSet.In _ (LevelSet.add _) ] =>
     apply LevelSet.add_spec
   | [ |- LevelSet.In _ (LevelSet.union _) ] =>
     apply LevelSet.union_spec
   | [ |- LevelSet.In _ (LevelSet.singleton _) -> _ ] =>
-    move/LevelSet.singleton_spec; rewrite ?/LevelSet.E.eq
+    move/LevelSet.singleton_spec; rw ?/LevelSet.E.eq
   | [ |- LevelSet.In _ (LevelSet.add _) -> _ ] =>
     move/LevelSet.add_spec
   | [ |- LevelSet.In _ (LevelSet.union _) -> _ ] =>

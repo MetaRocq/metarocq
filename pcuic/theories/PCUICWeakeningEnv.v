@@ -71,7 +71,7 @@ Lemma weakening_env_global_ext_levels_subset Σ Σ' φ (H : extends Σ Σ') l
   : LevelSet.subset l (global_ext_levels (Σ, φ))
     -> LevelSet.subset l (global_ext_levels (Σ', φ)).
 Proof.
-  rewrite ![is_true _]LevelSet.subset_spec. now apply weakening_env_global_ext_levels.
+  rw ![is_true _]LevelSet.subset_spec. now apply weakening_env_global_ext_levels.
 Qed.
 
 Lemma weakening_env_global_ext_constraints Σ Σ' φ (H : extends Σ Σ')
@@ -318,7 +318,7 @@ Proof using P Pcmp cf.
   eapply lookup_globals_In.
   destruct H2 as [? H2 _].
   specialize (H2 cst). destruct H2 as [decls Hdecls].
-  rewrite /lookup_envs in Hdecls. rewrite Hdecls.
+  rw /lookup_envs in Hdecls. rw Hdecls.
   apply in_or_app. now right.
 Qed.
 
@@ -335,7 +335,7 @@ Proof using P Pcmp cf.
   eapply lookup_globals_In.
   destruct H2 as [? H2 _].
   specialize (H2 cst). destruct H2 as [decls Hdecls].
-  rewrite /lookup_envs in Hdecls. rewrite Hdecls.
+  rw /lookup_envs in Hdecls. rw Hdecls.
   apply in_or_app. now right.
 Qed.
 
@@ -402,15 +402,15 @@ Proof using P Pcmp cf.
     destruct o as [H1 [H2 [H3 H4]]]. repeat split.
     clear -H2. intros [[? ?] ?] Hc. specialize (H2 _ Hc).
     destruct H2 as [H H']. simpl. split.
-    * rewrite H. lsets.
-    * rewrite H'. lsets.
+    * rw H. lsets.
+    * rw H'. lsets.
   - specialize (IHwfΣ HH). revert IHwfΣ o; clear.
     generalize (universes_decl_of_decl decl); intros d' HH Hd.
     unfold on_udecl_prop in *.
     intros [[? ?] ?] Hc. specialize (HH _ Hc).
     destruct HH as [H' H'']. simpl. split.
-    * rewrite H'. lsets.
-    * rewrite H''; lsets.
+    * rw H'. lsets.
+    * rw H''; lsets.
 Qed.
 
 Definition weaken_env_prop_full_gen
@@ -479,9 +479,9 @@ Lemma strictly_extends_decls_wf Σ Σ' :
 Proof using P Pcmp cf.
   intros [onu ond] [eq [Σ'' eq']].
   split => //.
-  - red. rewrite eq. apply onu.
-  - rewrite eq. rewrite eq' in ond.
-    rewrite -e in ond.
+  - red. rw eq. apply onu.
+  - rw eq. rw eq' in ond.
+    rw -e in ond.
     revert ond; clear.
     induction Σ''; cbn; auto.
     intros H; depelim H.

@@ -28,7 +28,7 @@ Module GlobalContextMap.
     Next Obligation.
       simpl. unfold KernameMapFact.uncurry.
       pose proof (Σ.(repr)). unfold EnvMap.repr in H.
-      now rewrite H.
+      now rw H.
     Qed.
     Next Obligation.
       constructor => //. apply Σ.(wf).
@@ -65,8 +65,8 @@ Module GlobalContextMap.
 
   Lemma lookup_env_spec (Σ : t) kn : lookup_env Σ kn = EGlobalEnv.lookup_env Σ kn.
   Proof.
-    rewrite /lookup_env.
-    rewrite (EnvMap.lookup_spec Σ.(global_decls)) //; apply Σ.
+    rw /lookup_env.
+    rw (EnvMap.lookup_spec Σ.(global_decls)) //; apply Σ.
   Qed.
 
   Definition lookup_constant Σ kn : option constant_body :=
@@ -78,8 +78,8 @@ Module GlobalContextMap.
 
   Lemma lookup_constant_spec Σ kn : lookup_constant Σ kn = EGlobalEnv.lookup_constant Σ kn.
   Proof.
-    rewrite /lookup_constant /EGlobalEnv.lookup_constant.
-    rewrite lookup_env_spec //.
+    rw /lookup_constant /EGlobalEnv.lookup_constant.
+    rw lookup_env_spec //.
   Qed.
 
   Definition lookup_minductive Σ kn : option mutual_inductive_body :=
@@ -91,8 +91,8 @@ Module GlobalContextMap.
 
   Lemma lookup_minductive_spec Σ kn : lookup_minductive Σ kn = EGlobalEnv.lookup_minductive Σ kn.
   Proof.
-    rewrite /lookup_minductive /EGlobalEnv.lookup_minductive.
-    rewrite lookup_env_spec //.
+    rw /lookup_minductive /EGlobalEnv.lookup_minductive.
+    rw lookup_env_spec //.
   Qed.
 
   Definition lookup_inductive Σ kn : option (mutual_inductive_body * one_inductive_body) :=
@@ -102,8 +102,8 @@ Module GlobalContextMap.
 
   Lemma lookup_inductive_spec Σ kn : lookup_inductive Σ kn = EGlobalEnv.lookup_inductive Σ kn.
   Proof.
-    rewrite /lookup_inductive /EGlobalEnv.lookup_inductive.
-    rewrite lookup_minductive_spec //.
+    rw /lookup_inductive /EGlobalEnv.lookup_inductive.
+    rw lookup_minductive_spec //.
   Qed.
 
   Definition lookup_constructor Σ kn c : option (mutual_inductive_body * one_inductive_body * constructor_body) :=
@@ -113,8 +113,8 @@ Module GlobalContextMap.
 
   Lemma lookup_constructor_spec Σ kn : lookup_constructor Σ kn = EGlobalEnv.lookup_constructor Σ kn.
   Proof.
-    rewrite /lookup_constructor /EGlobalEnv.lookup_constructor.
-    rewrite lookup_inductive_spec //.
+    rw /lookup_constructor /EGlobalEnv.lookup_constructor.
+    rw lookup_inductive_spec //.
   Qed.
 
   Definition lookup_projection Σ (p : projection) :
@@ -125,8 +125,8 @@ Module GlobalContextMap.
 
   Lemma lookup_projection_spec Σ kn : lookup_projection Σ kn = EGlobalEnv.lookup_projection Σ kn.
   Proof.
-    rewrite /lookup_projection /EGlobalEnv.lookup_projection.
-    rewrite lookup_constructor_spec //.
+    rw /lookup_projection /EGlobalEnv.lookup_projection.
+    rw lookup_constructor_spec //.
   Qed.
 
   Definition lookup_inductive_pars Σ kn : option nat :=
@@ -135,8 +135,8 @@ Module GlobalContextMap.
 
   Lemma lookup_inductive_pars_spec Σ kn : lookup_inductive_pars Σ kn = EGlobalEnv.lookup_inductive_pars Σ kn.
   Proof.
-    rewrite /lookup_inductive_pars /EGlobalEnv.lookup_inductive_pars.
-    now rewrite lookup_minductive_spec.
+    rw /lookup_inductive_pars /EGlobalEnv.lookup_inductive_pars.
+    now rw lookup_minductive_spec.
   Qed.
 
   Definition lookup_inductive_kind Σ kn : option recursivity_kind :=
@@ -145,8 +145,8 @@ Module GlobalContextMap.
 
   Lemma lookup_inductive_kind_spec Σ kn : lookup_inductive_kind Σ kn = EGlobalEnv.lookup_inductive_kind Σ kn.
   Proof.
-    rewrite /lookup_inductive_kind /EGlobalEnv.lookup_inductive_kind.
-    now rewrite lookup_minductive_spec.
+    rw /lookup_inductive_kind /EGlobalEnv.lookup_inductive_kind.
+    now rw lookup_minductive_spec.
   Qed.
 
   Definition inductive_isprop_and_pars Σ (ind : inductive) :=
@@ -156,8 +156,8 @@ Module GlobalContextMap.
   Lemma inductive_isprop_and_pars_spec Σ kn :
     inductive_isprop_and_pars Σ kn = EGlobalEnv.inductive_isprop_and_pars Σ kn.
   Proof.
-    rewrite /inductive_isprop_and_pars /EGlobalEnv.inductive_isprop_and_pars.
-    now rewrite lookup_inductive_spec.
+    rw /inductive_isprop_and_pars /EGlobalEnv.inductive_isprop_and_pars.
+    now rw lookup_inductive_spec.
   Qed.
 
   Definition constructor_isprop_pars_decl Σ (ind : inductive) (c : nat) :=
@@ -167,8 +167,8 @@ Module GlobalContextMap.
   Lemma constructor_isprop_pars_decl_spec Σ kn :
     constructor_isprop_pars_decl Σ kn = EGlobalEnv.constructor_isprop_pars_decl Σ kn.
   Proof.
-    rewrite /constructor_isprop_pars_decl /EGlobalEnv.constructor_isprop_pars_decl.
-    rewrite lookup_constructor_spec //.
+    rw /constructor_isprop_pars_decl /EGlobalEnv.constructor_isprop_pars_decl.
+    rw lookup_constructor_spec //.
   Qed.
 
   Definition lookup_constructor_pars_args Σ (ind : inductive) (c : nat) :=
@@ -178,8 +178,8 @@ Module GlobalContextMap.
   Lemma lookup_constructor_pars_args_spec Σ kn :
     lookup_constructor_pars_args Σ kn = EGlobalEnv.lookup_constructor_pars_args Σ kn.
   Proof.
-    rewrite /lookup_constructor_pars_args /EGlobalEnv.lookup_constructor_pars_args.
-    rewrite lookup_constructor_spec //.
+    rw /lookup_constructor_pars_args /EGlobalEnv.lookup_constructor_pars_args.
+    rw lookup_constructor_spec //.
   Qed.
 
   Program Definition make (g : global_declarations) (Hg : EnvMap.fresh_globals g): t :=

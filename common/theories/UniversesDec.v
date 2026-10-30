@@ -19,7 +19,7 @@ Proof.
   - move=> /LevelSet.remove_spec => -[] //.
   - move=> cl; cbn => hin.
     apply declared_univ_cstr_levels_spec.
-    rewrite levelset_add_remove; apply levelset_subset_add.
+    rw levelset_add_remove; apply levelset_subset_add.
     move=> ls hin'. apply univ_constraints_levels_spec. exists cl. split => //.
 Qed.
 
@@ -52,10 +52,10 @@ Proof.
   have [hnz' hs'] := levels_of_cs_spec cs2.
   split.
   - split. move=> /LevelSet.union_spec -[] hz; contradiction.
-    red; cbn. rewrite /lvls /levels_of_cs2 levelset_add_union.
+    red; cbn. rw /lvls /levels_of_cs2 levelset_add_union.
     eapply declared_univ_cstrs_levels_subset. 3:{ apply hs. } lsets. ucsets.
   - split. move=> /LevelSet.union_spec -[] hz; contradiction.
-    red; cbn. rewrite /lvls /levels_of_cs2 levelset_add_union.
+    red; cbn. rw /lvls /levels_of_cs2 levelset_add_union.
     eapply declared_univ_cstrs_levels_subset. 3:{ apply hs'. } lsets. ucsets.
 Qed.
 
@@ -69,13 +69,13 @@ Proof.
   intros csnz.
   destruct (levels_of_cs2_spec cstr (ContextSet.constraints cs)) as [[hnz h] [hnz' h']].
   split.
-  - split. subst lvls. rewrite /levels_of_cscs. cbn.
+  - split. subst lvls. rw /levels_of_cscs. cbn.
     move/LevelSet.union_spec. intuition.
-    red. rewrite levelset_add_union. apply global_uctx_invariants_union_or.
+    red. rw levelset_add_union. apply global_uctx_invariants_union_or.
     right. apply levels_of_cs2_spec.
-  - split. subst lvls. rewrite /levels_of_cscs. cbn.
+  - split. subst lvls. rw /levels_of_cscs. cbn.
     move/LevelSet.union_spec. intuition.
-    red. rewrite levelset_add_union. apply global_uctx_invariants_union_or.
+    red. rw levelset_add_union. apply global_uctx_invariants_union_or.
     right. apply levels_of_cs2_spec.
 Qed.
 
@@ -92,7 +92,7 @@ Qed.
 Lemma declared_univ_cstrs_levels_spec cstrs : declared_univ_cstrs_levels (univ_constraints_levels cstrs) cstrs.
 Proof.
   intros cl hin. apply declared_univ_cstr_levels_spec.
-  intros l; rewrite univ_constraints_levels_spec. exists cl; split => //.
+  intros l; rw univ_constraints_levels_spec. exists cl; split => //.
 Qed.
 
 Definition leq0_universe_dec (cf := config.default_checker_flags) ϕ u u' : {@leq0_universe ϕ u u'} + {~@leq0_universe ϕ u u'}.
@@ -110,7 +110,7 @@ Proof.
   have := check_leqb_universe_spec u0 uctx hc => /fwd.
   { now apply push_uctx_init_model_sat. }
   move/(_ cf u u') => /fwd.
-  { cbn. rewrite levelset_add_remove /levels. split; lsets. }
+  { cbn. rw levelset_add_remove /levels. split; lsets. }
   move=> -[]. destruct (check_leqb_universe_gen).
   * left. red. specialize (a eq_refl). red in a. cbn in a. red in a.
     move=> v vsat; move: (a v vsat). intros sat. now depelim sat.
@@ -159,13 +159,13 @@ Proof.
       eapply (declared_univ_cstrs_levels_subset (univ_constraints_levels ϕ)).
       lsets. reflexivity.
       intros cl hin. apply declared_univ_cstr_levels_spec.
-      intros l; rewrite univ_constraints_levels_spec. exists cl; split => //. }
+      intros l; rw univ_constraints_levels_spec. exists cl; split => //. }
   destruct (push_uctx init_model uctx) eqn:eqp.
   - have := check_constraints_spec u uctx hc => /fwd.
     { now apply push_uctx_init_model_sat. }
     move/(_ cf cstrs) => /fwd.
-    { cbn. red. cbn. split. lsets. red. cbn. rewrite levelset_add_remove /levels.
-      rewrite levelset_add_union. eapply (declared_univ_cstrs_levels_subset (univ_constraints_levels cstrs)). lsets.
+    { cbn. red. cbn. split. lsets. red. cbn. rw levelset_add_remove /levels.
+      rw levelset_add_union. eapply (declared_univ_cstrs_levels_subset (univ_constraints_levels cstrs)). lsets.
       reflexivity. apply declared_univ_cstrs_levels_spec. }
     move=> -[]. destruct (check_constraints_gen).
     * left. red. specialize (a eq_refl). red in a. cbn in a.

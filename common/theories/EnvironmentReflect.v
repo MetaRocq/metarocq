@@ -23,7 +23,7 @@ Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec 
       cbn [fst] in *.
       specialize (fun pf : { d : _ | In (c, d) _ } => H (proj1_sig pf) (proj2_sig pf)).
       destruct (lookup_envs Σ c) eqn:H'.
-      { eexists; rewrite app_nil_r; reflexivity. }
+      { eexists; rw app_nil_r; reflexivity. }
       rewrite <- H; clear H.
       { eexists; symmetry; apply firstn_skipn. }
       unfold lookup_envs in *.
@@ -33,17 +33,17 @@ Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec 
     { intro H'; apply H; clear H; intros [c ?]; specialize (H' c).
       destruct H' as [decls H'].
       cbn [fst].
-      rewrite H' length_app Nat.add_sub skipn_all_app //. }
+      rw H' length_app Nat.add_sub skipn_all_app //. }
   Qed.
 
   Lemma strictly_extends_decls_partT (Σ Σ' : global_env)
     : reflectT (strictly_extends_decls_part Σ Σ') (strictly_extendsb_decls_part Σ Σ').
   Proof.
     case: eqb_specT => H; constructor.
-    { rewrite -H.
+    { rw -H.
       eexists; symmetry; apply firstn_skipn. }
     { move => [Σ'' H'].
-      move: H. rewrite H' length_app Nat.add_sub skipn_all_app //. }
+      move: H. rw H' length_app Nat.add_sub skipn_all_app //. }
   Qed.
 
   Definition extendsb (Σ Σ' : global_env) : bool
@@ -68,28 +68,28 @@ Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec 
 
   Lemma extendsT Σ Σ' : reflectT (extends Σ Σ') (extendsb Σ Σ').
   Proof.
-    rewrite /extends/extendsb.
+    rw /extends/extendsb.
     case: extends_decls_partT; case: Retroknowledge.extendsT; case: ContextSet.subsetP; cbn;
       constructor; intuition.
   Qed.
 
   Lemma extends_declsT Σ Σ' : reflectT (extends_decls Σ Σ') (extends_declsb Σ Σ').
   Proof.
-    rewrite /extends_decls/extends_declsb.
+    rw /extends_decls/extends_declsb.
     case: extends_decls_partT; case: eqb_specT; case: eqb_specT; cbn;
       constructor; intuition.
   Qed.
 
   Lemma extends_strictly_on_declsT Σ Σ' : reflectT (extends_strictly_on_decls Σ Σ') (extends_strictly_on_declsb Σ Σ').
   Proof.
-    rewrite /extends_strictly_on_decls/extends_strictly_on_declsb.
+    rw /extends_strictly_on_decls/extends_strictly_on_declsb.
     case: strictly_extends_decls_partT; case: Retroknowledge.extendsT; case: ContextSet.subsetP; cbn;
       constructor; intuition.
   Qed.
 
   Lemma strictly_extends_declsT Σ Σ' : reflectT (strictly_extends_decls Σ Σ') (strictly_extends_declsb Σ Σ').
   Proof.
-    rewrite /strictly_extends_decls/strictly_extends_declsb.
+    rw /strictly_extends_decls/strictly_extends_declsb.
     case: strictly_extends_decls_partT; case: eqb_specT; case: eqb_specT; cbn;
       constructor; intuition.
   Qed.
@@ -125,12 +125,12 @@ Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec 
 
   Lemma compatible_globalsP Σ Σ' : reflect (compatible_globals Σ Σ') (compatible_globalsb Σ Σ').
   Proof.
-    rewrite /compatible_globals/compatible_globalsb.
+    rw /compatible_globals/compatible_globalsb.
     lazymatch goal with
     | [ |- context[KernameSet.for_all ?f ?s] ]
       => generalize (@KernameSet.for_all_spec s f _)
     end.
-    rewrite /KernameSet.For_all.
+    rw /KernameSet.For_all.
     case: KernameSet.for_all; move => [H1 H2]; constructor.
     all: first [ specialize (H1 eq_refl); rename H1 into H | clear H1 ].
     all: try pose proof (fun x => diff_false_true (H2 x)) as H; clear H2.
@@ -149,7 +149,7 @@ Module EnvironmentReflect (T : Term) (Import E : EnvironmentSig T) (Import TDec 
 
   Lemma compatibleP Σ Σ' : reflect (compatible Σ Σ') (compatibleb Σ Σ').
   Proof.
-    rewrite /compatible/compatibleb.
+    rw /compatible/compatibleb.
     case: compatible_globalsP; destruct Retroknowledge.compatible; cbn; constructor; intuition.
   Qed.
 

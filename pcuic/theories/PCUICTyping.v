@@ -995,9 +995,9 @@ Proof.
 
     -- simpl in pΓ. destruct c0, c1.
        eapply (X8 Σ wfΣ Γ (typing_wf_local H0) ci); eauto.
-        ++ eapply (X14 _ _ _ H); eauto. rewrite /predctx; simpl; lia.
-        ++ eapply (X14 _ _ _ H); eauto. rewrite /predctx; simpl; lia.
-        ++ eapply (Hwf _ wf_pctx). rewrite /predctx; simpl.
+        ++ eapply (X14 _ _ _ H); eauto. rw /predctx; simpl; lia.
+        ++ eapply (X14 _ _ _ H); eauto. rw /predctx; simpl; lia.
+        ++ eapply (Hwf _ wf_pctx). rw /predctx; simpl.
           change (fun Γ t T (Hty : Σ ;;; Γ |- t : T) => typing_size Hty) with (@typing_size cf Σ).
           lia.
         ++ clear -ind_inst X14.
@@ -1052,7 +1052,7 @@ Proof.
                   S (all_size (on_def_body (lift_typing typing _) _ _) (fun x p => on_def_body_size (@typing_size _ Σ) _ _ _ p) a1) ->
                   PΓ Σ Γ0).
           {intros. eapply (Htywf _ _ _ Hty); eauto. lia. }
-          destruct mfix. now rewrite nth_error_nil in e.
+          destruct mfix. now rw nth_error_nil in e.
           depelim a1. destruct o as (t & ?).
           eapply (X _ _ _ t). unfold on_def_body_sorting_size at 1. simpl. lia.
         * assert(forall j Hj,
@@ -1091,7 +1091,7 @@ Proof.
                   S (all_size (on_def_body (lift_typing typing _) _ _) (fun x p => on_def_body_size (@typing_size _ Σ) _ _ _ p) a1) ->
                   PΓ Σ Γ0).
           {intros. eapply (Htywf _ _ _ Hty); eauto. lia. }
-          destruct mfix. now rewrite nth_error_nil in e.
+          destruct mfix. now rw nth_error_nil in e.
           depelim a1. destruct o as (t & ?).
           eapply (X _ _ _ t). unfold on_def_body_sorting_size at 1. simpl. lia.
         * assert(forall j Hj,

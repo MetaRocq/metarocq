@@ -28,17 +28,17 @@ Module HornSemilattice (LS : LevelSets).
     forall cl, Clauses.In cl (clauses_of_relations rels) ->
       exists r, In r rels /\ Clauses.In cl (clauses_of_eq r.1 r.2).
   Proof.
-    rewrite /clauses_of_relations.
+    rw /clauses_of_relations.
     induction rels; cbn.
     - clsets.
     - move=> cl. destruct a as [l r]; cbn in *.
-      rewrite Clauses.union_spec => -[].
-      * rewrite /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
+      rw Clauses.union_spec => -[].
+      * rw /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
         rws Clauses.union_spec; cbn.
         exists (l, r). split => //. now left. cbn. now left.
         exists (l, r). split => //. now left. cbn. now right.
       * move/IHrels => [[l' r'] [hin]]; cbn in *.
-        rewrite /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
+        rw /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
         rws Clauses.union_spec; now exists (l', r'); split => //.
   Qed.
 
@@ -46,13 +46,13 @@ Module HornSemilattice (LS : LevelSets).
     forall r, In r rels ->
       Clauses.Subset (clauses_of_eq r.1 r.2) (clauses_of_relations rels).
   Proof.
-    rewrite /clauses_of_relations.
+    rw /clauses_of_relations.
     induction rels; cbn.
     - clsets.
     - move=> [l r] //= [].
-      * move=> -> ?. rewrite Clauses.union_spec; now left.
+      * move=> -> ?. rw Clauses.union_spec; now left.
       * move/IHrels => //= hin ?. destruct a as [l' r'].
-        rewrite Clauses.union_spec; now right.
+        rw Clauses.union_spec; now right.
   Qed.
 
   Lemma relations_of_clauses_spec {cls} :
@@ -60,7 +60,7 @@ Module HornSemilattice (LS : LevelSets).
       exists prems concl, Clauses.In (prems, concl) cls /\
         eq = (singleton concl ∨ prems, prems).
   Proof.
-    rewrite /relations_of_clauses.
+    rw /relations_of_clauses.
     eapply ClausesProp.fold_rec.
     - move=> s'he eq => //=.
     - move=> x a s' s'' hin hnin hadd ih eq.
@@ -75,12 +75,12 @@ Module HornSemilattice (LS : LevelSets).
     forall cl, Clauses.In cl cls ->
     In (singleton (concl cl) ∨ premise cl, premise cl) (relations_of_clauses cls).
   Proof.
-    rewrite /relations_of_clauses.
+    rw /relations_of_clauses.
     eapply ClausesProp.fold_rec.
     - move=> s'he eq => //=.
     - move=> x a s' s'' hin hnin hadd ih eq.
       destruct x as [prems concl]. cbn.
-      rewrite hadd.
+      rw hadd.
       intros [<-|ina].
       * cbn. now left.
       * move: (ih _ ina) => insing. now right.
@@ -90,7 +90,7 @@ Module HornSemilattice (LS : LevelSets).
     equivlistA Logic.eq (relations_of_clauses (Clauses.union cls cls'))
       (relations_of_clauses cls ++ relations_of_clauses cls').
   Proof.
-    intros eq. split; rewrite !InA_In_eq; rewrite in_app_iff.
+    intros eq. split; rw !InA_In_eq; rw in_app_iff.
     - move/relations_of_clauses_spec => -[] prems [] concl [] hin ->.
       eapply Clauses.union_spec in hin as [hin|hin]; [left|right];
       now apply (relations_of_clauses_spec_inv (_, _)).
@@ -119,10 +119,10 @@ Module HornSemilattice (LS : LevelSets).
       apply entails_idem.
     - move=> le' x hin hnin /LevelExprSet.add_spec [].
       * unfold LevelExprSet.E.eq in *; intros eq; subst le'.
-        rewrite union_comm union_add_singleton.
-        rewrite add_idem. apply entails_refl.
+        rw union_comm union_add_singleton.
+        rw add_idem. apply entails_refl.
       * move/hin => heq.
-        rewrite -!union_add_singleton -union_assoc.
+        rw -!union_add_singleton -union_assoc.
         now apply entails_join_congr.
   Qed.
 
@@ -131,15 +131,15 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_pres_clause (relations_of_clauses cls) cl.
   Proof.
     induction 1.
-    - rewrite /entails_L_pres_clause /rel_le.
+    - rw /entails_L_pres_clause /rel_le.
       destruct cl as [prems concl]; cbn.
-      rewrite -add_prems_singleton -add_prems_union.
+      rw -add_prems_singleton -add_prems_union.
       apply entails_add_congr.
       apply entails_c. now eapply (relations_of_clauses_spec_inv (prems, concl)).
     - replace (x, (k + 1)%Z) with (add_expr 1%Z (x, k)).
-      rewrite -add_prems_singleton. red; cbn.
+      rw -add_prems_singleton. red; cbn.
       eapply entails_sub.
-      now rewrite /succ_expr Z.add_comm.
+      now rw /succ_expr Z.add_comm.
   Qed.
 
   Lemma entails_entails_L {cls} cl :
@@ -149,13 +149,13 @@ Module HornSemilattice (LS : LevelSets).
     intros h; induction h.
     - red.
       now apply entails_L_idem_gen.
-    - move: IHh; rewrite -!union_add_singleton.
+    - move: IHh; rw -!union_add_singleton.
       eapply in_pred_closure_entails_L in H.
-      rewrite /entails_L_pres_clause in H |- *; cbn in *.
+      rw /entails_L_pres_clause in H |- *; cbn in *.
       have hsub:= entails_L_subset H H0.
       move=> h'.
       eapply entails_L_le_trans. tea.
-      move/entails_L_eq_le_1: hsub. now rewrite union_comm.
+      move/entails_L_eq_le_1: hsub. now rw union_comm.
   Qed.
 
   Theorem entails_ℋ_entails_L {cls} cls' :
@@ -178,7 +178,7 @@ Module HornSemilattice (LS : LevelSets).
     LevelExprSet.In le l <->
     Clauses.Clauses.In (r, le) (l ⋞ r).
   Proof.
-    rewrite clauses_of_le_spec.
+    rw clauses_of_le_spec.
     split.
     - exists le. split => //.
     - intros [lk [hin [=]]]. now subst le.
@@ -191,7 +191,7 @@ Module HornSemilattice (LS : LevelSets).
     intros hin l' cl.
     eapply in_pred_closure_entails_clause, incls0.
     eapply clauses_of_relations_spec_inv. tea. cbn.
-    rewrite /clauses_of_eq Clauses.union_spec. left.
+    rw /clauses_of_eq Clauses.union_spec. left.
     apply clauses_of_le_spec. now exists l'.
   Qed.
 
@@ -202,7 +202,7 @@ Module HornSemilattice (LS : LevelSets).
     intros hin l' cl.
     eapply in_pred_closure_entails_clause, incls0.
     eapply clauses_of_relations_spec_inv. tea. cbn.
-    rewrite /clauses_of_eq Clauses.union_spec. right.
+    rw /clauses_of_eq Clauses.union_spec. right.
     apply clauses_of_le_spec. now exists l'.
   Qed.
 
@@ -213,8 +213,8 @@ Module HornSemilattice (LS : LevelSets).
     intros hin.
     apply Theory.eq_antisym.
     split.
-    - rewrite to_entails_all. now apply entails_ℋ_entails_L_eq_left.
-    - rewrite to_entails_all. now apply entails_ℋ_entails_L_eq_right.
+    - rw to_entails_all. now apply entails_ℋ_entails_L_eq_left.
+    - rw to_entails_all. now apply entails_ℋ_entails_L_eq_right.
   Qed.
 
   Theorem entails_L_entails {p r} :
@@ -249,7 +249,7 @@ Module HornSemilattice (LS : LevelSets).
         eapply LevelExprSet.add_spec. now right. }
       specialize (ih le); forward ih.
       eapply LevelExprSet.add_spec; now left.
-      rewrite -union_add_singleton.
+      rw -union_add_singleton.
       now eapply entails_L_le_join.
   Qed.
 
@@ -261,9 +261,9 @@ Module HornSemilattice (LS : LevelSets).
     move/relations_of_clauses_spec: H => [prems [concl [hin heq]]].
     noconf heq.
     move/clauses_of_relations_spec: hin => [[l r]] [] hin //=.
-    rewrite /clauses_of_eq Clauses.union_spec => -[] hin';
+    rw /clauses_of_eq Clauses.union_spec => -[] hin';
     eapply entails_L_le_eq;
-    rewrite clauses_of_le_spec in hin'.
+    rw clauses_of_le_spec in hin'.
     - destruct hin' as [? [hin' heq]]. noconf heq.
       eapply entails_L_le_trans with l.
       * now eapply entails_L_in.
@@ -287,8 +287,8 @@ Module HornSemilattice (LS : LevelSets).
       move: (hf (t, le)) => /fwd.
       { exists le; split => //. }
       now move=> h; red in h.
-    - intros hf. rewrite /entails_L_pres_clauses.
-      intros cl. rewrite clauses_of_le_spec => -[] le [hin ->].
+    - intros hf. rw /entails_L_pres_clauses.
+      intros cl. rw clauses_of_le_spec => -[] le [hin ->].
       red. cbn. eapply entails_L_le_trans; tea. now eapply entails_L_in.
   Qed.
 
@@ -296,7 +296,7 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_clauses (clauses_of_relations p) (s ⋞ t) ->
     p ⊢ℒ s ≤ t.
   Proof.
-    rewrite /entails_L_clauses entails_L_pres_clauses_of_le.
+    rw /entails_L_clauses entails_L_pres_clauses_of_le.
     now move/entails_L_clauses_pres_all.
   Qed.
 
@@ -306,7 +306,7 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_pres_clauses p (s ⋞ t) /\
     entails_L_pres_clauses p (t ⋞ s).
   Proof.
-    rewrite /entails_L_pres_clauses /clauses_of_eq /Clauses.For_all.
+    rw /entails_L_pres_clauses /clauses_of_eq /Clauses.For_all.
     setoid_rewrite Clauses.union_spec.
     split.
     - intros h; split.
@@ -319,8 +319,8 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_pres_clauses p (s ≡ t) <->
     p ⊢ℒ s ≡ t.
   Proof.
-    rewrite entails_L_pres_clauses_of_eq_split.
-    rewrite !entails_L_pres_clauses_of_le.
+    rw entails_L_pres_clauses_of_eq_split.
+    rw !entails_L_pres_clauses_of_le.
     eapply entails_L_eq_antisym.
   Qed.
 
@@ -328,7 +328,7 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_clauses (clauses_of_relations p) (s ≡ t) ->
     p ⊢ℒ s ≡ t.
   Proof.
-    rewrite /entails_L_clauses entails_L_pres_clauses_of_relations_eq.
+    rw /entails_L_clauses entails_L_pres_clauses_of_relations_eq.
     now move/entails_L_clauses_pres_all.
   Qed.
 
@@ -351,8 +351,8 @@ Module HornSemilattice (LS : LevelSets).
   Proof.
     intros cl.
     move/relations_of_clauses_spec_inv/clauses_of_relations_spec_inv => //=; apply.
-    rewrite /clauses_of_eq Clauses.union_spec. left.
-    eapply clauses_of_le_spec. exists (concl cl). split => //. rewrite LevelExprSet.union_spec. left; now apply LevelExprSet.singleton_spec.
+    rw /clauses_of_eq Clauses.union_spec. left.
+    eapply clauses_of_le_spec. exists (concl cl). split => //. rw LevelExprSet.union_spec. left; now apply LevelExprSet.singleton_spec.
     now destruct cl.
   Qed.
 
@@ -367,7 +367,7 @@ Module HornSemilattice (LS : LevelSets).
   Lemma entails_ℋ_singleton cls prems concl :
     cls ⊢ℋ singleton concl ⋞ prems <-> cls ⊢ prems → concl.
   Proof.
-    rewrite to_entails_all. apply entails_all_singleton.
+    rw to_entails_all. apply entails_all_singleton.
   Qed.
 
   Lemma entails_ℋ_clauses_of_relations {cls cls'} :
@@ -376,7 +376,7 @@ Module HornSemilattice (LS : LevelSets).
   Proof.
     move=> ha. eapply (entails_clauses_cut (cls0 := clauses_of_relations (relations_of_clauses cls))); revgoals.
     eapply entails_ℋ_clauses_subset; tea.
-    { intros ?; rewrite Clauses.union_spec; now left. }
+    { intros ?; rw Clauses.union_spec; now left. }
     intros cl.
     move/clauses_of_relations_spec => [] [l r] [] //= /relations_of_clauses_spec [] prems [] concl [] hin [=] -> ->.
     have eq : cls ⊢ℋ (singleton concl ∪ prems) ≡ prems.
@@ -416,12 +416,12 @@ Module HornSemilattice (LS : LevelSets).
     entails_L_clauses p (s ≡ t) <->
     entails_L_clauses p (s ⋞ t) /\ entails_L_clauses p (t ⋞ s).
   Proof.
-    rewrite /entails_L_clauses /clauses_of_eq.
+    rw /entails_L_clauses /clauses_of_eq.
     split.
-    - intros ha; split => l; move:(ha l); rewrite Clauses.union_spec;
+    - intros ha; split => l; move:(ha l); rw Clauses.union_spec;
       intros he hle; apply he; now constructor.
     - intros [le le'] l.
-      rewrite Clauses.union_spec; intros []; [apply le|apply le']; assumption.
+      rw Clauses.union_spec; intros []; [apply le|apply le']; assumption.
   Qed.
 
   Theorem entails_L_entails_ℋ_equiv {cls cls'} :
@@ -436,9 +436,9 @@ Module HornSemilattice (LS : LevelSets).
     relations_of_clauses cls ⊢ℒ r <->
     entails_L_clauses cls (clauses_of_eq r.1 r.2).
   Proof.
-    rewrite entails_L_clauses_eq.
+    rw entails_L_clauses_eq.
     destruct r as [l r]; cbn.
-    rewrite -entails_L_eq_antisym.
+    rw -entails_L_eq_antisym.
     split; intros [le le']; split.
     all:by apply entails_L_pres_clauses_of_le.
   Qed.
@@ -459,7 +459,7 @@ Module HornSemilattice (LS : LevelSets).
     move/completeness_eq => h1.
     move/completeness_eq => h2.
     apply completeness_eq.
-    rewrite clauses_of_relations_cons in h2.
+    rw clauses_of_relations_cons in h2.
     eapply entails_clauses_cut; tea.
   Qed.
 
@@ -480,14 +480,14 @@ Module HornSemilattice (LS : LevelSets).
     - move=> x l px pl ih r hxl.
       move: (ih r) => /fwd //.
       cbn in hxl. eapply entails_L_cut; tea.
-      eapply entails_L_rels_subset in px. tea. red => ?. now rewrite in_app_iff.
+      eapply entails_L_rels_subset in px. tea. red => ?. now rw in_app_iff.
   Qed.
 
   Lemma entails_L_all_one_trans {p q r} :
     p ⊩ℒ q -> q ⊢ℒ r -> p ⊢ℒ r.
   Proof.
     intros hq hr. eapply entails_L_all_cut; tea.
-    eapply entails_L_rels_subset; tea. red => ?; now rewrite in_app_iff.
+    eapply entails_L_rels_subset; tea. red => ?; now rw in_app_iff.
   Qed.
 
   Lemma entails_L_all_trans {p q r} :
@@ -539,7 +539,7 @@ Module HornSemilattice (LS : LevelSets).
     equivlistA Logic.eq (relations_of_clauses s) (relations_of_clauses s').
   Proof.
     intros eq.
-    red. intros []; rewrite !InA_In_eq.
+    red. intros []; rw !InA_In_eq.
     split.
     - apply relations_of_clauses_mon. clsets.
     - apply relations_of_clauses_mon. clsets.
@@ -567,7 +567,7 @@ Module HornSemilattice (LS : LevelSets).
     cls =_clset cls' ->
     relations_of_clauses cls ⊩ℒ relations_of_clauses cls'.
   Proof.
-    intros heq. rewrite (relations_of_clauses_eq heq).
+    intros heq. rw (relations_of_clauses_eq heq).
     reflexivity.
   Qed.
 
@@ -595,7 +595,7 @@ Module HornSemilattice (LS : LevelSets).
     relations_of_clauses (l ⋞ r) ⊢ℒ l ≤ r.
   Proof.
     eapply completeness_eq.
-    rewrite -entails_ℋ_clauses_of_relations_equiv.
+    rw -entails_ℋ_clauses_of_relations_equiv.
     apply Theory.eq_antisym. split.
     - apply Theory.join_le_left. split. apply entails_clauses_tauto.
       apply Theory.le_refl.
@@ -606,7 +606,7 @@ Module HornSemilattice (LS : LevelSets).
     relations_of_clauses (l ≡ r) ⊢ℒ l ≡ r.
   Proof.
     eapply completeness_eq.
-    rewrite -entails_ℋ_clauses_of_relations_equiv.
+    rw -entails_ℋ_clauses_of_relations_equiv.
     apply entails_clauses_tauto.
   Qed.
 
@@ -618,7 +618,7 @@ Module HornSemilattice (LS : LevelSets).
     all:try solve [econstructor; eauto].
     apply clauses_of_relations_spec_inv in H. cbn in H.
     have hr := relations_of_clauses_spec_inv (cls := clauses_of_relations p).
-    rewrite entails_L_clauses_entails_L_relations. cbn.
+    rw entails_L_clauses_entails_L_relations. cbn.
     eapply entails_L_clauses_subset; tea.
     eapply entails_L_clauses_tauto.
   Qed.
@@ -664,8 +664,8 @@ Module HornSemilattice (LS : LevelSets).
 
   Lemma entails_L_clause_clauses {cls cl} : entails_L_pres_clause (relations_of_clauses cls) cl <-> entails_L_clauses cls (Clauses.singleton cl).
   Proof.
-    rewrite /entails_L_clauses.
-    rewrite /entails_L_pres_clauses.
+    rw /entails_L_clauses.
+    rw /entails_L_pres_clauses.
     split.
     - intros en c; rsets. now subst c.
     - rsets. specialize (H cl). forward H; now rsets.
@@ -677,14 +677,14 @@ Module HornSemilattice (LS : LevelSets).
   Instance entails_L_pres_clauses_proper : Proper (Logic.eq ==> Clauses.Equal ==> iff) entails_L_pres_clauses.
   Proof.
     intros ?? -> ? ? h.
-    rewrite /entails_L_pres_clauses. now rewrite h.
+    rw /entails_L_pres_clauses. now rw h.
   Qed.
 
   Lemma entails_L_pres_clauses_union {p cls cls'} : entails_L_pres_clauses p (Clauses.union cls cls') <->
     entails_L_pres_clauses p cls /\
     entails_L_pres_clauses p cls'.
   Proof.
-    rewrite /entails_L_pres_clauses /Clauses.For_all.
+    rw /entails_L_pres_clauses /Clauses.For_all.
     setoid_rewrite Clauses.union_spec. by firstorder.
   Qed.
 
@@ -698,11 +698,11 @@ Module HornSemilattice (LS : LevelSets).
     - split.
       * intros ent; depelim ent.
         unfold entails_L_clauses.
-        destruct a as [l r]. rewrite clauses_of_relations_cons entails_L_pres_clauses_union. split.
+        destruct a as [l r]. rw clauses_of_relations_cons entails_L_pres_clauses_union. split.
         now eapply entails_L_clauses_relations, entails_L_pres_clauses_of_relations_eq.
         apply IHrs, ent.
       * unfold entails_L_clauses.
-        destruct a as [l r]. rewrite clauses_of_relations_cons entails_L_pres_clauses_union.
+        destruct a as [l r]. rw clauses_of_relations_cons entails_L_pres_clauses_union.
         move=> [] lr ih. constructor.
         apply (proj1 entails_L_pres_clauses_of_relations_eq) in lr.
         now apply entails_L_clauses_pres_all in lr.
@@ -724,13 +724,13 @@ Module HornSemilattice (LS : LevelSets).
   Lemma entails_L_rels_entails_L_clauses cls cls' :
     entails_L_rels (relations_of_clauses cls) (relations_of_clauses cls') <-> entails_L_clauses cls cls'.
   Proof.
-    rewrite entails_L_rels_entails_rels.
-    rewrite !entails_L_entails_ℋ_equiv.
+    rw entails_L_rels_entails_rels.
+    rw !entails_L_entails_ℋ_equiv.
     split.
     - intros cl. eapply entails_clauses_cut. eapply entails_ℋ_clauses_of_relations. tea.
       eapply entails_ℋ_clauses_subset. eapply entails_clauses_tauto. intros cl' hin.
       apply clauses_of_relations_relations_of_clauses in hin.
-      rewrite Clauses.union_spec. now left.
+      rw Clauses.union_spec. now left.
     - intros hent. eapply (proj1 entails_ℋ_clauses_of_relations_equiv).
       eapply entails_clauses_trans; tea. eapply entails_clauses_of_relations.
   Qed.
@@ -739,7 +739,7 @@ Module HornSemilattice (LS : LevelSets).
     (singleton le ⋞ r)%cls =_clset Clauses.singleton (r, le).
   Proof.
     intros l.
-    rewrite Clauses.singleton_spec clauses_of_le_spec.
+    rw Clauses.singleton_spec clauses_of_le_spec.
     firstorder.
     - subst l. apply LevelExprSet.singleton_spec in H.
       now red in H; subst x.
@@ -760,14 +760,14 @@ Section ClausesSemantics.
     Proper (Logic.eq ==> Clauses.Equal ==> iff) (clauses_sem (S:=S)).
   Proof.
     move=> ?? -> ?? h.
-    rewrite /clauses_sem.
-    now rewrite h.
+    rw /clauses_sem.
+    now rw h.
   Qed.
 
   Lemma clauses_sem_singleton {S} {SL : Semilattice S Q.t} {V cl} :
     clauses_sem (S:=S) V (Clauses.singleton cl) <-> clause_sem V cl.
   Proof.
-    rewrite /clauses_sem /Clauses.For_all.
+    rw /clauses_sem /Clauses.For_all.
     split; firstorder. apply H. clsets.
     apply Clauses.singleton_spec in H0. now subst.
   Qed.
@@ -775,7 +775,7 @@ Section ClausesSemantics.
   Lemma clauses_sem_add {S} {SL : Semilattice S Q.t} {V cl cls} :
     clauses_sem (S:=S) V (Clauses.add cl cls) <-> clause_sem V cl /\ clauses_sem V cls.
   Proof.
-    rewrite /clauses_sem /Clauses.For_all.
+    rw /clauses_sem /Clauses.For_all.
     split.
     - intros hcl. split.
       * apply hcl, Clauses.add_spec; now left.
@@ -787,7 +787,7 @@ Section ClausesSemantics.
   Lemma clauses_sem_union {S} {SL : Semilattice S Q.t} {V cls cls'} :
     clauses_sem (S:=S) V (Clauses.union cls cls') <-> clauses_sem V cls /\ clauses_sem V cls'.
   Proof.
-    rewrite /clauses_sem /Clauses.For_all.
+    rw /clauses_sem /Clauses.For_all.
     setoid_rewrite Clauses.union_spec. firstorder.
   Qed.
 
@@ -799,14 +799,14 @@ Section ClausesSemantics.
     (NES.add le l ⋞ r)%cls =_clset Clauses.add (r, le) (l ⋞ r).
   Proof.
     intros cl.
-    rewrite Clauses.add_spec clauses_of_le_spec.
+    rw Clauses.add_spec clauses_of_le_spec.
     split.
-    - move=> [] x [] /LevelExprSet.add_spec; rewrite /LevelExprSet.E.eq.
+    - move=> [] x [] /LevelExprSet.add_spec; rw /LevelExprSet.E.eq.
       move=> [->|hin]. now left.
-      intros ->. right. rewrite clauses_of_le_spec. now exists x.
+      intros ->. right. rw clauses_of_le_spec. now exists x.
     - move=> [->|]. exists le. split => //.
       * now apply LevelExprSet.add_spec; left.
-      * rewrite clauses_of_le_spec => -[] k [] hin ->.
+      * rw clauses_of_le_spec => -[] k [] hin ->.
         exists k. split => //. now apply LevelExprSet.add_spec.
   Qed.
 
@@ -817,11 +817,11 @@ Section ClausesSemantics.
     move: l.
     apply: elim.
     - intros le; cbn.
-      rewrite clauses_of_le_singleton clauses_sem_singleton.
-      cbn. now rewrite interp_nes_singleton.
+      rw clauses_of_le_singleton clauses_sem_singleton.
+      cbn. now rw interp_nes_singleton.
     - move=> le x xr hnin.
-      rewrite clauses_of_le_add clauses_sem_add xr.
-      cbn. rewrite interp_nes_add.
+      rw clauses_of_le_add clauses_sem_add xr.
+      cbn. rw interp_nes_add.
       symmetry; apply join_le_left_eq.
   Qed.
 
@@ -829,7 +829,7 @@ Section ClausesSemantics.
     clauses_sem V (l ≡ r) <->
     (interp_nes V l ≡ interp_nes V r)%sl.
   Proof.
-    rewrite /clauses_of_eq clauses_sem_union !clauses_sem_leq.
+    rw /clauses_of_eq clauses_sem_union !clauses_sem_leq.
     symmetry; apply eq_antisym.
   Qed.
 
@@ -837,7 +837,7 @@ Section ClausesSemantics.
     interp_rels V (relations_of_clauses cls) <->
     forall cl, Clauses.In cl cls -> interp_rel V (relation_of_clause cl).
   Proof.
-    rewrite /interp_rels Forall_forall.
+    rw /interp_rels Forall_forall.
     split.
     - move=> hx cl /relations_of_clauses_spec_inv.
       now move/hx.
@@ -849,13 +849,13 @@ Section ClausesSemantics.
     clause_sem V cl <-> interp_rel V (relation_of_clause cl).
   Proof.
     destruct cl as [prems concl] => //=.
-    now rewrite /le interp_nes_union interp_nes_singleton.
+    now rw /le interp_nes_union interp_nes_singleton.
   Qed.
 
   Lemma interp_rels_clauses_sem {S} {SL : Semilattice S Q.t} {V : Level.t -> S} {cls} :
     clauses_sem V cls <-> interp_rels V (relations_of_clauses cls).
   Proof.
-    rewrite interp_rels_of_clauses.
+    rw interp_rels_of_clauses.
     split.
     - move=> sem cl /sem; apply interp_rel_clause_sem.
     - move=> hcl cl /hcl /=. apply interp_rel_clause_sem.
@@ -880,12 +880,12 @@ End ClausesSemantics.
     - intros hv.
       eapply entails_L_entails_ℋ_equiv.
       2:{ now eapply Clauses.singleton_spec. }
-      intros c. rewrite Clauses.singleton_spec => ->.
+      intros c. rw Clauses.singleton_spec => ->.
       red. eapply entails_L_completeness.
       intros S SL v. specialize (hv S SL v).
-      rewrite -interp_rels_clauses_sem. move/hv.
+      rw -interp_rels_clauses_sem. move/hv.
       destruct cl; cbn => //.
-      rewrite interp_nes_union interp_nes_singleton //.
+      rw interp_nes_union interp_nes_singleton //.
     - move/entails_entails_L.
       move/entails_L_clause_clauses.
       move/entails_L_rels_entails_L_clauses.
@@ -893,7 +893,7 @@ End ClausesSemantics.
       unfold valid_relations, valid_semilattice_entailment.
       setoid_rewrite interp_rels_clauses_sem.
       setoid_rewrite interp_rel_clause_sem.
-      rewrite relations_of_clauses_singleton.
+      rw relations_of_clauses_singleton.
       now setoid_rewrite interp_rels_tip.
   Qed.
 
@@ -904,7 +904,7 @@ End ClausesSemantics.
   Proof.
     intros SL hv.
     specialize (hv (ids p) (interp_rels_init p)).
-    rewrite !interp_triv in hv.
+    rw !interp_triv in hv.
     exact hv.
   Qed.
 
@@ -919,12 +919,12 @@ End ClausesSemantics.
     - intros hv.
       eapply entails_L_entails_ℋ_equiv.
       2:{ now eapply Clauses.singleton_spec. }
-      intros c. rewrite Clauses.singleton_spec => ->.
+      intros c. rw Clauses.singleton_spec => ->.
       red. eapply entails_L_completeness_syn.
       intros v. red in hv. specialize (hv v).
-      rewrite -interp_rels_clauses_sem. move/hv.
+      rw -interp_rels_clauses_sem. move/hv.
       destruct cl => //.
-      rewrite interp_nes_union interp_nes_singleton //.
+      rw interp_nes_union interp_nes_singleton //.
     - move/entails_entails_L.
       move/entails_L_clause_clauses.
       move/entails_L_rels_entails_L_clauses.
@@ -932,7 +932,7 @@ End ClausesSemantics.
       unfold valid_relations, valid_semilattice_entailment_syn.
       setoid_rewrite interp_rels_clauses_sem.
       setoid_rewrite interp_rel_clause_sem.
-      rewrite relations_of_clauses_singleton.
+      rw relations_of_clauses_singleton.
       now setoid_rewrite interp_rels_tip.
   Qed.
 

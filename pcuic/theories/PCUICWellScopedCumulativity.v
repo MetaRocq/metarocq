@@ -97,26 +97,26 @@ Lemma ws_cumul_pb_is_open_term {cf : checker_flags} {pb} {Σ : global_env_ext} {
   ws_cumul_pb pb Σ Γ x y ->
   [&& is_closed_context Γ, is_open_term Γ x & is_open_term Γ y].
 Proof.
-  now induction 1; rewrite ?i ?i0 ?i1 ?i2.
+  now induction 1; rw ?i ?i0 ?i1 ?i2.
 Qed.
 
 Lemma ws_cumul_pb_is_closed_context {cf : checker_flags} {pb} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ : context} {x y} :
   ws_cumul_pb pb Σ Γ x y -> is_closed_context Γ.
 Proof.
-  now induction 1; rewrite ?i ?i0 ?i1 ?i2.
+  now induction 1; rw ?i ?i0 ?i1 ?i2.
 Qed.
 
 Lemma ws_cumul_pb_is_open_term_left {cf : checker_flags} {pb} {Σ : global_env_ext} {wfΣ : wf Σ}
   {Γ : context} {x y} :
   ws_cumul_pb pb Σ Γ x y -> is_open_term Γ x.
 Proof.
-  now induction 1; rewrite ?i ?i0 ?i1 ?i2.
+  now induction 1; rw ?i ?i0 ?i1 ?i2.
 Qed.
 
 Lemma ws_cumul_pb_is_open_term_right {cf : checker_flags} {pb} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ : context} {x y} :
   ws_cumul_pb pb Σ Γ x y -> is_open_term Γ y.
 Proof.
-  now induction 1; rewrite ?i ?i0 ?i1.
+  now induction 1; rw ?i ?i0 ?i1.
 Qed.
 
 #[global] Hint Resolve ws_cumul_pb_is_closed_context ws_cumul_pb_is_open_term_left ws_cumul_pb_is_open_term_right : fvs.
@@ -131,7 +131,7 @@ Proof.
   - induction 1.
     + exists t, u. intuition auto.
     + destruct IHX as (v' & v'' & [-> _ -> redv redv' leqv]).
-      rewrite i0 /=.
+      rw i0 /=.
       exists v', v''. split; auto. now eapply red_step.
     + destruct IHX as (v' & v'' & [-> -> cl redv redv' leqv ]).
       exists v', v''. split; auto. now eapply red_step.
@@ -439,7 +439,7 @@ Instance ws_cumul_decls_trans {cf : checker_flags} {pb} {Σ : global_env_ext} {w
   Transitive (ws_cumul_decls pb Σ Γ).
 Proof.
   intros d d' d''.
-  rewrite /ws_cumul_decls.
+  rw /ws_cumul_decls.
   intros ond ond'; destruct ond; depelim ond'.
   econstructor; now etransitivity.
   econstructor; etransitivity; tea.
@@ -478,8 +478,8 @@ Lemma ws_cumul_ctx_pb_closed_right {cf:checker_flags} {pb : conv_pb} {Σ} {wfΣ 
 Proof.
   intros X. red in X.
   induction X; auto.
-  rewrite on_free_vars_ctx_snoc IHX /= //.
-  rewrite -(All2_fold_length X); eauto with fvs.
+  rw on_free_vars_ctx_snoc IHX /= //.
+  rw -(All2_fold_length X); eauto with fvs.
 Qed.
 
 Lemma ws_cumul_ctx_pb_closed_left {cf:checker_flags} {pb : conv_pb} {Σ} {wfΣ : wf Σ} {Γ Γ'}:
@@ -487,7 +487,7 @@ Lemma ws_cumul_ctx_pb_closed_left {cf:checker_flags} {pb : conv_pb} {Σ} {wfΣ :
 Proof.
   intros X. red in X.
   induction X; auto.
-  rewrite on_free_vars_ctx_snoc IHX /=.
+  rw on_free_vars_ctx_snoc IHX /=.
   eauto with fvs.
 Qed.
 
@@ -551,13 +551,13 @@ Section WtContextConversion.
       apply lift_typing_is_open_term in l as [_ clT], l0 as [_ clT'].
       eapply into_ws_cumul_decls with Δ; eauto with fvs.
       constructor; auto.
-      rewrite (All2_fold_length ws) //.
+      rw (All2_fold_length ws) //.
     - apply lift_typing_wf_local in l as wfΓ.
       apply wf_local_closed_context in wfΓ.
       apply lift_typing_is_open_term in l as [clb clT], l0 as [clb' clT'].
       eapply into_ws_cumul_decls with Δ; eauto with fvs.
       constructor; auto.
-      rewrite (All2_fold_length ws); eauto with fvs.
+      rw (All2_fold_length ws); eauto with fvs.
   Qed.
 
   Lemma ws_cumul_ctx_pb_inv {pb} {Γ Γ' : context} :

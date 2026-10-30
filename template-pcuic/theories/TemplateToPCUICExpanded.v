@@ -25,7 +25,7 @@ Lemma expanded_context_map2_bias_left Σ n bctx ctx :
 Proof.
   unfold expanded_context.
   intros hl.
-  rewrite map2_map2_bias_left //.
+  rw map2_map2_bias_left //.
   intros [a]. sq.
   induction a in bctx, hl |- *; try econstructor; auto.
   - cbn. destruct bctx; constructor.
@@ -33,7 +33,7 @@ Proof.
     cbn. constructor; auto. cbn.
     destruct (decl_body d); constructor => //. depelim p.
     cbn in hl. assert (#|Γ| = #|bctx|) by lia.
-    rewrite map2_length //. now rewrite -H0.
+    rw map2_length //. now rw -H0.
 Qed.
 
 Import PCUICWeakeningEnv.
@@ -78,17 +78,17 @@ Lemma expanded_extended_subst {Σ Γ Δ} :
 Proof.
   intros [a]; induction a. cbn. constructor.
   cbn. destruct d as [na [b|] ty]; cbn in *. constructor; auto.
-  { cbn. eapply (expanded_subst _ _ 0 _ []) => //. cbn. rewrite -/(repeat _ _).
+  { cbn. eapply (expanded_subst _ _ 0 _ []) => //. cbn. rw -/(repeat _ _).
     specialize (IHa n). solve_all.
-    len. rewrite repeat_app Nat.add_comm.
-    eapply expanded_lift. 1-2:now len; rewrite !repeat_length.
+    len. rw repeat_app Nat.add_comm.
+    eapply expanded_lift. 1-2:now len; rw !repeat_length.
     now depelim p. }
   constructor; auto.
   eapply (expanded_tRel _ _ _ _ []) => //. cbn.
-  rewrite nth_error_app_lt. rewrite repeat_length. lia.
-  rewrite nth_error_repeat //. lia.
+  rw nth_error_app_lt. rw repeat_length. lia.
+  rw nth_error_repeat //. lia.
   specialize (IHa (S n)).
-  now rewrite Nat.add_succ_r.
+  now rw Nat.add_succ_r.
 Qed.
 
 Lemma expanded_let_expansion {Σ} {Δ : context} {Γ t} :
@@ -96,17 +96,17 @@ Lemma expanded_let_expansion {Σ} {Δ : context} {Γ t} :
   expanded_context Σ (repeat 0 #|Δ| ++ Γ) t ->
   expanded_context Σ (repeat 0 (context_assumptions Δ) ++ Γ) (expand_lets_ctx Δ t).
 Proof.
-  rewrite /expanded_context.
+  rw /expanded_context.
   intros [aΔ] [a]; sq.
   unfold expand_lets_ctx, expand_lets_k_ctx.
   do 2 eapply PCUICParallelReduction.All_fold_fold_context_k.
   eapply All_fold_impl; tea. cbn.
   intros Γ' x f. destruct (decl_body x) => //; constructor.
   len. depelim f.
-  eapply expanded_subst. now rewrite repeat_length.
+  eapply expanded_subst. now rw repeat_length.
   clear -aΔ. eapply (expanded_extended_subst (sq aΔ) 0).
-  len. rewrite app_assoc -repeat_app. eapply expanded_lift. len. now rewrite !repeat_length.
-  now rewrite repeat_length. rewrite repeat_app -app_assoc //.
+  len. rw app_assoc -repeat_app. eapply expanded_lift. len. now rw !repeat_length.
+  now rw repeat_length. rw repeat_app -app_assoc //.
 Qed.
 
 Lemma expanded_context_subst {Σ} {Δ Δ' : list nat} {Γ s k t} :
@@ -117,14 +117,14 @@ Lemma expanded_context_subst {Σ} {Δ Δ' : list nat} {Γ s k t} :
   expanded_context Σ (Δ ++ Γ) (subst_context s k t).
 Proof.
   intros hs hs' has.
-  rewrite /expanded_context.
+  rw /expanded_context.
   intros [aΔ]; sq.
   eapply PCUICParallelReduction.All_fold_fold_context_k.
   eapply All_fold_impl; tea. cbn.
   intros Γ' x f. destruct (decl_body x) => //; constructor.
-  len. depelim f. rewrite app_assoc.
-  eapply expanded_subst. len. rewrite repeat_length. lia. solve_all. auto.
-  now rewrite -app_assoc hs.
+  len. depelim f. rw app_assoc.
+  eapply expanded_subst. len. rw repeat_length. lia. solve_all. auto.
+  now rw -app_assoc hs.
 Qed.
 
 Lemma expanded_inds {Σ Γ ind u bodies} : Forall (expanded Σ Γ) (inds ind u bodies).
@@ -173,10 +173,10 @@ Proof.
   (inds (inductive_mind ind) (abstract_instance (ind_universes mdecl))
      (ind_bodies mdecl)) #|ind_params mdecl|
   (cstr_args cdecl)))).
-  rewrite !app_nil_r in H. forward H.
+  rw !app_nil_r in H. forward H.
   epose proof (expanded_context_subst (Γ := []) (Δ' := repeat 0 #|ind_bodies mdecl|)).
-  rewrite !app_nil_r in H0. eapply H0; rewrite ?repeat_length //. len. apply expanded_inds.
-  rewrite -repeat_app. exact hargs.
+  rw !app_nil_r in H0. eapply H0; rw ?repeat_length //. len. apply expanded_inds.
+  rw -repeat_app. exact hargs.
   destruct ext. eapply expanded_context_weakening; tea; tc.
 Qed.
 
@@ -203,7 +203,7 @@ Proof.
     destruct TransLookup.lookup_inductive as [[] | ]; cbn; eauto.
   - wf_inv wf []. eapply forall_decls_declared_constructor in H; eauto. 2: now eapply template_to_pcuic_env.
     eapply expanded_tConstruct_app with (args := []).
-    eauto. cbn. unfold trans_local. now rewrite context_assumptions_map. econstructor.
+    eauto. cbn. unfold trans_local. now rw context_assumptions_map. econstructor.
   - wf_inv wf (mdecl' & idecl' & []). eapply forall_decls_declared_inductive in d; eauto. 2: now eapply template_to_pcuic_env.
     unfold Σ'.
     erewrite trans_lookup_inductive, declared_inductive_lookup; eauto.
@@ -214,27 +214,27 @@ Proof.
       eapply Forall_All in H2. eapply All2_All_mix_right in a1; tea.
       eapply All2_impl; tea. intros x y. cbv beta. intros [[i [Hi []]] ?].
       split.
-      { rewrite length_map. relativize #|Ast.pparams type_info|.
+      { rw length_map. relativize #|Ast.pparams type_info|.
         eapply expanded_bcontext => //.
         - now eapply template_to_pcuic_env.
         - len. eapply All2_length in a2. len in a2.
-        - split; tea. cbn; rewrite nth_error_map. erewrite Hi => //.
-        - cbn. tea. rewrite context_assumptions_map. now rewrite e0. }
-      * cbn. rewrite map2_bias_left_length. now eapply e1.
+        - split; tea. cbn; rw nth_error_map. erewrite Hi => //.
+        - cbn. tea. rw context_assumptions_map. now rw e0. }
+      * cbn. rw map2_bias_left_length. now eapply e1.
     + eapply template_to_pcuic_env; eauto.
     + apply template_to_pcuic_env; eauto.
   - now (wf_inv wf [[]]; eauto using expanded).
   - wf_inv wf [[]]. wf_inv w ?. eapply expanded_tFix.
     + solve_all.
-      * rewrite trans_isLambda //.
-      * revert H2. cbn. now rewrite mapi_cst_map rev_map_spec map_map.
+      * rw trans_isLambda //.
+      * revert H2. cbn. now rw mapi_cst_map rev_map_spec map_map.
     + solve_all.
     + destruct args; cbn; congruence.
-    + now rewrite nth_error_map H5.
+    + now rw nth_error_map H5.
     + now simpl_list.
   - wf_inv wf ?. econstructor. solve_all.
   - wf_inv wf [[[]]]. eapply forall_decls_declared_constructor in H; eauto. 2: now eapply template_to_pcuic_env.
-    eapply expanded_tConstruct_app. eauto. cbn. unfold trans_local. now rewrite length_map context_assumptions_map. solve_all.
+    eapply expanded_tConstruct_app. eauto. cbn. unfold trans_local. now rw length_map context_assumptions_map. solve_all.
   - repeat constructor.
   - repeat constructor.
   - repeat constructor.
@@ -293,7 +293,7 @@ Lemma expanded_trans_local {cf} {Σ} {wfΣ : Typing.wf Σ} Γ ctx :
   EtaExpand.expanded_context Σ Γ ctx ->
   expanded_context (trans_global_env Σ) Γ (trans_local (trans_global_env Σ) ctx).
 Proof.
-  rewrite /expanded_context.
+  rw /expanded_context.
   intros etaΣ wfctx [a]; split.
   unfold trans_local.
   eapply All_fold_map.
@@ -325,7 +325,7 @@ Proof.
   - destruct wfΣ as [wfΣ onudecl].
     eapply template_wf_cons_inv in wfΣ as [].
     forward IHetaenv by tea. split => //.
-    rewrite trans_global_env_cons. set (Σ' := trans_global_env _ ).
+    rw trans_global_env_cons. set (Σ' := trans_global_env _ ).
     cbv zeta. constructor. apply IHetaenv.
     cbn -[add_global_decl trans_global_env].
     destruct decl as [kn []]; cbn in *; depelim H => //.
@@ -334,9 +334,9 @@ Proof.
       red in o.
       destruct (Ast.Env.cst_body c); cbn => //. cbn in expanded_body.
       eapply trans_expanded in expanded_body; eauto.
-      rewrite -/Σ' in expanded_body. now rewrite -eta_global_env.
+      rw -/Σ' in expanded_body. now rw -eta_global_env.
       red in o. now destruct o.
-    * rewrite -eta_global_env.
+    * rw -eta_global_env.
       constructor.
       + cbn. eapply expanded_trans_local in expanded_params => //.
         destruct p; destruct o. now eapply TypingWf.All_local_env_wf_decls.

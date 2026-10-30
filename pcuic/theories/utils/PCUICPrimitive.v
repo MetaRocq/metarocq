@@ -116,8 +116,8 @@ Next Obligation.
   intros s1 s2. simpl.
   destruct (PrimString.compare s1 s2) eqn:Hcmp; constructor.
   - by apply PString.compare_eq in Hcmp.
-  - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. inversion Hcmp.
-  - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. inversion Hcmp.
+  - intros Heq%PString.compare_eq. rw Heq in Hcmp. inversion Hcmp.
+  - intros Heq%PString.compare_eq. rw Heq in Hcmp. inversion Hcmp.
 Qed.
 
 Equations eqb_prim_model {term} {equ : Universe.t -> Universe.t -> bool} {req : term -> term -> bool} {t : prim_tag} (x y : prim_model term t) : bool :=

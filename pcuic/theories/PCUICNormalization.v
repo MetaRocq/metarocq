@@ -146,7 +146,7 @@ Proof.
   econstructor; eauto.
   eapply subject_is_open_term. eauto.
   Unshelve.
-  all: rewrite -closed_on_free_vars_none.
+  all: rw -closed_on_free_vars_none.
   - now eapply subject_closed in Hty.
   - eapply @subject_closed with (Γ := []); eauto.
     eapply subject_reduction; eauto.
@@ -167,7 +167,7 @@ Proof.
   econstructor; eauto.
   eapply subject_is_open_term. eauto.
   Unshelve.
-  all: rewrite -closed_on_free_vars_none.
+  all: rw -closed_on_free_vars_none.
   - now eapply subject_closed in Hty.
   - eapply @subject_closed with (Γ := []); eauto.
     eapply subject_reduction; eauto.

@@ -29,7 +29,7 @@ Lemma nApp_mkApps t f args :
 Proof.
   intros -> napp.
   destruct args using rev_case; cbn in *; solve_discr; try discriminate => //. split => //.
-  now rewrite mkApps_app /= in napp.
+  now rw mkApps_app /= in napp.
 Qed.
 
 Ltac solve_discr :=
@@ -159,20 +159,20 @@ Definition isStuckFix t (args : list term) :=
 Lemma atom_mkApps f l : atom (mkApps f l) -> (l = []) /\ atom f.
 Proof.
   revert f; induction l using rev_ind. simpl. intuition auto.
-  simpl. intros. now rewrite mkApps_app in H.
+  simpl. intros. now rw mkApps_app in H.
 Qed.
 
 Definition cstr_arity mdecl cdecl :=
   (mdecl.(ind_npars) + context_assumptions cdecl.(cstr_args))%nat.
 
 Lemma nisLambda_mkApps f args : ~~ isLambda f -> ~~ isLambda (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 
 Lemma nisArityHead_mkApps f args : ~~ isArityHead f -> ~~ isArityHead (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 
 Lemma nisPrim_mkApps f args : ~~ isPrim f -> ~~ isPrim (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 
 (* Lemma isLambda_mkApps f args : ~~ isApp f ->
   isLambda f = isLambda (mkApps f args).
@@ -181,21 +181,21 @@ Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed. *)
 Lemma head_mkApps f args : head (mkApps f args) = head f.
 Proof.
   induction args in f |- *; cbn => //.
-  now rewrite IHargs head_tapp.
+  now rw IHargs head_tapp.
 Qed.
 
 Lemma isFixApp_mkApps f args : isFixApp (mkApps f args) = isFixApp f.
 Proof.
-  now rewrite /isFixApp head_mkApps.
+  now rw /isFixApp head_mkApps.
 Qed.
 
 Lemma isConstructApp_mkApps f args : isConstructApp (mkApps f args) = isConstructApp f.
 Proof.
-  now rewrite /isConstructApp head_mkApps.
+  now rw /isConstructApp head_mkApps.
 Qed.
 
 Lemma isPrimApp_mkApps f args : isPrimApp (mkApps f args) = isPrimApp f.
-Proof. now rewrite /isPrimApp head_mkApps. Qed.
+Proof. now rw /isPrimApp head_mkApps. Qed.
 
 Section Wcbv.
   Context (Σ : global_env).
@@ -573,12 +573,12 @@ Section Wcbv.
     intros ev.
     induction ev; simpl; intros; auto using value.
     - change (tApp ?h ?a) with (mkApps h [a]).
-      rewrite -mkApps_app.
+      rw -mkApps_app.
       apply value_mkApps_inv in IHev1; [|easy].
       destruct IHev1 as [(-> & _)|[]].
       + apply value_app; auto. len.
         cbn in *. econstructor; tea. cbn; auto.
-      + depelim v. rewrite e1 in e. noconf e.
+      + depelim v. rw e1 in e. noconf e.
         eapply value_app; auto. econstructor; tea.
           len; lia. apply All_app_inv; auto.
 
@@ -591,19 +591,19 @@ Section Wcbv.
     - destruct (mkApps_elim f' [a']).
       eapply value_mkApps_inv in IHev1 => //.
       destruct IHev1 as [?|[]]; intuition subst.
-      * depelim b. rewrite a0 /=.
-        rewrite a0 in i. simpl in *.
+      * depelim b. rw a0 /=.
+        rw a0 in i. simpl in *.
         apply (value_app t [a']).
         destruct t; simpl in * |- *; try congruence.
         all:try solve [repeat constructor; auto].
         auto.
-        rewrite isPrimApp_mkApps /= /isPrimApp //= in i.
-        rewrite !negb_or in i. rtoProp; intuition auto. cbn in H0. congruence.
+        rw isPrimApp_mkApps /= /isPrimApp //= in i.
+        rw !negb_or in i. rtoProp; intuition auto. cbn in H0. congruence.
 
-      * rewrite -[tApp _ _](mkApps_app _ (firstn n l) [a']).
+      * rw -[tApp _ _](mkApps_app _ (firstn n l) [a']).
         eapply value_app; auto. len.
-        rewrite isFixApp_mkApps // isConstructApp_mkApps // in i.
-        rewrite !negb_or in i. rtoProp; intuition auto.
+        rw isFixApp_mkApps // isConstructApp_mkApps // in i.
+        rw !negb_or in i. rtoProp; intuition auto.
         destruct v; cbn in * => //.
         + constructor.
         + constructor.
@@ -641,10 +641,10 @@ Section Wcbv.
     - depelim evargs. now cbn.
     - eapply All2_app_inv_l in evargs as [r1 [r2 [-> [evl evr]]]].
       depelim evr. depelim evr.
-      rewrite mkApps_app /=. len in hargs. cbn in hargs.
+      rw mkApps_app /=. len in hargs. cbn in hargs.
       eapply eval_construct; tea.
       eapply IHargs => //. lia.
-      rewrite -(All2_length evl). lia.
+      rw -(All2_length evl). lia.
   Qed.
 
   Lemma eval_mkApps_CoFix f mfix idx args args' :
@@ -657,10 +657,10 @@ Section Wcbv.
     - depelim evargs. cbn; auto.
     - eapply All2_app_inv_l in evargs as [r1 [r2 [-> [evl evr]]]].
       depelim evr. depelim evr.
-      rewrite !mkApps_app /=.
+      rw !mkApps_app /=.
       eapply eval_app_cong; tea.
       eapply IHargs => //.
-      rewrite isFixApp_mkApps // /= isConstructApp_mkApps // !negb_or isPrimApp_mkApps.
+      rw isFixApp_mkApps // /= isConstructApp_mkApps // !negb_or isPrimApp_mkApps.
       rtoProp; intuition auto.
       apply nisLambda_mkApps => //. apply nisArityHead_mkApps => //.
   Qed.
@@ -675,10 +675,10 @@ Section Wcbv.
     - depelim evargs. cbn; auto.
     - eapply All2_app_inv_l in evargs as [r1 [r2 [-> [evl evr]]]].
       depelim evr. depelim evr.
-      rewrite !mkApps_app /=.
+      rw !mkApps_app /=.
       eapply eval_app_cong; tea.
       eapply IHargs => //.
-      rewrite isFixApp_mkApps // /= isConstructApp_mkApps // !negb_or isPrimApp_mkApps.
+      rw isFixApp_mkApps // /= isConstructApp_mkApps // !negb_or isPrimApp_mkApps.
       rtoProp; intuition auto.
       apply nisLambda_mkApps => //. apply nisArityHead_mkApps => //.
   Qed.
@@ -694,12 +694,12 @@ Section Wcbv.
     - depelim evargs. cbn; auto.
     - eapply All2_app_inv_l in evargs as [r1 [r2 [-> [evl evr]]]].
       depelim evr. depelim evr.
-      rewrite !mkApps_app /=.
+      rw !mkApps_app /=.
       destruct cunfold_fix as [[rarg fn]|] eqn:eqc => //.
       len; cbn. move/Nat.leb_le => hrarg.
       eapply eval_fix_value.
-      eapply IHargs => //. unfold isStuckFix. rewrite eqc. apply Nat.leb_le; lia. auto. tea.
-      rewrite -(All2_length evl). lia.
+      eapply IHargs => //. unfold isStuckFix. rw eqc. apply Nat.leb_le; lia. auto. tea.
+      rw -(All2_length evl). lia.
   Qed.
 
   Lemma value_head_antimon {n n' f} : n' <= n -> value_head n f -> value_head n' f.
@@ -722,7 +722,7 @@ Section Wcbv.
       * eapply eval_mkApps_tInd; auto. eapply All2_app; auto.
       * eapply eval_mkApps_CoFix; auto. eapply All2_app; auto.
       * eapply eval_stuck_Fix; tea. eapply All2_app; auto.
-        unfold isStuckFix; rewrite e0. now apply Nat.leb_le.
+        unfold isStuckFix; rw e0. now apply Nat.leb_le.
   Qed.
 
   Lemma value_final e : value e -> eval e e.
@@ -744,7 +744,7 @@ Section Wcbv.
   Proof using Type.
     intros. eapply eval_stuck_Fix; eauto. now constructor.
     move: H. unfold isStuckFix. destruct cunfold_fix as [[rarg fn]|] => //.
-    now rewrite (All2_length X).
+    now rw (All2_length X).
   Qed.
 
   Lemma stuck_fix_value_inv argsv mfix idx narg fn :
@@ -756,12 +756,12 @@ Section Wcbv.
     intros hv; revert Heqtfix.
     induction hv using value_values_ind; intros eq; subst.
     - unfold atom in H. destruct argsv using rev_case => //.
-      split; auto. simpl. simpl in H. rewrite H0 //.
-      rewrite mkApps_app /= // in H.
+      split; auto. simpl. simpl in H. rw H0 //.
+      rw mkApps_app /= // in H.
     - solve_discr => //.
     - solve_discr => //.
-      depelim X. rewrite e. intros [= -> ->]. split => //.
-      unfold isStuckFix. rewrite e. now apply Nat.leb_le.
+      depelim X. rw e. intros [= -> ->]. split => //.
+      unfold isStuckFix. rw e. now apply Nat.leb_le.
   Qed.
 
   Lemma stuck_fix_value_args argsv mfix idx narg fn :
@@ -772,7 +772,7 @@ Section Wcbv.
     intros val unf.
     eapply stuck_fix_value_inv in val; eauto.
     destruct val.
-    simpl in i. rewrite unf in i.
+    simpl in i. rw unf in i.
     now eapply Nat.leb_le in i.
   Qed.
 
@@ -784,9 +784,9 @@ Section Wcbv.
     closed (subst_instance u b).
   Proof using Type.
     move=> wfΣ Hc Hb. unshelve eapply declared_constant_to_gen in Hc; eauto.
-    rewrite PCUICClosed.closedn_subst_instance.
+    rw PCUICClosed.closedn_subst_instance.
     apply declared_decl_closed in Hc => //. simpl in Hc. red in Hc.
-    rewrite Hb in Hc. simpl in Hc. now move/andP: Hc => [].
+    rw Hb in Hc. simpl in Hc. now move/andP: Hc => [].
   Qed.
 
   Lemma closed_iota ci ind p c u args brs br :
@@ -799,36 +799,36 @@ Section Wcbv.
     unfold iota_red => cbrs cpars cargs hass e.
     solve_all.
     eapply All_nth_error in e; eauto. simpl in e.
-    rewrite closedn_mkApps in cargs.
+    rw closedn_mkApps in cargs.
     move/andP: cargs => [Hcons Hargs].
     eapply (closedn_subst _ 0 0).
-    now rewrite forallb_rev forallb_skipn //.
-    simpl. rewrite List.length_rev /expand_lets /expand_lets_k.
-    rewrite -(Nat.add_0_r #|skipn (ci_npar ci) args|).
-    rewrite length_skipn hass.
+    now rw forallb_rev forallb_skipn //.
+    simpl. rw List.length_rev /expand_lets /expand_lets_k.
+    rw -(Nat.add_0_r #|skipn (ci_npar ci) args|).
+    rw length_skipn hass.
     replace (ci_npar ci + context_assumptions (bcontext br) - ci_npar ci)
     with (context_assumptions (bcontext br)) by lia.
     move/andP: e => [cltx clb].
     have hl : context_assumptions (inst_case_branch_context p br) = context_assumptions (bcontext br).
-    { rewrite /inst_case_branch_context. now len. }
+    { rw /inst_case_branch_context. now len. }
     eapply (closedn_subst _ _ 0).
-    rewrite -hl.
+    rw -hl.
     eapply closedn_extended_subst => //.
-    { rewrite /inst_case_branch_context /inst_case_context.
+    { rw /inst_case_branch_context /inst_case_context.
       eapply (closedn_ctx_subst 0 0); cbn.
-      rewrite closedn_subst_instance_context. now len.
-      rewrite forallb_rev. solve_all. }
-    rewrite extended_subst_length Nat.add_0_r /= Nat.add_comm -hl.
+      rw closedn_subst_instance_context. now len.
+      rw forallb_rev. solve_all. }
+    rw extended_subst_length Nat.add_0_r /= Nat.add_comm -hl.
     eapply closedn_lift.
-    rewrite inst_case_branch_context_length.
-    now rewrite Nat.add_0_r in clb.
+    rw inst_case_branch_context_length.
+    now rw Nat.add_0_r in clb.
   Qed.
 
   Lemma closed_arg f args n a :
     closed (mkApps f args) ->
     nth_error args n = Some a -> closed a.
   Proof using Type.
-    rewrite closedn_mkApps.
+    rw closedn_mkApps.
     move/andP => [cf cargs].
     solve_all. eapply All_nth_error in cargs; eauto.
   Qed.
@@ -841,9 +841,9 @@ Section Wcbv.
     move=> /= Hf Heq'; noconf Heq'.
     eapply closedn_subst0. unfold fix_subst. clear -Hf. generalize #|mfix|.
     induction n; simpl; auto.
-    simpl. rewrite fix_subst_length. solve_all.
+    simpl. rw fix_subst_length. solve_all.
     eapply All_nth_error in Hf; eauto. unfold test_def in Hf.
-    rewrite PeanoNat.Nat.add_0_r in Hf. now move/andP: Hf.
+    rw PeanoNat.Nat.add_0_r in Hf. now move/andP: Hf.
     discriminate.
   Qed.
 
@@ -863,13 +863,13 @@ Section Wcbv.
       simpl. solve_all. }
     move: (fix_subst mfix) (dbody d) clfix.
     clear; induction fix_subst => Hfix /= //.
-    now rewrite subst_empty.
+    now rw subst_empty.
     move=> Ha; depelim Ha.
     simpl in *.
     intros hnth.
-    rewrite -IHfix_subst => //.
-    rewrite (subst_app_decomp [_]). simpl.
-    f_equal. rewrite lift_closed // closed_subst //.
+    rw -IHfix_subst => //.
+    rw (subst_app_decomp [_]). simpl.
+    f_equal. rw lift_closed // closed_subst //.
   Qed.
 
   Lemma closed_cofix_substl_subst_eq {mfix idx d} :
@@ -888,13 +888,13 @@ Section Wcbv.
       simpl. solve_all. }
     move: (cofix_subst mfix) (dbody d) clfix.
     clear; induction cofix_subst => Hfix /= //.
-    now rewrite subst_empty.
+    now rw subst_empty.
     move=> Ha; depelim Ha.
     simpl in *.
     intros hnth.
-    rewrite -IHcofix_subst => //.
-    rewrite (subst_app_decomp [_]). simpl.
-    f_equal. rewrite lift_closed // closed_subst //.
+    rw -IHcofix_subst => //.
+    rw (subst_app_decomp [_]). simpl.
+    f_equal. rw lift_closed // closed_subst //.
   Qed.
 
   Lemma closed_unfold_fix_cunfold_eq mfix idx :
@@ -904,7 +904,7 @@ Section Wcbv.
     unfold unfold_fix, cunfold_fix.
     destruct (nth_error mfix idx) eqn:Heq => //.
     intros cl; f_equal; f_equal.
-    now rewrite (closed_fix_substl_subst_eq cl).
+    now rw (closed_fix_substl_subst_eq cl).
   Qed.
 
   Lemma closed_unfold_cofix_cunfold_eq mfix idx :
@@ -924,12 +924,12 @@ Section Wcbv.
       simpl. solve_all. }
     move: (cofix_subst mfix) (dbody d) clfix.
     clear; induction cofix_subst => Hfix /= //.
-    now rewrite subst_empty.
+    now rw subst_empty.
     move=> Ha; dependent elimination Ha as [All_cons ca cf].
     simpl in *.
-    rewrite -IHcofix_subst => //.
-    rewrite (subst_app_decomp [_]). simpl.
-    f_equal. rewrite lift_closed // closed_subst //.
+    rw -IHcofix_subst => //.
+    rw (subst_app_decomp [_]). simpl.
+    f_equal. rw lift_closed // closed_subst //.
   Qed.
 
   Lemma closed_unfold_cofix mfix idx narg fn :
@@ -940,9 +940,9 @@ Section Wcbv.
     move=> /= Hf Heq'; noconf Heq'.
     eapply closedn_subst0. unfold cofix_subst. clear -Hf. generalize #|mfix|.
     induction n; simpl; auto.
-    rewrite cofix_subst_length. solve_all.
+    rw cofix_subst_length. solve_all.
     eapply All_nth_error in Hf; eauto. unfold test_def in Hf.
-    rewrite PeanoNat.Nat.add_0_r in Hf. now move/andP: Hf.
+    rw PeanoNat.Nat.add_0_r in Hf. now move/andP: Hf.
     discriminate.
   Qed.
 
@@ -953,39 +953,39 @@ Section Wcbv.
     induction ev; simpl in *; auto;
       (move/andP=> [/andP[Hc Hc'] Hc''] || move/andP=> [Hc Hc'] || move=>Hc); auto.
     - eapply IHev3. unshelve eapply closed_beta. 3:eauto. exact na. simpl. eauto.
-    - eapply IHev2. now rewrite closed_csubst.
+    - eapply IHev2. now rw closed_csubst.
     - apply IHev. eapply closed_def; eauto.
       apply declared_constant_from_gen; eauto.
     - apply IHev2.
       eapply closed_iota; tea.
       move/andP: Hc => [] /andP [] //.
-      now eapply IHev1. rewrite e1.
-      now rewrite -e3 e2 /cstr_arity.
+      now eapply IHev1. rw e1.
+      now rw -e3 e2 /cstr_arity.
     - eapply IHev2.
       specialize (IHev1 Hc).
-      rewrite closedn_mkApps in IHev1.
+      rw closedn_mkApps in IHev1.
       move/andP: IHev1 => [Hcons Hargs]. solve_all.
       eapply All_nth_error in Hargs; eauto.
     - eapply IHev3.
       apply/andP.
       split; [|easy].
       specialize (IHev1 Hc).
-      rewrite closedn_mkApps in IHev1.
+      rw closedn_mkApps in IHev1.
       move/andP: IHev1 => [clfix clargs].
-      rewrite closedn_mkApps clargs andb_true_r.
+      rw closedn_mkApps clargs andb_true_r.
       eapply closed_unfold_fix; [easy|].
-      now rewrite closed_unfold_fix_cunfold_eq.
+      now rw closed_unfold_fix_cunfold_eq.
     - apply andb_true_iff.
       split; [|easy].
       solve_all.
-    - eapply IHev2. solve_all. rewrite !closedn_mkApps in H0 |- *. solve_all.
-      rewrite -closed_unfold_cofix_cunfold_eq in e => //.
+    - eapply IHev2. solve_all. rw !closedn_mkApps in H0 |- *. solve_all.
+      rw -closed_unfold_cofix_cunfold_eq in e => //.
       eapply closed_unfold_cofix in e; eauto.
-    - eapply IHev2. solve_all. rewrite !closedn_mkApps in H0 |- *. solve_all.
-      rewrite -closed_unfold_cofix_cunfold_eq in e => //.
+    - eapply IHev2. solve_all. rw !closedn_mkApps in H0 |- *. solve_all.
+      rw -closed_unfold_cofix_cunfold_eq in e => //.
       eapply closed_unfold_cofix in e; eauto.
-    - rewrite closedn_mkApps /=. specialize (IHev1 Hc). specialize (IHev2 Hc').
-      move: IHev1. rewrite closedn_mkApps /= forallb_app => -> /=. now rewrite IHev2.
+    - rw closedn_mkApps /=. specialize (IHev1 Hc). specialize (IHev2 Hc').
+      move: IHev1. rw closedn_mkApps /= forallb_app => -> /=. now rw IHev2.
     - apply/andP; split; auto.
     - solve_all. depelim X; depelim Hc; constructor; intuition eauto; solve_all.
   Qed.
@@ -1019,13 +1019,13 @@ Section Wcbv.
     induction args using List.rev_ind; intros v ev.
     + exists [].
       now depelim ev.
-    + rewrite mkApps_app in ev.
+    + rw mkApps_app in ev.
       cbn in *.
       depelim ev;
         try solve [apply IHargs in ev1 as (? & ?); solve_discr].
       * apply IHargs in ev1 as (argsv & ->).
         exists (argsv ++ [a']).
-        now rewrite mkApps_app.
+        now rw mkApps_app.
       * easy.
   Qed.
 
@@ -1064,7 +1064,7 @@ Section Wcbv.
      (d d' : declared_projection_gen (lookup_env Σ) ind mdecl idecl cdecl pdecl) : d = d'.
   Proof using Type.
     destruct d, d'.
-    rewrite (declared_constructor_unique d d0).
+    rw (declared_constructor_unique d d0).
     destruct a, a0.
     assert (e = e1) as -> by now apply uip.
     assert (e0 = e2) as -> by now apply uip.
@@ -1265,7 +1265,7 @@ Section Wcbv.
     intros H; depelim H.
     - exists decl. apply declared_constant_from_gen in isdecl.
       split; [easy|].
-      now rewrite e.
+      now rw e.
     - easy.
   Qed.
 
@@ -1351,19 +1351,19 @@ Proof.
   intros Hwf Hcl Hred. induction Hred; cbn in *; solve_all.
   all: eauto using closed_csubst, closed_def.
   - eapply closed_iota; eauto. solve_all. unfold test_predicate_k in H. solve_all.
-    now rewrite e0 /cstr_arity -e1 -e2.
+    now rw e0 /cstr_arity -e1 -e2.
   - eauto using closed_arg.
-  - rewrite !closedn_mkApps in H |- *. solve_all.
+  - rw !closedn_mkApps in H |- *. solve_all.
     eapply closed_unfold_fix; tea.
-  - rewrite !closedn_mkApps in Hcl |- *. solve_all.
+  - rw !closedn_mkApps in Hcl |- *. solve_all.
     unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; inversion e.
     eapply closed_unfold_cofix with (narg := narg); eauto.
-    unfold unfold_cofix. rewrite E. subst. repeat f_equal.
+    unfold unfold_cofix. rw E. subst. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto.
-  - rewrite !closedn_mkApps in H1 |- *. solve_all.
+  - rw !closedn_mkApps in H1 |- *. solve_all.
     unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; inversion e.
     eapply closed_unfold_cofix with (narg := narg); eauto.
-    unfold unfold_cofix. rewrite E. subst. repeat f_equal.
+    unfold unfold_cofix. rw E. subst. repeat f_equal.
     eapply closed_cofix_substl_subst_eq; eauto.
   - subst v'. eapply All_app_inv. now eapply All_firstn.
     constructor. 2:now eapply All_skipn.
@@ -1377,23 +1377,23 @@ Proof.
   intros Hcl Hred.
   induction Hred. all: cbn in *; solve_all.
   1-10: try econstructor; eauto using wcbv_red1_closed.
-  1,2: now rewrite closed_subst; eauto; econstructor; eauto.
-  - now rewrite e0 /cstr_arity -e1 -e2.
-  - rewrite !tApp_mkApps -!mkApps_app. econstructor. eauto.
-    unfold is_constructor. now rewrite nth_error_app2 // Nat.sub_diag.
+  1,2: now rw closed_subst; eauto; econstructor; eauto.
+  - now rw e0 /cstr_arity -e1 -e2.
+  - rw !tApp_mkApps -!mkApps_app. econstructor. eauto.
+    unfold is_constructor. now rw nth_error_app2 // Nat.sub_diag.
   - unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try congruence.
     inversion e; subst.
-    econstructor. unfold unfold_cofix. rewrite E. repeat f_equal.
-    eapply closed_cofix_substl_subst_eq; eauto. rewrite closedn_mkApps in Hcl. solve_all.
+    econstructor. unfold unfold_cofix. rw E. repeat f_equal.
+    eapply closed_cofix_substl_subst_eq; eauto. rw closedn_mkApps in Hcl. solve_all.
   - unfold cunfold_cofix in e. destruct nth_error as [d | ] eqn:E; try congruence.
     inversion e; subst.
-    econstructor. unfold unfold_cofix. rewrite E. repeat f_equal.
-    eapply closed_cofix_substl_subst_eq; eauto. rewrite closedn_mkApps in H1. solve_all.
+    econstructor. unfold unfold_cofix. rw E. repeat f_equal.
+    eapply closed_cofix_substl_subst_eq; eauto. rw closedn_mkApps in H1. solve_all.
   - now constructor.
   - constructor. subst v'.
-    rewrite -{1}(firstn_skipn n (array_value a)).
+    rw -{1}(firstn_skipn n (array_value a)).
     eapply OnOne2_app. move: (skipn_nth_error (array_value a) n).
-    rewrite e. intros ->. constructor. eapply IHHred.
+    rw e. intros ->. constructor. eapply IHHred.
     eapply All_nth_error in e; tea; eauto.
 Qed.
 
@@ -1417,22 +1417,22 @@ Proof.
   - inversion Heval; subst. all:cbn in Hty; solve_all. all: try now econstructor; eauto with wcbv.
   - eapply eval_iota. eapply eval_mkApps_Construct; tea.
     unshelve eapply declared_constructor_to_gen; eauto.
-    now econstructor. unfold cstr_arity. rewrite e0.
-    rewrite (PCUICGlobalEnv.declared_minductive_ind_npars d).
-    now rewrite -(declared_minductive_ind_npars d) /cstr_arity.
+    now econstructor. unfold cstr_arity. rw e0.
+    rw (PCUICGlobalEnv.declared_minductive_ind_npars d).
+    now rw -(declared_minductive_ind_npars d) /cstr_arity.
     all:tea. eapply All_All2_refl. solve_all. now eapply value_final.
     unshelve eapply declared_constructor_to_gen; eauto.
   - inversion Heval; subst; clear Heval. all:cbn in Hty; solve_all. all: now econstructor; eauto with wcbv.
   - all:cbn in Hty; solve_all. eapply eval_proj; tea.
     eapply value_final. eapply value_app; auto. econstructor; tea. eapply d.
-    rewrite e; lia.
+    rw e; lia.
   - eapply eval_fix; eauto.
     + eapply value_final. eapply value_app; auto. econstructor.
       rewrite <- closed_unfold_fix_cunfold_eq, e. reflexivity. 2:eauto.
-      cbn in Hty. rewrite closedn_mkApps in Hty. solve_all.
+      cbn in Hty. rw closedn_mkApps in Hty. solve_all.
     + eapply value_final; eauto.
     + rewrite <- closed_unfold_fix_cunfold_eq, e. reflexivity.
-      cbn in Hty. rewrite closedn_mkApps in Hty. solve_all.
+      cbn in Hty. rw closedn_mkApps in Hty. solve_all.
       Unshelve. all: now econstructor.
   - destruct p as [[] ?]. eapply eval_cofix_proj; tea.
     eapply value_final, value_app. now constructor. auto.
@@ -1449,8 +1449,8 @@ Proof.
     + subst a1 a'; cbn in *. destruct a; eapply evalPrimArray; cbn in *; eauto.
       eapply All2_app_inv_l in ev as [r1 [r2 [? []]]]. subst v'0.
       depelim a1. specialize (IHHred y). forward IHHred. toAll. eapply All_nth_error in H; tea; eauto.
-      rewrite -(firstn_skipn n array_value). eapply All2_app; eauto.
-      move: (skipn_nth_error array_value n). rewrite e => ->.
+      rw -(firstn_skipn n array_value). eapply All2_app; eauto.
+      move: (skipn_nth_error array_value n). rw e => ->.
       constructor; eauto.
     + now cbn in i.
 Qed.

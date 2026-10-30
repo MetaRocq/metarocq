@@ -171,5 +171,5 @@ Lemma forget_inlining_info_transformation_ext' :
     extends_inlined_eprogram extends_eprogram.
 Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
-  now rewrite /extends_inlined_eprogram /extends_eprogram /=.
+  now rw /extends_inlined_eprogram /extends_eprogram /=.
 Qed.

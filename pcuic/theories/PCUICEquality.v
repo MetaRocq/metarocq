@@ -152,11 +152,11 @@ Lemma cmp_opt_variance_or_impl cmp_universe1 cmp_universe2 cmp_universe3 pb1 pb2
 Proof.
   intros Hsub1 Hsub2 Hl Hr e [H|H] [H'|H']; [left; apply Hl| right; apply Hr ..]; auto.
   all: apply cmp_instance_variance; tas.
-  - rewrite e.
+  - rw e.
     all: eapply Forall2_length; tea.
     + eapply @Forall3_Forall2_right with (Q := fun _ _ => True); eauto.
     + eapply @Forall3_Forall2_left with (Q := fun _ _ => True); eauto.
-  - rewrite -e.
+  - rw -e.
     all: eapply Forall2_length; tea.
     + eapply @Forall3_Forall2_right with (Q := fun _ _ => True); eauto.
     + eapply @Forall3_Forall2_left with (Q := fun _ _ => True); eauto.
@@ -774,7 +774,7 @@ Proof.
   - econstructor.
     apply All2_sym. solve_all.
   - solve_all. destruct e as (r & ? & eq & ?).
-    econstructor; rewrite ?e; unfold eq_predicate, eq_branches, eq_branch in *; repeat split; eauto.
+    econstructor; rw ?e; unfold eq_predicate, eq_branches, eq_branch in *; repeat split; eauto.
     2,3: now symmetry.
     all: eapply All2_sym; solve_all.
     apply All2_symP; solve_all. tc.
@@ -1010,7 +1010,7 @@ Lemma global_variance_napp_mon Σ gr {napp napp'} :
   end.
 Proof.
   intros hnapp.
-  rewrite /global_variance_gen.
+  rw /global_variance_gen.
   destruct gr => //=.
   - destruct lookup_inductive_gen as [[mdecl idec]|] => //=.
     destruct destArity as [[ctx s]|] => //=.
@@ -1071,7 +1071,7 @@ Instance cmp_global_instance_empty_impl Σ cmp_universe cmp_universe' pb pb' gr 
 Proof.
   intros he t t'.
   unfold cmp_global_instance_gen.
-  rewrite global_variance_empty //.
+  rw global_variance_empty //.
   intro H; apply: cmp_instance_opt_variance; move: H => /=.
   now apply cmp_universe_instance_impl.
 Qed.
@@ -1202,15 +1202,15 @@ Proof.
   all: try solve [cbn ; constructor ; try lih ; try assumption; solve_all].
   - cbn. destruct e as (? & ? & e & ?).
     constructor; unfold eq_predicate, eq_branches, eq_branch in *; simpl; !!solve_all.
-    * rewrite -?(All2_length e).
+    * rw -?(All2_length e).
       eapply hh; eauto.
-    * rewrite (All2_length hh3). now eapply hh2.
+    * rw (All2_length hh3). now eapply hh2.
   - cbn. constructor.
     pose proof (All2_length e). unfold eq_mfixpoint in *.
-    solve_all. rewrite H. eauto.
+    solve_all. rw H. eauto.
   - cbn. constructor.
     pose proof (All2_length e). unfold eq_mfixpoint in *.
-    solve_all. rewrite H. eauto.
+    solve_all. rw H. eauto.
   - cbn. constructor. depelim o; cbn in X; try constructor; cbn; intuition eauto.
     solve_all.
 Qed.
@@ -1228,7 +1228,7 @@ Proof.
   intros Γ Δ.
   induction 1; rewrite -> ?lift_context_snoc0. constructor.
   constructor; auto.
-  rewrite -(All2_fold_length X).
+  rw -(All2_fold_length X).
   now eapply compare_decls_lift_decl.
 Qed.
 
@@ -1285,11 +1285,11 @@ Proof.
     + case_eq (nth_error l (n0 - n)).
       * intros t e. eapply All2_nth_error_Some in e as h ; eauto.
         destruct h as [t' [e' h]].
-        rewrite e'.
+        rw e'.
         eapply eq_term_upto_univ_lift.
         eapply eq_term_upto_univ_leq. 4:eauto. all:auto with arith.
       * intros h. eapply All2_nth_error_None in h as hh ; eauto.
-        rewrite hh.
+        rw hh.
         apply All2_length in hl as e. rewrite <- e.
         constructor.
     + constructor.
@@ -1297,14 +1297,14 @@ Proof.
   - cbn.
     destruct e as (? & ? & e & ?).
     constructor ; unfold eq_predicate, eq_branches, eq_branch in *; simpl; try sih ; solve_all.
-    * rewrite -(All2_length e). eapply e2; eauto.
-    * rewrite (All2_length a0). now eapply b0.
+    * rw -(All2_length e). eapply e2; eauto.
+    * rw (All2_length a0). now eapply b0.
   - cbn. constructor ; try sih ; eauto.
     pose proof (All2_length e). unfold eq_mfixpoint in *.
-    solve_all. now rewrite H.
+    solve_all. now rw H.
   - cbn. constructor ; try sih ; eauto.
     pose proof (All2_length e). unfold eq_mfixpoint in *.
-    solve_all. now rewrite H.
+    solve_all. now rw H.
   - cbn; constructor. depelim o; cbn in X |- *; constructor; cbn; intuition eauto.
     solve_all.
 Qed.
@@ -1413,7 +1413,7 @@ Lemma eq_term_upto_univ_mkApps Σ cmp_universe cmp_sort pb u1 l1 u2 l2 :
     All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Conv) l1 l2 ->
     eq_term_upto_univ Σ cmp_universe cmp_sort pb (mkApps u1 l1) (mkApps u2 l2).
 Proof.
-  intros; apply eq_term_upto_univ_napp_mkApps; rewrite ?Nat.add_0_r; auto.
+  intros; apply eq_term_upto_univ_napp_mkApps; rw ?Nat.add_0_r; auto.
 Qed.
 
 Lemma eq_term_upto_univ_mkApps_l_inv Σ cmp_universe cmp_sort pb u l t :
@@ -1423,7 +1423,7 @@ Lemma eq_term_upto_univ_mkApps_l_inv Σ cmp_universe cmp_sort pb u l t :
       All2 (eq_term_upto_univ Σ cmp_universe cmp_sort Conv) l l' *
       (t = mkApps u' l').
 Proof.
-  intros H; apply eq_term_upto_univ_napp_mkApps_l_inv in H; rewrite ?Nat.add_0_r in H; auto.
+  intros H; apply eq_term_upto_univ_napp_mkApps_l_inv in H; rw ?Nat.add_0_r in H; auto.
 Qed.
 
 Lemma eq_term_upto_univ_mkApps_r_inv Σ cmp_universe cmp_sort pb u l t :
@@ -1434,7 +1434,7 @@ Lemma eq_term_upto_univ_mkApps_r_inv Σ cmp_universe cmp_sort pb u l t :
       (t = mkApps u' l').
 Proof.
   intros H; apply eq_term_upto_univ_napp_mkApps_r_inv in H;
-    rewrite Nat.add_0_r in H; auto.
+    rw Nat.add_0_r in H; auto.
 Qed.
 
 Lemma cmp_universe_instance_eq {u u'} : cmp_universe_instance eq u u' -> u = u'.
@@ -1604,7 +1604,7 @@ Lemma eq_context_upto_rev Σ cmp_universe cmp_sort pb Γ Δ :
 Proof.
   induction 1.
   - constructor.
-  - rewrite 2!rev_cons. eapply eq_context_upto_cat ; eauto.
+  - rw 2!rev_cons. eapply eq_context_upto_cat ; eauto.
     constructor ; eauto. constructor.
 Qed.
 
@@ -1638,10 +1638,10 @@ Lemma eq_context_upto_subst_context Σ cmp_universe cmp_sort pb :
 Proof.
   intros re u v n l l'.
   induction 1; intros Hl.
-  - rewrite !subst_context_nil. constructor.
-  - rewrite !subst_context_snoc; constructor; eauto.
+  - rw !subst_context_nil. constructor.
+  - rw !subst_context_snoc; constructor; eauto.
     depelim p; constructor; simpl; intuition auto;
-    rewrite -(length_of X);
+    rw -(length_of X);
     apply eq_term_upto_univ_substs; auto. all: reflexivity.
 Qed.
 
@@ -1665,7 +1665,7 @@ Lemma eq_context_upto_nth_error Σ cmp_universe cmp_sort pb ctx ctx' n :
   rel_option (eq_decl_upto_gen Σ cmp_universe cmp_sort pb) (nth_error ctx n) (nth_error ctx' n).
 Proof.
   induction 1 in n |- *.
-  - rewrite nth_error_nil. constructor.
+  - rw nth_error_nil. constructor.
   - destruct n; simpl; auto.
     constructor. depelim p; constructor; intuition auto;
     now constructor.
@@ -1765,7 +1765,7 @@ Proof.
   intros hu hu' h.
   apply eq_term_upto_univ_mkApps_l_inv in h as hh.
   destruct hh as [v [args [[h1 h2] h3]]].
-  apply eq_term_upto_univ_isApp in h1 as hh1. rewrite hu in hh1.
+  apply eq_term_upto_univ_isApp in h1 as hh1. rw hu in hh1.
   apply mkApps_notApp_inj in h3 ; auto.
   destruct h3 as [? ?]. subst. split ; auto.
 Qed.
@@ -1799,8 +1799,8 @@ Proof.
   case_eq (decompose_app u). intros t1 l1 e1.
   case_eq (decompose_app v). intros t2 l2 e2.
   unfold isConstruct_app in *.
-  rewrite e1 in h. cbn in h.
-  rewrite e2. cbn.
+  rw e1 in h. cbn in h.
+  rw e2. cbn.
   destruct t1 ; try discriminate.
   apply decompose_app_inv in e1 as ?. subst.
   apply decompose_app_inv in e2 as ?. subst.
@@ -1821,8 +1821,8 @@ Proof.
   case_eq (decompose_app u). intros t1 l1 e1.
   case_eq (decompose_app v). intros t2 l2 e2.
   unfold isConstruct_app in *.
-  rewrite e2 in h. cbn in h.
-  rewrite e1. cbn.
+  rw e2 in h. cbn in h.
+  rw e1. cbn.
   destruct t2 ; try discriminate.
   apply decompose_app_inv in e1 as ?. subst.
   apply decompose_app_inv in e2 as ?. subst.
@@ -1953,7 +1953,7 @@ Lemma eq_annots_fold (Γ : list aname) (f : nat -> term -> term) (Δ : context) 
 Proof.
   induction Δ in Γ |- *.
   - cbn; auto. reflexivity.
-  - rewrite fold_context_k_snoc0 /=.
+  - rw fold_context_k_snoc0 /=.
     destruct Γ; split; intros H; depelim H; constructor; auto;
     now apply IHΔ.
 Qed.
@@ -2048,9 +2048,9 @@ Lemma eq_context_upto_names_fold (f : nat -> term -> term) Γ Δ :
 Proof.
   induction 1.
   - cbn; auto.
-  - rewrite !fold_context_k_snoc0 /=.
+  - rw !fold_context_k_snoc0 /=.
     constructor; auto.
-    rewrite -(All2_length X).
+    rw -(All2_length X).
     destruct r; now constructor.
 Qed.
 

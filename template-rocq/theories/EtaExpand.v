@@ -950,11 +950,11 @@ Lemma repr_lookup_constructor {Σg Σ} :
   forall ind idx r, lookup_constructor Σ ind idx = Some r -> GlobalEnvMap.lookup_constructor Σg ind idx = Some r.
 Proof.
   intros hrepr ind idx r.
-  rewrite /lookup_constructor /lookup_constructor_gen /lookup_inductive /lookup_inductive_gen
+  rw /lookup_constructor /lookup_constructor_gen /lookup_inductive /lookup_inductive_gen
           /lookup_minductive /lookup_minductive_gen /lookup_env.
   destruct lookup_global eqn:hl => //.
   apply hrepr in hl.
-  rewrite /GlobalEnvMap.lookup_constructor /GlobalEnvMap.lookup_inductive /GlobalEnvMap.lookup_minductive hl //.
+  rw /GlobalEnvMap.lookup_constructor /GlobalEnvMap.lookup_inductive /GlobalEnvMap.lookup_minductive hl //.
 Qed.
 
 Import bytestring.String.
@@ -1008,23 +1008,23 @@ Proof.
     end; try now (cbn; eauto).
   - apply fst in X. destruct j_term => //. apply snd in X. simpl. apply X.
   - cbn. eapply Forall2_nth_error_Some_r in H1 as (? & ? & ?); eauto.
-    rewrite H1.
+    rw H1.
     destruct x as [[] | ].
     + destruct H2. unfold eta_single. cbn.
       eapply expanded_fold_lambda.
-      rewrite !Nat.sub_0_r. len. rewrite length_firstn. len.
+      rw !Nat.sub_0_r. len. rw length_firstn. len.
       destruct n0.
-      * cbn. econstructor. now rewrite nth_error_map H1.
-      * rewrite seq_S rev_map_spec map_app rev_app_distr. subst.
+      * cbn. econstructor. now rw nth_error_map H1.
+      * rw seq_S rev_map_spec map_app rev_app_distr. subst.
          rewrite <- context_assumptions_lift, !Nat.min_l; try lia.
         econstructor.
-        -- rewrite nth_error_app2 repeat_length; try lia.
+        -- rw nth_error_app2 repeat_length; try lia.
            replace (S n0 + n - S n0) with n by lia.
-           now rewrite nth_error_map  H1.
-        -- len. now rewrite length_seq.
+           now rw nth_error_map  H1.
+        -- len. now rw length_seq.
         -- eapply Forall_forall. intros x [ | (? & <- & [_ ?] % in_seq) % in_rev % in_map_iff]; subst.
-           all: econstructor; rewrite nth_error_app1; revgoals; [eapply nth_error_repeat; lia | rewrite repeat_length; lia].
-    + econstructor. now rewrite nth_error_map H1.
+           all: econstructor; rw nth_error_app1; revgoals; [eapply nth_error_repeat; lia | rw repeat_length; lia].
+    + econstructor. now rw nth_error_map H1.
   - cbn. econstructor. eapply (H1 (up Γ')); tea; econstructor; eauto.
   - cbn. econstructor. eauto. eapply (H1 (up Γ')); tea; econstructor; eauto.
   - specialize (H _ H2).
@@ -1047,28 +1047,28 @@ Proof.
       destruct H4.
       rewrite <- context_assumptions_lift. subst. lia.
       cbn. eapply expanded_mkApps. constructor.
-      now rewrite nth_error_map E; cbn.
+      now rw nth_error_map E; cbn.
       solve_all.
     + cbn in H. unfold eta_constructor in *.
       specialize (H Σg hrepr).
-      rewrite GlobalEnvMap.lookup_constructor_spec in H |- *.
+      rw GlobalEnvMap.lookup_constructor_spec in H |- *.
       destruct lookup_constructor as [[[mdecl idecl] cdecl]| ] eqn:E1; eauto.
       unfold eta_single in H. eapply expanded_fold_lambda.
-      rewrite Nat.sub_0_r in H.
+      rw Nat.sub_0_r in H.
       unfold mkApps in H. destruct (ind_npars mdecl + context_assumptions (cstr_args cdecl)) eqn:EE.
       * cbn in H. inversion H; subst. cbn.
         simpl_list. destruct l.
         -- cbn. econstructor; eauto.
-        -- cbn. eapply expanded_tConstruct_app; eauto. cbn. now rewrite H8.
-           rewrite lift0_id. setoid_rewrite map_ext. 3: eapply lift0_p. rewrite map_id.
+        -- cbn. eapply expanded_tConstruct_app; eauto. cbn. now rw H8.
+           rw lift0_id. setoid_rewrite map_ext. 3: eapply lift0_p. rw map_id.
            eapply Forall_typing_spine_Forall in X0.
            rewrite <- map_cons. revert X0. generalize (t0 :: l). intros l' X0.
            solve_all. eapply H4; auto. solve_all. reflexivity.
       * eapply constructor_declared in X as [[[mdecl' idecl'] cdecl'] hc].
-        have h := (repr_lookup_constructor hrepr _ _ _ hc). rewrite GlobalEnvMap.lookup_constructor_spec in h.
-        rewrite E1 in h. noconf h.
+        have h := (repr_lookup_constructor hrepr _ _ _ hc). rw GlobalEnvMap.lookup_constructor_spec in h.
+        rw E1 in h. noconf h.
         eapply expanded_mkApps_tConstruct. now eapply declared_constructor_from_gen, lookup_constructor_declared_gen.
-        rewrite rev_map_spec. simpl_list. rewrite EE. lia. eapply Forall_typing_spine_Forall in X0.
+        rw rev_map_spec. simpl_list. rw EE. lia. eapply Forall_typing_spine_Forall in X0.
         assert ((context_assumptions
         (decompose_prod_assum [] (type_of_constructor mdecl cdecl (ind, idx) u)).1) = ind_npars mdecl + context_assumptions (cstr_args cdecl)) as E. {
           eapply decompose_type_of_constructor; eauto.
@@ -1076,35 +1076,35 @@ Proof.
         eapply app_Forall.
         -- Opaque minus. solve_all. eapply @expanded_lift' with (Γ' := []). 2: reflexivity. reflexivity.
            2: reflexivity. len.
-           { rewrite !length_firstn !List.length_skipn. len.
-             rewrite E EE. lia.
+           { rw !length_firstn !List.length_skipn. len.
+             rw E EE. lia.
            }
            cbn. eauto.
-        -- rewrite rev_map_spec. eapply Forall_rev.
+        -- rw rev_map_spec. eapply Forall_rev.
            eapply Forall_forall. intros ? (? & <- & ?) % in_map_iff. econstructor.
            eapply in_seq in H4 as [_ H4].
-           len. rewrite nth_error_app1; len.
-           rewrite !length_firstn !List.length_skipn. len. rewrite E EE.
-           rewrite length_map in H4. lia.
+           len. rw nth_error_app1; len.
+           rw !length_firstn !List.length_skipn. len. rw E EE.
+           rw length_map in H4. lia.
            eapply nth_error_repeat. cbn in *.
-           rewrite !length_firstn !List.length_skipn. len. rewrite E EE.
-           rewrite length_map in H4. lia.
+           rw !length_firstn !List.length_skipn. len. rw E EE.
+           rw length_map in H4. lia.
     + specialize (H _ hrepr).
       cbn in H. unfold eta_fixpoint in *.
-      rewrite nth_error_map in H |- *.
+      rw nth_error_map in H |- *.
       destruct (nth_error mfix idx) eqn:Eid; eauto.
       cbn in *.
       eapply expanded_fold_lambda.
 
       eapply expanded_mkApps_tFix; fold lift.
-      2:{ rewrite !nth_error_map Eid. cbn. len. reflexivity. }
+      2:{ rw !nth_error_map Eid. cbn. len. reflexivity. }
       ++ cbn. rewrite <- context_assumptions_lift.
         eapply wf_fixpoint_rarg; eauto. 2: eapply nth_error_In; eauto.
         clear - X. depind X; eauto.
-      ++ len. rewrite length_seq. lia.
+      ++ len. rw length_seq. lia.
       ++ unfold eta_single in H.
-         rewrite expanded_fold_lambda in H. cbn. simpl_list.
-         cbn-[lift] in H. rewrite Nat.sub_0_r in H.
+         rw expanded_fold_lambda in H. cbn. simpl_list.
+         cbn-[lift] in H. rw Nat.sub_0_r in H.
          unfold lift in H. fold lift in H.
          eapply expanded_mkApps_tFix_inv in H.
          eapply Forall_forall.
@@ -1120,37 +1120,37 @@ Proof.
          eapply typing_wf_fixpoint in X. eapply wf_fixpoint_rarg in X. 2: eauto. 2: eapply nth_error_In; eauto.
 
          assert (#|l| > S (rarg d) \/ #|l| <= S (rarg d) )  as [He | He] by lia.
-         { replace ((S (rarg d) - #|l|)) with 0 by lia. cbn. rewrite lift0_id.
+         { replace ((S (rarg d) - #|l|)) with 0 by lia. cbn. rw lift0_id.
           eapply expanded_unlift. 2: reflexivity.
           eapply apply_expanded; eauto; len. 2:{ f_equal. instantiate (1 := repeat 0 (S (rarg d))). now len. }
-          simpl_list. rewrite !app_assoc. f_equal. f_equal.
-          2:{ f_equal. rewrite !length_firstn. len.
+          simpl_list. rw !app_assoc. f_equal. f_equal.
+          2:{ f_equal. rw !length_firstn. len.
               destruct context_assumptions; lia.
            }
-          f_equal.  rewrite !mapi_map. now eapply mapi_ext. }
+          f_equal.  rw !mapi_map. now eapply mapi_ext. }
 
          eapply expanded_unlift with (Γ'' :=  repeat 0 #|l|). 2: now rewrite <- app_assoc.
-         rewrite -> simpl_lift. 2:{ len. rewrite !length_firstn !List.length_skipn. lia. }
+         rewrite -> simpl_lift. 2:{ len. rw !length_firstn !List.length_skipn. lia. }
          2:{ len. lia. }
          eapply apply_expanded. eauto.
          simpl_list. f_equal. f_equal.
-         ** rewrite !mapi_map. now eapply mapi_ext.
-         ** rewrite !length_firstn !List.length_skipn.
-            rewrite app_assoc. f_equal.
+         ** rw !mapi_map. now eapply mapi_ext.
+         ** rw !length_firstn !List.length_skipn.
+            rw app_assoc. f_equal.
             rewrite <- repeat_app. f_equal. len.
             destruct context_assumptions;
             lia.
          ** f_equal. len. lia.
       ++ eapply Forall_typing_spine_Forall in X0. eapply app_Forall.
          ** solve_all. eapply @expanded_lift' with (Γ' := []). all: try now reflexivity. 2: eauto.
-            len. rewrite !length_firstn !List.length_skipn.
+            len. rw !length_firstn !List.length_skipn.
             eapply typing_wf_fixpoint in X.
             eapply wf_fixpoint_rarg in X. 2: eauto. 2: eapply nth_error_In; eauto.
             len. lia.
-         ** rewrite rev_map_spec. eapply Forall_rev.
+         ** rw rev_map_spec. eapply Forall_rev.
             eapply Forall_forall. intros ? (? & <- & ?) % in_map_iff. econstructor.
             eapply in_seq in H4 as [_ H4]. autorewrite with len in H4 |- *.
-            rewrite !length_firstn !List.length_skipn.
+            rw !length_firstn !List.length_skipn.
             rewrite -> nth_error_app1. eapply nth_error_repeat.
             -- len.
                eapply Nat.lt_le_trans. eauto. cbn.
@@ -1167,26 +1167,26 @@ Proof.
   - cbn. pose proof isdecl as isdecl'.
     unfold eta_constructor.
     eapply declared_constructor_to_gen, declared_constructor_lookup_gen in isdecl'.
-    eapply (repr_lookup_constructor hrepr) in isdecl'. rewrite isdecl'.
-    rewrite GlobalEnvMap.lookup_constructor_spec in isdecl'.
-    eapply expanded_fold_lambda. rewrite Nat.sub_0_r.
+    eapply (repr_lookup_constructor hrepr) in isdecl'. rw isdecl'.
+    rw GlobalEnvMap.lookup_constructor_spec in isdecl'.
+    eapply expanded_fold_lambda. rw Nat.sub_0_r.
     eapply expanded_mkApps_tConstruct; eauto.
-    rewrite rev_map_spec. now simpl_list. rewrite rev_map_spec -!List.map_rev.
+    rw rev_map_spec. now simpl_list. rw rev_map_spec -!List.map_rev.
     eapply Forall_forall. intros ? (? & <- & ?) % in_map_iff. econstructor.
     eapply in_rev, in_seq in H2 as [_ ?]. cbn in *. len.
-    rewrite !length_firstn. len.
+    rw !length_firstn. len.
     assert ((context_assumptions
     (decompose_prod_assum []
        (type_of_constructor mdecl cdecl (ind, i) u)).1) = ind_npars mdecl + context_assumptions (cstr_args cdecl)) as ->. {
       eapply decompose_type_of_constructor; eauto.
     }
-    rewrite nth_error_app1. 2:now rewrite nth_error_repeat. rewrite repeat_length. lia.
+    rw nth_error_app1. 2:now rw nth_error_repeat. rw repeat_length. lia.
   - cbn. econstructor; eauto.
     * unfold map_branches. solve_all.
       clear -hrepr X1 H9.
       set (Γ'' := map _ Γ'). cbn.
       enough (All (expanded Σ0 Γ'') (map (eta_expand Σg Γ') (pparams p ++ indices))).
-      now rewrite map_app in X; eapply All_app in X as [].
+      now rw map_app in X; eapply All_app in X as [].
       eapply All_map.
       induction X1.
       + constructor.
@@ -1195,38 +1195,38 @@ Proof.
 
     * solve_all.
       specialize (b (repeat None #|bcontext y| ++ Γ'))%list.
-      rewrite map_app map_repeat in b. eapply b; eauto.
+      rw map_app map_repeat in b. eapply b; eauto.
       eapply Forall2_app; solve_all.
 
       assert (#| (case_branch_context_gen (ci_ind ci) mdecl (pparams p)
       (puinst p) (bcontext y) x)| = #|bcontext y|). { clear - a0.
-        unfold case_branch_context_gen. rewrite map2_length.
-        rewrite Nat.min_l; try lia. eapply All2_length in a0.
+        unfold case_branch_context_gen. rw map2_length.
+        rw Nat.min_l; try lia. eapply All2_length in a0.
         unfold inst_case_context. unfold subst_context.
         unfold subst_instance, subst_instance_context, map_context.
-        rewrite fold_context_k_length length_map. unfold aname. lia.
+        rw fold_context_k_length length_map. unfold aname. lia.
       } revert H10. generalize ((case_branch_context_gen (ci_ind ci) mdecl (pparams p)
       (puinst p) (bcontext y) x)). clear -hrepr.
       induction #|bcontext y|; intros []; cbn; intros; try congruence; econstructor; eauto.
-    - cbn. rewrite nth_error_map H0. cbn. unfold eta_fixpoint. unfold fst_ctx in *. cbn in *.
+    - cbn. rw nth_error_map H0. cbn. unfold eta_fixpoint. unfold fst_ctx in *. cbn in *.
     eapply expanded_fold_lambda.
     assert (#|(decompose_prod (dtype decl)).1.1| = #|(decompose_prod (dtype decl)).1.2|) as E1. { eapply decompose_prod12. }
     assert (rarg decl < context_assumptions (decompose_prod_assum [] (dtype decl)).1) as E2. { eapply wf_fixpoint_rarg; eauto. now eapply nth_error_In. }
     eapply expanded_mkApps_tFix.
     + shelve.
-    + fold lift. rewrite !nth_error_map H0. cbn. len. reflexivity.
-    + len. rewrite length_seq. lia.
+    + fold lift. rw !nth_error_map H0. cbn. len. reflexivity.
+    + len. rw length_seq. lia.
     + fold lift. len.
       assert (Forall (fun x => isLambda (dbody x)) mfix).
       { apply andb_and in H2. destruct H2 as [isl _]. solve_all. }
       solve_all.
       { now eapply isLambda_lift, isLambda_eta_expand. }
       cbn in *.
-      rewrite !length_firstn. rewrite -> !Nat.min_l; try lia.
+      rw !length_firstn. rewrite -> !Nat.min_l; try lia.
       eapply expanded_lift'.
       5: eapply a2; eauto. 2: reflexivity. 2: now len.
       2: now len.
-      { rewrite map_app. f_equal. rewrite map_rev. f_equal. now rewrite !mapi_map map_mapi. }
+      { rw map_app. f_equal. rw map_rev. f_equal. now rw !mapi_map map_mapi. }
       eapply Forall2_app; solve_all.
       subst types. unfold Typing.fix_context.
       eapply All2_rev. eapply All2_mapi. eapply All_All2_refl, Forall_All, Forall_forall.
@@ -1234,17 +1234,17 @@ Proof.
       rewrite <- context_assumptions_lift.
       eapply wf_fixpoint_rarg in H4; eauto. len; lia.
       Unshelve. all: eauto. cbn.  rewrite <- context_assumptions_lift. lia.
-    + cbn - [rev_map seq]. rewrite rev_map_spec. eapply Forall_rev.
+    + cbn - [rev_map seq]. rw rev_map_spec. eapply Forall_rev.
       eapply Forall_forall. intros ? (? & <- & ?) % in_map_iff. econstructor.
       eapply in_seq in H4 as [_ ?]. cbn in *. len.
-      rewrite !length_firstn.
+      rw !length_firstn.
       rewrite -> nth_error_app1. eapply nth_error_repeat.
       len; lia.
-      rewrite repeat_length. len; lia.
-    + cbn - [rev_map seq]. rewrite rev_map_spec. cbn. rewrite Nat.sub_0_r. cbn. destruct List.rev; cbn; congruence.
+      rw repeat_length. len; lia.
+    + cbn - [rev_map seq]. rw rev_map_spec. cbn. rw Nat.sub_0_r. cbn. destruct List.rev; cbn; congruence.
   - cbn. econstructor; eauto. eapply All_Forall, All_map, All_impl with (1 := X2). cbn. intros ? e0.
      specialize (e0 (repeat None #|mfix| ++ Γ'))%list.
-     rewrite map_app map_repeat in e0. len. eapply e0; auto.
+     rw map_app map_repeat in e0. len. eapply e0; auto.
      eapply Forall2_app; eauto. unfold types.
      assert (#|Typing.fix_context mfix| = #|mfix|). { unfold Typing.fix_context. now len. }
      revert H4. generalize (Typing.fix_context mfix). clear.
@@ -1318,7 +1318,7 @@ Lemma eta_lookup_global_error Σ ind :
    lookup_global Σ.(declarations) (inductive_mind ind) = None.
 Proof.
   unfold eta_global_declarations.
-  rewrite lookup_global_map_on_snd. destruct lookup_global => //.
+  rw lookup_global_map_on_snd. destruct lookup_global => //.
 Qed.
 
 Lemma eta_declared_constructor {cf:checker_flags} {Σ : GlobalEnvMap.t}
@@ -1331,15 +1331,15 @@ Proof.
   eapply declared_constructor_to_gen in H.
   destruct H as [[] ?].
   move: H.
-  rewrite /declared_inductive /declared_inductive_gen /declared_minductive /declared_minductive_gen
+  rw /declared_inductive /declared_inductive_gen /declared_minductive /declared_minductive_gen
          /lookup_env /=.
   destruct (lookup_global Σ.(declarations) _) eqn:heq => //.
   move: (eta_lookup_global (inductive_mind ind.1) g heq) => hl.
   intros [= ->].
   unfold declared_constructor_gen, declared_inductive_gen, declared_minductive_gen.
-  rewrite hl; split => //.
-  split => //. rewrite nth_error_map H0 //.
-  rewrite nth_error_map H1 //.
+  rw hl; split => //.
+  split => //. rw nth_error_map H0 //.
+  rw nth_error_map H1 //.
   Unshelve. all: eauto.
 Qed.
 
@@ -1434,7 +1434,7 @@ Proof.
   destruct Σ as [].
   unfold repr_decls.
   intros kn d.
-  cbn. rewrite GlobalEnvMap.lookup_env_spec. now cbn.
+  cbn. rw GlobalEnvMap.lookup_env_spec. now cbn.
 Qed.
 
 Lemma eta_expand_context {cf} {Σ} {Σg : global_env_ext_map} {ctx} {wfΣ : Typing.wf_ext Σ} :
@@ -1444,19 +1444,19 @@ Lemma eta_expand_context {cf} {Σ} {Σg : global_env_ext_map} {ctx} {wfΣ : Typi
 Proof.
   unfold on_context.
   red. intros hrepr wf. sq.
-  rewrite /eta_context.
+  rw /eta_context.
   eapply All_fold_fold_context_k_defs.
   induction wf; cbn; auto; try constructor; auto.
   cbn. constructor.
   cbn. constructor.
-  len. rewrite app_nil_r.
+  len. rw app_nil_r.
   destruct t1 as (t1 & s & t2 & _).
   cbn in t1, t2.
   forward (eta_expand_expanded (Σ := Σ) Γ (repeat None #|Γ|) _ _ wfΣ t1).
   clear. induction Γ; cbn; constructor; auto.
   intros. specialize (H _ hrepr).
   move: H.
-  now rewrite map_repeat.
+  now rw map_repeat.
 Qed.
 
 Lemma eta_expand_context_sorts {cf} {Σ} {Σg : global_env_ext_map} {ctx ctx' cunivs} {wfΣ : Typing.wf_ext Σ} :
@@ -1470,20 +1470,20 @@ Proof.
   constructor; eauto.
   cbn in hs. destruct a as [na [b|] ty]; try destruct hs as [hs ?].
   specialize (IHctx' cunivs hs). constructor; auto.
-  constructor. len. rewrite repeat_app.
+  constructor. len. rw repeat_app.
   destruct l as [Htm [s Hs]].
   epose proof (eta_expand_expanded (Σ := Σ) _ (repeat None (#|ctx'| + #|ctx|)) _ _ wfΣ Htm).
   forward H.
-  clear. rewrite -app_context_length.
+  clear. rw -app_context_length.
   induction (_ ,,, _); cbn; constructor; auto.
   specialize (H _ hrepr).
-  now rewrite map_repeat !repeat_app in H.
+  now rw map_repeat !repeat_app in H.
   destruct cunivs => //. destruct hs.
   constructor; eauto. constructor.
 Qed.
 
 Lemma eta_context_length g n ctx : #|eta_context g n ctx| = #|ctx|.
-Proof. now rewrite /eta_context; len. Qed.
+Proof. now rw /eta_context; len. Qed.
 #[export] Hint Rewrite @eta_context_length : len.
 
 Lemma eta_expand_global_decl_expanded {cf : checker_flags} (Σ : global_env_ext) (Σg : global_env_ext_map) kn d :
@@ -1515,15 +1515,15 @@ Proof.
     len. len.
     pose proof onc.(on_ctype). destruct X0 as (_ & s & t0 & _).
     epose proof (eta_expand_expanded (Σ := Σ) _ (repeat None #|ind_bodies m|) _ _ wf t0).
-    forward H. rewrite -arities_context_length.
+    forward H. rw -arities_context_length.
     clear. induction (arities_context _); constructor; auto.
     specialize (H _ hrepr).
-    now rewrite map_repeat in H.
+    now rw map_repeat in H.
 Qed.
 
 Lemma eta_context_assumptions Σ n Γ : context_assumptions Γ = context_assumptions (eta_context Σ n Γ).
 Proof.
-  now rewrite /eta_context context_assumptions_fold_context_k_defs.
+  now rw /eta_context context_assumptions_fold_context_k_defs.
 Qed.
 
 Lemma same_cstr_info_eta {cf:checker_flags} (Σ : global_env) {wfΣ : wf Σ} (Σg: GlobalEnvMap.t) :
@@ -1536,10 +1536,10 @@ Proof.
   induction Σ; intros ind idx mdecl idecl cdecl.
   - unfold declared_constructor, declared_inductive, declared_minductive.
     cbn => [[[]]] //.
-  - rewrite /declared_constructor.
+  - rw /declared_constructor.
     intros [[H hnth] hnth'].
     eapply declared_minductive_to_gen, declared_minductive_lookup_gen in H; eauto. move:H.
-    rewrite /lookup_inductive /lookup_inductive_gen /lookup_minductive /lookup_minductive_gen
+    rw /lookup_inductive /lookup_inductive_gen /lookup_minductive /lookup_minductive_gen
             /lookup_env /=.
     destruct a as [kn decl]; cbn.
     case: eqb_spec.
@@ -1548,8 +1548,8 @@ Proof.
       do 3 eexists; cbn. split. split. split => //.
       apply lookup_global_Some_if_In; cbn.
       subst.  case: eqb_spec=> //.
-      cbn. rewrite nth_error_map hnth; reflexivity.
-      cbn. rewrite nth_error_map hnth'; reflexivity.
+      cbn. rw nth_error_map hnth; reflexivity.
+      cbn. rw nth_error_map hnth'; reflexivity.
       now cbn. cbn. apply eta_context_assumptions.
     * intros Hind Hm.
       red in IHΣ.
@@ -1617,7 +1617,7 @@ Proof.
   induction ond; cbn; constructor; auto.
   apply: IHond.
   { cbn. destruct X as [equ [Σ' ext]]. red. split. auto.
-    rewrite ext. cbn. unfold snoc. exists (Σ' ++ [(kn, d)])%list. now rewrite -app_assoc.
+    rw ext. cbn. unfold snoc. exists (Σ' ++ [(kn, d)])%list. now rw -app_assoc.
     apply e. }
   set (Σ' := {| universes := univs'; declarations := Σ; retroknowledge := retro' |}) in *.
   set (Σg := {| GlobalEnvMap.env := _ |}). Unshelve.
@@ -1627,11 +1627,11 @@ Proof.
   cbn in H.
   forward H. {
     move=> kn' d' /= hl.
-    rewrite GlobalEnvMap.lookup_env_spec /=.
+    rw GlobalEnvMap.lookup_env_spec /=.
     cbn. unfold snoc.
     eapply (lookup_global_extends Σ' (set_declarations Σ' (Σ'' ++ (kn, d) :: Σ)%list)); eauto.
     apply extends_decls_extends, strictly_extends_decls_extends_decls.
-    split => //. cbn. now exists (Σ'' ++ [(kn, d)])%list; rewrite -app_assoc. }
+    split => //. cbn. now exists (Σ'' ++ [(kn, d)])%list; rw -app_assoc. }
   forward H. split. cbn. split => //. now cbn.
   specialize (H o0).
   eapply expanded_decl_env_irrel in H; tea.

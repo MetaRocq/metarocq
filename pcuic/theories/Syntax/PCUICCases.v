@@ -30,7 +30,7 @@ Lemma inds_spec ind u l :
 Proof.
   unfold inds, mapi. induction l using rev_ind.
   - simpl. reflexivity.
-  - now rewrite length_app /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
+  - now rw length_app /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
 Qed.
 
 Definition ind_predicate_context ind mdecl idecl : context :=
@@ -46,7 +46,7 @@ Definition ind_predicate_context ind mdecl idecl : context :=
 
 Lemma ind_predicate_context_length ind mdecl idecl :
   #|ind_predicate_context ind mdecl idecl| = S #|idecl.(ind_indices)|.
-Proof. now rewrite /ind_predicate_context /=; len. Qed.
+Proof. now rw /ind_predicate_context /=; len. Qed.
 #[global]
 Hint Rewrite ind_predicate_context_length : len.
 
@@ -55,14 +55,14 @@ Definition inst_case_context params puinst (pctx : context) :=
 
 Lemma inst_case_context_length params puinst pctx :
   #|inst_case_context params puinst pctx| = #|pctx|.
-Proof. rewrite /inst_case_context. now len. Qed.
+Proof. rw /inst_case_context. now len. Qed.
 #[global]
 Hint Rewrite inst_case_context_length : len.
 
 Lemma inst_case_context_assumptions params puinst pctx :
   context_assumptions (inst_case_context params puinst pctx) =
   context_assumptions pctx.
-Proof. rewrite /inst_case_context. now len. Qed.
+Proof. rw /inst_case_context. now len. Qed.
 #[global]
 Hint Rewrite inst_case_context_assumptions : len.
 
@@ -71,14 +71,14 @@ Definition inst_case_predicate_context (p : predicate term) :=
 
 Lemma inst_case_predicate_context_length p :
   #|inst_case_predicate_context p| = #|p.(pcontext)|.
-Proof. rewrite /inst_case_predicate_context. now len. Qed.
+Proof. rw /inst_case_predicate_context. now len. Qed.
 
 Definition inst_case_branch_context (p : predicate term) (br : branch term) :=
   inst_case_context p.(pparams) p.(puinst) br.(bcontext).
 
 Lemma inst_case_branch_context_length p br :
   #|inst_case_branch_context p br| = #|br.(bcontext)|.
-Proof. rewrite /inst_case_branch_context. now len. Qed.
+Proof. rw /inst_case_branch_context. now len. Qed.
 
 Definition iota_red npar p args br :=
   subst (List.rev (List.skipn npar args)) 0
@@ -102,7 +102,7 @@ Definition cstr_branch_context ind mdecl cdecl : context :=
 
 Lemma cstr_branch_context_length ind mdecl cdecl :
   #|cstr_branch_context ind mdecl cdecl| = #|cdecl.(cstr_args)|.
-Proof. rewrite /cstr_branch_context. now len. Qed.
+Proof. rw /cstr_branch_context. now len. Qed.
 #[global]
 Hint Rewrite cstr_branch_context_length : len.
 
@@ -110,8 +110,8 @@ Lemma cstr_branch_context_assumptions ci mdecl cdecl :
   context_assumptions (cstr_branch_context ci mdecl cdecl) =
   context_assumptions (cstr_args cdecl).
 Proof.
-  rewrite /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx.
-  now do 2 rewrite !context_assumptions_subst_context ?context_assumptions_lift_context.
+  rw /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx.
+  now do 2 rw !context_assumptions_subst_context ?context_assumptions_lift_context.
 Qed.
 
 Definition pre_case_branch_context_gen ind mdecl cdecl params puinst : context :=
@@ -177,7 +177,7 @@ Lemma map2_length {A B C} (l : list A) (l' : list B) (f : A -> B -> C) : #|l| = 
   #|map2 f l l'| = #|l|.
 Proof.
   induction l in l' |- *; destruct l' => /= //.
-  intros [= eq]. now rewrite IHl.
+  intros [= eq]. now rw IHl.
 Qed.
 
 Lemma map2_set_binder_name_context_assumptions
@@ -185,7 +185,7 @@ Lemma map2_set_binder_name_context_assumptions
   context_assumptions (map2 set_binder_name l l') = context_assumptions l'.
 Proof.
   induction l in l' |- *; destruct l' => /= //.
-  intros [= eq]. now rewrite IHl.
+  intros [= eq]. now rw IHl.
 Qed.
 
 Definition idecl_binder idecl :=
@@ -212,7 +212,7 @@ Definition wf_predicateb mdecl idecl (p : predicate term) : bool :=
 
 Lemma wf_predicateP mdecl idecl p : reflectProp (wf_predicate mdecl idecl p) (wf_predicateb mdecl idecl p).
 Proof.
-  rewrite /wf_predicate /wf_predicate_gen /wf_predicateb.
+  rw /wf_predicate /wf_predicate_gen /wf_predicateb.
   case: ReflectEq.eqb_spec => eqpars /= //.
   * case: (forallb2P _ _ (forget_types (pcontext p)) (idecl_binder idecl :: ind_indices idecl)
       (fun na decl => eqb_annot_reflect na decl.(decl_name))); constructor => //.
@@ -232,7 +232,7 @@ Definition wf_branchb cdecl (b : branch term) : bool :=
 
 Lemma wf_branchP cdecl b : reflect (wf_branch cdecl b) (wf_branchb cdecl b).
 Proof.
-  rewrite /wf_branch /wf_branch_gen /wf_branchb.
+  rw /wf_branch /wf_branch_gen /wf_branchb.
   apply (forallb2P _ _ (forget_types (bcontext b)) (cstr_args cdecl)
     (fun na decl => eqb_annot_reflect na decl.(decl_name))).
 Qed.
@@ -248,7 +248,7 @@ Definition wf_branchesb idecl (brs : list (branch term)) : bool :=
 
 Lemma wf_branchesP idecl brs : reflect (wf_branches idecl brs) (wf_branchesb idecl brs).
 Proof.
-  rewrite /wf_branches /wf_branches_gen /wf_branchesb.
+  rw /wf_branches /wf_branches_gen /wf_branchesb.
   apply (forallb2P _ _ _ _ wf_branchP).
 Qed.
 
@@ -261,10 +261,10 @@ Lemma case_predicate_context_length {ci mdecl idecl p} :
 Proof.
   intros hl.
   unfold case_predicate_context, case_predicate_context_gen, pre_case_predicate_context_gen.
-  rewrite map2_length /= //.
+  rw map2_length /= //.
   2:len => //.
   destruct hl.
-  rewrite (Forall2_length H0). len. now len.
+  rw (Forall2_length H0). len. now len.
 Qed.
 
 Lemma case_predicate_context_length_indices {ci mdecl idecl p} :
@@ -274,8 +274,8 @@ Proof.
   intros hl.
   unfold case_predicate_context, case_predicate_context_gen, pre_case_predicate_context_gen.
   pose proof (Forall2_length (proj2 hl)). simpl in H.
-  rewrite -H.
-  rewrite map2_length; len. all:len.
+  rw -H.
+  rw map2_length; len. all:len.
   - now len in H.
   - now len in H.
 Qed.
@@ -306,9 +306,9 @@ Lemma case_branch_context_length {ind mdecl p br cdecl} :
 Proof.
   intros hl.
   unfold case_branch_context, case_branch_context_gen, pre_case_branch_context_gen; len.
-  rewrite map2_length //.
+  rw map2_length //.
   * red in hl. red in hl.
-    rewrite (Forall2_length hl). now len.
+    rw (Forall2_length hl). now len.
   * now len.
 Qed.
 
@@ -319,7 +319,7 @@ Proof.
   intros hl.
   unfold case_branch_context, case_branch_context_gen, pre_case_branch_context_gen; len.
   apply Forall2_length in hl.
-  rewrite map2_length //. rewrite hl. now len.
+  rw map2_length //. rw hl. now len.
 Qed.
 
 Lemma case_branch_context_assumptions {ind mdecl p br cdecl} :
@@ -330,10 +330,10 @@ Proof.
   intros hl.
   unfold case_branch_context, case_branch_context_gen, pre_case_branch_context_gen; len.
   apply Forall2_length in hl.
-  rewrite /expand_lets_ctx /expand_lets_k_ctx. len.
-  rewrite map2_set_binder_name_context_assumptions.
-  - now rewrite hl; len.
-  - len. rewrite /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx. now len.
+  rw /expand_lets_ctx /expand_lets_k_ctx. len.
+  rw map2_set_binder_name_context_assumptions.
+  - now rw hl; len.
+  - len. rw /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx. now len.
 Qed.
 
 Lemma case_branches_contexts_length {ind mdecl idecl p pctx} :
@@ -342,7 +342,7 @@ Lemma case_branches_contexts_length {ind mdecl idecl p pctx} :
 Proof.
   intros hl.
   unfold case_branches_contexts.
-  rewrite map2_length //.
+  rw map2_length //.
 Qed.
 
 Lemma case_branch_type_length {ci mdecl idecl p br ptm i cdecl} :
@@ -350,7 +350,7 @@ Lemma case_branch_type_length {ci mdecl idecl p br ptm i cdecl} :
   #|(case_branch_type ci mdecl idecl p br ptm i cdecl).1| = #|cstr_args cdecl|.
 Proof.
   intros wf; simpl.
-  now rewrite case_branch_context_length_args.
+  now rw case_branch_context_length_args.
 Qed.
 
 Lemma lookup_inductive_declared lookup ind mdecl idecl :
@@ -362,7 +362,7 @@ Proof.
   destruct lookup => //.
   destruct g => //.
   destruct nth_error eqn:e => //.
-  intros [= -> ->]. now rewrite e.
+  intros [= -> ->]. now rw e.
 Qed.
 
 (** *** Helper functions for reduction/conversion *)
@@ -409,7 +409,7 @@ Proof.
 Qed.
 
 Lemma fix_context_length mfix : #|fix_context mfix| = #|mfix|.
-Proof. unfold fix_context. now rewrite List.length_rev mapi_length. Qed.
+Proof. unfold fix_context. now rw List.length_rev mapi_length. Qed.
 
 #[global]
 Hint Rewrite subst_instance_length
@@ -424,20 +424,20 @@ Definition is_constructor n ts :=
 Lemma is_constructor_app_ge n l l' : is_constructor n l -> is_constructor n (l ++ l').
 Proof.
   unfold is_constructor. destruct nth_error eqn:Heq => //.
-  rewrite nth_error_app_lt ?Heq //; eauto using nth_error_Some_length.
+  rw nth_error_app_lt ?Heq //; eauto using nth_error_Some_length.
 Qed.
 
 Lemma is_constructor_prefix n args args' :
   ~~ is_constructor n (args ++ args') ->
   ~~ is_constructor n args.
 Proof.
-  rewrite /is_constructor.
+  rw /is_constructor.
   elim: nth_error_spec.
-  - rewrite length_app.
+  - rw length_app.
     move=> i hi harg. elim: nth_error_spec => //.
     move=> i' hi' hrarg'.
-    rewrite nth_error_app_lt in hi; eauto. congruence.
-  - rewrite length_app. move=> ge _.
+    rw nth_error_app_lt in hi; eauto. congruence.
+  - rw length_app. move=> ge _.
     elim: nth_error_spec; intros; try lia. auto.
 Qed.
 

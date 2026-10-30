@@ -27,10 +27,10 @@ Proof.
   destruct (isApp M1) eqn:Heq.
   destruct M1; try discriminate. simpl.
   revert wfM1. inv H. simpl. intros.
-  rewrite mkApp_mkApps. constructor.
+  rw mkApp_mkApps. constructor.
 
   intros.
-  rewrite mkApp_mkApps.
+  rw mkApp_mkApps.
   econstructor; eauto.
   inv wfM1. simpl.
   clear -H1.
@@ -38,12 +38,12 @@ Proof.
   destruct (nth_error args narg) eqn:Heq.
   eapply nth_error_app_left in Heq. now rewrite -> Heq. discriminate.
 
-  intros. rewrite mkApp_mkApps. now constructor.
+  intros. rw mkApp_mkApps. now constructor.
 
   intros. simpl.
   constructor. clear -X. induction X; constructor; auto.
 
-  rewrite mkApp_tApp; auto.
+  rw mkApp_tApp; auto.
   now apply red1_tApp_mkApp.
 Qed.
 
@@ -69,11 +69,11 @@ Proof.
   inv X0.
   destruct (isApp M1) eqn:Heq. destruct M1; try discriminate.
   simpl. constructor. apply OnOne2_app. constructor. auto.
-  rewrite mkApps_tApp; try congruence.
-  rewrite mkApps_tApp; try congruence.
+  rw mkApps_tApp; try congruence.
+  rw mkApps_tApp; try congruence.
   constructor. constructor. auto.
   inv X0.
   specialize (IHX1 (mkApp M1 hd)). forward IHX1.
   apply wf_mkApp; auto. forward IHX1; auto.
-  now rewrite !mkApps_mkApp in IHX1.
+  now rw !mkApps_mkApp in IHX1.
 Qed.

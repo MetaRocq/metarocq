@@ -21,7 +21,7 @@ Lemma typing_spine_inv args arg a Σ x2 x3 :
 Proof.
   intros. revert arg H.
   dependent induction X; intros arg H17.
-  - rewrite nth_error_nil in H17. congruence.
+  - rw nth_error_nil in H17. congruence.
   - destruct (arg)%nat eqn:EAst.
     + cbn in H17. invs H17. eauto.
     + cbn in H17. eauto.
@@ -95,8 +95,8 @@ Qed.
 
 Lemma fst_decompose_app_rec t l : fst (EAstUtils.decompose_app_rec t l) = fst (EAstUtils.decompose_app t).
 Proof.
-  induction t in l |- *; simpl; auto. rewrite IHt1.
-  unfold decompose_app. simpl. now rewrite (IHt1 [t2]).
+  induction t in l |- *; simpl; auto. rw IHt1.
+  unfold decompose_app. simpl. now rw (IHt1 [t2]).
 Qed.
 
 (** ** Prelim on fixpoints *)
@@ -109,8 +109,8 @@ Proof.
   intros m. revert n. induction m; cbn; intros.
   - destruct n; inv H.
   - destruct n.
-    + cbn. now rewrite Nat.sub_0_r.
-    + cbn. rewrite IHm. lia. reflexivity.
+    + cbn. now rw Nat.sub_0_r.
+    + cbn. rw IHm. lia. reflexivity.
 Qed.
 
 Lemma efix_subst_nth mfix n :
@@ -121,8 +121,8 @@ Proof.
   intros m. revert n. induction m; cbn; intros.
   - destruct n; inv H.
   - destruct n.
-    + cbn. now rewrite Nat.sub_0_r.
-    + cbn. rewrite IHm. lia. reflexivity.
+    + cbn. now rw Nat.sub_0_r.
+    + cbn. rw IHm. lia. reflexivity.
 Qed.
 
 Lemma subslet_fix_subst `{cf : checker_flags} Σ mfix1 T n :
@@ -136,15 +136,15 @@ Proof.
   generalize mfix1 at 2 5 6.  intros.
   induction mfix0 using rev_ind.
   - econstructor.
-  - rewrite mapi_app. cbn in *. rewrite rev_app_distr. cbn in *.
-    rewrite length_app. cbn. rewrite Nat.add_comm /=; econstructor.
+  - rw mapi_app. cbn in *. rw rev_app_distr. cbn in *.
+    rw length_app. cbn. rw Nat.add_comm /=; econstructor.
     + eapply IHmfix0. destruct H as [L]. exists (x :: L). subst. now rewrite <- app_assoc.
     + rewrite <- plus_n_O.
-      rewrite PCUICLiftSubst.simpl_subst_k. clear. induction l; cbn; try congruence.
+      rw PCUICLiftSubst.simpl_subst_k. clear. induction l; cbn; try congruence.
       eapply inversion_Fix in X as (? & ? & ? & ? & ? & ? & ?) ; auto.
       econstructor; eauto. destruct H. subst.
       rewrite <- app_assoc, nth_error_app_ge; try lia.
-      now rewrite Nat.sub_diag.
+      now rw Nat.sub_diag.
 Qed.
 
 Lemma cofix_subst_nth mfix n :
@@ -155,8 +155,8 @@ Proof.
   intros m. revert n. induction m; cbn; intros.
   - destruct n; inv H.
   - destruct n.
-    + cbn. now rewrite Nat.sub_0_r.
-    + cbn. rewrite IHm; lia_f_equal.
+    + cbn. now rw Nat.sub_0_r.
+    + cbn. rw IHm; lia_f_equal.
 Qed.
 
 Lemma ecofix_subst_nth mfix n :
@@ -167,8 +167,8 @@ Proof.
   intros m. revert n. induction m; cbn; intros.
   - destruct n; inv H.
   - destruct n.
-    + cbn. now rewrite Nat.sub_0_r.
-    + cbn. rewrite IHm. lia. reflexivity.
+    + cbn. now rw Nat.sub_0_r.
+    + cbn. rw IHm. lia. reflexivity.
 Qed.
 
 Lemma subslet_cofix_subst `{cf : checker_flags} Σ mfix1 T n :
@@ -182,15 +182,15 @@ Proof.
   generalize mfix1 at 2 5 6.  intros.
   induction mfix0 using rev_ind.
   - econstructor.
-  - rewrite mapi_app. cbn in *. rewrite rev_app_distr. cbn in *.
-    rewrite length_app /= Nat.add_comm /=. econstructor.
+  - rw mapi_app. cbn in *. rw rev_app_distr. cbn in *.
+    rw length_app /= Nat.add_comm /=. econstructor.
     + eapply IHmfix0. destruct H as [L]. exists (x :: L). subst. now rewrite <- app_assoc.
     + rewrite <- plus_n_O.
-      rewrite PCUICLiftSubst.simpl_subst_k. clear. induction l; cbn; try congruence.
+      rw PCUICLiftSubst.simpl_subst_k. clear. induction l; cbn; try congruence.
       eapply inversion_CoFix in X as (? & ? & ? & ? & ? & ? & ?) ; auto.
       econstructor; eauto. destruct H. subst.
-      rewrite <- app_assoc. rewrite nth_error_app_ge. lia.
-      now rewrite Nat.sub_diag.
+      rewrite <- app_assoc. rw nth_error_app_ge. lia.
+      now rw Nat.sub_diag.
 Qed.
 
 Lemma unfold_cofix_type Σ mfix idx args narg fn ty :
@@ -204,7 +204,7 @@ Proof.
   eapply PCUICValidity.inversion_mkApps in ht as (? & ? & ?); eauto.
   eapply inversion_CoFix in t; auto.
   destruct_sigma t.
-  rewrite /unfold_cofix e => [=] harg hfn.
+  rw /unfold_cofix e => [=] harg hfn.
   subst fn.
   eapply PCUICSpine.typing_spine_strengthen in t0; eauto.
   eapply PCUICSpine.type_mkApps; eauto.
@@ -212,7 +212,7 @@ Proof.
   eapply nth_error_all in a0'; eauto. apply unlift_TermTyp in a0'.
   eapply (substitution (Δ := [])) in a0'; eauto.
   2:{ eapply subslet_cofix_subst; pcuic. constructor; eauto. }
-  rewrite PCUICLiftSubst.simpl_subst_k in a0'. now autorewrite with len.
+  rw PCUICLiftSubst.simpl_subst_k in a0'. now autorewrite with len.
   eapply a0'. now eapply nth_error_all, isTypeRel_isType in a; tea.
 Qed.
 
@@ -252,7 +252,7 @@ Lemma assumption_context_cstr_branch_context (wfl := default_wcbv_flags) {Σ} {w
 Proof.
   intros decl.
   eapply declared_constructor_assumption_context in decl.
-  rewrite /cstr_branch_context. pcuic.
+  rw /cstr_branch_context. pcuic.
 Qed.
 
 Lemma expand_lets_erasure (wfl := default_wcbv_flags) {Σ mdecl idecl cdecl c brs p} {wfΣ : wf_ext Σ} :
@@ -273,9 +273,9 @@ Proof.
   solve_all.
   red in a. red in a.
   erewrite <- PCUICCasesContexts.inst_case_branch_context_eq; tea.
-  rewrite PCUICSigmaCalculus.expand_lets_assumption_context //.
+  rw PCUICSigmaCalculus.expand_lets_assumption_context //.
   eapply assumption_context_map2_binders.
-  rewrite /pre_case_branch_context_gen /inst_case_context.
+  rw /pre_case_branch_context_gen /inst_case_context.
   eapply PCUICInductiveInversion.assumption_context_subst_context.
   eapply PCUICInductiveInversion.assumption_context_subst_instance.
   destruct c. cbn.
@@ -296,12 +296,12 @@ Lemma smash_assumption_context Γ Δ : assumption_context Γ ->
   smash_context Δ Γ = Γ ,,, Δ.
 Proof.
   intros ass; induction ass in Δ |- *; cbn; auto.
-  - now rewrite app_context_nil_l.
-  - rewrite PCUICSigmaCalculus.smash_context_acc /app_context.
-    rewrite IHass /=.
-    rewrite -(app_tip_assoc Δ _ Γ). f_equal.
-    rewrite -/(expand_lets_k_ctx Γ 0 _).
-    rewrite [expand_lets_k_ctx _ _ _]PCUICSigmaCalculus.expand_lets_ctx_assumption_context //.
+  - now rw app_context_nil_l.
+  - rw PCUICSigmaCalculus.smash_context_acc /app_context.
+    rw IHass /=.
+    rw -(app_tip_assoc Δ _ Γ). f_equal.
+    rw -/(expand_lets_k_ctx Γ 0 _).
+    rw [expand_lets_k_ctx _ _ _]PCUICSigmaCalculus.expand_lets_ctx_assumption_context //.
 Qed.
 
 Import PCUICGlobalEnv PCUICSpine.
@@ -322,14 +322,14 @@ Lemma subslet_cstr_branch_context {cf : checker_flags} {Σ : global_env_ext} {wf
   subslet Σ Γ (List.rev s') (case_branch_context ind mdecl p (forget_types (bcontext br)) cdecl).
 Proof.
   intros declc cu cu' hr sppars sppars' assargs eqp wfp wfbr spargs.
-  rewrite /case_branch_context /case_branch_context_gen.
+  rw /case_branch_context /case_branch_context_gen.
   eapply PCUICSpine.subslet_eq_context_alpha.
   symmetry. eapply PCUICCasesContexts.eq_binder_annots_eq.
   eapply PCUICInductiveInversion.wf_pre_case_branch_context_gen; tea.
-  rewrite /pre_case_branch_context_gen /inst_case_context.
-  rewrite /cstr_branch_context.
-  rewrite PCUICInductiveInversion.subst_instance_expand_lets_ctx PCUICUnivSubstitutionConv.subst_instance_subst_context.
-  rewrite PCUICInductives.instantiate_inds //. exact declc.
+  rw /pre_case_branch_context_gen /inst_case_context.
+  rw /cstr_branch_context.
+  rw PCUICInductiveInversion.subst_instance_expand_lets_ctx PCUICUnivSubstitutionConv.subst_instance_subst_context.
+  rw PCUICInductives.instantiate_inds //. exact declc.
   epose proof (PCUICInductiveInversion.constructor_cumulative_indices declc cu cu' hr _ _ _ _ _ sppars sppars' eqp) as [eqctx _].
   cbn in eqctx.
   epose proof (spine_subst_smash spargs).
@@ -337,16 +337,16 @@ Proof.
   pcuic. pcuic. apply X.
   { eapply substitution_wf_local. eapply (spine_subst_smash sppars').
     eapply PCUICInductives.wf_local_expand_lets.
-    rewrite -app_context_assoc.
+    rw -app_context_assoc.
     eapply PCUICWeakeningTyp.weaken_wf_local => //. eapply sppars.
     eapply (PCUICSR.on_constructor_wf_args declc) => //. }
-  rewrite /=.
-  rewrite -(spine_subst_inst_subst sppars').
+  rw /=.
+  rw -(spine_subst_inst_subst sppars').
   assert (smash_context [] (cstr_args cdecl)@[puinst p] = (cstr_args cdecl)@[puinst p]).
-  { rewrite smash_assumption_context //. pcuic. }
-  rewrite -H.
-  rewrite -PCUICClosed.smash_context_subst /= subst_context_nil.
-  rewrite -PCUICClosed.smash_context_subst /= subst_context_nil. apply eqctx.
+  { rw smash_assumption_context //. pcuic. }
+  rw -H.
+  rw -PCUICClosed.smash_context_subst /= subst_context_nil.
+  rw -PCUICClosed.smash_context_subst /= subst_context_nil. apply eqctx.
 Qed.
 
 

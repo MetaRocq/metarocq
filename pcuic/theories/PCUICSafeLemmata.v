@@ -33,11 +33,11 @@ Lemma wf_inst_case_context {cf Σ} {wfΣ : wf Σ} {Γ} {ci : case_info}
   wf_local Σ (Γ ,,, inst_case_context params uinst ctx).
 Proof.
   move=> isdecl wfΓ cu sp wfr.
-  rewrite /pre_case_predicate_context_gen /inst_case_context /ind_predicate_context /=.
+  rw /pre_case_predicate_context_gen /inst_case_context /ind_predicate_context /=.
   eapply PCUICSubstitution.substitution_wf_local.
   * eapply sp.
   * unshelve epose proof (on_minductive_wf_params_indices_inst isdecl _ cu).
-  rewrite PCUICUnivSubstitutionConv.subst_instance_app_ctx in X.
+  rw PCUICUnivSubstitutionConv.subst_instance_app_ctx in X.
   eapply All_local_env_app_inv in X as [].
   eapply All_local_env_app => //.
   eapply wf_local_smash_end.
@@ -51,9 +51,9 @@ Lemma alpha_eq_context_closed {Γ Δ} :
   is_closed_context Δ.
 Proof.
   induction 1 => //.
-  rewrite !on_free_vars_ctx_snoc=> /andP[] clx cll.
+  rw !on_free_vars_ctx_snoc=> /andP[] clx cll.
   apply /andP; split; auto.
-  destruct r; unfold ws_decl, test_decl in *; cbn in *; subst; auto; now rewrite -(All2_length X).
+  destruct r; unfold ws_decl, test_decl in *; cbn in *; subst; auto; now rw -(All2_length X).
 Qed.
 
 Lemma alpha_eq_context_ws_cumul_ctx_pb {cf Σ Γ Δ} {wfΣ : wf Σ} :
@@ -90,11 +90,11 @@ Proof.
   destruct (wf_case_branch_type ps args isdecl Hc wfp Hp wfpctx _ _ _ declc wfbr) as []; auto.
   have wfΓ : wf_local Σ Γ by pcuic.
   eapply isType_mkApps_Ind_smash in Hc as [? []]; tea.
-  2:{ now rewrite (wf_predicate_length_pars wfp). }
+  2:{ now rw (wf_predicate_length_pars wfp). }
   have wfctx : wf_local Σ (Γ,,, inst_case_branch_context p br).
   { erewrite <- inst_case_branch_context_eq; tea. apply a1. }
   split => //.
-  rewrite inst_case_branch_context_eq //.
+  rw inst_case_branch_context_eq //.
   eapply ws_cumul_ctx_pb_refl. fvs.
 Qed.
 
@@ -133,11 +133,11 @@ Section Lemmata.
     ].
     - unfold zippx. simpl.
       case_eq (decompose_stack ρ). intros l π e.
-      unfold zippx in IHρ. rewrite e in IHρ.
+      unfold zippx in IHρ. rw e in IHρ.
       move: cl => /= /andP[] cl cl'. apply IHρ => //.
       eapply ws_cumul_pb_App_l; tas.
       eapply closedn_on_free_vars; len.
-      now rewrite Nat.add_comm.
+      now rw Nat.add_comm.
     - unfold zippx. simpl.
       eapply ws_cumul_pb_it_mkLambda_or_LetIn_codom. cbn.
       eapply ws_cumul_pb_Lambda_r.
@@ -177,12 +177,12 @@ Section Lemmata.
     - assumption.
     - simpl. cbn. eapply ih => //.
       * eapply ws_cumul_pb_LetIn_bo. assumption.
-      * rewrite snoc_app_context on_free_vars_ctx_app /= in cl.
+      * rw snoc_app_context on_free_vars_ctx_app /= in cl.
         now move/andP: cl.
     - simpl. cbn.
-      rewrite snoc_app_context on_free_vars_ctx_app /= in cl.
+      rw snoc_app_context on_free_vars_ctx_app /= in cl.
       move/andP: cl => [cl cld]. cbn in cld.
-      rewrite andb_true_r in cld. setoid_rewrite shiftnP_add in cld.
+      rw andb_true_r in cld. setoid_rewrite shiftnP_add in cld.
       eapply ih => //.
       eapply ws_cumul_pb_Prod; auto. apply ws_cumul_pb_refl => //.
   Qed.
@@ -350,10 +350,10 @@ Section Lemmata.
         eauto using isTypeRel_welltyped.
       + eapply All_app in a0 as (_&a0).
         depelim a0. destruct o as (t0 & _); cbn in t0.
-        rewrite fix_context_fix_context_alt in t0.
-        rewrite map_app in t0.
+        rw fix_context_fix_context_alt in t0.
+        rw map_app in t0.
         simpl in t0.
-        rewrite app_context_assoc.
+        rw app_context_assoc.
         econstructor; eauto.
     - apply inversion_CoFix in typ as (?&?&?&?&?&?&?); eauto.
       destruct mfix as ((?&[])&?); simpl in *.
@@ -362,19 +362,19 @@ Section Lemmata.
         eauto using isTypeRel_welltyped.
       + eapply All_app in a0 as (_&a0).
         depelim a0. destruct o as (t0 & _); cbn in t0.
-        rewrite fix_context_fix_context_alt in t0.
-        rewrite map_app in t0.
+        rw fix_context_fix_context_alt in t0.
+        rw map_app in t0.
         simpl in t0.
-        rewrite app_context_assoc.
+        rw app_context_assoc.
         econstructor; eauto.
     - apply inversion_Case in typ as (?&?&?&?&[]&?); auto.
-      rewrite app_context_assoc.
+      rw app_context_assoc.
       destruct p.
       + apply validity in scrut_ty as (_ & ? & typ & _).
         clear brs_ty.
         apply inversion_mkApps in typ as (?&_&spine); auto; simpl in *.
         clear -spine.
-        rewrite -app_assoc -app_comm_cons in spine.
+        rw -app_assoc -app_comm_cons in spine.
         revert spine; generalize (tSort x3); intros t' spine.
         induction params1 in spine, x4, t' |- *; cbn in *.
         * depelim spine.
@@ -394,9 +394,9 @@ Section Lemmata.
                eapply (on_minductive_wf_params_indices_inst x1); tas. }
               move: X. generalize (ctx_inst_sub ind_inst).
               intros l.
-              rewrite subst_instance_app => X.
+              rw subst_instance_app => X.
               unshelve epose proof (spine_subst_app_inv _ X) as [sp _].
-              { rewrite (wf_predicate_length_pars wf_pred). len.
+              { rw (wf_predicate_length_pars wf_pred). len.
                 eapply (declared_minductive_ind_npars x1). }
               now eapply spine_subst_smash in sp.
           ** cbn in conv_pctx.
@@ -407,11 +407,11 @@ Section Lemmata.
                 reflexivity.
              ++ eapply wf_ind_predicate; tea.
 
-        * rewrite /predctx.
+        * rw /predctx.
           cbn in conv_pctx.
-          rewrite /case_predicate_context /= /case_predicate_context_gen.
-          rewrite /pre_case_predicate_context_gen.
-          rewrite /inst_case_context.
+          rw /case_predicate_context /= /case_predicate_context_gen.
+          rw /pre_case_predicate_context_gen.
+          rw /inst_case_context.
           apply eq_context_upto_names_conv_context.
           eapply All2_app. 2:{ reflexivity. }
           apply (PCUICAlpha.inst_case_predicate_context_eq (ind:=ci) wf_pred).
@@ -428,16 +428,16 @@ Section Lemmata.
       eapply All2i_length in a0.
       depelim a. clear a.
       destruct p0 as (wfl&(cc&typ&r)). clear r.
-      rewrite -app_assoc.
+      rw -app_assoc.
       eexists.
       pose proof (typing_wf_local scrut_ty).
       eapply validity in scrut_ty.
       have declc : declared_constructor Σ (ci, #|x|) mdecl idecl x1.
-      { split; auto. rewrite e /= nth_error_app_ge // Nat.sub_diag //. }
+      { split; auto. rw e /= nth_error_app_ge // Nat.sub_diag //. }
       have wf_branch : wf_branch x1 {| bcontext := bcontext; bbody := t |}.
       { eapply Forall2_All2 in wf_brs. eapply All2_nth_error with (n := #|x|) in wf_brs; tea.
-        * rewrite e /= nth_error_app_ge // Nat.sub_diag //.
-        * rewrite a0 /= nth_error_app_ge // Nat.sub_diag //. }
+        * rw e /= nth_error_app_ge // Nat.sub_diag //.
+        * rw a0 /= nth_error_app_ge // Nat.sub_diag //. }
       destruct (wf_case_inst_case_context ps args decli scrut_ty wf_pred pret_ty conv_pctx
         _ _ _ declc wf_branch wfl).
       cbn in *.
@@ -493,7 +493,7 @@ Section Lemmata.
       intros [= <- <-].
       specialize (IHρ _ _ clρ eq_refl).
       cbn in cla |- *.
-      now rewrite IHρ cla.
+      now rw IHρ cla.
   Qed.
 
   (* Ill-scoped, if the stack has a context *)
@@ -590,7 +590,7 @@ Section Lemmata.
   Proof using hΣ.
     intros Γ t π h.
     apply welltyped_it_mkLambda_or_LetIn in h.
-    rewrite app_context_nil_l in h.
+    rw app_context_nil_l in h.
     assumption.
   Qed.
 
@@ -601,7 +601,7 @@ Section Lemmata.
   Proof using hΣ.
     intros h h1.
     apply decompose_stack_eq in h. subst.
-    rewrite stack_context_appstack.
+    rw stack_context_appstack.
     induction args in Γ, t, ρ, h1 |- *.
     - cbn in *.
       now apply (welltyped_context Γ (t, ρ)).
@@ -662,7 +662,7 @@ Section Lemmata.
     intros t l. revert t.
     induction l ; intros t.
     - reflexivity.
-    - cbn. rewrite IHl. reflexivity.
+    - cbn. rw IHl. reflexivity.
   Qed.
 
   Lemma isProdmkApps :
@@ -727,7 +727,7 @@ Section Lemmata.
     intros Γ na A B l h.
     pose proof (isAppProd_isProd) as hh.
     specialize hh with (2 := h).
-    rewrite isAppProd_mkApps in hh.
+    rw isAppProd_mkApps in hh.
     specialize hh with (1 := eq_refl).
     apply isProdmkApps in hh. assumption.
   Qed.
@@ -745,7 +745,7 @@ Section Lemmata.
     intros t l. revert t.
     induction l ; intros t.
     - reflexivity.
-    - cbn. rewrite IHl. reflexivity.
+    - cbn. rw IHl. reflexivity.
   Qed.
 
   Definition isPrim t :=
@@ -803,7 +803,7 @@ Section Lemmata.
     intros Γ p l h.
     pose proof (isAppPrim_isPrim) as hh.
     specialize hh with (2 := h).
-    rewrite isAppPrim_mkApps in hh.
+    rw isAppPrim_mkApps in hh.
     specialize hh with (1 := eq_refl).
     apply isPrimmkApps in hh. assumption.
   Qed.
@@ -829,7 +829,7 @@ Section Lemmata.
     intros π.
     case_eq (decompose_stack π). intros l ρ e.
     cbn. pose proof (decompose_stack_eq _ _ _ e). subst.
-    rewrite stack_context_appstack. reflexivity.
+    rw stack_context_appstack. reflexivity.
   Qed.
 
   Lemma decompose_stack_stack_cat π π' :
@@ -848,7 +848,7 @@ Section Lemmata.
     induction π in π' |- *; cbn in *; auto.
     - now destruct decompose_stack.
     - destruct a; auto.
-      rewrite !IHπ.
+      rw !IHπ.
       now destruct (decompose_stack π).
   Qed.
 
@@ -858,19 +858,19 @@ Section Lemmata.
   Proof using Type.
     intros no_stack_app.
     unfold zipp.
-    rewrite decompose_stack_stack_cat.
+    rw decompose_stack_stack_cat.
     destruct (decompose_stack π') eqn:decomp.
     cbn.
-    destruct s; try now rewrite app_nil_r.
-    now destruct π as [|[] ?]; cbn in *; rewrite ?app_nil_r.
+    destruct s; try now rw app_nil_r.
+    now destruct π as [|[] ?]; cbn in *; rw ?app_nil_r.
   Qed.
 
   Lemma zipp_appstack t args π :
     zipp t (appstack args π) = zipp (mkApps t args) π.
   Proof using Type.
     unfold zipp.
-    rewrite decompose_stack_appstack.
-    rewrite mkApps_app.
+    rw decompose_stack_appstack.
+    rw mkApps_app.
     now destruct decompose_stack.
   Qed.
 
@@ -891,7 +891,7 @@ Section Lemmata.
     zipp t π = t.
   Proof using Type.
     intros.
-    now rewrite zipp_as_mkApps fst_decompose_stack_nil.
+    now rw zipp_as_mkApps fst_decompose_stack_nil.
   Qed.
 
   Lemma it_mkLambda_or_LetIn_inj :
@@ -1008,10 +1008,10 @@ Section Lemmata.
     unfold zipp.
     case_eq (decompose_stack π). intros l ρ e.
     pose proof (decompose_stack_eq _ _ _ e). subst. clear e.
-    rewrite zipc_appstack in h.
+    rw zipc_appstack in h.
     zip fold in h.
     apply welltyped_context in h. simpl in h.
-    rewrite stack_context_appstack.
+    rw stack_context_appstack.
     assumption.
   Qed.
 
@@ -1021,7 +1021,7 @@ Section Lemmata.
     ∥Σ ;;; Γ ⊢ zipp t π ≤[leq] zipp t' π'∥.
   Proof using hΣ.
     intros conv conv_args.
-    rewrite !zipp_as_mkApps.
+    rw !zipp_as_mkApps.
     sq; eapply ws_cumul_pb_mkApps; auto.
   Qed.
 
@@ -1038,7 +1038,7 @@ Section Lemmata.
     eapply All2_fold_nth in nth; eauto.
     destruct nth as (?&eq&?&?).
     constructor.
-    rewrite eq.
+    rw eq.
     cbn.
     specialize (behaves _ _ _ _ r).
     f_equal.
