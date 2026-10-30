@@ -1,7 +1,7 @@
 -R theories MetaRocq.Common
 
 theories/Primitive.v
-theories/uGraph.v
+theories/UnivConstraintType.v
 theories/config.v
 theories/Kernames.v
 theories/Universes.v
@@ -14,3 +14,15 @@ theories/EnvironmentTyping.v
 theories/EnvironmentReflect.v
 theories/EnvMap.v
 theories/Transform.v
+
+theories/LoopChecking/Common.v
+theories/LoopChecking/Interfaces.v
+theories/LoopChecking/InitialSemilattice.v
+theories/LoopChecking/HornClauses.v
+theories/LoopChecking/HornSemilatticeEquiv.v
+theories/LoopChecking/Model.v
+theories/LoopChecking/Models.v
+theories/LoopChecking/PartialLoopChecking.v
+theories/LoopChecking/Deciders.v
+theories/LoopChecking/UnivLoopChecking.v
+theories/uGraph.v

@@ -11,7 +11,6 @@ theories/EPretty.v
 theories/ECSubst.v
 theories/EWcbvEval.v
 theories/EWcbvEvalNamed.v
-# theories/EWtAst.v
 theories/EGlobalEnv.v
 theories/EGenericMapEnv.v
 theories/EGenericGlobalMap.v
@@ -45,6 +44,8 @@ theories/EUnboxing.v
 theories/EReorderCstrs.v
 theories/ERemapInductives.v
 theories/EImplementBox.v
+theories/EImplementLazyForce.v
+theories/EConstantsToValues.v
 
 theories/Typed/Annotations.v
 theories/Typed/ClosedAux.v

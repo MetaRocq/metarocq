@@ -89,11 +89,11 @@ Section infer_irrel.
     (wi' : forall Σ : global_env_ext, abstract_env_ext_rel X' Σ -> welltyped Σ Γ (PCUICPosition.zip (t, π))) :
     reduce_stack fl X_type X Γ t π wi = reduce_stack fl X_type' X' Γ t π wi'.
   Proof using hl.
-    rewrite !reduce_stack_eq.
+    rw !reduce_stack_eq.
     revert X_type' X' wi' hl normalization_in'.
     apply_funelim (reduce_stack_full fl X_type X Γ t π wi).
     intros.
-    rewrite reduce_stack_full_unfold_eq.
+    rw reduce_stack_full_unfold_eq.
     set (rec := (fun t' π' => _)).
     simp _reduce_stack.
     unfold reduce_stack_full_unfold. simp _reduce_stack.
@@ -339,7 +339,7 @@ Section infer_irrel.
     destruct reduce_to_prod as [[na [A [B hr]]]|] eqn:h. 2:bang.
     destruct (reduce_to_prod _ _ wi') as [[na' [A' [B' hr']]]|] eqn:h'. 2:bang.
     pose proof (reduce_to_prod_irrel wi wi').
-    rewrite h h' in H. now cbn in H.
+    rw h h' in H. now cbn in H.
   Qed.
 
   Definition same_sort_comp {cf} {nor : normalizing_flags}
@@ -393,7 +393,7 @@ Section infer_irrel.
     cbn. destruct hp, hp'; cbn; intros <-.
     cbn -[reduce_to_sort] in *.
     epose proof (reduce_to_sort_irrel eq_refl obl obl').
-    rewrite h h' in H. now cbn in H.
+    rw h h' in H. now cbn in H.
   Qed.
 
   Definition same_ind_comp {Γ t t'}
@@ -429,7 +429,7 @@ Section infer_irrel.
     epose proof (same_reduce_stack (fl := PCUICNormal.RedFlags.default) (π := []) wi wi').
     eapply elim_inspect => [[f' π'] eq']. simp reduce_to_ind.
     eapply elim_inspect => [[f'' π''] eq'']. simp reduce_to_ind.
-    rewrite -eq' -eq'' in H. noconf H.
+    rw -eq' -eq'' in H. noconf H.
     destruct view_indc => //. simp reduce_to_ind.
     eapply elim_inspect => [[app st] eqst]. simp reduce_to_ind => //.
   Qed.
@@ -448,10 +448,10 @@ Section infer_irrel.
     intros eq.
     funelim (lookup_ind_decl X_type X ind); simp lookup_ind_decl;
     eapply elim_inspect; intros opt e'.
-    - rewrite -e -e' in eq. destruct opt; noconf eq => //.
-    - rewrite -e in eq. destruct opt => //. exfalso; congruence.
+    - rw -e -e' in eq. destruct opt; noconf eq => //.
+    - rw -e in eq. destruct opt => //. exfalso; congruence.
     - destruct opt as [[]|]. cbn. congruence.
-      rewrite -look -e' in eq. noconf eq.
+      rw -look -e' in eq. noconf eq.
       simp lookup_ind_decl.
       eapply elim_inspect; intros opt e''.
       destruct opt => //. simp lookup_ind_decl. cbn. congruence.
@@ -503,7 +503,7 @@ Proof.
     destruct t', t''. cbn in H0. subst x0. cbn.
     eapply same_prod_last; eauto.
     now eapply infer_as_prod_irrel.
-  - unfold infer. rewrite Heq /= //.
+  - unfold infer. rw Heq /= //.
   - assert (abstract_env_lookup X cst = abstract_env_lookup X' cst).
     { epose proof (abstract_env_ext_exists X) as [[Σ wfΣ]].
       epose proof (abstract_env_ext_wf X wfΣ) as [hwfΣ].
@@ -518,7 +518,7 @@ Proof.
     }
     move: e Heq.
     cbn -[infer].
-    rewrite H. unfold infer.
+    rw H. unfold infer.
     now intros e -> => /=.
   - destruct decl as [decl [body hd]].
     cbn -[infer].
@@ -535,7 +535,7 @@ Proof.
       unshelve eapply declared_minductive_to_gen in H1, H0; eauto.
       }
     destruct (PCUICSafeReduce.inspect (lookup_ind_decl _ X' ind)).
-    generalize (same_lookup_ind_decl ind H). rewrite -{1}e0 -{1}e.
+    generalize (same_lookup_ind_decl ind H). rw -{1}e0 -{1}e.
     destruct x => //. cbn. cbn.
     destruct a as [decl' [body' ?]]; cbn.
     congruence.
@@ -555,7 +555,7 @@ Proof.
       unshelve eapply declared_minductive_to_gen in H1, H4; eauto.
       }
     destruct (PCUICSafeReduce.inspect (lookup_ind_decl _ X' ind)).
-    generalize (same_lookup_ind_decl _ H). rewrite -{1}e1 -{1}e.
+    generalize (same_lookup_ind_decl _ H). rw -{1}e1 -{1}e.
     destruct x => //.
     destruct a as [decl' [body' ?]] => //.
     simp infer.
@@ -577,7 +577,7 @@ Proof.
     cbn in obl3. unfold PCUICSafeRetyping.principal_type_type in obl3 |- *.
     eapply elim_inspect => y eq.
     epose proof (reduce_to_ind_irrel hl Hind obl4 obl3).
-    rewrite -e -eq in H.
+    rw -e -eq in H.
     destruct y => //. destruct a as [ind' [u' [l' ?]]] => //. cbn.
     destruct indargs as [ind [u [l ?]]]; cbn. now cbn in H; noconf H.
   - cbn -[infer].
@@ -598,7 +598,7 @@ Proof.
       eapply hl; eauto;
       unshelve eapply declared_minductive_to_gen in H1, H; eauto.
       }
-    generalize (same_lookup_ind_decl _ H). rewrite -{1}eq -{1}e.
+    generalize (same_lookup_ind_decl _ H). rw -{1}eq -{1}e.
     destruct y => //.
     destruct a as [decl [body ?]], d as [decl' [body' ?]].
     simp infer.
@@ -615,14 +615,14 @@ Proof.
     cbn in obl3. unfold PCUICSafeRetyping.principal_type_type in obl3 |- *.
     eapply elim_inspect => rind eqrind.
     epose proof (reduce_to_ind_irrel hl Hind obl4 obl3).
-    rewrite -e1 -eqrind in H0.
+    rw -e1 -eqrind in H0.
     destruct rind => //. destruct a as [ind' [u' [l' ?]]] => //. cbn.
     destruct indargs as [ind'' [u [l ?]]]; cbn. cbn in H0; noconf H0.
-    clear -e0 eq'. destruct pdecl. rewrite -e0 in eq'. noconf eq'. now cbn.
+    clear -e0 eq'. destruct pdecl. rw -e0 in eq'. noconf eq'. now cbn.
     exfalso.
     clear -e0 eq'. congruence.
-  - cbn -[infer]. unfold infer; rewrite Heq /= //.
-  - cbn -[infer]. unfold infer; rewrite Heq /= //.
+  - cbn -[infer]. unfold infer; rw Heq /= //.
+  - cbn -[infer]. unfold infer; rw Heq /= //.
   - cbn -[infer]. simp infer.
     eapply elim_inspect => y eq.
     assert (forall tag, abstract_primitive_constant X tag = abstract_primitive_constant X' tag).
@@ -631,7 +631,7 @@ Proof.
       epose proof (abstract_env_ext_exists X') as [[Σ' wfΣ']].
       epose proof (abstract_env_ext_wf X' wfΣ') as [hwfΣ'].
       apply (hl _ wfΣ _ wfΣ'). }
-    clear Heq. rewrite H in eqp. rewrite -eq in eqp.
+    clear Heq. rw H in eqp. rw -eq in eqp.
     destruct y;  simp infer; cbn; congruence.
 Qed.
 
@@ -660,7 +660,7 @@ Proof.
   destruct (PCUICSafeReduce.inspect) eqn:hi.
   cbn -[sort_of_type_clause_1_clause_1].
   destruct (PCUICSafeReduce.inspect (reduce_to_sort _ x obl2')) eqn:hi';
-  rewrite -e -e0 in H.
+  rw -e -e0 in H.
   destruct x0, x1 => //. cbn in H.
   destruct a, a0. cbn in H; noconf H.
   now cbn.

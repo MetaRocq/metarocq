@@ -98,8 +98,8 @@ Proof.
   induction l as [|[kn d] decls] in deps, deps' |- *; cbn; auto.
   destruct (KernameSet.mem kn deps) eqn:e.
   eapply KernameSet.mem_spec in e.
-  intros kne. eapply kne in e. eapply KernameSet.mem_spec in e. rewrite e.
-  rewrite (IHdecls _ _ kne); eauto. destruct d. f_equal. eapply IHdecls. now rewrite kne.
+  intros kne. eapply kne in e. eapply KernameSet.mem_spec in e. rw e.
+  rw (IHdecls _ _ kne); eauto. destruct d. f_equal. eapply IHdecls. now rw kne.
   f_equal.
   intros hne.
   destruct (KernameSet.mem kn deps') eqn:e'.
@@ -127,7 +127,7 @@ Lemma erase_erasable {X_type X nin Γ t wt} :
   @erase X_type X nin Γ t wt = EAst.tBox.
 Proof.
   intros his.
-  rewrite erase_equation_1.
+  rw erase_equation_1.
   destruct inspect_bool. now cbn.
   exfalso.
   move/negP: i => hi. apply hi.
@@ -193,7 +193,7 @@ Proof.
             epose proof (Erasure.conv_arity_Is_conv_to_Arity c).
             set (Σ := {| PEnv.universes := _ |}) in *.
             set (Σ' := {| PEnv.universes := _ ; PEnv.declarations := decls |}) in *.
-            rewrite erase_erasable.
+            rw erase_erasable.
             intros ? HΣ.
             destruct H as [ar [[] isar]].
             set (obl := fun (Σ : PCUICAst.PCUICEnvironment.global_env) _ => _) in HΣ.
@@ -223,18 +223,18 @@ Proof.
         eapply extends_cons.
         unfold trans_env in IHdecls.
         eapply (IHdecls _ _ _ _ prf''); eauto. cbn [negb].
-        rewrite hign /=.
+        rw hign /=.
         intros kn'.
-        rewrite !KernameSet.union_spec.
+        rw !KernameSet.union_spec.
         intuition eauto.
-        change (constant_decls_deps er'.1) with (global_decl_deps (E.ConstantDecl er'.1)) in H2. rewrite -H0 in H2.
-        clear -H2. destruct er as [[ty []] | |[]]; cbn in *; rewrite ?KernameSet.union_spec in H2 *;
+        change (constant_decls_deps er'.1) with (global_decl_deps (E.ConstantDecl er'.1)) in H2. rw -H0 in H2.
+        clear -H2. destruct er as [[ty []] | |[]]; cbn in *; rw ?KernameSet.union_spec in H2 *;
           intuition auto; knset.
       * destruct (KernameSet.mem kn deps') eqn:e'.
-        rewrite hign. cbn [map].
+        rw hign. cbn [map].
         eapply extends_cons_right.
         now eapply fresh_global_filter_deps.
-        eapply IHdecls; eauto. cbn -[er]. intros kn'. rewrite !KernameSet.union_spec. intuition eauto.
+        eapply IHdecls; eauto. cbn -[er]. intros kn'. rw !KernameSet.union_spec. intuition eauto.
         eapply IHdecls; eauto.
     + destruct (KernameSet.mem kn deps) eqn:e.
       * assert (KernameSet.mem kn deps') as ->.
@@ -247,27 +247,27 @@ Proof.
           unfold trans_mib, erase_mutual_inductive_body.
           f_equal.
           unfold Erasure.erase_ind. cbn.
-          rewrite map_map_In.
+          rw map_map_In.
           pose proof (Erasure.abstract_eq_wf _ _ _ prf) as [h [wf]].
           eapply map_mapIn_eq. intros x hin.
           destruct x. unfold erase_one_inductive_body. cbn -[Erasure.erase_ind_body].
           eapply one_inductive_body_eq.
           1-3:reflexivity.
-          { cbn [E.ind_ctors trans_oib]. rewrite /trans_ctors.
+          { cbn [E.ind_ctors trans_oib]. rw /trans_ctors.
             unfold Erasure.erase_ind_body.
-            cbn [ExAst.ind_ctors]. rewrite map_map_In.
+            cbn [ExAst.ind_ctors]. rw map_map_In.
             eapply map_mapIn_eq.
             intros [] hin'.
             destruct decompose_arr; reflexivity. }
-          { cbn. rewrite map_In_spec map_map_compose //. } }
-        rewrite -H0.
+          { cbn. rw map_In_spec map_map_compose //. } }
+        rw -H0.
         eapply extends_cons.
         eapply IHdecls; eauto.
         intros kn'; knset.
       * destruct (KernameSet.mem kn deps') eqn:e'.
-        rewrite hign. cbn [map].
+        rw hign. cbn [map].
         eapply extends_cons_right. now eapply fresh_global_filter_deps.
-        eapply IHdecls; eauto. cbn -[er]. intros kn'. rewrite !KernameSet.union_spec. intuition eauto.
+        eapply IHdecls; eauto. cbn -[er]. intros kn'. rw !KernameSet.union_spec. intuition eauto.
         eapply IHdecls; eauto.
 Qed.
 
@@ -277,14 +277,14 @@ Proof.
   destruct m.
   cbn.
   set (prf' := Erasure.erase_ind_obligation_1 _ _ _ _). clearbody prf'.
-  rewrite forallb_map.
+  rw forallb_map.
   set (fn := fun oib _ => _).
   assert (forall x y, EWellformed.wf_inductive (trans_oib (fn x y))).
   { intros [] hin. unfold fn.
     apply (@erase_ind_body_wellformed no X_type X nin Σ hΣ kn _ _ (prf' _ hin)). }
   clear -H. clearbody fn. clear -H.
   induction ind_bodies; cbn => //.
-  rewrite IHind_bodies; eauto. rewrite andb_true_r; eauto.
+  rw IHind_bodies; eauto. rw andb_true_r; eauto.
 Qed.
 
 Lemma wf_erase_global_decl :
@@ -321,13 +321,13 @@ Proof.
       set (deps := KernameSet.union _ _).
       unshelve eapply (erase_constant_body_correct'' (X_type := X_type) (decls := decls) seeds) in heq as [[t0 [T [[] ?]]]].
       shelve. 4:exact w. intros. eapply Erasure.fake_normalization; tea.
-      { intros. now rewrite (prf' _ H0). }
+      { intros. now rw (prf' _ H0). }
       intros ->. cbn.
       eapply EWellformed.extends_wellformed; tea.
       set (prf'' := fun _ => _). clearbody prf''. cbn in prf''.
-      rewrite erase_global_deps_erase_global.
+      rw erase_global_deps_erase_global.
       eapply trans_env_erase_global_decls; tea. subst deps. cbn [Erasure.decl_deps cst_body cst_type].
-      intros kn'. rewrite !KernameSet.union_spec. intuition eauto.
+      intros kn'. rw !KernameSet.union_spec. intuition eauto.
       pose proof (abstract_env_ext_wf _ w) as [].
       eapply (PCUICWfEnvImpl.wf_fresh_globals _ X0).
     * intros ->. cbn.
@@ -371,7 +371,7 @@ Proof.
   eapply erase_global_decls_deps_recursive_correct_gen => //=.
   intros k H0.
   eapply term_global_deps_spec in H0; tea. 2:eapply X0.
-  cbn in H0. destruct H0 as [[decl hl]]. now rewrite hl.
+  cbn in H0. destruct H0 as [[decl hl]]. now rw hl.
   now eapply erases_erase.
 Qed.
 
@@ -410,7 +410,7 @@ Proof.
       intros eq []. cbn in expanded_body. move: eq.
       unshelve eapply (erase_constant_body_correct'' (X_type := X_type) (decls := decls) seeds) in heq as [[t0' [T [[] ?]]]].
       shelve. 4:exact w. intros. eapply Erasure.fake_normalization; tea.
-      { intros. now rewrite (prf' _ H0). }
+      { intros. now rw (prf' _ H0). }
       intros ->. cbn. destruct p as [[eq ?] ?]. cbn in eq. noconf eq.
       eapply expanded_erases; tea. apply wfΣ. cbn. clear i. cbn.
       eapply (erase_global_erases_deps (Σ := (Σ, cunivs))); eauto. cbn.
@@ -421,7 +421,7 @@ Proof.
       intros.
       cbn in e.
       eapply term_global_deps_spec in H0; tea. 2:eapply wfΣ.
-      cbn in H0. destruct H0 as [[decl hl]]. now rewrite hl.
+      cbn in H0. destruct H0 as [[decl hl]]. now rw hl.
     * intros ->. cbn.
       destruct o => //=. cbn in Hdecl. cbn.
       intros; constructor.
@@ -456,11 +456,11 @@ Proof.
       apply IHdecls.
     * cbn.
       remember (KernameSet.union _ _) as kns.
-      rewrite hign in Heqkns. cbn in Heqkns.
+      rw hign in Heqkns. cbn in Heqkns.
       remember (Erasure.erase_global_decls_deps_recursive decls univs _ _ _ _) as Σex.
       assert (EWellformed.wf_glob (trans_env Σex)) by now subst Σex.
-      rewrite -/(trans_env _).
-      eapply wf_erase_global_decl; eauto. rewrite HeqΣex. f_equal. exact Heqkns.
+      rw -/(trans_env _).
+      eapply wf_erase_global_decl; eauto. rw HeqΣex. f_equal. exact Heqkns.
     * sq.
       apply OptimizePropDiscr.trans_env_fresh_global.
       apply fresh_globals_erase_global_decl_rec.
@@ -496,7 +496,7 @@ Proof.
       now apply IHdecls.
     * cbn. depelim H0. cbn in H1.
       remember (KernameSet.union _ _) as kns.
-      rewrite hign in Heqkns. cbn in Heqkns.
+      rw hign in Heqkns. cbn in Heqkns.
       remember (Erasure.erase_global_decls_deps_recursive decls univs _ _ _ _) as Σex.
       eapply expanded_erase_global_decl; tea. cbn. erewrite <- Heqkns. exact HeqΣex. subst Σex.
       eapply IHdecls; eauto.
@@ -518,10 +518,10 @@ Proof.
   remember (EEnvMap.GlobalContextMap.make _ _) as Σ0.
   assert (trans_env (map (on_snd (remove_match_on_box_decl Σ0)) Σ) =
     EOptimizePropDiscr.remove_match_on_box_env Σ0) as ->.
-  { cbn. rewrite /trans_env HeqΣ0 map_map_compose. cbn. rewrite /trans_env.
-    rewrite map_map_compose /on_snd. cbn. eapply map_ext.
+  { cbn. rw /trans_env HeqΣ0 map_map_compose. cbn. rw /trans_env.
+    rw map_map_compose /on_snd. cbn. eapply map_ext.
     intros [[] []]; cbn. destruct c as [[] []] => //. reflexivity.
-    do 2 f_equal. rewrite /EOptimizePropDiscr.remove_match_on_box_constant_decl /=.
+    do 2 f_equal. rw /EOptimizePropDiscr.remove_match_on_box_constant_decl /=.
     now destruct o; cbn. }
   unshelve eapply (EOptimizePropDiscr.remove_match_on_box_correct (fl := default_wcbv_flags) (Σ := Σ0));subst;cbn;eauto.
 Qed.
@@ -682,7 +682,7 @@ Proof.
     sq.
     eapply dearg_transform_gen_correct; eauto.
     + assert (EWellformed.wf_glob (trans_env er')).
-      { subst er'. rewrite trans_env_remove_match_on_box_env.
+      { subst er'. rw trans_env_remove_match_on_box_env.
         eapply EOptimizePropDiscr.remove_match_on_box_env_wf => //.
         now eapply wf_erase_global_decls_recursive. }
       now apply EWellformed.wellformed_closed_env.
@@ -693,7 +693,7 @@ Proof.
       2:{ cbn; congruence. } 2:exact deps. intros.
       now eapply Erasure.fake_normalization.
     + subst t'' t'.
-      rewrite trans_env_remove_match_on_box_env.
+      rw trans_env_remove_match_on_box_env.
       unshelve eapply (EOptimizePropDiscr.remove_match_on_box_correct (fl := default_wcbv_flags)) => //=.
       { cbn. now eapply wf_erase_global_decls_recursive. }
       { simpl. eapply EWellformed.wellformed_closed_env.
@@ -708,7 +708,7 @@ Proof.
     eapply (erase_global_decls_deps_recursive_correct _ _ _ obl); eauto.
     intros k hin.
     eapply term_global_deps_spec in hin; tea. red in hin. destruct hin as [[decl eq]].
-    cbn in eq. cbn. now rewrite eq. cbn. eapply w.
+    cbn in eq. cbn. now rw eq. cbn. eapply w.
 Qed.
 
 Theorem extract_correct_gen'

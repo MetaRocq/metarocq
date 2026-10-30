@@ -30,10 +30,10 @@ Proof.
   destruct IHt1.
   pose proof (fix_lambda_app_fix mfix i (l ++ [t2]) a).
   change (tApp (mkApps (tFix mfix i) l) t2) with (mkApps (mkApps (tFix mfix i) l) [t2]).
-  now rewrite -mkApps_app.
+  now rw -mkApps_app.
   pose proof (fix_lambda_app_lambda na ty b (l ++ [t2]) a).
   change (tApp (mkApps (tLambda na ty b) l) t2) with (mkApps (mkApps (tLambda na ty b) l) [t2]).
-  now rewrite -mkApps_app.
+  now rw -mkApps_app.
   destruct t; try solve [apply fix_lambda_app_other; simpl; auto].
   apply (fix_lambda_app_fix mfix idx [] u).
 Defined.
@@ -49,10 +49,10 @@ Lemma view_lambda_fix_app_fix_app_sigma mfix idx l a :
   ((mkApps (tFix mfix idx) l); fix_lambda_app_fix mfix idx l a) :> ∑ t, fix_lambda_app_view t a.
 Proof.
   induction l using rev_ind; simpl; auto.
-  rewrite {1 2}mkApps_app.
+  rw {1 2}mkApps_app.
   simpl. dependent rewrite IHl.
   change (tApp (mkApps (tFix mfix idx) l) x) with (mkApps (mkApps (tFix mfix idx) l) [x]).
-  now rewrite eq_pair_transport.
+  now rw eq_pair_transport.
 Qed.
 
 Lemma view_lambda_fix_app_lambda_app_sigma na ty b l a :
@@ -60,10 +60,10 @@ Lemma view_lambda_fix_app_lambda_app_sigma na ty b l a :
   ((mkApps (tLambda na ty b) l); fix_lambda_app_lambda na ty b l a) :> ∑ t, fix_lambda_app_view t a.
 Proof.
   induction l using rev_ind; simpl; auto.
-  rewrite {1 2}mkApps_app.
+  rw {1 2}mkApps_app.
   simpl. dependent rewrite IHl.
   change (tApp (mkApps (tLambda na ty b) l) x) with (mkApps (mkApps (tLambda na ty b) l) [x]).
-  now rewrite eq_pair_transport.
+  now rw eq_pair_transport.
 Qed.
 
 Set Equations With UIP.
@@ -139,9 +139,9 @@ Equations view_construct0_cofix (t : term) : construct0_cofix_view t :=
 Lemma isFixLambda_app_mkApps t l : isFixLambda_app t -> isFixLambda_app (mkApps t l).
 Proof.
   induction l using rev_ind; simpl; auto.
-  rewrite mkApps_app.
+  rw mkApps_app.
   intros isf. specialize (IHl isf).
-  simpl. rewrite IHl. destruct (mkApps t l); auto.
+  simpl. rw IHl. destruct (mkApps t l); auto.
 Qed.
 
 Definition isFixLambda (t : term) : bool :=
@@ -167,7 +167,7 @@ Proof.
   destruct t; auto. simpl => //.
   intros isl. specialize (IHl isl).
   simpl in IHl.
-  now rewrite mkApps_app /=.
+  now rw mkApps_app /=.
 Qed.
 
 Lemma bool_pirr (b b' : bool) (p q : b = b') : p = q.
@@ -179,6 +179,6 @@ Proof.
   induction t; simpl; f_equal; try apply uip.
   - simpl in H => //.
   - specialize (IHt1 H).
-    rewrite IHt1. destruct t1; auto.
+    rw IHt1. destruct t1; auto.
   - simpl in H => //.
 Qed.

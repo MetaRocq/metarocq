@@ -126,7 +126,7 @@ Fixpoint size (t : term) : nat :=
 Lemma size_mkApps f l : size (mkApps f l) = size f + list_size size l.
 Proof.
   induction l in f |- *; simpl; try lia.
-  rewrite IHl. simpl. lia.
+  rw IHl. simpl. lia.
 Qed.
 
 Lemma InPrim_size x p : InPrim x p -> size x < S (prim_size size p).
@@ -142,7 +142,7 @@ Lemma decompose_app_rec_size t l :
   size da.1 + list_size size da.2 = size t + list_size size l.
 Proof.
   induction t in l |- *; cbn; try lia.
-  rewrite IHt1; cbn. lia.
+  rw IHt1; cbn. lia.
 Qed.
 
 Lemma decompose_app_size t :
@@ -150,7 +150,7 @@ Lemma decompose_app_size t :
   size da.1 + list_size size da.2 = size t.
 Proof.
   unfold decompose_app.
-  rewrite (decompose_app_rec_size t []); cbn. lia.
+  rw (decompose_app_rec_size t []); cbn. lia.
 Qed.
 
 (* We redefine these lemmas locally so they can be used to compute a spine view in Rocq itself *)
@@ -196,13 +196,13 @@ Defined.
 
 Lemma size_mkApps_f {f l} (Hf : ~~ isApp f) (Hl : l <> []) : size f < size (mkApps f l).
 Proof.
-  rewrite size_mkApps.
+  rw size_mkApps.
   induction l; cbn; congruence || lia.
 Qed.
 
 Lemma size_mkApps_l {f l} (Hf : ~~ isApp f) (Hl : l <> []) : list_size size l < size (mkApps f l).
 Proof.
-  rewrite size_mkApps.
+  rw size_mkApps.
   destruct f => /= //; try lia.
 Qed.
 
@@ -248,7 +248,7 @@ Section MkApps_rec.
     (plazy : forall t, P t -> P (tLazy t))
     (pforce : forall t, P t -> P (tForce t)).
 
-  Definition inspect {A} (x : A) : { y : A | x = y } := exist _ x eq_refl.
+  Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
 
   Import EqNotations.
 
@@ -260,7 +260,7 @@ Section MkApps_rec.
     | tLambda n1 t => plam n1 t (rec t)
     | tLetIn n2 t0 t1 => plet n2 t0 (rec t0) t1 (rec t1)
     | tApp t2 t3 with inspect (decompose_app (tApp t2 t3)) :=
-      { | exist _ (t, l) da :=
+      { | exist (t, l) da :=
         let napp := decompose_app_notApp _ _ _ da in
         let nonnil := decompose_app_app _ _ _ _ da in
         let pt := rec t in
@@ -279,11 +279,11 @@ Section MkApps_rec.
     all:unfold MR; cbn; auto with arith. 4:lia.
     - clear -napp nonnil da rec.
       pose proof (decompose_app_size (tApp t2 t3)).
-      rewrite da in H. cbn in H. rewrite <- H.
+      rw da in H. cbn in H. rewrite <- H.
       abstract (destruct l; try congruence; cbn; lia).
     - clear -da rec H.
       pose proof (decompose_app_size (tApp t2 t3)).
-      rewrite da in H0. cbn in H0. rewrite <- H0.
+      rw da in H0. cbn in H0. rewrite <- H0.
       unfold id in H. change (fun x => size x) with size in H. abstract lia.
     - clear -da. abstract (eapply decompose_app_inv in da; now symmetry).
     - destruct p as [? []]; cbn => //; constructor.
@@ -326,7 +326,7 @@ Section MkApps_rec.
     | tLambda n1 t => plam n1 t
     | tLetIn n2 t0 t1 => plet n2 t0 t1
     | tApp t2 t3 with inspect (decompose_app (tApp t2 t3)) :=
-      { | exist _ (t, l) da :=
+      { | exist (t, l) da :=
         let napp := decompose_app_notApp _ _ _ da in
         let nonnil := decompose_app_app _ _ _ _ da in
         rew [P] (eq_sym (decompose_app_inv da)) in papp t l napp nonnil }

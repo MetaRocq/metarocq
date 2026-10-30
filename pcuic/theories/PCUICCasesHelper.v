@@ -46,14 +46,14 @@ Ltac let_to_set t :=
 Lemma forget_types_inst_case_context pparams puinst Γ:
   forget_types (inst_case_context pparams puinst Γ) = forget_types Γ.
 Proof.
-  rewrite /inst_case_context /subst_context forget_types_fold_context_k forget_types_subst_instance //.
+  rw /inst_case_context /subst_context forget_types_fold_context_k forget_types_subst_instance //.
 Qed.
 
 Lemma weakening0 {cf : checker_flags} Σ Γ t T :
   wf Σ.1 -> wf_local Σ Γ ->
   Σ ;;; [] |- t : T -> Σ ;;; Γ |- lift0 #|Γ| t : lift0 #|Γ| T.
 Proof.
-  rewrite -{1 2}[Γ]app_context_nil_l; apply: weakening.
+  rw -{1 2}[Γ]app_context_nil_l; apply: weakening.
 Qed.
 
 Arguments weakening0 {_ _} _ {_ _ _ _} _.
@@ -68,11 +68,11 @@ Lemma weakening_type_local_ctx {cf:checker_flags} Σ Γ Δ Δ' ctxs :
 Proof.
   induction Δ'; simpl; auto.
   destruct a as [na [b|] ty]; simpl; intuition auto.
-  + simpl; rewrite PCUICLiftSubst.lift_context_snoc /= Nat.add_0_r;
+  + simpl; rw PCUICLiftSubst.lift_context_snoc /= Nat.add_0_r;
     split; tas.
     apply lift_typing_f_impl with (1 := b0) => // ?? Hs.
     now eapply weakening_typing in Hs.
-  + rewrite PCUICLiftSubst.lift_context_snoc /= Nat.add_0_r.
+  + rw PCUICLiftSubst.lift_context_snoc /= Nat.add_0_r.
     split; tas.
     apply lift_typing_f_impl with (1 := b) => // ?? Hs.
     now eapply weakening_typing in Hs.
@@ -85,14 +85,14 @@ Lemma wf_local_expand_lets0 {cf : checker_flags} {Σ : global_env_ext} :
   wf_local Σ (smash_context [] Δ,,, expand_lets_ctx Δ Γ).
 Proof.
   move=> ? Δ ?.
-  rewrite -{1}[Δ]app_context_nil_l -{1}[smash_context _ _]app_context_nil_l.
+  rw -{1}[Δ]app_context_nil_l -{1}[smash_context _ _]app_context_nil_l.
   apply: wf_local_expand_lets.
 Qed.
 
 Lemma map_lift_map_lift k0 k1 n0 n1 l :
  k1 <= n1 + n0 -> n1 <= k1 -> map (lift k0 k1) (map (lift n0 n1) l) = map (lift (k0 + n0) n1) l.
 Proof.
-  move=> *; rewrite !map_map; apply: map_ext=> ?; by apply: PCUICLiftSubst.simpl_lift.
+  move=> *; rw !map_map; apply: map_ext=> ?; by apply: PCUICLiftSubst.simpl_lift.
 Qed.
 
 
@@ -116,9 +116,9 @@ Section WithCheckerFlags.
   Proof using cf.
     intros wfΣ wfΓ wfty. rewrite <- (firstn_skipn n Γ) in wfΓ |- *.
     assert (n = #|firstn n Γ|).
-    { rewrite firstn_length_le; auto with arith. }
+    { rw firstn_length_le; auto with arith. }
     apply lift_typing_f_impl with (1 := wfty) => // ?? Hs.
-    rewrite {3 4 5}H.
+    rw {3 4 5}H.
     eapply (weakening_typing (Γ := skipn n Γ) (Γ' := Δ) (Γ'' := firstn n Γ));
       eauto with wf.
   Qed.
@@ -151,23 +151,23 @@ Section CaseDefinitions.
     pre_case_predicate_context_gen ind mib oib pparams puinst = indpred_ctx.
   Proof using cf.
     move=> pparamssubst ?.
-    rewrite /pre_case_predicate_context_gen /ind_predicate_context /indpred_ctx /inst_case_context.
-    rewrite PCUICUnivSubst.subst_instance_cons subst_context_snoc. f_equal.
-    rewrite /vass /inddecl_name subst_instance_length expand_lets_ctx_length.
-    rewrite {1}/subst_instance /= /subst_decl /map_decl /=; f_equal.
-    rewrite PCUICUnivSubst.subst_instance_mkApps PCUICLiftSubst.subst_mkApps.
+    rw /pre_case_predicate_context_gen /ind_predicate_context /indpred_ctx /inst_case_context.
+    rw PCUICUnivSubst.subst_instance_cons subst_context_snoc. f_equal.
+    rw /vass /inddecl_name subst_instance_length expand_lets_ctx_length.
+    rw {1}/subst_instance /= /subst_decl /map_decl /=; f_equal.
+    rw PCUICUnivSubst.subst_instance_mkApps PCUICLiftSubst.subst_mkApps.
     f_equal => /=; first (f_equal; apply: subst_instance_id_mdecl; eassumption).
-    rewrite PCUICUnivSubst.map_subst_instance_to_extended_list_k.
-    rewrite PCUICContexts.to_extended_list_k_app.
-    rewrite map_app; f_equal.
-    - rewrite expand_lets_ctx_length Nat.add_0_r.
-      rewrite -{2}[#|_|]Nat.add_0_r PCUICLiftSubst.lift_to_extended_list_k map_map.
-      erewrite map_ext; last (move=> ?; rewrite subst_lift_subst; reflexivity).
-      rewrite -map_map; f_equal.
-      rewrite -(PCUICLiftSubst.map_subst_instance_to_extended_list_k puinst) subst_instance_smash.
+    rw PCUICUnivSubst.map_subst_instance_to_extended_list_k.
+    rw PCUICContexts.to_extended_list_k_app.
+    rw map_app; f_equal.
+    - rw expand_lets_ctx_length Nat.add_0_r.
+      rw -{2}[#|_|]Nat.add_0_r PCUICLiftSubst.lift_to_extended_list_k map_map.
+      erewrite map_ext; last (move=> ?; rw subst_lift_subst; reflexivity).
+      rw -map_map; f_equal.
+      rw -(PCUICLiftSubst.map_subst_instance_to_extended_list_k puinst) subst_instance_smash.
       apply: spine_subst_subst_to_extended_list_k; eassumption.
-    - rewrite -PCUICSubstitution.to_extended_list_k_map_subst ?expand_lets_ctx_length //.
-      rewrite to_extended_list_k_expand_lets //.
+    - rw -PCUICSubstitution.to_extended_list_k_map_subst ?expand_lets_ctx_length //.
+      rw to_extended_list_k_expand_lets //.
   Qed.
 
 
@@ -235,7 +235,7 @@ Section CaseBranchTypeBeta.
   Context `{cf : checker_flags}.
   Lemma pre_case_branch_context_gen_length ind mib params puinst cb :
     #|cstr_args cb| =  #|pre_case_branch_context_gen ind mib cb params puinst|.
-  Proof using. rewrite /pre_case_branch_context_gen; by len. Qed.
+  Proof using. rw /pre_case_branch_context_gen; by len. Qed.
 
   Lemma case_branch_context_unfold ind mib oib params puinst rettyp cb t :
     let p := make_case_pred ind mib oib params puinst rettyp in
@@ -243,8 +243,8 @@ Section CaseBranchTypeBeta.
     pre_case_branch_context_gen ind mib cb params puinst.
   Proof using.
     move=> p.
-    rewrite /case_branch_context -/(PCUICCases.case_branch_context ind mib p _ cb).
-    rewrite PCUICCasesContexts.inst_case_branch_context_eq //.
+    rw /case_branch_context -/(PCUICCases.case_branch_context ind mib p _ cb).
+    rw PCUICCasesContexts.inst_case_branch_context_eq //.
     reflexivity.
   Qed.
 
@@ -260,17 +260,17 @@ Section CaseBranchTypeBeta.
       (case_branch_type_only_gen ind mib params puinst (it_mkLambda_or_LetIn predctx rettyp) i cb)
       (case_branch_type_subst_gen ind mib params puinst predctx rettyp i cb).
   Proof using cf.
-    rewrite /case_branch_type_only_gen /case_branch_type_subst_gen.
-    rewrite PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
+    rw /case_branch_type_only_gen /case_branch_type_subst_gen.
+    rw PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
     set cstr_ctx := (pre_case_branch_context_gen _ _ _ _ _).
     set Δ := (lift_context _ _ _).
     move=> wfΣ clret clpred clcstr indxseq.
-    apply: red_betas; first (rewrite /instantiate_cstr_indices /Δ; by len).
+    apply: red_betas; first (rw /instantiate_cstr_indices /Δ; by len).
     - have -> : #|Γ ,,, cstr_ctx ,,, Δ| = #|Γ ,,, predctx| + #|cstr_args cb|
-      by rewrite /Δ !length_app /cstr_ctx /pre_case_branch_context_gen; len; lia.
+      by rw /Δ !length_app /cstr_ctx /pre_case_branch_context_gen; len; lia.
       by apply: PCUICClosed.closedn_lift.
-    - rewrite PCUICClosed.closedn_ctx_app clcstr /= /Δ length_app.
-      have -> : #|cstr_args cb| = #|cstr_ctx| by rewrite /cstr_ctx /pre_case_branch_context_gen; len; lia.
+    - rw PCUICClosed.closedn_ctx_app clcstr /= /Δ length_app.
+      have -> : #|cstr_args cb| = #|cstr_ctx| by rw /cstr_ctx /pre_case_branch_context_gen; len; lia.
       apply: PCUICClosed.closedn_ctx_lift.
       by apply: closed_ctx_app.
   Qed.
@@ -291,53 +291,53 @@ Section CaseBranchTypeBeta.
       case_branch_type_only_gen ind mib params puinst (it_mkLambda_or_LetIn predctx rettyp) i cb =s
       case_branch_type_subst_gen ind mib params puinst predctx rettyp i cb.
   Proof using cf.
-    rewrite /case_branch_type_only_gen /case_branch_type_subst_gen.
-    rewrite PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
+    rw /case_branch_type_only_gen /case_branch_type_subst_gen.
+    rw PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
     set cstr_ctx := (pre_case_branch_context_gen _ _ _ _ _).
     set Δ := (lift_context _ _ _).
     move=> wfΣ clret clpred clcstr clpar pareq indxseq declind declctor.
     pose proof (declmind := proj1 declind).
-    have eqcstrctx : #|cstr_args cb| = #|cstr_ctx| by rewrite /cstr_ctx /pre_case_branch_context_gen; len; lia.
+    have eqcstrctx : #|cstr_args cb| = #|cstr_ctx| by rw /cstr_ctx /pre_case_branch_context_gen; len; lia.
     apply: conv_betas.
     - have -> : #|Γ ,,, cstr_ctx ,,, Δ| = #|Γ ,,, predctx| + #|cstr_args cb|
-      by rewrite /Δ !length_app eqcstrctx; len; lia.
+      by rw /Δ !length_app eqcstrctx; len; lia.
       by apply: PCUICClosed.closedn_lift.
-    - rewrite PCUICClosed.closedn_ctx_app clcstr /= /Δ length_app eqcstrctx.
+    - rw PCUICClosed.closedn_ctx_app clcstr /= /Δ length_app eqcstrctx.
       apply: PCUICClosed.closedn_ctx_lift.
       by apply: closed_ctx_app.
-    - rewrite forallb_app; apply/andP; split.
-      + rewrite /instantiate_cstr_indices !forallb_map.
+    - rw forallb_app; apply/andP; split.
+      + rw /instantiate_cstr_indices !forallb_map.
         apply: All_forallb.
         apply: All_impl; first (apply: on_constructor_closed_indices; eassumption).
         move=> x /=.
-        rewrite -PCUICClosedTyp.is_open_term_closed eqcstrctx !length_app=> clx.
-        rewrite Nat.add_comm.
-        apply: PCUICClosed.closedn_subst; first by rewrite forallb_rev.
+        rw -PCUICClosedTyp.is_open_term_closed eqcstrctx !length_app=> clx.
+        rw Nat.add_comm.
+        apply: PCUICClosed.closedn_subst; first by rw forallb_rev.
         set G := (_ @[_]). have -> : #|List.rev params| = context_assumptions G.
-        1: by rewrite /G context_assumptions_subst_instance -(PCUICGlobalEnv.declared_minductive_ind_npars declmind) List.length_rev.
-        rewrite PCUICClosed.closedn_expand_lets_eq {}/G.
+        1: by rw /G context_assumptions_subst_instance -(PCUICGlobalEnv.declared_minductive_ind_npars declmind) List.length_rev.
+        rw PCUICClosed.closedn_expand_lets_eq {}/G.
         1:{
-          rewrite PCUICClosed.closedn_subst_instance_context.
+          rw PCUICClosed.closedn_subst_instance_context.
           apply: (PCUICClosed.closedn_ctx_upwards 0); last lia.
           apply: PCUICClosedTyp.declared_inductive_closed_params declind.
         }
-        rewrite subst_instance_length -Nat.add_assoc [X in _ + X]Nat.add_comm.
+        rw subst_instance_length -Nat.add_assoc [X in _ + X]Nat.add_comm.
         apply: PCUICClosed.closedn_subst.
         1:{
           apply: forallb_impl; last apply: PCUICClosed.closed_inds.
           move=> ???; apply: PCUICLiftSubst.closed_upwards; first eassumption; lia.
         }
-        rewrite inds_length PCUICClosed.closedn_subst_instance.
+        rw inds_length PCUICClosed.closedn_subst_instance.
         apply: PCUICLiftSubst.closed_upwards; first eassumption.
-        rewrite arities_context_length eqcstrctx; lia.
-      + rewrite /= andb_true_r PCUICClosed.closedn_mkApps /= forallb_app ; apply/andP; split.
-        * rewrite forallb_map. apply: forallb_impl; last eassumption.
-          move=> x _ clx; rewrite length_app eqcstrctx Nat.add_comm.
+        rw arities_context_length eqcstrctx; lia.
+      + rw /= andb_true_r PCUICClosed.closedn_mkApps /= forallb_app ; apply/andP; split.
+        * rw forallb_map. apply: forallb_impl; last eassumption.
+          move=> x _ clx; rw length_app eqcstrctx Nat.add_comm.
           by apply: PCUICClosed.closedn_lift.
         * apply: forallb_impl; last apply: PCUICClosed.closedn_to_extended_list.
           move=> ? _ ?; apply: PCUICLiftSubst.closed_upwards; first eassumption.
-          rewrite length_app eqcstrctx ; lia.
-    - rewrite /Δ /instantiate_cstr_indices; by len.
+          rw length_app eqcstrctx ; lia.
+    - rw /Δ /instantiate_cstr_indices; by len.
   Qed.
 
 
@@ -351,13 +351,13 @@ Section CaseBranchTypeBeta.
       (case_branch_type_only_gen ind mib params puinst (it_mkLambda_or_LetIn predctx rettyp) i cb)
       (case_branch_type_subst_gen ind mib params puinst predctx rettyp i cb).
   Proof using cf.
-    rewrite /case_branch_type_only_gen /case_branch_type_subst_gen.
-    rewrite PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
+    rw /case_branch_type_only_gen /case_branch_type_subst_gen.
+    rw PCUICLiftSubst.lift_it_mkLambda_or_LetIn Nat.add_0_r.
     set cstr_ctx := (pre_case_branch_context_gen _ _ _ _ _).
     set Δ := (lift_context _ _ _).
     move=> wfΣ retWty wfcstr_ctx ?. destruct retWty as (_ & ps & retWty & _).
-    apply: red_betas_typed; first by rewrite /Δ /instantiate_cstr_indices; len; lia.
-    rewrite /Δ; have -> : #|cstr_args cb| = #|cstr_ctx| by rewrite /cstr_ctx /pre_case_branch_context_gen; len.
+    apply: red_betas_typed; first by rw /Δ /instantiate_cstr_indices; len; lia.
+    rw /Δ; have -> : #|cstr_args cb| = #|cstr_ctx| by rw /cstr_ctx /pre_case_branch_context_gen; len.
     apply: weakening_typing; eassumption.
   Qed.
 
@@ -379,7 +379,7 @@ Section RandomLemmas.
     move=> declctor.
     unshelve epose proof (X := PCUICWeakeningEnvTyp.on_declared_constructor declctor).
     move: X => [] _ [] ? [_] /on_cindices /ctx_inst_length.
-    rewrite context_assumptions_rev context_assumptions_lift; apply.
+    rw context_assumptions_rev context_assumptions_lift; apply.
   Qed.
 
   Lemma isType_mkApps_Ind_inv_spine
@@ -403,35 +403,35 @@ Section RandomLemmas.
     have wfΣwk := declared_inductive_wf_ext_wk _ _ _ wfΣ (proj1 inddecl).
 
     move: (discrtypok)=> /(isType_mkApps_Ind_inv wfΣ inddecl Γwf).
-    rewrite firstn_app_left // skipn_all_app_eq //.
+    rw firstn_app_left // skipn_all_app_eq //.
     move=> [parsubst [indxsubst]].
     match goal with [|- ?t -> _] => let_to_set t end.
     move=> [sspparams ssindices _ indiceslen puinstok].
 
     exists (indxsubst ++ parsubst).
 
-    rewrite subst_instance_app_ctx.
+    rw subst_instance_app_ctx.
     have indxsubstlen : #|(ind_indices oib)@[puinst]| = #|indxsubst|.
     {
-      rewrite -(subst_context_length parsubst 0 _).
+      rw -(subst_context_length parsubst 0 _).
       symmetry. apply: PCUICSubstitution.subslet_length.
       exact (ssindices.(inst_subslet)).
     }
     apply: spine_subst_app.
-    * rewrite pparamslen context_assumptions_subst_instance.
+    * rw pparamslen context_assumptions_subst_instance.
       apply: PCUICGlobalEnv.declared_minductive_ind_npars; exact: proj1 inddecl.
-    * rewrite -app_context_assoc-subst_instance_app_ctx; apply: weaken_wf_local=> //.
+    * rw -app_context_assoc-subst_instance_app_ctx; apply: weaken_wf_local=> //.
       set (Δ := _ ,,, _). destruct Σ as [Σ1 Σ2].
       refine (PCUICUnivSubstitutionTyp.typing_subst_instance_wf_local Σ1 Σ2 Δ puinst (ind_universes mib) _ _ _)=> //.
       destruct (onArity on_body) as (_ & s & lind & _). move: lind => /=.
-      rewrite (PCUICGlobalMaps.ind_arity_eq on_body).
+      rw (PCUICGlobalMaps.ind_arity_eq on_body).
       move=> /PCUICSpine.type_it_mkProd_or_LetIn_inv [uparams [? [slparams + _ _]]].
       move=> /PCUICSpine.type_it_mkProd_or_LetIn_inv [uindxs [? [slindxs + _ _]]].
       move=> indsortTyp.
       pose proof (h := typing_wf_local indsortTyp); move: h.
-      rewrite app_context_nil_l //.
-    * rewrite skipn_all_app_eq //.
-    * rewrite firstn_app_left // skipn_all_app_eq //.
+      rw app_context_nil_l //.
+    * rw skipn_all_app_eq //.
+    * rw firstn_app_left // skipn_all_app_eq //.
   Qed.
 
 End RandomLemmas.
@@ -499,14 +499,14 @@ Proof.
   have wfpredp : wf_predicate mib oib p.
   {
     do 2 constructor=> //=.
-    rewrite /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
+    rw /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
     apply PCUICEquality.eq_context_upto_names_binder_annot; reflexivity.
   }
 
   pose proof (discrtypok := validity discrtyp).
 
   have predctxwf : wf_local Σ (Γ ,,, predctx)
-  by rewrite /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
+  by rw /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
 
   specialize (ptyp predctxwf).
 
@@ -519,23 +519,23 @@ Proof.
 
   apply: type_Case=> //.
   - apply: ptyp.
-  - rewrite -/ci -/predctx. constructor=> //=; first reflexivity.
+  - rw -/ci -/predctx. constructor=> //=; first reflexivity.
     apply: (spine_subst_ctx_inst ssparamsindxs).
   - have wfbrs : wf_branches oib (map2 (make_br ind mib) (ind_ctors oib) brs).
     {
-      rewrite /wf_branches.
+      rw /wf_branches.
       elim: (ind_ctors oib) {brstyp}brs brslen=> [|decl ctors ih] //= [|br brs] //=.
       move=> [=] /ih h; constructor=> // {h}.
       hnf=>/=.
-      rewrite /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx.
-      rewrite /subst_context /lift_context !forget_types_fold_context_k.
+      rw /cstr_branch_context /expand_lets_ctx /expand_lets_k_ctx.
+      rw /subst_context /lift_context !forget_types_fold_context_k.
       apply PCUICEquality.eq_context_upto_names_binder_annot. reflexivity.
     }
 
     constructor=> //.
 
     apply: All2i_map2_right.
-    rewrite -/ci -/p -/ptm -/predctx.
+    rw -/ci -/p -/ptm -/predctx.
     apply Forall2_All2 in wfbrs.
     apply All2_map2_right_inv in wfbrs=> //.
     pose proof (declctors := declared_ind_declared_constructors inddecl).
@@ -544,7 +544,7 @@ Proof.
     apply: (All2i_impl alls) => i x y.
 
     move=> [wfbr [declctor]].
-    set (br := make_br _ _ _  _). rewrite -/br in wfbr.
+    set (br := make_br _ _ _  _). rw -/br in wfbr.
     set (brctxty := case_branch_type _ _ _ _ _ _ _ _).
 
     move=> bodytyp.
@@ -616,7 +616,7 @@ Proof.
   have wfpredp : wf_predicate mib oib p.
   {
     do 2 constructor=> //=.
-    rewrite /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
+    rw /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
     apply PCUICEquality.eq_context_upto_names_binder_annot; reflexivity.
   }
 
@@ -624,11 +624,11 @@ Proof.
   pose proof (discrtypok := validity discrtyp).
 
   have predctxwf : wf_local Σ (Γ ,,, predctx)
-  by rewrite /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
+  by rw /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
 
 
   move: (discrtypok)=> /(isType_mkApps_Ind_inv wfΣ inddecl Γwf).
-  rewrite firstn_app_left // skipn_all_app_eq //.
+  rw firstn_app_left // skipn_all_app_eq //.
   move=> [parsubst [indxsubst]].
   move=> [sspparams ssindices _ indiceslen puinstok].
 
@@ -646,27 +646,27 @@ Proof.
     apply: type_Case_helper=> //; try eassumption.
     pose proof (declctors := declared_ind_declared_constructors inddecl).
     apply: (All2i_impl (All2i_Alli_mix_left declctors brsok)) => i x t [declctor h] br.
-    rewrite case_branch_type_split.
+    rw case_branch_type_split.
     set brctx := (x in (x, _)).
     set brty := (x in (_, x)).
     move=> /= wf wfty.
 
     have ?: closed_ctx (Γ,,, pre_case_branch_context_gen ind mib x pparams puinst)
-    by apply: PCUICClosedTyp.closed_wf_local; rewrite -(case_branch_context_unfold _ _ oib _ _ rettyp _ t).
+    by apply: PCUICClosedTyp.closed_wf_local; rw -(case_branch_context_unfold _ _ oib _ _ rettyp _ t).
 
     have ?: #|cstr_indices x| + 1 = context_assumptions predctx.
     {
-      rewrite /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity.
-      rewrite (cstr_indices_length declctor); len.
+      rw /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity.
+      rw (cstr_indices_length declctor); len.
     }
 
     econstructor; try eassumption.
     + apply: (h wf).
       eapply subject_reduction; try eassumption.
-      rewrite case_branch_context_unfold.
+      rw case_branch_context_unfold.
       apply: case_branch_type_beta=> //.
     + apply: cumul_Sym.
-      rewrite /brctx case_branch_context_unfold.
+      rw /brctx case_branch_context_unfold.
       apply: case_branch_type_conv_beta=> //; try eassumption.
       exact: closed_spine_subst_inst sspparams.
   }
@@ -675,7 +675,7 @@ Proof.
   specialize (predWty predctxwf).
 
   have ?: #|indices ++ [discr]| = context_assumptions predctx.
-  by len; rewrite indiceslen /predctx PCUICCasesContexts.inst_case_predicate_context_eq;
+  by len; rw indiceslen /predctx PCUICCasesContexts.inst_case_predicate_context_eq;
      first reflexivity; len.
 
   have red_rettyp : PCUICReduction.red Σ.1 Γ redex_rettyp substrettyp
@@ -687,7 +687,7 @@ Proof.
     exact: (validity mk_caseWtyp).2.π2.1.
   - apply: convSpec_cumulSpec.
     apply: conv_betas=> //.
-    rewrite forallb_app /= (PCUICClosedTyp.subject_closed discrtyp) !andb_true_r.
+    rw forallb_app /= (PCUICClosedTyp.subject_closed discrtyp) !andb_true_r.
     apply: closed_spine_subst_inst ssindices.
 Qed.
 
@@ -751,7 +751,7 @@ Proof.
   have wfpredp : wf_predicate mib oib p.
   {
     do 2 constructor=> //=.
-    rewrite /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
+    rw /expand_lets_ctx /expand_lets_k_ctx /subst_context /lift_context !forget_types_fold_context_k.
     apply PCUICEquality.eq_context_upto_names_binder_annot; reflexivity.
   }
 
@@ -759,40 +759,40 @@ Proof.
   pose proof (discrtypok := validity discrtyp).
 
   have predctxwf : wf_local Σ (Γ ,,, predctx)
-  by rewrite /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
+  by rw /predctx -[ind]/(ci_ind ci); apply: wf_case_predicate_context=> //=; eassumption.
 
 
   move: (discrtypok)=> /(isType_mkApps_Ind_inv wfΣ inddecl Γwf).
-  rewrite firstn_app_left // skipn_all_app_eq //.
+  rw firstn_app_left // skipn_all_app_eq //.
   move=> [parsubst [indxsubst]].
   move=> [sspparams ssindices _ indiceslen puinstok].
 
   have predctxlen : S #|ind_indices oib| = #|predctx|
-  by rewrite /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity; len.
+  by rw /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity; len.
 
   have ? : context_assumptions predctx = S #|indices|
-  by rewrite /predctx PCUICCasesContexts.inst_case_predicate_context_eq; try reflexivity; len.
+  by rw /predctx PCUICCasesContexts.inst_case_predicate_context_eq; try reflexivity; len.
 
   set subst_rettyp' := subst0 (mk_ctx_subst predctx (indices ++ [discr])) rettyp'.
   have -> : rettyp = subst_rettyp'.
-  by rewrite /subst_rettyp' /rettyp' PCUICLiftSubst.simpl_subst_k // mk_ctx_subst_length //; len.
+  by rw /subst_rettyp' /rettyp' PCUICLiftSubst.simpl_subst_k // mk_ctx_subst_length //; len.
 
   apply: type_Case_subst_helper=> //; try eassumption.
-  - rewrite -/predctx=> ? /=.
+  - rw -/predctx=> ? /=.
     have -> : tSort ps = lift0 (S #|ind_indices oib|) (tSort ps) by reflexivity.
     apply: weakening_gen=> //.
   - pose proof (declctors := declared_ind_declared_constructors inddecl).
     apply: (All2i_impl (All2i_Alli_mix_left declctors brsok)) => i x t [declctor h] br brctx brty wfctx wfty.
-    move: (h wfctx). rewrite -/brctx -/br.
+    move: (h wfctx). rw -/brctx -/br.
     set brty' := (lift0 _ _).
     have <- : brty = brty'; last by apply.
-    rewrite /brty' /brty /rettyp' /case_branch_type_subst /case_branch_type_subst_gen /=.
-    rewrite -/predctx -predctxlen. set s := (_ ++ _).
-    rewrite PCUICLiftSubst.simpl_lift. 1,2: lia.
-    rewrite PCUICContexts.subst_lift_above.
-    + rewrite mk_ctx_subst_length /s; len.
-      rewrite /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity.
-      rewrite (cstr_indices_length declctor); len.
-    + f_equal. rewrite /brctx case_branch_context_unfold; len.
+    rw /brty' /brty /rettyp' /case_branch_type_subst /case_branch_type_subst_gen /=.
+    rw -/predctx -predctxlen. set s := (_ ++ _).
+    rw PCUICLiftSubst.simpl_lift. 1,2: lia.
+    rw PCUICContexts.subst_lift_above.
+    + rw mk_ctx_subst_length /s; len.
+      rw /predctx PCUICCasesContexts.inst_case_predicate_context_eq; first reflexivity.
+      rw (cstr_indices_length declctor); len.
+    + f_equal. rw /brctx case_branch_context_unfold; len.
 Qed.
 

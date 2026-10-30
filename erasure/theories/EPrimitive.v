@@ -18,7 +18,11 @@ Section PrimModel.
     array_value : list term }.
   Derive NoConfusion for array_model.
   Arguments array_model : clear implicits.
-
+  (* 
+    TODO: 
+    For strings: MR bytestrings
+    For int and floats: have a look at Trocq using the models already defined 
+  *)
   #[global]
   Instance array_model_eqdec (e : EqDec term) : EqDec array_model.
   Proof. eqdec_proof. Qed.
@@ -98,8 +102,8 @@ Section PrimModel.
     intros s1 s2. simpl.
     destruct (PrimString.compare s1 s2) eqn:Hcmp; constructor.
     - by apply PString.compare_eq in Hcmp.
-    - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. inversion Hcmp.
-    - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. inversion Hcmp.
+    - intros Heq%PString.compare_eq. rw Heq in Hcmp. inversion Hcmp.
+    - intros Heq%PString.compare_eq. rw Heq in Hcmp. inversion Hcmp.
   Qed.
 
   Equations eqb_prim_model {req : term -> term -> bool} {t : prim_tag} (x y : prim_model t) : bool :=
@@ -216,7 +220,7 @@ Section primtheory.
     map_prim g (map_prim f p) = map_prim (g ∘ f) p.
   Proof.
     destruct p as [? []]; cbn; auto.
-    do 2 f_equal. destruct a; rewrite /map_array_model //= map_map_compose //.
+    do 2 f_equal. destruct a; rw /map_array_model //= map_map_compose //.
   Qed.
 End primtheory.
 #[global] Hint Rewrite @map_prim_compose : map all.
@@ -241,8 +245,8 @@ Section primtheory.
     map_prim f p = p.
   Proof.
     destruct p as [? []]; cbn; auto.
-    intros hf. do 2 f_equal. destruct a; rewrite /map_array_model //=; f_equal; eauto.
-    rewrite map_id_f //.
+    intros hf. do 2 f_equal. destruct a; rw /map_array_model //=; f_equal; eauto.
+    rw map_id_f //.
   Qed.
 
   Lemma map_prim_id_prop f P :
@@ -251,7 +255,7 @@ Section primtheory.
     map_prim f p = p.
   Proof.
     destruct p as [? []]; cbn; auto.
-    intros hp hf. do 2 f_equal. destruct a; rewrite /map_array_model //=; f_equal; eauto; depelim hp.
+    intros hp hf. do 2 f_equal. destruct a; rw /map_array_model //=; f_equal; eauto; depelim hp.
     * eapply hf; intuition eauto.
     * eapply All_map_id. destruct p0 as [_ hp].
       eapply All_impl; tea.
@@ -262,7 +266,7 @@ Section primtheory.
     map_prim f p = map_prim g p.
   Proof.
     destruct p as [? []]; cbn; auto.
-    intros hf. do 2 f_equal. destruct a; rewrite /map_array_model //=; f_equal; eauto.
+    intros hf. do 2 f_equal. destruct a; rw /map_array_model //=; f_equal; eauto.
     now eapply map_ext.
   Qed.
 
@@ -272,7 +276,7 @@ Section primtheory.
     map_prim f p = map_prim g p.
   Proof.
     intros hp; depelim hp; subst; cbn; auto. intros hf.
-    do 2 f_equal. destruct a; rewrite /map_array_model //=; f_equal; eauto.
+    do 2 f_equal. destruct a; rw /map_array_model //=; f_equal; eauto.
     * eapply hf; intuition eauto.
     * destruct p0 as [_ hp].
       eapply All_map_eq.
@@ -286,7 +290,7 @@ Section primtheory.
     intros hr.
     destruct p as [? []]; cbn; repeat constructor => //.
     destruct a as []; cbn.
-    rewrite /test_array_model /=.
+    rw /test_array_model /=.
     case: (hr array_default0) => //= hd.
     - case: (reflectT_forallb hr) => hv; repeat constructor; eauto.
       intros hp; depelim hp; intuition eauto.
@@ -335,8 +339,8 @@ Section primtheory.
     test_prim pr (map_prim f p) = test_prim (pr ∘ f) p.
   Proof.
     destruct p as [? []]; cbn in *; intuition auto.
-    destruct a as []; rewrite /test_array_model //=. f_equal.
-    rewrite forallb_map //.
+    destruct a as []; rw /test_array_model //=. f_equal.
+    rw forallb_map //.
   Qed.
 
   Lemma test_prim_eq_prop P pr pr' :
@@ -345,7 +349,7 @@ Section primtheory.
     test_prim pr p = test_prim pr' p.
   Proof.
     destruct p as [? []]; cbn in *; intuition auto.
-    destruct a as []; rewrite /test_array_model //=.
+    destruct a as []; rw /test_array_model //=.
     depelim X; f_equal; intuition eauto.
     eapply All_forallb_eq_forallb; tea.
   Qed.
@@ -392,7 +396,7 @@ Section PrimIn.
     test_primIn p (fun x H => f x) = test_prim f p.
   Proof.
     funelim (test_primIn p (fun x H => f x)); cbn => //.
-    rewrite forallb_InP_spec //.
+    rw forallb_InP_spec //.
   Qed.
 
   Equations map_primIn (p : prim_val term) (f : forall x : term, InPrim x p -> term) : prim_val term :=
@@ -409,7 +413,7 @@ Section PrimIn.
   Proof.
     funelim (map_primIn p _); cbn => //.
     do 2 f_equal. unfold map_array_model; destruct a => //.
-    rewrite map_InP_spec //.
+    rw map_InP_spec //.
   Qed.
 
 End PrimIn.

@@ -64,7 +64,7 @@ Lemma type_closed_subst {Σ t T} u : wf_ext Σ ->
 Proof.
   intros wfΣ tc.
   apply subject_closed in tc; auto.
-  rewrite PCUICCSubst.closed_subst; auto.
+  rw PCUICCSubst.closed_subst; auto.
 Qed.
 
 
@@ -131,8 +131,8 @@ Lemma is_FixApp_erases Σ Γ t t' :
 Proof.
   induction 1; cbn; try congruence.
   - unfold isFixApp, head in *. cbn. clear IHerases2.
-    cbn. rewrite PCUICAstUtils.fst_decompose_app_rec.
-    unfold EAstUtils.isFixApp. now rewrite EAstUtils.head_tApp.
+    cbn. rw PCUICAstUtils.fst_decompose_app_rec.
+    unfold EAstUtils.isFixApp. now rw EAstUtils.head_tApp.
 Qed.
 
 Lemma is_ConstructApp_erases Σ Γ t t' :
@@ -140,9 +140,9 @@ Lemma is_ConstructApp_erases Σ Γ t t' :
   negb (isConstructApp t) -> negb (EAstUtils.isConstructApp t').
 Proof.   induction 1; cbn; try congruence.
 - unfold isConstructApp in *. clear IHerases2.
-  cbn. rewrite head_tapp.
+  cbn. rw head_tapp.
   unfold EAstUtils.isConstructApp in *.
-  cbn. now rewrite EAstUtils.head_tApp.
+  cbn. now rw EAstUtils.head_tApp.
 Qed.
 
 Lemma is_PrimApp_erases Σ Γ t t' :
@@ -150,9 +150,9 @@ Lemma is_PrimApp_erases Σ Γ t t' :
   negb (isPrimApp t) -> negb (EAstUtils.isPrimApp t').
 Proof.   induction 1; cbn; try congruence.
 - unfold isPrimApp in *. clear IHerases2.
-  cbn. rewrite head_tapp.
+  cbn. rw head_tapp.
   unfold EAstUtils.isPrimApp in *.
-  cbn. now rewrite EAstUtils.head_tApp.
+  cbn. now rw EAstUtils.head_tApp.
 Qed.
 
 Lemma erases_isLambda {Σ Γ t u} :
@@ -223,14 +223,14 @@ Proof.
     split. 2: assumption.
     rewrite <- (PCUICCasesContexts.inst_case_branch_context_eq a).
     eapply e.
-    + rewrite case_branch_type_fst.
+    + rw case_branch_type_fst.
       eapply conv_context_app_same; eauto.
     + eapply typing_wf_local.
       eapply context_conversion.
       * exact t1.
       * eapply conv_context_wf_local_app; eauto.
       * eapply conv_context_app_same; eauto.
-    + now rewrite case_branch_type_fst (PCUICCasesContexts.inst_case_branch_context_eq a).
+    + now rw case_branch_type_fst (PCUICCasesContexts.inst_case_branch_context_eq a).
   - econstructor.
 
     eapply All2_impl. eapply All2_All_mix_left. exact X3. eassumption.
@@ -278,7 +278,7 @@ Proof.
       eapply typing_subst_instance in t0; eauto.
       eexists. split.
       * eapply t0; tas.
-      * now rewrite is_propositional_subst_instance.
+      * now rw is_propositional_subst_instance.
 Qed.
 
 (** ** Erasure is stable under instantiation of universes  *)
@@ -293,11 +293,11 @@ Lemma fix_context_subst_instance:
                   (subst_instance u)) mfix).
 Proof.
   intros mfix. unfold fix_context. intros.
-  rewrite map_rev.
-  rewrite mapi_map.
-  rewrite map_mapi. f_equal. eapply mapi_ext. intros. cbn.
+  rw map_rev.
+  rw mapi_map.
+  rw map_mapi. f_equal. eapply mapi_ext. intros. cbn.
   unfold map_decl. cbn. unfold vass.
-  rewrite subst_instance_lift. reflexivity.
+  rw subst_instance_lift. reflexivity.
 Qed.
 
 Lemma erases_subst_instance0
@@ -340,10 +340,10 @@ Proof.
     2, 4, 5: reflexivity. eapply e; eauto.
     + eapply typing_subst_instance_wf_local; eauto.
       destruct Σ; eassumption.
-    + rewrite case_branch_type_fst PCUICCasesContexts.inst_case_branch_context_eq; eauto.
-    + rewrite case_branch_type_fst PCUICCasesContexts.inst_case_branch_context_eq; eauto.
-      rewrite subst_instance_app. unfold app_context. f_equal.
-      now rewrite inst_case_branch_context_subst_instance.
+    + rw case_branch_type_fst PCUICCasesContexts.inst_case_branch_context_eq; eauto.
+    + rw case_branch_type_fst PCUICCasesContexts.inst_case_branch_context_eq; eauto.
+      rw subst_instance_app. unfold app_context. f_equal.
+      now rw inst_case_branch_context_subst_instance.
   - assert (Hw :  wf_local (Σ.1, univs) (subst_instance u (Γ ,,, types))).
     { eapply typing_subst_instance_wf_local; eauto. destruct Σ as [Σ Σu].
       now eapply All_mfix_wf. }
@@ -355,7 +355,7 @@ Proof.
     split; auto.
     now eapply isLambda_subst_instance.
     eapply IH in e1.
-    rewrite subst_instance_app in e1. subst types. 2:eauto.
+    rw subst_instance_app in e1. subst types. 2:eauto.
     eapply erases_ctx_ext. eassumption. unfold app_context.
     f_equal.
     eapply fix_context_subst_instance. all: eauto.
@@ -370,7 +370,7 @@ Proof.
   intros d d' [IH (? & ? & ?)]; cbn in *.
   repeat split; eauto.
   eapply IH in e1.
-  rewrite subst_instance_app in e1; eauto. subst types. 2:eauto.
+  rw subst_instance_app in e1; eauto. subst types. 2:eauto.
   eapply erases_ctx_ext. eassumption. unfold app_context.
   f_equal.
   eapply fix_context_subst_instance. all: eauto.
@@ -441,19 +441,19 @@ Proof.
     eapply All_forallb. unfold tCaseBrsProp_k in X0.
     eapply All2_All_mix_left in X1; eauto.
     close_Forall. intros [] []. cbn in *. intros.
-    solve_all. subst. rewrite length_map. eapply b0. eauto.
-    rewrite app_context_length. cbn.
-    now rewrite inst_case_branch_context_length.
+    solve_all. subst. rw length_map. eapply b0. eauto.
+    rw app_context_length. cbn.
+    now rw inst_case_branch_context_length.
   - epose proof (All2_length X0).
     solve_all. destruct b. destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
-    rewrite <-H. rewrite fix_context_length in b0.
-    eapply b0. eauto. now rewrite length_app fix_context_length.
+    rewrite <-H. rw fix_context_length in b0.
+    eapply b0. eauto. now rw length_app fix_context_length.
   - epose proof (All2_length X0).
     solve_all. destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
-    rewrite <-H. rewrite fix_context_length in b0.
-    eapply b0. eauto. now rewrite length_app fix_context_length.
+    rewrite <-H. rw fix_context_length in b0.
+    eapply b0. eauto. now rw length_app fix_context_length.
   - depelim H. depelim X0; solve_all.
     depelim X; solve_all. eapply primProp_impl_test_prim.
     constructor; intuition eauto. solve_all.
@@ -485,7 +485,7 @@ Section wellscoped.
   match t with
   | tRel i => true
   | tPrim p => test_prim wellformed p
-  | tEvar ev args => List.forallb (wellformed) args
+  | tEvar ev args => false
   | tLambda _ N M => wellformed N && wellformed M
   | tApp u v => wellformed u && wellformed v
   | tLetIn na b ty b' => wellformed b && wellformed ty && wellformed b'
@@ -501,7 +501,7 @@ Section wellscoped.
     List.forallb (test_def wellformed wellformed) mfix
   | tConst kn _ => isSome (lookup_constant Σ kn)
   | tConstruct ind c _ => isSome (lookup_constructor Σ ind c)
-  | tVar _ => true
+  | tVar _ => false
   | tInd ind _  => isSome (lookup_inductive Σ ind)
   | tSort _ => true
   | tProd na ty1 ty2 => wellformed ty1 && wellformed ty2
@@ -515,23 +515,23 @@ Section wellscoped.
         (fun Σ Γ => True).
   Proof.
     eapply typing_ind_env; cbn; intros => //.
-    { destruct X as (Htm & _ & (_ & Hty) & _). unfold lift_wfb_term. rewrite Hty andb_true_r. destruct j_term => //. apply Htm. }
+    { destruct X as (Htm & _ & (_ & Hty) & _). unfold lift_wfb_term. rw Hty andb_true_r. destruct j_term => //. apply Htm. }
     all:try unfold lift_wfb_term in *; rtoProp; intuition auto.
     - unshelve eapply declared_constant_to_gen in H0; eauto.
-      red in H0. rewrite /lookup_constant /lookup_constant_gen H0 //.
+      red in H0. rw /lookup_constant /lookup_constant_gen H0 //.
     - unshelve eapply declared_inductive_to_gen in isdecl; eauto.
-      unfold lookup_inductive. now rewrite (declared_inductive_lookup_gen isdecl).
+      unfold lookup_inductive. now rw (declared_inductive_lookup_gen isdecl).
     - unshelve eapply declared_constructor_to_gen in isdecl; eauto.
-      unfold lookup_constructor. rewrite (declared_constructor_lookup_gen isdecl) //.
+      unfold lookup_constructor. rw (declared_constructor_lookup_gen isdecl) //.
     - unshelve eapply declared_inductive_to_gen in isdecl; eauto.
-      rewrite /wf_brs.
-      unfold lookup_inductive. rewrite (declared_inductive_lookup_gen isdecl).
+      rw /wf_brs.
+      unfold lookup_inductive. rw (declared_inductive_lookup_gen isdecl).
       red in H9. apply Forall2_length in H9. now apply Nat.eqb_eq.
     - red in H9. eapply Forall2_All2 in H9.
       eapply All2i_All2_mix_left in X4; tea. clear H9.
       solve_all.
     - unshelve eapply declared_projection_to_gen in isdecl; eauto.
-      unfold lookup_projection. now rewrite (declared_projection_lookup_gen isdecl).
+      unfold lookup_projection. now rw (declared_projection_lookup_gen isdecl).
     - now eapply nth_error_Some_length, Nat.ltb_lt in H0.
     - move/andb_and: H2 => [] hb _.
       unfold on_def_body, on_def_type, test_def in *. cbn in *.
@@ -574,10 +574,10 @@ Section trans_lookups.
     eapply declared_inductive_from_gen in hl.
     specialize (H0 kn mib oib hl) as [? [? [d er]]].
     exists x, x0.
-    split. now rewrite (EGlobalEnv.declared_inductive_lookup d).
+    split. now rw (EGlobalEnv.declared_inductive_lookup d).
     depelim er. depelim hl. depelim d.
     eapply Forall2_nth_error_left in H4 as [x' []]; tea.
-    rewrite H3 in H4. noconf H4. depelim H6. now apply Forall2_length in H4.
+    rw H3 in H4. noconf H4. depelim H6. now apply Forall2_length in H4.
   Qed.
 
   Lemma trans_lookup_constructor kn c : isSome (lookup_constructor Σ kn c) -> isSome (EGlobalEnv.lookup_constructor Σ' kn c).
@@ -590,7 +590,7 @@ Section trans_lookups.
     destruct hl', hl. cbn in * |-.
     destruct H2. eapply Forall2_nth_error_left in H0 as [? [? [erc erp]]]; tea.
     eapply Forall2_nth_error_left in erc as [? [? ?]]; tea.
-    destruct decli as [declm decli]. rewrite H0 in decli. noconf decli.
+    destruct decli as [declm decli]. rw H0 in decli. noconf decli.
     erewrite (EGlobalEnv.declared_constructor_lookup (id:=(kn,c))) => //.
     split; tea. split; tea.
   Qed.
@@ -599,7 +599,7 @@ Section trans_lookups.
     lookup_projection Σ p = Some (mdecl, idecl, cdecl, pdecl) ->
     lookup_constructor Σ p.(proj_ind) 0 = Some (mdecl, idecl, cdecl).
   Proof using Type.
-    rewrite /lookup_projection /lookup_projection_gen /lookup_constructor.
+    rw /lookup_projection /lookup_projection_gen /lookup_constructor.
     destruct lookup_constructor_gen as [[[? ?] ?]|]=> //=.
     now destruct nth_error => //.
   Qed.
@@ -612,7 +612,7 @@ Section trans_lookups.
     destruct (lookup_projection Σ p) as [[[[]]]|] eqn:hl => /= // _.
     pose proof (lookup_projection_lookup_constructor hl) as lc.
     unfold lookup_projection, lookup_projection_gen in hl. unfold lookup_constructor in lc.
-    rewrite lc in hl.
+    rw lc in hl.
     eapply (lookup_constructor_declared_gen (id:=(_,_))) in lc.
     eapply declared_constructor_from_gen in lc.
     specialize (H0 _ _ _ lc.p1) as [mdecl' [idecl' [decli hl']]].
@@ -620,11 +620,11 @@ Section trans_lookups.
     destruct H2.
     destruct (nth_error (ind_projs o)) eqn:hnth => //. noconf hl.
     eapply Forall2_nth_error_left in H0 as [? [? [erc [erp ?]]]]; tea.
-    destruct decli. rewrite H7 in H0; noconf H0.
+    destruct decli. rw H7 in H0; noconf H0.
     eapply Forall2_nth_error_left in erc as [? [? ?]]; tea.
     eapply Forall2_nth_error_left in erp as [? [? ?]]; tea.
-    rewrite /EGlobalEnv.lookup_projection /EGlobalEnv.lookup_constructor /EGlobalEnv.lookup_inductive.
-    rewrite (EGlobalEnv.declared_minductive_lookup H6); cbn -[nth_error]; rewrite H7 H0 H9 //.
+    rw /EGlobalEnv.lookup_projection /EGlobalEnv.lookup_constructor /EGlobalEnv.lookup_inductive.
+    rw (EGlobalEnv.declared_minductive_lookup H6); cbn -[nth_error]; rw H7 H0 H9 //.
   Qed.
 
 End trans_lookups.
@@ -646,11 +646,11 @@ Proof.
     simpl; try solve [solve_all].
   - now apply Nat.ltb_lt.
   - eapply trans_lookup_constant in wfa; tea.
-  - eapply trans_lookup_constructor in wfa; tea. now rewrite wfa.
+  - eapply trans_lookup_constructor in wfa; tea. now rw wfa.
   - move/andP: wfa => [] /andP[] lookup wfc wfbrs.
     apply/andP. split. apply/andP. split; eauto.
-    { rewrite /wf_brs.
-      move: lookup. rewrite /ErasureProperties.wf_brs.
+    { rw /wf_brs.
+      move: lookup. rw /ErasureProperties.wf_brs.
       destruct lookup_inductive as [[mib oib]|] eqn:hli => //.
       eapply trans_lookup_inductive in hli as [mib' [oib' [-> <-]]]; tea.
       move/Nat.eqb_eq ->. apply All2_length in X1. now apply Nat.eqb_eq. }
@@ -659,31 +659,31 @@ Proof.
     eapply forallb_All in wfbrs.
     eapply All2_All_mix_left in X1; eauto.
     close_Forall. intros [] []; move=> [] wf. cbn in *. intros.
-    solve_all. subst. rewrite length_map. eapply b; eauto.
-    rewrite app_context_length. cbn.
-    now rewrite inst_case_branch_context_length.
+    solve_all. subst. rw length_map. eapply b; eauto.
+    rw app_context_length. cbn.
+    now rw inst_case_branch_context_length.
   - move/andP: wfa => [] hl hc.
     apply/andP; split.
     now eapply trans_lookup_projection in hl.
     eauto.
   - epose proof (All2_length X0).
     unfold EWellformed.wf_fix_gen.
-    rewrite -H0. move/andP: wfa => [] ->.
+    rw -H0. move/andP: wfa => [] ->.
     move/forallb_All. cbn. intros wfa.
     solve_all. destruct b.
     destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
-    rewrite fix_context_length in b1.
+    rw fix_context_length in b1.
     move/andP: b0 => //; eauto. move=> [] wft /andP[] isl wf; eauto.
-    eapply b1; tea. eapply b. now rewrite length_app fix_context_length.
+    eapply b1; tea. eapply b. now rw length_app fix_context_length.
   - epose proof (All2_length X0).
     unfold EWellformed.wf_fix_gen.
-    rewrite -H0. move/andP: wfa => [] ->.
+    rw -H0. move/andP: wfa => [] ->.
     move/forallb_All. cbn. intros wfa.
     solve_all. destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
-    rewrite fix_context_length in b.
-    eapply b. now move: b0 => /andP[]. eauto. now rewrite length_app fix_context_length. tea.
+    rw fix_context_length in b.
+    eapply b. now move: b0 => /andP[]. eauto. now rw length_app fix_context_length. tea.
   - depelim H. solve_all. primProp.
     depelim X0; depelim X1; repeat constructor; cbn; intuition eauto. solve_all.
 Qed.
@@ -692,8 +692,8 @@ Lemma eval_empty_brs {wfl : EWcbvEval.WcbvFlags} Σ ci p e : Σ ⊢ E.tCase ci p
 Proof.
   intros He.
   depind He.
-  - clear -e2. now rewrite nth_error_nil in e2.
-  - clear -e2. now rewrite nth_error_nil in e2.
+  - clear -e2. now rw nth_error_nil in e2.
+  - clear -e2. now rw nth_error_nil in e2.
   - discriminate.
   - eapply IHHe2.
   - cbn in i. discriminate.
@@ -708,12 +708,12 @@ Proof.
   depind He.
   - depelim He1. clear -H. symmetry in H. exfalso.
     destruct args using rev_case. discriminate.
-    rewrite EAstUtils.mkApps_app in H. discriminate.
+    rw EAstUtils.mkApps_app in H. discriminate.
   - depelim He1.
   - exists n, f4. intuition auto.
   - depelim He1. clear -H. symmetry in H. exfalso.
     destruct args using rev_case. discriminate.
-    rewrite EAstUtils.mkApps_app in H. discriminate.
+    rw EAstUtils.mkApps_app in H. discriminate.
   - cbn in i. discriminate.
 Qed.
 

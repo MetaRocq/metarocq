@@ -121,10 +121,10 @@ Proof.
   epose proof (inductive_cumulative_indices isdecl cu cu' hR Γ pars pars' _ _ sppars2 sppars3 eq).
   intros.
   cbn in X.
-  rewrite (spine_subst_inst_subst sppars2) in X.
-  rewrite (spine_subst_inst_subst sppars3) in X.
-  rewrite /pindctx /pindctx'.
-  rewrite - !smash_context_subst_context_let_expand.
+  rw (spine_subst_inst_subst sppars2) in X.
+  rw (spine_subst_inst_subst sppars3) in X.
+  rw /pindctx /pindctx'.
+  rw - !smash_context_subst_context_let_expand.
   apply X.
 Qed.
 
@@ -380,7 +380,7 @@ Qed.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
     specialize_Σ wfΣ. cbn in e.
     inversion wt; subst. inversion X0; subst.
-    rewrite H0 in e => //.
+    rw H0 in e => //.
   Qed.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
@@ -503,7 +503,7 @@ Qed.
     inversion X0; subst.
     erewrite <- abstract_env_lookup_correct' in e; eauto.
     unshelve eapply declared_constant_to_gen in isdecl; eauto.
-    rewrite isdecl in e. inversion e. subst. assumption.
+    rw isdecl in e. inversion e. subst. assumption.
   Defined.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
@@ -511,7 +511,7 @@ Qed.
     inversion X0 ; subst.
     clear wildcard. erewrite <- abstract_env_lookup_correct' in e; eauto.
     unshelve eapply declared_constant_to_gen in isdecl; eauto.
-    rewrite isdecl in e. inversion e.
+    rw isdecl in e. inversion e.
   Defined.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
@@ -519,7 +519,7 @@ Qed.
     inversion X0 ; subst.
     clear wildcard. erewrite <- abstract_env_lookup_correct' in e; eauto.
     unshelve eapply declared_constant_to_gen in isdecl; eauto.
-    rewrite isdecl in e. inversion e.
+    rw isdecl in e. inversion e.
   Defined.
   Next Obligation.
     cbn in *; intros. pose (hΣ _ wfΣ). specialize_Σ wfΣ.
@@ -613,7 +613,7 @@ Qed.
     2,3: eauto.
     2: now econstructor ; tea;  eapply closed_red_red.
     subst.
-    rewrite /ptm.
+    rw /ptm.
     erewrite <- PCUICCasesContexts.inst_case_predicate_context_eq ; tea.
     econstructor ; tea.
     + econstructor ; tea.
@@ -633,7 +633,7 @@ Qed.
       eapply PCUICConvCumInversion.alt_into_ws_cumul_pb_terms ; tea.
       * fvs.
       * eapply infering_ind_typing, validity, isType_is_open_term in X1 ; auto.
-        rewrite on_free_vars_mkApps in X1.
+        rw on_free_vars_mkApps in X1.
         move: X1 => /andP [] _ /forallb_All ?.
         now eapply All_forallb, All_firstn.
       * apply infering_typing, subject_is_open_term in X0 ; auto.
@@ -785,8 +785,8 @@ Qed.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
     intros. specialize (wt _ wfΣ). destruct wt.
     inversion X0; subst.
-    cbn in eqp. rewrite (abstract_primitive_constant_correct _ _ Σ) // in eqp.
-    rewrite /= -eqp in H0. noconf H0. split.
+    cbn in eqp. rw (abstract_primitive_constant_correct _ _ Σ) // in eqp.
+    rw /= -eqp in H0. noconf H0. split.
     intros; erewrite (abstract_env_ext_irr _ wfΣ0 wfΣ); eauto.
   Qed.
 
@@ -795,8 +795,8 @@ Qed.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
     intros. specialize (wt _ wfΣ). destruct wt.
     inversion X0; subst.
-    rewrite (abstract_primitive_constant_correct _ _ Σ) // in e.
-    rewrite /= -e in H0. noconf H0.
+    rw (abstract_primitive_constant_correct _ _ Σ) // in e.
+    rw /= -e in H0. noconf H0.
   Qed.
 
   Definition type_of Γ wfΓ t wt : term := (infer Γ wfΓ t wt).

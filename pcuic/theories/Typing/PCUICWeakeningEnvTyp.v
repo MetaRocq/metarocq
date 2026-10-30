@@ -50,10 +50,10 @@ Lemma extends_check_recursivity_kind `{cf : checker_flags} Σ ind k Σ' : extend
   check_recursivity_kind (lookup_env Σ) ind k -> check_recursivity_kind (lookup_env Σ') ind k.
 Proof.
   intros ext wfΣ'.
-  rewrite /check_recursivity_kind.
+  rw /check_recursivity_kind.
   destruct lookup_env eqn:Heq => //.
   eapply extends_lookup in Heq; eauto.
-  now rewrite Heq.
+  now rw Heq.
 Qed.
 
 Lemma extends_wf_fixpoint `{cf : checker_flags} (Σ Σ' : global_env_ext) mfix : extends Σ Σ' -> wf Σ' ->
@@ -88,10 +88,10 @@ Proof.
   unfold primitive_constant.
   case: ext => o [] o' [] o'' o'''.
   destruct p => //.
-  - intros hr. now rewrite hr in o; depelim o.
-  - intros hr. now rewrite hr in o'; depelim o'.
-  - intros hr. now rewrite hr in o''; depelim o''.
-  - intros hr. now rewrite hr in o'''; depelim o'''.
+  - intros hr. now rw hr in o; depelim o.
+  - intros hr. now rw hr in o'; depelim o'.
+  - intros hr. now rw hr in o''; depelim o''.
+  - intros hr. now rw hr in o'''; depelim o'''.
 Qed.
 Local Hint Resolve extends_primitive_constant : extends.
 
@@ -156,7 +156,7 @@ Proof.
     eapply Forall_impl; tea; simpl; intros.
     eapply leq_sort_subset; tea.
     apply weakening_env_global_ext_constraints; tea; eauto.
-  - rewrite /on_variance. intros u l. destruct u => //.
+  - rw /on_variance. intros u l. destruct u => //.
     destruct l => //.
     intros [univs' [i [i' []]]]. exists univs', i, i'. split => //.
     all:eapply weakening_env_consistent_instance; tea; eauto.
@@ -491,5 +491,5 @@ Proof.
   - split => //. destruct Hdecl as [[] ?]. now eapply on_declared_inductive.
   - pose proof (declared_projection_inv weaken_env_prop_typing wfΣ wfΣ Hdecl).
     destruct Hdecl. cbn in *. destruct d; cbn in *.
-    now rewrite hctors in X.
+    now rw hctors in X.
 Qed.

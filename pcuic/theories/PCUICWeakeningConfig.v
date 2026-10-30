@@ -18,7 +18,7 @@ Set Default Goal Selector "!".
   config.impl cf1 cf2 ->
   RelationClasses.subrelation (@compare_sort cf1 cs pb) (@compare_sort cf2 cs pb).
 Proof.
-  cbv [compare_sort eq_sort eq_sort_ leq_sort leq_sort_n leq_sort_n_ eq_universe leq_universe_n config.impl].
+  cbv [compare_sort eq_sort eq_sort_ leq_sort leq_sort_ eq_universe leq_universe config.impl].
   destruct cf1, cf2; cbn.
   move => H u1 u2; move: H.
   repeat match goal with
@@ -68,7 +68,7 @@ Lemma weakening_config_consistent_instance cf1 cf2 Σ ctrs u :
   @consistent_instance_ext cf1 Σ ctrs u ->
   @consistent_instance_ext cf2 Σ ctrs u.
 Proof.
-  rewrite /consistent_instance_ext/consistent_instance/valid_constraints/config.impl.
+  rw /consistent_instance_ext/consistent_instance/valid_constraints/config.impl.
   do 2 case: check_univs; cbn => //=.
   case: ctrs => //=; intuition auto.
 Qed.

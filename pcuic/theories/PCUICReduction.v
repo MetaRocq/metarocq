@@ -17,19 +17,19 @@ Reserved Notation " Σ ;;; Γ |- t ⇝ u " (at level 50, Γ, t, u at next level)
 Local Open Scope type_scope.
 
 Definition set_array_default (ar : array_model term) (v : term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := v;
      array_type := ar.(array_type);
      array_value := ar.(array_value) |}.
 
 Definition set_array_type (ar : array_model term) (v : term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := ar.(array_default);
      array_type := v;
      array_value := ar.(array_value) |}.
 
 Definition set_array_value (ar : array_model term) (v : list term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := ar.(array_default);
      array_type := ar.(array_type);
      array_value := v |}.
@@ -757,7 +757,7 @@ Section ReductionCongruence.
       @redl _ _ P l l' -> map snd l = map snd l'.
     Proof using Type.
       intros HP. induction 1; auto.
-      rewrite IHX. now apply HP.
+      rw IHX. now apply HP.
     Qed.
 
     Definition redl_term {A} Γ := @redl term A (red1_one_term Γ).
@@ -1130,9 +1130,9 @@ Section ReductionCongruence.
 
     Lemma fill_mkApps_context M l : fill_context M (mkApps_context (List.rev l)) = mkApps M l.
     Proof using Type.
-      rewrite -{2}(rev_involutive l).
+      rw -{2}(rev_involutive l).
       generalize (List.rev l) as l'; induction l'; simpl; auto.
-      rewrite mkApps_app. now rewrite <- IHl'.
+      rw mkApps_app. now rewrite <- IHl'.
     Qed.
 
     Lemma red1_mkApps_f :
@@ -1214,7 +1214,7 @@ Section ReductionCongruence.
         eapply trans_red.
         + eapply IHh; tas. symmetry. apply el.
         + change (set_pparams p l') with (set_pparams (set_pparams p (map g l1)) l').
-          econstructor. rewrite (el' l').
+          econstructor. rw (el' l').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? []] [? []] [h1 h2].
@@ -1302,7 +1302,7 @@ Section ReductionCongruence.
     Lemma map_bcontext_redl {pred} {l l' : list (term * context)} :
       @redl _ _ (red1_one_branch pred Γ) l l' -> map snd l = map snd l'.
     Proof using Type.
-      induction 1; auto. rewrite IHX.
+      induction 1; auto. rw IHX.
       clear -p .
       induction p; simpl.
       - destruct p as [? ?]. congruence.
@@ -1351,7 +1351,7 @@ Section ReductionCongruence.
       - etransitivity.
         + eapply IHh; eauto. rewrite <- map_recomp_decomp. reflexivity.
         + constructor. econstructor; eauto.
-          rewrite (map_decomp_recomp brs').
+          rw (map_decomp_recomp brs').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
     Qed.
@@ -1430,7 +1430,7 @@ Section ReductionCongruence.
       red_brs p Γ brs brs' ->
       rtrans_clos (red_one_brs p Γ) brs brs'.
     Proof using Type.
-      rewrite /red_brs.
+      rw /red_brs.
       intros h.
       eapply All2_many_OnOne2 in h.
       eapply rtrans_clos_incl; tea. clear h.
@@ -1439,10 +1439,10 @@ Section ReductionCongruence.
       induction h.
       * destruct p.
         etransitivity.
-        - constructor. constructor. intros ctx. rewrite -/ctx in p0. tea.
+        - constructor. constructor. intros ctx. rw -/ctx in p0. tea.
         - constructor.
           constructor. simpl. destruct p0.
-          rewrite /inst_case_branch_context /= in r *. rewrite -e.
+          rw /inst_case_branch_context /= in r *. rw -e.
           split; auto.
       * clear -IHh. rename IHh into h.
         induction h.
@@ -1472,7 +1472,7 @@ Section ReductionCongruence.
                               (firstn x l ++ [a'] ++ skipn (S x) l).
     Proof using Type.
       induction 1.
-      - simpl. intros x a a' Hnth. now rewrite nth_error_nil in Hnth.
+      - simpl. intros x a a' Hnth. now rw nth_error_nil in Hnth.
       - intros.
         destruct x0.
         + simpl. constructor. simpl in H, H0. now noconf H; noconf H0.
@@ -1582,7 +1582,7 @@ Section ReductionCongruence.
         }
         eapply trans_red.
         + eapply IHh. symmetry. apply el.
-        + constructor. rewrite (el' mfix').
+        + constructor. rw (el' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1633,7 +1633,7 @@ Section ReductionCongruence.
         }
         eapply trans_red.
         + eapply IHh. symmetry. apply el.
-        + eapply fix_red_body. rewrite (el' mfix').
+        + eapply fix_red_body. rw (el' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1642,7 +1642,7 @@ Section ReductionCongruence.
           assert (e : fix_context mfix = fix_context (map g l1)).
           { clear - h el el'. induction h.
             - rewrite <- el'. reflexivity.
-            - rewrite IHh.
+            - rw IHh.
               unfold fix_context. f_equal.
               assert (e : map snd l1 = map snd l2).
               { clear - p. induction p.
@@ -1682,7 +1682,7 @@ Section ReductionCongruence.
           assert (e : fix_context mfix = fix_context y).
           { clear - h. induction h.
             - reflexivity.
-            - rewrite IHh.
+            - rw IHh.
               unfold fix_context. f_equal.
               assert (e : map (fun d => (dname d, dtype d)) y = map (fun d => (dname d, dtype d)) z).
               { clear - r. induction r.
@@ -1767,7 +1767,7 @@ Section ReductionCongruence.
         }
         eapply trans_red.
         + eapply IHh. symmetry. apply el.
-        + constructor. rewrite (el' mfix').
+        + constructor. rw (el' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1818,7 +1818,7 @@ Section ReductionCongruence.
         }
         eapply trans_red.
         + eapply IHh. symmetry. apply el.
-        + eapply cofix_red_body. rewrite (el' mfix').
+        + eapply cofix_red_body. rw (el' mfix').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? [[? ?] ?]] [? [[? ?] ?]] [h1 h2].
@@ -1827,7 +1827,7 @@ Section ReductionCongruence.
           assert (e : fix_context mfix = fix_context (map g l1)).
           { clear - h el el'. induction h.
             - rewrite <- el'. reflexivity.
-            - rewrite IHh.
+            - rw IHh.
               unfold fix_context. f_equal.
               assert (e : map snd l1 = map snd l2).
               { clear - p. induction p.
@@ -1867,7 +1867,7 @@ Section ReductionCongruence.
           assert (e : fix_context mfix = fix_context y).
           { clear - h. induction h.
             - reflexivity.
-            - rewrite IHh.
+            - rw IHh.
               unfold fix_context. f_equal.
               assert (e : map (fun d => (dname d, dtype d)) y = map (fun d => (dname d, dtype d)) z).
               { clear - r. induction r.
@@ -1954,7 +1954,7 @@ Section ReductionCongruence.
         + eapply IHh; tas. symmetry. apply el.
         + change (set_array_value arr value) with
           (set_array_value (set_array_value arr (map g l1)) value).
-          econstructor. rewrite (el' value).
+          econstructor. rw (el' value).
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? []] [? []] [h1 h2].
@@ -1998,7 +1998,7 @@ Section ReductionCongruence.
     Qed.
 
     Lemma red_primArray_congr (arr arr' : array_model term) :
-      array_level arr = array_level arr' ->
+      array_universe arr = array_universe arr' ->
       All2 (red Σ Γ) (array_value arr) (array_value arr') ->
       red Σ Γ (array_default arr) (array_default arr') ->
       red Σ Γ (array_type arr) (array_type arr') ->
@@ -2070,7 +2070,7 @@ Section ReductionCongruence.
         }
         eapply trans_red.
         + eapply IHh. symmetry. apply el.
-        + constructor. rewrite (el' l').
+        + constructor. rw (el' l').
           eapply OnOne2_map.
           eapply OnOne2_impl ; eauto.
           intros [? []] [? []] [h1 h2].
@@ -2140,11 +2140,11 @@ Lemma split_nth {A B} {l : list A} (l' l'' : list B) :
   ∑ x, (nth_error l #|l'| = Some x) * (l = firstn #|l'| l ++ x :: skipn (S #|l'|) l).
 Proof.
   induction l in l', l'' |- *; simpl; auto.
-  - rewrite Nat.add_succ_r //.
-  - rewrite Nat.add_succ_r => [= len].
+  - rw Nat.add_succ_r //.
+  - rw Nat.add_succ_r => [= len].
     destruct l'; simpl.
     * exists a; auto.
-    * simpl in len. rewrite -Nat.add_succ_r in len.
+    * simpl in len. rw -Nat.add_succ_r in len.
       specialize (IHl _ _ len) as [x eq].
       exists x; now f_equal.
 Qed.
@@ -2175,7 +2175,7 @@ Section Stacks.
   Proof using Type.
     intros r.
     destruct pcontext as ((?&[])&pre); cbn -[app_context] in *.
-    all: rewrite - !app_context_assoc.
+    all: rw - !app_context_assoc.
     - induction pre; cbn.
       + destruct body; constructor; cbn; intuition auto.
       + apply onone2_localenv_cons_tl; auto.
@@ -2200,29 +2200,29 @@ Section Stacks.
         [apply fix_red_ty|apply fix_red_body].
       all: apply OnOne2_app; constructor; cbn; auto.
       intuition auto.
-      rewrite fix_context_fix_context_alt map_app.
+      rw fix_context_fix_context_alt map_app.
       unfold def_sig at 2.
       cbn.
-      rewrite -app_context_assoc; auto.
+      rw -app_context_assoc; auto.
     - destruct mfix as ((?&[])&?); cbn in *;
         [apply cofix_red_ty|apply cofix_red_body].
       all: apply OnOne2_app; constructor; cbn; auto.
       intuition auto.
-      rewrite fix_context_fix_context_alt map_app.
+      rw fix_context_fix_context_alt map_app.
       unfold def_sig at 2.
       cbn.
-      rewrite -app_context_assoc; auto.
+      rw -app_context_assoc; auto.
     - destruct p; cbn in *.
       + apply case_red_param; cbn.
         apply OnOne2_app.
         constructor; auto.
       + apply case_red_return; cbn.
-        rewrite -app_assoc in h; auto.
+        rw -app_assoc in h; auto.
     - destruct brs as ((?&[])&?); cbn in *.
       + apply case_red_brs.
         apply OnOne2_app.
         constructor; cbn.
-        rewrite -app_assoc in h; auto.
+        rw -app_assoc in h; auto.
     - apply array_red_val; cbn in *.
       eapply OnOne2_app. now constructor.
   Qed.
@@ -2269,7 +2269,7 @@ Section Stacks.
     eapply red1_it_mkLambda_or_LetIn.
     eapply red1_mkApps_f.
     pose proof (decompose_stack_eq _ _ _ e). subst.
-    rewrite stack_context_appstack in h.
+    rw stack_context_appstack in h.
     assumption.
   Qed.
 

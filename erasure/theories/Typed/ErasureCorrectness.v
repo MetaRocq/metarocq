@@ -129,7 +129,7 @@ Proof.
     set (wfΣprev := wfΣarg) in *; clearbody wfΣprev
   end.
 
-  rewrite no_ignores;cbn.
+  rw no_ignores;cbn.
   destruct KernameSet.mem eqn:mem; cycle 1.
   - intros kn' isin.
     change {| P.universes := univs; P.declarations := (kn, wfdecl) :: Σ0; P.retroknowledge := retro |} with
@@ -178,7 +178,7 @@ Proof.
          P.declared_constant, P.declared_minductive; cbn.
     unfold Erasure.erase_constant_decl.
     all: unfold eq_kername in *.
-    all: try rewrite eq_kername_refl.
+    all: try rw eq_kername_refl.
     + eexists; split; [left;reflexivity|].
     unfold erase_constant_decl.
     destruct flag_of_type.
@@ -186,11 +186,11 @@ Proof.
       * destruct c eqn:Hc; cbn in *.
         destruct cst_body0 eqn:Hcb; cbn in *; cycle 1.
         { eexists; split;cbn; unfold EGlobalEnv.declared_constant;cbn.
-          now rewrite eq_kername_refl. cbn.
+          now rw eq_kername_refl. cbn.
           intuition congruence. }
 
         eexists. split;cbn; unfold EGlobalEnv.declared_constant;cbn.
-        now rewrite eq_kername_refl.
+        now rw eq_kername_refl.
         split; last first.
         { intros ? H.
           noconf H.
@@ -221,7 +221,7 @@ Proof.
         clear wfΣext. specialize (wfΣ _ hfull). subst Σfull.
         depelim wffull; cbn in *. depelim o0. depelim o1. now eapply unlift_TermTyp.
       * eexists; split;cbn; unfold EGlobalEnv.declared_constant;cbn.
-        now rewrite eq_kername_refl.
+        now rw eq_kername_refl.
         unfold trans_cst; cbn.
         destruct c; cbn in *.
         destruct cst_body0; cbn in *; cycle 1.
@@ -258,7 +258,7 @@ Proof.
            noconf H.
            assert (unfold_add_gd : forall univs decls (decl : kername × global_decl),
                       add_global_decl (mk_global_env univs decls retro) decl = {| P.universes := univs; P.declarations := decl :: decls; P.retroknowledge := retro |}) by reflexivity.
-           rewrite -{1}unfold_add_gd.
+           rw -{1}unfold_add_gd.
            repeat invert_wf.
            pose proof (abstract_env_ext_wf _ wfΣext) as [].
            pose proof (abstract_env_exists X) as [[Σfull hfull]].
@@ -288,7 +288,7 @@ Proof.
               ** now apply erases_erase.
     + eexists _, _; split; [left; reflexivity|]; split.
       unfold EGlobalEnv.declared_minductive;cbn.
-      now rewrite eq_kername_refl.
+      now rw eq_kername_refl.
       cbn in *.
       apply erase_ind_correct.
 Qed.

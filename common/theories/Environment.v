@@ -63,12 +63,12 @@ Module Retroknowledge.
 
   Lemma extendsT x y : reflect (extends x y) (extendsb x y).
   Proof.
-    rewrite /extends/extendsb; do 4 case: option_extendsT; cbn; constructor; intuition auto.
+    rw /extends/extendsb; do 4 case: option_extendsT; cbn; constructor; intuition auto.
   Qed.
 
   Lemma extends_spec x y : extendsb x y <-> extends x y.
   Proof.
-    rewrite /extends/extendsb -!option_extends_spec /is_true !Bool.andb_true_iff //=.
+    rw /extends/extendsb -!option_extends_spec /is_true !Bool.andb_true_iff //=.
     intuition auto.
   Qed.
 
@@ -103,14 +103,14 @@ Module Retroknowledge.
   Lemma extends_l_merge r1 r2
     : extends r1 (merge r1 r2).
   Proof.
-    rewrite /extends/merge; destruct r1, r2; cbn; repeat destruct ?; subst;
+    rw /extends/merge; destruct r1, r2; cbn; repeat destruct ?; subst;
       repeat constructor; clear; destruct_head' option; constructor.
   Qed.
 
   Lemma extends_merge_idempotent r1 r2
     : extends r1 r2 -> merge r1 r2 = r2.
   Proof.
-    rewrite /extends/merge; destruct r1, r2; cbn.
+    rw /extends/merge; destruct r1, r2; cbn.
     intro; rdest; destruct_head' (@option_extends); reflexivity.
   Qed.
 
@@ -123,7 +123,7 @@ Module Retroknowledge.
   Lemma extends_r_merge r1 r2
     : compatible r1 r2 -> extends r2 (merge r1 r2).
   Proof.
-    rewrite /extends/merge/compatible; destruct r1, r2; cbn; repeat destruct ?; subst.
+    rw /extends/merge/compatible; destruct r1, r2; cbn; repeat destruct ?; subst.
     all: repeat case: eqb_spec => //=.
     all: intros; subst.
     all: repeat constructor; clear; destruct_head' option; constructor.
@@ -173,7 +173,7 @@ Module Environment (T : Term).
   Qed.
 
   Lemma lift_context_length n k Γ : #|lift_context n k Γ| = #|Γ|.
-  Proof. now rewrite /lift_context; len. Qed.
+  Proof. now rw /lift_context; len. Qed.
   #[global] Hint Rewrite lift_context_length : len.
 
   Definition subst_context s k (Γ : context) : context :=
@@ -182,7 +182,7 @@ Module Environment (T : Term).
   Definition subst_decl s k (d : context_decl) := map_decl (subst s k) d.
 
   Lemma subst_context_length s n Γ : #|subst_context s n Γ| = #|Γ|.
-  Proof. now rewrite /subst_context; len. Qed.
+  Proof. now rw /subst_context; len. Qed.
   #[global] Hint Rewrite subst_context_length : len.
 
   Lemma subst_context_nil s n : subst_context s n [] = [].
@@ -192,13 +192,13 @@ Module Environment (T : Term).
     subst_context s k Γ =
     mapi (fun k' d => subst_decl s (Nat.pred #|Γ| - k' + k) d) Γ.
   Proof.
-    unfold subst_context, fold_context_k. rewrite rev_mapi. rewrite List.rev_involutive.
-    apply mapi_ext. intros. f_equal. now rewrite List.length_rev.
+    unfold subst_context, fold_context_k. rw rev_mapi. rw List.rev_involutive.
+    apply mapi_ext. intros. f_equal. now rw List.length_rev.
   Qed.
 
   Lemma subst_context_snoc s k Γ d : subst_context s k (d :: Γ) = subst_context s k Γ ,, subst_decl s (#|Γ| + k) d.
   Proof.
-    now rewrite /subst_context fold_context_k_snoc0.
+    now rw /subst_context fold_context_k_snoc0.
   Qed.
 
   Definition subst_telescope s k (Γ : context) : context :=
@@ -212,7 +212,7 @@ Module Environment (T : Term).
 
   Lemma subst_instance_length u (ctx : context)
     : #|subst_instance u ctx| = #|ctx|.
-  Proof. unfold subst_instance, subst_instance_context, map_context. now rewrite length_map. Qed.
+  Proof. unfold subst_instance, subst_instance_context, map_context. now rw length_map. Qed.
   #[global] Hint Rewrite subst_instance_length : len.
 
   Definition set_binder_name (na : aname) (x : context_decl) : context_decl :=
@@ -254,8 +254,8 @@ Module Environment (T : Term).
   Lemma smash_context_length Γ Γ' : #|smash_context Γ Γ'| = #|Γ| + context_assumptions Γ'.
   Proof.
     induction Γ' as [|[na [body|] ty] tl] in Γ |- *; cbn; eauto.
-    - now rewrite IHtl subst_context_length.
-    - rewrite IHtl length_app. simpl. lia.
+    - now rw IHtl subst_context_length.
+    - rw IHtl length_app. simpl. lia.
   Qed.
   #[global] Hint Rewrite smash_context_length : len.
 
@@ -290,7 +290,7 @@ Module Environment (T : Term).
   Lemma extended_subst_length Γ n : #|extended_subst Γ n| = #|Γ|.
   Proof.
     induction Γ in n |- *; simpl; auto.
-    now destruct a as [? [?|] ?] => /=; simpl; rewrite IHΓ.
+    now destruct a as [? [?|] ?] => /=; simpl; rw IHΓ.
   Qed.
   #[global] Hint Rewrite extended_subst_length : len.
 
@@ -305,11 +305,11 @@ Module Environment (T : Term).
   Definition expand_lets_ctx Γ Δ := expand_lets_k_ctx Γ 0 Δ.
 
   Lemma expand_lets_k_ctx_length Γ k Δ : #|expand_lets_k_ctx Γ k Δ| = #|Δ|.
-  Proof. now rewrite /expand_lets_k_ctx; len. Qed.
+  Proof. now rw /expand_lets_k_ctx; len. Qed.
   #[global] Hint Rewrite expand_lets_k_ctx_length : len.
 
   Lemma expand_lets_ctx_length Γ Δ : #|expand_lets_ctx Γ Δ| = #|Δ|.
-  Proof. now rewrite /expand_lets_ctx; len. Qed.
+  Proof. now rw /expand_lets_ctx; len. Qed.
   #[global] Hint Rewrite expand_lets_ctx_length : len.
 
   Definition fix_context (m : mfixpoint term) : context :=
@@ -574,7 +574,7 @@ Module Environment (T : Term).
 
   Lemma lookup_globals_nil Σ kn : ~In kn (List.map fst Σ) <-> lookup_globals Σ kn = nil.
   Proof.
-    rewrite lookup_global_None-hd_error_lookup_globals.
+    rw lookup_global_None-hd_error_lookup_globals.
     case: lookup_globals => //.
   Qed.
 
@@ -590,7 +590,7 @@ Module Environment (T : Term).
     move => ?? H. inversion 1; subst.
     move: (H ltac:(assumption)).
     case: eqb_spec => //= ->.
-    rewrite (proj1 (@lookup_global_None _ _)) => //= -> //=.
+    rw (proj1 (@lookup_global_None _ _)) => //= -> //=.
   Qed.
 
   Lemma NoDup_lookup_globals_eq Σ
@@ -626,7 +626,7 @@ Module Environment (T : Term).
   Lemma lookup_global_Some_iff_In_NoDup Σ kn decl (H : NoDup (List.map fst Σ))
     : In (kn, decl) Σ <-> lookup_global Σ kn = Some decl.
   Proof.
-    rewrite -hd_error_lookup_globals lookup_globals_In.
+    rw -hd_error_lookup_globals lookup_globals_In.
     apply NoDup_length_lookup_globals with (kn:=kn) in H; move: H.
     case: lookup_global; case: lookup_globals => [|?[]]; cbn.
     all: try lia.
@@ -638,9 +638,9 @@ Module Environment (T : Term).
     lookup_global Σ k = Some d ->
     extends_decls_part_globals Σ Σ' -> lookup_global Σ' k = Some d.
   Proof.
-    rewrite /= -!hd_error_lookup_globals => Hnd.
+    rw /= -!hd_error_lookup_globals => Hnd.
     move: (@NoDup_length_lookup_globals _ Hnd k); clear Hnd.
-    rewrite -hd_error_lookup_globals.
+    rw -hd_error_lookup_globals.
     move=> H Hd eq.
     move: (eq k); clear eq.
     case => ls eq.
@@ -671,7 +671,7 @@ Module Environment (T : Term).
     : strictly_extends_decls_part_globals Σ Σ' -> extends_decls_part_globals Σ Σ'.
   Proof.
     case => //= ? -> c.
-    rewrite lookup_globals_app.
+    rw lookup_globals_app.
     eexists; reflexivity.
   Qed.
 
@@ -682,26 +682,26 @@ Module Environment (T : Term).
   #[global] Instance strictly_extends_decls_extends_decls Σ Σ' : strictly_extends_decls Σ Σ' -> extends_decls Σ Σ'.
   Proof.
     destruct Σ, Σ'; case => //= -> ? ->.
-    rewrite /extends_decls; split; try reflexivity.
+    rw /extends_decls; split; try reflexivity.
     now apply strictly_extends_decls_extends_part.
   Qed.
 
   #[global] Instance strictly_extends_decls_extends_strictly_on_decls Σ Σ' : strictly_extends_decls Σ Σ' -> extends_strictly_on_decls Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_decls_extends Σ Σ' : extends_decls Σ Σ' -> extends Σ Σ'.
   Proof.
     destruct Σ, Σ'; intros []. cbn in *; subst. split => //=.
-    split; [lsets|csets]. apply Retroknowledge.extends_refl.
+    split; [lsets|ucsets]. apply Retroknowledge.extends_refl.
   Qed.
 
   #[global] Instance extends_strictly_on_decls_extends Σ Σ' : extends_strictly_on_decls Σ Σ' -> extends Σ Σ'.
   Proof.
     destruct Σ, Σ'; case => //= ? ? ?.
-    rewrite /extends; split => //=.
+    rw /extends; split => //=.
     now apply strictly_extends_decls_extends_part.
   Qed.
 
@@ -745,7 +745,7 @@ Module Environment (T : Term).
     : extends_decls_part_globals Σ Σ' -> extends_decls_part_globals Σ' Σ'' -> extends_decls_part_globals Σ Σ''.
   Proof.
     move => H1 H2 c; move: (H1 c) (H2 c) => [? ->] [? ->].
-    now eexists; rewrite app_assoc.
+    now eexists; rw app_assoc.
   Qed.
 
   Lemma extends_decls_part_trans Σ Σ' Σ''
@@ -756,7 +756,7 @@ Module Environment (T : Term).
     : strictly_extends_decls_part_globals Σ Σ' -> strictly_extends_decls_part_globals Σ' Σ'' -> strictly_extends_decls_part_globals Σ Σ''.
   Proof.
     move => [? ->] [? ->].
-    now eexists; rewrite app_assoc.
+    now eexists; rw app_assoc.
   Qed.
 
   Lemma strictly_extends_decls_part_trans Σ Σ' Σ''
@@ -804,9 +804,9 @@ Module Environment (T : Term).
   Proof.
     induction Σ as [|?? IH]; cbn; rdest; cbn; try now repeat destruct ?.
     case: eqb_spec => ?; repeat destruct ?; subst => //=.
-    all: rewrite ?eqb_refl.
+    all: rw ?eqb_refl.
     all: try case: eqb_spec => ?; subst.
-    all: rewrite IH //=.
+    all: rw IH //=.
     all: try congruence.
   Qed.
 
@@ -817,16 +817,16 @@ Module Environment (T : Term).
   Lemma extends_l_merge_globals Σ Σ'
     : extends_decls_part_globals Σ (merge_globals Σ Σ').
   Proof.
-    rewrite /merge_globals.
+    rw /merge_globals.
     intro c.
-    rewrite lookup_globals_app lookup_globals_filter.
+    rw lookup_globals_app lookup_globals_filter.
     eexists; reflexivity.
   Qed.
 
   Lemma extends_strictly_on_decls_l_merge Σ Σ'
     : extends_strictly_on_decls Σ (merge_global_envs Σ Σ').
   Proof.
-    rewrite /extends_strictly_on_decls/merge_global_envs/merge_globals; cbn.
+    rw /extends_strictly_on_decls/merge_global_envs/merge_globals; cbn.
     split;
       try first [ apply ContextSet.union_spec
                 | apply Retroknowledge.extends_l_merge
@@ -843,7 +843,7 @@ Module Environment (T : Term).
   Proof.
     elim => //=; try setoid_rewrite KernameSetFact.empty_iff => //=.
     move => [? ?] ? IH c //=.
-    rewrite KernameSet.add_spec.
+    rw KernameSet.add_spec.
     intuition auto with *.
   Qed.
 
@@ -858,29 +858,29 @@ Module Environment (T : Term).
     : compatible_globals Σ Σ' ->
       extends_decls_part_globals Σ' (merge_globals Σ Σ').
   Proof.
-    rewrite /merge_globals.
+    rw /merge_globals.
     intro H2; cbn.
     cbv [compatible_globals] in *.
     intro c.
     specialize (H2 c).
-    rewrite lookup_globals_app lookup_globals_filter.
+    rw lookup_globals_app lookup_globals_filter.
     destruct (in_dec eq_dec c (map fst Σ')) as [H'|H'];
       [ exists nil | exists (lookup_globals Σ c) ].
-    2: apply lookup_globals_nil in H'; rewrite H'; clear H'.
-    2: now destruct ?; cbn; rewrite app_nil_r.
+    2: apply lookup_globals_nil in H'; rw H'; clear H'.
+    2: now destruct ?; cbn; rw app_nil_r.
     pose proof (lookup_globals_nil Σ c) as Hc.
     rewrite <- !lookup_globals_nil in H2.
     rewrite <- (declared_kername_set_mem_iff Σ) in *.
     destruct KernameSet.mem; cbn in *.
     { intuition auto. }
     { destruct Hc as [Hc _].
-      rewrite Hc ?app_nil_r //=. }
+      rw Hc ?app_nil_r //=. }
   Qed.
 
   Lemma extends_r_merge Σ Σ'
     : compatible Σ Σ' -> extends Σ' (merge_global_envs Σ Σ').
   Proof.
-    rewrite /extends/compatible/merge_global_envs/lookup_envs.
+    rw /extends/compatible/merge_global_envs/lookup_envs.
     intros [H1 H2].
     split;
       try first [ apply ContextSet.union_spec
@@ -900,7 +900,7 @@ Module Environment (T : Term).
     tProd {| binder_name := nAnon; binder_relevance := rel_of_Type |}
       dom (lift 1 0 codom).
 
-  Definition array_uctx := ([nAnon], ConstraintSet.empty).
+  Definition array_uctx := ([nAnon], UnivConstraintSet.empty).
 
   Definition primitive_invariants (p : prim_tag) (cdecl : constant_body) :=
     match p with
@@ -908,7 +908,7 @@ Module Environment (T : Term).
      [/\ cdecl.(cst_type) = tSort Sort.type0, cdecl.(cst_body) = None &
           cdecl.(cst_universes) = Monomorphic_ctx]
     | primArray =>
-      let s := sType (Universe.make' (Level.lvar 0)) in
+      let s := sType (Universe.of_level (Level.lvar 0)) in
       [/\ cdecl.(cst_type) = tImpl (tSort s) (tSort s), cdecl.(cst_body) = None &
         cdecl.(cst_universes) = Polymorphic_ctx array_uctx]
     end.
@@ -972,7 +972,7 @@ Module Environment (T : Term).
     reln acc n ctx.
   Proof.
     induction ctx as [|[na [b|] ty] ctx] in n, acc |- *; simpl; auto;
-      rewrite fold_context_k_snoc0 /=; apply IHctx.
+      rw fold_context_k_snoc0 /=; apply IHctx.
   Qed.
 
   Lemma reln_list_lift_above l p Γ :
@@ -1023,8 +1023,8 @@ Module Environment (T : Term).
   Proof.
     induction Γ in l, k |- *; simpl; auto.
     destruct a as [na [body|] ty]; simpl.
-    now rewrite IHΓ.
-    now rewrite IHΓ -app_assoc.
+    now rw IHΓ.
+    now rw IHΓ -app_assoc.
   Qed.
 
   Lemma to_extended_list_k_cons d Γ k :
@@ -1035,10 +1035,10 @@ Module Environment (T : Term).
     end.
   Proof.
     unfold to_extended_list_k.
-    rewrite reln_alt_eq. simpl.
+    rw reln_alt_eq. simpl.
     destruct d as [na [body|] ty]. simpl.
-    now rewrite reln_alt_eq Nat.add_1_r.
-    simpl. rewrite reln_alt_eq.
+    now rw reln_alt_eq Nat.add_1_r.
+    simpl. rw reln_alt_eq.
     now rewrite <- app_assoc, !app_nil_r, Nat.add_1_r.
   Qed.
 
@@ -1048,7 +1048,7 @@ Module Environment (T : Term).
                             rel_of_Type) ind.(ind_type)) l.
 
   Lemma arities_context_length l : #|arities_context l| = #|l|.
-  Proof. unfold arities_context. now rewrite length_rev_map. Qed.
+  Proof. unfold arities_context. now rw length_rev_map. Qed.
   #[global] Hint Rewrite arities_context_length : len.
 
   Lemma nth_error_arities_context idecls i idecl :
@@ -1060,13 +1060,13 @@ Module Environment (T : Term).
   Proof using Type.
     intros hnth.
     epose proof (nth_error_Some_length hnth). autorewrite with len in H.
-    rewrite nth_error_rev in hnth. now autorewrite with len.
-    rewrite List.rev_involutive in hnth. autorewrite with len in hnth.
+    rw nth_error_rev in hnth. now autorewrite with len.
+    rw List.rev_involutive in hnth. autorewrite with len in hnth.
     unfold arities_context.
-    rewrite rev_map_spec.
-    rewrite nth_error_rev; autorewrite with len; auto.
-    rewrite List.rev_involutive nth_error_map.
-    rewrite hnth. simpl. reflexivity.
+    rw rev_map_spec.
+    rw nth_error_rev; autorewrite with len; auto.
+    rw List.rev_involutive nth_error_map.
+    rw hnth. simpl. reflexivity.
   Qed.
 
   Definition map_mutual_inductive_body f m :=
@@ -1109,7 +1109,7 @@ Module Environment (T : Term).
 
   Lemma context_assumptions_fold Γ f : context_assumptions (fold_context_k f Γ) = context_assumptions Γ.
   Proof.
-    rewrite fold_context_k_alt.
+    rw fold_context_k_alt.
     unfold mapi. generalize 0 (Nat.pred #|Γ|).
     induction Γ as [|[na [body|] ty] tl]; cbn; intros; eauto.
   Qed.
@@ -1123,7 +1123,7 @@ Module Environment (T : Term).
   Proof.
     induction Γ'; intros.
     - easy.
-    - simpl. destruct v; rewrite fold_context_k_snoc0.
+    - simpl. destruct v; rw fold_context_k_snoc0.
       + simpl. repeat f_equal; try lia. simpl in *. congruence.
       + simpl. apply IHΓ'; simpl in *; (lia || congruence).
   Qed.
@@ -1134,8 +1134,8 @@ Module Environment (T : Term).
       option_map (map_decl (f (length Γ' - S v))) (nth_error Γ' v).
   Proof.
     induction Γ'; intros.
-    - simpl. unfold fold_context_k; simpl. now rewrite nth_error_nil.
-    - simpl. destruct v; rewrite fold_context_k_snoc0.
+    - simpl. unfold fold_context_k; simpl. now rw nth_error_nil.
+    - simpl. destruct v; rw fold_context_k_snoc0.
       + simpl. repeat f_equal; try lia.
       + simpl. apply IHΓ'; simpl in *; (lia || congruence).
   Qed.
@@ -1147,8 +1147,8 @@ Module Environment (T : Term).
   Proof.
     intros Hv.
     rewrite -> !nth_error_app_ge, ?fold_context_k_length. f_equal. lia.
-    rewrite fold_context_k_length. lia.
-    rewrite fold_context_k_length. lia. auto.
+    rw fold_context_k_length. lia.
+    rw fold_context_k_length. lia. auto.
   Qed.
 
   Lemma nth_error_lt {Γ Γ' Γ'' v} (f : nat -> term -> term) :
@@ -1158,8 +1158,8 @@ Module Environment (T : Term).
   Proof.
     simpl. intros Hv.
     rewrite -> !nth_error_app_lt.
-    rewrite nth_error_fold_context_k_eq.
-    do 2 f_equal. lia. now rewrite fold_context_k_length.
+    rw nth_error_fold_context_k_eq.
+    do 2 f_equal. lia. now rw fold_context_k_length.
   Qed.
 
   Lemma context_assumptions_length_bound Γ : context_assumptions Γ <= #|Γ|.
@@ -1181,7 +1181,7 @@ Module Environment (T : Term).
 
   Lemma context_assumptions_rev Γ : context_assumptions (List.rev Γ) = context_assumptions Γ.
   Proof using Type.
-    induction Γ; simpl; auto. rewrite context_assumptions_app IHΓ /=.
+    induction Γ; simpl; auto. rw context_assumptions_app IHΓ /=.
     destruct (decl_body a); simpl; lia.
   Qed.
 
@@ -1189,7 +1189,7 @@ Module Environment (T : Term).
   Lemma context_assumptions_mapi f Γ : context_assumptions (mapi (fun i => map_decl (f i)) Γ) =
     context_assumptions Γ.
   Proof.
-    rewrite /mapi; generalize 0.
+    rw /mapi; generalize 0.
     induction Γ; simpl; intros; eauto.
     destruct a as [? [b|] ?]; simpl; auto.
   Qed.

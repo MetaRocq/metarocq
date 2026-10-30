@@ -106,7 +106,7 @@ Lemma declared_minductive_lookup {Σ ind mdecl} :
   declared_minductive Σ ind mdecl ->
   lookup_minductive Σ ind = Some mdecl.
 Proof.
-  rewrite /declared_minductive /lookup_minductive.
+  rw /declared_minductive /lookup_minductive.
   intros -> => /= //.
 Qed.
 
@@ -114,8 +114,8 @@ Lemma declared_inductive_lookup {Σ ind mdecl idecl} :
   declared_inductive Σ ind mdecl idecl ->
   lookup_inductive Σ ind = Some (mdecl, idecl).
 Proof.
-  rewrite /declared_inductive /lookup_inductive.
-  intros []. rewrite (declared_minductive_lookup H) /= H0 //.
+  rw /declared_inductive /lookup_inductive.
+  intros []. rw (declared_minductive_lookup H) /= H0 //.
 Qed.
 
 Lemma declared_constructor_lookup {Σ id mdecl idecl cdecl} :
@@ -123,7 +123,7 @@ Lemma declared_constructor_lookup {Σ id mdecl idecl cdecl} :
   lookup_constructor Σ id.1 id.2 = Some (mdecl, idecl, cdecl).
 Proof.
   intros []. unfold lookup_constructor.
-  rewrite (declared_inductive_lookup H) /= H0 //.
+  rw (declared_inductive_lookup H) /= H0 //.
 Qed.
 
 Lemma declared_projection_lookup {Σ p mdecl idecl cdecl pdecl} :
@@ -131,7 +131,7 @@ Lemma declared_projection_lookup {Σ p mdecl idecl cdecl pdecl} :
   lookup_projection Σ p = Some (mdecl, idecl, cdecl, pdecl).
 Proof.
   intros [hc [hp hn]]. unfold lookup_projection.
-  rewrite (declared_constructor_lookup hc) /= hp //.
+  rw (declared_constructor_lookup hc) /= hp //.
 Qed.
 
 (** Nested lookups *)
@@ -140,7 +140,7 @@ Lemma lookup_projection_lookup_constructor {Σ p mdecl idecl cdecl pdecl} :
   lookup_projection Σ p = Some (mdecl, idecl, cdecl, pdecl) ->
   lookup_constructor Σ p.(proj_ind) 0 = Some (mdecl, idecl, cdecl).
 Proof.
-  rewrite /lookup_projection; destruct lookup_constructor as [[[? ?] ?]|]=> //=.
+  rw /lookup_projection; destruct lookup_constructor as [[[? ?] ?]|]=> //=.
   now destruct nth_error => //.
 Qed.
 
@@ -148,7 +148,7 @@ Lemma lookup_constructor_lookup_inductive {Σ kn c mdecl idecl cdecl} :
   lookup_constructor Σ kn c = Some (mdecl, idecl, cdecl) ->
   lookup_inductive Σ kn = Some (mdecl, idecl).
 Proof.
-  rewrite /lookup_constructor; destruct lookup_inductive as [[? ?]|]=> //=.
+  rw /lookup_constructor; destruct lookup_inductive as [[? ?]|]=> //=.
   now destruct nth_error => //.
 Qed.
 
@@ -158,7 +158,7 @@ Lemma lookup_constructor_pars_args_cstr_arity Σ ind c mdecl idecl cdecl :
   lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
   lookup_constructor_pars_args Σ ind c = Some (mdecl.(ind_npars), cdecl.(cstr_nargs)).
 Proof.
-  rewrite /lookup_constructor_pars_args => -> /= //.
+  rw /lookup_constructor_pars_args => -> /= //.
 Qed.
 
 Definition inductive_isprop_and_pars Σ ind :=

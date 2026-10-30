@@ -1026,10 +1026,10 @@ Variant stack_entry : Type :=
 | LetIn_bd (na : aname) (B t : term)
 | LetIn_ty (na : aname) (b t : term)
 | LetIn_in (na : aname) (b B : term)
-| PrimArray_ty (l : Level.t) (l : list term) (def : term)
-| PrimArray_def (l : Level.t) (l : list term) (ty : term)
+| PrimArray_ty (l : Universe.t) (l : list term) (def : term)
+| PrimArray_def (l : Universe.t) (l : list term) (ty : term)
 (* Hole in one of the values *)
-| PrimArray_val (l : Level.t) (bef : list term) (after : list term) (def : term) (ty : term).
+| PrimArray_val (l : Universe.t) (bef : list term) (after : list term) (def : term) (ty : term).
 
 Definition stack := list stack_entry.
 
@@ -1125,9 +1125,9 @@ Definition fill_hole (t : term) (se : stack_entry) : term :=
   | LetIn_bd na B u => tLetIn na t B u
   | LetIn_ty na b u => tLetIn na b t u
   | LetIn_in na b B => tLetIn na b B t
-  | PrimArray_def l v ty => tPrim (primArray; primArrayModel {| array_level := l; array_value := v; array_default := t; array_type := ty |})
-  | PrimArray_ty l v def => tPrim (primArray; primArrayModel {| array_level := l; array_value := v; array_default := def; array_type := t |})
-  | PrimArray_val l bef after def ty => tPrim (primArray; primArrayModel {| array_level := l; array_value := bef ++ (t :: after); array_default := def; array_type := ty |})
+  | PrimArray_def l v ty => tPrim (primArray; primArrayModel {| array_universe := l; array_value := v; array_default := t; array_type := ty |})
+  | PrimArray_ty l v def => tPrim (primArray; primArrayModel {| array_universe := l; array_value := v; array_default := def; array_type := t |})
+  | PrimArray_val l bef after def ty => tPrim (primArray; primArrayModel {| array_universe := l; array_value := bef ++ (t :: after); array_default := def; array_type := ty |})
   end.
 
 (* Not using fold_left here to get the right unfolding behavior *)
@@ -1794,42 +1794,42 @@ Lemma closedn_fill_hole k t se : closedn k (fill_hole t se) = closedn (#|stack_e
 Proof.
   destruct se; simpl => //; try bool_congr; try ring.
   - destruct mfix as ((mfix1&[])&mfix2); cbn; len.
-    * rewrite -app_tip_assoc !forallb_app.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /=. ring.
-    * rewrite -app_tip_assoc !forallb_app.
+      rw !andb_assoc andb_true_r /=. ring.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /= length_map. ring.
+      rw !andb_assoc andb_true_r /= length_map. ring.
   - destruct mfix as ((mfix1&[])&mfix2); cbn; len.
-    * rewrite -app_tip_assoc !forallb_app.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /=. ring.
-    * rewrite -app_tip_assoc !forallb_app.
+      rw !andb_assoc andb_true_r /=. ring.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /= length_map. ring.
+      rw !andb_assoc andb_true_r /= length_map. ring.
   - destruct p; cbn.
     * unfold test_predicate_k; cbn.
-      rewrite !forallb_app /=. len. ring_simplify.
+      rw !forallb_app /=. len. ring_simplify.
       replace (k + #|pcontext|) with (#|pcontext| + k) by lia.
-      rewrite - !andb_assoc. repeat bool_congr.
+      rw - !andb_assoc. repeat bool_congr.
       apply forallb_ext. intros []; cbn.
       unfold test_branch_k, test_branch_k_pars; cbn; len.
-      now rewrite -Nat.add_assoc /=.
+      now rw -Nat.add_assoc /=.
     * unfold test_predicate_k; cbn; len.
-      rewrite - !andb_assoc. repeat bool_congr.
+      rw - !andb_assoc. repeat bool_congr.
   - destruct brs as [[brs []] brs']; cbn.
-    rewrite -app_tip_assoc !forallb_app; cbn.
-    len; ring_simplify; rewrite - !andb_assoc; repeat bool_congr.
+    rw -app_tip_assoc !forallb_app; cbn.
+    len; ring_simplify; rw - !andb_assoc; repeat bool_congr.
   - cbn. bool_congr.
-  - cbn; rewrite -!andb_assoc; bool_congr.
-  - cbn. rewrite !forallb_app -!andb_assoc; repeat bool_congr.
+  - cbn; rw -!andb_assoc; bool_congr.
+  - cbn. rw !forallb_app -!andb_assoc; repeat bool_congr.
 Qed.
 
 Lemma closedn_zip k t π : closedn k (zipc t π) = closedn_stack k π && closedn (#|stack_context π| + k) t.
 Proof.
   induction π in k, t |- * => //.
   simpl.
-  rewrite IHπ. bool_congr. len.
-  rewrite closedn_fill_hole.
-  rewrite Nat.add_assoc (Nat.add_comm #|stack_context π| k). ring.
+  rw IHπ. bool_congr. len.
+  rw closedn_fill_hole.
+  rw Nat.add_assoc (Nat.add_comm #|stack_context π| k). ring.
 Qed.

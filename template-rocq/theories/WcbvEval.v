@@ -169,7 +169,7 @@ Definition isStuckFix t (args : list term) :=
 Lemma atom_mkApps f l : atom (mkApps f l) -> (l = []) /\ atom f.
 Proof.
   revert f; induction l using rev_ind. simpl. intuition auto.
-  simpl. intros. rewrite -AstUtils.mkApp_mkApps in H.
+  simpl. intros. rw -AstUtils.mkApp_mkApps in H.
   unfold mkApp in H. destruct (mkApps f l); discriminate.
 Qed.
 
@@ -505,17 +505,17 @@ Section Wcbv.
   Lemma isFixApp_mkApps f args : ~~ isApp f -> isFixApp (mkApps f args) = isFixApp f.
   Proof using Type.
     move=> Hf.
-    rewrite /isFixApp !decompose_app_mkApps // /=.
+    rw /isFixApp !decompose_app_mkApps // /=.
     change f with (mkApps f []) at 2.
-    rewrite !decompose_app_mkApps // /=.
+    rw !decompose_app_mkApps // /=.
   Qed.
 
   Lemma isConstructApp_mkApps f args : ~~ isApp f -> isConstructApp (mkApps f args) = isConstructApp f.
   Proof using Type.
     move=> Hf.
-    rewrite /isConstructApp !decompose_app_mkApps // /=.
+    rw /isConstructApp !decompose_app_mkApps // /=.
     change f with (mkApps f []) at 2.
-    rewrite !decompose_app_mkApps // /=.
+    rw !decompose_app_mkApps // /=.
   Qed.
 
   Lemma is_nil {A} (l : list A) : (l = []) + (l <> []).
@@ -539,7 +539,7 @@ Section Wcbv.
 
     - apply All2_right in X0.
       destruct (is_nil (fixargsv ++ argsv)).
-      { rewrite e /=. now apply value_atom; constructor. }
+      { rw e /=. now apply value_atom; constructor. }
       eapply value_app => //.
       + econstructor; tea.
       + apply All_app_inv => //.
@@ -547,22 +547,22 @@ Section Wcbv.
 
     - apply All2_right in X0.
       eapply value_app; auto.
-      econstructor; tea. rewrite -(All2_length X) //.
+      econstructor; tea. rw -(All2_length X) //.
       now eapply All2_nil.
 
     - eapply All2_right in X0.
       depelim IHeve.
       destruct t; simpl in * |- *; try depelim a0; cbn in *; try congruence;
         try solve [eapply value_app => //; [now constructor|now eapply All2_nil]].
-      rewrite -mkApps_app. eapply value_app.
-      rewrite !negb_or in H1.
+      rw -mkApps_app. eapply value_app.
+      rw !negb_or in H1.
       pose proof (value_head_nApp v).
-      rewrite isConstructApp_mkApps // isFixApp_mkApps // in H1.
+      rw isConstructApp_mkApps // isFixApp_mkApps // in H1.
       destruct v.
-      * rewrite /isConstructApp /= in H1. rtoProp; intuition auto.
+      * rw /isConstructApp /= in H1. rtoProp; intuition auto.
       * constructor.
       * constructor => //.
-      * rewrite /isFixApp /= in H1. rtoProp; intuition auto.
+      * rw /isFixApp /= in H1. rtoProp; intuition auto.
       * eapply All2_nil in X; tea. destruct args; cbn; congruence.
       * eapply All_app_inv; tea.
     - eapply All2_right in X0. constructor. constructor 2; auto.
@@ -595,10 +595,10 @@ Section Wcbv.
       destruct X.
       * eapply eval_construct; tea => //.
         now constructor.
-      * rewrite -{1}mkApps_tApp => //. destruct args => //.
+      * rw -{1}mkApps_tApp => //. destruct args => //.
         eapply eval_app_cong => //.
         now constructor.
-      * rewrite -{1}mkApps_tApp => //. destruct args => //.
+      * rw -{1}mkApps_tApp => //. destruct args => //.
         eapply eval_app_cong => //.
         now constructor.
       * eapply eval_fix_value with (fixargsv := []). 4:tea. auto.
@@ -619,7 +619,7 @@ Section Wcbv.
       cbn in *. reflexivity.
 
     - eapply atom_mkApps in Ha as [-> ato].
-      rewrite (IHeval ato).
+      rw (IHeval ato).
       now depelim a.
   Qed.
 
@@ -631,7 +631,7 @@ Section Wcbv.
     intros uf ev.
     apply eval_to_value in ev.
     apply value_mkApps_inv in ev as [(-> & ?)|[eqargs vh eva]]; try easy.
-    depelim vh. rewrite uf in e. noconf e. intuition auto.
+    depelim vh. rw uf in e. noconf e. intuition auto.
   Qed.
 
   Lemma eval_LetIn {n b ty t v} :
@@ -645,7 +645,7 @@ Section Wcbv.
       exfalso. destruct H; subst; cbn in *; lia.
 
     - depelim a.
-      now rewrite app_nil_r.
+      now rw app_nil_r.
   Qed.
 
   Lemma eval_Const {c u v} :
@@ -657,13 +657,13 @@ Section Wcbv.
                  end.
   Proof using Type.
     intros H; depind H; try solve_discr'; try now easy.
-    - exists decl. intuition auto. now rewrite e.
+    - exists decl. intuition auto. now rw e.
     - depelim a.
       eapply eval_to_stuck_fix_inv in H; [|easy].
       exfalso. destruct H; subst; cbn in *; lia.
     - depelim a.
       apply IHeval.
-      now rewrite app_nil_r.
+      now rw app_nil_r.
   Qed.
 
   Lemma eval_mkApps_cong f f' l l' :
@@ -679,16 +679,16 @@ Section Wcbv.
     intuition auto. subst. depelim b. depelim b.
     cbn in vf'; destruct vf'.
     - eapply eval_construct; tea. apply app_tip_nil. now eapply All2_app.
-    - rewrite -mkApps_tApp => //. rewrite is_empty_app /= andb_false_r //.
+    - rw -mkApps_tApp => //. rw is_empty_app /= andb_false_r //.
       eapply eval_app_cong; auto.
       eapply All2_app; auto.
-    - rewrite -mkApps_tApp => //. rewrite is_empty_app /= andb_false_r //.
+    - rw -mkApps_tApp => //. rw is_empty_app /= andb_false_r //.
       eapply eval_app_cong; auto.
       eapply All2_app; auto.
     - eapply eval_fix_value with (fixargsv := []) (argsv := x0 ++ [y]). 4:tea.
       all: move=> //.
       eapply All2_app; auto. cbn. len. len in l0. cbn in l0.
-      now rewrite -(All2_length a).
+      now rw -(All2_length a).
   Qed.
 
 End Wcbv.

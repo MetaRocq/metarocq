@@ -84,13 +84,13 @@ Section implement_box.
   Lemma chop_firstn_skipn {A} n (l : list A) : chop n l = (firstn n l, skipn n l).
   Proof using Type.
     induction n in l |- *; destruct l; simpl; auto.
-    now rewrite IHn skipn_S.
+    now rw IHn skipn_S.
   Qed.
 
   Lemma chop_eq {A} n (l : list A) l1 l2 : chop n l = (l1, l2) -> l = l1 ++ l2.
   Proof using Type.
-    rewrite chop_firstn_skipn. intros [= <- <-].
-    now rewrite firstn_skipn.
+    rw chop_firstn_skipn. intros [= <- <-].
+    now rw firstn_skipn.
   Qed.
 
   Lemma closed_implement_box t k : closedn k t -> closedn k (implement_box t).
@@ -117,20 +117,20 @@ Section implement_box.
     revert k.
     funelim (implement_box b); intros k; cbn; simp implement_box; try easy.
     - destruct (Nat.leb_spec k i); reflexivity.
-    - f_equal. rewrite !map_map_compose. solve_all.
+    - f_equal. rw !map_map_compose. solve_all.
       eapply In_All. eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros. eapply H; eauto.
     - cbn. do 2 f_equal. 1: eauto.
-      rewrite !map_map. solve_all.
+      rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal.
       replace (#|x.1| + S k) with (S (#|x.1| + k)) by lia.
       erewrite H; eauto.
-      rewrite permute_lift. lia.
+      rw permute_lift. lia.
       f_equal. lia.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. erewrite H; eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. erewrite H; eauto.
     - solve_all_k 6.
   Qed.
@@ -175,12 +175,12 @@ Section implement_box.
     funelim (implement_box b); intros k; cbn; simp implement_box; try easy.
     all: try now (cbn; f_equal; eauto).
     - destruct Nat.compare => //.
-    - f_equal. rewrite !map_map_compose. solve_all.
+    - f_equal. rw !map_map_compose. solve_all.
       eapply In_All. eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros. eapply H; eauto.
     - cbn. do 2 f_equal. 1: eauto.
-      rewrite !map_map. solve_all.
+      rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal.
       setoid_rewrite -> closed_subst at 2.
       replace (#|x.1| + S k) with ((#|x.1| + k) + 1) by lia.
@@ -189,9 +189,9 @@ Section implement_box.
       2, 3: eapply closed_implement_box; eauto.
       f_equal.
       eapply H; eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. solve_all.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. solve_all.
     - cbn. solve_all.
   Qed.
@@ -202,8 +202,8 @@ Section implement_box.
   Proof using Type.
     induction s in t |- *; simpl; auto; intros Hall.
     inversion Hall.
-    rewrite IHs //.
-    now rewrite implement_box_csubst.
+    rw IHs //.
+    now rw implement_box_csubst.
   Qed.
 
   Lemma implement_box_iota_red pars args br :
@@ -212,15 +212,15 @@ Section implement_box.
   Proof using Type.
     intros Hall.
     unfold EGlobalEnv.iota_red.
-    rewrite implement_box_substl //.
+    rw implement_box_substl //.
     solve_all. now eapply All_skipn.
-    now rewrite map_rev map_skipn.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma implement_box_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def implement_box) mfix) = map implement_box (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp implement_box.
@@ -229,7 +229,7 @@ Section implement_box.
   Lemma implement_box_cofix_subst mfix : EGlobalEnv.cofix_subst (map (map_def implement_box) mfix) = map implement_box (EGlobalEnv.cofix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.cofix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp implement_box.
@@ -242,10 +242,10 @@ Section implement_box.
   Proof using Type.
     intros Hcl.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal. f_equal.
-    rewrite implement_box_substl //. 2:congruence.
+    rw implement_box_substl //. 2:congruence.
     f_equal. f_equal. apply implement_box_fix_subst.
   Qed.
 
@@ -256,10 +256,10 @@ Section implement_box.
   Proof using Type.
     intros Hcl.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal.
-    rewrite implement_box_substl //. 2:congruence.
+    rw implement_box_substl //. 2:congruence.
     f_equal. f_equal. apply implement_box_cofix_subst.
   Qed.
 
@@ -304,7 +304,7 @@ Proof.
   case: eqb_spec => [|].
   - intros ->. destruct d => //. intros [= <-].
     cbn in H0. unfold wf_minductive in H0.
-    rtoProp. cbn in H0. rewrite hasp in H0; now eapply eqb_eq in H0.
+    rtoProp. cbn in H0. rw hasp in H0; now eapply eqb_eq in H0.
   - intros _. eapply IHwf_glob.
 Qed.
 
@@ -348,7 +348,7 @@ Lemma constructor_isprop_pars_decl_params {efl : EEnvFlags} {Σ ind c b pars cde
   constructor_isprop_pars_decl Σ ind c = Some (b, pars, cdecl) -> pars = 0.
 Proof.
   intros hasp hwf.
-  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive.
+  rw /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive.
   destruct lookup_minductive as [mdecl|] eqn:hl => /= //.
   do 2 destruct nth_error => //.
   eapply wellformed_lookup_inductive_pars in hl => //. congruence.
@@ -366,8 +366,8 @@ Qed.
 Lemma chop_all {A} (l : list A) m :
   m >= length l -> chop m l = (l, nil).
 Proof.
-  intros Hl. rewrite chop_firstn_skipn.
-  rewrite firstn_ge; try lia. rewrite skipn_ge; try lia.
+  intros Hl. rw chop_firstn_skipn.
+  rw firstn_ge; try lia. rw skipn_ge; try lia.
   eauto.
 Qed.
 
@@ -376,8 +376,8 @@ Lemma implement_box_isConstructApp {efl : EEnvFlags} {Σ : global_declarations} 
 Proof.
   induction t; try now cbn; eauto.
   simp implement_box.
-  rewrite (isConstructApp_mkApps _ [t2]).
-  rewrite (isConstructApp_mkApps _ [_]). eauto.
+  rw (isConstructApp_mkApps _ [t2]).
+  rw (isConstructApp_mkApps _ [_]). eauto.
 Qed.
 
 Lemma implement_box_isPrimApp {efl : EEnvFlags} {Σ : global_declarations} t :
@@ -385,8 +385,8 @@ Lemma implement_box_isPrimApp {efl : EEnvFlags} {Σ : global_declarations} t :
 Proof.
   induction t; try now cbn; eauto.
   simp implement_box.
-  rewrite (isPrimApp_mkApps _ [t2]).
-  rewrite (isPrimApp_mkApps _ [_]). eauto.
+  rw (isPrimApp_mkApps _ [t2]).
+  rw (isPrimApp_mkApps _ [_]). eauto.
 Qed.
 
 Lemma implement_box_isLazyApp {efl : EEnvFlags} {Σ : global_declarations} t :
@@ -394,8 +394,8 @@ Lemma implement_box_isLazyApp {efl : EEnvFlags} {Σ : global_declarations} t :
 Proof.
   induction t; try now cbn; eauto.
   simp implement_box.
-  rewrite (isLazyApp_mkApps _ [t2]).
-  rewrite (isLazyApp_mkApps _ [_]). eauto.
+  rw (isLazyApp_mkApps _ [t2]).
+  rw (isLazyApp_mkApps _ [_]). eauto.
 Qed.
 
 Lemma lookup_env_implement_box {Σ : global_declarations} kn :
@@ -412,7 +412,7 @@ Lemma implement_box_declared_constant {Σ : global_declarations} c decl :
    declared_constant (implement_box_env Σ) c (implement_box_constant_decl decl).
 Proof.
   intros H. red in H; red.
-  rewrite lookup_env_implement_box H //.
+  rw lookup_env_implement_box H //.
 Qed.
 
 Lemma lookup_constructor_implement_box Σ ind c :
@@ -420,7 +420,7 @@ Lemma lookup_constructor_implement_box Σ ind c :
   lookup_constructor Σ ind c.
 Proof.
   unfold lookup_constructor, lookup_inductive, lookup_minductive in *.
-  rewrite lookup_env_implement_box.
+  rw lookup_env_implement_box.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
@@ -429,14 +429,14 @@ Lemma lookup_inductive_implement_box Σ ind :
   lookup_inductive Σ ind.
 Proof.
   unfold lookup_constructor, lookup_inductive, lookup_minductive in *.
-  rewrite lookup_env_implement_box.
+  rw lookup_env_implement_box.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
 Lemma lookup_constructor_pars_args_implement_box {efl : EEnvFlags} {Σ ind n} :
   lookup_constructor_pars_args (implement_box_env Σ) ind n = lookup_constructor_pars_args Σ ind n.
 Proof.
-  cbn -[lookup_constructor]. now rewrite lookup_constructor_implement_box.
+  cbn -[lookup_constructor]. now rw lookup_constructor_implement_box.
 Qed.
 
 Lemma isLambda_implement_box c : isLambda c -> isLambda (implement_box c).
@@ -473,20 +473,20 @@ Proof.
   revert n. funelim (implement_box t); simp_eta; cbn -[implement_box
     lookup_inductive lookup_constructor lookup_constructor_pars_args
     GlobalContextMap.lookup_constructor_pars_args isEtaExp]; intros m Hwf Hw; rtoProp; try split; eauto.
-  all: rewrite ?map_InP_spec; toAll; eauto; try now solve_all.
-  - rewrite lookup_env_implement_box. destruct (lookup_env Σ n) => //. destruct g => //=.
+  all: rw ?map_InP_spec; toAll; eauto; try now solve_all.
+  - rw lookup_env_implement_box. destruct (lookup_env Σ n) => //. destruct g => //=.
     destruct (cst_body c) => //=.
   - unfold lookup_constructor_pars_args in *.
-    rewrite lookup_constructor_implement_box. rewrite H2. intuition auto.
-  - rewrite lookup_constructor_pars_args_implement_box. len.
+    rw lookup_constructor_implement_box. rw H2. intuition auto.
+  - rw lookup_constructor_pars_args_implement_box. len.
     all: destruct cstr_as_blocks; rtoProp; try split; eauto.
     + solve_all.
     + destruct block_args; cbn in *; eauto.
-  - rewrite /wf_brs; cbn -[lookup_inductive implement_box].
-    rewrite lookup_inductive_implement_box. intuition auto. solve_all. solve_all.
+  - rw /wf_brs; cbn -[lookup_inductive implement_box].
+    rw lookup_inductive_implement_box. intuition auto. solve_all. solve_all.
     replace (#|x.1| + S m) with ((#|x.1| + m) + 1) by lia.
     eapply wellformed_lift. eauto.
-  - rewrite lookup_constructor_implement_box. intuition auto.
+  - rw lookup_constructor_implement_box. intuition auto.
   - unfold wf_fix in *. rtoProp. solve_all. solve_all. now eapply isLambda_implement_box.
   - unfold wf_fix in *. rtoProp. solve_all. len. solve_all.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
@@ -522,7 +522,7 @@ Proof.
   revert H wfg. generalize Σ at 2 3.
   induction Σ; cbn; constructor; auto.
   - eapply IHΣ; rtoProp; intuition eauto.
-    destruct H. subst Σ0. exists (x ++ [a]). now rewrite -app_assoc.
+    destruct H. subst Σ0. exists (x ++ [a]). now rw -app_assoc.
   - epose proof (EExtends.extends_wf_glob _ H wfg); tea.
     depelim H0. cbn.
     now eapply transform_wellformed_decl'.
@@ -541,22 +541,22 @@ Lemma implement_box_env_extends {efl : EEnvFlags} {Σ Σ' : global_declarations}
 Proof.
   intros hast ext wf wf'.
   intros kn d.
-  rewrite !lookup_env_map_snd.
+  rw !lookup_env_map_snd.
   specialize (ext kn). destruct (lookup_env) eqn:E => //=.
   intros [= <-].
-  rewrite (ext g) => //.
+  rw (ext g) => //.
 Qed.
 
 Transparent implement_box.
 
 Lemma fst_decompose_app_rec t l : fst (decompose_app_rec t l) = fst (decompose_app t).
 Proof.
-  induction t in l |- *; simpl; auto. rewrite IHt1.
-  unfold decompose_app. simpl. now rewrite (IHt1 [t2]).
+  induction t in l |- *; simpl; auto. rw IHt1.
+  unfold decompose_app. simpl. now rw (IHt1 [t2]).
 Qed.
 
 Lemma head_tapp t1 t2 : head (tApp t1 t2) = head t1.
-Proof. rewrite /head /decompose_app /= fst_decompose_app_rec //. Qed.
+Proof. rw /head /decompose_app /= fst_decompose_app_rec //. Qed.
 Lemma tApp_mkApps f a : tApp f a = mkApps f [a].
 Proof. reflexivity. Qed.
 
@@ -567,7 +567,7 @@ Lemma implement_box_mkApps f args :
 Proof.
   induction args in f |- *; simp implement_box.
   - reflexivity.
-  - rewrite IHargs. now simp implement_box.
+  - rw IHargs. now simp implement_box.
 Qed.
 
 Lemma implement_box_eval {efl : EEnvFlags} (fl := block_wcbv_flags) :
@@ -600,42 +600,42 @@ Proof.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     econstructor; eauto.
-    now rewrite -implement_box_csubst.
+    now rw -implement_box_csubst.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     econstructor; eauto.
-    now rewrite -implement_box_csubst.
+    now rw -implement_box_csubst.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     assert (pars = 0) as -> by now (eapply constructor_isprop_pars_decl_params; eauto).
     pose proof (Hcon := H1).
-    rewrite /constructor_isprop_pars_decl in H1.
+    rw /constructor_isprop_pars_decl in H1.
     destruct lookup_constructor as [[[]] | ] eqn:eqc; cbn in H1; invs H1.
     eapply eval_zeta => //.
-    1: eauto. rewrite H8.
+    1: eauto. rw H8.
     cbn [csubst Nat.compare].
     eapply eval_iota_block => //.
     + eapply value_final. eapply eval_to_value; eauto.
     + unfold constructor_isprop_pars_decl.
-      rewrite lookup_constructor_implement_box. cbn [fst].
-      rewrite eqc //= H7 //. rewrite H8.
+      rw lookup_constructor_implement_box. cbn [fst].
+      rw eqc //= H7 //. rw H8.
       reflexivity.
-    + rewrite map_map.
-      rewrite nth_error_map H2; eauto.
+    + rw map_map.
+      rw nth_error_map H2; eauto.
       reflexivity.
     + len.
     + len.
     +
       cbn [csubst].
       cbn [fst snd].
-      rewrite closed_subst.
+      rw closed_subst.
       { eapply wellformed_closed in i2.
         cbn in i2 |- *. solve_all.
         now eapply closed_implement_box.
       }
-      rewrite Nat.add_0_r.
-      rewrite simpl_subst_k. reflexivity.
-      rewrite -implement_box_iota_red.
+      rw Nat.add_0_r.
+      rw simpl_subst_k. reflexivity.
+      rw -implement_box_iota_red.
       2: eauto.
       eapply wellformed_closed in i2.
       cbn in i2.
@@ -648,16 +648,16 @@ Proof.
     eapply wellformed_closed in i4.
     now cbn in i4. eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
+    rw wellformed_mkApps in i2. eauto.
     cbn in i2. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
+    rw wellformed_mkApps in i2. eauto.
     cbn in i2. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     econstructor.
     eapply implement_box_declared_constant; eauto.
-    destruct decl. cbn in *. now rewrite H0.
+    destruct decl. cbn in *. now rw H0.
     eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
@@ -669,24 +669,24 @@ Proof.
     { eapply wellformed_lookup_constructor_pars; tea. }
     eapply eval_proj_block => //; tea. cbn.
     + unfold constructor_isprop_pars_decl.
-      rewrite lookup_constructor_implement_box. cbn [fst].
-      rewrite hc //= H1 H7. reflexivity.
+      rw lookup_constructor_implement_box. cbn [fst].
+      rw hc //= H1 H7. reflexivity.
     + len.
-    + rewrite nth_error_map /=. rewrite H7 in H2; rewrite -H2 in H4; rewrite H4; eauto.
+    + rw nth_error_map /=. rw H7 in H2; rw -H2 in H4; rw H4; eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     eapply eval_app_cong; eauto.
     revert H1.
     destruct f'; try now cbn; tauto.
     intros H. cbn in H.
-    rewrite implement_box_isConstructApp; eauto.
-    rewrite implement_box_isPrimApp; eauto.
-    rewrite implement_box_isLazyApp; eauto.
+    rw implement_box_isConstructApp; eauto.
+    rw implement_box_isPrimApp; eauto.
+    rw implement_box_isLazyApp; eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     eapply eval_construct_block; tea. eauto.
     2: len; eassumption.
-    rewrite lookup_constructor_implement_box; eauto.
+    rw lookup_constructor_implement_box; eauto.
     eapply All2_All2_Set.
     solve_all. now destruct b.
   - intros wf H; depelim H; simp implement_box; repeat constructor.

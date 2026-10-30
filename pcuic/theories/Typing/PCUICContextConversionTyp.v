@@ -22,8 +22,8 @@ Lemma lift0_open {cf:checker_flags} {Γ : closed_context} {Γ'' : open_context �
   {M : open_term Γ} {n} :
   n = #|Γ''| -> is_open_term (Γ ,,, Γ'') (lift0 n M).
 Proof.
-  intro e. rewrite on_free_vars_lift0; eauto. rewrite length_app. rewrite <- shiftnP_add.
-  subst. rewrite addnP_shiftnP; intuition.
+  intro e. rw on_free_vars_lift0; eauto. rw length_app. rewrite <- shiftnP_add.
+  subst. rw addnP_shiftnP; intuition.
 Defined.
 
 Lemma weakening_cumulSpec0 {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ : closed_context} {Γ'' : open_context Γ}
@@ -36,7 +36,7 @@ Proof.
   eapply (@cumulAlgo_cumulSpec _ _ Cumul).
   eapply into_ws_cumul_pb; try  apply lift0_open; eauto.
   - cbn. eapply weakening_cumul0; eauto. apply cumulSpec_cumulAlgo in H; eauto. exact (ws_cumul_pb_forget H).
-  - cbn. rewrite on_free_vars_ctx_app; solve_all; intuition.
+  - cbn. rw on_free_vars_ctx_app; solve_all; intuition.
 Defined.
 
 Lemma split_closed_context {Γ : context} (n : nat) :
@@ -46,12 +46,12 @@ Lemma split_closed_context {Γ : context} (n : nat) :
     [× Δ = skipn n Γ :> context, Δ' = firstn n Γ :> context,
        Γ = Δ ,,, Δ' & n = #|Δ'|].
 Proof.
-  rewrite -{1}(firstn_skipn n Γ).
-  rewrite on_free_vars_ctx_app => /andP[] sk fi.
+  rw -{1}(firstn_skipn n Γ).
+  rw on_free_vars_ctx_app => /andP[] sk fi.
   exists (exist (skipn n Γ) sk).
   exists (exist (firstn n Γ) fi). split; auto.
-  cbn. now rewrite firstn_skipn. cbn.
-  rewrite List.length_firstn. lia.
+  cbn. now rw firstn_skipn. cbn.
+  rw List.length_firstn. lia.
 Qed.
 
 Lemma nth_error_closed_context {Γ n d} :
@@ -59,29 +59,29 @@ Lemma nth_error_closed_context {Γ n d} :
   nth_error Γ n = Some d ->
   ws_decl (skipn (S n) Γ) d.
 Proof.
-  rewrite -on_free_vars_ctx_on_ctx_free_vars -[shiftnP _ _]addnP0 => hΔ' hnth.
+  rw -on_free_vars_ctx_on_ctx_free_vars -[shiftnP _ _]addnP0 => hΔ' hnth.
   eapply nth_error_on_free_vars_ctx in hΔ'; tea.
-  2:{ rewrite /shiftnP /= orb_false_r. apply Nat.ltb_lt. now apply nth_error_Some_length in hnth. }
-  rewrite List.length_skipn.
+  2:{ rw /shiftnP /= orb_false_r. apply Nat.ltb_lt. now apply nth_error_Some_length in hnth. }
+  rw List.length_skipn.
   eapply on_free_vars_decl_impl; tea.
   intros i.
-  rewrite /= /addnP /shiftnP /= !orb_false_r => /Nat.ltb_lt hl.
+  rw /= /addnP /shiftnP /= !orb_false_r => /Nat.ltb_lt hl.
   apply Nat.ltb_lt. lia.
 Qed.
 
 Lemma on_free_vars_decl_lift (p : nat -> bool) n k t :
   on_free_vars_decl (strengthenP k n p) (lift_decl n k t) = on_free_vars_decl p t.
 Proof.
-  rewrite /on_free_vars_decl /test_decl /=.
+  rw /on_free_vars_decl /test_decl /=.
   f_equal. destruct (decl_body t) => /= //.
-  all:now rewrite on_free_vars_lift.
+  all:now rw on_free_vars_lift.
 Qed.
 
 Lemma on_free_vars_decl_lift_impl (p : nat -> bool) n k d :
   on_free_vars_decl (shiftnP k p) d ->
   on_free_vars_decl (shiftnP (n + k) p) (lift_decl n k d).
 Proof.
-  rewrite /on_free_vars_decl /test_decl /= => /andP[].
+  rw /on_free_vars_decl /test_decl /= => /andP[].
   destruct (decl_body d) => /= //.
   move/(on_free_vars_lift_impl _ n) ->.
   move/(on_free_vars_lift_impl _ n) -> => //.
@@ -104,9 +104,9 @@ Lemma nth_error_closed_context_lift {Γ n d} :
   ws_decl Γ (lift_decl (S n) 0 d).
 Proof.
   move=> cl /nth_error_Some_add[] hn /(nth_error_closed_context cl).
-  rewrite -(on_free_vars_decl_lift _ (S n) 0 d).
+  rw -(on_free_vars_decl_lift _ (S n) 0 d).
   apply: on_free_vars_decl_impl => i.
-  rewrite /strengthenP /= /shiftnP !orb_false_r List.length_skipn.
+  rw /strengthenP /= /shiftnP !orb_false_r List.length_skipn.
   repeat PCUICSigmaCalculus.nat_compare_specs => //.
 Qed.
 
@@ -206,22 +206,22 @@ Proof.
     destruct X as (_ & s & Hty & _).
     eapply type_Cumul with _ s.
     * econstructor. auto. eauto.
-    * rewrite -(firstn_skipn (S n) Γ').
+    * rw -(firstn_skipn (S n) Γ').
       change (tSort s) with (lift0 (S n) (tSort s)).
       eapply weakening_length. auto.
-      rewrite firstn_length_le. eapply nth_error_Some_length in Hnth. lia. auto.
-      now rewrite /app_context firstn_skipn.
+      rw firstn_length_le. eapply nth_error_Some_length in Hnth. lia. auto.
+      now rw /app_context firstn_skipn.
       assumption.
     * destruct (split_closed_context (S n) (wf_local_closed_context X1)) as [Δ [Δ' [eqΔ eqΔ' -> hn]]].
       eapply nth_error_Some_length in Hnth. lia.
-      rewrite -eqΔ in Hty, Hrel.
+      rw -eqΔ in Hty, Hrel.
       eapply PCUICClosedTyp.subject_closed in Hty.
       eapply (@closedn_on_free_vars xpred0) in Hty.
       assert (is_open_term Δ (decl_type d') × cumulAlgo Σ Δ (decl_type d') (decl_type decl)) as [H H']. {
         eapply nth_error_closed_context in Hnth. 2: eauto with fvs.
-        rewrite -eqΔ in Hnth.
+        rw -eqΔ in Hnth.
         depelim Hconv; simpl in *.
-        all: rewrite -eqΔ in eqt.
+        all: rw -eqΔ in eqt.
         all: now move/andP: Hnth => [].
       }
       eapply (weakening_cumulSpec0 (Γ := Δ) (Γ'' := Δ') (M := exist (decl_type d') H) (N := exist (decl_type decl) Hty)); cbn. lia.
@@ -234,7 +234,7 @@ Proof.
   - econstructor; pcuic.
     eapply forall_Γ'0; repeat (constructor; pcuic).
   - econstructor; eauto. 2,3: constructor; eauto.
-    * eapply IHp0. rewrite /predctx.
+    * eapply IHp0. rw /predctx.
       eapply All2_fold_app => //.
       eapply All2_fold_refl. intros ? ?; reflexivity.
       eapply context_cumulativity_wf_app; tea.

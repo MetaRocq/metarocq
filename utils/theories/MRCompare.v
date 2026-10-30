@@ -48,12 +48,12 @@ Proof.
 
   cbn. intros <-.
   destruct (cmp y z) eqn:e'; cbn.
-  apply He in e'. subst z. rewrite e /= //. intros _.
-  rewrite (Hc _ _ _ _ e e') /= //.
+  apply He in e'. subst z. rw e /= //. intros _.
+  rw (Hc _ _ _ _ e e') /= //.
   discriminate. cbn. intros <-.
   destruct (cmp y z) eqn:e'; cbn => //.
-  eapply He in e'; subst. intros ->. rewrite e //.
-  intros _. rewrite (Hc _ _ _ _ e e') //.
+  eapply He in e'; subst. intros ->. rw e //.
+  intros _. rw (Hc _ _ _ _ e e') //.
 Qed.
 
 (** Facts about booleans, characters and strings *)
@@ -207,7 +207,7 @@ Module ListOrderedType (A : UsualOrderedType) <: UsualOrderedType.
     destruct (compare_spec y z); subst; try congruence.
     eapply transitivity in H0. 2:eassumption. intros _; now apply compare_lt_lt.
     eapply transitivity in H. 2:eassumption.
-    apply compare_lt_lt in H. rewrite compare_sym H //.
+    apply compare_lt_lt in H. rw compare_sym H //.
   Qed.
 
   (* Bonus *)
@@ -228,7 +228,7 @@ Module ListOrderedType (A : UsualOrderedType) <: UsualOrderedType.
   Qed.
   Next Obligation.
     unfold eqb in Heq_anonymous.
-    rewrite compare_refl in Heq_anonymous. now discriminate.
+    rw compare_refl in Heq_anonymous. now discriminate.
   Qed.
 
   Global Instance eq_dec : EqDec t := { eq_dec := eqb_dec }.

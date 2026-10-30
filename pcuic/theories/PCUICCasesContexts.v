@@ -31,8 +31,8 @@ Lemma eq_names_subst_context nas Γ s k :
   eq_names nas (subst_context s k Γ).
 Proof.
   induction 1.
-  * rewrite subst_context_nil. constructor.
-  * rewrite subst_context_snoc. constructor; auto.
+  * rw subst_context_nil. constructor.
+  * rw subst_context_snoc. constructor; auto.
 Qed.
 
 Lemma eq_names_subst_instance nas Γ u :
@@ -41,7 +41,7 @@ Lemma eq_names_subst_instance nas Γ u :
 Proof.
   induction 1.
   * constructor.
-  * rewrite /subst_instance /=. constructor; auto.
+  * rw /subst_instance /=. constructor; auto.
 Qed.
 
 (* Lemma All2_compare_decls_subst pars n Γ i :
@@ -72,7 +72,7 @@ Lemma alpha_eq_extended_subst Δ Δ' k :
 Proof.
   induction 1 in k |- *; simpl; auto.
   destruct r; subst; simpl; auto. f_equal. apply IHX.
-  rewrite IHX (alpha_eq_context_assumptions l l') //.
+  rw IHX (alpha_eq_context_assumptions l l') //.
 Qed.
 
 Lemma alpha_eq_smash_context Δ Δ' :
@@ -82,9 +82,9 @@ Proof.
   induction 1.
   * constructor.
   * destruct r; simpl; auto.
-    rewrite !(smash_context_acc _ [_]).
+    rw !(smash_context_acc _ [_]).
     eapply All2_app; auto; repeat constructor; subst; simpl; auto.
-    rewrite (All2_length X) -(alpha_eq_extended_subst l l' 0) // (alpha_eq_context_assumptions l l') //.
+    rw (All2_length X) -(alpha_eq_extended_subst l l' 0) // (alpha_eq_context_assumptions l l') //.
     now constructor.
 Qed.
 
@@ -94,9 +94,9 @@ Lemma alpha_eq_lift_context n k Δ Δ' :
 Proof.
   induction 1.
   * constructor.
-  * rewrite !lift_context_snoc; destruct x; depelim r; simpl; subst; auto;
+  * rw !lift_context_snoc; destruct x; depelim r; simpl; subst; auto;
     constructor; auto; repeat constructor; subst; simpl; auto;
-    rewrite (All2_length X); now constructor.
+    rw (All2_length X); now constructor.
 Qed.
 
 Lemma alpha_eq_subst_context s k Δ Δ' :
@@ -105,9 +105,9 @@ Lemma alpha_eq_subst_context s k Δ Δ' :
 Proof.
   induction 1.
   * constructor.
-  * rewrite !subst_context_snoc; destruct x; depelim r; simpl; subst; auto;
+  * rw !subst_context_snoc; destruct x; depelim r; simpl; subst; auto;
     constructor; auto; repeat constructor; subst; simpl; auto;
-    rewrite (All2_length X); now constructor.
+    rw (All2_length X); now constructor.
 Qed.
 
 Lemma inst_case_predicate_context_eq {mdecl idecl ind p} :
@@ -158,21 +158,21 @@ Definition pre_case_branch_context (ind : inductive) (mdecl : mutual_inductive_b
 Lemma pre_case_branch_context_length_args {ind mdecl params puinst cdecl} :
   #|pre_case_branch_context ind mdecl params puinst cdecl| = #|cstr_args cdecl|.
 Proof.
-  now rewrite /pre_case_branch_context; len.
+  now rw /pre_case_branch_context; len.
 Qed.
 
 Lemma All2_eq_binder_subst_context (l : list (binder_annot name))  s k Γ :
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l Γ ->
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l (subst_context s k Γ).
 Proof.
-  induction 1; rewrite ?subst_context_snoc //; constructor; auto.
+  induction 1; rw ?subst_context_snoc //; constructor; auto.
 Qed.
 
 Lemma All2_eq_binder_subst_instance (l : list (binder_annot name)) u (Γ : context) :
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l Γ ->
   All2 (fun x y => eq_binder_annot x y.(decl_name)) l (subst_instance u Γ).
 Proof.
-  induction 1; rewrite ?subst_context_snoc //; constructor; auto.
+  induction 1; rw ?subst_context_snoc //; constructor; auto.
 Qed.
 
 Lemma inst_case_branch_context_eq {ind mdecl cdecl p br} :
@@ -180,12 +180,12 @@ Lemma inst_case_branch_context_eq {ind mdecl cdecl p br} :
   case_branch_context ind mdecl p (forget_types br.(bcontext)) cdecl = inst_case_branch_context p br.
 Proof.
   intros.
-  rewrite /case_branch_context /case_branch_context_gen.
-  rewrite /inst_case_branch_context /inst_case_context.
+  rw /case_branch_context /case_branch_context_gen.
+  rw /inst_case_branch_context /inst_case_context.
   eapply map2_set_binder_name_alpha_eq.
   eapply eq_names_subst_context, eq_names_subst_instance.
   eapply All2_map_left. eapply All2_refl. reflexivity.
-  rewrite /pre_case_branch_context_gen /inst_case_context.
+  rw /pre_case_branch_context_gen /inst_case_context.
   eapply alpha_eq_subst_context, alpha_eq_subst_instance.
   now symmetry.
 Qed.

@@ -52,12 +52,12 @@ Proof.
     simpl; try f_equal; eauto with pcuic; solve_all.
   - destruct (PeanoNat.Nat.compare_spec k n).
     + subst k.
-      rewrite PeanoNat.Nat.leb_refl Nat.sub_diag /=.
-      now rewrite lift_closed.
+      rw PeanoNat.Nat.leb_refl Nat.sub_diag /=.
+      now rw lift_closed.
     + destruct (leb_spec_Set k n); try lia.
       destruct (nth_error_spec [t] (n - k) ).
       simpl in l0; lia.
-      now rewrite Nat.sub_1_r.
+      now rw Nat.sub_1_r.
     + now destruct (Nat.leb_spec k n); try lia.
 Qed.
 
@@ -65,7 +65,7 @@ Qed.
 Lemma closed_csubst t k u : closed t -> closedn (S k) u -> closedn k (csubst t 0 u).
 Proof.
   intros.
-  rewrite closed_subst; auto.
+  rw closed_subst; auto.
   eapply closedn_subst0. simpl. erewrite closed_upwards; eauto. lia.
-  simpl. now rewrite Nat.add_1_r.
+  simpl. now rw Nat.add_1_r.
 Qed.

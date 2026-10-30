@@ -103,33 +103,33 @@ Qed.
 
 #[export] Instance Qsubst_Qfixs {etfl : ETermFlags} Q : Qpres Q -> Qfix Q -> Qsubst Q -> Qfixs Q.
 Proof.
-  move=> qpres qfix; rewrite /Qsubst /Qfixs.
+  move=> qpres qfix; rw /Qsubst /Qfixs.
   intros Hs mfix idx hfix args fn.
   assert (hasfix : has_tFix).
   { eapply qpres in hfix. now depelim hfix. }
-  rewrite /cunfold_fix.
+  rw /cunfold_fix.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qfix_subst _ _ hasfix qfix qpres idx H hfix).
   intros [= <-]. subst fn.
-  eapply Hs. rewrite fix_subst_length //.
-  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
+  eapply Hs. rw fix_subst_length //.
+  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rw Nat.add_0_r in a.
   assumption.
 Qed.
 
 #[export] Instance Qsubst_Qcofixs {etfl : ETermFlags} Q : Qpres Q -> Qcofix Q -> Qsubst Q -> Qcofixs Q.
 Proof.
-  move=> qpres qfix; rewrite /Qsubst /Qfixs.
+  move=> qpres qfix; rw /Qsubst /Qfixs.
   intros Hs mfix idx hfix args fn.
   assert (hasfix : has_tCoFix).
   { eapply qpres in hfix. now depelim hfix. }
-  rewrite /cunfold_cofix.
+  rw /cunfold_cofix.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qcofix_subst _ _ hasfix qfix qpres idx H hfix).
   intros [= <-]. subst fn.
-  eapply Hs. rewrite cofix_subst_length //.
-  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
+  eapply Hs. rw cofix_subst_length //.
+  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rw Nat.add_0_r in a.
   assumption.
 Qed.
 
@@ -379,24 +379,24 @@ Proof.
   - assert (Q 0 (iota_red pars args br)).
     { unfold iota_red.
       eapply nth_error_all in a; tea. cbn in a.
-      rewrite -e3 in a.
-      rewrite -(List.length_rev (skipn pars args)) in a.
-      rewrite Nat.add_0_r in a.
+      rw -e3 in a.
+      rw -(List.length_rev (skipn pars args)) in a.
+      rw Nat.add_0_r in a.
       eapply (qsubst _ (List.rev (skipn pars args))) in a.
       2:{ eapply All_rev, All_skipn.
         assert (Q 0 (tConstruct ind c args)).
         eapply P'Q; tea; ih. eapply qpres in X13.
         depelim X13 => //. }
       exact a. }
-    eapply nth_error_all in a; tea; cbn. rewrite Nat.add_0_r in a.
+    eapply nth_error_all in a; tea; cbn. rw Nat.add_0_r in a.
     eapply X2; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 (substl (repeat tBox #|n|) f)).
     { subst brs. eapply All_tip in a. cbn in a.
-      rewrite -(repeat_length tBox #|n|) Nat.add_0_r in a.
+      rw -(repeat_length tBox #|n|) Nat.add_0_r in a.
       eapply (qsubst _ (repeat tBox #|n|)) in a => //.
       eapply All_repeat. eapply P'Q; tea; ih. }
    eapply X3; tea. 1,3:(apply and_assum; [ih|hp' P'Q]).
-   subst brs. depelim a. now rewrite Nat.add_0_r in q0.
+   subst brs. depelim a. now rw Nat.add_0_r in q0.
   - pose proof (ev1' := ev1). eapply P'Q in ev1' => //. 2:{ clear ev1'; ih. }
     eapply qapp in ev1' as [hfix qargs] => //.
     assert (hastfix : has_tFix).
@@ -404,7 +404,7 @@ Proof.
     assert (qf : Q 0 fn).
     { eapply (qfixs mfix idx) in hfix; tea. }
     assert (qa : Q 0 (tApp (mkApps fn argsv) av)).
-    { rewrite -[tApp _ _](mkApps_app _ _ [av]).
+    { rw -[tApp _ _](mkApps_app _ _ [av]).
       unshelve eapply (qapp _ _ _ _).2; auto.
       split => //.
       eapply (qfixs mfix idx) in hfix; tea.
@@ -436,7 +436,7 @@ Proof.
       clear ev1'; ih. }
     eapply X8; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 body).
-    { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }
+    { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rw e in isdecl. }
     eapply X9; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 a).
     { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
@@ -513,17 +513,17 @@ Proof.
   - red. intros kn decl.
     move/(lookup_env_wellformed clΣ).
     unfold wf_global_decl. destruct cst_body => //.
-  - red. move=> hasapp n t args. rewrite wellformed_mkApps //.
+  - red. move=> hasapp n t args. rw wellformed_mkApps //.
     split; intros; rtoProp; intuition auto; solve_all.
   - red.
     move=> hascase n ci discr brs. simpl.
-    rewrite /wf_brs.
+    rw /wf_brs.
     destruct lookup_inductive eqn:hl => /= //.
     intros; rtoProp; intuition auto; solve_all.
   - red. simpl. move=> hasproj n p discr wf discr' wf'.
     simpl. rtoProp; intuition auto.
   - red. move=> t args clt cll.
-    eapply wellformed_substl. solve_all. now rewrite Nat.add_0_r.
+    eapply wellformed_substl. solve_all. now rw Nat.add_0_r.
   - red. move=> n mfix idx. cbn. unfold EWellformed.wf_fix.
     intros; rtoProp; intuition auto; solve_all. now apply Nat.ltb_lt.
   - red. move=> n mfix idx. cbn. unfold EWellformed.wf_fix.

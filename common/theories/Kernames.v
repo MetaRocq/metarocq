@@ -161,12 +161,12 @@ Module ModPathComp.
     induction x; destruct y; simpl; auto.
     apply DirPathOT.compare_sym.
     unfold mpbound_compare.
-    rewrite DirPathOT.compare_sym.
-    rewrite IdentOT.compare_sym.
+    rw DirPathOT.compare_sym.
+    rw IdentOT.compare_sym.
     destruct (DirPathOT.compare dp dp0); auto.
     simpl. destruct (IdentOT.compare id id0); simpl; auto.
     apply nat_compare_sym.
-    rewrite IHx.
+    rw IHx.
     destruct (x ?= y); simpl; auto.
     apply IdentOT.compare_sym.
   Qed.
@@ -203,12 +203,12 @@ Module ModPathComp.
     now apply IdentOT.compare_trans.
     destruct (y ?= z) eqn:eq'; auto; cbn; try congruence.
     apply compare_eq in eq'; subst.
-    intros eq'. now rewrite eq.
-    rewrite (IHx _ _ _ eq eq') //.
+    intros eq'. now rw eq.
+    rw (IHx _ _ _ eq eq') //.
     destruct (y ?= z) eqn:eq'; cbn; auto; try congruence.
     apply compare_eq in eq'; subst.
-    intros eq'. now rewrite eq.
-    now rewrite (IHx _ _ _ eq eq').
+    intros eq'. now rw eq.
+    now rw (IHx _ _ _ eq eq').
   Qed.
 
 End ModPathComp.
@@ -263,7 +263,7 @@ Module KernameComp.
   Proof.
     induction x; destruct y; simpl; auto.
     unfold compare_ident.
-    rewrite ModPathComp.compare_sym IdentOT.compare_sym.
+    rw ModPathComp.compare_sym IdentOT.compare_sym.
     destruct ModPathComp.compare, IdentOT.compare; auto.
   Qed.
 
@@ -302,9 +302,9 @@ Module Kername.
     destruct (ModPathComp.compare a m) eqn:eq.
     destruct (IdentOT.compare b i) eqn:eq'.
     all:constructor. red. eapply ModPathComp.compare_eq in eq. eapply string_compare_eq in eq'. congruence.
-    all:hnf; simpl; rewrite ?eq ?eq' //.
-    rewrite ModPathComp.compare_sym eq /= IdentOT.compare_sym eq' //.
-    now rewrite ModPathComp.compare_sym eq /=.
+    all:hnf; simpl; rw ?eq ?eq' //.
+    rw ModPathComp.compare_sym eq /= IdentOT.compare_sym eq' //.
+    now rw ModPathComp.compare_sym eq /=.
   Defined.
 
   Lemma compare_eq x y : compare x y = Eq <-> x = y.
@@ -328,8 +328,8 @@ Module Kername.
   Next Obligation.
     unfold eqb. destruct compare eqn:e; constructor.
     - now apply compare_eq in e.
-    -intros e'; subst. now rewrite OT.eq_refl in e.
-    -intros e'; subst. now rewrite OT.eq_refl in e.
+    -intros e'; subst. now rw OT.eq_refl in e.
+    -intros e'; subst. now rw OT.eq_refl in e.
   Defined.
 
   Definition eq_dec : forall (x y : t), { x = y } + { x <> y } := Classes.eq_dec.
@@ -367,7 +367,7 @@ Lemma knset_in_fold_left {A} kn f (l : list A) acc :
 Proof.
   induction l in acc |- *; simpl.
   - split; auto. intros [H0|H0]; auto. now destruct H0.
-  - rewrite IHl. rewrite KernameSet.union_spec.
+  - rw IHl. rw KernameSet.union_spec.
     intuition auto.
     * right. now exists a; intuition auto.
     * destruct H0 as [a' [ina inkn]].

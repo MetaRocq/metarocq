@@ -86,24 +86,24 @@ Section trans.
   Lemma trans_mkApps f l : trans (mkApps f l) = mkApps (trans f) (map trans l).
   Proof using Type.
     induction l using rev_ind; simpl; auto.
-    now rewrite mkApps_app /= IHl map_app /= mkApps_app /=.
+    now rw mkApps_app /= IHl map_app /= mkApps_app /=.
   Qed.
 
   Lemma map_repeat {A B} (f : A -> B) x n : map f (repeat x n) = repeat (f x) n.
   Proof using Type.
-    now induction n; simpl; auto; rewrite IHn.
+    now induction n; simpl; auto; rw IHn.
   Qed.
 
   Lemma map_trans_repeat_box n : map trans (repeat tBox n) = repeat tBox n.
-  Proof using Type. by rewrite map_repeat. Qed.
+  Proof using Type. by rw map_repeat. Qed.
 
   Import ECSubst.
 
   Lemma csubst_mkApps {a k f l} : csubst a k (mkApps f l) = mkApps (csubst a k f) (map (csubst a k) l).
   Proof using Type.
     induction l using rev_ind; simpl; auto.
-    rewrite mkApps_app /= IHl.
-    now rewrite -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
+    rw mkApps_app /= IHl.
+    now rw -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
   Qed.
 
   Lemma csubst_closed t k x : closedn k x -> csubst t k x = x.
@@ -137,10 +137,10 @@ Section trans.
     csubst t k (subst l 0 b).
   Proof using Type.
     intros hl cl.
-    rewrite !closed_subst //.
-    rewrite distr_subst. f_equal.
+    rw !closed_subst //.
+    rw distr_subst. f_equal.
     symmetry. solve_all.
-    rewrite subst_closed //.
+    rw subst_closed //.
     eapply closed_upwards; tea. lia.
   Qed.
 
@@ -149,11 +149,11 @@ Section trans.
     substl s t = subst s 0 t.
   Proof using Type.
     induction s in t |- *; cbn; auto.
-    intros _. now rewrite subst_empty.
+    intros _. now rw subst_empty.
     move/andP=> []cla cls.
-    rewrite (subst_app_decomp [_]).
-    cbn. rewrite lift_closed //.
-    rewrite closed_subst //. now eapply IHs.
+    rw (subst_app_decomp [_]).
+    cbn. rw lift_closed //.
+    rw closed_subst //. now eapply IHs.
   Qed.
 
   Lemma substl_csubst_comm l t k b :
@@ -162,8 +162,8 @@ Section trans.
     csubst t k (substl l b).
   Proof using Type.
     intros hl cl.
-    rewrite substl_subst //.
-    rewrite substl_subst //.
+    rw substl_subst //.
+    rw substl_subst //.
     apply subst_csubst_comm => //.
   Qed.
 
@@ -178,13 +178,13 @@ Section trans.
     simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
     - destruct (k ?= n)%nat; auto.
     - destruct GlobalContextMap.lookup_inductive_kind as [[]|] => /= //.
-      1,3,4:f_equal; rewrite map_map_compose; solve_all.
+      1,3,4:f_equal; rw map_map_compose; solve_all.
       do 2 f_equal; solve_all.
     - destruct GlobalContextMap.lookup_inductive_kind as [[]|] => /= //.
-      all:f_equal; eauto; try (rewrite /on_snd map_map_compose; solve_all).
+      all:f_equal; eauto; try (rw /on_snd map_map_compose; solve_all).
       f_equal. eauto.
     - destruct GlobalContextMap.lookup_inductive_kind as [[]|] => /= //.
-      all:f_equal; eauto; try (rewrite /on_snd map_map_compose; solve_all).
+      all:f_equal; eauto; try (rw /on_snd map_map_compose; solve_all).
       f_equal; eauto.
   Qed.
 
@@ -194,8 +194,8 @@ Section trans.
   Proof using Type.
     induction s in t |- *; simpl; auto.
     move/andP => [] cla cls.
-    rewrite IHs //. f_equal.
-    now rewrite trans_csubst.
+    rw IHs //. f_equal.
+    now rw trans_csubst.
   Qed.
 
   Lemma trans_iota_red pars args br :
@@ -204,15 +204,15 @@ Section trans.
   Proof using Type.
     intros cl.
     unfold EGlobalEnv.iota_red.
-    rewrite trans_substl //.
-    rewrite forallb_rev forallb_skipn //.
-    now rewrite map_rev map_skipn.
+    rw trans_substl //.
+    rw forallb_rev forallb_skipn //.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma trans_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def trans) mfix) = map trans (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto.
@@ -225,10 +225,10 @@ Section trans.
   Proof using Type.
     intros hfix.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error.
     intros [= <- <-] => /=. f_equal.
-    now rewrite trans_substl // trans_fix_subst.
+    now rw trans_substl // trans_fix_subst.
     discriminate.
   Qed.
 
@@ -270,13 +270,13 @@ Notation "Σ ⊢ s ⇓ t" := (eval Σ s t) (at level 50, s, t at next level) : t
 Lemma eval_is_box {wfl:WcbvFlags} Σ t u : Σ ⊢ t ⇓ u -> is_box t -> u = EAst.tBox.
 Proof.
   intros ev; induction ev => //.
-  - rewrite is_box_tApp.
+  - rw is_box_tApp.
     intros isb. intuition congruence.
-  - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst => //.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. cbn in i.
+  - rw is_box_tApp. move/IHev1 => ?; solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?; solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?. subst => //.
+  - rw is_box_tApp. move/IHev1 => ?. subst. solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?. subst. cbn in i.
     destruct EWcbvEval.with_guarded_fix => //.
   - destruct t => //.
 Qed.
@@ -344,7 +344,7 @@ Proof.
   intros ext wf; cbn.
   unfold inductive_isprop_and_pars. cbn.
   destruct lookup_env as [[]|] eqn:hl => //.
-  rewrite (extends_lookup wf ext hl).
+  rw (extends_lookup wf ext hl).
   destruct nth_error => //.
 Qed.
 
@@ -355,7 +355,7 @@ Proof.
   intros ext wf.
   unfold lookup_inductive_kind. cbn.
   destruct lookup_env as [[]|] eqn:hl => //.
-  now rewrite (extends_lookup wf ext hl).
+  now rw (extends_lookup wf ext hl).
 Qed.
 
 Lemma wellformed_trans_extends {wfl: EEnvFlags} {Σ : GlobalContextMap.t} t :
@@ -369,36 +369,36 @@ Proof.
     GlobalContextMap.lookup_inductive_kind]; intros => //.
   all:unfold wf_fix_gen in *; rtoProp; intuition auto.
   all:try now f_equal; eauto; solve_all.
-  - rewrite !GlobalContextMap.lookup_inductive_kind_spec.
+  - rw !GlobalContextMap.lookup_inductive_kind_spec.
     destruct lookup_constructor as [[[mdecl idecl] cdecl]|] eqn:hl => //.
     destruct cstr_as_blocks.
     { move/andP: H2 => [] hpars hargs.
       assert (map (trans Σ) args = map (trans Σ') args) as -> by solve_all.
-      rewrite (extends_lookup_inductive_kind H0 H1) //.
+      rw (extends_lookup_inductive_kind H0 H1) //.
       apply lookup_constructor_lookup_inductive in hl.
       unfold lookup_inductive in hl.
       destruct lookup_minductive => //. }
     { destruct args => // /=.
-      rewrite (extends_lookup_inductive_kind H0 H1) //.
+      rw (extends_lookup_inductive_kind H0 H1) //.
       apply lookup_constructor_lookup_inductive in hl.
       unfold lookup_inductive in hl.
       destruct lookup_minductive => //. }
-  - rewrite !GlobalContextMap.lookup_inductive_kind_spec.
-    move: H2; rewrite /wf_brs.
+  - rw !GlobalContextMap.lookup_inductive_kind_spec.
+    move: H2; rw /wf_brs.
     destruct lookup_inductive as [[mdecl idecl]|] eqn:hl => //.
     assert (map (on_snd (trans Σ)) l = map (on_snd (trans Σ')) l) as -> by solve_all.
-    rewrite (extends_lookup_inductive_kind H0 H1) //.
+    rw (extends_lookup_inductive_kind H0 H1) //.
     unfold lookup_inductive in hl.
     destruct lookup_minductive => //.
-    rewrite (IHt _ H4 _ H0 H1) //.
-  - rewrite !GlobalContextMap.lookup_inductive_kind_spec.
+    rw (IHt _ H4 _ H0 H1) //.
+  - rw !GlobalContextMap.lookup_inductive_kind_spec.
     destruct (lookup_projection) as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl => //.
     eapply lookup_projection_lookup_constructor in hl.
     eapply lookup_constructor_lookup_inductive in hl.
-    rewrite (extends_lookup_inductive_kind H0 H1) //.
+    rw (extends_lookup_inductive_kind H0 H1) //.
     unfold lookup_inductive in hl.
     destruct lookup_minductive => //.
-    rewrite (IHt _ H2 _ H0 H1) //.
+    rw (IHt _ H2 _ H0 H1) //.
 Qed.
 
 Lemma wellformed_trans_decl_extends {wfl: EEnvFlags} {Σ : GlobalContextMap.t} t :
@@ -419,7 +419,7 @@ Lemma lookup_env_trans_env_Some {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn d
     [× extends_prefix Σ' Σ, wf_global_decl Σ' d &
       lookup_env (trans_env Σ) kn = Some (trans_decl Σ' d)].
 Proof.
-  rewrite GlobalContextMap.lookup_env_spec.
+  rw GlobalContextMap.lookup_env_spec.
   destruct Σ as [Σ map repr wf].
   induction Σ in map, repr, wf |- *; simpl; auto => //.
   intros wfg.
@@ -438,7 +438,7 @@ Proof.
     exists Σ''. split => //.
     * destruct ext as [? ->].
       now exists (a :: x).
-    * rewrite -hl'. f_equal.
+    * rw -hl'. f_equal.
       clear -wfg.
       eapply map_ext_in => kn hin. unfold on_snd. f_equal.
       symmetry. eapply wellformed_trans_decl_extends => //. cbn.
@@ -457,9 +457,9 @@ Lemma lookup_env_trans_env_None {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn :
   GlobalContextMap.lookup_env Σ kn = None ->
   lookup_env (trans_env Σ) kn = None.
 Proof.
-  rewrite GlobalContextMap.lookup_env_spec.
+  rw GlobalContextMap.lookup_env_spec.
   destruct Σ as [Σ map repr wf].
-  cbn. intros hl. rewrite lookup_env_map_snd hl //.
+  cbn. intros hl. rw lookup_env_map_snd hl //.
 Qed.
 
 Lemma lookup_env_trans {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn :
@@ -467,10 +467,10 @@ Lemma lookup_env_trans {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn :
   lookup_env (trans_env Σ) kn = option_map (trans_decl Σ) (lookup_env Σ kn).
 Proof.
   intros wf.
-  rewrite -GlobalContextMap.lookup_env_spec.
+  rw -GlobalContextMap.lookup_env_spec.
   destruct (GlobalContextMap.lookup_env Σ kn) eqn:hl.
   - eapply lookup_env_trans_env_Some in hl as [Σ' [ext wf' hl']] => /= //.
-    rewrite hl'. f_equal.
+    rw hl'. f_equal.
     eapply wellformed_trans_decl_extends; eauto.
     now eapply extends_prefix_extends.
   - cbn. now eapply lookup_env_trans_env_None in hl.
@@ -480,10 +480,10 @@ Lemma is_propositional_trans {efl : EEnvFlags} {Σ : GlobalContextMap.t} ind :
   wf_glob Σ ->
   inductive_isprop_and_pars Σ ind = inductive_isprop_and_pars (trans_env Σ) ind.
 Proof.
-  rewrite /inductive_isprop_and_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_trans (inductive_mind ind) wf) //.
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /inductive_isprop_and_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_trans (inductive_mind ind) wf) //.
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -492,10 +492,10 @@ Lemma is_propositional_cstr_trans {efl : EEnvFlags} {Σ : GlobalContextMap.t} in
   wf_glob Σ ->
   constructor_isprop_pars_decl Σ ind c = constructor_isprop_pars_decl (trans_env Σ) ind c.
 Proof.
-  rewrite /constructor_isprop_pars_decl => wf.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_trans (inductive_mind ind) wf).
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /constructor_isprop_pars_decl => wf.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw (lookup_env_trans (inductive_mind ind) wf).
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -509,25 +509,25 @@ Lemma closed_iota_red pars c args brs br :
   closed (iota_red pars args br).
 Proof.
   intros clargs hnth hskip clbr.
-  rewrite /iota_red.
+  rw /iota_red.
   eapply ECSubst.closed_substl => //.
-  now rewrite forallb_rev forallb_skipn.
-  now rewrite List.length_rev hskip Nat.add_0_r.
+  now rw forallb_rev forallb_skipn.
+  now rw List.length_rev hskip Nat.add_0_r.
 Qed.
 
 Lemma isFix_mkApps t l : isFix (mkApps t l) = isFix t && match l with [] => true | _ => false end.
 Proof.
   induction l using rev_ind; cbn.
-  - now rewrite andb_true_r.
-  - rewrite mkApps_app /=. now destruct l => /= //; rewrite andb_false_r.
+  - now rw andb_true_r.
+  - rw mkApps_app /=. now destruct l => /= //; rw andb_false_r.
 Qed.
 
 Lemma lookup_constructor_trans {efl : EEnvFlags} {Σ : GlobalContextMap.t} {ind c} :
   wf_glob Σ ->
   lookup_constructor Σ ind c = lookup_constructor (trans_env Σ) ind c.
 Proof.
-  intros wfΣ. rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_trans // /=. destruct lookup_env => // /=.
+  intros wfΣ. rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_trans // /=. destruct lookup_env => // /=.
   destruct g => //.
 Qed.
 
@@ -535,7 +535,7 @@ Lemma constructor_isprop_pars_decl_inductive {Σ ind c} {prop pars cdecl} :
   constructor_isprop_pars_decl Σ ind c = Some (prop, pars, cdecl)  ->
   inductive_isprop_and_pars Σ ind = Some (prop, pars).
 Proof.
-  rewrite /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
+  rw /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
   destruct lookup_inductive as [[mdecl idecl]|]=> /= //.
   destruct nth_error => //. congruence.
 Qed.
@@ -553,7 +553,7 @@ Lemma constructor_isprop_pars_decl_constructor {Σ ind c prop npars cdecl}  :
   constructor_isprop_pars_decl Σ ind c = Some (prop, npars, cdecl) ->
   ∑ mdecl idecl, lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) /\ npars = ind_npars mdecl.
 Proof.
-  rewrite /constructor_isprop_pars_decl.
+  rw /constructor_isprop_pars_decl.
   destruct lookup_constructor as [[[mdecl idecl] cdecl']|] eqn:hl => //=.
   intros [= <- <- <-].
   exists mdecl, idecl; split => //.
@@ -570,20 +570,20 @@ Proof.
   - intros t; destruct t => //; cbn -[lookup_constructor GlobalContextMap.lookup_inductive_kind].
     all:try solve [intros; repeat constructor => //].
     destruct args => //.
-    move=> /andP[] wc. now rewrite wcon in wc.
+    move=> /andP[] wc. now rw wcon in wc.
   - intros p pv IH wf. cbn. constructor. constructor 2.
     cbn in wf. move/andP: wf => [hasp tp].
     primProp. depelim tp; depelim pv; depelim IH; constructor; cbn in *; rtoProp; intuition auto; solve_all.
   - intros ind c mdecl idecl cdecl args wc hl harglen hargs ihargs.
-    simpl. rewrite hasc. move/andP => [] /andP[] hascstr _ /andP[] hpargs wfargs.
+    simpl. rw hasc. move/andP => [] /andP[] hascstr _ /andP[] hpargs wfargs.
     cbn -[GlobalContextMap.lookup_inductive_kind].
     destruct GlobalContextMap.lookup_inductive_kind as [[]|] eqn:hl' => //.
     1,3,4:eapply value_constructor; tea; [erewrite <-lookup_constructor_trans; tea|now len|solve_all].
     apply trust_cofix.
     (* now do 2 constructor. *)
   - intros f args vh harglen hargs ihargs.
-    rewrite wellformed_mkApps // => /andP[] wff wfargs.
-    rewrite trans_mkApps.
+    rw wellformed_mkApps // => /andP[] wff wfargs.
+    rw trans_mkApps.
     depelim vh. congruence.
     cbn.
     simpl in wff; move/andP: wff => [] hascof /andP[] /Nat.ltb_lt wfidx wffix.
@@ -627,31 +627,31 @@ Proof.
   - intros. eapply eval_wellformed in H; tea.
 
   - econstructor; eauto.
-    rewrite trans_csubst // in e. now eapply wellformed_closed.
+    rw trans_csubst // in e. now eapply wellformed_closed.
 
-  - rewrite trans_csubst // in e. now eapply wellformed_closed.
+  - rw trans_csubst // in e. now eapply wellformed_closed.
     cbn. econstructor; eauto.
 
   - assert (forallb (wellformed Σ 0) args).
     cbn -[lookup_constructor lookup_constructor_pars_args] in i2.
-    rewrite wcb in i2. move/and3P: i2 => [] _ _ hargs.
+    rw wcb in i2. move/and3P: i2 => [] _ _ hargs.
     solve_all.
-    rewrite trans_iota_red // in e.
+    rw trans_iota_red // in e.
     { solve_all. now eapply wellformed_closed. }
     cbn -[lookup_constructor lookup_constructor_pars_args
     GlobalContextMap.lookup_inductive_kind] in e0 |- *.
     eapply eval_closed in H as evc => //.
     2:{ now eapply wellformed_closed. }
-    rewrite GlobalContextMap.lookup_inductive_kind_spec in e0 *.
+    rw GlobalContextMap.lookup_inductive_kind_spec in e0 *.
     destruct lookup_inductive_kind as [[]|] eqn:hl => //.
     1,3,4:eapply eval_iota_block; eauto;
-      [now rewrite -is_propositional_cstr_trans|
-        rewrite nth_error_map H2 //|now len|
-        try (cbn; rewrite -H4 !length_skipn length_map //)].
+      [now rw -is_propositional_cstr_trans|
+        rw nth_error_map H2 //|now len|
+        try (cbn; rw -H4 !length_skipn length_map //)].
     eapply eval_iota_block.
     1,3,4: eauto.
-    + now rewrite -is_propositional_cstr_trans.
-    + rewrite nth_error_map H2 //.
+    + now rw -is_propositional_cstr_trans.
+    + rw nth_error_map H2 //.
     + eapply trust_cofix.
       (* eapply eval_beta. eapply e0; eauto.
       constructor; eauto.
@@ -670,7 +670,7 @@ Proof.
     + now len.
     + apply trust_cofix.
 
-  - now rewrite H in wpc.
+  - now rw H in wpc.
 
   - apply trust_cofix.
     (*rewrite trans_mkApps /= in e1.
@@ -836,17 +836,17 @@ Lemma trans_expanded {Σ : GlobalContextMap.t} t : expanded Σ t -> expanded Σ 
 Proof.
   induction 1 using expanded_ind.
   all:try solve[constructor; eauto; solve_all].
-  all:rewrite ?trans_mkApps.
+  all:rw ?trans_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn -[GlobalContextMap.lookup_inductive_kind].
-    rewrite GlobalContextMap.lookup_inductive_kind_spec.
+    rw GlobalContextMap.lookup_inductive_kind_spec.
     destruct lookup_inductive_kind as [[]|] => /= //.
     2-3:constructor; eauto; solve_all.
     constructor; eauto; solve_all. cbn.
     now constructor.
     constructor; eauto; solve_all.
   - cbn -[GlobalContextMap.lookup_inductive_kind].
-    rewrite GlobalContextMap.lookup_inductive_kind_spec.
+    rw GlobalContextMap.lookup_inductive_kind_spec.
     destruct lookup_inductive_kind as [[]|] => /= //.
     2-3:constructor; eauto; solve_all.
     constructor; eauto; solve_all. cbn.
@@ -855,7 +855,7 @@ Proof.
   - cbn. econstructor; eauto. solve_all. now eapply isLambda_trans.
   - cbn. econstructor; eauto; solve_all. apply trust_cofix.
   - cbn -[GlobalContextMap.lookup_inductive_kind].
-    rewrite GlobalContextMap.lookup_inductive_kind_spec.
+    rw GlobalContextMap.lookup_inductive_kind_spec.
     destruct lookup_inductive_kind as [[]|] => /= //.
     1,3,4:eapply expanded_tConstruct_app; eauto; solve_all.
     apply trust_cofix. (* Needs constructor_as_blocks = true invariant *)
@@ -885,7 +885,7 @@ Proof.
   eapply expanded_tConstruct_app.
   destruct H as [[H ?] ?].
   split => //. split => //. red.
-  red in H. rewrite lookup_env_trans // /= H //. 1-2:eauto. auto. solve_all.
+  red in H. rw lookup_env_trans // /= H //. 1-2:eauto. auto. solve_all.
 Qed.
 
 Lemma trans_expanded_decl {Σ : GlobalContextMap.t} t : expanded_decl Σ t -> expanded_decl Σ (trans_decl Σ t).
@@ -919,13 +919,13 @@ Proof.
   induction Σ'' => //. cbn.
   intros hin wfg. depelim wfg.
   f_equal.
-  2:{ eapply IHΣ'' => //. destruct hin. exists (x ++ [(kn, d)]). rewrite -app_assoc /= //. }
+  2:{ eapply IHΣ'' => //. destruct hin. exists (x ++ [(kn, d)]). rw -app_assoc /= //. }
   unfold on_snd. cbn. f_equal.
   eapply wellformed_trans_decl_extends => //. cbn.
   eapply extends_wf_global_decl. 3:tea.
   eapply extends_wf_glob; tea. eapply extends_prefix_extends; tea.
   2:{ eapply extends_wf_glob; tea. }
-  destruct hin. exists (x ++ [(kn, d)]). rewrite -app_assoc /= //.
+  destruct hin. exists (x ++ [(kn, d)]). rw -app_assoc /= //.
   cbn. eapply extends_prefix_extends; tea.
 Qed.
 
@@ -952,20 +952,20 @@ Lemma trans_env_expanded {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
   wf_glob Σ -> expanded_global_env Σ -> expanded_global_env (trans_env Σ).
 Proof.
   unfold expanded_global_env; move=> wfg.
-  rewrite trans_env_eq //.
+  rw trans_env_eq //.
   destruct Σ as [Σ map repr wf]. cbn in *.
   clear map repr.
   induction 1; cbn; constructor; auto.
   cbn in IHexpanded_global_declarations.
   unshelve eapply IHexpanded_global_declarations. now depelim wfg. cbn.
   set (Σ' := GlobalContextMap.make _ _).
-  rewrite -(trans_env_eq Σ'). cbn. now depelim wfg.
+  rw -(trans_env_eq Σ'). cbn. now depelim wfg.
   eapply (trans_expanded_decl_irrel (Σ := Σ')). now depelim wfg.
   now unshelve eapply (trans_expanded_decl (Σ:=Σ')).
 Qed.
 
 Lemma trans_wellformed {efl : EEnvFlags} {Σ : GlobalContextMap.t} n t :
-  has_tBox -> has_tRel ->
+  has_tRel ->
   wf_glob Σ -> EWellformed.wellformed Σ n t -> EWellformed.wellformed Σ n (trans Σ t).
 Proof.
   intros wfΣ hbox hrel.
@@ -1007,23 +1007,23 @@ Lemma trans_wellformed_irrel {efl : EEnvFlags} {Σ : GlobalContextMap.t} t :
 Proof.
   intros wfΣ. induction t using EInduction.term_forall_list_ind; cbn => //.
   all:try solve [intros; unfold wf_fix_gen in *; rtoProp; intuition eauto; solve_all].
-  - rewrite lookup_env_trans //.
+  - rw lookup_env_trans //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct (cst_body c) => //.
-  - rewrite lookup_env_trans //.
+  - rw lookup_env_trans //.
     destruct lookup_env eqn:hl => // /=; intros; rtoProp; eauto.
     destruct g eqn:hg => /= //; intros; rtoProp; eauto.
     repeat split; eauto. destruct cstr_as_blocks; rtoProp; repeat split; len; eauto. 1: solve_all.
-  - rewrite /wf_brs; cbn; rewrite lookup_env_trans //.
+  - rw /wf_brs; cbn; rw lookup_env_trans //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => /= //.
     intros; rtoProp; intuition auto; solve_all.
-  - rewrite lookup_env_trans //.
+  - rw lookup_env_trans //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //.
-    rewrite andb_false_r => //.
+    rw andb_false_r => //.
     destruct nth_error => /= //.
     all:intros; rtoProp; intuition auto; solve_all.
 Qed.
@@ -1038,11 +1038,10 @@ Proof.
 Qed.
 
 Lemma trans_decl_wf {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
-  has_tBox -> has_tRel -> wf_glob Σ ->
+  has_tRel -> wf_glob Σ ->
   forall d, wf_global_decl Σ d -> wf_global_decl (trans_env Σ) (trans_decl Σ d).
 Proof.
-  intros hasb hasr wf d.
-  intros hd.
+  intros hasr wf d hd.
   eapply trans_wellformed_decl_irrel; tea.
   move: hd.
   destruct d => /= //.
@@ -1060,24 +1059,23 @@ Proof.
 Qed.
 
 Lemma trans_env_wf {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
-  has_tBox -> has_tRel ->
+  has_tRel ->
   wf_glob Σ -> wf_glob (trans_env Σ).
 Proof.
-  intros hasb hasrel.
-  intros wfg. rewrite trans_env_eq //.
+  intros hasrel wfg. rw trans_env_eq //.
   destruct Σ as [Σ map repr wf]; cbn in *.
   clear map repr.
   induction wfg; cbn; constructor; auto.
-  - rewrite /= -(trans_env_eq (GlobalContextMap.make Σ (fresh_globals_cons_inv wf))) //.
+  - rw /= -(trans_env_eq (GlobalContextMap.make Σ (fresh_globals_cons_inv wf))) //.
     eapply trans_decl_wf => //.
-  - rewrite /= -(trans_env_eq (GlobalContextMap.make Σ (fresh_globals_cons_inv wf))) //.
+  - rw /= -(trans_env_eq (GlobalContextMap.make Σ (fresh_globals_cons_inv wf))) //.
     now eapply fresh_global_trans_env.
 Qed.
 
 Definition trans_program (p : eprogram_env) :=
   (trans_env p.1, trans p.1 p.2).
 
-Definition trans_program_wf {efl} (p : eprogram_env) {hastbox : has_tBox} {hastrel : has_tRel} :
+Definition trans_program_wf {efl} (p : eprogram_env) {hastrel : has_tRel} :
   wf_eprogram_env efl p -> wf_eprogram efl (trans_program p).
 Proof.
   intros []; split.

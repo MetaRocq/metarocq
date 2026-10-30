@@ -68,7 +68,7 @@ Proof using wfΣ.
   1-9,11-13: intros ? T' ty_T' ; inversion_clear ty_T'.
   14-17: intros.
 
-  - rewrite H in H0.
+  - rw H in H0.
     inversion H0. subst. clear H0.
     eexists ; split.
     all: eapply closed_red_refl.
@@ -108,13 +108,13 @@ Proof using wfΣ.
     all: eapply (closed_red_subst (Δ := [_]) (Γ' := [])) ; tea.
     + constructor.
       1: constructor.
-      rewrite subst_empty.
+      rw subst_empty.
       eapply checking_typing ; tea.
       eapply isTypeRel_isType.
       now eapply isType_tProd, validity, infering_prod_typing.
     + constructor.
       1: constructor.
-      rewrite subst_empty.
+      rw subst_empty.
       eapply checking_typing ; tea.
       eapply isTypeRel_isType.
       now eapply isType_tProd, validity, infering_prod_typing.
@@ -125,7 +125,7 @@ Proof using wfΣ.
     eexists ; split.
     all: eapply closed_red_refl.
     1,3: fvs.
-    all: rewrite on_free_vars_subst_instance.
+    all: rw on_free_vars_subst_instance.
     all: now eapply closed_on_free_vars, declared_constant_closed_type.
 
   - pose proof (declared_inductive_to_gen (wfΣ := wfΣ) isdecl).
@@ -134,7 +134,7 @@ Proof using wfΣ.
     eexists ; split.
     all: eapply closed_red_refl.
     1,3: fvs.
-    all: rewrite on_free_vars_subst_instance.
+    all: rw on_free_vars_subst_instance.
     all: now eapply closed_on_free_vars, declared_inductive_closed_type.
 
   - pose proof (declared_constructor_to_gen (wfΣ := wfΣ) isdecl).
@@ -169,12 +169,12 @@ Proof using wfΣ.
         1: fvs.
         now eapply subject_is_open_term.
       * now eapply validity.
-      * rewrite on_free_vars_subst_instance.
+      * rw on_free_vars_subst_instance.
         move: (H1) => H.
         eapply declared_projection_closed in H; eauto.
-        rewrite (declared_minductive_ind_npars H1) in H.
+        rw (declared_minductive_ind_npars H1) in H.
         cbn in H. len.
-        rewrite closedn_on_free_vars //.
+        rw closedn_on_free_vars //.
         eapply closed_upwards; tea. cbn. lia.
     + eapply closed_red_red_subst0 ; tea.
       3: eapply subslet_untyped_subslet, projection_subslet ; tea.
@@ -188,22 +188,22 @@ Proof using wfΣ.
         1: fvs.
         now eapply subject_is_open_term.
       * now eapply validity.
-      * rewrite on_free_vars_subst_instance.
+      * rw on_free_vars_subst_instance.
         move: (H1) => H.
         eapply declared_projection_closed in H; eauto.
-        rewrite (declared_minductive_ind_npars H1) in H.
+        rw (declared_minductive_ind_npars H1) in H.
         cbn in H. len.
-        rewrite closedn_on_free_vars //.
+        rw closedn_on_free_vars //.
         eapply closed_upwards; tea. cbn. lia.
 
-  - rewrite H3 in H0 ; injection H0 as ->.
+  - rw H3 in H0 ; injection H0 as ->.
     eapply nth_error_all in X as (?&[]); tea.
     eexists ; split.
     all: eapply closed_red_refl.
     1,3:fvs.
     all: now eapply subject_is_open_term, infering_sort_typing.
 
-  - rewrite H3 in H0 ; injection H0 as ->.
+  - rw H3 in H0 ; injection H0 as ->.
     eapply nth_error_all in X as (?&[]); tea.
     eexists ; split.
     all: eapply closed_red_refl.
@@ -219,7 +219,7 @@ Proof using wfΣ.
     assert (op' : is_open_term Γ (mkApps ptm0 (skipn (ci_npar ci) args0 ++ [c]))).
       by now eapply type_is_open_term, infering_typing.
     move: op'.
-    rewrite on_free_vars_mkApps => /andP [optm' oargs'].
+    rw on_free_vars_mkApps => /andP [optm' oargs'].
     eapply X0 in X9 as [args'' []] ; tea.
     subst.
     eexists (mkApps ptm ((skipn (ci_npar ci) args'') ++ [c])).
@@ -247,10 +247,10 @@ Proof using wfΣ.
       * now eapply type_is_open_term, infering_typing.
 
   - depelim X; depelim X0.
-    * inversion X2 ; subst. rewrite H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
-    * inversion X2 ; subst. rewrite H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
-    * inversion X2 ; subst. rewrite H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
-    * inversion X2 ; subst. rewrite H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
+    * inversion X2 ; subst. rw H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
+    * inversion X2 ; subst. rw H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
+    * inversion X2 ; subst. rw H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
+    * inversion X2 ; subst. rw H3 in H; noconf H. eexists. split; eapply closed_red_refl; fvs.
       all:simp prim_type; cbn. cbn in hty.
       all:eapply type_is_open_term, checking_typing; tea.
       all:eapply has_sort_isType; eapply checking_typing; tea.

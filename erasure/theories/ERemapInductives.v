@@ -15,9 +15,9 @@ Lemma lookup_declared_constructor {Σ id mdecl idecl cdecl} :
   lookup_constructor Σ id.1 id.2 = Some (mdecl, idecl, cdecl) ->
   declared_constructor Σ id mdecl idecl cdecl.
 Proof.
-  rewrite /lookup_constructor /declared_constructor.
-  rewrite /declared_inductive /lookup_inductive.
-  rewrite /declared_minductive /lookup_minductive.
+  rw /lookup_constructor /declared_constructor.
+  rw /declared_inductive /lookup_inductive.
+  rw /declared_minductive /lookup_minductive.
   destruct lookup_env => //=. destruct g => //=.
   destruct nth_error eqn:hn => //. destruct (nth_error _ id.2) eqn:hn' => //.
   intros [= <- <- <-]. intuition auto.
@@ -231,5 +231,5 @@ Lemma forget_inductive_extraction_info_transformation_ext' :
     extends_inductives_extraction_eprogram extends_eprogram.
 Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
-  now rewrite /extends_inductives_extraction_eprogram /extends_eprogram /=.
+  now rw /extends_inductives_extraction_eprogram /extends_eprogram /=.
 Qed.

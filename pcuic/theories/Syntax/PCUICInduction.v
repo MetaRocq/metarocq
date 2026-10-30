@@ -33,9 +33,9 @@ Lemma term_forall_list_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t u : term, P t -> P u -> P (tApp t u)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ind : case_info) (p : predicate term),
         tCasePredProp P P p -> forall c : term, P c -> forall l : list (branch term),
         tCaseBrsProp P l -> P (tCase ind p c l)) ->
@@ -137,12 +137,12 @@ Lemma decompose_app_size_tApp2 t1 t2 :
   Forall (fun t => size t < size (tApp t1 t2)) (decompose_app (tApp t1 t2)).2.
 Proof.
   destruct decompose_app eqn:da.
-  eapply decompose_app_inv in da. rewrite da. simpl. clear da.
+  eapply decompose_app_inv in da. rw da. simpl. clear da.
   induction l using rev_ind; try constructor.
   eapply app_Forall; [|constructor].
   eapply Forall_impl; eauto; simpl; intros.
-  rewrite mkApps_app; simpl. lia.
-  rewrite mkApps_app; simpl. lia.
+  rw mkApps_app; simpl. lia.
+  rw mkApps_app; simpl. lia.
   constructor.
 Qed.
 
@@ -152,7 +152,7 @@ Proof.
   revert l; induction t; try reflexivity.
   intro l; cbn in *.
   transitivity (mkApps t1 ((t2 ::l))). reflexivity.
-  now rewrite IHt1.
+  now rw IHt1.
 Defined.
 
 Definition mkApps_decompose_app t :
@@ -190,12 +190,12 @@ Definition mkApps_decompose_app t :
       auto.
 
       simpl.
-      rewrite app_nil_r; auto.
+      rw app_nil_r; auto.
 
       intro y.
       simpl.
       rewrite -> (IHl y).
-      rewrite app_assoc; trivial.
+      rw app_assoc; trivial.
     Defined.
 
     Let rev_unit : forall (l:list A) (a:A), rev (l ++ [a]) = a :: rev l.
@@ -210,8 +210,8 @@ Definition mkApps_decompose_app t :
       simpl; auto.
 
       simpl.
-      rewrite (rev_unit (rev l) a).
-      rewrite IHl; auto.
+      rw (rev_unit (rev l) a).
+      rw IHl; auto.
     Defined.
 
     Theorem rev_rec : forall P:list A -> Type,
@@ -240,7 +240,7 @@ Proof.
   induction ctx; simpl; constructor; auto.
   * split.
     + destruct decl_body eqn:db; cbn. apply X; unfold decl_size.
-      rewrite db; simpl; lia. exact tt.
+      rw db; simpl; lia. exact tt.
     + apply X; cbn. unfold decl_size. simpl. lia.
   * apply IHctx; intros; apply X. lia.
 Qed.
@@ -256,9 +256,9 @@ Lemma term_forall_mkApps_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t : term, forall v, ~ isApp t -> P t -> v <> [] -> All P v -> P (mkApps t v)) ->
-    (forall (s : kername) (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall (s : kername) (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ind : case_info) (p : predicate term),
         tCasePredProp P P p ->
         forall c : term, P c -> forall l : list (branch term),
@@ -288,9 +288,9 @@ Proof.
     eapply X6.
     + eapply decompose_app_notApp in E. eauto.
     + eapply auxt. cbn. hnf. pose proof (decompose_app_size_tApp1 t1 t2).
-      rewrite E in H. hnf in *; cbn in *. lia.
+      rw E in H. hnf in *; cbn in *. lia.
     + intros ->.
-      rewrite /decompose_app /= in E.
+      rw /decompose_app /= in E.
       pose proof (decompose_app_rec_notApp _ _ _ _ E).
       eapply decompose_app_rec_inv in E. simpl in *. subst t => //.
     + induction l using rev_rec in E, auxt, t1, t2, t |- *.
@@ -298,19 +298,19 @@ Proof.
       * eapply All_app_inv.
         2:{
         econstructor. eapply auxt. hnf; cbn.
-        pose proof (decompose_app_size_tApp2 t1 t2). rewrite E in H. cbn in H. clear E.
+        pose proof (decompose_app_size_tApp2 t1 t2). rw E in H. cbn in H. clear E.
         eapply Forall_All, All_app in H as [H H1]. inv H1. lia. econstructor. }
         destruct (isApp t1) eqn:Et1.
         -- destruct t1; try now inv Et1.
            pose proof E as E'.
            eapply IHl.
            2:{
-           eapply decompose_app_inv in E. rewrite mkApps_app in E.
+           eapply decompose_app_inv in E. rw mkApps_app in E.
            cbn in E. noconf E. rewrite -> H.
            rewrite -> decompose_app_mkApps. reflexivity.
            eapply decompose_app_notApp in E'.
-           now rewrite E'. }
-           eapply decompose_app_inv in E. rewrite mkApps_app in E.
+           now rw E'. }
+           eapply decompose_app_inv in E. rw mkApps_app in E.
            cbn in E. noconf E.
            intros. eapply auxt.
            red. red in H0. cbn in *. lia.
@@ -320,7 +320,7 @@ Proof.
            pose proof (decompose_app_mkApps t1 [t2]). cbn in H.
            cbn in E. rewrite -> H in E.
            inversion E. destruct l; inv H3.
-           now rewrite Et1.
+           now rw Et1.
   - eapply X10; [|apply auxt; hnf; cbn; lia.. | ].
     repeat split; [| |apply auxt; hnf; cbn; unfold predicate_size; lia].
     * unfold MR in auxt. simpl in auxt. revert auxt. unfold predicate_size.
@@ -393,9 +393,9 @@ Proof.
   generalize (le_n #|Γ|).
   generalize #|Γ| at 2.
   induction n in Γ |- *.
-  destruct Γ using MRList.rev_ind; [|simpl; rewrite length_app; simpl; intros; exfalso; try lia].
+  destruct Γ using MRList.rev_ind; [|simpl; rw length_app; simpl; intros; exfalso; try lia].
   intros. apply p0.
-  destruct Γ using MRList.rev_ind; simpl in *; rewrite ?length_app; simpl; intros Hlen.
+  destruct Γ using MRList.rev_ind; simpl in *; rw ?length_app; simpl; intros Hlen.
   intros. apply p0.
   apply pS. intros. apply IHn. simpl. lia.
 Qed.
@@ -416,7 +416,7 @@ Lemma decl_size_map_decl_hom (size : term -> nat) (d : context_decl) (f : term -
   decl_size size (map_decl f d) = decl_size size d.
 Proof.
   intros.
-  rewrite /map_decl /decl_size /=; destruct d as [na [b|] ty]; simpl;
+  rw /map_decl /decl_size /=; destruct d as [na [b|] ty]; simpl;
   f_equal; auto.
 Defined.
 
@@ -424,8 +424,8 @@ Lemma size_lift n k t : size (lift n k t) = size t.
 Proof.
   revert n k t.
   fix size_lift 3.
-  destruct t; simpl; rewrite ?list_size_map_hom; try lia.
-  all:try now rewrite !size_lift.
+  destruct t; simpl; rw ?list_size_map_hom; try lia.
+  all:try now rw !size_lift.
   all:try intros; auto.
   - destruct x. simpl. unfold branch_size; cbn.
     f_equal.
@@ -448,7 +448,7 @@ Proof.
     simpl. destruct x. simpl. unfold def_size. simpl.
     f_equal; symmetry; apply size_lift.
   - destruct prim. destruct p; cbn => //. unfold prim_size. simp map_prim => /=.
-    rewrite !size_lift. rewrite list_size_map_hom; auto.
+    rw !size_lift. rw list_size_map_hom; auto.
 Qed.
 
 Definition on_local_decl (P : context -> term -> Type) := lift_wf_term1 P.
@@ -458,7 +458,7 @@ Lemma list_size_rev {A} size (l : list A)
   : list_size size (List.rev l) = list_size size l.
 Proof.
   induction l; simpl. reflexivity.
-  rewrite list_size_app IHl; cbn; lia.
+  rw list_size_app IHl; cbn; lia.
 Qed.
 
 Definition onctx_rel (P : context -> term -> Type) (Γ Δ : context) :=
@@ -483,9 +483,9 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ (n : aname) (t : term),
         P Γ t -> forall t0 : term, P Γ t0 -> forall t1 : term, P (vdef n t t0 :: Γ) t1 -> P Γ (tLetIn n t t0 t1)) ->
     (forall Γ (t u : term), P Γ t -> P Γ u -> P Γ (tApp t u)) ->
-    (forall Γ s (u : list Level.t), P Γ (tConst s u)) ->
-    (forall Γ (i : inductive) (u : list Level.t), P Γ (tInd i u)) ->
-    (forall Γ (i : inductive) (n : nat) (u : list Level.t), P Γ (tConstruct i n u)) ->
+    (forall Γ s (u : Instance.t), P Γ (tConst s u)) ->
+    (forall Γ (i : inductive) (u : Instance.t), P Γ (tInd i u)) ->
+    (forall Γ (i : inductive) (n : nat) (u : Instance.t), P Γ (tConstruct i n u)) ->
     (forall Γ (ci : case_info) (p : predicate term) (t : term) (brs : list (branch term)),
         CasePredProp P Γ p ->
         P Γ t ->
@@ -515,11 +515,11 @@ Proof.
   assert (forall mfix, context_size size (fix_context mfix) <= mfixpoint_size size mfix).
   { induction mfix. simpl. auto. simpl. unfold fix_context.
     unfold context_size.
-    rewrite list_size_rev /=. cbn.
-    rewrite size_lift. unfold context_size in IHmfix.
+    rw list_size_rev /=. cbn.
+    rw size_lift. unfold context_size in IHmfix.
     epose (list_size_mapi_rec_le (def_size size) (decl_size size) mfix
                                  (fun (i : nat) (d : def term) => vass (dname d) ((lift0 i) (dtype d))) 1).
-    forward l. intros. destruct x; cbn; rewrite size_lift. lia.
+    forward l. intros. destruct x; cbn; rw size_lift. lia.
     unfold def_size, mfixpoint_size. lia. }
   assert (auxΓ : forall Γ Δ,
              context_size size Δ < size pr0 ->
@@ -528,7 +528,7 @@ Proof.
     induction Δ; cbn.
     - constructor.
     - case: a => [na [b|] ty] /=;
-      rewrite {1}/decl_size /context_size /= => Hlt; constructor; auto.
+      rw {1}/decl_size /context_size /= => Hlt; constructor; auto.
       + eapply IHΔ => //. unfold context_size. lia.
       + split.
         * apply aux => //. red. lia.
@@ -600,9 +600,9 @@ Lemma term_ind_size_app :
     (forall (t u : term),
         (forall t', size t' < size (tApp t u) -> P t') ->
         P t -> P u -> P (tApp t u)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ci : case_info) (p : PCUICAst.predicate term) (c : term) (brs : list (branch term)),
         tCasePredProp P P p -> P c ->
         tCaseBrsProp P brs -> P (tCase ci p c brs)) ->

@@ -133,9 +133,9 @@ Lemma term_wf_forall_list_ind Σ :
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t : term, isApp t = false -> wf Σ t -> P t ->
                       forall l : list term, l <> nil -> All (wf Σ) l -> All P l -> P (tApp t l)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t),
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t),
       P (tConstruct i n u)) ->
     (forall (ci : case_info) (p : predicate term) mdecl idecl,
         declared_inductive Σ ci.(ci_ind) mdecl idecl ->
@@ -223,7 +223,7 @@ Proof.
   intros wft; revert t wft k.
   apply (term_wf_forall_list_ind Σ (fun t => forall k, wf Σ (lift n k t)));
     intros; try cbn; econstructor; simpl; eauto; try solve [solve_all].
-    destruct l; cbn in *. auto. discriminate. now rewrite length_map.
+    destruct l; cbn in *. auto. discriminate. now rw length_map.
 Qed.
 From Stdlib Require Import PeanoNat.
 Import Nat.
@@ -238,7 +238,7 @@ Proof.
     destruct nth_error eqn:Heq. apply (nth_error_all Heq) in wfts.
     apply wf_lift; auto. constructor. constructor.
   - apply wf_mkApps; auto. solve_all.
-  - now rewrite length_map.
+  - now rw length_map.
 Qed.
 
 Lemma wf_subst1 Σ t k u : wf Σ t -> wf Σ u -> wf Σ (subst1 t k u).
@@ -293,7 +293,7 @@ Proof.
     destruct l; simpl in *; congruence.
     now apply All_map.
   - cbn; econstructor; eauto; simpl; solve_all.
-    now rewrite length_map.
+    now rw length_map.
 Qed.
 
 Lemma wf_nth Σ:

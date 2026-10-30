@@ -47,6 +47,34 @@ Definition R_opt {A} (R : relation A) : relation (option A) :=
     | _, _ => False
   end.
 
+Instance R_opt_refl {A R} : @Reflexive A R -> Reflexive (R_opt R).
+Proof.
+  intros hr []; cbn; reflexivity.
+Qed.
+
+Instance R_opt_sym {A R} : @Symmetric A R -> Symmetric (R_opt R).
+Proof.
+  intros hr [] []; cbn => //. now symmetry.
+Qed.
+
+Instance R_opt_trans {A R} : @Transitive A R -> Transitive (R_opt R).
+Proof.
+  intros hr [] [] []; cbn => //. intros; now etransitivity.
+Qed.
+
+Instance R_opt_equiv {A R} : @Equivalence A R -> Equivalence (R_opt R).
+Proof.
+  split; tc.
+Qed.
+
+Definition option_map2 {A B} (f : A -> A -> B) (o o' : option A) : option B :=
+  match o, o' with
+  | Some x, Some y => Some (f x y)
+  | None, Some _
+  | Some _, None
+  | None, None => None
+  end.
+
 Definition option_default {A B} (f : A -> B) (o : option A) (b : B) :=
   match o with Some x => f x | None => b end.
 
@@ -77,7 +105,7 @@ Lemma map_option_out_map_option_map {A} (l : list (option A)) (f : A -> A) :
 Proof.
   induction l; simpl; auto.
   destruct (option_map f a) eqn:fa.
-  rewrite IHl. destruct (map_option_out l). simpl in *.
+  rw IHl. destruct (map_option_out l). simpl in *.
   destruct a; simpl in *; congruence.
   simpl. destruct a; reflexivity.
   destruct a; simpl in *; congruence.
@@ -95,12 +123,12 @@ Proof.
   intros []; cbn; congruence.
 Qed.
 
-#[global] Instance option_map_proper {A B} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
+#[global] Instance option_map_proper {A B} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
 Proof.
   intros f g Hfg x y <-. now apply option_map_ext.
 Qed.
 
-Lemma option_map_id {A} : option_map (@id A) =1 id.
+Lemma option_map_id {A} : option_map (@id A) ≐1 id.
 Proof. by intros []. Qed.
 
 Lemma nth_map_option_out {A B} (f : nat -> A -> option B) l l' i t : map_option_out (mapi f l) = Some l' ->
@@ -108,15 +136,15 @@ Lemma nth_map_option_out {A B} (f : nat -> A -> option B) l l' i t : map_option_
   (∑ x, (nth_error l i = Some x) /\ (f i x = Some t)).
 Proof.
   unfold mapi.
-  rewrite -{3}(Nat.add_0_r i).
+  rw -{3}(Nat.add_0_r i).
   generalize 0.
-  induction l in i, l' |- *; intros n; simpl. intros [= <-]. rewrite nth_error_nil; discriminate.
+  induction l in i, l' |- *; intros n; simpl. intros [= <-]. rw nth_error_nil; discriminate.
   simpl. destruct (f n a) eqn:Heq => //.
   destruct (map_option_out (mapi_rec f l (S n))) eqn:Heq' => //.
   intros [= <-].
   destruct i; simpl. intros [= ->]. now exists a.
   specialize (IHl _ i _ Heq').
-  now rewrite plus_n_Sm.
+  now rw plus_n_Sm.
 Qed.
 
 Lemma map_option_out_length {A} (l : list (option A)) l' : map_option_out l = Some l' -> #|l| = #|l'|.
@@ -125,7 +153,7 @@ Proof.
   now move=> [=] <-.
   simpl. destruct a; try discriminate.
   destruct map_option_out eqn:Heq; try discriminate.
-  move=> [=] <-. by rewrite (IHl l0 eq_refl).
+  move=> [=] <-. by rw (IHl l0 eq_refl).
 Qed.
 
 Lemma map_option_out_impl {A B} (l : list A) (f g : A -> option B) x :
@@ -136,10 +164,10 @@ Proof.
   intros Hfg.
   induction l in x |- *; simpl; auto.
   destruct (f a) eqn:fa.
-  - rewrite (Hfg _ _ fa).
+  - rw (Hfg _ _ fa).
     move: IHl; destruct map_option_out.
     * move=> H'. specialize (H' _ eq_refl).
-      rewrite H'. congruence.
+      rw H'. congruence.
     * discriminate.
   - discriminate.
 Qed.
@@ -178,16 +206,16 @@ Definition foroptb2 {A : Type} (p : A -> A -> bool) (o o': option A) : bool :=
   | _, _ => false
   end.
 
-#[global] Instance foroptb_proper A : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
+#[global] Instance foroptb_proper A : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
 Proof.
-  intros f g Hfg x y ->; rewrite /foroptb.
-  destruct y; simpl; rewrite // ?Hfg.
+  intros f g Hfg x y ->; rw /foroptb.
+  destruct y; simpl; rw // ?Hfg.
 Qed.
 
-#[global] Instance foroptb_proper_pointwise A : Proper (`=1` ==> `=1`) (@foroptb A).
+#[global] Instance foroptb_proper_pointwise A : Proper (`≐1` ==> `≐1`) (@foroptb A).
 Proof.
-  intros f g Hfg y; rewrite /foroptb.
-  destruct y; simpl; rewrite // ?Hfg.
+  intros f g Hfg y; rw /foroptb.
+  destruct y; simpl; rw // ?Hfg.
 Qed.
 
 Lemma foroptb_impl {A} (f g : A -> bool) x : (forall x, f x -> g x) -> foroptb f x -> foroptb g x.

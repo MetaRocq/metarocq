@@ -99,33 +99,33 @@ Qed.
 
 #[export] Instance Qsubst_Qfixs {etfl : ETermFlags} Q : Qpres Q -> Qfix Q -> Qsubst Q -> Qfixs Q.
 Proof.
-  move=> qpres qfix; rewrite /Qsubst /Qfixs.
+  move=> qpres qfix; rw /Qsubst /Qfixs.
   intros Hs mfix idx hfix args fn.
   assert (hasfix : has_tFix).
   { eapply qpres in hfix. now depelim hfix. }
-  rewrite /cunfold_fix.
+  rw /cunfold_fix.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qfix_subst _ _ hasfix qfix qpres idx H hfix).
   intros [= <-]. subst fn.
-  eapply Hs. rewrite fix_subst_length //.
-  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
+  eapply Hs. rw fix_subst_length //.
+  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rw Nat.add_0_r in a.
   assumption.
 Qed.
 
 #[export] Instance Qsubst_Qcofixs {etfl : ETermFlags} Q : Qpres Q -> Qcofix Q -> Qsubst Q -> Qcofixs Q.
 Proof.
-  move=> qpres qfix; rewrite /Qsubst /Qfixs.
+  move=> qpres qfix; rw /Qsubst /Qfixs.
   intros Hs mfix idx hfix args fn.
   assert (hasfix : has_tCoFix).
   { eapply qpres in hfix. now depelim hfix. }
-  rewrite /cunfold_cofix.
+  rw /cunfold_cofix.
   destruct nth_error eqn:hnth => //.
   pose proof (nth_error_Some_length hnth).
   epose proof (Qcofix_subst _ _ hasfix qfix qpres idx H hfix).
   intros [= <-]. subst fn.
-  eapply Hs. rewrite cofix_subst_length //.
-  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rewrite Nat.add_0_r in a.
+  eapply Hs. rw cofix_subst_length //.
+  eapply qpres in hfix. depelim hfix. depelim i0. eapply nth_error_all in a; tea. now rw Nat.add_0_r in a.
   assumption.
 Qed.
 
@@ -385,7 +385,7 @@ Proof.
     destruct decompose_app as [hd args] eqn:da.
     destruct (construct_viewc hd) eqn:cv.
     * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      clear IH; rewrite ha in ev1. exfalso.
+      clear IH; rw ha in ev1. exfalso.
       eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       split. eapply X; tea; (apply and_assum; [ih|hp' P'Q]).
@@ -394,7 +394,7 @@ Proof.
     destruct decompose_app as [hd args] eqn:da.
     destruct (construct_viewc hd) eqn:cv.
     * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      clear IH; rewrite ha in ev1. exfalso.
+      clear IH; rw ha in ev1. exfalso.
       eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       assert (ql : Q 0 (tLambda na b)).
@@ -423,15 +423,15 @@ Proof.
     assert (isEtaExp Σ (iota_red pars args br)).
     { eapply isEtaExp_iota_red.
       assert (isEtaExp Σ (mkApps (tConstruct ind c []) args)) by iheta q.
-      rewrite isEtaExp_mkApps_napp /= // in H. rewrite andb_true_r in H.
+      rw isEtaExp_mkApps_napp /= // in H. rw andb_true_r in H.
       now move/andP: H => [].
       now clear IH; eapply nth_error_forallb in e1; tea. }
     assert (Q 0 (iota_red pars args br)).
     { unfold iota_red.
       eapply nth_error_all in a; tea. cbn in a.
-      rewrite -e3 in a.
-      rewrite -(List.length_rev (skipn pars args)) in a.
-      rewrite Nat.add_0_r in a.
+      rw -e3 in a.
+      rw -(List.length_rev (skipn pars args)) in a.
+      rw Nat.add_0_r in a.
       eapply (qsubst _ (List.rev (skipn pars args))) in a.
       2:{ eapply All_rev, All_skipn.
         assert (Q 0 (mkApps (tConstruct ind c []) args)).
@@ -439,26 +439,26 @@ Proof.
         eapply qapp in X13; tea. eapply X13. }
       exact a. }
     split. eapply X2; tea. 1,3:(apply and_assum; [ih|hp' P'Q]).
-    eapply nth_error_all in a; tea; cbn. now rewrite Nat.add_0_r in a.
+    eapply nth_error_all in a; tea; cbn. now rw Nat.add_0_r in a.
     iheta X13.
   - congruence.
   - simp_eta; move=> /andP[etad etabrs].
     assert (isEtaExp Σ (substl (repeat tBox #|n|) f)).
-    { eapply isEtaExp_substl => //. rewrite forallb_repeat //.
-      rewrite e0 /= in etabrs. now move/andP: etabrs. }
+    { eapply isEtaExp_substl => //. rw forallb_repeat //.
+      rw e0 /= in etabrs. now move/andP: etabrs. }
     assert (Q 0 (substl (repeat tBox #|n|) f)).
     { subst brs. eapply All_tip in a. cbn in a.
-      rewrite -(repeat_length tBox #|n|) Nat.add_0_r in a.
+      rw -(repeat_length tBox #|n|) Nat.add_0_r in a.
       eapply (qsubst _ (repeat tBox #|n|)) in a => //.
       eapply All_repeat. eapply P'Q; tea; ih. }
    split. eapply X3; tea. 1,3:(apply and_assum; [ih|hp' P'Q]).
-   subst brs.  depelim a. now rewrite Nat.add_0_r in q0.
+   subst brs.  depelim a. now rw Nat.add_0_r in q0.
    iheta X13.
   - move/isEtaExp_tApp.
     destruct decompose_app as [hd args] eqn:da.
     destruct (construct_viewc hd) eqn:cv.
     * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      clear IH; rewrite ha in ev1. exfalso.
+      clear IH; rw ha in ev1. exfalso.
       eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       pose proof (ev1' := ev1). eapply P'Q in ev1' => //. 2:{ clear ev1'; ih. }
@@ -468,16 +468,16 @@ Proof.
       assert (qf : Q 0 fn).
       { eapply (qfixs mfix idx) in hfix; tea. }
       assert (qa : Q 0 (tApp (mkApps fn argsv) av)).
-      { rewrite -[tApp _ _](mkApps_app _ _ [av]).
+      { rw -[tApp _ _](mkApps_app _ _ [av]).
         unshelve eapply (qapp _ _ _ _).2; auto.
         split => //.
         eapply (qfixs mfix idx) in hfix; tea.
         eapply All_app_inv => //. eapply All_tip.1.
         eapply P'Q; tea; ih. }
       assert (etaapp : isEtaExp Σ fn × isEtaExp Σ (tApp (mkApps fn argsv) av)).
-      { rewrite -[tApp _ _](mkApps_app _ _ [av]).
+      { rw -[tApp _ _](mkApps_app _ _ [av]).
         assert (efix : isEtaExp Σ (mkApps (tFix mfix idx) argsv)) by iheta q.
-        rewrite isEtaExp_mkApps_napp /= // in efix.
+        rw isEtaExp_mkApps_napp /= // in efix.
         move/andP: efix => [efix hargs].
         apply MRProd.and_assum.
         eapply isEtaExp_cunfold_fix. now simp_eta in efix. exact e.
@@ -492,23 +492,23 @@ Proof.
     destruct decompose_app as [hd args] eqn:da.
     destruct (construct_viewc hd) eqn:cv.
     * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      clear IH; rewrite ha in ev1. exfalso.
+      clear IH; rw ha in ev1. exfalso.
       eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       assert (isEtaExp Σ (tApp (mkApps (tFix mfix idx) argsv) av)).
-      { rewrite -[tApp _ _](mkApps_app _ _ [av]).
-        rewrite isEtaExp_mkApps_napp // /=.
+      { rw -[tApp _ _](mkApps_app _ _ [av]).
+        rw isEtaExp_mkApps_napp // /=.
         assert (isEtaExp Σ (mkApps (tFix mfix idx) argsv)) by iheta q.
         assert (isEtaExp Σ av) by iheta q0.
-        rewrite isEtaExp_mkApps_napp // /= in H.
+        rw isEtaExp_mkApps_napp // /= in H.
         move/andP: H => [] -> /=.
-        rewrite forallb_app /= H0 => -> /= //. }
+        rw forallb_app /= H0 => -> /= //. }
       split => //. eapply X5; tea; (apply and_assum; [ih|hp' P'Q]).
   - move/isEtaExp_tApp.
     destruct decompose_app as [hd args] eqn:da.
     destruct (construct_viewc hd) eqn:cv.
     * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      clear IH; rewrite ha in ev1. exfalso.
+      clear IH; rw ha in ev1. exfalso.
       eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       assert (qav : Q 0 av).
@@ -527,7 +527,7 @@ Proof.
         eapply isEtaExp_mkApps_intro => //.
         now eapply All_tip.1. }
       split. eapply X6; tea. 1-3:(apply and_assum; [ih|hp' P'Q]).
-      rewrite (decompose_app_inv da). eapply isEtaExp_mkApps_intro => //.
+      rw (decompose_app_inv da). eapply isEtaExp_mkApps_intro => //.
       now eapply forallb_All in etaargs.
       iheta qa.
   - simp_eta. move=> /andP[etad etabrs].
@@ -540,13 +540,13 @@ Proof.
       clear ev1'; ih. }
     assert (etafn : isEtaExp Σ fn && forallb (isEtaExp Σ) args).
     { assert (hfix : isEtaExp Σ (mkApps (tCoFix mfix idx) args)) by iheta q.
-      rewrite isEtaExp_mkApps_napp /= // in hfix.
+      rw isEtaExp_mkApps_napp /= // in hfix.
       move/andP: hfix => [hfix hargs].
       apply/andP; split => //.
       eapply isEtaExp_cunfold_cofix. now simp_eta in hfix. exact e. }
     move/andP: etafn => [] etaf etaargs.
     assert (etac : isEtaExp Σ (tCase ip (mkApps fn args) brs)).
-    { simp_eta. rewrite etabrs andb_true_r.
+    { simp_eta. rw etabrs andb_true_r.
       eapply isEtaExp_mkApps_intro => //.
       now eapply forallb_All in etaargs. }
     split. eapply X7; tea; (apply and_assum; [ih|hp' P'Q]).
@@ -561,7 +561,7 @@ Proof.
       clear ev1'; ih. }
     assert (etafn : isEtaExp Σ fn && forallb (isEtaExp Σ) args).
     { assert (hfix : isEtaExp Σ (mkApps (tCoFix mfix idx) args)) by iheta q.
-      rewrite isEtaExp_mkApps_napp /= // in hfix.
+      rw isEtaExp_mkApps_napp /= // in hfix.
       move/andP: hfix => [hfix hargs].
       apply/andP; split => //.
       eapply isEtaExp_cunfold_cofix. now simp_eta in hfix. exact e. }
@@ -574,11 +574,11 @@ Proof.
     iheta qa.
   - move => _.
     assert (Q 0 body).
-    { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }
+    { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rw e in isdecl. }
     assert (isEtaExp Σ body).
     { eapply isEtaExp_lookup in etaΣ as etad; tea.
       unfold isEtaExp_decl, isEtaExp_constant_decl in etad.
-      now rewrite e /= in etad. }
+      now rw e /= in etad. }
     split. eapply X9; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta X13.
   - simp_eta => etadiscr.
@@ -590,7 +590,7 @@ Proof.
     assert (isEtaExp Σ a).
     { assert (isEtaExp Σ (mkApps (tConstruct p.(proj_ind) 0 []) args)) by iheta q.
       move: H; simp_eta.
-      rewrite isEtaExp_mkApps_napp // /=.
+      rw isEtaExp_mkApps_napp // /=.
       move=> /andP[] /andP[] etaapp etaargs.
       eapply nth_error_forallb in etaargs; tea. eauto. }
     split. eapply X10; tea; (apply and_assum; [ih|hp' P'Q]).
@@ -617,15 +617,15 @@ Proof.
       { eapply All_app_inv. eapply qapp in q as []; auto.
         now eapply All_tip.1. }
       assert (All (isEtaExp Σ) (remove_last args ++ [a])).
-      { rewrite ht -(remove_last_last args a argsn). now eapply forallb_All. }
+      { rw ht -(remove_last_last args a argsn). now eapply forallb_All. }
       eapply All2_All_mix_left in X15; tea.
       assert (All2 (fun x y => P' x y × isEtaExp Σ y) (remove_last args ++ [a]) (ex ++ [a'])).
       { clear X13. eapply All2_All_mix_left in X15; tea.
         eapply All2_impl; tea. cbn. intros ? ? [? [? [ev ?]]].
         eapply (IH _ _ q1 ev). lia. auto. }
-      rewrite (remove_last_last args a argsn) in etaargs.
-      rewrite -[tApp _ _](mkApps_app _ _ [a]).
-      rewrite -[tApp _ _](mkApps_app _ _ [a']).
+      rw (remove_last_last args a argsn) in etaargs.
+      rw -[tApp _ _](mkApps_app _ _ [a]).
+      rw -[tApp _ _](mkApps_app _ _ [a']).
       assert (All (fun x => Q 0 x × isEtaExp Σ x) (ex ++ [a'])).
       { eapply All2_mix in X15; tea. cbn in X15.
         eapply All2_All_mix_left in X15. 2:exact X14.
@@ -634,15 +634,15 @@ Proof.
       eapply mkApps_eq_inj in e1 as [] => //. subst ex. noconf H.
       split.
       unshelve eapply Xcappexp; tea.
-      + rewrite ht -remove_last_last //.
-        move: etaind; rewrite /isEtaExp_app.
-        rewrite (lookup_constructor_pars_args_cstr_arity _ _ _ _ _ _ e0).
-        move/Nat.leb_le. move: l. rewrite /cstr_arity.
+      + rw ht -remove_last_last //.
+        move: etaind; rw /isEtaExp_app.
+        rw (lookup_constructor_pars_args_cstr_arity _ _ _ _ _ _ e0).
+        move/Nat.leb_le. move: l. rw /cstr_arity.
         eapply All2_length in X13. move: X13.
-        rewrite ht /= -remove_last_last //. len.
+        rw ht /= -remove_last_last //. len.
       + eapply All2_app. eapply All2_impl; tea. cbn. now intros ? ? [].
         constructor; [|constructor]. apply ev2.
-      + rewrite ht. rewrite -remove_last_last //.
+      + rw ht. rw -remove_last_last //.
       + eapply qapp in q as []; auto.
         eapply qapp => //.
       + eapply qapp in q as [] => //. eapply qapp; auto. split => //.
@@ -654,21 +654,21 @@ Proof.
         eapply All2_impl; tea; cbn.
         intros x y [? [[] ?]].
         red. intuition auto.
-      + rewrite isEtaExp_Constructor.
-        apply/andP. split. rewrite -(All2_length X16).
-        rewrite ht -remove_last_last //.
+      + rw isEtaExp_Constructor.
+        apply/andP. split. rw -(All2_length X16).
+        rw ht -remove_last_last //.
         rtoProp. split. eauto.
         eapply All_forallb. eapply All_impl; tea. cbn; intuition auto. auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
-      rewrite -[tApp _ a'](mkApps_app _ _ [a']).
+      rw -[tApp _ a'](mkApps_app _ _ [a']).
       assert (P' f (mkApps (tConstruct ind c []) cargs) × isEtaExp Σ (mkApps (tConstruct ind c []) cargs)).
       { unshelve eapply IH; tea. cbn. lia. }
       exfalso.
       destruct X13 as [p'f etac].
-      move: etac. rewrite isEtaExp_Constructor.
-      move/andP => []. rewrite /isEtaExp_app.
-      rewrite /lookup_constructor_pars_args e0 /=.
-      move => /andP[] /Nat.leb_le. clear IH. move: l; rewrite /cstr_arity. lia.
+      move: etac. rw isEtaExp_Constructor.
+      move/andP => []. rw /isEtaExp_app.
+      rw /lookup_constructor_pars_args e0 /=.
+      move => /andP[] /Nat.leb_le. clear IH. move: l; rw /cstr_arity. lia.
   - congruence.
   - move/isEtaExp_tApp.
     destruct decompose_app as [hd args] eqn:da.
@@ -678,7 +678,7 @@ Proof.
       set (ev1' := ev1). change ev1 with ev1' in H at 1. clearbody ev1'. move: H.
       subst f. exfalso.
       eapply eval_mkApps_Construct_inv in ev1' as [? [hf' hargs']]. subst f'.
-      clear IH; move: i; rewrite !negb_or isConstructApp_mkApps /= !andb_false_r //.  auto.
+      clear IH; move: i; rw !negb_or isConstructApp_mkApps /= !andb_false_r //.  auto.
     * move=> /and4P [] etat0 etaargs etaa etat.
       split. eapply (X12 _ _ _ _ ev1); tea.
       1,3:(apply and_assum; [ih|hp' P'Q]).
@@ -751,7 +751,7 @@ Proof.
     eapply on_lambda; auto.
     eapply on_letin; rtoProp; intuition auto.
     eapply on_app; rtoProp; intuition auto.
-    constructor; cbn; auto. rewrite cstbl in H0.
+    constructor; cbn; auto. rw cstbl in H0.
     destruct args => //. constructor => //.
     eapply on_case; rtoProp; intuition auto. ELiftSubst.solve_all.
     eapply on_proj; auto.
@@ -763,12 +763,12 @@ Proof.
   - red. intros kn decl.
     move/(lookup_env_wellformed clΣ).
     unfold wf_global_decl. destruct cst_body => //.
-  - red. move=> hasapp n t args. rewrite wellformed_mkApps //.
+  - red. move=> hasapp n t args. rw wellformed_mkApps //.
     split; intros; rtoProp; intuition auto; solve_all.
   - red. intros. simpl in H0. simpl. rtoProp; intuition auto.
   - red. move=> hasproj n p discr. simpl; rtoProp; intuition auto.
   - red. move=> t args clt cll.
-    eapply wellformed_substl. solve_all. now rewrite Nat.add_0_r.
+    eapply wellformed_substl. solve_all. now rw Nat.add_0_r.
   - red. move=> n mfix idx. cbn. unfold EWellformed.wf_fix.
     intros; rtoProp; intuition auto; solve_all. now apply Nat.ltb_lt.
   - red. move=> n mfix idx. cbn. unfold EWellformed.wf_fix.
@@ -823,14 +823,14 @@ Proof.
   all:intros; repeat destruct_nary_times.
   all:intuition auto.
   - eapply eval_wellformed; tea => //.
-  - rewrite isEtaExp_Constructor => //.
+  - rw isEtaExp_Constructor => //.
     let X0 := multimatch goal with H : All2 _ _ _ |- _ => H end in
     let H1 := multimatch goal with H : _ = _ |- _ => H end in
-    rewrite -(All2_length X0) H1. cbn. rtoProp; intuition eauto.
+    rw -(All2_length X0) H1. cbn. rtoProp; intuition eauto.
     match goal with H : ?f ?n |- ?f ?n' => replace n' with n by congruence; exact H end.
     cbn; eapply All_forallb. eapply All2_All_right; tea.
     cbn. intros x y []; auto.
   - depelim X;try constructor. destruct a0. simp_eta. subst a'. cbn.
     apply All2_over_undep in a.
-    rewrite /test_array_model /=. rtoProp; intuition eauto. solve_all; now destruct H.
+    rw /test_array_model /=. rtoProp; intuition eauto. solve_all; now destruct H.
 Qed.

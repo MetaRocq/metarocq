@@ -93,16 +93,16 @@ Section CtxReduction.
       destruct p as [cr rd]. destruct c => //; simpl in *.
       depelim rd => //. noconf H.
       eapply red_step.
-      * constructor. rewrite e => //.
-      * rewrite -(firstn_skipn (S i) Δ).
+      * constructor. rw e => //.
+      * rw -(firstn_skipn (S i) Δ).
         eapply weakening_red_0; auto.
-        + rewrite firstn_length_le //.
+        + rw firstn_length_le //.
           eapply nth_error_Some_length in e. lia.
         + move: onΔ.
-          rewrite -{1}(firstn_skipn (S i) Δ) on_ctx_free_vars_app.
+          rw -{1}(firstn_skipn (S i) Δ) on_ctx_free_vars_app.
           move=> /andP [] _; apply.
         + pose proof (nth_error_Some_length e).
-          rewrite firstn_length_le //.
+          rw firstn_length_le //.
           eapply (nth_error_on_free_vars_ctx _ 0) in onΔ; tea.
           now move/andP: onΔ=> [] /=.
     - repeat econstructor; eassumption.
@@ -113,13 +113,13 @@ Section CtxReduction.
     - eapply red_abs_alt; eauto.
       unshelve eapply (IHr (shiftnP 1 P)); tea.
       3:repeat (constructor; auto).
-      all:rewrite on_ctx_free_vars_snoc ?onΓ ?onΔ /= //; auto with fvs.
+      all:rw on_ctx_free_vars_snoc ?onΓ ?onΔ /= //; auto with fvs.
     - eapply red_letin; eauto.
     - eapply red_letin; eauto.
     - unshelve eapply red_letin_alt; eauto.
       eapply IHr; tea.
       3:repeat (constructor; auto).
-      all:rewrite on_ctx_free_vars_snoc ?onΓ ?onΔ /= //; auto with fvs.
+      all:rw on_ctx_free_vars_snoc ?onΓ ?onΔ /= //; auto with fvs.
     - eapply red_case_pars; eauto; pcuic.
       solve_all. eapply OnOne2_All_mix_left in X; tea.
       eapply OnOne2_All2; tea => /=; intuition eauto.
@@ -142,8 +142,8 @@ Section CtxReduction.
     - eapply red_prod_alt; eauto.
     - eapply red_prod_alt; eauto.
       eapply IHr; tea.
-      * rewrite on_ctx_free_vars_snoc onΓ; auto with fvs.
-      * rewrite on_ctx_free_vars_snoc onΔ; auto with fvs.
+      * rw on_ctx_free_vars_snoc onΓ; auto with fvs.
+      * rw on_ctx_free_vars_snoc onΔ; auto with fvs.
       * constructor; auto. now constructor.
     - eapply red_evar. simpl in ont.
       solve_all. eapply OnOne2_All_mix_left in X; tea.
@@ -225,7 +225,7 @@ Section CtxReduction.
     on_ctx_free_vars P (d :: Γ) =
     on_ctx_free_vars (addnP 1 P) Γ && (P 0 ==> on_free_vars_decl (addnP 1 P) d).
   Proof using Type.
-    rewrite (on_ctx_free_vars_app _ _ [_]) on_ctx_free_vars_tip /=.
+    rw (on_ctx_free_vars_app _ _ [_]) on_ctx_free_vars_tip /=.
     bool_congr.
   Qed.
 
@@ -236,12 +236,12 @@ Section CtxReduction.
   Proof using wfΣ.
     intros onΓ.
     induction 1 in P, onΓ |- *; auto.
-    rewrite /= on_ctx_free_vars_cons in onΓ.
-    rewrite on_ctx_free_vars_cons.
+    rw /= on_ctx_free_vars_cons in onΓ.
+    rw on_ctx_free_vars_cons.
     move/andP: onΓ => [] onΓ ond.
-    rewrite (IHX _ onΓ) /=.
+    rw (IHX _ onΓ) /=.
     case: (P 0) ond => //=.
-    rewrite /on_free_vars_decl /test_decl /=.
+    rw /on_free_vars_decl /test_decl /=.
     case: p; intros; eauto using red_on_free_vars.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
@@ -256,23 +256,23 @@ Section CtxReduction.
   Proof using wfΣ.
     intros onΓ onΔ.
     induction 1 in onΓ, P, onΔ |- *; auto.
-    rewrite /= on_ctx_free_vars_cons in onΔ.
-    rewrite on_ctx_free_vars_cons.
+    rw /= on_ctx_free_vars_cons in onΔ.
+    rw on_ctx_free_vars_cons.
     move/andP: onΔ => [] onΔ ond.
-    rewrite (IHX _ _ onΔ) /=.
-    { rewrite addnP_add Nat.add_1_r //. }
+    rw (IHX _ _ onΔ) /=.
+    { rw addnP_add Nat.add_1_r //. }
     case: (P 0) ond => //=.
-    rewrite /on_free_vars_decl /test_decl /=.
+    rw /on_free_vars_decl /test_decl /=.
     case: p; intros; eauto using red_on_free_vars.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
       intros _ ond. eapply red_on_free_vars. 3:tea. 2:auto.
-      now rewrite on_ctx_free_vars_app onΔ onΓ.
+      now rw on_ctx_free_vars_app onΔ onΓ.
     - move/andP: ond => [] /=; eauto using red_on_free_vars.
       intros. apply /andP. split.
       * eapply red_on_free_vars;revgoals;tea.
-        now rewrite on_ctx_free_vars_app onΔ onΓ.
+        now rw on_ctx_free_vars_app onΔ onΓ.
       * eapply red_on_free_vars;revgoals;tea.
-        now rewrite on_ctx_free_vars_app onΔ onΓ.
+        now rw on_ctx_free_vars_app onΔ onΓ.
   Qed.
 
   Definition on_ctx_free_vars_fold P ctx :=
@@ -280,9 +280,9 @@ Section CtxReduction.
       let k := Nat.pred #|ctx| - #|Γ| in
       P k ==> on_free_vars_decl (addnP (S k) P) d) ctx.
 
-  Lemma addnP_closedP n P : addnP 1 (closedP (S n) P) =1 closedP n (addnP 1 P).
+  Lemma addnP_closedP n P : addnP 1 (closedP (S n) P) ≐1 closedP n (addnP 1 P).
   Proof using Type.
-    intros i. rewrite /addnP /closedP /shiftnP /=.
+    intros i. rw /addnP /closedP /shiftnP /=.
     repeat (PCUICSigmaCalculus.nat_compare_specs => //).
   Qed.
 
@@ -292,7 +292,7 @@ Section CtxReduction.
   Proof using wfΣ.
     intros onctx H; induction H in onctx, Δ' |- *; auto.
     intros H'; depelim H'.
-    move: onctx; rewrite on_ctx_free_vars_cons => /andP[] /= onΓ ond.
+    move: onctx; rw on_ctx_free_vars_cons => /andP[] /= onΓ ond.
     setoid_rewrite addnP_closedP in onΓ.
     setoid_rewrite addnP_closedP in ond.
     intros.
@@ -377,17 +377,17 @@ Section CtxReduction.
   Proof using wfΣ.
     intros cl.
     split.
-    - rewrite /red_ctx_rel /red_context_rel; induction 1.
+    - rw /red_ctx_rel /red_context_rel; induction 1.
       * eapply OnOne2_local_env_All2_fold; tea => ? d d'.
         2:{ eapply red_decls_refl. }
         destruct d as [na [b|] ty], d' as [na' [b'|] ty']; cbn; intuition auto;
           subst; constructor; auto.
       * eapply All2_fold_refl => Δ [na [b|] ty]; constructor; auto; constructor 2.
-      * rewrite - !/(red_ctx_rel _ _ _ _) - !/(red_context_rel _ _ _ _) in X1 X2 IHX1 IHX2 *.
+      * rw - !/(red_ctx_rel _ _ _ _) - !/(red_context_rel _ _ _ _) in X1 X2 IHX1 IHX2 *.
         eapply red_context_app_same_left in IHX1 => //.
         eapply red_context_app_same_left in IHX2 => //.
         2:{ eapply red_context_on_ctx_free_vars; tea.
-            now rewrite -(All2_fold_length IHX1). }
+            now rw -(All2_fold_length IHX1). }
         eapply red_context_rel_inv.
         eapply red_context_trans; tea.
     - induction 1; try solve [constructor].
@@ -395,7 +395,7 @@ Section CtxReduction.
       * transitivity (vass na T' :: Γ0).
         { eapply red_one_decl_red_ctx_rel.
           do 2 constructor; auto. }
-        rewrite /= on_ctx_free_vars_cons in cl.
+        rw /= on_ctx_free_vars_cons in cl.
         move/andP: cl=> [] ond cl. specialize (IHX ond).
         clear -IHX.
         induction IHX; try now do 2 constructor.
@@ -406,7 +406,7 @@ Section CtxReduction.
         + transitivity (vdef na b' T' :: Γ0).
           ++ eapply red_one_decl_red_ctx_rel.
              do 2 constructor; auto.
-          ++ rewrite /= on_ctx_free_vars_cons in cl;
+          ++ rw /= on_ctx_free_vars_cons in cl;
               move/andP: cl=> [] ond cl. specialize (IHX ond). clear -IHX.
              induction IHX; try now do 2 constructor.
              econstructor 3; tea.

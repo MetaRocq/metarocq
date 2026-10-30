@@ -1,0 +1,42 @@
+-generate-meta-for-package rocq-metarocq-loop-checking
+
+-I src
+-I gen-src
+-R theories MetaRocq.LoopChecking
+
+src/g_metarocq_loop_checking_plugin.mlg
+src/metarocq_loop_checking_plugin.mlpack
+
+theories/Loader.v
+test/test.v
+
+# Extracted modules not provided by the template plugin
+# (common2 is LoopChecking.Common)
+gen-src/ssrbool.mli
+gen-src/ssrbool.ml
+gen-src/mRInstances.mli
+gen-src/mRInstances.ml
+gen-src/common2.mli
+gen-src/common2.ml
+gen-src/interfaces.mli
+gen-src/interfaces.ml
+gen-src/hornClauses.mli
+gen-src/hornClauses.ml
+gen-src/initialSemilattice.mli
+gen-src/initialSemilattice.ml
+gen-src/hornSemilatticeEquiv.mli
+gen-src/hornSemilatticeEquiv.ml
+gen-src/model.mli
+gen-src/model.ml
+gen-src/models.mli
+gen-src/models.ml
+gen-src/partialLoopChecking.mli
+gen-src/partialLoopChecking.ml
+gen-src/deciders.mli
+gen-src/deciders.ml
+gen-src/univLoopChecking.mli
+gen-src/univLoopChecking.ml
+gen-src/uGraph0.mli
+gen-src/uGraph0.ml
+gen-src/loopCheckingPlugin.mli
+gen-src/loopCheckingPlugin.ml

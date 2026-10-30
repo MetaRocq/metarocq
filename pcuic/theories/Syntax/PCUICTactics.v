@@ -53,10 +53,10 @@ Definition lengths :=
     @projs_length, ren_ids_length).
 
 Ltac len ::=
-  repeat (rewrite !lengths /= //); try solve [lia_f_equal].
+  repeat (rw !lengths /= //); try solve [lia_f_equal].
 
 Tactic Notation "len" "in" hyp(id) :=
-  repeat (rewrite !lengths /= // in id);
+  repeat (rw !lengths /= // in id);
   try solve [lia_f_equal].
 
 (* Can be used after [move] by ssr tactics, e.g. [rewrite foo => /lens] *)

@@ -80,7 +80,7 @@ Section Principality.
       destruct iA as [decl [? [e ?]]].
       eexists; int inversion_Rel.
       destruct hB as [decl' [? [e' ?]]].
-      rewrite e' in e. noconf e.
+      rw e' in e. noconf e.
       all: try eassumption.
     - apply inversion_Var in hA. destruct hA.
     - apply inversion_Evar in hA. destruct hA.
@@ -90,7 +90,7 @@ Section Principality.
       int inversion_Sort.
       repeat outsum. repeat outtimes. now subst.
     - apply inversion_Prod in hA as (dom1 & codom1 & t & t0 & w); auto.
-      pose proof (t.2.π2.2.p2) as Her. rewrite -t.2.π2.2.p1 /= in Her.
+      pose proof (t.2.π2.2.p2) as Her. rw -t.2.π2.2.p1 /= in Her.
       apply unlift_TypUniv in t.
       specialize (IHu1 _ _ t) as [dom Hdom].
       specialize (IHu2 _ _ t0) as [codom Hcodom].
@@ -194,7 +194,7 @@ Section Principality.
       destruct hB as [decl' [wf [declc' [cu cum]]]].
       unshelve epose proof (d_ := declared_constant_to_gen d); eauto.
       unshelve epose proof (declc'_ := declared_constant_to_gen declc'); eauto.
-      now rewrite -(declared_constant_inj _ _ d_ declc'_) in cum.
+      now rw -(declared_constant_inj _ _ d_ declc'_) in cum.
 
     - eapply inversion_Ind in hA as [mdecl [idecl [? [Hdecl ?]]]] => //; auto.
       repeat outtimes.
@@ -203,8 +203,8 @@ Section Principality.
       unshelve eapply declared_inductive_to_gen in Hdecl, Hdecl'; eauto.
       red in Hdecl, Hdecl'. destruct Hdecl as [? ?].
       destruct Hdecl' as [? ?]. red in H, H1.
-      rewrite H1 in H; noconf H.
-      rewrite H2 in H0; noconf H0.
+      rw H1 in H; noconf H.
+      rw H2 in H0; noconf H0.
       repeat intimes; eauto. now destruct p.
 
     - eapply inversion_Construct in hA as [mdecl [idecl [? [? [Hdecl ?]]]]] => //; auto.
@@ -215,9 +215,9 @@ Section Principality.
       red in Hdecl, Hdecl'.
       destruct Hdecl as [[? ?] ?].
       destruct Hdecl' as [[? ?] ?].
-      red in H, H2. rewrite H2 in H. noconf H.
-      rewrite H3 in H0. noconf H0.
-      rewrite H4 in H1. now noconf H1.
+      red in H, H2. rw H2 in H. noconf H.
+      rw H3 in H0. noconf H0.
+      rw H4 in H1. now noconf H1.
 
     - assert (wf Σ) by auto.
       eapply inversion_Case in hA as (mdecl&idecl&isdecl&indices&[]&?); auto.
@@ -241,7 +241,7 @@ Section Principality.
         now symmetry; apply red_terms_ws_cumul_pb_terms. }
       clear redr redr'.
       etransitivity; [|tea].
-      eapply ws_cumul_pb_mkApps; auto. rewrite /ptm /predctx.
+      eapply ws_cumul_pb_mkApps; auto. rw /ptm /predctx.
       * eapply PCUICGeneration.type_it_mkLambda_or_LetIn in pret_ty.
         eapply ws_cumul_pb_eq_le, wt_cumul_pb_refl. eapply pret_ty.
       * eapply All2_app. 2:constructor; auto.
@@ -272,7 +272,7 @@ Section Principality.
       split; cycle 1.
       eapply type_reduction in t0. 2:exact redr.
       eapply (type_Proj _ _ _ _ _ _ _ _ _ _ d0); simpl; auto.
-      now rewrite (All2_length a).
+      now rw (All2_length a).
       destruct (closed_red_confluence redr redr') as [nf [redl redr'']].
       eapply invert_red_mkApps_tInd in redl as [? [-> conv]]; auto.
       eapply invert_red_mkApps_tInd in redr'' as [? [[=] conv']]; auto.
@@ -310,16 +310,16 @@ Section Principality.
           eapply PCUICWeakeningTyp.weaken_wf_local; pcuic.
           eapply (wf_projection_context _ (p:=p)); pcuic. }
         eapply declared_projection_closed in d0; eauto.
-        cbn in d0. len. rewrite (declared_minductive_ind_npars d) in d0.
-        len. rewrite on_free_vars_subst_instance.
-        rewrite closedn_on_free_vars //.
+        cbn in d0. len. rw (declared_minductive_ind_npars d) in d0.
+        len. rw on_free_vars_subst_instance.
+        rw closedn_on_free_vars //.
         eapply closed_upwards; tea. lia.
       * eapply (substitution_ws_cumul_pb (Γ:=Γ) (Γ' := projection_context ind x6 x7 u') (Γ'' := [])); auto.
         eapply (projection_subslet _ _ _ _ _ _ p); eauto.
         simpl. eapply type_reduction; eauto. eapply redr. simpl.
         eapply type_reduction in t0. 2:eapply redr.
         eapply validity; eauto. simpl in redu'.
-        rewrite e0 in redu'.
+        rw e0 in redu'.
         unshelve epose proof (projection_cumulative_indices d _ H H0 redu').
         { unshelve eapply declared_projection_to_gen in d ; eauto.
           eapply (PCUICWeakeningEnv.weaken_lookup_on_global_env' _ _ _ (wfΣ : wf _) (proj1 (proj1 (proj1 d)))). }
@@ -331,7 +331,7 @@ Section Principality.
       exists (dtype decl).
       intros B hB.
       eapply inversion_Fix in hB as [decl' [hguard' [nthe' [wfΓ' [? [? ?]]]]]]=>//; auto.
-      rewrite nthe' in nthe; noconf nthe.
+      rw nthe' in nthe; noconf nthe.
       repeat split; eauto.
       eapply type_Fix; eauto.
 
@@ -340,7 +340,7 @@ Section Principality.
       exists (dtype decl).
       intros B hB.
       eapply inversion_CoFix in hB as [decl' [hguard' [nthe' [wfΓ' [? [? ?]]]]]]=>//; auto.
-      rewrite nthe' in nthe; noconf nthe.
+      rw nthe' in nthe; noconf nthe.
       repeat split; eauto.
       eapply type_CoFix; eauto.
     - apply inversion_Prim in hA as [prim_ty [cdecl []]] => //; pcuic.
@@ -381,7 +381,7 @@ Proof.
   solve_discr.
   repeat split; eauto.
   assert (#|args| = #|args'|).
-  now rewrite -(All2_length eqargs) -(All2_length eqargs') (All2_length a) (All2_length a0).
+  now rw -(All2_length eqargs) -(All2_length eqargs') (All2_length a) (All2_length a0).
   transitivity l'. now symmetry.
   transitivity args'' => //. now apply red_terms_ws_cumul_pb_terms.
   transitivity l''. symmetry. auto using red_terms_ws_cumul_pb_terms.
@@ -433,7 +433,7 @@ Lemma eq_context_upto_inst_case_context {cf : checker_flags} {Σ : global_env_ex
     (inst_case_context pars' puinst' ctx).
 Proof.
   intros onps oninst.
-  rewrite /inst_case_context.
+  rw /inst_case_context.
   eapply eq_context_upto_subst_context. 1,2: tc.
   eapply eq_context_upto_univ_subst_instance; tc; auto.
   eapply All2_rev. eapply All2_impl; tea.
@@ -488,7 +488,7 @@ Proof.
     2:{ pcuic. }
     specialize (X3 onu _ _ Hb X5_2).
     econstructor; eauto.
-    { specialize (X1 onu). rewrite e. apply lift_sorting_it_impl_gen with X1 => // IH. eapply IH; tea. 1: now eapply unlift_TypUniv in Ha. }
+    { specialize (X1 onu). rw e. apply lift_sorting_it_impl_gen with X1 => // IH. eapply IH; tea. 1: now eapply unlift_TypUniv in Ha. }
     apply leq_term_empty_leq_term in X5_2.
     eapply context_conversion; eauto.
     constructor; pcuic. 1: now eapply lift_sorting_forget_univ. constructor; try now symmetry; now constructor.
@@ -592,7 +592,7 @@ Proof.
     transitivity (subst0 (inds (inductive_mind ind) u (ind_bodies mdecl))
     (subst_instance u0 cdecl'.(cstr_type))).
     * have clctx : is_closed_context (Γ ,,, (arities_context (ind_bodies mdecl))@[u0]).
-      { rewrite on_free_vars_ctx_app. apply /andP ; split => //. fvs.
+      { rw on_free_vars_ctx_app. apply /andP ; split => //. fvs.
         erewrite PCUICOnFreeVars.on_free_vars_ctx_subst_instance.
         pose proof (declared_minductive_closed_arities declc).
         now eapply closed_ctx_on_free_vars in H0. }
@@ -606,19 +606,19 @@ Proof.
       simpl. eapply ws_cumul_pb_refl => //. tea.
       pose proof (declared_constructor_closed_gen_type declc) as cl.
       eapply closedn_on_free_vars in cl. len.
-      rewrite -shiftnP_add. len in cl.
-      now rewrite on_free_vars_subst_instance.
+      rw -shiftnP_add. len in cl.
+      now rw on_free_vars_subst_instance.
     * have cld : is_open_term (Γ ,,, arities_context (ind_bodies mdecl)) (cstr_type cdecl').
       { pose proof (declared_constructor_closed_gen_type declc) as cl.
         eapply closedn_on_free_vars in cl. len.
-        rewrite -shiftnP_add. len in cl. exact cl. }
+        rw -shiftnP_add. len in cl. exact cl. }
       constructor; auto. fvs.
       { eapply on_free_vars_subst. eapply inds_is_open_terms.
-        len. len in cld. rewrite shiftnP_add.
-        now rewrite on_free_vars_subst_instance. }
+        len. len in cld. rw shiftnP_add.
+        now rw on_free_vars_subst_instance. }
       { eapply on_free_vars_subst. eapply inds_is_open_terms.
-        len. len in cld. rewrite shiftnP_add.
-        now rewrite on_free_vars_subst_instance. }
+        len. len in cld. rw shiftnP_add.
+        now rw on_free_vars_subst_instance. }
       eapply PCUICEquality.subst_eq_term.
       eapply PCUICUnivSubstitutionConv.eq_term_upto_univ_subst_instance; eauto; typeclasses eauto.
 
@@ -641,14 +641,14 @@ Proof.
     * clear brs_ty.
       eapply ws_cumul_pb_eq_le.
       eapply ws_cumul_pb_mkApps; pcuic.
-      rewrite /ptm. constructor. fvs.
+      rw /ptm. constructor. fvs.
       eapply PCUICGeneration.type_it_mkLambda_or_LetIn in pret_ty. subst predctx0; fvs.
       eapply PCUICGeneration.type_it_mkLambda_or_LetIn in pret. subst predctx; fvs.
       eapply PCUICEquality.eq_term_upto_univ_it_mkLambda_or_LetIn; tea; tc.
-      rewrite /predctx.
-      rewrite /case_predicate_context /case_predicate_context_gen.
+      rw /predctx.
+      rw /case_predicate_context /case_predicate_context_gen.
       eapply eq_context_upto_names_map2_set_binder_name. tea.
-      rewrite /pre_case_predicate_context_gen.
+      rw /pre_case_predicate_context_gen.
       eapply eq_context_upto_inst_case_context => //.
       eapply All2_app. 2:constructor; pcuic.
       specialize (X3 _ _ scrut_ty (eq_term_empty_leq_term X10)).
@@ -667,7 +667,7 @@ Proof.
     eapply (type_ws_cumul_pb (pb:=Conv)).
     * clear a0.
       econstructor; eauto.
-      now rewrite (All2_length X3').
+      now rw (All2_length X3').
     * eapply PCUICValidity.validity; eauto.
       eapply type_Proj; eauto.
     * unshelve epose proof (isdecl_ := declared_projection_to_gen isdecl); eauto.
@@ -675,11 +675,11 @@ Proof.
       destruct (declared_projection_inj a_ isdecl_) as [-> [-> [-> ->]]].
       set (ctx := PCUICInductives.projection_context p.(proj_ind) mdecl idecl u).
       have clctx : is_closed_context (Γ,,, ctx).
-      { rewrite /ctx.
+      { rw /ctx.
         eapply validity in X1.
         eapply isType_mkApps_Ind_inv in X1 as [parsubst [argsubst []]]; tea. 2:exact a.
         epose proof (wf_projection_context _ _ a c1).
-        rewrite on_free_vars_ctx_app. apply /andP; split; fvs.
+        rw on_free_vars_ctx_app. apply /andP; split; fvs.
         eapply wf_local_closed_context in X1.
         eapply on_free_vars_ctx_impl; tea => //.
         move=> i //. }
@@ -695,12 +695,12 @@ Proof.
         eapply validity in X3; auto.
       + constructor. constructor; fvs.
         eapply All2_rev. eapply ws_cumul_pb_terms_refl => //; fvs.
-      + rewrite /ctx; eapply ws_cumul_pb_refl => //.
+      + rw /ctx; eapply ws_cumul_pb_refl => //.
         epose proof (declared_projection_closed a).
-        rewrite on_free_vars_subst_instance; len. len.
-        rewrite -(declared_minductive_ind_npars a).
+        rw on_free_vars_subst_instance; len. len.
+        rw -(declared_minductive_ind_npars a).
         eapply closedn_on_free_vars in H0.
-        now rewrite -plus_Sn_m -shiftnP_add.
+        now rw -plus_Sn_m -shiftnP_add.
 
   - eapply inversion_Fix in X4 as (decl' & fixguard' & Hnth & types' & bodies & wffix & cum); auto.
     eapply type_Cumul_alt.
@@ -726,7 +726,7 @@ Proof.
     depelim X0. destruct X4 as (_ & s & ? & _).
     econstructor; tea.
     eapply inversion_Prim in X2 as [prim_ty' [cdecl' []]]; eauto.
-    rewrite e2 in H. noconf H.
+    rw e2 in H. noconf H.
     unshelve eapply declared_constant_to_gen in H0, d; tea.
     pose proof (declared_constant_inj _ _ H0 d). subst cdecl'.
     simp prim_type in w |- *.

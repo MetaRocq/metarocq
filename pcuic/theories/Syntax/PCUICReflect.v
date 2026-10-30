@@ -28,7 +28,7 @@ Local Ltac term_dec_tac term_dec :=
          | u : sort, u' : sort |- _ => fcase (eq_dec u u')
          | x : Instance.t, y : Instance.t |- _ =>
            fcase (eq_dec x y)
-         | x : list Level.t, y : Instance.t |- _ =>
+         | x : Instance.t, y : Instance.t |- _ =>
            fcase (eq_dec x y)
          | x : list aname, y : list aname |- _ => fcase (eq_dec x y)
          | n : nat, m : nat |- _ => fcase (Nat.eq_dec n m)
@@ -178,11 +178,11 @@ Proof.
   induction a; intros []; cbn; try constructor; try congruence.
   destruct (IHa l0).
   destruct (p0 a0); try constructor; try congruence.
-  rewrite andb_false_r. constructor; congruence.
+  rw andb_false_r. constructor; congruence.
 Qed.
 
 Local Ltac t := try constructor; intuition auto; try congruence.
-Local Ltac t' := rewrite /= ?andb_false_r ?andb_true_r /=; t.
+Local Ltac t' := rw /= ?andb_false_r ?andb_true_r /=; t.
 
 Lemma reflect_prop_context_decl d d' :
   ondecl (fun x : term => forall y : term, reflectProp (x = y) (eqb_term x y)) d ->

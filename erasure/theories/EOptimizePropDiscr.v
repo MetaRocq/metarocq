@@ -77,24 +77,24 @@ Section remove_match_on_box.
   Lemma remove_match_on_box_mkApps f l : remove_match_on_box (mkApps f l) = mkApps (remove_match_on_box f) (map remove_match_on_box l).
   Proof using Type.
     induction l using rev_ind; simpl; auto.
-    now rewrite mkApps_app /= IHl map_app /= mkApps_app /=.
+    now rw mkApps_app /= IHl map_app /= mkApps_app /=.
   Qed.
 
   Lemma map_repeat {A B} (f : A -> B) x n : map f (repeat x n) = repeat (f x) n.
   Proof using Type.
-    now induction n; simpl; auto; rewrite IHn.
+    now induction n; simpl; auto; rw IHn.
   Qed.
 
   Lemma map_remove_match_on_box_repeat_box n : map remove_match_on_box (repeat tBox n) = repeat tBox n.
-  Proof using Type. by rewrite map_repeat. Qed.
+  Proof using Type. by rw map_repeat. Qed.
 
   Import ECSubst.
 
   Lemma csubst_mkApps {a k f l} : csubst a k (mkApps f l) = mkApps (csubst a k f) (map (csubst a k) l).
   Proof using Type.
     induction l using rev_ind; simpl; auto.
-    rewrite mkApps_app /= IHl.
-    now rewrite -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
+    rw mkApps_app /= IHl.
+    now rw -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
   Qed.
 
   Lemma csubst_closed t k x : closedn k x -> csubst t k x = x.
@@ -118,12 +118,12 @@ Section remove_match_on_box.
     - move/andP: H => [] clt cll. unfold isprop_ind.
       destruct GlobalContextMap.inductive_isprop_and_pars as [[[|] _]|] => /= //.
       destruct l as [|[br n] [|l']] eqn:eql; simpl.
-      rewrite IHt //.
+      rw IHt //.
       depelim X. cbn in *.
-      rewrite andb_true_r in cll.
+      rw andb_true_r in cll.
       specialize (i _ cll).
       eapply closed_substl. solve_all. eapply All_repeat => //.
-      now rewrite repeat_length.
+      now rw repeat_length.
       rtoProp; solve_all. depelim cll. solve_all.
       depelim cll. depelim cll. solve_all.
       depelim cll. depelim cll. solve_all.
@@ -139,10 +139,10 @@ Section remove_match_on_box.
     csubst t k (subst l 0 b).
   Proof using Type.
     intros hl cl.
-    rewrite !closed_subst //.
-    rewrite distr_subst. f_equal.
+    rw !closed_subst //.
+    rw distr_subst. f_equal.
     symmetry. solve_all.
-    rewrite subst_closed //.
+    rw subst_closed //.
     eapply closed_upwards; tea. lia.
   Qed.
 
@@ -151,11 +151,11 @@ Section remove_match_on_box.
     substl s t = subst s 0 t.
   Proof using Type.
     induction s in t |- *; cbn; auto.
-    intros _. now rewrite subst_empty.
+    intros _. now rw subst_empty.
     move/andP=> []cla cls.
-    rewrite (subst_app_decomp [_]).
-    cbn. rewrite lift_closed //.
-    rewrite closed_subst //. now eapply IHs.
+    rw (subst_app_decomp [_]).
+    cbn. rw lift_closed //.
+    rw closed_subst //. now eapply IHs.
   Qed.
 
   Lemma substl_csubst_comm l t k b :
@@ -164,8 +164,8 @@ Section remove_match_on_box.
     csubst t k (substl l b).
   Proof using Type.
     intros hl cl.
-    rewrite substl_subst //.
-    rewrite substl_subst //.
+    rw substl_subst //.
+    rw substl_subst //.
     apply subst_csubst_comm => //.
   Qed.
 
@@ -184,10 +184,10 @@ Section remove_match_on_box.
       all:unfold on_snd; cbn.
       * f_equal; auto.
       * depelim X. simpl in *.
-        rewrite e //.
-        assert (#|br| = #|repeat tBox #|br| |). now rewrite repeat_length.
-        rewrite {2}H.
-        rewrite substl_csubst_comm //.
+        rw e //.
+        assert (#|br| = #|repeat tBox #|br| |). now rw repeat_length.
+        rw {2}H.
+        rw substl_csubst_comm //.
         solve_all. eapply All_repeat => //.
         now eapply closed_remove_match_on_box.
       * depelim X. depelim X.
@@ -195,11 +195,11 @@ Section remove_match_on_box.
         unfold on_snd; cbn. f_equal; eauto.
         f_equal; eauto.
         f_equal; eauto. f_equal; eauto.
-        rewrite map_map_compose; solve_all.
-      * rewrite ?map_map_compose; f_equal; eauto; solve_all.
-      * rewrite ?map_map_compose; f_equal; eauto; solve_all.
+        rw map_map_compose; solve_all.
+      * rw ?map_map_compose; f_equal; eauto; solve_all.
+      * rw ?map_map_compose; f_equal; eauto; solve_all.
     - destruct GlobalContextMap.inductive_isprop_and_pars as [[[|] _]|]=> //;
-      now rewrite IHb.
+      now rw IHb.
   Qed.
 
   Lemma remove_match_on_box_substl s t :
@@ -208,8 +208,8 @@ Section remove_match_on_box.
   Proof using Type.
     induction s in t |- *; simpl; auto.
     move/andP => [] cla cls.
-    rewrite IHs //. f_equal.
-    now rewrite remove_match_on_box_csubst.
+    rw IHs //. f_equal.
+    now rw remove_match_on_box_csubst.
   Qed.
 
   Lemma remove_match_on_box_iota_red pars args br :
@@ -218,15 +218,15 @@ Section remove_match_on_box.
   Proof using Type.
     intros cl.
     unfold EGlobalEnv.iota_red.
-    rewrite remove_match_on_box_substl //.
-    rewrite forallb_rev forallb_skipn //.
-    now rewrite map_rev map_skipn.
+    rw remove_match_on_box_substl //.
+    rw forallb_rev forallb_skipn //.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma remove_match_on_box_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def remove_match_on_box) mfix) = map remove_match_on_box (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto.
@@ -235,7 +235,7 @@ Section remove_match_on_box.
   Lemma remove_match_on_box_cofix_subst mfix : EGlobalEnv.cofix_subst (map (map_def remove_match_on_box) mfix) = map remove_match_on_box (EGlobalEnv.cofix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.cofix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto.
@@ -248,10 +248,10 @@ Section remove_match_on_box.
   Proof using Type.
     intros hfix.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error.
     intros [= <- <-] => /=. f_equal.
-    now rewrite remove_match_on_box_substl // remove_match_on_box_fix_subst.
+    now rw remove_match_on_box_substl // remove_match_on_box_fix_subst.
     discriminate.
   Qed.
 
@@ -262,10 +262,10 @@ Section remove_match_on_box.
   Proof using Type.
     intros hcofix.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error.
     intros [= <- <-] => /=. f_equal.
-    now rewrite remove_match_on_box_substl // remove_match_on_box_cofix_subst.
+    now rw remove_match_on_box_substl // remove_match_on_box_cofix_subst.
     discriminate.
   Qed.
 
@@ -289,13 +289,13 @@ Qed.
 Lemma eval_is_box {wfl:WcbvFlags} Σ t u : Σ ⊢ t ⇓ u -> is_box t -> u = EAst.tBox.
 Proof.
   intros ev; induction ev => //.
-  - rewrite is_box_tApp.
+  - rw is_box_tApp.
     intros isb. intuition congruence.
-  - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst => //.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. cbn in i.
+  - rw is_box_tApp. move/IHev1 => ?; solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?; solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?. subst => //.
+  - rw is_box_tApp. move/IHev1 => ?. subst. solve_discr.
+  - rw is_box_tApp. move/IHev1 => ?. subst. cbn in i.
     destruct EWcbvEval.with_guarded_fix => //.
   - destruct t => //.
 Qed.
@@ -362,7 +362,7 @@ Proof.
   intros ext wf; cbn.
   unfold inductive_isprop_and_pars. cbn.
   destruct lookup_env as [[]|] eqn:hl => //.
-  rewrite (extends_lookup wf ext hl).
+  rw (extends_lookup wf ext hl).
   destruct nth_error => //.
 Qed.
 
@@ -377,20 +377,20 @@ Proof.
   all:unfold wf_fix_gen, isprop_ind in *; rtoProp; intuition auto.
   all:try now f_equal; eauto; solve_all.
   - destruct cstr_as_blocks; rtoProp; eauto. f_equal. solve_all. destruct args; inv H2. reflexivity.
-  - rewrite !GlobalContextMap.inductive_isprop_and_pars_spec.
+  - rw !GlobalContextMap.inductive_isprop_and_pars_spec.
     assert (map (on_snd (remove_match_on_box Σ)) l = map (on_snd (remove_match_on_box Σ')) l) as -> by solve_all.
     assert (iss : isSome (lookup_inductive Σ p.1)).
-    { move: H2; rewrite /wf_brs; destruct lookup_inductive => //. }
-    rewrite (extends_inductive_isprop_and_pars H0 H1 iss).
+    { move: H2; rw /wf_brs; destruct lookup_inductive => //. }
+    rw (extends_inductive_isprop_and_pars H0 H1 iss).
     destruct inductive_isprop_and_pars as [[[]]|].
     destruct map => //. f_equal; eauto.
     destruct l0 => //. destruct p0 => //. f_equal; eauto.
     all:f_equal; eauto; solve_all.
-  - rewrite !GlobalContextMap.inductive_isprop_and_pars_spec.
-    rewrite (extends_inductive_isprop_and_pars H0 H1).
+  - rw !GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw (extends_inductive_isprop_and_pars H0 H1).
     destruct (lookup_projection) as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl => //.
     eapply lookup_projection_lookup_constructor in hl.
-    eapply lookup_constructor_lookup_inductive in hl. now rewrite hl.
+    eapply lookup_constructor_lookup_inductive in hl. now rw hl.
     destruct inductive_isprop_and_pars as [[[]]|] => //.
     all:f_equal; eauto.
 Qed.
@@ -413,7 +413,7 @@ Lemma lookup_env_remove_match_on_box_env_Some {efl : EEnvFlags} {Σ : GlobalCont
     [× extends_prefix Σ' Σ, wf_global_decl Σ' d &
       lookup_env (remove_match_on_box_env Σ) kn = Some (remove_match_on_box_decl Σ' d)].
 Proof.
-  rewrite GlobalContextMap.lookup_env_spec.
+  rw GlobalContextMap.lookup_env_spec.
   destruct Σ as [Σ map repr wf].
   induction Σ in map, repr, wf |- *; simpl; auto => //.
   intros wfg.
@@ -433,7 +433,7 @@ Proof.
     exists Σ''. split => //.
     * destruct ext as [? ->].
       now exists (a :: x).
-    * rewrite -hl'. f_equal.
+    * rw -hl'. f_equal.
       clear -wfg.
       eapply map_ext_in => kn hin. unfold on_snd. f_equal.
       symmetry. eapply wellformed_remove_match_on_box_decl_extends => //. cbn.
@@ -452,9 +452,9 @@ Lemma lookup_env_remove_match_on_box_env_None {efl : EEnvFlags} {Σ : GlobalCont
   GlobalContextMap.lookup_env Σ kn = None ->
   lookup_env (remove_match_on_box_env Σ) kn = None.
 Proof.
-  rewrite GlobalContextMap.lookup_env_spec.
+  rw GlobalContextMap.lookup_env_spec.
   destruct Σ as [Σ map repr wf].
-  cbn. intros hl. rewrite lookup_env_map_snd hl //.
+  cbn. intros hl. rw lookup_env_map_snd hl //.
 Qed.
 
 Lemma lookup_env_remove_match_on_box {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn :
@@ -462,10 +462,10 @@ Lemma lookup_env_remove_match_on_box {efl : EEnvFlags} {Σ : GlobalContextMap.t}
   lookup_env (remove_match_on_box_env Σ) kn = option_map (remove_match_on_box_decl Σ) (lookup_env Σ kn).
 Proof.
   intros wf.
-  rewrite -GlobalContextMap.lookup_env_spec.
+  rw -GlobalContextMap.lookup_env_spec.
   destruct (GlobalContextMap.lookup_env Σ kn) eqn:hl.
   - eapply lookup_env_remove_match_on_box_env_Some in hl as [Σ' [ext wf' hl']] => /=.
-    rewrite hl'. f_equal.
+    rw hl'. f_equal.
     eapply wellformed_remove_match_on_box_decl_extends; eauto.
     now eapply extends_prefix_extends. auto.
 
@@ -476,10 +476,10 @@ Lemma is_propositional_remove_match_on_box {efl : EEnvFlags} {Σ : GlobalContext
   wf_glob Σ ->
   inductive_isprop_and_pars Σ ind = inductive_isprop_and_pars (remove_match_on_box_env Σ) ind.
 Proof.
-  rewrite /inductive_isprop_and_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_remove_match_on_box (inductive_mind ind) wf).
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /inductive_isprop_and_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_remove_match_on_box (inductive_mind ind) wf).
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -488,10 +488,10 @@ Lemma is_propositional_cstr_remove_match_on_box {efl : EEnvFlags} {Σ : GlobalCo
   wf_glob Σ ->
   constructor_isprop_pars_decl Σ ind c = constructor_isprop_pars_decl (remove_match_on_box_env Σ) ind c.
 Proof.
-  rewrite /constructor_isprop_pars_decl => wf.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_remove_match_on_box (inductive_mind ind) wf).
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /constructor_isprop_pars_decl => wf.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw (lookup_env_remove_match_on_box (inductive_mind ind) wf).
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -500,10 +500,10 @@ Lemma lookup_inductive_pars_optimize {efl : EEnvFlags} {Σ : GlobalContextMap.t}
   wf_glob Σ ->
   EGlobalEnv.lookup_inductive_pars Σ ind = EGlobalEnv.lookup_inductive_pars (remove_match_on_box_env Σ) ind.
 Proof.
-  rewrite /lookup_inductive_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_remove_match_on_box ind wf).
-  rewrite /GlobalContextMap.lookup_inductive /GlobalContextMap.lookup_minductive.
+  rw /lookup_inductive_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_remove_match_on_box ind wf).
+  rw /GlobalContextMap.lookup_inductive /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
 
@@ -515,25 +515,25 @@ Lemma closed_iota_red pars c args brs br :
   closed (iota_red pars args br).
 Proof.
   intros clargs hnth hskip clbr.
-  rewrite /iota_red.
+  rw /iota_red.
   eapply ECSubst.closed_substl => //.
-  now rewrite forallb_rev forallb_skipn.
-  now rewrite List.length_rev hskip Nat.add_0_r.
+  now rw forallb_rev forallb_skipn.
+  now rw List.length_rev hskip Nat.add_0_r.
 Qed.
 
 Lemma isFix_mkApps t l : isFix (mkApps t l) = isFix t && match l with [] => true | _ => false end.
 Proof.
   induction l using rev_ind; cbn.
-  - now rewrite andb_true_r.
-  - rewrite mkApps_app /=. now destruct l => /= //; rewrite andb_false_r.
+  - now rw andb_true_r.
+  - rw mkApps_app /=. now destruct l => /= //; rw andb_false_r.
 Qed.
 
 Lemma lookup_constructor_remove_match_on_box {efl : EEnvFlags} {Σ : GlobalContextMap.t} {ind c} :
   wf_glob Σ ->
   lookup_constructor Σ ind c = lookup_constructor (remove_match_on_box_env Σ) ind c.
 Proof.
-  intros wfΣ. rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_remove_match_on_box // /=. destruct lookup_env => // /=.
+  intros wfΣ. rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_remove_match_on_box // /=. destruct lookup_env => // /=.
   destruct g => //.
 Qed.
 
@@ -541,7 +541,7 @@ Lemma constructor_isprop_pars_decl_inductive {Σ ind c} {prop pars cdecl} :
   constructor_isprop_pars_decl Σ ind c = Some (prop, pars, cdecl)  ->
   inductive_isprop_and_pars Σ ind = Some (prop, pars).
 Proof.
-  rewrite /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
+  rw /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
   destruct lookup_inductive as [[mdecl idecl]|]=> /= //.
   destruct nth_error => //. congruence.
 Qed.
@@ -561,68 +561,68 @@ Proof.
     eapply eval_closed in ev2; tea.
     eapply eval_closed in ev1; tea.
     econstructor; eauto.
-    rewrite remove_match_on_box_csubst // in IHev3.
+    rw remove_match_on_box_csubst // in IHev3.
     apply IHev3. eapply closed_csubst => //.
 
-  - move/andP => [] clb0 clb1. rewrite remove_match_on_box_csubst in IHev2.
+  - move/andP => [] clb0 clb1. rw remove_match_on_box_csubst in IHev2.
     now eapply eval_closed in ev1.
     econstructor; eauto. eapply IHev2, closed_csubst => //.
     now eapply eval_closed in ev1.
 
-  - move/andP => [] cld clbrs. rewrite remove_match_on_box_mkApps in IHev1.
-    have := (eval_closed _ clΣ _ _ cld ev1); rewrite closedn_mkApps => /andP[] _ clargs.
-    rewrite remove_match_on_box_iota_red in IHev2.
+  - move/andP => [] cld clbrs. rw remove_match_on_box_mkApps in IHev1.
+    have := (eval_closed _ clΣ _ _ cld ev1); rw closedn_mkApps => /andP[] _ clargs.
+    rw remove_match_on_box_iota_red in IHev2.
     eapply eval_closed in ev1 => //.
     unfold isprop_ind.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
-    rewrite (constructor_isprop_pars_decl_inductive e1).
+    rw GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw (constructor_isprop_pars_decl_inductive e1).
     eapply eval_iota; eauto.
-    now rewrite -is_propositional_cstr_remove_match_on_box.
-    rewrite nth_error_map e2 //. now len. cbn.
-    rewrite -e4. rewrite !length_skipn length_map //.
+    now rw -is_propositional_cstr_remove_match_on_box.
+    rw nth_error_map e2 //. now len. cbn.
+    rw -e4. rw !length_skipn length_map //.
     eapply IHev2.
     eapply closed_iota_red => //; tea.
     eapply nth_error_forallb in clbrs; tea. cbn in clbrs.
-    now rewrite Nat.add_0_r in clbrs.
+    now rw Nat.add_0_r in clbrs.
 
   - congruence.
 
   - move/andP => [] cld clbrs. unfold isprop_ind.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
-    rewrite e0 e1 /=.
-    subst brs. cbn in clbrs. rewrite Nat.add_0_r andb_true_r in clbrs.
-    rewrite remove_match_on_box_substl in IHev2.
+    rw GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw e0 e1 /=.
+    subst brs. cbn in clbrs. rw Nat.add_0_r andb_true_r in clbrs.
+    rw remove_match_on_box_substl in IHev2.
     eapply All_forallb, All_repeat => //.
-    rewrite map_remove_match_on_box_repeat_box in IHev2.
+    rw map_remove_match_on_box_repeat_box in IHev2.
     apply IHev2.
     eapply closed_substl.
     eapply All_forallb, All_repeat => //.
-    now rewrite repeat_length Nat.add_0_r.
+    now rw repeat_length Nat.add_0_r.
 
-  - move/andP => [] clf cla. rewrite remove_match_on_box_mkApps in IHev1.
+  - move/andP => [] clf cla. rw remove_match_on_box_mkApps in IHev1.
     simpl in *.
     eapply eval_closed in ev1 => //.
-    rewrite closedn_mkApps in ev1.
+    rw closedn_mkApps in ev1.
     move: ev1 => /andP [] clfix clargs.
     eapply EWcbvEval.eval_fix; eauto.
-    rewrite length_map.
+    rw length_map.
     eapply remove_match_on_box_cunfold_fix; tea.
     eapply closed_fix_subst. tea.
-    rewrite remove_match_on_box_mkApps in IHev3. apply IHev3.
-    rewrite closedn_mkApps clargs.
-    eapply eval_closed in ev2; tas. rewrite ev2 /= !andb_true_r.
+    rw remove_match_on_box_mkApps in IHev3. apply IHev3.
+    rw closedn_mkApps clargs.
+    eapply eval_closed in ev2; tas. rw ev2 /= !andb_true_r.
     eapply closed_cunfold_fix; tea.
 
   - move/andP => [] clf cla.
     eapply eval_closed in ev1 => //.
-    rewrite closedn_mkApps in ev1.
+    rw closedn_mkApps in ev1.
     move: ev1 => /andP [] clfix clargs.
     eapply eval_closed in ev2; tas.
-    rewrite remove_match_on_box_mkApps in IHev1 |- *.
+    rw remove_match_on_box_mkApps in IHev1 |- *.
     simpl in *. eapply EWcbvEval.eval_fix_value. auto. auto. auto.
     eapply remove_match_on_box_cunfold_fix; eauto.
     eapply closed_fix_subst => //.
-    now rewrite length_map.
+    now rw length_map.
 
   - move/andP => [] clf cla.
     eapply eval_closed in ev1 => //.
@@ -635,15 +635,15 @@ Proof.
     eapply closed_cunfold_fix; tea.
 
   - move/andP => [] cd clbrs. specialize (IHev1 cd).
-    rewrite closedn_mkApps in IHev2.
+    rw closedn_mkApps in IHev2.
     move: (eval_closed _ clΣ _ _ cd ev1).
-    rewrite closedn_mkApps.
+    rw closedn_mkApps.
     move/andP => [] clfix clargs.
     forward IHev2.
-    { rewrite clargs clbrs !andb_true_r.
+    { rw clargs clbrs !andb_true_r.
       eapply closed_cunfold_cofix; tea. }
     rewrite -> remove_match_on_box_mkApps in IHev1, IHev2. simpl. unfold isprop_ind in *.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
+    rw GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp => //.
     destruct brs as [|[a b] []]; simpl in *; auto.
     simpl in IHev1.
@@ -660,9 +660,9 @@ Proof.
 
   - intros cd. specialize (IHev1 cd).
     move: (eval_closed _ clΣ _ _ cd ev1).
-    rewrite closedn_mkApps; move/andP => [] clfix clargs. forward IHev2.
-    { rewrite closedn_mkApps clargs andb_true_r. eapply closed_cunfold_cofix; tea. }
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
+    rw closedn_mkApps; move/andP => [] clfix clargs. forward IHev2.
+    { rw closedn_mkApps clargs andb_true_r. eapply closed_cunfold_cofix; tea. }
+    rw GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp; auto.
     rewrite -> remove_match_on_box_mkApps in IHev1, IHev2. simpl in *.
     econstructor; eauto.
@@ -671,38 +671,38 @@ Proof.
     econstructor; eauto.
     apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
 
-  - rewrite /declared_constant in isdecl.
+  - rw /declared_constant in isdecl.
     move: (lookup_env_remove_match_on_box c wfΣ).
-    rewrite isdecl /= //.
+    rw isdecl /= //.
     intros hl.
-    econstructor; tea. cbn. rewrite e //.
+    econstructor; tea. cbn. rw e //.
     apply IHev.
     eapply lookup_env_closed in clΣ; tea.
-    move: clΣ. rewrite /closed_decl e //.
+    move: clΣ. rw /closed_decl e //.
 
   - move=> cld.
     eapply eval_closed in ev1; tea.
-    move: ev1; rewrite closedn_mkApps /= => clargs.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
-    rewrite (constructor_isprop_pars_decl_inductive e1).
-    rewrite remove_match_on_box_mkApps in IHev1.
+    move: ev1; rw closedn_mkApps /= => clargs.
+    rw GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw (constructor_isprop_pars_decl_inductive e1).
+    rw remove_match_on_box_mkApps in IHev1.
     specialize (IHev1 cld).
     eapply EWcbvEval.eval_proj; tea.
-    now rewrite -is_propositional_cstr_remove_match_on_box.
-    now len. rewrite nth_error_map e3 //.
+    now rw -is_propositional_cstr_remove_match_on_box.
+    now len. rw nth_error_map e3 //.
     eapply IHev2.
     eapply nth_error_forallb in e3; tea.
 
   - congruence.
 
-  - rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
-    now rewrite e0.
+  - rw GlobalContextMap.inductive_isprop_and_pars_spec.
+    now rw e0.
 
   - move/andP=> [] clf cla.
-    rewrite remove_match_on_box_mkApps.
+    rw remove_match_on_box_mkApps.
     eapply eval_construct; tea.
-    rewrite -lookup_constructor_remove_match_on_box //. exact e0.
-    rewrite remove_match_on_box_mkApps in IHev1. now eapply IHev1.
+    rw -lookup_constructor_remove_match_on_box //. exact e0.
+    rw remove_match_on_box_mkApps in IHev1. now eapply IHev1.
     now len.
     now eapply IHev2.
 
@@ -713,32 +713,32 @@ Proof.
     eapply EWcbvEval.eval_app_cong; eauto.
     eapply EWcbvEval.eval_to_value in ev1.
     destruct ev1; simpl in *; eauto.
-    * depelim a0. destruct t => //; rewrite ?remove_match_on_box_mkApps /=.
-      cbn in i. now rewrite !orb_false_r orb_true_r in i.
+    * depelim a0. destruct t => //; rw ?remove_match_on_box_mkApps /=.
+      cbn in i. now rw !orb_false_r orb_true_r in i.
     * destruct with_guarded_fix.
       + move: i.
-        rewrite !negb_or.
-        rewrite remove_match_on_box_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
+        rw !negb_or.
+        rw remove_match_on_box_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
+        destruct args using rev_case => // /=. rw map_app !mkApps_app /= //.
+        rw !andb_true_r.
         rtoProp; intuition auto.
         destruct v => /= //.
         destruct v => /= //.
         destruct v => /= //.
         destruct v => /= //.
       + move: i.
-        rewrite !negb_or.
-        rewrite remove_match_on_box_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
+        rw !negb_or.
+        rw remove_match_on_box_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
+        destruct args using rev_case => // /=. rw map_app !mkApps_app /= //.
         destruct v => /= //.
   - depelim X; repeat constructor.
     eapply All2_over_undep in a. eapply All2_All2_Set. eapply All2_Set_All2 in ev. subst a0 a'; cbn in *.
-    rewrite /test_array_model /= in H. rtoProp; intuition auto; solve_all. eapply e.
-    cbn in H. rewrite /test_array_model /= in H. now move/andP: H => [].
+    rw /test_array_model /= in H. rtoProp; intuition auto; solve_all. eapply e.
+    cbn in H. rw /test_array_model /= in H. now move/andP: H => [].
   - intros. econstructor; eauto. eapply IHev2. eapply eval_closed in ev1; tea.
   - destruct t => //.
     all:constructor; eauto. cbn [atom remove_match_on_box] in i |- *.
-    rewrite -lookup_constructor_remove_match_on_box //. destruct args => //.
+    rw -lookup_constructor_remove_match_on_box //. destruct args => //.
 Qed.
 
 From MetaRocq.Erasure Require Import EEtaExpanded.
@@ -752,10 +752,10 @@ Lemma remove_match_on_box_expanded {Σ : GlobalContextMap.t} t : expanded Σ t -
 Proof.
   induction 1 using expanded_ind.
   all:try solve[constructor; eauto; solve_all].
-  all:rewrite ?remove_match_on_box_mkApps.
+  all:rw ?remove_match_on_box_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn -[GlobalContextMap.inductive_isprop_and_pars]. unfold isprop_ind.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw GlobalContextMap.inductive_isprop_and_pars_spec.
     destruct inductive_isprop_and_pars as [[[|] _]|] => /= //.
     2-3:constructor; eauto; solve_all.
     destruct branches eqn:heq.
@@ -770,11 +770,11 @@ Proof.
     depelim H1. depelim H1. do 2 (constructor; intuition auto).
     solve_all.
   - cbn -[GlobalContextMap.inductive_isprop_and_pars].
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
+    rw GlobalContextMap.inductive_isprop_and_pars_spec.
     destruct inductive_isprop_and_pars as [[[|] _]|] => /= //.
     constructor. all:constructor; auto.
   - cbn. eapply expanded_tFix. solve_all.
-    rewrite isLambda_remove_match_on_box //.
+    rw isLambda_remove_match_on_box //.
   - eapply expanded_tConstruct_app; tea.
     now len. solve_all.
 Qed.
@@ -786,7 +786,7 @@ Proof.
   eapply expanded_tConstruct_app.
   destruct H as [[H ?] ?].
   split => //. split => //. red.
-  red in H. rewrite lookup_env_remove_match_on_box // /= H //. 1-2:eauto. auto. solve_all.
+  red in H. rw lookup_env_remove_match_on_box // /= H //. 1-2:eauto. auto. solve_all.
 Qed.
 
 Lemma remove_match_on_box_expanded_decl {Σ : GlobalContextMap.t} t : expanded_decl Σ t -> expanded_decl Σ (remove_match_on_box_decl Σ t).
@@ -816,13 +816,13 @@ Proof.
     unfold isprop_ind.
     destruct GlobalContextMap.inductive_isprop_and_pars as [[[|] _]|] => /= //.
     destruct l as [|[br n'] [|l']] eqn:eql; simpl.
-    all:rewrite ?hasc ?hs /= ?andb_true_r.
-    rewrite IHt //.
+    all:rw ?hasc ?hs /= ?andb_true_r.
+    rw IHt //.
     depelim X. cbn in hbrs.
-    rewrite andb_true_r in hbrs.
+    rw andb_true_r in hbrs.
     specialize (i _ hbrs).
     eapply wellformed_substl => //. solve_all. eapply All_repeat => //.
-    now rewrite repeat_length.
+    now rw repeat_length.
     cbn in hbrs; rtoProp; solve_all. depelim X; depelim X. solve_all.
     do 2 depelim X. solve_all.
     do 2 depelim X. solve_all.
@@ -830,7 +830,7 @@ Proof.
     rtoProp; solve_all. solve_all.
   - cbn -[GlobalContextMap.inductive_isprop_and_pars lookup_inductive]. move/andP => [] /andP[]hasc hs ht.
     destruct GlobalContextMap.inductive_isprop_and_pars as [[[|] _]|] => /= //.
-    all:rewrite hasc hs /=; eauto.
+    all:rw hasc hs /=; eauto.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all. now eapply isLambda_remove_match_on_box.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
   - cbn. rtoProp; intuition auto; solve_all_k 6.
@@ -844,23 +844,23 @@ Lemma remove_match_on_box_wellformed_irrel {efl : EEnvFlags} {Σ : GlobalContext
 Proof.
   intros wfΣ. induction t using EInduction.term_forall_list_ind; cbn => //.
   all:try solve [intros; unfold wf_fix_gen in *; rtoProp; intuition eauto; solve_all].
-  - rewrite lookup_env_remove_match_on_box //.
+  - rw lookup_env_remove_match_on_box //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct (cst_body c) => //.
-  - rewrite lookup_env_remove_match_on_box //.
+  - rw lookup_env_remove_match_on_box //.
     destruct lookup_env eqn:hl => // /=; intros; rtoProp; eauto.
     destruct g eqn:hg => /= //; intros; rtoProp; eauto.
     repeat split; eauto. destruct cstr_as_blocks; rtoProp; repeat split; len; eauto. 1: solve_all.
-  - rewrite /wf_brs; cbn. rewrite lookup_env_remove_match_on_box //.
+  - rw /wf_brs; cbn. rw lookup_env_remove_match_on_box //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => /= //.
     intros; rtoProp; intuition auto; solve_all.
-  - rewrite lookup_env_remove_match_on_box //.
+  - rw lookup_env_remove_match_on_box //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //.
-    rewrite andb_false_r => //.
+    rw andb_false_r => //.
     destruct nth_error => /= //.
     all:intros; rtoProp; intuition auto; solve_all.
 Qed.
@@ -923,14 +923,14 @@ Lemma remove_match_on_box_env_expanded {efl : EEnvFlags} {Σ : GlobalContextMap.
   wf_glob Σ -> expanded_global_env Σ -> expanded_global_env (remove_match_on_box_env Σ).
 Proof.
   unfold expanded_global_env; move=> wfg.
-  rewrite remove_match_on_box_env_eq //.
+  rw remove_match_on_box_env_eq //.
   destruct Σ as [Σ map repr wf]. cbn in *.
   clear map repr.
   induction 1; cbn; constructor; auto.
   cbn in IHexpanded_global_declarations.
   unshelve eapply IHexpanded_global_declarations. now depelim wfg. cbn.
   set (Σ' := GlobalContextMap.make _ _).
-  rewrite -(remove_match_on_box_env_eq Σ'). cbn. now depelim wfg.
+  rw -(remove_match_on_box_env_eq Σ'). cbn. now depelim wfg.
   eapply (remove_match_on_box_expanded_decl_irrel (Σ := Σ')). now depelim wfg.
   now unshelve eapply (remove_match_on_box_expanded_decl (Σ:=Σ')).
 Qed.
@@ -1024,11 +1024,11 @@ Section ExpandedFix.
   Proof.
     induction 1 using expanded_ind.
     all:try solve[constructor; eauto; solve_all].
-    all:rewrite ?remove_match_on_box_mkApps.
+    all:rw ?remove_match_on_box_mkApps.
     - cbn. eapply expanded_tRel_app; tea. now len. solve_all.
     - eapply expanded_mkApps_expanded; eauto; solve_all.
     - cbn -[GlobalContextMap.inductive_isprop_and_pars]. unfold isprop_ind.
-      rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
+      rw GlobalContextMap.inductive_isprop_and_pars_spec.
       destruct inductive_isprop_and_pars as [[[|] _]|] => /= //.
       2-3:constructor; eauto; solve_all.
       destruct branches eqn:heq.
@@ -1044,13 +1044,13 @@ Section ExpandedFix.
       depelim H0. depelim H0. depelim H2. do 2 (constructor; intuition auto).
       solve_all.
     - cbn -[GlobalContextMap.inductive_isprop_and_pars].
-      rewrite GlobalContextMap.inductive_isprop_and_pars_spec.
+      rw GlobalContextMap.inductive_isprop_and_pars_spec.
       destruct inductive_isprop_and_pars as [[[|] _]|] => /= //.
       constructor. all:constructor; auto.
-    - cbn. eapply expanded_tFix. 4:{ rewrite nth_error_map H4 //. }
+    - cbn. eapply expanded_tFix. 4:{ rw nth_error_map H4 //. }
       all:eauto; solve_all.
-      rewrite isLambda_remove_match_on_box //.
-      rewrite !rev_map_spec in b *; rewrite map_map /= //.
+      rw isLambda_remove_match_on_box //.
+      rw !rev_map_spec in b *; rw map_map /= //.
     - eapply expanded_tConstruct_app; tea.
       now len. solve_all.
   Qed.
@@ -1064,7 +1064,7 @@ Section ExpandedFix.
     eapply expanded_tConstruct_app.
     destruct H as [[H ?] ?].
     split => //. split => //. red.
-    red in H. rewrite lookup_env_remove_match_on_box // /= H //. 1-2:eauto. auto. solve_all.
+    red in H. rw lookup_env_remove_match_on_box // /= H //. 1-2:eauto. auto. solve_all.
   Qed.
 
   Lemma remove_match_on_box_expanded_fix_decl {Σ : GlobalContextMap.t} t : expanded_decl Σ t -> expanded_decl Σ (remove_match_on_box_decl Σ t).
@@ -1085,14 +1085,14 @@ Section ExpandedFix.
     wf_glob Σ -> expanded_global_env Σ -> expanded_global_env (remove_match_on_box_env Σ).
   Proof.
     unfold expanded_global_env; move=> wfg.
-    rewrite remove_match_on_box_env_eq //.
+    rw remove_match_on_box_env_eq //.
     destruct Σ as [Σ map repr wf]. cbn in *.
     clear map repr.
     induction 1; cbn; constructor; auto.
     cbn in IHexpanded_global_declarations.
     unshelve eapply IHexpanded_global_declarations. now depelim wfg. cbn.
     set (Σ' := GlobalContextMap.make _ _).
-    rewrite -(remove_match_on_box_env_eq Σ'). cbn. now depelim wfg.
+    rw -(remove_match_on_box_env_eq Σ'). cbn. now depelim wfg.
     eapply (remove_match_on_box_expanded_fix_decl_irrel (Σ := Σ')). now depelim wfg.
     now unshelve eapply (remove_match_on_box_expanded_fix_decl (Σ:=Σ')).
   Qed.

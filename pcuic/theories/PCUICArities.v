@@ -37,7 +37,7 @@ Definition wf_typing_spine {cf} {Σ Γ T args T'} :=
 Lemma isArity_it_mkProd_or_LetIn Γ t : isArity t -> isArity (it_mkProd_or_LetIn Γ t).
 Proof.
   intros isA. induction Γ using rev_ind; simpl; auto.
-  rewrite it_mkProd_or_LetIn_app. simpl; auto.
+  rw it_mkProd_or_LetIn_app. simpl; auto.
   destruct x as [? [?|] ?]; simpl; auto.
 Qed.
 
@@ -87,7 +87,7 @@ Proof.
     eapply consistent_instance_ext_abstract_instance; eauto.
     eapply declared_inductive_wf_global_ext; eauto with pcuic.
     unshelve eapply declared_minductive_from_gen; eauto with pcuic.
-    rewrite (subst_instance_ind_type_id Σ _ {| inductive_mind := inductive_mind ind; inductive_ind := i |}); eauto.
+    rw (subst_instance_ind_type_id Σ _ {| inductive_mind := inductive_mind ind; inductive_ind := i |}); eauto.
     unshelve eapply declared_inductive_from_gen; eauto with pcuic.
     reflexivity. }
   clear oind.
@@ -95,17 +95,17 @@ Proof.
   generalize (le_n #|ind_bodies mdecl|).
   generalize (ind_bodies mdecl) at 1 3 4 5.
   induction l using rev_ind; simpl; first constructor.
-  rewrite /subst_instance /= /map_context.
-  simpl. rewrite /arities_context rev_map_spec /=.
-  rewrite map_app /= rev_app_distr /=.
-  rewrite /= length_app /= Nat.add_1_r.
+  rw /subst_instance /= /map_context.
+  simpl. rw /arities_context rev_map_spec /=.
+  rw map_app /= rev_app_distr /=.
+  rw /= length_app /= Nat.add_1_r.
   constructor.
-  - rewrite -rev_map_spec. apply IHl; try lia.
+  - rw -rev_map_spec. apply IHl; try lia.
     eapply Alli_app in X; intuition auto.
   - eapply Alli_app in X as [oind Hx].
     depelim Hx. clear Hx.
-    rewrite Nat.add_0_r in t.
-    rewrite subst_closedn; auto.
+    rw Nat.add_0_r in t.
+    rw subst_closedn; auto.
     + eapply typecheck_closed in t as [? ?]; auto.
       destruct p as [? ?].
       now move/andb_and: i0=> [? ?].
@@ -162,21 +162,21 @@ Section WfEnv.
       * eapply ws_cumul_pb_Sort_l_inv in HT as [u' [redT leqT]].
         exists (tSort u'), [], u'; split; auto; cbn.
         apply ws_cumul_ctx_pb_refl; eauto with fvs.
-      * rewrite it_mkProd_or_LetIn_app in HT; simpl in HT.
+      * rw it_mkProd_or_LetIn_app in HT; simpl in HT.
         destruct x as [na [b|] ty]; unfold mkProd_or_LetIn in HT; simpl in *.
         + eapply ws_cumul_pb_LetIn_l_inv in HT; auto.
-          unfold subst1 in HT; rewrite subst_it_mkProd_or_LetIn in HT.
-          rewrite length_app /= Nat.add_1_r in Hlen.
-          simpl in HT. specialize (IHn (subst_context [b] 0 ctx) ltac:(rewrite
+          unfold subst1 in HT; rw subst_it_mkProd_or_LetIn in HT.
+          rw length_app /= Nat.add_1_r in Hlen.
+          simpl in HT. specialize (IHn (subst_context [b] 0 ctx) ltac:(rw
           subst_context_length; lia) Γ T HT).
           destruct IHn as [T' [ctx' [s' [redT destT convctx leq]]]].
           clear IHctx.
           exists T', ctx', s'. split; auto.
-          rewrite smash_context_app. simpl.
-          now rewrite -smash_context_subst_empty.
+          rw smash_context_app. simpl.
+          now rw -smash_context_subst_empty.
         + eapply ws_cumul_pb_Prod_l_inv in HT; auto.
           rewrite -> length_app in Hlen.
-          rewrite Nat.add_1_r in Hlen.
+          rw Nat.add_1_r in Hlen.
           destruct HT as [na' [A' [B' [redT convT HT]]]].
           specialize (IHn ctx ltac:(lia) (Γ ,, vass na' A') B').
           forward IHn. eapply ws_cumul_pb_ws_cumul_ctx; eauto.
@@ -190,9 +190,9 @@ Section WfEnv.
             split.
             3:eapply red_prod; [reflexivity|apply redT'].
             all:eauto with fvs.
-          -- now rewrite destArity_app destT.
-          -- rewrite smash_context_app /= .
-            rewrite !app_context_assoc.
+          -- now rw destArity_app destT.
+          -- rw smash_context_app /= .
+            rw !app_context_assoc.
             assert (#|smash_context [] ctx| = #|ctx'|).
             { apply All2_fold_length in convctx.
               autorewrite with len in convctx |- *.
@@ -205,9 +205,9 @@ Section WfEnv.
             eapply ws_cumul_ctx_pb_refl; eauto with fvs.
             eapply ws_cumul_ctx_pb_closed_left in convctx.
             move: convctx.
-            rewrite !on_free_vars_ctx_app. autorewrite with fvs.
-            move/andP => [] /andP[] -> /=; cbn; rewrite andb_true_r => onA' ->.
-            rewrite shiftnP0 andb_true_r; eauto with fvs.
+            rw !on_free_vars_ctx_app. autorewrite with fvs.
+            move/andP => [] /andP[] -> /=; cbn; rw andb_true_r => onA' ->.
+            rw shiftnP0 andb_true_r; eauto with fvs.
   Qed.
 
   Lemma isType_tProd {Γ} {na A B} :
@@ -378,7 +378,7 @@ Section WfEnv.
     | None => Σ ;;; Γ |- mkProd_or_LetIn d t : tSort (Sort.sort_of_product u s)
     end.
   Proof using wfΣ.
-    destruct d as [na [b|] dty] => [Hd Ht|Hd Ht]; rewrite /mkProd_or_LetIn /=.
+    destruct d as [na [b|] dty] => [Hd Ht|Hd Ht]; rw /mkProd_or_LetIn /=.
     - have wf := typing_wf_local Ht.
       depelim wf.
       eapply type_Cumul. econstructor; eauto.
@@ -417,7 +417,7 @@ Section WfEnv.
       econstructor; eauto with pcuic.
       eapply typing_wf_local in Ht.
       depelim Ht; eapply All_local_env_app_inv in Ht; intuition auto.
-      now rewrite sort_of_product_twice.
+      now rw sort_of_product_twice.
   Qed.
 
   Fixpoint sort_of_products us s :=
@@ -474,15 +474,15 @@ Section WfEnv.
   Proof using Type.
     induction 1 in s', Δ'; simpl; auto; move=> sub' => /andb_and [clctx clt];
     try constructor; auto.
-    - pose proof (subslet_length X). rewrite Nat.add_0_r in clt.
-      rewrite /= -H in clt.
-      rewrite subst_app_simpl /= (subst_closedn s') //.
-    - pose proof (subslet_length X). rewrite Nat.add_0_r in clt.
-      rewrite /= -H in clt. move/andb_and: clt => [clt clT].
+    - pose proof (subslet_length X). rw Nat.add_0_r in clt.
+      rw /= -H in clt.
+      rw subst_app_simpl /= (subst_closedn s') //.
+    - pose proof (subslet_length X). rw Nat.add_0_r in clt.
+      rw /= -H in clt. move/andb_and: clt => [clt clT].
       replace (subst0 s t) with (subst0 (s ++ s') t).
       + constructor; auto.
-        rewrite !subst_app_simpl /= !(subst_closedn s') //.
-      + rewrite !subst_app_simpl /= !(subst_closedn s') //.
+        rw !subst_app_simpl /= !(subst_closedn s') //.
+      + rw !subst_app_simpl /= !(subst_closedn s') //.
   Qed.
 
   Hint Constructors subslet : core pcuic.
@@ -493,35 +493,35 @@ Section WfEnv.
     subslet Σ Γ (firstn #|Δ'| s) (subst_context (skipn #|Δ'| s) 0 Δ').
   Proof using Type.
     intros sub. split.
-    - induction Δ' in Δ, s, sub |- *; simpl; first by rewrite skipn_0.
-      depelim sub; rewrite skipn_S; auto.
+    - induction Δ' in Δ, s, sub |- *; simpl; first by rw skipn_0.
+      depelim sub; rw skipn_S; auto.
     - induction Δ' in Δ, s, sub |- *; simpl; first by constructor.
       destruct s; depelim sub.
-      * rewrite subst_context_snoc. constructor; eauto.
-        rewrite skipn_S Nat.add_0_r /=.
+      * rw subst_context_snoc. constructor; eauto.
+        rw skipn_S Nat.add_0_r /=.
         assert(#|Δ'| = #|firstn #|Δ'| s|).
         { pose proof (subslet_length sub).
-          rewrite app_context_length in H.
-          rewrite firstn_length_le; lia. }
-        rewrite {3}H.
-        rewrite -subst_app_simpl.
-        now rewrite firstn_skipn.
-      * rewrite subst_context_snoc.
-        rewrite skipn_S Nat.add_0_r /=.
-        rewrite /subst_decl /map_decl /=.
+          rw app_context_length in H.
+          rw firstn_length_le; lia. }
+        rw {3}H.
+        rw -subst_app_simpl.
+        now rw firstn_skipn.
+      * rw subst_context_snoc.
+        rw skipn_S Nat.add_0_r /=.
+        rw /subst_decl /map_decl /=.
         specialize (IHΔ' _ _ sub).
         epose proof (cons_let_def _ _ _ _ _ (subst (skipn #|Δ'| s0) #|Δ'| t0)
         (subst (skipn #|Δ'| s0) #|Δ'| T) IHΔ').
         assert(#|Δ'| = #|firstn #|Δ'| s0|).
         { pose proof (subslet_length sub).
-          rewrite app_context_length in H.
-          rewrite firstn_length_le; lia. }
-        rewrite {3 6}H in X.
-        rewrite - !subst_app_simpl in X.
-        rewrite !firstn_skipn in X.
+          rw app_context_length in H.
+          rw firstn_length_le; lia. }
+        rw {3 6}H in X.
+        rw - !subst_app_simpl in X.
+        rw !firstn_skipn in X.
         specialize (X t1).
-        rewrite {3}H in X.
-        now rewrite - !subst_app_simpl firstn_skipn in X.
+        rw {3}H in X.
+        now rw - !subst_app_simpl firstn_skipn in X.
   Qed.
 
   Lemma subslet_inds {ind u mdecl idecl} :
@@ -544,17 +544,17 @@ Section WfEnv.
     generalize (le_n #|ind_bodies mdecl|).
     generalize (ind_bodies mdecl) at 1 3 4 5.
     induction l using rev_ind; simpl; first constructor.
-    rewrite /subst_instance /= /map_context.
-    simpl. rewrite /arities_context rev_map_spec /=.
-    rewrite map_app /= rev_app_distr /=.
-    rewrite {1}/map_decl /= length_app /= Nat.add_1_r.
+    rw /subst_instance /= /map_context.
+    simpl. rw /arities_context rev_map_spec /=.
+    rw map_app /= rev_app_distr /=.
+    rw {1}/map_decl /= length_app /= Nat.add_1_r.
     constructor.
-    - rewrite -rev_map_spec. apply IHl; try lia.
+    - rw -rev_map_spec. apply IHl; try lia.
       eapply Alli_app in X; intuition auto.
     - eapply Alli_app in X as [oind Hx].
       depelim Hx. clear Hx.
-      rewrite Nat.add_0_r in t.
-      rewrite subst_closedn; auto.
+      rw Nat.add_0_r in t.
+      rw subst_closedn; auto.
       + now eapply type_closed in t.
   Qed.
 
@@ -584,15 +584,15 @@ Section WfEnv.
     induction n in Δ, T |- *.
     - destruct Δ; simpl; intros; try (exfalso; lia).
       depelim sub.
-      rewrite subst_empty; auto.
+      rw subst_empty; auto.
     - destruct Δ using rev_ind; try clear IHΔ.
-      + intros Hn Γ s sub; now depelim sub; rewrite subst_empty.
-      + rewrite length_app Nat.add_1_r /= => Hn Γ s sub.
-      pose proof (subslet_length sub). rewrite length_app /= Nat.add_1_r in H.
+      + intros Hn Γ s sub; now depelim sub; rw subst_empty.
+      + rw length_app Nat.add_1_r /= => Hn Γ s sub.
+      pose proof (subslet_length sub). rw length_app /= Nat.add_1_r in H.
       have Hl : #|l| = #|firstn #|l| s|.
-      { rewrite firstn_length_le; lia. }
+      { rw firstn_length_le; lia. }
       destruct x as [na [b|] ty] => /=;
-      rewrite it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
+      rw it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
 
       intros Hs.
       assert (wfs' := typing_wf_sort wfΣ Hs).
@@ -600,34 +600,34 @@ Section WfEnv.
       eapply substitution_let in HT'; auto.
       eapply ws_cumul_pb_LetIn_l_inv in hlt; auto.
       pose proof (subslet_app_inv sub) as [subl subr].
-      depelim subl. depelim subl. rewrite subst_empty in H0. rewrite H0 in subr.
-      specialize (IHn (subst_context [b] 0 l) (subst [b] #|l| T) ltac:(rewrite subst_context_length; lia)).
+      depelim subl. depelim subl. rw subst_empty in H0. rw H0 in subr.
+      specialize (IHn (subst_context [b] 0 l) (subst [b] #|l| T) ltac:(rw subst_context_length; lia)).
       specialize (IHn _ _ subr).
-      rewrite /subst1 subst_it_mkProd_or_LetIn Nat.add_0_r in HT'.
-      rewrite !subst_empty in t0.
+      rw /subst1 subst_it_mkProd_or_LetIn Nat.add_0_r in HT'.
+      rw !subst_empty in t0.
       forward IHn.
       eapply type_Cumul. eapply HT'. econstructor; intuition eauto using typing_wf_local with pcuic.
-      eapply (cumulAlgo_cumulSpec _ (pb:=Cumul)), hlt. rewrite {2}Hl in IHn.
-      now rewrite -subst_app_simpl -H0 firstn_skipn in IHn.
+      eapply (cumulAlgo_cumulSpec _ (pb:=Cumul)), hlt. rw {2}Hl in IHn.
+      now rw -subst_app_simpl -H0 firstn_skipn in IHn.
 
       intros Hs.
       assert (wfs' := typing_wf_sort wfΣ Hs).
       eapply inversion_Prod in Hs as (s1 & s2 & wfty & Hty & hlt); auto.
       pose proof (subslet_app_inv sub) as [subl subr].
-      depelim subl; depelim subl. rewrite subst_empty in t0. rewrite H0 in subr.
+      depelim subl; depelim subl. rw subst_empty in t0. rw H0 in subr.
       epose proof (substitution0 Hty t0).
       specialize (IHn (subst_context [t] 0 l) (subst [t] #|l| T)).
-      forward IHn. rewrite subst_context_length; lia.
+      forward IHn. rw subst_context_length; lia.
       specialize (IHn _ _ subr).
-      rewrite /subst1 subst_it_mkProd_or_LetIn Nat.add_0_r in X.
+      rw /subst1 subst_it_mkProd_or_LetIn Nat.add_0_r in X.
       forward IHn.
       eapply type_Cumul. simpl in X. eapply X.
       econstructor; eauto with pcuic.
       eapply ws_cumul_pb_Sort_inv in hlt. eapply cumul_Sort.
       transitivity (Sort.sort_of_product s1 s2).
       eapply leq_sort_product. auto.
-      rewrite {2}Hl in IHn.
-      now rewrite -subst_app_simpl -H0 firstn_skipn in IHn.
+      rw {2}Hl in IHn.
+      now rw -subst_app_simpl -H0 firstn_skipn in IHn.
   Qed.
 
   Lemma on_minductive_wf_params {ind mdecl} {u} :
@@ -648,7 +648,7 @@ Section WfEnv.
     move: Γ T U.
     induction Δ using rev_ind => Γ T U.
     + simpl. intros. now eapply typing_wf_local in X.
-    + rewrite it_mkProd_or_LetIn_app.
+    + rw it_mkProd_or_LetIn_app.
       destruct x as [na [b|] ty]; cbn; move=> H.
       * apply inversion_LetIn in H as (A & wfty & HT & hlt); auto.
         eapply All_local_env_app. 1: eapply unlift_TermTyp in wfty; pcuic.
@@ -656,14 +656,14 @@ Section WfEnv.
         apply IHΔ in HT.
         eapply All_local_env_app_inv in HT. intuition auto.
         eapply All_local_env_impl; eauto. simpl. intros.
-        now rewrite app_context_assoc.
+        now rw app_context_assoc.
       * apply inversion_Prod in H as (s1 & s2 & wfty & HT & hlt); auto.
         eapply All_local_env_app. 1: eapply unlift_TypUniv in wfty; cbn in wfty; pcuic.
         eapply All_local_env_app. apply lift_sorting_forget_univ in wfty. repeat (constructor; tea).
         apply IHΔ in HT.
         eapply All_local_env_app_inv in HT. intuition auto.
         eapply All_local_env_impl; eauto. simpl. intros.
-        now rewrite app_context_assoc.
+        now rw app_context_assoc.
   Qed.
 
   Lemma isType_it_mkProd_or_LetIn_wf_local {Γ Δ T} :
@@ -688,9 +688,9 @@ Section WfEnv.
       (subst_instance u Γ) =
     subst_instance u (subst_telescope s k Γ).
   Proof using Type.
-    rewrite /subst_telescope /subst_instance /= /subst_instance_context /map_context.
-    rewrite map_mapi mapi_map. apply mapi_ext.
-    intros. rewrite !compose_map_decl; apply map_decl_ext => ?.
-    now rewrite -subst_instance_subst.
+    rw /subst_telescope /subst_instance /= /subst_instance_context /map_context.
+    rw map_mapi mapi_map. apply mapi_ext.
+    intros. rw !compose_map_decl; apply map_decl_ext => ?.
+    now rw -subst_instance_subst.
   Qed.
 End WfEnv.

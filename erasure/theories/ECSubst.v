@@ -55,12 +55,12 @@ Proof.
     simpl; try f_equal; eauto; solve_all.
   - destruct (PeanoNat.Nat.compare_spec k n).
     + subst k.
-      rewrite PeanoNat.Nat.leb_refl Nat.sub_diag /=.
-      now rewrite lift_closed.
+      rw PeanoNat.Nat.leb_refl Nat.sub_diag /=.
+      now rw lift_closed.
     + destruct (leb_spec_Set k n); try lia.
       destruct (nth_error_spec [t] (n - k) ).
       simpl in l0; lia.
-      now rewrite Nat.sub_1_r.
+      now rw Nat.sub_1_r.
     + now destruct (Nat.leb_spec k n); try lia.
 Qed.
 
@@ -69,12 +69,12 @@ Lemma substl_subst s u : forallb (closedn 0) s ->
 Proof.
   unfold substl.
   induction s in u |- *; cbn; intros H.
-  - now rewrite subst_empty.
-  - move/andP: H => [cla cls]. rewrite IHs; try eassumption.
-    rewrite closed_subst; try eassumption.
+  - now rw subst_empty.
+  - move/andP: H => [cla cls]. rw IHs; try eassumption.
+    rw closed_subst; try eassumption.
     change (a :: s) with ([a] ++ s).
-    rewrite subst_app_decomp. cbn.
-    repeat f_equal. rewrite lift_closed; eauto.
+    rw subst_app_decomp. cbn.
+    repeat f_equal. rw lift_closed; eauto.
 Qed.
 
 (*
@@ -139,9 +139,9 @@ Lemma closed_csubst t k u :
   closedn k (ECSubst.csubst t 0 u).
 Proof.
   intros.
-  rewrite ECSubst.closed_subst //.
+  rw ECSubst.closed_subst //.
   eapply closedn_subst => /= //.
-  rewrite andb_true_r. eapply closed_upwards; tea. lia.
+  rw andb_true_r. eapply closed_upwards; tea. lia.
 Qed.
 
 Lemma closed_substl ts k u :
@@ -158,8 +158,8 @@ Qed.
 Lemma csubst_mkApps {a k f l} : csubst a k (mkApps f l) = mkApps (csubst a k f) (map (csubst a k) l).
 Proof.
   induction l using rev_ind; simpl; auto.
-  rewrite mkApps_app /= IHl.
-  now rewrite -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
+  rw mkApps_app /= IHl.
+  now rw -[EAst.tApp _ _](mkApps_app _ _ [_]) map_app.
 Qed.
 
 Lemma csubst_closed t k x : closedn k x -> csubst t k x = x.
@@ -179,10 +179,10 @@ Lemma subst_csubst_comm l t k b :
   csubst t k (subst l 0 b).
 Proof.
   intros hl cl.
-  rewrite !closed_subst //.
-  rewrite distr_subst. f_equal.
+  rw !closed_subst //.
+  rw distr_subst. f_equal.
   symmetry. solve_all.
-  rewrite subst_closed //.
+  rw subst_closed //.
   eapply closed_upwards; tea. lia.
 Qed.
 
@@ -192,8 +192,8 @@ Lemma substl_csubst_comm l t k b :
   csubst t k (substl l b).
 Proof.
   intros hl cl.
-  rewrite substl_subst //.
-  rewrite substl_subst //.
+  rw substl_subst //.
+  rw substl_subst //.
   apply subst_csubst_comm => //.
 Qed.
 

@@ -46,8 +46,8 @@ Proof.
   intros Hdecl wfΣ axΣ typ_false.
   destruct (pcuic_canonicity Σ t False_pcuic [] []) as [t' [[typ_false' eqtt'] ctor]]; eauto.
   destruct Hdecl as [Hdecl Hidecl].
-  destruct False_pcuic as [kn n]. destruct n; cbn in *; [| now rewrite nth_error_nil in Hidecl].
-  rewrite /construct_cofix_discr /head in ctor.
+  destruct False_pcuic as [kn n]. destruct n; cbn in *; [| now rw nth_error_nil in Hidecl].
+  rw /construct_cofix_discr /head in ctor.
   destruct decompose_app eqn:decomp.
   apply decompose_app_inv in decomp; subst.
   destruct t0; try discriminate ctor.
@@ -66,13 +66,13 @@ Proof.
     destruct d as ((?&?)&?).
     unshelve eapply declared_minductive_to_gen in Hdecl; eauto.
     unshelve eapply declared_minductive_to_gen in H; eauto.
-    red in H, Hdecl. cbn in *. rewrite Hdecl in H; noconf H.
+    red in H, Hdecl. cbn in *. rw Hdecl in H; noconf H.
     cbn in H0. noconf H0.
-    cbn in H1. rewrite nth_error_nil in H1.
+    cbn in H1. rw nth_error_nil in H1.
     discriminate.
   - eapply @typing_cofix_coind with (indargs := []) in typ_false'; eauto.
     unfold check_recursivity_kind in typ_false'. destruct wfΣ.
     unshelve eapply declared_minductive_to_gen in Hdecl; eauto.
-    red in Hdecl. rewrite Hdecl in typ_false'.
+    red in Hdecl. rw Hdecl in typ_false'.
     cbn in typ_false'. inversion typ_false'.
 Qed.

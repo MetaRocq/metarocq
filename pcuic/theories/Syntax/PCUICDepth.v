@@ -119,20 +119,20 @@ Lemma depth_lift n k t : depth (lift n k t) = depth t.
 Proof.
   revert n k t.
   fix aux 3.
-  destruct t; simpl; try rewrite map_depth_hom; try lia.
-  all:try now rewrite !aux.
+  destruct t; simpl; try rw map_depth_hom; try lia.
+  all:try now rw !aux.
   all:try intros; auto.
   - destruct x. simpl. unfold branch_depth_gen; cbn.
     f_equal. apply aux.
   - f_equal. f_equal.
-    rewrite /predicate_depth_gen /=. f_equal.
+    rw /predicate_depth_gen /=. f_equal.
     f_equal. exact (map_depth_hom (aux n k)).
     apply aux.
     f_equal. apply aux.
     revert brs.
     fix aux' 1. destruct brs; simpl; trivial.
     f_equal. 2:apply aux'.
-    rewrite /branch_depth_gen /=.
+    rw /branch_depth_gen /=.
     f_equal. f_equal. apply (map_depth_hom (aux n k)).
   - unfold mfixpoint_depth_gen.
     f_equal.
@@ -145,7 +145,7 @@ Proof.
     simpl. destruct x. simpl. unfold def_depth_gen. simpl.
     f_equal; apply aux.
   - f_equal. destruct prim as [? []]; cbn; auto.
-    rewrite !aux map_depth_hom //.
+    rw !aux map_depth_hom //.
 Qed.
 
 Lemma All_depth {s l} k :
@@ -161,7 +161,7 @@ Proof.
   induction t in k |- * using term_forall_list_ind; simpl; auto; try lia.
   - destruct Nat.leb. destruct nth_error eqn:hnth.
     eapply (nth_error_depth depth) in hnth.
-    rewrite depth_lift. lia. simpl. lia.
+    rw depth_lift. lia. simpl. lia.
     simpl. lia.
   - eapply (All_depth k) in X. lia.
   - specialize (IHt1 k); specialize (IHt2 (S k)); lia.
@@ -169,7 +169,7 @@ Proof.
   - specialize (IHt1 k); specialize (IHt2 k); specialize (IHt3 (S k)); lia.
   - specialize (IHt1 k); specialize (IHt2 k); lia.
   - destruct X as [? [? ?]].
-    rewrite /predicate_depth_gen /=.
+    rw /predicate_depth_gen /=.
     eapply (All_depth k) in a.
     assert ((list_depth (map (subst s k) (pparams p)) +
         context_depth (pcontext p)) <=
@@ -179,23 +179,23 @@ Proof.
         (list_depth_gen (branch_depth_gen depth p) l) + list_depth s).
     { clear -a X0 k. induction X0; simpl; auto; try lia.
       destruct p0. specialize (l0 (#|bcontext x| + k)).
-      rewrite {1 3}/branch_depth_gen /= /id. rewrite /id in IHX0. lia. }
+      rw {1 3}/branch_depth_gen /= /id. rw /id in IHX0. lia. }
     specialize (l0 (#|pcontext p| + k)).
     assert ((list_depth (map (subst s k) (pparams p)) + context_depth (pcontext p)) <=
       (list_depth (pparams p) + context_depth (pcontext p) + list_depth s)) by lia.
     lia.
   - specialize (IHt k). lia.
-  - rewrite /mfixpoint_depth_gen. generalize #|m|.
+  - rw /mfixpoint_depth_gen. generalize #|m|.
     induction X in k |- *; simpl; auto; try lia.
     destruct p. intros n'.
-    rewrite {1 3}/def_depth_gen /=.
+    rw {1 3}/def_depth_gen /=.
     specialize (l0 k).
     specialize (l1 (n' + k)). simpl in l1.
     specialize (IHX k n'). lia.
-  - rewrite /mfixpoint_depth_gen. generalize #|m|.
+  - rw /mfixpoint_depth_gen. generalize #|m|.
     induction X in k |- *; simpl; auto; try lia.
     destruct p. intros n'.
-    rewrite {1 3}/def_depth_gen /=.
+    rw {1 3}/def_depth_gen /=.
     specialize (l0 k).
     specialize (l1 (n' + k)). simpl in l1.
     specialize (IHX k n'). lia.
@@ -208,15 +208,15 @@ Lemma depth_subst_instance u t : depth (subst_instance u t) = depth t.
 Proof.
   revert t.
   fix aux 1.
-  destruct t; simpl; try rewrite map_depth_hom; try lia; tas.
-  all:try rewrite !aux //.
+  destruct t; simpl; try rw map_depth_hom; try lia; tas.
+  all:try rw !aux //.
   - destruct x. simpl. unfold branch_depth_gen; cbn.
     f_equal. apply aux.
   - f_equal. f_equal.
-    rewrite /predicate_depth_gen /=. f_equal.
+    rw /predicate_depth_gen /=. f_equal.
     f_equal. exact (map_depth_hom aux).
     apply aux.
-    f_equal. rewrite /branch_depth_gen /=.
+    f_equal. rw /branch_depth_gen /=.
     revert brs.
     fix aux' 1. destruct brs; simpl; auto.
     f_equal; auto. f_equal. f_equal. exact (map_depth_hom aux).
@@ -231,13 +231,13 @@ Proof.
     simpl. destruct x. simpl. unfold def_depth_gen. simpl.
     f_equal; apply aux.
   - f_equal. destruct prim as [? []]; cbn; auto.
-    rewrite !map_depth_hom // !aux //.
+    rw !map_depth_hom // !aux //.
 Qed.
 
 Lemma depth_subst_decl s k d :
   decl_depth_gen depth (subst_decl s k d) <= decl_depth_gen depth d + list_depth s.
 Proof.
-  destruct d as [na [b|] ty]; rewrite /decl_depth_gen /=.
+  destruct d as [na [b|] ty]; rw /decl_depth_gen /=.
   pose proof (depth_subst s k ty).
   pose proof (depth_subst s k b). lia.
   pose proof (depth_subst s k ty). lia.
@@ -247,16 +247,16 @@ Lemma depth_subst_context s k ctx :
   context_depth (subst_context s k ctx) <= context_depth ctx + list_depth s.
 Proof.
   induction ctx; simpl; try lia.
-  rewrite subst_context_snoc /=.
+  rw subst_context_snoc /=.
   pose proof (depth_subst_decl s (#|ctx| + k) a). lia.
 Qed.
 
 Lemma depth_subst_instance_context u (ctx : context) : context_depth (subst_instance u ctx) = context_depth ctx.
 Proof.
   induction ctx; simpl; auto.
-  rewrite IHctx. f_equal.
-  rewrite /decl_depth_gen /=.
-  destruct decl_body; rewrite /= !depth_subst_instance //.
+  rw IHctx. f_equal.
+  rw /decl_depth_gen /=.
+  destruct decl_body; rw /= !depth_subst_instance //.
 Qed.
 
 (*Lemma list_depth_mapi_context_hom (depth : context_decl -> nat) (l : context) (f : nat -> term -> term) :
@@ -285,7 +285,7 @@ Lemma list_depth_app {A} (depth : A -> nat) (l l' : list A) :
   list_depth_gen depth (l ++ l') = max (list_depth_gen depth l) (list_depth_gen depth l').
 Proof.
   induction l; simpl; auto.
-  rewrite IHl. lia.
+  rw IHl. lia.
 Qed.
 
 Lemma In_list_depth {A : Type} (f : A -> nat) :
@@ -301,7 +301,7 @@ Lemma list_depth_rev {A} (depth : A -> nat) (l : list A) :
   list_depth_gen depth (rev l) = list_depth_gen depth l.
 Proof.
   induction l using rev_ind; simpl; auto; try lia.
-  rewrite rev_app_distr /= list_depth_app /=. lia.
+  rw rev_app_distr /= list_depth_app /=. lia.
 Qed.
 
 Lemma list_depth_mapi_rec_le {A B} (l : list A) (f : nat -> A -> B) k
@@ -317,10 +317,10 @@ Lemma context_depth_inst_case_context pars puinst pctx :
   context_depth (inst_case_context pars puinst pctx) <=
   context_depth pctx + list_depth pars.
 Proof.
-  rewrite /inst_case_context.
-  rewrite -list_depth_rev.
+  rw /inst_case_context.
+  rw -list_depth_rev.
   etransitivity; [eapply depth_subst_context|].
-  now rewrite depth_subst_instance_context.
+  now rw depth_subst_instance_context.
 Qed.
 
 Lemma term_forall_ctx_list_ind :
@@ -336,9 +336,9 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ (t u : term),
       (forall t', depth t' < depth (tApp t u) -> P Γ t') ->
       P Γ t -> P Γ u -> P Γ (tApp t u)) ->
-    (forall Γ s (u : list Level.t), P Γ (tConst s u)) ->
-    (forall Γ (i : inductive) (u : list Level.t), P Γ (tInd i u)) ->
-    (forall Γ (i : inductive) (n : nat) (u : list Level.t), P Γ (tConstruct i n u)) ->
+    (forall Γ s (u : Instance.t), P Γ (tConst s u)) ->
+    (forall Γ (i : inductive) (u : Instance.t), P Γ (tInd i u)) ->
+    (forall Γ (i : inductive) (n : nat) (u : Instance.t), P Γ (tConstruct i n u)) ->
     (forall Γ (ci : case_info) (p : predicate term) (t : term) (brs : list (branch term)),
         CasePredProp P Γ p ->
         P Γ t ->
@@ -368,13 +368,13 @@ Proof.
   assert (forall mfix, context_depth (fix_context mfix) <= mfixpoint_depth_gen depth mfix).
   { induction mfix. simpl. auto. simpl. unfold fix_context.
     unfold context_depth.
-    rewrite /context_depth list_depth_rev /=. cbn.
-    rewrite depth_lift. unfold context_depth in IHmfix.
+    rw /context_depth list_depth_rev /=. cbn.
+    rw depth_lift. unfold context_depth in IHmfix.
     epose (list_depth_mapi_rec_le mfix
                                  (fun (i : nat) (d : def term) => vass (dname d) ((lift0 i) (dtype d))) 1
                                  (def_depth_gen depth) (decl_depth_gen depth)).
-    forward l. intros. destruct x; cbn; rewrite depth_lift. lia.
-    rewrite /mfixpoint_depth_gen {1}/def_depth_gen. lia. }
+    forward l. intros. destruct x; cbn; rw depth_lift. lia.
+    rw /mfixpoint_depth_gen {1}/def_depth_gen. lia. }
   assert (auxΓ : forall Γ Δ,
              context_depth Δ < depth pr0 ->
              onctx_rel P Γ Δ).
@@ -382,7 +382,7 @@ Proof.
     induction Δ; cbn.
     - constructor.
     - case: a => [na [b|] ty] /=;
-      rewrite {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
+      rw {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
       + eapply IHΔ => //. unfold context_depth. lia.
       + split.
         * apply aux => //. red. lia.
@@ -420,7 +420,7 @@ Proof.
       induction brs. simpl. constructor.
       constructor. simpl in auxbr.
       + split. eapply auxΓ. simpl.
-        unfold branch_depth_gen at 1. rewrite /predicate_depth_gen /=.
+        unfold branch_depth_gen at 1. rw /predicate_depth_gen /=.
         pose proof (context_depth_inst_case_context p.(pparams) p.(puinst) a.(bcontext)).
         lia.
         eapply auxbr. unfold branch_depth_gen. lia.
@@ -462,9 +462,9 @@ Lemma term_ind_depth_app :
     (forall (t u : term),
       (forall t', depth t' < depth (tApp t u) -> P t') ->
       P t -> P u -> P (tApp t u)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ci : case_info) (p : predicate term) (t : term) (brs : list (branch term)),
         CasePredProp_depth P p ->
         P t ->
@@ -494,13 +494,13 @@ Proof.
   assert (forall mfix, context_depth (fix_context mfix) <= mfixpoint_depth_gen depth mfix).
   { induction mfix. simpl. auto. simpl. unfold fix_context.
     unfold context_depth.
-    rewrite /context_depth list_depth_rev /=. cbn.
-    rewrite depth_lift. unfold context_depth in IHmfix.
+    rw /context_depth list_depth_rev /=. cbn.
+    rw depth_lift. unfold context_depth in IHmfix.
     epose (list_depth_mapi_rec_le mfix
                                  (fun (i : nat) (d : def term) => vass (dname d) ((lift0 i) (dtype d))) 1
                                  (def_depth_gen depth) (decl_depth_gen depth)).
-    forward l. intros. destruct x; cbn; rewrite depth_lift. lia.
-    rewrite /mfixpoint_depth_gen {1}/def_depth_gen. lia. }
+    forward l. intros. destruct x; cbn; rw depth_lift. lia.
+    rw /mfixpoint_depth_gen {1}/def_depth_gen. lia. }
   assert (auxΓ : forall Δ,
              context_depth Δ < depth pr1 ->
              onctx P Δ).
@@ -508,7 +508,7 @@ Proof.
     induction Γ; cbn.
     - constructor.
     - move: a h => [na bo ty] /=.
-      rewrite {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
+      rw {1}/decl_depth_gen /context_depth_gen /= => Hlt; constructor; auto.
       2: apply IHΓ => //; unfold context_depth; lia.
       split.
       + destruct bo => //. cbn in Hlt.
@@ -545,7 +545,7 @@ Proof.
       induction brs. simpl. constructor.
       constructor. simpl in auxbr.
       + split. eapply auxΓ. simpl.
-        unfold branch_depth_gen at 1. rewrite /predicate_depth_gen /=.
+        unfold branch_depth_gen at 1. rw /predicate_depth_gen /=.
         pose proof (context_depth_inst_case_context p.(pparams) p.(puinst) a.(bcontext)).
         lia.
         eapply auxbr. unfold branch_depth_gen. lia.

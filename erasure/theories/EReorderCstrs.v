@@ -15,9 +15,9 @@ Lemma lookup_declared_constructor {Σ id mdecl idecl cdecl} :
   lookup_constructor Σ id.1 id.2 = Some (mdecl, idecl, cdecl) ->
   declared_constructor Σ id mdecl idecl cdecl.
 Proof.
-  rewrite /lookup_constructor /declared_constructor.
-  rewrite /declared_inductive /lookup_inductive.
-  rewrite /declared_minductive /lookup_minductive.
+  rw /lookup_constructor /declared_constructor.
+  rw /declared_inductive /lookup_inductive.
+  rw /declared_minductive /lookup_minductive.
   destruct lookup_env => //=. destruct g => //=.
   destruct nth_error eqn:hn => //. destruct (nth_error _ id.2) eqn:hn' => //.
   intros [= <- <- <-]. intuition auto.
@@ -41,40 +41,23 @@ Section Tags.
   Definition new_tag tags tag := find_tag tags 0 tag.
   Definition old_tag (tags : list nat) tag := nth_error tags tag.
 
-  (*Lemma old_of_new tags oldidx :
-    old_tag tags oldidx >>= new_tag tags = Some oldidx.
-  Proof.
-    rewrite /old_tag /new_tag.
-    destruct nth_error eqn:hnth => //=. 2:admit.
-    revert hnth.
-    rewrite -{2}[oldidx]Nat.add_0_r. generalize 0.
-    induction tags in oldidx, n |- *.
-    - intros n0. now rewrite nth_error_nil.
-    - cbn. intros n0 hnth. case: eqb_spec.
-      intros ->. destruct oldidx => //. (* tags are unique *) admit.
-      intros neq.
-      destruct oldidx.
-      * cbn in hnth. now noconf hnth.
-      * cbn in hnth. rewrite (IHtags oldidx) //. f_equal. lia.
-  Qed.*)
-
   Lemma new_tag_spec tags newidx oldidx :
     new_tag tags newidx = Some oldidx ->
     old_tag tags oldidx = Some newidx.
   Proof.
-    rewrite /old_tag /new_tag.
-    rewrite -{2}[oldidx]Nat.sub_0_r. generalize 0.
+    rw /old_tag /new_tag.
+    rw -{2}[oldidx]Nat.sub_0_r. generalize 0.
     induction tags in oldidx |- *.
-    - intros n0. now rewrite nth_error_nil.
+    - intros n0. now rw nth_error_nil.
     - cbn. intros n0. case: eqb_spec.
-      * move=> -> [= ->]. now rewrite Nat.sub_diag.
+      * move=> -> [= ->]. now rw Nat.sub_diag.
       * intros neq h. specialize (IHtags _ _ h).
         case H: (oldidx - n0) => [|n].
-        + cbn. assert (oldidx - S n0 = 0). lia. rewrite H0 in IHtags.
+        + cbn. assert (oldidx - S n0 = 0). lia. rw H0 in IHtags.
           destruct tags; cbn in * => //.
-          noconf IHtags. rewrite eqb_refl in h. noconf h. lia.
-        + cbn. destruct oldidx; try lia. rewrite Nat.sub_succ in IHtags.
-          assert (oldidx - n0 = n) by lia. now rewrite H0 in IHtags.
+          noconf IHtags. rw eqb_refl in h. noconf h. lia.
+        + cbn. destruct oldidx; try lia. rw Nat.sub_succ in IHtags.
+          assert (oldidx - n0 = n) by lia. now rw H0 in IHtags.
   Qed.
 
   Definition reorder_list_opt {A} tags (brs : list A) : option (list A) :=
@@ -126,7 +109,7 @@ Section Tags.
     new_tag tags idx = None ->
     #|tags| <= idx.
   Proof.
-    rewrite /wf_tags => /andP[] /forallb_All hwf.
+    rw /wf_tags => /andP[] /forallb_All hwf.
     move => /one_to_one_map_spec hone /find_tag_None /Forall_forall hdiff.
     case: (Nat.leb_spec #|tags| idx) => // hlt.
     elim (hdiff idx). apply hone, hlt. reflexivity.
@@ -138,13 +121,13 @@ Section Tags.
     (forall i x, nth_error l i = Some x -> exists x', f x = Some x' /\ nth_error l' i = f x).
   Proof.
     induction l; cbn.
-    - intros hf. exists []. split => // i x. rewrite nth_error_nil //.
+    - intros hf. exists []. split => // i x. rw nth_error_nil //.
     - intros hf. forward IHl.
       { intros i x hx. apply (hf (S i) x hx). }
       destruct IHl as [l' [exl' hl']].
       specialize (hf 0 a eq_refl) as [x' eqx'].
       destruct (f a) eqn:fa.
-      * noconf eqx'. rewrite exl'.
+      * noconf eqx'. rw exl'.
         eexists; split => //.
         intros i x hnth. destruct i; cbn in *. now noconf hnth.
         now apply hl'.
@@ -157,12 +140,12 @@ Section Tags.
     (forall i x, nth_error l' i = Some x -> exists x', nth_error l i = Some x' /\ f x' = Some x).
   Proof.
     induction l; cbn.
-    - intros hf. exists []. split => //; split => // i x. rewrite nth_error_nil //.
+    - intros hf. exists []. split => //; split => // i x. rw nth_error_nil //.
     - intros hf. forward IHl.
       { intros i x hx. apply (hf (S i) x hx). }
       destruct IHl as [l' [exl' hl']].
       specialize (hf 0 a eq_refl) as [x' eqx'].
-      rewrite eqx' exl'. eexists; split => //= //. split => //. lia.
+      rw eqx' exl'. eexists; split => //= //. split => //. lia.
       intros.
       destruct hl' as [hl hl']. destruct i. cbn in *. noconf H. exists a. now split => //.
       now apply hl'.
@@ -193,14 +176,14 @@ Section Tags.
     exists l', reorder_list_opt tags l = Some l' /\
     (forall i k, old_tag tags i = Some k -> exists x, nth_error l k = Some x /\ nth_error l' i = nth_error l k).
   Proof.
-    rewrite /reorder_list_opt.
-    rewrite /wf_tags in htags.
+    rw /reorder_list_opt.
+    rw /wf_tags in htags.
     intros hlen.
     move/andP: htags => [] htags _.
     have optH := mapopt_spec (nth_error l) tags.
     forward optH.
     { intros i x hnth. solve_all. eapply All_nth_error in htags; tea. apply Nat.ltb_lt in htags.
-      rewrite -hlen in htags.
+      rw -hlen in htags.
       apply nth_error_Some in htags. destruct (nth_error l x) eqn:hnth'; try congruence. now eexists. }
     destruct optH as [l' [heq hl']].
     setoid_rewrite heq. eexists; split => //.
@@ -210,7 +193,7 @@ Section Tags.
     reorder_list_opt tags l = Some l' ->
     (forall x, In x l' -> In x l).
   Proof.
-    rewrite /reorder_list_opt.
+    rw /reorder_list_opt.
     induction tags in l, l' |- *; cbn.
     - intros [= <-] x [].
     - destruct nth_error eqn:hnth => //.
@@ -252,14 +235,14 @@ Section Tags.
     (forall oldidx a, nth_error l' oldidx = Some a ->
       exists newidx, old_tag tags oldidx = Some newidx /\ nth_error l newidx = Some a).
   Proof.
-    rewrite /reorder_list_opt.
-    rewrite /wf_tags in htags.
+    rw /reorder_list_opt.
+    rw /wf_tags in htags.
     move: htags => /andP[] htags hone.
     intros hlen.
     have optH := mapopt_inv_spec (nth_error l) tags.
     forward optH.
     { intros i x hnth. solve_all. eapply All_nth_error in htags; tea. apply Nat.ltb_lt in htags.
-      rewrite -hlen in htags.
+      rw -hlen in htags.
       apply nth_error_Some in htags. destruct (nth_error l x) eqn:hnth'; try congruence. now eexists. }
     destruct optH as [l' [heq hl']].
     setoid_rewrite heq. eexists; split => //.
@@ -276,7 +259,7 @@ Section Tags.
     nth_error (reorder_list tags l) i = Some x. (* l'[0] = info*)
   Proof.
     intros wft hlt hnth hnth'.
-    rewrite /reorder_list.
+    rw /reorder_list.
     have [l' [-> hnth'']] := reorder_list_opt_spec l tags wft hlt.
     cbn. specialize (hnth'' _ _ hnth). destruct hnth'' as [? []]. congruence.
   Qed.
@@ -287,8 +270,8 @@ Section Tags.
     exists i, nth_error tags n = Some i /\ nth_error l i = Some x.
   Proof.
     intros wft hlt.
-    rewrite /reorder_list.
-    have [l' [eq hnth'']] := reorder_list_opt_spec' l tags wft hlt; rewrite eq /= => hnth.
+    rw /reorder_list.
+    have [l' [eq hnth'']] := reorder_list_opt_spec' l tags wft hlt; rw eq /= => hnth.
     specialize (hnth'' _ _ hnth) as [oldidx []]. exists oldidx; now split.
   Qed.
 
@@ -298,13 +281,13 @@ Section Tags.
     old_tag tags newidx = Some oldidx ->
     nth_error (reorder_list tags l) newidx = nth_error l oldidx.
   Proof.
-    rewrite /old_tag.
+    rw /old_tag.
     intros wft hlen ht.
     destruct (nth_error l) eqn:hl => //=.
     eapply (reorder_list_spec' tags l) in ht; tea.
     move: wft => /andP[] wft hone.
     solve_all. eapply All_nth_error in wft; tea.
-    apply Nat.ltb_lt in wft. rewrite -hlen in wft. apply nth_error_None in hl. lia.
+    apply Nat.ltb_lt in wft. rw -hlen in wft. apply nth_error_None in hl. lia.
   Qed.
 
 (* Lemma reorder_list_old_tag' {A} (tags : list nat) (l : list A) oldidx newidx :
@@ -446,11 +429,11 @@ Section reorder_proofs.
   Lemma optimize_mkApps f l : optimize (mkApps f l) = mkApps (optimize f) (map optimize l).
   Proof using Type.
     induction l using rev_ind; simpl; auto.
-    now rewrite mkApps_app /= IHl map_app /= mkApps_app /=.
+    now rw mkApps_app /= IHl map_app /= mkApps_app /=.
   Qed.
 
   Lemma map_optimize_repeat_box n : map optimize (repeat tBox n) = repeat tBox n.
-  Proof using Type. by rewrite map_repeat. Qed.
+  Proof using Type. by rw map_repeat. Qed.
 
   (* move to globalenv *)
 
@@ -467,7 +450,7 @@ Section reorder_proofs.
 
   Lemma lookup_constant_reorder c : option_map (reorder_constant_decl m) (lookup_constant Σ c) = lookup_constant (reorder_env m Σ) c.
   Proof.
-    rewrite /lookup_constant lookup_env_reorder.
+    rw /lookup_constant lookup_env_reorder.
     destruct lookup_env => //=.
     destruct g => //.
   Qed.
@@ -478,10 +461,10 @@ Section reorder_proofs.
        (lookup_inductive Σ i).
   Proof.
     unfold lookup_inductive, lookup_minductive.
-    unfold reorder_env. rewrite lookup_env_reorder.
+    unfold reorder_env. rw lookup_env_reorder.
     destruct lookup_env => //=.
     destruct g => //.
-    cbn. rewrite nth_error_mapi.
+    cbn. rw nth_error_mapi.
     destruct nth_error => //=.
   Qed.
 
@@ -490,7 +473,7 @@ Section reorder_proofs.
     lookup_inductive_assoc m ind = Some p ->
     wf_inductive_mapping Σ (ind, p).
   Proof.
-    clear. rewrite /wf_inductives_mapping.
+    clear. rw /wf_inductives_mapping.
     induction m; cbn -[lookup_inductive wf_inductive_mapping] => //.
     destruct eq_inductive eqn:heq => //.
     - move=> /andP[] wfa wfi. intros [= <-].
@@ -505,7 +488,7 @@ Section reorder_proofs.
   Proof.
     move=> hl.
     move/(lookup_inductive_assoc_spec wfm).
-    rewrite /wf_inductive_mapping hl.
+    rw /wf_inductive_mapping hl.
     now destruct p.
   Qed.
 
@@ -517,7 +500,7 @@ Section reorder_proofs.
   Proof.
     intros hli hia.
     unfold reorder_one_ind.
-    destruct ind; rewrite hia. destruct p. now cbn.
+    destruct ind; rw hia. destruct p. now cbn.
   Qed.
 
   Lemma ind_ctors_no_reorder {ind mib oib} :
@@ -528,7 +511,7 @@ Section reorder_proofs.
   Proof.
     intros hli hia.
     unfold reorder_one_ind.
-    now destruct ind; rewrite hia.
+    now destruct ind; rw hia.
   Qed.
 
   Lemma nth_reorder_list_ctors {i mib oib na tags} :
@@ -555,9 +538,9 @@ Section reorder_proofs.
 
   Lemma reorder_list_length {A} tags (l : list A): #|tags| = #|l| -> #|reorder_list tags l| = #|l|.
   Proof.
-    move=> hl. rewrite /reorder_list.
+    move=> hl. rw /reorder_list.
     case hr: reorder_list_opt => [l'|] //=.
-    move: hr; rewrite /reorder_list_opt.
+    move: hr; rw /reorder_list_opt.
     have := map_opt_length (nth_error l) tags.
     destruct mapopt => //. congruence.
   Qed.
@@ -566,7 +549,7 @@ Section reorder_proofs.
     lookup_inductive_assoc m i = None ->
     reorder_one_ind m (inductive_mind i) (inductive_ind i) oib = oib.
   Proof.
-    rewrite /reorder_one_ind. destruct i; move => -> //.
+    rw /reorder_one_ind. destruct i; move => -> //.
   Qed.
 (*
   Lemma lookup_inductive_assoc_None_reorder_inductive_decl i mib :
@@ -584,36 +567,36 @@ Section reorder_proofs.
     option_map (fun '(mib, oib, c) => (reorder_inductive_decl m (inductive_mind i) mib, reorder_one_ind m (inductive_mind i) (inductive_ind i) oib, c)) (lookup_constructor Σ i n) =
     lookup_constructor (reorder_env m Σ) i (lookup_constructor_ordinal m i n).
   Proof using Type wfm.
-    rewrite /lookup_constructor lookup_inductive_reorder.
+    rw /lookup_constructor lookup_inductive_reorder.
     destruct lookup_inductive as [[mib oib]|] eqn:hind => //=.
     destruct nth_error eqn:hnth => //=.
     destruct (lookup_inductive_assoc m i) as [(na, tags)|] eqn:hl.
     have /andP[]  := lookup_inductive_assoc_wf_tags hind hl => //= /eqb_eq => hlen wft.
-    rewrite (ind_ctors_reorder hind hl). cbn.
+    rw (ind_ctors_reorder hind hl). cbn.
     destruct (nth_error _ (lookup_constructor_ordinal _ _ _)) eqn:hnth'.
-    rewrite /lookup_constructor_ordinal /lookup_constructor_mapping in hnth'.
-    rewrite hl /= in hnth'.
+    rw /lookup_constructor_ordinal /lookup_constructor_mapping in hnth'.
+    rw hl /= in hnth'.
     destruct (new_tag tags n) as [newidx|] eqn:ht.
     - eapply new_tag_spec in ht.
-      now rewrite (nth_reorder_list_ctors hind hl _ n) in hnth'.
+      now rw (nth_reorder_list_ctors hind hl _ n) in hnth'.
     - move/nth_error_Some_length: hnth.
-      rewrite /new_tag in ht => hn.
+      rw /new_tag in ht => hn.
       eapply find_tag_wf in ht => //. lia.
     - eapply nth_error_None in hnth'.
       apply nth_error_Some_length in hnth.
-      rewrite reorder_list_length in hnth' => //.
+      rw reorder_list_length in hnth' => //.
       move: hnth'.
-      rewrite /lookup_constructor_ordinal /lookup_constructor_mapping hl /=.
+      rw /lookup_constructor_ordinal /lookup_constructor_mapping hl /=.
       destruct (new_tag tags n) as [newidx|] eqn:ht.
       eapply new_tag_spec in ht.
       apply nth_error_Some_length in ht. lia.
-      rewrite /new_tag in ht => hn.
+      rw /new_tag in ht => hn.
       eapply find_tag_wf in ht => //. lia.
-    - rewrite /lookup_constructor_ordinal /lookup_constructor_mapping hl //=.
+    - rw /lookup_constructor_ordinal /lookup_constructor_mapping hl //=.
       destruct i.
-      rewrite /reorder_one_ind hl //=. now rewrite hnth.
+      rw /reorder_one_ind hl //=. now rw hnth.
     - apply nth_error_None in hnth.
-      rewrite /lookup_constructor_ordinal /lookup_constructor_mapping /=.
+      rw /lookup_constructor_ordinal /lookup_constructor_mapping /=.
       destruct lookup_inductive_assoc eqn:hl => //=.
       have /andP[]  := lookup_inductive_assoc_wf_tags hind hl => //= /(eqb_eq (A:=nat)) => hlen wft.
       destruct p as [na tags].
@@ -621,10 +604,10 @@ Section reorder_proofs.
       + eapply new_tag_spec in ht.
         move/andP: wft => [] ht' _.
         eapply forallb_All in ht'. eapply All_nth_error in ht'; tea. apply Nat.ltb_lt in ht'. lia.
-      + rewrite /reorder_one_ind. destruct i; rewrite hl //=.
+      + rw /reorder_one_ind. destruct i; rw hl //=.
         destruct nth_error eqn:hnth' => //.
-        apply nth_error_Some_length in hnth'. rewrite reorder_list_length in hnth'. cbn in hlen; lia. lia.
-      + rewrite lookup_inductive_assoc_None_reorder_one_ind //=.
+        apply nth_error_Some_length in hnth'. rw reorder_list_length in hnth'. cbn in hlen; lia. lia.
+      + rw lookup_inductive_assoc_None_reorder_one_ind //=.
         destruct nth_error eqn:hnth' => //.
         apply nth_error_Some_length in hnth'. lia.
   Qed.
@@ -632,7 +615,7 @@ Section reorder_proofs.
   Lemma ind_projs_reorder mind ind oib :
     ind_projs (reorder_one_ind m mind ind oib) = ind_projs oib.
   Proof.
-    rewrite /reorder_one_ind. destruct lookup_inductive_assoc as [[na tags]|]=> //.
+    rw /reorder_one_ind. destruct lookup_inductive_assoc as [[na tags]|]=> //.
   Qed.
 
   Context {efl : EEnvFlags}.
@@ -644,7 +627,7 @@ Section reorder_proofs.
     #|(ind_ctors pinfo.1.1.2)| = 1.
   Proof.
     intros wf.
-    rewrite /lookup_projection /lookup_constructor /lookup_inductive /lookup_minductive.
+    rw /lookup_projection /lookup_constructor /lookup_inductive /lookup_minductive.
     destruct lookup_env eqn:hl => //.
     have := lookup_env_wellformed wf hl.
     destruct g as [|mib] => //=.
@@ -652,12 +635,12 @@ Section reorder_proofs.
     destruct ind_ctors eqn:hctors => //=.
     destruct (nth_error (ind_projs o) _) eqn:hprojs => //=.
     intros wfmind [= <-]. cbn.
-    move: wfmind; rewrite /wf_minductive.
+    move: wfmind; rw /wf_minductive.
     move/andP=> [] _ /forallb_All ha.
     eapply All_nth_error in ha; tea.
-    move: ha; rewrite /wf_inductive /wf_projections.
-    destruct ind_projs => //. now rewrite nth_error_nil in hprojs.
-    rewrite hctors. destruct l => //.
+    move: ha; rw /wf_inductive /wf_projections.
+    destruct ind_projs => //. now rw nth_error_nil in hprojs.
+    rw hctors. destruct l => //.
   Qed.
 
 
@@ -669,19 +652,19 @@ Section reorder_proofs.
     move=> wf.
     case hl: lookup_projection => [pro|] //= _.
     have wfpro := wf_glob_ind_projs wf hl. move: hl.
-    rewrite /lookup_projection /lookup_constructor_ordinal.
+    rw /lookup_projection /lookup_constructor_ordinal.
     destruct lookup_constructor as [[[mib oib] cb]|] eqn:hlc => //=.
     destruct nth_error eqn:nthp => //=. intros [= <-]. cbn in wfpro.
-    rewrite /lookup_constructor_mapping.
+    rw /lookup_constructor_mapping.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hla => //=.
     destruct new_tag eqn:hnt => //=.
     eapply new_tag_spec in hnt.
     eapply lookup_inductive_assoc_spec in hla; tea.
-    rewrite /wf_inductive_mapping in hla.
-    eapply lookup_constructor_lookup_inductive in hlc. rewrite hlc in hla.
-    move/andP: hla. rewrite wfpro. rewrite /wf_tags => [] [] taglen /andP[] /forallb_All ht.
+    rw /wf_inductive_mapping in hla.
+    eapply lookup_constructor_lookup_inductive in hlc. rw hlc in hla.
+    move/andP: hla. rw wfpro. rw /wf_tags => [] [] taglen /andP[] /forallb_All ht.
     destruct tags as [|] => //. destruct tags as [|] => //.
-    destruct n => //. cbn in hnt. now rewrite nth_error_nil in hnt.
+    destruct n => //. cbn in hnt. now rw nth_error_nil in hnt.
   Qed.
 
   Lemma lookup_projection_reorder p :
@@ -694,10 +677,10 @@ Section reorder_proofs.
        (lookup_projection Σ p).
   Proof.
     intros wf iss. unfold lookup_projection.
-    rewrite -{1}(lookup_projection_ordinal _ wf iss) -lookup_constructor_reorder.
+    rw -{1}(lookup_projection_ordinal _ wf iss) -lookup_constructor_reorder.
     destruct lookup_constructor eqn:hlc => //=.
     destruct p0 as [[mib oib] cb] => //=.
-    rewrite ind_projs_reorder //=.
+    rw ind_projs_reorder //=.
     destruct nth_error eqn:nthp => //=.
   Qed.
 
@@ -705,7 +688,7 @@ Section reorder_proofs.
     All P l ->
     All P (reorder_list tags l).
   Proof.
-    rewrite /reorder_list.
+    rw /reorder_list.
     destruct reorder_list_opt as [l'|] eqn:hre => //=.
     have hin := reorder_list_opt_In _ _ _ hre.
     move/(All_Forall).
@@ -717,17 +700,17 @@ Section reorder_proofs.
     lookup_inductive_assoc m ind = Some (nas, tags) ->
     #|tags| = n.
   Proof.
-    rewrite /wf_brs.
+    rw /wf_brs.
     destruct lookup_inductive as [[mib oib]|] eqn:hli => //.
     move=> /eqb_eq hlen hla.
     have := lookup_inductive_assoc_wf_tags hli hla.
-    rewrite /wf_tags_list /= => /andP[] /eqb_eq hlt _. lia.
+    rw /wf_tags_list /= => /andP[] /eqb_eq hlt _. lia.
   Qed.
 
   Ltac rtoProp ::=
   repeat match goal with
   | H : is_true (_ && _) |- _ => apply andb_and in H; destruct H
-  | |- context [is_true (_ && _)] => rewrite andb_and
+  | |- context [is_true (_ && _)] => rw andb_and
   | H : is_true (_ || _) |- _ => move/orP: H => H; destruct H
   | |- context [is_true (_ || _)] => apply/orP
   end.
@@ -744,30 +727,30 @@ Section reorder_proofs.
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold wf_fix_gen, test_def in *;
     simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; bool; solve_all]; try easy.
-    - bool. rewrite -lookup_constant_reorder. destruct lookup_constant => //=; bool.
+    - bool. rw -lookup_constant_reorder. destruct lookup_constant => //=; bool.
       now destruct (cst_body c) => //=.
-    - rewrite wca in H *. move/andP: H => [] /andP[] -> iss isnil /=.
-      rewrite -lookup_constructor_reorder.
+    - rw wca in H *. move/andP: H => [] /andP[] -> iss isnil /=.
+      rw -lookup_constructor_reorder.
       destruct lookup_constructor eqn:hl => //=.
       destruct args => //.
     - rtoProp; intuition auto; solve_all.
-      * rewrite /reorder_branches.
+      * rw /reorder_branches.
         destruct lookup_inductive_assoc as [[na tags]|] eqn:hl => //=.
         have lenreo := wf_ind_mapping_wf_brs H0 hl.
-        rewrite reorder_list_length. len. len.
-        move: H0. rewrite /wf_brs. destruct p as [[mind ind] i].
-        rewrite lookup_inductive_reorder. destruct lookup_inductive as [[mib oib]|]=> //=.
-        rewrite /reorder_one_ind hl /=. move/eqb_eq => hl'. rewrite reorder_list_length //. lia.
+        rw reorder_list_length. len. len.
+        move: H0. rw /wf_brs. destruct p as [[mind ind] i].
+        rw lookup_inductive_reorder. destruct lookup_inductive as [[mib oib]|]=> //=.
+        rw /reorder_one_ind hl /=. move/eqb_eq => hl'. rw reorder_list_length //. lia.
         now apply Nat.eqb_eq. len.
-        move: H0. rewrite /wf_brs. destruct p as [[mind ind] i].
-        rewrite lookup_inductive_reorder. destruct lookup_inductive as [[mib oib]|]=> //=.
-        rewrite /reorder_one_ind hl /=. move/eqb_eq => hl'. now apply Nat.eqb_eq.
-      * rewrite /reorder_branches.
+        move: H0. rw /wf_brs. destruct p as [[mind ind] i].
+        rw lookup_inductive_reorder. destruct lookup_inductive as [[mib oib]|]=> //=.
+        rw /reorder_one_ind hl /=. move/eqb_eq => hl'. now apply Nat.eqb_eq.
+      * rw /reorder_branches.
         destruct lookup_inductive_assoc as [[nas tags]|].
         eapply All_reorder_list.
         all:solve_all.
     - rtoProp; intuition auto.
-      rewrite lookup_projection_reorder //.
+      rw lookup_projection_reorder //.
       destruct lookup_projection => //.
     - rtoProp; intuition auto; solve_all.
       destruct (dbody x) => //.
@@ -781,8 +764,8 @@ Section reorder_proofs.
   Proof.
     intros f g eqfg l ? <-.
     induction l; cbn; auto.
-    rewrite (eqfg a). destruct (g a) => //.
-    now rewrite IHl.
+    rw (eqfg a). destruct (g a) => //.
+    now rw IHl.
   Qed.
 
   Lemma mapopt_option_map {A B C} (f : A -> option B) (g : B -> C) l :
@@ -790,26 +773,26 @@ Section reorder_proofs.
   Proof.
     induction l; cbn; auto.
     destruct (f a) => //=.
-    rewrite IHl. destruct (mapopt f l) => //.
+    rw IHl. destruct (mapopt f l) => //.
   Qed.
 
   Lemma reorder_list_opt_map {A B} tags (f : A -> B) (l : list A) :
     reorder_list_opt tags (map f l) = option_map (map f) (reorder_list_opt tags l).
   Proof.
-    rewrite /reorder_list_opt.
+    rw /reorder_list_opt.
     have req : pointwise_relation nat eq (nth_error (map f l)) (fun x => option_map f (nth_error l x)).
-    { intros x. now rewrite nth_error_map. }
-    setoid_rewrite req. now rewrite mapopt_option_map.
+    { intros x. now rw nth_error_map. }
+    setoid_rewrite req. now rw mapopt_option_map.
   Qed.
 
   Lemma reorder_branches_map i f brs :
     reorder_branches m i (map f brs) =
     map f (reorder_branches m i brs).
   Proof.
-    rewrite /reorder_branches.
+    rw /reorder_branches.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hl => //.
-    rewrite /reorder_list.
-    rewrite reorder_list_opt_map.
+    rw /reorder_list.
+    rw reorder_list_opt_map.
     destruct (reorder_list_opt tags brs) => //=.
   Qed.
 
@@ -825,21 +808,21 @@ Section reorder_proofs.
     unfold wf_fix, test_def in *;
     simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
     - destruct (k ?= n0)%nat; auto.
-    - f_equal. rtoProp. rewrite wca in H0. now destruct args; inv H0.
-    - move/andP: wft => [] hasc /andP[] /andP[] hi hb hl. rewrite IHb. f_equal. unfold on_snd; solve_all.
+    - f_equal. rtoProp. rw wca in H0. now destruct args; inv H0.
+    - move/andP: wft => [] hasc /andP[] /andP[] hi hb hl. rw IHb. f_equal. unfold on_snd; solve_all.
       repeat toAll. f_equal. solve_all.
-      rewrite -!reorder_branches_map map_map_compose. cbn. f_equal.
+      rw -!reorder_branches_map map_map_compose. cbn. f_equal.
       unfold on_snd; cbn.
       solve_all. f_equal. unfold optimize in *.
-      rewrite a0 //. red; rewrite -b0. lia_f_equal.
+      rw a0 //. red; rw -b0. lia_f_equal.
     - move/andP: wft => [] /andP[] hasf hp /andP[] hb hwfm.
       f_equal. solve_all.
-      rewrite /map_def; destruct x => //=. f_equal.
-      apply a0; cbn in *. red; rewrite -b0. lia_f_equal.
+      rw /map_def; destruct x => //=. f_equal.
+      apply a0; cbn in *. red; rw -b0. lia_f_equal.
     - move/andP: wft => [] hasco /andP[] hp hb.
       f_equal. solve_all.
-      rewrite /map_def; destruct x => //=. f_equal.
-      apply a0; cbn in *. red; rewrite -b. lia_f_equal.
+      rw /map_def; destruct x => //=. f_equal.
+      apply a0; cbn in *. red; rw -b. lia_f_equal.
   Qed.
 
   Lemma optimize_substl s t :
@@ -850,8 +833,8 @@ Section reorder_proofs.
   Proof using Type wfm wca.
     intros wfΣ. induction s in t |- *; simpl; auto.
     move/andP => [] cla cls wft.
-    rewrite IHs //. eapply wellformed_csubst => //.
-    f_equal. rewrite (optimize_csubst (S #|s|)) //.
+    rw IHs //. eapply wellformed_csubst => //.
+    f_equal. rw (optimize_csubst (S #|s|)) //.
   Qed.
 
   Lemma optimize_iota_red pars args br :
@@ -862,16 +845,16 @@ Section reorder_proofs.
   Proof using Type wfm wca.
     intros wfΣ wfa wfbr.
     unfold EGlobalEnv.iota_red.
-    rewrite optimize_substl //.
-    rewrite forallb_rev forallb_skipn //.
-    now rewrite List.length_rev.
-    now rewrite map_rev map_skipn.
+    rw optimize_substl //.
+    rw forallb_rev forallb_skipn //.
+    now rw List.length_rev.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma optimize_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def optimize) mfix) = map optimize (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto.
@@ -880,7 +863,7 @@ Section reorder_proofs.
   Lemma optimize_cofix_subst mfix : EGlobalEnv.cofix_subst (map (map_def optimize) mfix) = map optimize (EGlobalEnv.cofix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.cofix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto.
@@ -894,14 +877,14 @@ Section reorder_proofs.
   Proof using Type wfm wca.
     intros wfΣ hfix.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] /andP[] hasfix hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
-    rewrite optimize_substl //. eapply wellformed_fix_subst => //.
-    rewrite fix_subst_length.
-    eapply nth_error_forallb in hfix; tea. now rewrite Nat.add_0_r in hfix.
-    now rewrite optimize_fix_subst.
+    rw optimize_substl //. eapply wellformed_fix_subst => //.
+    rw fix_subst_length.
+    eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.
+    now rw optimize_fix_subst.
   Qed.
 
   Lemma optimize_cunfold_cofix mfix idx n f :
@@ -912,14 +895,14 @@ Section reorder_proofs.
   Proof using Type wfm wca.
     intros wfΣ hfix.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] hasfix /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
-    rewrite optimize_substl //. eapply wellformed_cofix_subst => //.
-    rewrite cofix_subst_length.
-    eapply nth_error_forallb in hfix; tea. now rewrite Nat.add_0_r in hfix.
-    now rewrite optimize_cofix_subst.
+    rw optimize_substl //. eapply wellformed_cofix_subst => //.
+    rw cofix_subst_length.
+    eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.
+    now rw optimize_cofix_subst.
   Qed.
 
 End reorder_proofs.
@@ -934,7 +917,7 @@ Proof.
   unfold lookup_projection.
   destruct lookup_constructor as [[[mdecl idecl] cdecl]|] eqn:hl => //.
   simpl.
-  rewrite (extends_lookup_constructor wf ext _ _ _ hl) //.
+  rw (extends_lookup_constructor wf ext _ _ _ hl) //.
 Qed.
 
 (*
@@ -1033,12 +1016,12 @@ Lemma is_propositional_optimize ind :
   wf_glob Σ ->
   inductive_isprop_and_pars Σ ind = inductive_isprop_and_pars (reorder_env Σ) ind.
 Proof.
-  rewrite /inductive_isprop_and_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_reorder.
+  rw /inductive_isprop_and_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw lookup_env_reorder.
   destruct lookup_env as [[decl|]|] => //=.
-  rewrite nth_error_mapi. destruct nth_error => //=.
-  destruct o => //=. rewrite /reorder_one_ind /=.
+  rw nth_error_mapi. destruct nth_error => //=.
+  destruct o => //=. rw /reorder_one_ind /=.
   destruct lookup_inductive_assoc as [[na tags]|]=> //=.
 Qed.
 
@@ -1046,9 +1029,9 @@ Lemma lookup_inductive_pars_optimize ind :
   wf_glob Σ ->
   EGlobalEnv.lookup_inductive_pars Σ ind = EGlobalEnv.lookup_inductive_pars (reorder_env Σ) ind.
 Proof.
-  rewrite /lookup_inductive_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_reorder.
+  rw /lookup_inductive_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw lookup_env_reorder.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
 
@@ -1056,10 +1039,10 @@ Lemma is_propositional_cstr_optimize ind c :
   wf_glob Σ ->
   constructor_isprop_pars_decl Σ ind c = constructor_isprop_pars_decl (reorder_env Σ) ind (lookup_constructor_ordinal mapping ind c).
 Proof.
-  rewrite /constructor_isprop_pars_decl => wf.
-  rewrite -lookup_constructor_reorder //.
+  rw /constructor_isprop_pars_decl => wf.
+  rw -lookup_constructor_reorder //.
   destruct lookup_constructor as [[[mib oib] cb]|] => //=.
-  rewrite /reorder_one_ind.
+  rw /reorder_one_ind.
   destruct lookup_inductive_assoc as [[na tags]|]=> //.
 Qed.
 
@@ -1071,24 +1054,24 @@ Lemma closed_iota_red pars c args brs br :
   closed (iota_red pars args br).
 Proof.
   intros clargs hnth hskip clbr.
-  rewrite /iota_red.
+  rw /iota_red.
   eapply ECSubst.closed_substl => //.
-  now rewrite forallb_rev forallb_skipn.
-  now rewrite List.length_rev hskip Nat.add_0_r.
+  now rw forallb_rev forallb_skipn.
+  now rw List.length_rev hskip Nat.add_0_r.
 Qed.
 
 Lemma isFix_mkApps t l : isFix (mkApps t l) = isFix t && match l with [] => true | _ => false end.
 Proof.
   induction l using rev_ind; cbn.
-  - now rewrite andb_true_r.
-  - rewrite mkApps_app /=. now destruct l => /= //; rewrite andb_false_r.
+  - now rw andb_true_r.
+  - rw mkApps_app /=. now destruct l => /= //; rw andb_false_r.
 Qed.
 
 Lemma constructor_isprop_pars_decl_inductive {ind c} {prop pars cdecl} :
   constructor_isprop_pars_decl Σ ind c = Some (prop, pars, cdecl)  ->
   inductive_isprop_and_pars Σ ind = Some (prop, pars).
 Proof.
-  rewrite /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
+  rw /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
   destruct lookup_inductive as [[mdecl idecl]|]=> /= //.
   destruct nth_error => //. congruence.
 Qed.
@@ -1097,19 +1080,19 @@ Lemma constructor_isprop_pars_decl_constructor {ind c} {mdecl idecl cdecl} :
   lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
   constructor_isprop_pars_decl Σ ind c = Some (ind_propositional idecl, ind_npars mdecl, cdecl).
 Proof.
-  rewrite /constructor_isprop_pars_decl. intros -> => /= //.
+  rw /constructor_isprop_pars_decl. intros -> => /= //.
 Qed.
 
 Lemma wf_mkApps {hasapp : has_tApp} k f args :
   reflect (wellformed Σ k f /\ forallb (wellformed Σ k) args) (wellformed Σ k (mkApps f args)).
 Proof.
-  rewrite wellformed_mkApps //. eapply andP.
+  rw wellformed_mkApps //. eapply andP.
 Qed.
 
 Lemma substl_closed s t : closed t -> substl s t = t.
 Proof.
   induction s in t |- *; cbn => //.
-  intros clt. rewrite csubst_closed //. now apply IHs.
+  intros clt. rw csubst_closed //. now apply IHs.
 Qed.
 
 Lemma substl_rel s k a :
@@ -1119,9 +1102,9 @@ Lemma substl_rel s k a :
 Proof.
   intros cla.
   induction s in k |- *.
-  - rewrite nth_error_nil //.
+  - rw nth_error_nil //.
   - destruct k => //=.
-    * intros [= ->]. rewrite substl_closed //.
+    * intros [= ->]. rw substl_closed //.
     * intros hnth. now apply IHs.
 Qed.
 
@@ -1142,43 +1125,43 @@ Proof.
     eapply eval_wellformed in ev1; tea => //.
     econstructor; eauto.
     move: ev1 => /= /andP[] hasl ev1.
-    rewrite -(optimize_csubst _ _ wfm 1) //.
+    rw -(optimize_csubst _ _ wfm 1) //.
     apply IHev3. eapply wellformed_csubst => //.
 
   - move/andP => [] /andP[] haslet clb0 clb1.
     intuition auto.
     eapply eval_wellformed in ev1; tea => //.
     forward IHev2 by eapply wellformed_csubst => //.
-    econstructor; eauto. rewrite -(optimize_csubst _ _ wfm 1) //.
+    econstructor; eauto. rw -(optimize_csubst _ _ wfm 1) //.
 
   - move/andP => [] hascase /andP[] /andP[] hl wfd wfbrs.
-    rewrite optimize_mkApps in IHev1.
+    rw optimize_mkApps in IHev1.
     eapply eval_wellformed in ev1 => //.
     move/(@wf_mkApps hastapp): ev1 => [] wfc' wfargs.
     eapply nth_error_forallb in wfbrs; tea.
-    rewrite Nat.add_0_r in wfbrs.
+    rw Nat.add_0_r in wfbrs.
     forward IHev2. eapply wellformed_iota_red; tea => //.
-    rewrite (optimize_iota_red _ _ wfm) in IHev2 => //. now rewrite e4.
+    rw (optimize_iota_red _ _ wfm) in IHev2 => //. now rw e4.
     econstructor; eauto.
-    rewrite -is_propositional_cstr_optimize //. tea.
-    rewrite reorder_branches_map nth_error_map.
-    rewrite /reorder_branches.
-    rewrite /lookup_constructor_ordinal /lookup_constructor_mapping.
+    rw -is_propositional_cstr_optimize //. tea.
+    rw reorder_branches_map nth_error_map.
+    rw /reorder_branches.
+    rw /lookup_constructor_ordinal /lookup_constructor_mapping.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hla => //=.
-    rewrite /wf_brs in hl.
+    rw /wf_brs in hl.
     destruct lookup_inductive as [[mib oib]|] eqn:li => //. apply Nat.eqb_eq in hl.
     have wftags := lookup_inductive_assoc_wf_tags _ _ wfm li hla.
     have wfmap := lookup_inductive_assoc_spec _ _ wfm hla.
     have wfbrl : #|brs| = #|ind_ctors oib|. lia.
     have wftbrs : wf_tags_list tags #|brs|.
-    { now move: wftags; rewrite /wf_tags_list -wfbrl. }
+    { now move: wftags; rw /wf_tags_list -wfbrl. }
     destruct new_tag eqn:hnewt => //=.
     * eapply new_tag_spec in hnewt.
-      rewrite (nth_error_reorder wftbrs hnewt) e2 //.
+      rw (nth_error_reorder wftbrs hnewt) e2 //.
     * move: wftbrs => /andP[] htbrs wftag.
       eapply find_tag_wf in wftag; tea. apply nth_error_Some_length in e2.
       apply eqb_eq in htbrs. lia.
-    * rewrite e2 //.
+    * rw e2 //.
     * len.
     * len.
 
@@ -1186,51 +1169,51 @@ Proof.
 
   - move/andP => [] hascase /andP[] /andP[] hl wfd wfbrs.
     eapply eval_wellformed in ev1 => //.
-    move: hl; rewrite /wf_brs.
+    move: hl; rw /wf_brs.
     destruct lookup_inductive as [[mib oib]|] eqn:li => //. move/Nat.eqb_eq.
-    len. cbn in wfbrs. subst brs. cbn in wfbrs. rewrite Nat.add_0_r in wfbrs.
+    len. cbn in wfbrs. subst brs. cbn in wfbrs. rw Nat.add_0_r in wfbrs.
     move/andP: wfbrs => [] wfbrs _. cbn; intros hlen.
     forward IHev2. eapply wellformed_substl; tea => //.
-    rewrite forallb_repeat //. len.
+    rw forallb_repeat //. len.
     eapply eval_iota_sing; eauto.
-    rewrite -is_propositional_optimize //.
-    rewrite /reorder_branches.
+    rw -is_propositional_optimize //.
+    rw /reorder_branches.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hla => //=.
     have wftags := lookup_inductive_assoc_wf_tags _ _ wfm li hla.
     have wfmap := lookup_inductive_assoc_spec _ _ wfm hla.
     have wftbrs : wf_tags_list tags #|[(n, f4)]|.
-    { move: wftags; rewrite /wf_tags_list //=. now rewrite hlen. }
-    rewrite //=.
+    { move: wftags; rw /wf_tags_list //=. now rw hlen. }
+    rw //=.
     move: wftbrs => /andP[] /Nat.eqb_eq //=.
     destruct tags => //=. destruct tags => //= _.
-    rewrite /wf_tags => /andP[] ht _. move: ht => //= /andP[] /Nat.ltb_lt.
+    rw /wf_tags => /andP[] ht _. move: ht => //= /andP[] /Nat.ltb_lt.
     destruct n0 => //. destruct n0 => //. cbn -[substl].
-    rewrite (optimize_substl Σ) in IHev2 => //.
-    * now rewrite forallb_repeat.
+    rw (optimize_substl Σ) in IHev2 => //.
+    * now rw forallb_repeat.
     * now len.
-    * now rewrite map_repeat in IHev2.
+    * now rw map_repeat in IHev2.
 
-  - move/andP => [] /andP[] hasapp clf cla. rewrite optimize_mkApps in IHev1.
+  - move/andP => [] /andP[] hasapp clf cla. rw optimize_mkApps in IHev1.
     simpl in *.
     eapply eval_wellformed in ev1 => //.
     move/(@wf_mkApps hastapp): ev1 => [] wff wfargs.
     eapply eval_fix; eauto.
-    rewrite length_map.
+    rw length_map.
     unshelve (eapply optimize_cunfold_fix; tea); tea.
-    rewrite optimize_mkApps in IHev3. apply IHev3.
-    rewrite wellformed_mkApps // wfargs.
-    eapply eval_wellformed in ev2; tas => //. rewrite ev2 /= !andb_true_r.
-    rewrite hastapp.
+    rw optimize_mkApps in IHev3. apply IHev3.
+    rw wellformed_mkApps // wfargs.
+    eapply eval_wellformed in ev2; tas => //. rw ev2 /= !andb_true_r.
+    rw hastapp.
     eapply wellformed_cunfold_fix; tea.
 
   - move/andP => [] /andP[] hasapp clf cla.
     eapply eval_wellformed in ev1 => //.
     move/(@wf_mkApps hastapp): ev1 => [] clfix clargs.
     eapply eval_wellformed in ev2; tas => //.
-    rewrite optimize_mkApps in IHev1 |- *.
+    rw optimize_mkApps in IHev1 |- *.
     simpl in *. eapply eval_fix_value. auto. auto. auto.
     unshelve (eapply optimize_cunfold_fix; eauto); tea.
-    now rewrite length_map.
+    now rw length_map.
 
   - move/andP => [] /andP[] hasapp clf cla.
     eapply eval_wellformed in ev1 => //.
@@ -1239,17 +1222,17 @@ Proof.
     unshelve (eapply optimize_cunfold_fix; eauto); tea.
     eapply IHev2; tea. eapply IHev3.
     apply/andP; split => //.
-    rewrite hastapp.
+    rw hastapp.
     eapply wellformed_cunfold_fix; tea.
 
   - move/andP => [] hascase /andP[] /andP[] hl cd clbrs. specialize (IHev1 cd).
     eapply eval_wellformed in ev1; tea => //.
     move/(@wf_mkApps hastapp): ev1 => [] wfcof wfargs.
     forward IHev2.
-    rewrite hl wellformed_mkApps // /= wfargs clbrs !andb_true_r.
-    rewrite hascase.
+    rw hl wellformed_mkApps // /= wfargs clbrs !andb_true_r.
+    rw hascase.
     eapply wellformed_cunfold_cofix; tea => //.
-    rewrite !optimize_mkApps /= in IHev1, IHev2.
+    rw !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
     exact IHev2.
@@ -1259,54 +1242,54 @@ Proof.
     eapply eval_wellformed in ev1 => //.
     move/(@wf_mkApps hastapp): ev1 => [] wfcof wfargs.
     forward IHev2.
-    { rewrite /= wellformed_mkApps // wfargs andb_true_r hasproj andb_true_r.
+    { rw /= wellformed_mkApps // wfargs andb_true_r hasproj andb_true_r.
       eapply wellformed_cunfold_cofix; tea. }
-    rewrite optimize_mkApps /= in IHev1.
+    rw optimize_mkApps /= in IHev1.
     eapply eval_cofix_proj. eauto.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
-    rewrite optimize_mkApps in IHev2 => //.
+    rw optimize_mkApps in IHev2 => //.
 
-  - rewrite /declared_constant in isdecl.
-    rewrite /lookup_constant. rewrite isdecl /= => _.
+  - rw /declared_constant in isdecl.
+    rw /lookup_constant. rw isdecl /= => _.
     destruct decl; cbn in e; subst cst_body.
     econstructor.
-    rewrite /declared_constant.
-    rewrite lookup_env_reorder isdecl //=. cbn. reflexivity.
+    rw /declared_constant.
+    rw lookup_env_reorder isdecl //=. cbn. reflexivity.
     eapply IHev.
     eapply lookup_env_wellformed in wfΣ; tea.
-    move: wfΣ. now rewrite /wf_global_decl /=.
+    move: wfΣ. now rw /wf_global_decl /=.
 
   - move=> /andP[] /andP[] hasproj iss cld.
     eapply eval_wellformed in ev1; tea => //.
     move/(@wf_mkApps hastapp): ev1 => [] wfc wfargs.
     destruct lookup_projection as [[[[mdecl idecl] cdecl'] pdecl]|] eqn:hl' => //.
     pose proof (lookup_projection_lookup_constructor hl').
-    rewrite (constructor_isprop_pars_decl_constructor H) in e1. noconf e1.
+    rw (constructor_isprop_pars_decl_constructor H) in e1. noconf e1.
     forward IHev1 by auto.
     forward IHev2. eapply nth_error_forallb in wfargs; tea.
-    rewrite optimize_mkApps /= in IHev1.
+    rw optimize_mkApps /= in IHev1.
     have lp := lookup_projection_reorder _ _ wfm p wfΣ.
-    forward lp. now rewrite hl'.
-    rewrite hl' /= in lp.
+    forward lp. now rw hl'.
+    rw hl' /= in lp.
     have lpo := (lookup_projection_ordinal _ _ wfm p wfΣ).
-    forward lpo by now rewrite hl'.
-    rewrite lpo in IHev1.
+    forward lpo by now rw hl'.
+    rw lpo in IHev1.
     eapply eval_proj; tea.
-    rewrite -lpo -is_propositional_cstr_optimize //.
-    rewrite /constructor_isprop_pars_decl // H //= // H0 H1 //.
-    len. rewrite nth_error_map e3 //.
+    rw -lpo -is_propositional_cstr_optimize //.
+    rw /constructor_isprop_pars_decl // H //= // H0 H1 //.
+    len. rw nth_error_map e3 //.
 
   - congruence.
 
   - move/andP => [] /andP[] hasproj hl hd.
     eapply eval_proj_prop; eauto.
-    rewrite -is_propositional_optimize //.
+    rw -is_propositional_optimize //.
 
   - move/andP=> [] /andP[] hasapp clf cla.
-    rewrite optimize_mkApps.
+    rw optimize_mkApps.
     eapply eval_construct; tea.
-    rewrite -lookup_constructor_reorder //. now rewrite e0 //=.
-    rewrite optimize_mkApps in IHev1. now eapply IHev1.
+    rw -lookup_constructor_reorder //. now rw e0 //=.
+    rw optimize_mkApps in IHev1. now eapply IHev1.
     now len.
     now eapply IHev2.
 
@@ -1318,20 +1301,20 @@ Proof.
     eapply eval_to_value in ev1.
     destruct ev1; simpl in *; eauto.
     * depelim a0.
-      + destruct t => //; rewrite optimize_mkApps /=.
-      + now rewrite /= !orb_false_r orb_true_r in i.
+      + destruct t => //; rw optimize_mkApps /=.
+      + now rw /= !orb_false_r orb_true_r in i.
     * destruct with_guarded_fix.
       + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps
+        rw !negb_or.
+        rw optimize_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps
           !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
+        destruct args using rev_case => // /=. rw map_app !mkApps_app /= //.
+        rw !andb_true_r.
         rtoProp; intuition auto;  destruct v => /= //.
       + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
+        rw !negb_or.
+        rw optimize_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
+        destruct args using rev_case => // /=. rw map_app !mkApps_app /= //.
         destruct v => /= //.
   - intros; rtoProp; intuition eauto.
     depelim X; repeat constructor.
@@ -1344,7 +1327,7 @@ Proof.
   - destruct t => //.
     all:constructor; eauto.
     cbn [atom reorder] in i |- *.
-    rewrite -lookup_constructor_reorder //.
+    rw -lookup_constructor_reorder //.
     destruct args. 2:cbn in *; eauto.
     cbn -[lookup_constructor]. rtoProp; intuition auto.
     destruct lookup_constructor => //.
@@ -1364,9 +1347,9 @@ Lemma wf_inductive_mapping_inv {efl : EEnvFlags} d Σ m :
   | ConstantDecl _ => True
   end) /\ wf_inductives_mapping Σ m.
 Proof.
-  rewrite /wf_inductives_mapping.
+  rw /wf_inductives_mapping.
   intros wfΣ wfm. split; revgoals. solve_all.
-  move: H; rewrite /wf_inductive_mapping.
+  move: H; rw /wf_inductive_mapping.
   destruct x as [ind [na tags]].
   destruct lookup_inductive as [[mib oib]|] eqn:li => //=.
   depelim wfΣ; cbn.
@@ -1393,8 +1376,8 @@ Proof.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hla => //.
     have hla' := lookup_inductive_assoc_wf_tags _ _ wfm _ hla.
     eapply hla'.
-    rewrite /lookup_inductive /lookup_minductive /=.
-    rewrite eqb_refl. rewrite hnth. reflexivity.
+    rw /lookup_inductive /lookup_minductive /=.
+    rw eqb_refl. rw hnth. reflexivity.
 Qed.
 
 From MetaRocq.Erasure Require Import EEtaExpanded.
@@ -1405,17 +1388,17 @@ Proof.
   intros wfm.
   induction 1 using expanded_ind.
   all:try solve[constructor; eauto; solve_all].
-  all:rewrite ?optimize_mkApps.
+  all:rw ?optimize_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn. econstructor; eauto.
-    rewrite /reorder_branches.
+    rw /reorder_branches.
     destruct lookup_inductive_assoc => //; solve_all.
     eapply All_reorder_list. solve_all.
   - cbn. eapply expanded_tFix. solve_all.
-    rewrite isLambda_optimize //.
+    rw isLambda_optimize //.
   - cbn.
     eapply declared_constructor_lookup in H.
-    have hl := lookup_constructor_reorder _ _ wfm ind idx. rewrite H /= in hl.
+    have hl := lookup_constructor_reorder _ _ wfm ind idx. rw H /= in hl.
     eapply expanded_tConstruct_app; tea.
     eapply lookup_declared_constructor. now symmetry.
     now len. now solve_all.
@@ -1451,23 +1434,23 @@ Proof.
   intros wfm.
   induction 1 using expanded_ind.
   all:try solve[constructor; eauto; solve_all].
-  all:rewrite ?optimize_mkApps.
+  all:rw ?optimize_mkApps.
   - cbn. eapply expanded_tRel_app; tea. len. solve_all.
   - cbn. econstructor; eauto.
     2:solve_all.
     destruct f3 => //.
   - cbn. econstructor; eauto.
-    rewrite /reorder_branches.
+    rw /reorder_branches.
     destruct lookup_inductive_assoc => //; solve_all.
     eapply All_reorder_list. solve_all.
   - cbn. eapply expanded_tFix. solve_all.
-    rewrite isLambda_optimize //.
-    now rewrite rev_map_spec map_map_compose /= -rev_map_spec.
-    solve_all. destruct args => //. rewrite nth_error_map /= H4 //.
+    rw isLambda_optimize //.
+    now rw rev_map_spec map_map_compose /= -rev_map_spec.
+    solve_all. destruct args => //. rw nth_error_map /= H4 //.
     len.
   - cbn.
     eapply declared_constructor_lookup in H.
-    have hl := lookup_constructor_reorder _ _ wfm ind idx. rewrite H /= in hl.
+    have hl := lookup_constructor_reorder _ _ wfm ind idx. rw H /= in hl.
     eapply expanded_tConstruct_app; tea.
     eapply lookup_declared_constructor. now symmetry.
     now len. now solve_all.
@@ -1503,11 +1486,11 @@ Lemma optimize_extends_env {efl : EEnvFlags} {Σ Σ'} m :
   extends (reorder_env m Σ) (reorder_env m Σ').
 Proof.
   intros hast ext wf wf'.
-  rewrite /extends => kn decl.
-  rewrite !lookup_env_reorder.
+  rw /extends => kn decl.
+  rw !lookup_env_reorder.
   specialize (ext kn).
   destruct lookup_env eqn:hle => //. specialize (ext _ eq_refl).
-  rewrite ext. auto.
+  rw ext. auto.
 Qed.
 
 Lemma reorder_env_wf {efl : EEnvFlags} {Σ m}
@@ -1523,8 +1506,8 @@ Proof.
   - unfold wf_global_decl in H. cbn in H.
     destruct (cst_body c) => //=. cbn in H.
     unshelve (eapply wf_optimize); eauto.
-  - cbn in H. rewrite /wf_minductive in H. cbn in H.
-    rewrite /wf_minductive /=.
+  - cbn in H. rw /wf_minductive in H. cbn in H.
+    rw /wf_minductive /=.
     move/andP: H => [] -> H /=. solve_all.
     have hfa := (forall_nth_error_Alli (fun i oib =>
     is_true (match lookup_inductive_assoc m {| inductive_mind := kn; inductive_ind := i |} with
@@ -1536,16 +1519,16 @@ Proof.
     eapply (fst (Alli_mapi _ _ _)).
     eapply Alli_impl; tea. cbn.
     intros n x [hla wf].
-    rewrite /reorder_one_ind.
+    rw /reorder_one_ind.
     destruct lookup_inductive_assoc as [[na tags]|] eqn:hla' => //.
-    move: wf. rewrite /wf_inductive /wf_projections /=.
+    move: wf. rw /wf_inductive /wf_projections /=.
     destruct ind_projs => //. destruct ind_ctors => //. destruct l0 => //=.
-    move: hla; rewrite /wf_tags_list. destruct tags => //=.
-    destruct tags => //=. rewrite /wf_tags. move/andP=> [] hf _.
-    cbn in hf. rewrite andb_true_r in hf. apply Nat.leb_le in hf.
+    move: hla; rw /wf_tags_list. destruct tags => //=.
+    destruct tags => //=. rw /wf_tags. move/andP=> [] hf _.
+    cbn in hf. rw andb_true_r in hf. apply Nat.leb_le in hf.
     have -> : n0 = 0 by lia. now cbn.
   - cbn. apply ErasureFunction.fresh_global_In.
-    rewrite map_map_compose /=. intros hin'. apply ErasureFunction.fresh_global_In in H0.
+    rw map_map_compose /=. intros hin'. apply ErasureFunction.fresh_global_In in H0.
     now apply H0.
 Qed.
 

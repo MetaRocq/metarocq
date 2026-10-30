@@ -68,9 +68,9 @@ Section strip.
     all:try apply (In_size); tea.
     - eapply (In_size id size) in H. unfold id in H.
       change (fun x => size x) with size in *. lia.
-    - rewrite size_mkApps.
+    - rw size_mkApps.
       eapply (In_size id size) in H. change (fun x => size (id x)) with size in H. unfold id in H.  cbn. lia.
-    - rewrite size_mkApps.
+    - rw size_mkApps.
       eapply (In_size id size) in H. change (fun x => size (id x)) with size in H. unfold id in H.  cbn. lia.
     - now eapply size_mkApps_f.
     - pose proof (size_mkApps_l napp nnil).
@@ -89,11 +89,11 @@ Section strip.
 
   Lemma map_repeat {A B} (f : A -> B) x n : map f (repeat x n) = repeat (f x) n.
   Proof using Type.
-    now induction n; simpl; auto; rewrite IHn.
+    now induction n; simpl; auto; rw IHn.
   Qed.
 
   Lemma map_strip_repeat_box n : map strip (repeat tBox n) = repeat tBox n.
-  Proof using Type. now rewrite map_repeat. Qed.
+  Proof using Type. now rw map_repeat. Qed.
 
   Arguments eqb : simpl never.
 
@@ -105,25 +105,25 @@ Section strip.
   Lemma closedn_mkApps k f l : closedn k (mkApps f l) = closedn k f && forallb (closedn k) l.
   Proof using Type.
     induction l in f |- *; cbn; auto.
-    - now rewrite andb_true_r.
-    - now rewrite IHl /= andb_assoc.
+    - now rw andb_true_r.
+    - now rw IHl /= andb_assoc.
   Qed.
 
   Lemma closed_strip t k : closedn k t -> closedn k (strip t).
   Proof using Type.
-    funelim (strip t); simp strip; rewrite -?strip_equation_1; toAll; simpl;
+    funelim (strip t); simp strip; rw -?strip_equation_1; toAll; simpl;
     intros; try easy;
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
     simpl closed in *;
     try solve [simpl; subst; simpl closed; f_equal; auto; rtoProp; solve_all; solve_all]; try easy.
     - solve_all_k 6.
-    - rewrite !closedn_mkApps in H1 *.
+    - rw !closedn_mkApps in H1 *.
       rtoProp; intuition auto.
       solve_all.
-    - rewrite !closedn_mkApps /= in H0 *. rtoProp.
-      rewrite forallb_skipn; solve_all. solve_all.
-    - rewrite !closedn_mkApps /= in H0 *. rtoProp. repeat solve_all.
+    - rw !closedn_mkApps /= in H0 *. rtoProp.
+      rw forallb_skipn; solve_all. solve_all.
+    - rw !closedn_mkApps /= in H0 *. rtoProp. repeat solve_all.
   Qed.
 
   Hint Rewrite @forallb_InP_spec : isEtaExp.
@@ -140,13 +140,13 @@ Section strip.
       | view_other u nconstr => mkApps (strip f) (map strip v)
     end.
   Proof using Type.
-    intros napp hv. rewrite strip_equation_1.
+    intros napp hv. rw strip_equation_1.
     destruct (TermSpineView.view_mkApps (TermSpineView.view (mkApps f v)) napp hv) as [hna [hv' ->]].
-    simp strip; rewrite -strip_equation_1.
+    simp strip; rw -strip_equation_1.
     destruct (construct_viewc f).
     2:cbn; simp strip => //.
     simp strip.
-    rewrite GlobalContextMap.lookup_inductive_pars_spec.
+    rw GlobalContextMap.lookup_inductive_pars_spec.
     destruct lookup_inductive_pars as [pars|] eqn:epars; cbn; simp strip => //.
   Qed.
 
@@ -164,7 +164,7 @@ Section strip.
     destruct v using rev_case; simpl.
     - destruct construct_viewc => //. simp strip.
       destruct lookup_inductive_pars as [|] => //.
-      now rewrite skipn_nil //.
+      now rw skipn_nil //.
     - apply (strip_mkApps_nonnil f (v ++ [x])) => //.
   Qed.
 
@@ -172,8 +172,8 @@ Section strip.
     lookup_constructor_pars_args Σ ind n = Some (pars, args) ->
     lookup_inductive_pars Σ (inductive_mind ind) = Some pars.
   Proof using Type.
-    rewrite /lookup_constructor_pars_args /lookup_inductive_pars.
-    rewrite /lookup_constructor /lookup_inductive. destruct lookup_minductive => //.
+    rw /lookup_constructor_pars_args /lookup_inductive_pars.
+    rw /lookup_constructor /lookup_inductive. destruct lookup_minductive => //.
     cbn. do 2 destruct nth_error => //. congruence.
   Qed.
 
@@ -184,7 +184,7 @@ Section strip.
     strip (ECSubst.csubst a k b) = ECSubst.csubst (strip a) k (strip b).
   Proof using Type.
     intros cla etaa; move cla before a. move etaa before a.
-    funelim (strip b); cbn; simp strip isEtaExp; rewrite -?isEtaExp_equation_1 -?strip_equation_1; toAll; simpl;
+    funelim (strip b); cbn; simp strip isEtaExp; rw -?isEtaExp_equation_1 -?strip_equation_1; toAll; simpl;
     intros; try easy;
     rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
     unfold test_def in *;
@@ -194,84 +194,84 @@ Section strip.
     - f_equal. rtoProp. solve_all. destruct block_args; inv H0. eauto.
     - f_equal. solve_all.  move/andP: b => [] _ he. solve_all.
     - specialize (H a etaa cla k).
-      rewrite !csubst_mkApps in H1 *.
-      rewrite isEtaExp_mkApps_napp // in H1.
+      rw !csubst_mkApps in H1 *.
+      rw isEtaExp_mkApps_napp // in H1.
       destruct construct_viewc.
-      * cbn. rewrite strip_mkApps //.
+      * cbn. rw strip_mkApps //.
       * move/andP: H1 => [] et ev.
-        rewrite -H //.
+        rw -H //.
         assert (map (csubst a k) v <> []).
         { destruct v; cbn; congruence. }
         pose proof (etaExp_csubst Σ _ k _ etaa et).
         destruct (isApp (csubst a k t)) eqn:eqa.
         { destruct (decompose_app (csubst a k t)) eqn:eqk.
-          rewrite (decompose_app_inv eqk) in H2 *.
+          rw (decompose_app_inv eqk) in H2 *.
           pose proof (decompose_app_notApp _ _ _ eqk).
           assert (l <> []).
-          { intros ->. rewrite (decompose_app_inv eqk) in eqa. now rewrite eqa in H3. }
-          rewrite isEtaExp_mkApps_napp // in H2.
+          { intros ->. rw (decompose_app_inv eqk) in eqa. now rw eqa in H3. }
+          rw isEtaExp_mkApps_napp // in H2.
           assert ((l ++ map (csubst a k) v)%list <> []).
           { destruct l; cbn; congruence. }
 
           destruct (construct_viewc t0) eqn:hc.
-          { rewrite -mkApps_app /=.
-            rewrite strip_mkApps //. rewrite strip_mkApps //.
+          { rw -mkApps_app /=.
+            rw strip_mkApps //. rw strip_mkApps //.
             cbn -[lookup_inductive_pars].
             move/andP: H2 => [] ise hl.
             unfold isEtaExp_app in ise.
             destruct lookup_constructor_pars_args as [[pars args]|] eqn:eqpars => //.
-            rewrite (lookup_inductive_pars_constructor_pars_args eqpars).
-            rewrite -mkApps_app /= !skipn_map. f_equal.
-            rewrite skipn_app map_app. f_equal.
+            rw (lookup_inductive_pars_constructor_pars_args eqpars).
+            rw -mkApps_app /= !skipn_map. f_equal.
+            rw skipn_app map_app. f_equal.
             assert (pars - #|l| = 0). rtoProp. rename H2 into ise. eapply Nat.leb_le in ise; lia.
-            rewrite H2 skipn_0.
-            rewrite !map_map_compose.
+            rw H2 skipn_0.
+            rw !map_map_compose.
             clear -etaa cla ev H0. solve_all. }
-          { rewrite -mkApps_app.
-            rewrite strip_mkApps //. rewrite hc.
-            rewrite strip_mkApps // hc -mkApps_app map_app //.
+          { rw -mkApps_app.
+            rw strip_mkApps //. rw hc.
+            rw strip_mkApps // hc -mkApps_app map_app //.
             f_equal. f_equal.
-            rewrite !map_map_compose.
+            rw !map_map_compose.
             clear -etaa cla ev H0. solve_all. } }
-        { rewrite strip_mkApps ?eqa //.
+        { rw strip_mkApps ?eqa //.
           destruct (construct_viewc (csubst a k t)) eqn:eqc.
-          2:{ f_equal. rewrite !map_map_compose. clear -etaa cla ev H0. solve_all. }
+          2:{ f_equal. rw !map_map_compose. clear -etaa cla ev H0. solve_all. }
           simp isEtaExp in H2.
-          rewrite /isEtaExp_app in H2.
+          rw /isEtaExp_app in H2.
           destruct lookup_constructor_pars_args as [[pars args]|] eqn:eqpars => // /=.
-          rewrite (lookup_inductive_pars_constructor_pars_args eqpars).
+          rw (lookup_inductive_pars_constructor_pars_args eqpars).
           assert (pars = 0). rtoProp. eapply Nat.leb_le in H2. lia.
-          subst pars. rewrite skipn_0.
-          simp strip; rewrite -strip_equation_1.
-          { f_equal. rewrite !map_map_compose. clear -etaa cla ev H0. solve_all. } }
+          subst pars. rw skipn_0.
+          simp strip; rw -strip_equation_1.
+          { f_equal. rw !map_map_compose. clear -etaa cla ev H0. solve_all. } }
     - pose proof (etaExp_csubst _ _ k _ etaa H0).
-      rewrite !csubst_mkApps /= in H1 *.
+      rw !csubst_mkApps /= in H1 *.
       assert (map (csubst a k) v <> []).
       { destruct v; cbn; congruence. }
-      rewrite strip_mkApps //.
-      rewrite isEtaExp_Constructor // in H1.
-      move/andP: H1. rewrite length_map. move=> [] etaapp etav.
+      rw strip_mkApps //.
+      rw isEtaExp_Constructor // in H1.
+      move/andP: H1. rw length_map. move=> [] etaapp etav.
       cbn -[lookup_inductive_pars].
       unfold isEtaExp_app in etaapp.
-      rewrite GlobalContextMap.lookup_inductive_pars_spec in Heq.
-      rewrite Heq in etaapp *.
+      rw GlobalContextMap.lookup_inductive_pars_spec in Heq.
+      rw Heq in etaapp *.
       f_equal.
       now destruct block_args; inv etav.
-      rewrite map_skipn. f_equal.
-      rewrite !map_map_compose.
-      rewrite isEtaExp_Constructor // in H0. rtoProp. solve_all.
+      rw map_skipn. f_equal.
+      rw !map_map_compose.
+      rw isEtaExp_Constructor // in H0. rtoProp. solve_all.
     - pose proof (etaExp_csubst _ _ k _ etaa H0).
-      rewrite !csubst_mkApps /= in H1 *.
+      rw !csubst_mkApps /= in H1 *.
       assert (map (csubst a k) v <> []).
       { destruct v; cbn; congruence. }
-      rewrite strip_mkApps //.
-      rewrite isEtaExp_Constructor // in H1.
-      rewrite GlobalContextMap.lookup_inductive_pars_spec in Heq.
-      move/andP: H1. rewrite length_map. move=> [] etaapp etav.
+      rw strip_mkApps //.
+      rw isEtaExp_Constructor // in H1.
+      rw GlobalContextMap.lookup_inductive_pars_spec in Heq.
+      move/andP: H1. rw length_map. move=> [] etaapp etav.
       cbn -[lookup_inductive_pars].
       unfold isEtaExp_app in etaapp.
       destruct lookup_constructor_pars_args as [[pars args]|] eqn:eqpars => //.
-      now rewrite (lookup_inductive_pars_constructor_pars_args eqpars) in Heq.
+      now rw (lookup_inductive_pars_constructor_pars_args eqpars) in Heq.
   Qed.
 
   Lemma strip_substl s t :
@@ -282,8 +282,8 @@ Section strip.
   Proof using Type.
     induction s in t |- *; simpl; auto.
     move=> /andP[] cla cls /andP[] etaa etas etat.
-    rewrite IHs //. now eapply etaExp_csubst. f_equal.
-    now rewrite strip_csubst.
+    rw IHs //. now eapply etaExp_csubst. f_equal.
+    now rw strip_csubst.
   Qed.
 
   Lemma strip_iota_red pars args br :
@@ -294,16 +294,16 @@ Section strip.
   Proof using Type.
     intros cl etaargs etabr.
     unfold EGlobalEnv.iota_red.
-    rewrite strip_substl //.
-    rewrite forallb_rev forallb_skipn //.
-    rewrite forallb_rev forallb_skipn //.
-    now rewrite map_rev map_skipn.
+    rw strip_substl //.
+    rw forallb_rev forallb_skipn //.
+    rw forallb_rev forallb_skipn //.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma strip_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def strip) mfix) = map strip (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp strip.
@@ -312,7 +312,7 @@ Section strip.
   Lemma strip_cofix_subst mfix : EGlobalEnv.cofix_subst (map (map_def strip) mfix) = map strip (EGlobalEnv.cofix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.cofix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp strip.
@@ -326,10 +326,10 @@ Section strip.
   Proof using Type.
     intros hfix heta.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal. f_equal.
-    rewrite strip_substl //.
+    rw strip_substl //.
     now apply isEtaExp_fix_subst.
     solve_all. eapply nth_error_all in heta; tea. cbn in heta.
     rtoProp; intuition auto.
@@ -346,10 +346,10 @@ Section strip.
   Proof using Type.
     intros hcofix heta.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal.
-    rewrite strip_substl //.
+    rw strip_substl //.
     now apply isEtaExp_cofix_subst.
     solve_all. now eapply nth_error_all in heta; tea.
     f_equal. f_equal. apply strip_cofix_subst.
@@ -365,10 +365,10 @@ Section strip.
 End strip.
 
 #[universes(polymorphic)] Global Hint Rewrite @map_primIn_spec @map_InP_spec : strip.
-Tactic Notation "simp_eta" "in" hyp(H) := simp isEtaExp in H; rewrite -?isEtaExp_equation_1 in H.
-Ltac simp_eta := simp isEtaExp; rewrite -?isEtaExp_equation_1.
-Tactic Notation "simp_strip" "in" hyp(H) := simp strip in H; rewrite -?strip_equation_1 in H.
-Ltac simp_strip := simp strip; rewrite -?strip_equation_1.
+Tactic Notation "simp_eta" "in" hyp(H) := simp isEtaExp in H; rw -?isEtaExp_equation_1 in H.
+Ltac simp_eta := simp isEtaExp; rw -?isEtaExp_equation_1.
+Tactic Notation "simp_strip" "in" hyp(H) := simp strip in H; rw -?strip_equation_1 in H.
+Ltac simp_strip := simp strip; rw -?strip_equation_1.
 
 Definition strip_constant_decl Σ cb :=
   {| cst_body := option_map (strip Σ) cb.(cst_body) |}.
@@ -407,8 +407,8 @@ Lemma lookup_constructor_strip {Σ kn c} :
   | None => None
   end.
 Proof.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_strip.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_strip.
   destruct lookup_env as [[]|] => /= //.
   do 2 destruct nth_error => //.
 Qed.
@@ -417,7 +417,7 @@ Lemma lookup_constructor_pars_args_strip (Σ : GlobalContextMap.t) i n npars nar
   EGlobalEnv.lookup_constructor_pars_args Σ i n = Some (npars, nargs) ->
   EGlobalEnv.lookup_constructor_pars_args (strip_env Σ) i n = Some (0, nargs).
 Proof.
-  rewrite /EGlobalEnv.lookup_constructor_pars_args. rewrite lookup_constructor_strip //=.
+  rw /EGlobalEnv.lookup_constructor_pars_args. rw lookup_constructor_strip //=.
   destruct EGlobalEnv.lookup_constructor => //. destruct p as [[] ?] => //=. now intros [= <- <-].
 Qed.
 
@@ -429,8 +429,8 @@ Lemma is_propositional_strip (Σ : GlobalContextMap.t) ind :
     inductive_isprop_and_pars (strip_env Σ) ind = None
   end.
 Proof.
-  rewrite /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_strip.
+  rw /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
+  rw lookup_env_strip.
   destruct lookup_env; simpl; auto.
   destruct g; simpl; auto. destruct nth_error => //.
 Qed.
@@ -443,8 +443,8 @@ Lemma is_propositional_cstr_strip {Σ : GlobalContextMap.t} {ind c} :
   constructor_isprop_pars_decl (strip_env Σ) ind c = None
   end.
 Proof.
-  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_strip.
+  rw /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_strip.
   destruct lookup_env; simpl; auto.
   destruct g; simpl; auto. do 2 destruct nth_error => //.
 Qed.
@@ -454,9 +454,9 @@ Lemma lookup_inductive_pars_strip {efl : EEnvFlags} {Σ : GlobalContextMap.t} in
   forall pars, lookup_inductive_pars Σ ind = Some pars ->
   EGlobalEnv.lookup_inductive_pars (strip_env Σ) ind = Some 0.
 Proof.
-  rewrite /lookup_inductive_pars => wf pars.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_strip _ ind).
+  rw /lookup_inductive_pars => wf pars.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_strip _ ind).
   destruct lookup_env as [[decl|]|] => //=.
 Qed.
 
@@ -481,16 +481,16 @@ Proof.
   pose proof (decompose_app_inv da).
   pose proof (decompose_app_notApp _ _ _ da).
   destruct l using rev_case. cbn. intuition auto. solve_discr. noconf H.
-  rewrite mkApps_app in H. noconf H.
-  rewrite remove_last_app last_last. intuition auto.
+  rw mkApps_app in H. noconf H.
+  rw remove_last_app last_last. intuition auto.
   destruct l; cbn in *; congruence.
   pose proof (decompose_app_inv da).
   pose proof (decompose_app_notApp _ _ _ da).
   destruct l using rev_case. cbn. intuition auto. destruct t => //.
-  rewrite mkApps_app in H. noconf H.
-  move=> /andP[] etat. rewrite forallb_app => /andP[] etal /=.
-  rewrite andb_true_r => etaa. rewrite etaa andb_true_r.
-  rewrite etat etal. cbn. rewrite andb_true_r.
+  rw mkApps_app in H. noconf H.
+  move=> /andP[] etat. rw forallb_app => /andP[] etal /=.
+  rw andb_true_r => etaa. rw etaa andb_true_r.
+  rw etat etal. cbn. rw andb_true_r.
   eapply isEtaExp_mkApps_intro; auto; solve_all.
 Qed.
 
@@ -499,10 +499,10 @@ Lemma decompose_app_tApp_split f a hd args :
 Proof.
   unfold decompose_app. cbn.
   move/decompose_app_rec_inv' => [n [napp [hskip heq]]].
-  rewrite -(firstn_skipn n args).
-  rewrite -hskip. rewrite last_last; split => //.
-  rewrite heq. f_equal.
-  now rewrite remove_last_app.
+  rw -(firstn_skipn n args).
+  rw -hskip. rw last_last; split => //.
+  rw heq. f_equal.
+  now rw remove_last_app.
 Qed.
 
 Arguments lookup_inductive_pars_constructor_pars_args {Σ ind n pars args}.
@@ -515,34 +515,34 @@ Proof.
   move/isEtaExp_mkApps: H.
   destruct decompose_app eqn:da.
   destruct construct_viewc eqn:cv => //.
-  { intros [? [? []]]. rewrite H0 /=.
-    rewrite -[EAst.tApp _ _ ](mkApps_app _ _ [a]).
-    move/andP: H2 => []. rewrite /isEtaExp_app.
-    rewrite !strip_mkApps // cv.
+  { intros [? [? []]]. rw H0 /=.
+    rw -[EAst.tApp _ _ ](mkApps_app _ _ [a]).
+    move/andP: H2 => []. rw /isEtaExp_app.
+    rw !strip_mkApps // cv.
     destruct lookup_constructor_pars_args as [[pars args]|] eqn:hl => //.
-    rewrite (lookup_inductive_pars_constructor_pars_args hl).
+    rw (lookup_inductive_pars_constructor_pars_args hl).
     intros hpars etal.
-    rewrite -[EAst.tApp _ _ ](mkApps_app _ _ [strip Σ a]).
-    f_equal. rewrite !skipn_map !skipn_app map_app. f_equal.
+    rw -[EAst.tApp _ _ ](mkApps_app _ _ [strip Σ a]).
+    f_equal. rw !skipn_map !skipn_app map_app. f_equal.
     assert (pars - #|remove_last l| = 0) as ->.
-    2:{ rewrite skipn_0 //. }
-    rewrite H0 in etaf.
-    rewrite isEtaExp_mkApps_napp // in etaf.
+    2:{ rw skipn_0 //. }
+    rw H0 in etaf.
+    rw isEtaExp_mkApps_napp // in etaf.
     simp construct_viewc in etaf.
-    move/andP: etaf => []. rewrite /isEtaExp_app hl.
+    move/andP: etaf => []. rw /isEtaExp_app hl.
     move => /andP[] /Nat.leb_le. lia. }
-  { move/and4P=> [] iset isel _ _. rewrite (decompose_app_inv da).
+  { move/and4P=> [] iset isel _ _. rw (decompose_app_inv da).
     pose proof (decompose_app_notApp _ _ _ da).
-    rewrite strip_mkApps //.
+    rw strip_mkApps //.
     destruct (decompose_app_tApp_split _ _ _ _ da).
-    rewrite cv. rewrite H0.
-    rewrite strip_mkApps // cv.
-    rewrite -[EAst.tApp _ _ ](mkApps_app _ _ [strip Σ a]). f_equal.
-    rewrite -[(_ ++ _)%list](map_app (strip Σ) _ [a]).
+    rw cv. rw H0.
+    rw strip_mkApps // cv.
+    rw -[EAst.tApp _ _ ](mkApps_app _ _ [strip Σ a]). f_equal.
+    rw -[(_ ++ _)%list](map_app (strip Σ) _ [a]).
     f_equal.
     assert (l <> []).
     { destruct l; try congruence. eapply decompose_app_inv in da. cbn in *. now subst t. }
-    rewrite H1.
+    rw H1.
     now apply remove_last_last. }
 Qed.
 
@@ -609,27 +609,27 @@ Module Fast.
         (fun l l' => map (map_def (ERemoveParams.strip Σ)) l = l')); subst P; cbn -[GlobalContextMap.lookup_inductive_pars isEtaExp ERemoveParams.strip]; clear.
       all: try reflexivity.
       all: intros *; simp_eta; simp_strip.
-      all: try solve [intros; subst; rtoProp; rewrite strip_mkApps // /=; simp_strip; repeat specIH; repeat (f_equal; intuition eauto)].
-      all: try solve [rewrite strip_mkApps //].
+      all: try solve [intros; subst; rtoProp; rw strip_mkApps // /=; simp_strip; repeat specIH; repeat (f_equal; intuition eauto)].
+      all: try solve [rw strip_mkApps //].
       - intros IHv IHu.
         specialize (IHv [] eq_refl). simpl in IHv.
         intros args ->. specialize (IHu (v :: args)).
-        forward IHu. now rewrite -IHv. exact IHu.
+        forward IHu. now rw -IHv. exact IHu.
       - intros Hl hargs args ->.
-        rewrite strip_mkApps //=. simp_strip.
+        rw strip_mkApps //=. simp_strip.
         f_equal. f_equal. cbn.
-        do 2 f_equal. rewrite /map_array_model.
+        do 2 f_equal. rw /map_array_model.
         specialize (Hl [] eq_refl). f_equal; eauto.
       - intros Hl args ->.
-        rewrite strip_mkApps // /=.
-        rewrite GlobalContextMap.lookup_inductive_pars_spec in Hl. now rewrite Hl.
+        rw strip_mkApps // /=.
+        rw GlobalContextMap.lookup_inductive_pars_spec in Hl. now rw Hl.
       - intros Hl args ->.
-        rewrite GlobalContextMap.lookup_inductive_pars_spec in Hl.
-        now rewrite strip_mkApps // /= Hl.
+        rw GlobalContextMap.lookup_inductive_pars_spec in Hl.
+        now rw strip_mkApps // /= Hl.
       - intros IHa heq.
-        specIH. now rewrite IHa.
-      - intros IHa heq; specIH. f_equal; eauto. unfold on_snd. now rewrite IHa.
-      - intros IHa heq; specIH. unfold map_def. f_equal; eauto. now rewrite IHa.
+        specIH. now rw IHa.
+      - intros IHa heq; specIH. f_equal; eauto. unfold on_snd. now rw IHa.
+      - intros IHa heq; specIH. unfold map_def. f_equal; eauto. now rw IHa.
     Qed.
 
     Lemma strip_fast t : ERemoveParams.strip Σ t = strip [] t.
@@ -673,7 +673,7 @@ Lemma isLambda_mkApps' f l :
   ~~ EAst.isLambda (EAst.mkApps f l).
 Proof.
   induction l using rev_ind; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma isBox_mkApps' f l :
@@ -681,7 +681,7 @@ Lemma isBox_mkApps' f l :
   ~~ isBox (EAst.mkApps f l).
 Proof.
   induction l using rev_ind; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma isFix_mkApps' f l :
@@ -689,53 +689,53 @@ Lemma isFix_mkApps' f l :
   ~~ isFix (EAst.mkApps f l).
 Proof.
   induction l using rev_ind; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma isLambda_mkApps_Construct ind n block_args l :
   ~~ EAst.isLambda (EAst.mkApps (EAst.tConstruct ind n block_args) l).
 Proof.
   induction l using rev_ind; cbn; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma isBox_mkApps_Construct ind n block_args l :
   ~~ isBox (EAst.mkApps (EAst.tConstruct ind n block_args) l).
 Proof.
   induction l using rev_ind; cbn; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma isFix_mkApps_Construct ind n block_args l :
   ~~ isFix (EAst.mkApps (EAst.tConstruct ind n block_args) l).
 Proof.
   induction l using rev_ind; cbn; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma strip_isLambda Σ f :
   EAst.isLambda f = EAst.isLambda (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip]; (try simp_strip) => //.
-  rewrite (negbTE (isLambda_mkApps' _ _ _)) //.
-  rewrite (negbTE (isLambda_mkApps' _ _ _)) //; try apply map_nil => //.
-  all:rewrite !(negbTE (isLambda_mkApps_Construct _ _ _ _)) //.
+  rw (negbTE (isLambda_mkApps' _ _ _)) //.
+  rw (negbTE (isLambda_mkApps' _ _ _)) //; try apply map_nil => //.
+  all:rw !(negbTE (isLambda_mkApps_Construct _ _ _ _)) //.
 Qed.
 
 Lemma strip_isBox Σ f :
   isBox f = isBox (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  rewrite (negbTE (isBox_mkApps' _ _ _)) //.
-  rewrite (negbTE (isBox_mkApps' _ _ _)) //; try apply map_nil => //.
-  all:rewrite !(negbTE (isBox_mkApps_Construct _ _ _ _)) //.
+  all:rw map_InP_spec.
+  rw (negbTE (isBox_mkApps' _ _ _)) //.
+  rw (negbTE (isBox_mkApps' _ _ _)) //; try apply map_nil => //.
+  all:rw !(negbTE (isBox_mkApps_Construct _ _ _ _)) //.
 Qed.
 
 Lemma isApp_mkApps u v : v <> nil -> isApp (mkApps u v).
 Proof.
   destruct v using rev_case; try congruence.
-  rewrite mkApps_app /= //.
+  rw mkApps_app /= //.
 Qed.
 
 Lemma strip_isApp Σ f :
@@ -743,57 +743,57 @@ Lemma strip_isApp Σ f :
   ~~ EAst.isApp (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  all:rewrite isApp_mkApps //.
+  all:rw map_InP_spec.
+  all:rw isApp_mkApps //.
 Qed.
 
 Lemma strip_isFix Σ f :
   isFix f = isFix (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  rewrite (negbTE (isFix_mkApps' _ _ _)) //.
-  rewrite (negbTE (isFix_mkApps' _ _ _)) //; try apply map_nil => //.
-  all:rewrite !(negbTE (isFix_mkApps_Construct _ _ _ _)) //.
+  all:rw map_InP_spec.
+  rw (negbTE (isFix_mkApps' _ _ _)) //.
+  rw (negbTE (isFix_mkApps' _ _ _)) //; try apply map_nil => //.
+  all:rw !(negbTE (isFix_mkApps_Construct _ _ _ _)) //.
 Qed.
 
 Lemma strip_isFixApp Σ f :
   isFixApp f = isFixApp (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  all:rewrite isFixApp_mkApps isFixApp_mkApps //.
+  all:rw map_InP_spec.
+  all:rw isFixApp_mkApps isFixApp_mkApps //.
 Qed.
 
 Lemma strip_isConstructApp Σ f :
   isConstructApp f = isConstructApp (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  all:rewrite isConstructApp_mkApps isConstructApp_mkApps //.
+  all:rw map_InP_spec.
+  all:rw isConstructApp_mkApps isConstructApp_mkApps //.
 Qed.
 
 Lemma strip_isPrimApp Σ f :
   isPrimApp f = isPrimApp (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  all:rewrite !isPrimApp_mkApps //.
+  all:rw map_InP_spec.
+  all:rw !isPrimApp_mkApps //.
 Qed.
 
 Lemma strip_isLazyApp Σ f :
   isLazyApp f = isLazyApp (strip Σ f).
 Proof.
   funelim (strip Σ f); cbn -[strip] => //.
-  all:rewrite map_InP_spec.
-  all:rewrite !isLazyApp_mkApps //.
+  all:rw map_InP_spec.
+  all:rw !isLazyApp_mkApps //.
 Qed.
 
 Lemma lookup_inductive_pars_is_prop_and_pars {Σ ind b pars} :
   inductive_isprop_and_pars Σ ind = Some (b, pars) ->
   lookup_inductive_pars Σ (inductive_mind ind) = Some pars.
 Proof.
-  rewrite /inductive_isprop_and_pars /lookup_inductive_pars /lookup_inductive /lookup_minductive.
+  rw /inductive_isprop_and_pars /lookup_inductive_pars /lookup_inductive /lookup_minductive.
   destruct lookup_env => //.
   destruct g => /= //.
   destruct nth_error => //. congruence.
@@ -803,7 +803,7 @@ Lemma constructor_isprop_pars_decl_lookup {Σ ind c b pars decl} :
   constructor_isprop_pars_decl Σ ind c = Some (b, pars, decl) ->
   lookup_inductive_pars Σ (inductive_mind ind) = Some pars.
 Proof.
-  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive_pars /lookup_inductive /lookup_minductive.
+  rw /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive_pars /lookup_inductive /lookup_minductive.
   destruct lookup_env => //.
   destruct g => /= //.
   destruct nth_error => //. destruct nth_error => //. congruence.
@@ -813,7 +813,7 @@ Lemma constructor_isprop_pars_inductive_pars {Σ ind c b pars decl} :
   constructor_isprop_pars_decl Σ ind c = Some (b, pars, decl) ->
   inductive_isprop_and_pars Σ ind = Some (b, pars).
 Proof.
-  rewrite /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
+  rw /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
   destruct lookup_inductive as [[mdecl idecl]|] => /= //.
   destruct nth_error => //. congruence.
 Qed.
@@ -822,7 +822,7 @@ Lemma lookup_constructor_lookup_inductive_pars {Σ ind c mdecl idecl cdecl} :
   lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
   lookup_inductive_pars Σ (inductive_mind ind) = Some mdecl.(ind_npars).
 Proof.
-  rewrite /lookup_constructor /lookup_inductive_pars /lookup_inductive /lookup_minductive.
+  rw /lookup_constructor /lookup_inductive_pars /lookup_inductive /lookup_minductive.
   destruct lookup_env => //.
   destruct g => /= //.
   destruct nth_error => //. destruct nth_error => //. congruence.
@@ -833,33 +833,34 @@ Lemma strip_mkApps_etaexp {Σ : GlobalContextMap.t} fn args :
   strip Σ (EAst.mkApps fn args) = EAst.mkApps (strip Σ fn) (map (strip Σ) args).
 Proof.
   destruct (decompose_app fn) eqn:da.
-  rewrite (decompose_app_inv da).
-  rewrite isEtaExp_mkApps_napp. now eapply decompose_app_notApp.
+  rw (decompose_app_inv da).
+  rw isEtaExp_mkApps_napp. now eapply decompose_app_notApp.
   destruct construct_viewc eqn:vc.
   + move=> /andP[] hl0 etal0.
-    rewrite -mkApps_app.
-    rewrite (strip_mkApps Σ (tConstruct ind n block_args)) // /=.
-    rewrite strip_mkApps // /=.
+    rw -mkApps_app.
+    rw (strip_mkApps Σ (tConstruct ind n block_args)) // /=.
+    rw strip_mkApps // /=.
     unfold isEtaExp_app in hl0.
     destruct lookup_constructor_pars_args as [[pars args']|] eqn:hl => //.
     rtoProp.
     eapply Nat.leb_le in H.
-    rewrite (lookup_inductive_pars_constructor_pars_args hl).
-    rewrite -mkApps_app. f_equal. rewrite map_app.
-    rewrite skipn_app. len. assert (pars - #|l| = 0) by lia.
-    now rewrite H1 skipn_0.
+    rw (lookup_inductive_pars_constructor_pars_args hl).
+    rw -mkApps_app. f_equal. rw map_app.
+    rw skipn_app. len. assert (pars - #|l| = 0) by lia.
+    now rw H1 skipn_0.
   + move=> /andP[] etat0 etal0.
-    rewrite -mkApps_app !strip_mkApps; try now eapply decompose_app_notApp.
-    rewrite vc. rewrite -mkApps_app !map_app //.
+    rw -mkApps_app !strip_mkApps; try now eapply decompose_app_notApp.
+    rw vc. rw -mkApps_app !map_app //.
 Qed.
 
- #[export] Instance Qpreserves_closedn (efl := all_env_flags) Σ : closed_env Σ ->
-  Qpreserves (fun n x => closedn n x) Σ.
+(* #[export] Instance Qpreserves_closedn (efl : EEnvFlags) Σ : wf_glob Σ ->
+  Qpreserves (fun n x => wellformed Σ n x) Σ.
 Proof.
   intros clΣ.
   split.
   - red. move=> n t.
-    destruct t; cbn; intuition auto; try solve [constructor; auto].
+    destruct t; cbn; rtoProp; intuition auto; try solve [constructor; auto].
+    constructor. cbn. rtoProp; intuition auto. constructor.
     eapply on_evar; solve_all.
     eapply on_letin; rtoProp; intuition auto.
     eapply on_app; rtoProp; intuition auto.
@@ -870,25 +871,27 @@ Proof.
   - red. intros kn decl.
     move/(lookup_env_closed clΣ).
     unfold closed_decl. destruct EAst.cst_body => //.
-  - red. move=> hasapp n t args. rewrite closedn_mkApps.
+  - red. move=> hasapp n t args. rw closedn_mkApps.
     split; intros; rtoProp; intuition auto; solve_all.
   - red. move=> hascase n ci discr brs. simpl.
     intros; rtoProp; intuition auto; solve_all.
   - red. move=> hasproj n p discr. simpl.
     intros; rtoProp; intuition auto; solve_all.
   - red. move=> t args clt cll.
-    eapply closed_substl. solve_all. now rewrite Nat.add_0_r.
+    eapply closed_substl. solve_all. now rw Nat.add_0_r.
   - red. move=> n mfix idx. cbn.
     intros; rtoProp; intuition auto; solve_all.
   - red. move=> n mfix idx. cbn.
     intros; rtoProp; intuition auto; solve_all.
-Qed.
+Qed. *)
 
-Lemma strip_eval (efl := all_env_flags) {wfl:WcbvFlags} {wcon : with_constructor_as_block = false} {Σ : GlobalContextMap.t} t v :
+Hint Resolve wellformed_closed : core.
+
+Lemma strip_eval {efl : EEnvFlags} {wfl:WcbvFlags} {wcon : with_constructor_as_block = false} {cstr : cstr_as_blocks = false} (has_app : has_tApp) {Σ : GlobalContextMap.t} t v :
   isEtaExp_env Σ ->
   closed_env Σ ->
   wf_glob Σ ->
-  closedn 0 t ->
+  wellformed Σ 0 t ->
   isEtaExp Σ t ->
   eval Σ t v ->
   eval (strip_env Σ) (strip Σ t) (strip Σ v).
@@ -896,142 +899,142 @@ Proof.
   intros etaΣ clΣ wfΣ.
   revert t v.
   unshelve eapply (eval_preserve_mkApps_ind wfl wcon Σ (fun x y => eval (strip_env Σ) (strip Σ x) (strip Σ y))
-    (fun n x => closedn n x) (Qpres := Qpreserves_closedn Σ clΣ)) => //.
-  { intros. eapply eval_closed; tea. }
+    (fun n x => wellformed Σ n x) (Qpres := Qpreserves_wellformed efl Σ cstr wfΣ)) => //.
+  { intros. eapply eval_wellformed; tea. }
   all:intros; simpl in *.
   (* 1-15: try solve [econstructor; eauto]. *)
   all:repeat destruct_nary_times => //.
-  - rewrite strip_tApp //.
+  - rw strip_tApp //.
     econstructor; eauto.
 
-  - rewrite strip_tApp //. simp_strip in e1.
+  - rw strip_tApp //. simp_strip in e1.
     econstructor; eauto.
-    rewrite strip_csubst // in e. now simp_eta in i10.
+    rw strip_csubst // in e; eauto. now simp_eta in i10.
 
   - simp_strip.
-    rewrite strip_csubst // in e.
-    econstructor; eauto.
+    rw strip_csubst // in e; eauto.
 
   - simp_strip.
     set (brs' := map _ brs). cbn -[strip].
     cbn in H3.
-    rewrite strip_mkApps // /= in e0.
+    rw strip_mkApps // /= in e0.
     apply constructor_isprop_pars_decl_lookup in H2 as H1'.
-    rewrite H1' in e0.
+    rw H1' in e0.
     pose proof (@is_propositional_cstr_strip Σ ind c).
-    rewrite H2 in H1.
+    rw H2 in H1.
     econstructor; eauto.
-    * rewrite nth_error_map H3 //.
-    * len. cbn in H4, H5. rewrite length_skipn. lia.
-    * cbn -[strip]. rewrite skipn_0. len.
+    * rw nth_error_map H3 //.
+    * len. cbn in H4, H5. rw length_skipn. lia.
+    * cbn -[strip]. rw skipn_0. len.
     * cbn -[strip].
       have etaargs : forallb (isEtaExp Σ) args.
-      { rewrite isEtaExp_Constructor in i6.
+      { rw isEtaExp_Constructor in i6.
         now move/andP: i6 => [] /andP[]. }
-      rewrite strip_iota_red // in e.
-      rewrite closedn_mkApps in i4. now move/andP: i4.
+      rw strip_iota_red // in e.
+      rw wellformed_mkApps in i4 => //.
+      move/andP: i4 => [] _ wf; solve_all.
       cbn. now eapply nth_error_forallb in H; tea.
 
   - subst brs. cbn in H4.
-    rewrite andb_true_r in H4.
-    rewrite strip_substl // in e.
+    rw andb_true_r in H4.
+    rw strip_substl // in e.
     eapply All_forallb, All_repeat => //.
     eapply All_forallb, All_repeat => //.
-    rewrite map_strip_repeat_box in e.
+    rw map_strip_repeat_box in e.
     simp_strip. set (brs' := map _ _).
     cbn -[strip]. eapply eval_iota_sing => //.
-    now move: (is_propositional_strip Σ ind); rewrite H2.
+    now move: (is_propositional_strip Σ ind); rw H2.
 
-  - rewrite strip_tApp //.
-    rewrite strip_mkApps // /= in e1.
+  - rw strip_tApp //.
+    rw strip_mkApps // /= in e1.
     simp_strip in e1.
     eapply eval_fix; tea.
-    * rewrite length_map.
+    * rw length_map.
       eapply strip_cunfold_fix; tea.
-      eapply closed_fix_subst. tea.
-      move: i8; rewrite closedn_mkApps => /andP[] //.
-      move: i10; rewrite isEtaExp_mkApps_napp // /= => /andP[] //. simp_eta.
+      eapply closed_fix_subst.
+      move/wellformed_closed: i8; rw closedn_mkApps => // /andP[] //.
+      move: i10; rw isEtaExp_mkApps_napp // /= => /andP[] //. simp_eta.
     * move: e.
-      rewrite -[tApp _ _](mkApps_app _ _ [av]).
-      rewrite -[tApp _ _](mkApps_app _ _ [strip _ av]).
-      rewrite strip_mkApps_etaexp // map_app //.
+      rw -[tApp _ _](mkApps_app _ _ [av]).
+      rw -[tApp _ _](mkApps_app _ _ [strip _ av]).
+      rw strip_mkApps_etaexp // map_app //.
 
-  - rewrite strip_tApp //.
-    rewrite strip_tApp //.
-    rewrite strip_mkApps //. simpl.
+  - rw strip_tApp //.
+    rw strip_tApp //.
+    rw strip_mkApps //. simpl.
     simp_strip. set (mfix' := map _ _). simpl.
-    rewrite strip_mkApps // /= in e0. simp_strip in e0.
+    rw strip_mkApps // /= in e0. simp_strip in e0.
     eapply eval_fix_value; tea.
     eapply strip_cunfold_fix; eauto.
     eapply closed_fix_subst => //.
-    { move: i4.
-      rewrite closedn_mkApps. now move/andP => []. }
-    { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
-    now rewrite length_map.
+    { move/wellformed_closed: i4.
+      rw closedn_mkApps. now move/andP => []. }
+    { move: i6. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+    now rw length_map.
 
-  - rewrite strip_tApp //. simp_strip in e0.
+  - rw strip_tApp //. simp_strip in e0.
     simp_strip in e1.
     eapply eval_fix'; tea.
     eapply strip_cunfold_fix; tea.
-    { eapply closed_fix_subst => //. }
+    { change (wellformed Σ 0 (tFix mfix idx) = true) in i8. move/wellformed_closed: i8; eapply closed_fix_subst => //. }
     { simp isEtaExp in i10. }
-    rewrite strip_tApp // in e.
+    rw strip_tApp // in e.
 
   - simp_strip.
-    rewrite strip_mkApps // /= in e0.
+    rw strip_mkApps // /= in e0.
     simp_strip in e.
     simp_strip in e0.
     set (brs' := map _ _) in *; simpl.
     eapply eval_cofix_case; tea.
     eapply strip_cunfold_cofix; tea => //.
     { eapply closed_cofix_subst; tea.
-      move: i5; rewrite closedn_mkApps => /andP[] //. }
-    { move: i7. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
-    rewrite strip_mkApps_etaexp // in e.
+      move/wellformed_closed: i5; rw closedn_mkApps => /andP[] //. }
+    { move: i7. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+    rw strip_mkApps_etaexp // in e.
 
   - destruct p as [[ind pars] arg].
     simp_strip.
     simp_strip in e.
-    rewrite strip_mkApps // /= in e0.
+    rw strip_mkApps // /= in e0.
     simp_strip in e0.
-    rewrite strip_mkApps_etaexp // in e.
+    rw strip_mkApps_etaexp // in e.
     simp_strip in e0.
     eapply eval_cofix_proj; tea.
     eapply strip_cunfold_cofix; tea.
     { eapply closed_cofix_subst; tea.
-      move: i4; rewrite closedn_mkApps => /andP[] //. }
-    { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+      move/wellformed_closed: i4; rw closedn_mkApps => /andP[] //. }
+    { move: i6. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
 
   - econstructor. red in H |- *.
-    rewrite lookup_env_strip H //.
-    now rewrite /strip_constant_decl H0.
+    rw lookup_env_strip H //.
+    now rw /strip_constant_decl H0.
     exact e.
 
   - simp_strip.
-    rewrite strip_mkApps // /= in e0.
-    rewrite (constructor_isprop_pars_decl_lookup H2) in e0.
+    rw strip_mkApps // /= in e0.
+    rw (constructor_isprop_pars_decl_lookup H2) in e0.
     eapply eval_proj; eauto.
-    move: (@is_propositional_cstr_strip Σ p.(proj_ind) 0). now rewrite H2. simpl.
-    len. rewrite length_skipn. cbn in H3. lia.
-    rewrite nth_error_skipn nth_error_map /= H4 //.
+    move: (@is_propositional_cstr_strip Σ p.(proj_ind) 0). now rw H2. simpl.
+    len. rw length_skipn. cbn in H3. lia.
+    rw nth_error_skipn nth_error_map /= H4 //.
 
   - simp_strip. eapply eval_proj_prop => //.
-    move: (is_propositional_strip Σ p.(proj_ind)); now rewrite H3.
+    move: (is_propositional_strip Σ p.(proj_ind)); now rw H3.
 
-  - rewrite !strip_tApp //.
+  - rw !strip_tApp //.
     eapply eval_app_cong; tea.
     move: H1. eapply contraNN.
-    rewrite -strip_isLambda -strip_isConstructApp -strip_isFixApp -strip_isBox -strip_isPrimApp
+    rw -strip_isLambda -strip_isConstructApp -strip_isFixApp -strip_isBox -strip_isPrimApp
       -strip_isLazyApp // -strip_isFix //.
 
-  - rewrite !strip_mkApps // /=.
-    rewrite (lookup_constructor_lookup_inductive_pars H).
+  - rw !strip_mkApps // /=.
+    rw (lookup_constructor_lookup_inductive_pars H).
     eapply eval_mkApps_Construct; tea.
-    + rewrite lookup_constructor_strip H //.
-    + constructor. cbn [atom]. rewrite wcon lookup_constructor_strip H //.
-    + rewrite /cstr_arity /=.
-      move: H0; rewrite /cstr_arity /=.
-      rewrite length_skipn length_map => ->. lia.
+    + rw lookup_constructor_strip H //.
+    + constructor. cbn [atom]. rw wcon lookup_constructor_strip H //.
+    + rw /cstr_arity /=.
+      move: H0; rw /cstr_arity /=.
+      rw length_skipn length_map => ->. lia.
     + cbn in H0. eapply All2_skipn, All2_map.
       eapply All2_impl; tea; cbn -[strip].
       intros x y []; auto.
@@ -1045,7 +1048,7 @@ Proof.
   - destruct t => //.
     all:constructor; eauto. simp strip.
     cbn [atom strip] in H |- *.
-    rewrite lookup_constructor_strip.
+    rw lookup_constructor_strip.
     destruct lookup_constructor eqn:hl => //. destruct p as [[] ?] => //.
 Qed.
 
@@ -1057,14 +1060,14 @@ Lemma strip_declared_constructor {Σ : GlobalContextMap.t} {k mdecl idecl cdecl}
 Proof.
   intros [[] ?]; do 2 split => //.
   red in H; red.
-  rewrite lookup_env_strip H //.
+  rw lookup_env_strip H //.
 Qed.
 
 Lemma lookup_inductive_pars_spec {Σ} {mind} {mdecl} :
   declared_minductive Σ mind mdecl ->
   lookup_inductive_pars Σ mind = Some (ind_npars mdecl).
 Proof.
-  rewrite /declared_minductive /lookup_inductive_pars /lookup_minductive.
+  rw /declared_minductive /lookup_inductive_pars /lookup_minductive.
   now intros -> => /=.
 Qed.
 
@@ -1089,39 +1092,39 @@ Proof.
   all:cbn -[strip lookup_constructor lookup_inductive]; simp_strip; intros.
   all:try solve[unfold wf_fix_gen in *; rtoProp; intuition auto; toAll; solve_all].
   - cbn -[strip]; simp_strip. intros; rtoProp; intuition auto.
-    rewrite lookup_env_strip. destruct lookup_env eqn:hl => // /=.
+    rw lookup_env_strip. destruct lookup_env eqn:hl => // /=.
     destruct g => /= //. destruct (cst_body c) => //.
-  - rewrite cab in H |- *. cbn -[strip] in *.
-    rewrite lookup_env_strip. destruct lookup_env eqn:hl => // /=.
+  - rw cab in H |- *. cbn -[strip] in *.
+    rw lookup_env_strip. destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => //. destruct nth_error => //.
   - cbn -[strip].
-    rtoProp. move: H2. rewrite /wf_brs; cbn -[strip].
-    rewrite lookup_env_strip. cbn in H1. destruct lookup_env eqn:hl => // /=.
+    rtoProp. move: H2. rw /wf_brs; cbn -[strip].
+    rw lookup_env_strip. cbn in H1. destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => //. rtoProp; intuition auto. len.
     simp_strip. toAll; solve_all.
   - cbn -[strip] in H0 |- *.
-    rewrite lookup_env_strip. destruct lookup_env eqn:hl => // /=.
+    rw lookup_env_strip. destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g. cbn in H0. now rtoProp.
     destruct nth_error => //. all:rtoProp; intuition auto.
     destruct EAst.ind_ctors => //.
     destruct nth_error => //.
     all: eapply H; auto.
-  - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto. toAll; solve_all.
-    now rewrite -strip_isLambda. toAll; solve_all.
+  - unfold wf_fix_gen in *. rw length_map. rtoProp; intuition auto. toAll; solve_all.
+    now rw -strip_isLambda. toAll; solve_all.
   - primProp. rtoProp; intuition eauto; solve_all_k 6.
-  - move:H1; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
+  - move:H1; rw !wellformed_mkApps //. rtoProp; intuition auto.
     all:toAll; solve_all.
-  - move:H0; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
-    move: H1. cbn. rewrite cab.
-    rewrite lookup_env_strip. destruct lookup_env eqn:hl => // /=.
+  - move:H0; rw !wellformed_mkApps //. rtoProp; intuition auto.
+    move: H1. cbn. rw cab.
+    rw lookup_env_strip. destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => //. destruct nth_error => //.
     toAll; solve_all. eapply All_skipn. solve_all.
-  - move:H0; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
-    move: H1. cbn. rewrite cab.
-    rewrite lookup_env_strip. destruct lookup_env eqn:hl => // /=.
+  - move:H0; rw !wellformed_mkApps //. rtoProp; intuition auto.
+    move: H1. cbn. rw cab.
+    rw lookup_env_strip. destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => //. destruct nth_error => //.
     toAll; solve_all.
@@ -1134,25 +1137,25 @@ Lemma strip_wellformed_irrel {efl : EEnvFlags} {Σ : GlobalContextMap.t} t :
 Proof.
   intros hcstrs wfΣ. induction t using EInduction.term_forall_list_ind; cbn => //.
   all:try solve [intros; unfold wf_fix in *; rtoProp; intuition eauto; solve_all].
-  - rewrite lookup_env_strip //.
+  - rw lookup_env_strip //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct (cst_body c) => //.
-  - rewrite lookup_env_strip //.
+  - rw lookup_env_strip //.
     destruct lookup_env eqn:hl => // /=; intros; rtoProp; eauto.
     destruct g eqn:hg => /= //; intros; rtoProp; eauto.
     destruct cstr_as_blocks => //; repeat split; eauto.
     destruct nth_error => /= //.
     destruct nth_error => /= //.
-  - rewrite /wf_brs; cbn; rewrite lookup_env_strip //.
+  - rw /wf_brs; cbn; rw lookup_env_strip //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => /= //.
     intros; rtoProp; intuition auto; solve_all.
-  - rewrite lookup_env_strip //.
+  - rw lookup_env_strip //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //.
-    rewrite andb_false_r => //.
+    rw andb_false_r => //.
     destruct nth_error => /= //.
     destruct EAst.ind_ctors => /= //.
     all:intros; rtoProp; intuition auto; solve_all.
@@ -1169,7 +1172,7 @@ Proof.
   now eapply strip_wellformed_irrel.
 Qed.
 
-Lemma strip_decl_wf (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_decl_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false) {Σ : GlobalContextMap.t} :
   wf_glob Σ ->
   forall d, wf_global_decl Σ d ->
   wf_global_decl (efl := switch_no_params efl) (strip_env Σ) (strip_decl Σ d).
@@ -1178,6 +1181,8 @@ Proof.
   destruct d => /= //.
   destruct (cst_body c) => /= //.
   now apply (strip_wellformed (Σ := Σ) 0 t).
+  destruct m => /=.
+  unfold wf_minductive; cbn. rtoProp. intuition auto.
 Qed.
 
 Lemma fresh_global_strip_env {Σ : GlobalContextMap.t} kn :
@@ -1225,12 +1230,12 @@ Lemma extends_lookup_inductive_pars {efl : EEnvFlags} {Σ Σ'} :
     lookup_inductive_pars Σ' ind = Some t.
 Proof.
   intros ext wf ind t.
-  rewrite /lookup_inductive_pars.
+  rw /lookup_inductive_pars.
   destruct (lookup_minductive Σ ind) eqn:hl => /= //.
   intros [= <-].
   apply lookup_minductive_declared_minductive in hl.
   eapply EExtends.weakening_env_declared_minductive in hl; tea.
-  apply lookup_minductive_declared_minductive in hl. now rewrite hl.
+  apply lookup_minductive_declared_minductive in hl. now rw hl.
 Qed.
 
 Lemma strip_extends {efl : EEnvFlags} {Σ Σ' : GlobalContextMap.t} :
@@ -1242,21 +1247,21 @@ Proof.
   funelim (strip Σ t); intros ?n; simp_strip  => /= //.
   all:try solve [intros; unfold wf_fix in *; rtoProp; intuition auto; f_equal; auto; toAll; solve_all].
   - intros; rtoProp; intuition auto.
-    move: H1; rewrite wellformed_mkApps // => /andP[] wfu wfargs.
-    rewrite strip_mkApps // Heq /=. f_equal; eauto. toAll; solve_all.
-  - rewrite wellformed_mkApps // => /andP[] wfc wfv.
-    rewrite strip_mkApps // /=.
-    rewrite GlobalContextMap.lookup_inductive_pars_spec in Heq.
+    move: H1; rw wellformed_mkApps // => /andP[] wfu wfargs.
+    rw strip_mkApps // Heq /=. f_equal; eauto. toAll; solve_all.
+  - rw wellformed_mkApps // => /andP[] wfc wfv.
+    rw strip_mkApps // /=.
+    rw GlobalContextMap.lookup_inductive_pars_spec in Heq.
     eapply (extends_lookup_inductive_pars hext hwf) in Heq.
-    rewrite Heq. f_equal. f_equal.
+    rw Heq. f_equal. f_equal.
     toAll; solve_all.
-  - rewrite wellformed_mkApps // => /andP[] wfc wfv.
-    rewrite strip_mkApps // /=.
+  - rw wellformed_mkApps // => /andP[] wfc wfv.
+    rw strip_mkApps // /=.
     move: Heq.
-    rewrite GlobalContextMap.lookup_inductive_pars_spec.
+    rw GlobalContextMap.lookup_inductive_pars_spec.
     unfold wellformed in wfc. move/andP: wfc => [] /andP[] hacc hc bargs.
     unfold lookup_inductive_pars. destruct lookup_minductive eqn:heq => //.
-    unfold lookup_constructor, lookup_inductive in hc. rewrite heq /= // in hc.
+    unfold lookup_constructor, lookup_inductive in hc. rw heq /= // in hc.
 Qed.
 
 Lemma strip_decl_extends {efl : EEnvFlags} {Σ Σ' : GlobalContextMap.t} :
@@ -1315,7 +1320,7 @@ Proof.
   now apply (gen_transform_extends (gt := GTExt efl hast) ext).
 Qed.
 
-Lemma strip_env_eq (efl := all_env_flags) (Σ : GlobalContextMap.t) : wf_glob Σ -> strip_env Σ = strip_env' Σ.(GlobalContextMap.global_decls) Σ.(GlobalContextMap.wf).
+Lemma strip_env_eq {efl : EEnvFlags} (has_app : has_tApp) (Σ : GlobalContextMap.t) : wf_glob Σ -> strip_env Σ = strip_env' Σ.(GlobalContextMap.global_decls) Σ.(GlobalContextMap.wf).
 Proof.
   intros wf.
   unfold strip_env.
@@ -1333,11 +1338,12 @@ Proof.
   cbn. now depelim wf.
 Qed.
 
-Lemma strip_env_wf (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_env_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false)
+  {Σ : GlobalContextMap.t} :
   wf_glob Σ -> wf_glob (efl := switch_no_params efl) (strip_env Σ).
 Proof.
   intros wf.
-  rewrite (strip_env_eq _ wf).
+  rw (strip_env_eq has_app _ wf).
   destruct Σ as [Σ map repr fr]; cbn in *.
   induction Σ in map, repr, fr, wf |- *.
   - cbn. constructor.
@@ -1346,18 +1352,18 @@ Proof.
     constructor; eauto.
     eapply (IHΣ (GlobalContextMap.map Σg) (GlobalContextMap.repr Σg)). now depelim wf.
     depelim wf. cbn.
-    rewrite -(strip_env_eq Σg). now cbn. cbn.
-    now eapply (strip_decl_wf (Σ:=Σg)).
-    rewrite -(strip_env_eq Σg). now depelim wf.
+    rw -(strip_env_eq has_app Σg). now cbn. cbn.
+    now eapply (strip_decl_wf has_app cstrs (Σ:=Σg)).
+    rw -(strip_env_eq has_app Σg). now depelim wf.
     eapply fresh_global_strip_env. now depelim fr.
 Qed.
 
-Lemma strip_program_wf (efl := all_env_flags) (p : eprogram_env) :
+Lemma strip_program_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false) (p : eprogram_env) :
   wf_eprogram_env efl p ->
   wf_eprogram (switch_no_params efl) (strip_program p).
 Proof.
   intros []; split => //.
-  eapply (strip_env_wf H).
+  eapply (strip_env_wf has_app cstrs H).
   now eapply strip_wellformed.
 Qed.
 
@@ -1365,16 +1371,16 @@ Lemma strip_expanded {Σ : GlobalContextMap.t} {t} : expanded Σ t -> expanded (
 Proof.
   induction 1 using expanded_ind.
   all:try solve[simp_strip; constructor; eauto; solve_all].
-  - rewrite strip_mkApps_etaexp. now eapply expanded_isEtaExp.
+  - rw strip_mkApps_etaexp. now eapply expanded_isEtaExp.
     eapply expanded_mkApps_expanded => //. solve_all.
   - simp_strip; constructor; eauto. solve_all.
-    rewrite -strip_isLambda //.
-  - rewrite strip_mkApps // /=.
-    rewrite (lookup_inductive_pars_spec (proj1 (proj1 H))).
+    rw -strip_isLambda //.
+  - rw strip_mkApps // /=.
+    rw (lookup_inductive_pars_spec (proj1 (proj1 H))).
     eapply expanded_tConstruct_app.
     eapply strip_declared_constructor; tea.
-    len. rewrite length_skipn /= /EAst.cstr_arity /=.
-    rewrite /EAst.cstr_arity in H0. lia.
+    len. rw length_skipn /= /EAst.cstr_arity /=.
+    rw /EAst.cstr_arity in H0. lia.
     solve_all. eapply All_skipn. solve_all.
 Qed.
 
@@ -1385,8 +1391,8 @@ Proof.
   eapply expanded_tConstruct_app.
   destruct H as [[H ?] ?].
   split => //. split => //. red.
-  red in H. rewrite lookup_env_strip // /= H //. 1-2:eauto.
-  cbn. rewrite /EAst.cstr_arity in H0. lia. solve_all.
+  red in H. rw lookup_env_strip // /= H //. 1-2:eauto.
+  cbn. rw /EAst.cstr_arity in H0. lia. solve_all.
 Qed.
 
 Lemma strip_expanded_decl {Σ : GlobalContextMap.t} t : expanded_decl Σ t -> expanded_decl (strip_env Σ) (strip_decl Σ t).
@@ -1396,11 +1402,11 @@ Proof.
   apply strip_expanded.
 Qed.
 
-Lemma strip_env_expanded (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_env_expanded {efl : EEnvFlags} (has_app : has_tApp) {Σ : GlobalContextMap.t} :
   wf_glob Σ -> expanded_global_env Σ -> expanded_global_env (strip_env Σ).
 Proof.
   unfold expanded_global_env.
-  intros wf. rewrite strip_env_eq //.
+  intros wf. rw strip_env_eq //.
   destruct Σ as [Σ map repr wf']; cbn in *.
   intros exp; induction exp in map, repr, wf', wf |- *; cbn.
   - constructor; auto.
@@ -1408,13 +1414,13 @@ Proof.
     constructor; auto.
     eapply IHexp. eapply Σ'. now depelim wf. cbn.
     eapply (strip_expanded_decl (Σ := Σ')) in H.
-    rewrite -(strip_env_eq Σ'). cbn. now depelim wf.
+    rw -(strip_env_eq has_app Σ'). cbn. now depelim wf.
     exact H.
 Qed.
 
 Import EProgram.
 
-Lemma strip_program_expanded (efl := all_env_flags) (p : eprogram_env) :
+Lemma strip_program_expanded {efl : EEnvFlags} (has_app : has_tApp) (p : eprogram_env) :
   wf_eprogram_env efl p ->
   expanded_eprogram_env_cstrs p ->
   expanded_eprogram_cstrs (strip_program p).
