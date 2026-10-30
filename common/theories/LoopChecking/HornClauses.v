@@ -86,7 +86,7 @@ From MetaRocq.Common Require Import Common Interfaces.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
-Ltac rw l := rewrite_strat (topdown l).
+Ltac rws l := rewrite_strat (topdown l).
 Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
 Module Clauses (LS : LevelSets).
@@ -276,8 +276,8 @@ Module Clauses (LS : LevelSets).
   Proof.
     intros l.
     rewrite clauses_levels_spec LevelSet.union_spec.
-    rw Clauses.union_spec; rewrite !clauses_levels_spec.
-    rw clause_levels_spec. firstorder.
+    rws Clauses.union_spec; rewrite !clauses_levels_spec.
+    rws clause_levels_spec. firstorder.
   Qed.
 
   Definition clause_conclusion cl := level (concl cl).

@@ -34,12 +34,12 @@ Module HornSemilattice (LS : LevelSets).
     - move=> cl. destruct a as [l r]; cbn in *.
       rewrite Clauses.union_spec => -[].
       * rewrite /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
-        rw Clauses.union_spec; cbn.
+        rws Clauses.union_spec; cbn.
         exists (l, r). split => //. now left. cbn. now left.
         exists (l, r). split => //. now left. cbn. now right.
       * move/IHrels => [[l' r'] [hin]]; cbn in *.
         rewrite /clauses_of_eq Clauses.union_spec => -[inl|inr]; cbn;
-        rw Clauses.union_spec; now exists (l', r'); split => //.
+        rws Clauses.union_spec; now exists (l', r'); split => //.
   Qed.
 
   Lemma clauses_of_relations_spec_inv {rels} :

@@ -1699,7 +1699,7 @@ Module Abstract.
         apply m.(correct_model). }
       apply enabled_clause_init.
     - intros k. rewrite LevelSet.add_spec /LevelSet.E.eq.
-      rw LevelMapFact.F.add_mapsto_iff.
+      rws LevelMapFact.F.add_mapsto_iff.
       have hyp := m.(correct_model).(only_model_of_V) k.
       firstorder; subst. all:rewrite /Level.eq.
       * now eexists.
