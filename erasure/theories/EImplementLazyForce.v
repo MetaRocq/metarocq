@@ -79,13 +79,13 @@ Section implement_lazy_force.
   Lemma chop_firstn_skipn {A} n (l : list A) : chop n l = (firstn n l, skipn n l).
   Proof using Type.
     induction n in l |- *; destruct l; simpl; auto.
-    now rewrite IHn skipn_S.
+    now rw IHn skipn_S.
   Qed.
 
   Lemma chop_eq {A} n (l : list A) l1 l2 : chop n l = (l1, l2) -> l = l1 ++ l2.
   Proof using Type.
-    rewrite chop_firstn_skipn. intros [= <- <-].
-    now rewrite firstn_skipn.
+    rw chop_firstn_skipn. intros [= <- <-].
+    now rw firstn_skipn.
   Qed.
 
   Lemma closed_implement_lazy_force t k : closedn k t -> closedn k (implement_lazy_force t).
@@ -110,18 +110,18 @@ Section implement_lazy_force.
     revert k.
     funelim (implement_lazy_force b); intros k; cbn; simp implement_lazy_force; try easy.
     - destruct (Nat.leb_spec k i); reflexivity.
-    - f_equal. rewrite !map_map_compose. solve_all.
+    - f_equal. rw !map_map_compose. solve_all.
       eapply In_All. eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros. eapply H; eauto.
     - cbn. do 1 f_equal. 1: eauto.
-      rewrite !map_map. solve_all.
+      rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal.
       replace (#|x.1| + S k) with (S (#|x.1| + k)) by lia.
       erewrite H; eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. erewrite H; eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. erewrite H; eauto.
     - solve_all_k 6.
     - replace (S k) with (k + 1) by lia. now rewrite <- permute_lift.
@@ -167,21 +167,21 @@ Section implement_lazy_force.
     funelim (implement_lazy_force b); intros k; cbn; simp implement_lazy_force; try easy.
     all: try now (cbn; f_equal; eauto).
     - destruct Nat.compare => //.
-    - f_equal. rewrite !map_map_compose. solve_all.
+    - f_equal. rw !map_map_compose. solve_all.
       eapply In_All. eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros. eapply H; eauto.
     - cbn. do 1 f_equal. 1: eauto.
-      rewrite !map_map. solve_all.
+      rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal.
       setoid_rewrite -> closed_subst at 2.
       rewrite <- closed_subst.
       2, 3: eapply closed_implement_lazy_force; eauto.
       f_equal.
       eapply H; eauto.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. solve_all.
-    - cbn. f_equal. rewrite !map_map. solve_all.
+    - cbn. f_equal. rw !map_map. solve_all.
       eapply In_All. intros ? ?. unfold map_def. cbn. f_equal. solve_all.
     - cbn. solve_all.
     - setoid_rewrite closed_subst at 2.
@@ -190,7 +190,7 @@ Section implement_lazy_force.
       rewrite <- closed_subst.
       2, 3: eapply closed_implement_lazy_force; eauto.
       f_equal.
-      now rewrite H.
+      now rw H.
   Qed.
 
   Lemma implement_lazy_force_substl s t :
@@ -199,8 +199,8 @@ Section implement_lazy_force.
   Proof using Type.
     induction s in t |- *; simpl; auto; intros Hall.
     inversion Hall.
-    rewrite IHs //.
-    now rewrite implement_lazy_force_csubst.
+    rw IHs //.
+    now rw implement_lazy_force_csubst.
   Qed.
 
   Lemma implement_lazy_force_iota_red pars args br :
@@ -209,15 +209,15 @@ Section implement_lazy_force.
   Proof using Type.
     intros Hall.
     unfold EGlobalEnv.iota_red.
-    rewrite implement_lazy_force_substl //.
+    rw implement_lazy_force_substl //.
     solve_all. now eapply All_skipn.
-    now rewrite map_rev map_skipn.
+    now rw map_rev map_skipn.
   Qed.
 
   Lemma implement_lazy_force_fix_subst mfix : EGlobalEnv.fix_subst (map (map_def implement_lazy_force) mfix) = map implement_lazy_force (EGlobalEnv.fix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.fix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp implement_lazy_force.
@@ -226,7 +226,7 @@ Section implement_lazy_force.
   Lemma implement_lazy_force_cofix_subst mfix : EGlobalEnv.cofix_subst (map (map_def implement_lazy_force) mfix) = map implement_lazy_force (EGlobalEnv.cofix_subst mfix).
   Proof using Type.
     unfold EGlobalEnv.cofix_subst.
-    rewrite length_map.
+    rw length_map.
     generalize #|mfix|.
     induction n; simpl; auto.
     f_equal; auto. now simp implement_lazy_force.
@@ -239,10 +239,10 @@ Section implement_lazy_force.
   Proof using Type.
     intros Hcl.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal. f_equal.
-    rewrite implement_lazy_force_substl //. 2:congruence.
+    rw implement_lazy_force_substl //. 2:congruence.
     f_equal. f_equal. apply implement_lazy_force_fix_subst.
   Qed.
 
@@ -253,10 +253,10 @@ Section implement_lazy_force.
   Proof using Type.
     intros Hcl.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     destruct nth_error eqn:heq.
     intros [= <- <-] => /=. f_equal.
-    rewrite implement_lazy_force_substl //. 2:congruence.
+    rw implement_lazy_force_substl //. 2:congruence.
     f_equal. f_equal. apply implement_lazy_force_cofix_subst.
   Qed.
 
@@ -301,7 +301,7 @@ Proof.
   case: eqb_spec => [|].
   - intros ->. destruct d => //. intros [= <-].
     cbn in H0. unfold wf_minductive in H0.
-    rtoProp. cbn in H0. rewrite hasp in H0; now eapply eqb_eq in H0.
+    rtoProp. cbn in H0. rw hasp in H0; now eapply eqb_eq in H0.
   - intros _. eapply IHwf_glob.
 Qed.
 
@@ -345,7 +345,7 @@ Lemma constructor_isprop_pars_decl_params {efl : EEnvFlags} {Σ ind c b pars cde
   constructor_isprop_pars_decl Σ ind c = Some (b, pars, cdecl) -> pars = 0.
 Proof.
   intros hasp hwf.
-  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive.
+  rw /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive.
   destruct lookup_minductive as [mdecl|] eqn:hl => /= //.
   do 2 destruct nth_error => //.
   eapply wellformed_lookup_inductive_pars in hl => //. congruence.
@@ -363,8 +363,8 @@ Qed.
 Lemma chop_all {A} (l : list A) m :
   m >= length l -> chop m l = (l, nil).
 Proof.
-  intros Hl. rewrite chop_firstn_skipn.
-  rewrite firstn_ge; try lia. rewrite skipn_ge; try lia.
+  intros Hl. rw chop_firstn_skipn.
+  rw firstn_ge; try lia. rw skipn_ge; try lia.
   eauto.
 Qed.
 
@@ -374,10 +374,10 @@ Lemma implement_lazy_force_isConstructApp {efl : EEnvFlags} t :
 Proof.
   intros Ht.
   induction t; try now cbn; eauto.
-  + simp implement_lazy_force. rewrite !(isConstructApp_mkApps _ [_]).
-    intros. eapply IHt1; eauto. rewrite head_tApp in Ht.
+  + simp implement_lazy_force. rw !(isConstructApp_mkApps _ [_]).
+    intros. eapply IHt1; eauto. rw head_tApp in Ht.
     firstorder.
-  + simp implement_lazy_force. rewrite !(isConstructApp_mkApps _ [_]).
+  + simp implement_lazy_force. rw !(isConstructApp_mkApps _ [_]).
     intros. destruct Ht. eexists t. cbn. reflexivity.
 Qed.
 
@@ -387,10 +387,10 @@ Lemma implement_lazy_force_isPrimApp {efl : EEnvFlags} t :
 Proof.
   intros Ht.
   induction t; try now cbn; eauto.
-  + simp implement_lazy_force. rewrite !(isPrimApp_mkApps _ [_]).
-    intros. eapply IHt1; eauto. rewrite head_tApp in Ht.
+  + simp implement_lazy_force. rw !(isPrimApp_mkApps _ [_]).
+    intros. eapply IHt1; eauto. rw head_tApp in Ht.
     firstorder.
-  + simp implement_lazy_force. rewrite !(isPrimApp_mkApps _ [_]).
+  + simp implement_lazy_force. rw !(isPrimApp_mkApps _ [_]).
     intros. destruct Ht. eexists t. cbn. reflexivity.
 Qed.
 
@@ -426,7 +426,7 @@ Lemma implement_lazy_force_declared_constant {Σ : global_declarations} c decl :
    declared_constant (implement_lazy_force_env Σ) c (implement_lazy_force_constant_decl decl).
 Proof.
   intros H. red in H; red.
-  rewrite lookup_env_implement_lazy_force H //.
+  rw lookup_env_implement_lazy_force H //.
 Qed.
 
 Lemma lookup_constructor_implement_lazy_force Σ ind c :
@@ -434,7 +434,7 @@ Lemma lookup_constructor_implement_lazy_force Σ ind c :
   lookup_constructor Σ ind c.
 Proof.
   unfold lookup_constructor, lookup_inductive, lookup_minductive in *.
-  rewrite lookup_env_implement_lazy_force.
+  rw lookup_env_implement_lazy_force.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
@@ -443,14 +443,14 @@ Lemma lookup_inductive_implement_lazy_force Σ ind :
   lookup_inductive Σ ind.
 Proof.
   unfold lookup_constructor, lookup_inductive, lookup_minductive in *.
-  rewrite lookup_env_implement_lazy_force.
+  rw lookup_env_implement_lazy_force.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
 Lemma lookup_constructor_pars_args_implement_lazy_force {efl : EEnvFlags} {Σ ind n} :
   lookup_constructor_pars_args (implement_lazy_force_env Σ) ind n = lookup_constructor_pars_args Σ ind n.
 Proof.
-  cbn -[lookup_constructor]. now rewrite lookup_constructor_implement_lazy_force.
+  cbn -[lookup_constructor]. now rw lookup_constructor_implement_lazy_force.
 Qed.
 
 Lemma isLambda_implement_lazy_force c : isLambda c -> isLambda (implement_lazy_force c).
@@ -487,18 +487,18 @@ Proof.
   revert n. funelim (implement_lazy_force t); simp_eta; cbn -[implement_lazy_force
     lookup_inductive lookup_constructor lookup_constructor_pars_args
     GlobalContextMap.lookup_constructor_pars_args isEtaExp]; intros m Hwf Hw; rtoProp; try split; eauto.
-  all: rewrite ?map_InP_spec; toAll; eauto; try now solve_all.
-  - rewrite lookup_env_implement_lazy_force. destruct (lookup_env Σ n) => //. destruct g => //=.
+  all: rw ?map_InP_spec; toAll; eauto; try now solve_all.
+  - rw lookup_env_implement_lazy_force. destruct (lookup_env Σ n) => //. destruct g => //=.
     destruct (cst_body c) => //=.
   - unfold lookup_constructor_pars_args in *.
-    rewrite lookup_constructor_implement_lazy_force. rewrite H2. intuition auto.
-  - rewrite lookup_constructor_pars_args_implement_lazy_force. len.
+    rw lookup_constructor_implement_lazy_force. rw H2. intuition auto.
+  - rw lookup_constructor_pars_args_implement_lazy_force. len.
     all: destruct cstr_as_blocks; rtoProp; try split; eauto.
     + solve_all.
     + destruct block_args; cbn in *; eauto.
-  - rewrite /wf_brs; cbn -[lookup_inductive implement_lazy_force].
-    rewrite lookup_inductive_implement_lazy_force. intuition auto. solve_all. solve_all.
-  - rewrite lookup_constructor_implement_lazy_force. intuition auto.
+  - rw /wf_brs; cbn -[lookup_inductive implement_lazy_force].
+    rw lookup_inductive_implement_lazy_force. intuition auto. solve_all. solve_all.
+  - rw lookup_constructor_implement_lazy_force. intuition auto.
   - unfold wf_fix in *. rtoProp. solve_all. solve_all. now eapply isLambda_implement_lazy_force.
   - unfold wf_fix in *. rtoProp. solve_all. len. solve_all.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
@@ -536,7 +536,7 @@ Proof.
   revert H wfg. generalize Σ at 2 3.
   induction Σ; cbn; constructor; auto.
   - eapply IHΣ; rtoProp; intuition eauto.
-    destruct H. subst Σ0. exists (x ++ [a]). now rewrite -app_assoc.
+    destruct H. subst Σ0. exists (x ++ [a]). now rw -app_assoc.
   - epose proof (EExtends.extends_wf_glob _ H wfg); tea.
     depelim H0. cbn.
     now eapply transform_wellformed_decl'.
@@ -555,22 +555,22 @@ Lemma implement_lazy_force_env_extends {efl : EEnvFlags} {Σ Σ' : global_declar
 Proof.
   intros hast ext wf wf'.
   intros kn d.
-  rewrite !lookup_env_map_snd.
+  rw !lookup_env_map_snd.
   specialize (ext kn). destruct (lookup_env) eqn:E => //=.
   intros [= <-].
-  rewrite (ext g) => //.
+  rw (ext g) => //.
 Qed.
 
 Transparent implement_lazy_force.
 
 Lemma fst_decompose_app_rec t l : fst (decompose_app_rec t l) = fst (decompose_app t).
 Proof.
-  induction t in l |- *; simpl; auto. rewrite IHt1.
-  unfold decompose_app. simpl. now rewrite (IHt1 [t2]).
+  induction t in l |- *; simpl; auto. rw IHt1.
+  unfold decompose_app. simpl. now rw (IHt1 [t2]).
 Qed.
 
 Lemma head_tapp t1 t2 : head (tApp t1 t2) = head t1.
-Proof. rewrite /head /decompose_app /= fst_decompose_app_rec //. Qed.
+Proof. rw /head /decompose_app /= fst_decompose_app_rec //. Qed.
 Lemma tApp_mkApps f a : tApp f a = mkApps f [a].
 Proof. reflexivity. Qed.
 
@@ -581,7 +581,7 @@ Lemma implement_lazy_force_mkApps f args :
 Proof.
   induction args in f |- *; simp implement_lazy_force.
   - reflexivity.
-  - rewrite IHargs. now simp implement_lazy_force.
+  - rw IHargs. now simp implement_lazy_force.
 Qed.
 
 Lemma eval_app_cong_tApp (fl := block_wcbv_flags) Σ t v args res :
@@ -645,31 +645,31 @@ Proof.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     econstructor; eauto.
-    now rewrite -implement_lazy_force_csubst.
+    now rw -implement_lazy_force_csubst.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     econstructor; eauto.
-    now rewrite -implement_lazy_force_csubst.
+    now rw -implement_lazy_force_csubst.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     assert (pars = 0) as -> by now (eapply constructor_isprop_pars_decl_params; eauto).
     pose proof (Hcon := H1).
-    rewrite /constructor_isprop_pars_decl in H1.
+    rw /constructor_isprop_pars_decl in H1.
     destruct lookup_constructor as [[[]] | ] eqn:eqc; cbn in H1; invs H1.
     eapply eval_iota_block => //.
     + eauto.
     + unfold constructor_isprop_pars_decl.
-      rewrite lookup_constructor_implement_lazy_force. cbn [fst].
-      rewrite eqc //= H7 //.
-    + rewrite nth_error_map H2; eauto.
+      rw lookup_constructor_implement_lazy_force. cbn [fst].
+      rw eqc //= H7 //.
+    + rw nth_error_map H2; eauto.
       reflexivity.
     + len.
-    + rewrite H8. len.
-    + rewrite -implement_lazy_force_iota_red.
+    + rw H8. len.
+    + rw -implement_lazy_force_iota_red.
       eapply wellformed_closed in i2.
       cbn in i2.
       solve_all.
-      rewrite H8. eauto.
+      rw H8. eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     eapply eval_fix' => //; eauto.
@@ -678,16 +678,16 @@ Proof.
     eapply wellformed_closed in i4.
     now cbn in i4. eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
+    rw wellformed_mkApps in i2. eauto.
     cbn in i2. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
+    rw wellformed_mkApps in i2. eauto.
     cbn in i2. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     econstructor.
     eapply implement_lazy_force_declared_constant; eauto.
-    destruct decl. cbn in *. now rewrite H0.
+    destruct decl. cbn in *. now rw H0.
     eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
@@ -699,10 +699,10 @@ Proof.
     { eapply wellformed_lookup_constructor_pars; tea. }
     eapply eval_proj_block => //; tea. cbn.
     + unfold constructor_isprop_pars_decl.
-      rewrite lookup_constructor_implement_lazy_force. cbn [fst].
-      rewrite hc //= H1 H7. reflexivity.
+      rw lookup_constructor_implement_lazy_force. cbn [fst].
+      rw hc //= H1 H7. reflexivity.
     + len.
-    + rewrite nth_error_map /=. rewrite H7 in H2; rewrite -H2 in H4; rewrite H4; eauto.
+    + rw nth_error_map /=. rw H7 in H2; rw -H2 in H4; rw H4; eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     eapply eval_app_cong; eauto.
@@ -710,16 +710,16 @@ Proof.
     destruct f'; try now cbn; tauto.
     { intros H. cbn in H. simp implement_lazy_force.
       cbn -[implement_lazy_force].
-      rewrite !(isConstructApp_mkApps _ [_]) in H |- *.
-      rewrite !negb_orb in H |- *.
+      rw !(isConstructApp_mkApps _ [_]) in H |- *.
+      rw !negb_orb in H |- *.
       rtoProp.
       assert (¬ ∃ t' : term, head f'1 = tForce t').
       { eapply eval_to_value in ev as ev'.
         invs ev'.
         + inv X. cbn in H4. congruence.
         + eapply (f_equal head) in H4.
-          rewrite head_mkApps in H4.
-          rewrite (head_mkApps _ [_] )in H4.
+          rw head_mkApps in H4.
+          rw (head_mkApps _ [_] )in H4.
           rewrite <- H4.
           inv H5.
           * cbn. congruence.
@@ -730,27 +730,27 @@ Proof.
         intros HH. eapply implement_lazy_force_isConstructApp in HH.
         apply negbTE in H. congruence.
         eauto.
-      + rewrite !(isPrimApp_mkApps _ [_]) in H3 |- *.
+      + rw !(isPrimApp_mkApps _ [_]) in H3 |- *.
         eapply PCUICNormal.negb_is_true.
         intros HH. eapply implement_lazy_force_isPrimApp in HH.
         apply negbTE in H3. congruence.
         eauto.
-      + rewrite (isLazyApp_mkApps _ [_]).
+      + rw (isLazyApp_mkApps _ [_]).
         clear. induction f'1; simp implement_lazy_force; cbn -[implement_lazy_force]; auto.
-        rewrite (isLazyApp_mkApps _ [_]). eauto.
-        rewrite (isLazyApp_mkApps _ [_]). eauto.
+        rw (isLazyApp_mkApps _ [_]). eauto.
+        rw (isLazyApp_mkApps _ [_]). eauto.
     }
     { exfalso.
       eapply eval_to_value in ev as ev'. cbn in ev'.
       depelim ev'. inv a0. cbn in H. congruence.
       destruct args using rev_ind. cbn in H. congruence.
-      rewrite mkApps_app in H. inv H.
+      rw mkApps_app in H. inv H.
     }
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_lazy_force in *.
     eapply eval_construct_block; tea. eauto.
     2: len; eassumption.
-    rewrite lookup_constructor_implement_lazy_force; eauto.
+    rw lookup_constructor_implement_lazy_force; eauto.
     eapply All2_All2_Set.
     solve_all. now destruct b.
   - intros wf H; depelim H; simp implement_lazy_force; repeat constructor.
@@ -760,7 +760,7 @@ Proof.
     simp implement_lazy_force. simp implement_lazy_force in e.
     econstructor; eauto.
     setoid_rewrite closed_subst. 2: cbn; auto.
-    rewrite simpl_subst_k. reflexivity. auto.
+    rw simpl_subst_k. reflexivity. auto.
   - intros. destruct t; try solve [constructor; cbn in H, H0 |- *; try congruence].
     cbn -[lookup_constructor] in H |- *. destruct args => //.
 Qed.

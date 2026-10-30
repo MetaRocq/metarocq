@@ -909,10 +909,10 @@ Proof.
 
   - rw strip_tApp //. simp_strip in e1.
     econstructor; eauto.
-    rewrite strip_csubst // in e; eauto. now simp_eta in i10.
+    rw strip_csubst // in e; eauto. now simp_eta in i10.
 
   - simp_strip.
-    rewrite strip_csubst // in e; eauto.
+    rw strip_csubst // in e; eauto.
 
   - simp_strip.
     set (brs' := map _ brs). cbn -[strip].
@@ -930,8 +930,8 @@ Proof.
       have etaargs : forallb (isEtaExp Σ) args.
       { rw isEtaExp_Constructor in i6.
         now move/andP: i6 => [] /andP[]. }
-      rewrite strip_iota_red // in e.
-      rewrite wellformed_mkApps in i4 => //.
+      rw strip_iota_red // in e.
+      rw wellformed_mkApps in i4 => //.
       move/andP: i4 => [] _ wf; solve_all.
       cbn. now eapply nth_error_forallb in H; tea.
 
@@ -952,8 +952,8 @@ Proof.
     * rw length_map.
       eapply strip_cunfold_fix; tea.
       eapply closed_fix_subst.
-      move/wellformed_closed: i8; rewrite closedn_mkApps => // /andP[] //.
-      move: i10; rewrite isEtaExp_mkApps_napp // /= => /andP[] //. simp_eta.
+      move/wellformed_closed: i8; rw closedn_mkApps => // /andP[] //.
+      move: i10; rw isEtaExp_mkApps_napp // /= => /andP[] //. simp_eta.
     * move: e.
       rw -[tApp _ _](mkApps_app _ _ [av]).
       rw -[tApp _ _](mkApps_app _ _ [strip _ av]).
@@ -968,9 +968,9 @@ Proof.
     eapply strip_cunfold_fix; eauto.
     eapply closed_fix_subst => //.
     { move/wellformed_closed: i4.
-      rewrite closedn_mkApps. now move/andP => []. }
-    { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
-    now rewrite length_map.
+      rw closedn_mkApps. now move/andP => []. }
+    { move: i6. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+    now rw length_map.
 
   - rw strip_tApp //. simp_strip in e0.
     simp_strip in e1.
@@ -988,9 +988,9 @@ Proof.
     eapply eval_cofix_case; tea.
     eapply strip_cunfold_cofix; tea => //.
     { eapply closed_cofix_subst; tea.
-      move/wellformed_closed: i5; rewrite closedn_mkApps => /andP[] //. }
-    { move: i7. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
-    rewrite strip_mkApps_etaexp // in e.
+      move/wellformed_closed: i5; rw closedn_mkApps => /andP[] //. }
+    { move: i7. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+    rw strip_mkApps_etaexp // in e.
 
   - destruct p as [[ind pars] arg].
     simp_strip.
@@ -1002,8 +1002,8 @@ Proof.
     eapply eval_cofix_proj; tea.
     eapply strip_cunfold_cofix; tea.
     { eapply closed_cofix_subst; tea.
-      move/wellformed_closed: i4; rewrite closedn_mkApps => /andP[] //. }
-    { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+      move/wellformed_closed: i4; rw closedn_mkApps => /andP[] //. }
+    { move: i6. rw isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
 
   - econstructor. red in H |- *.
     rw lookup_env_strip H //.
@@ -1343,7 +1343,7 @@ Lemma strip_env_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_block
   wf_glob Σ -> wf_glob (efl := switch_no_params efl) (strip_env Σ).
 Proof.
   intros wf.
-  rewrite (strip_env_eq has_app _ wf).
+  rw (strip_env_eq has_app _ wf).
   destruct Σ as [Σ map repr fr]; cbn in *.
   induction Σ in map, repr, fr, wf |- *.
   - cbn. constructor.
@@ -1352,9 +1352,9 @@ Proof.
     constructor; eauto.
     eapply (IHΣ (GlobalContextMap.map Σg) (GlobalContextMap.repr Σg)). now depelim wf.
     depelim wf. cbn.
-    rewrite -(strip_env_eq has_app Σg). now cbn. cbn.
+    rw -(strip_env_eq has_app Σg). now cbn. cbn.
     now eapply (strip_decl_wf has_app cstrs (Σ:=Σg)).
-    rewrite -(strip_env_eq has_app Σg). now depelim wf.
+    rw -(strip_env_eq has_app Σg). now depelim wf.
     eapply fresh_global_strip_env. now depelim fr.
 Qed.
 
@@ -1414,7 +1414,7 @@ Proof.
     constructor; auto.
     eapply IHexp. eapply Σ'. now depelim wf. cbn.
     eapply (strip_expanded_decl (Σ := Σ')) in H.
-    rewrite -(strip_env_eq has_app Σ'). cbn. now depelim wf.
+    rw -(strip_env_eq has_app Σ'). cbn. now depelim wf.
     exact H.
 Qed.
 

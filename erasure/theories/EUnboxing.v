@@ -108,7 +108,7 @@ Ltac simple := repeat (
     | H : All _ _ |- _ => apply All_Forall in H
     | h : ?e = Some _ |-
         context[option_map _ ?e] =>
-          rewrite h
+          rw h
     end ||
     autorewrite with unboxing_rw_hints in * || 
     simpl in *
@@ -329,12 +329,12 @@ Proof.
   repeat split; intros; simple; try easy.
   - destruct cstr_as_blocks eqn:has_cstr_blocks; last first.
     + destruct (is_unboxable Σ i n); last first.
-      { simple. rewrite has_cstr_blocks. now destruct args. }
+      { simple. rw has_cstr_blocks. now destruct args. }
       destruct args; last easy.
-      simple. now rewrite has_cstr_blocks.
+      simple. now rw has_cstr_blocks.
     + destruct (is_unboxable Σ i n); simple; last first.
-      { rewrite has_cstr_blocks. now simple. }
-      destruct args as [|arg1[|arg2 args]]; simple; rewrite ?has_cstr_blocks; simple; try easy.
+      { rw has_cstr_blocks. now simple. }
+      destruct args as [|arg1[|arg2 args]]; simple; rw ?has_cstr_blocks; simple; try easy.
       * now apply X.
       * repeat split; try easy.
         { now apply X. }  
@@ -484,7 +484,7 @@ Proof.
   intros.
   induction l as [| ? ? IH] 
     using list_ind_rev; simpl; first reflexivity.
-  rewrite map_app !fold_left_app -IH.
+  rw map_app !fold_left_app -IH.
   now simple.
 Qed.
 Hint Rewrite <- unbox_substl : unboxing_rw_hints.
@@ -507,7 +507,7 @@ Proof.
   unfold cunfold_fix.
   simple.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
-  now rewrite unbox_substl unbox_map_fix_subst.
+  now rw unbox_substl unbox_map_fix_subst.
 Qed.
 Hint Rewrite unbox_cunfold_fix : unboxing_rw_hints.
 
@@ -530,7 +530,7 @@ Proof.
   unfold cunfold_cofix.
   simple.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
-  now rewrite unbox_substl unbox_map_cofix_subst.
+  now rw unbox_substl unbox_map_cofix_subst.
 Qed.
 Hint Rewrite unbox_cunfold_cofix : unboxing_rw_hints.
 
@@ -596,9 +596,9 @@ Qed.
           easy || simple || 
           lazymatch goal with
           | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
-              rewrite wellformed_mkApps /= in h
+              rw wellformed_mkApps /= in h
           | |- is_true (wellformed _ _ (mkApps _ _)) =>
-              rewrite wellformed_mkApps /=
+              rw wellformed_mkApps /=
           | h : _ /\ _ |- _ => destruct h
           | h : cunfold_fix _ _ = Some (_, ?e) |-
               is_true (wellformed _ _ ?e) => 
@@ -655,7 +655,7 @@ Proof.
   unfold wf_minductive; simple.
   intros no_cstr_params [h _].
   destruct (eqb_spec (ind_npars m) 0); simple.
-  rewrite /is_true orb_false_r -no_cstr_params in h.
+  rw /is_true orb_false_r -no_cstr_params in h.
   now destruct has_cstr_params.
 Qed.
 
@@ -670,16 +670,16 @@ Proof.
   inversion 1; subst; first now inversion X0.
   inversion H0; subst.
   - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
+    rw decompose_app_rec_mkApps; simple.
     do 2 constructor.
     simple; split.
-    + now rewrite H2.
-    + now rewrite H3.
+    + now rw H2.
+    + now rw H3.
   - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
+    rw decompose_app_rec_mkApps; simple.
     do 3 constructor.
   - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
+    rw decompose_app_rec_mkApps; simple.
     do 3 constructor.
 Qed.
 
@@ -702,18 +702,18 @@ Proof.
     induction args as [|? [|? ?] _] using rev_ind;
     simple; first easy.
     + inversion value_head_f; subst; simple; try easy.
-      * now do 2 constructor; simple; rewrite H H0.
+      * now do 2 constructor; simple; rw H H0.
       * now do 3 constructor.
       * now do 3 constructor.
-    + rewrite mkApps_app; simple.
+    + rw mkApps_app; simple.
       change (mkApps (tApp f t) l) with (mkApps f (t :: l)).
       apply value_app_nonnil; simple; try easy.
       * inversion value_head_f; try solve[constructor].
-        { rewrite length_app in H1.
+        { rw length_app in H1.
           now econstructor. }
         { econstructor; first eassumption.
           destruct with_guarded_fix; last easy.
-          now rewrite length_app in H0. }
+          now rw length_app in H0. }
       * change (t :: l ++ [x])
         with ((t :: l) ++ [x])
         in args_vals.
@@ -726,7 +726,7 @@ Ltac find_value_contra := solve[
   | h : value _ ?t, h' : head ?t = _
     |- _ =>
       apply value_value_head in h;
-      rewrite h' in h
+      rw h' in h
   end;
   eauto using tCase_not_val, tProj_not_val
 ].
@@ -756,7 +756,7 @@ Proof.
         destruct cstr_as_blocks; simple; try easy.
         destruct args; simple; easy.
       - destruct wf_e as (_ & _ & wf_e).
-        rewrite -(Nat.add_0_r #|br.1|).
+        rw -(Nat.add_0_r #|br.1|).
         now eapply wf_e, nth_error_In. }
     unfold is_unboxable, is_unboxable_clause_1, get_unboxable_case_branch in *; simple.
     destruct 
@@ -809,7 +809,7 @@ Proof.
       destruct
         brs as [|[[|? [|? ?]] ?] [| ? ?]],
         c as [|[|?]]; simple; try easy;
-      rewrite /constructor_isprop_pars_decl heq in e1; simple;
+      rw /constructor_isprop_pars_decl heq in e1; simple;
       injection e1 as ? ? ?; subst; simple;
       injection e2 as ?; subst; simple;
       destruct args as [|arg [|? ?]]; simple; easy.
@@ -864,24 +864,24 @@ Proof.
     + crush eval_zeta.
     + eapply eval_iota_sing; simple; try easy.
       * unfold inductive_isprop_and_pars in *; simple.
-      * rewrite unbox_substl unbox_csubst in H0; simple.
+      * rw unbox_substl unbox_csubst in H0; simple.
   - destruct_IHs. crush eval_fix.
   - destruct_IHs. crush eval_fix_value.
   - destruct_IHs. crush eval_fix'.
   - exfalso.
     clear IHeval_e1 IHeval_e2.
     apply eval_wellformed in eval_e1; try easy.
-    rewrite wellformed_mkApps in eval_e1; simple.
+    rw wellformed_mkApps in eval_e1; simple.
     now apply (no_fixpoint_negb has_tCoFix).
   - exfalso.
     clear IHeval_e1 IHeval_e2.
     apply eval_wellformed in eval_e1; try easy.
-    rewrite wellformed_mkApps in eval_e1; simple.
+    rw wellformed_mkApps in eval_e1; simple.
     now apply (no_fixpoint_negb has_tCoFix).
   - destruct_IHs.
-    { rewrite /lookup_constant isdecl /= in wf_e.
+    { rw /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
-      rewrite /wf_global_decl e //= in isdecl. }
+      rw /wf_global_decl e //= in isdecl. }
     econstructor; last easy.
     + unfold declared_constant in *. now simple.
     + now simple.
@@ -928,7 +928,7 @@ Proof.
       eapply eval_proj_block; 
       repeat (
         unfold constructor_isprop_pars_decl || 
-        rewrite heq ||
+        rw heq ||
         simple ||
         easy
       )
@@ -951,7 +951,7 @@ Proof.
       easy ||
       unfold inductive_isprop_and_pars ||
       simple ||
-      rewrite heq
+      rw heq
     ).
   - easy.
   - unfold is_unboxable, is_unboxable_clause_1, lookup_constructor_pars_args in *; simple.
@@ -1013,13 +1013,13 @@ Proof.
         destruct (head f) eqn:heq; simple; try easy; try find_value_contra; solve[
           move:heq; clear;
           induction f'; simple; try easy;
-          now rewrite !head_tApp
+          now rw !head_tApp
         ]
     | |- context[unbox ctx ?f] =>
         destruct f'; simple; try easy; find_value_contra
     end.
   - inversion X; subst; try solve[repeat constructor]; simple.
-    rewrite /test_prim /= /test_array_model /= in wf_e.
+    rw /test_prim /= /test_array_model /= in wf_e.
     simple.
     destruct_IHs.
     unfold map_prim; simpl.
@@ -1081,7 +1081,7 @@ Proof.
     { unfold wf_brs, lookup_constructor in *.
       destruct (lookup_inductive ctx p.1) as [[[? ? ?] [? ? ? ?]]|] eqn:heq; simple; last easy.
       eapply extends_lookup_inductive in heq as heq'; try easy.
-      now rewrite heq'. }
+      now rw heq'. }
     rewrite ->H3 in *.
     destruct (is_unboxable_clause_1 p.1 (lookup_constructor ctx p.1 0)) eqn:heq; last first.
     { simple; f_equal; first easy.
@@ -1093,13 +1093,13 @@ Proof.
       intros; unfold on_snd.
       f_equal. now eapply X. }
     unfold get_unboxable_case_branch.
-    rewrite H4.
+    rw H4.
     destruct (map (on_snd (unbox ctx)) l) as [|[[|? [|? ?]] ?] [|? ?]] eqn:heq'; try now f_equal.
   - assert (lookup_constructor ctx' (proj_ind s) 0 = lookup_constructor ctx (proj_ind s) 0). 
     { unfold wf_brs, lookup_projection, lookup_constructor in *.
       destruct (lookup_inductive ctx (proj_ind s)) as [[[? ? ?] [? ? ? ?]]|] eqn:heq; simple; last easy.
       eapply extends_lookup_inductive in heq as heq'; try easy.
-      now rewrite heq'. }
+      now rw heq'. }
     rewrite ->H3 in *.
     destruct (is_unboxable_clause_1 (proj_ind s) (lookup_constructor ctx (proj_ind s) 0)) eqn:heq; last now f_equal.
     easy.

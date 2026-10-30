@@ -153,8 +153,8 @@ Section optimize.
     - rtoProp. split; eauto.
       destruct cstr_as_blocks. rtoProp; split; eauto. solve_all. destruct args; eauto.
     - move/andP: H => [] hasc /andP[] /andP[] -> clt cll /=.
-      rewrite IHt //=. solve_all.
-    - rewrite GlobalContextMap.lookup_projection_spec.
+      rw IHt //=. solve_all.
+    - rw GlobalContextMap.lookup_projection_spec.
       rtoProp; destruct H.
       destruct lookup_projection as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl; auto => //.
       simpl.
@@ -181,12 +181,12 @@ Section optimize.
     unfold wf_fix, test_def in *;
     simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
     - destruct (k ?= n0)%nat; auto.
-    - f_equal. rtoProp. rewrite cstrs in H0. now destruct args; inv H0.
-    - move/andP: wft => [] hasc /andP[] /andP[] hi hb hl. rewrite IHb. f_equal. unfold on_snd; solve_all.
+    - f_equal. rtoProp. rw cstrs in H0. now destruct args; inv H0.
+    - move/andP: wft => [] hasc /andP[] /andP[] hi hb hl. rw IHb. f_equal. unfold on_snd; solve_all.
       repeat toAll. f_equal. solve_all. unfold on_snd; cbn. f_equal.
-      rewrite a0 //. now rewrite -Nat.add_assoc.
+      rw a0 //. now rw -Nat.add_assoc.
     - move/andP: wft => [] /andP[] hp hs hb.
-      rewrite GlobalContextMap.lookup_projection_spec.
+      rw GlobalContextMap.lookup_projection_spec.
       destruct lookup_projection as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl => /= //.
       f_equal; eauto. f_equal. len. f_equal.
       have arglen := wellformed_projection_args wfΣ hl.
@@ -194,7 +194,7 @@ Section optimize.
       auto.
     - f_equal. move/andP: wft => [hlam /andP[] hidx hb].
       solve_all. unfold map_def. f_equal.
-      eapply a0. now rewrite -Nat.add_assoc.
+      eapply a0. now rw -Nat.add_assoc.
     - f_equal. move/andP: wft => [] hascof /andP[hidx hb].
       solve_all. unfold map_def. f_equal.
       eapply a0. now rw -Nat.add_assoc.
@@ -252,7 +252,7 @@ Section optimize.
   Proof using cstrs efl Σ.
     intros wfΣ hfix.
     unfold cunfold_fix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] /andP[] haslam hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
@@ -270,7 +270,7 @@ Section optimize.
   Proof using cstrs efl Σ.
     intros wfΣ hfix.
     unfold cunfold_cofix.
-    rewrite nth_error_map.
+    rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] hasco /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
@@ -543,16 +543,16 @@ Proof.
     eapply eval_wellformed in ev1; tea => //.
     econstructor; eauto.
     cbn in ev1; move/andP: ev1 => [] hasl wfb.
-    rewrite -(optimize_csubst _ _ cstrs 1) //.
+    rw -(optimize_csubst _ _ cstrs 1) //.
     apply IHev3. eapply wellformed_csubst => //.
 
   - move/andP => [] /andP[] haspp clb0 clb1.
     intuition auto.
     eapply eval_wellformed in ev1; tea => //.
     forward IHev2 by eapply wellformed_csubst => //.
-    econstructor; eauto. rewrite -(optimize_csubst _ _ cstrs 1) //.
+    econstructor; eauto. rw -(optimize_csubst _ _ cstrs 1) //.
 
-  - move/andP => [] hasc /andP[] /andP[] hl wfd wfbrs. rewrite optimize_mkApps in IHev1.
+  - move/andP => [] hasc /andP[] /andP[] hl wfd wfbrs. rw optimize_mkApps in IHev1.
     eapply eval_wellformed in ev1 => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfc' wfargs.
     eapply nth_error_forallb in wfbrs; tea.
@@ -578,17 +578,17 @@ Proof.
     rw e1 //. simpl.
     rw map_repeat in IHev2 => //.
 
-  - move/andP => [] /andP[] _ clf cla. rewrite optimize_mkApps in IHev1.
+  - move/andP => [] /andP[] _ clf cla. rw optimize_mkApps in IHev1.
     simpl in *.
     eapply eval_wellformed in ev1 => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wff wfargs.
     eapply eval_fix; eauto.
     rw length_map.
     eapply optimize_cunfold_fix; tea.
-    rewrite optimize_mkApps in IHev3. apply IHev3.
-    rewrite wellformed_mkApps // wfargs.
-    eapply eval_wellformed in ev2; tas => //. rewrite ev2 /= !andb_true_r.
-    rewrite has_app; eapply wellformed_cunfold_fix; tea.
+    rw optimize_mkApps in IHev3. apply IHev3.
+    rw wellformed_mkApps // wfargs.
+    eapply eval_wellformed in ev2; tas => //. rw ev2 /= !andb_true_r.
+    rw has_app; eapply wellformed_cunfold_fix; tea.
 
   - move/andP => [] /andP[] _ clf cla.
     eapply eval_wellformed in ev1 => //.
@@ -606,13 +606,13 @@ Proof.
     eapply optimize_cunfold_fix; eauto.
     eapply IHev2; tea. eapply IHev3.
     apply/andP; split => //.
-    rewrite has_app; eapply wellformed_cunfold_fix; tea.
+    rw has_app; eapply wellformed_cunfold_fix; tea.
 
   - move/andP => [] hasc /andP[] /andP[] hl cd clbrs. specialize (IHev1 cd).
     eapply eval_wellformed in ev1; tea => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfcof wfargs.
     forward IHev2.
-    rewrite hasc hl wellformed_mkApps // /= wfargs clbrs !andb_true_r.
+    rw hasc hl wellformed_mkApps // /= wfargs clbrs !andb_true_r.
     eapply wellformed_cunfold_cofix; tea => //.
     rw !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
@@ -620,12 +620,12 @@ Proof.
     exact IHev2.
 
   - move/andP => [] /andP[] hasp hl hd.
-    rewrite GlobalContextMap.lookup_projection_spec in IHev2 |- *.
+    rw GlobalContextMap.lookup_projection_spec in IHev2 |- *.
     destruct lookup_projection as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl' => //.
     eapply eval_wellformed in ev1 => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfcof wfargs.
     forward IHev2.
-    { rewrite /= wellformed_mkApps // wfargs hasp //= andb_true_r.
+    { rw /= wellformed_mkApps // wfargs hasp //= andb_true_r.
       eapply wellformed_cunfold_cofix; tea. }
     rw optimize_mkApps /= in IHev1.
     eapply eval_cofix_case. eauto.
@@ -642,7 +642,7 @@ Proof.
     move: wfΣ. rw /wf_global_decl /= e //.
 
   - move=> /andP[] /andP[] hasp iss cld.
-    rewrite GlobalContextMap.lookup_projection_spec.
+    rw GlobalContextMap.lookup_projection_spec.
     eapply eval_wellformed in ev1; tea => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfc wfargs.
     destruct lookup_projection as [[[[mdecl idecl] cdecl'] pdecl]|] eqn:hl' => //.
@@ -673,7 +673,7 @@ Proof.
   - congruence.
 
   - move=> /andP[] /andP[] hasp iss cld.
-    rewrite GlobalContextMap.lookup_projection_spec.
+    rw GlobalContextMap.lookup_projection_spec.
     destruct lookup_projection as [[[[mdecl idecl] cdecl'] pdecl]|] eqn:hl' => //.
     pose proof (lookup_projection_lookup_constructor hl').
     simpl in H.
@@ -689,7 +689,7 @@ Proof.
     now constructor.
 
   - move/andP=> [] /andP[] _ clf cla.
-    rewrite optimize_mkApps.
+    rw optimize_mkApps.
     eapply eval_construct; tea.
     rw -lookup_constructor_optimize //. exact e0.
     rw optimize_mkApps in IHev1. now eapply IHev1.
@@ -795,9 +795,9 @@ Proof.
     rw GlobalContextMap.lookup_projection_spec.
     destruct lookup_projection as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl'; auto => //.
     simpl.
-    rewrite /wf_brs.
-    rewrite (lookup_constructor_lookup_inductive (lookup_projection_lookup_constructor hl')) /=.
-    rewrite IHt //= andb_true_r.
+    rw /wf_brs.
+    rw (lookup_constructor_lookup_inductive (lookup_projection_lookup_constructor hl')) /=.
+    rw IHt //= andb_true_r.
     have [-> hargs'] := wellformed_projection_args wfΣ hl'.
     rtoProp; intuition auto.
     apply Nat.ltb_lt. len.

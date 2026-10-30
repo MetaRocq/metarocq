@@ -170,7 +170,7 @@ Program Definition inlining_transformation {efl : EEnvFlags} (has_app : has_tApp
     econf.(inlined_constants) _ _  ▷
     forget_inlining_info_transformation wfl _.
 Next Obligation.
-  now rewrite orb_true_r.
+  now rw orb_true_r.
 Qed.
 
 

@@ -801,7 +801,7 @@ Qed.
 
 Next Obligation.
   red. move=> ? wcon efl has_app cstrs [Σ t] /= v [[wfe wft] etap] [ev].
-  rewrite -ERemoveParams.Fast.strip_fast -ERemoveParams.Fast.strip_env_fast.
+  rw -ERemoveParams.Fast.strip_fast -ERemoveParams.Fast.strip_env_fast.
   unshelve eapply ERemoveParams.strip_eval in ev; eauto.
   eexists; split => /= //.
   now sq. cbn in *.
@@ -1340,7 +1340,7 @@ Instance forget_inlining_info_transformation_ext' :
     extends_inlined_eprogram extends_eprogram.
 Proof.
   intros ? ? [[] ?] [[] ?]; cbn.
-   now rewrite /extends_inlined_eprogram /extends_eprogram /=.
+   now rw /extends_inlined_eprogram /extends_eprogram /=.
 Qed.
 
 Definition conditionally (b : bool) (P : Prop) := 
@@ -1364,14 +1364,14 @@ Proof.
     cbn. now apply All_map.
   - intros ind c mdecl idecl cdecl args wcb hl hnargs H IH.
     simp implement_box. econstructor 2; eauto.
-    * now rewrite lookup_constructor_implement_box; tea.
-    * now rewrite length_map.
+    * now rw lookup_constructor_implement_box; tea.
+    * now rw length_map.
     * now apply All_map.
   - intros f args hd hargs H IH.
-    rewrite implement_box_mkApps; simp implement_box.
+    rw implement_box_mkApps; simp implement_box.
     depelim hd.
     * now cbn in e.
-    * constructor 3. rewrite length_map; simp implement_box.
+    * constructor 3. rw length_map; simp implement_box.
       constructor. now eapply map_nil.
       now eapply All_map.
     * now cbn in y.
@@ -1458,14 +1458,14 @@ Proof.
     cbn. now apply All_map.
   - intros ind c mdecl idecl cdecl args wcb hl hnargs H IH.
     simp implement_lazy_force. econstructor 2; eauto.
-    * now rewrite lookup_constructor_implement_lazy_force; tea.
-    * now rewrite length_map.
+    * now rw lookup_constructor_implement_lazy_force; tea.
+    * now rw length_map.
     * now apply All_map.
   - intros f args hd hargs H IH.
-    rewrite implement_lazy_force_mkApps; simp implement_lazy_force.
+    rw implement_lazy_force_mkApps; simp implement_lazy_force.
     depelim hd.
     * now cbn in e.
-    * constructor 3. rewrite length_map; simp implement_lazy_force.
+    * constructor 3. rw length_map; simp implement_lazy_force.
       constructor. now eapply map_nil.
       now eapply All_map.
     * now cbn in y.

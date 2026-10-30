@@ -155,8 +155,8 @@ Proof.
   destruct inlining.
   - unfold inlining_transformation.
     cbn [optional_self_transform inlining ecf] in *.
-    rewrite obseq_compose_assoc.
-    rewrite transform_compose_assoc.
+    rw obseq_compose_assoc.
+    rw transform_compose_assoc.
     repeat destruct_compose; cbn [transform] in *.
     cbn [transform forget_inlining_info_transformation] in *.
     cbn [transform inline_transformation] in *.
@@ -1652,8 +1652,8 @@ Proof.
     { clear.
       intros env t l heq.
       induction t in l, heq |- *; simpl; try easy.
-      now rewrite IHt1 //= IHt2. }
-    now rewrite heq.
+      now rw IHt1 //= IHt2. }
+    now rw heq.
   - eexists.
     split.
     unfold verified_lambdabox_pipeline.
@@ -1703,8 +1703,8 @@ Lemma transform_lambda_box_firstorder (Σer : EEnvMap.GlobalContextMap.t) econf 
 Proof.
   intros fo.
   destruct (lambdabox_pres_fo econf) as [fn [tr hfn]].
-  rewrite (ETransformPresFO.transform_fo _ _ _ _ (t:=tr)).
-  now rewrite hfn.
+  rw (ETransformPresFO.transform_fo _ _ _ _ (t:=tr)).
+  now rw hfn.
 Qed.
 
 Lemma transform_lambda_box_eta_app (Σer : EEnvMap.GlobalContextMap.t) t u pre econf :
@@ -2116,7 +2116,7 @@ Section PCUICErase.
     specialize (H0 H1).
     eapply (obseq_lambdabox (Σ', f') (Σ', v'') econf) in obseq.
     epose proof (ETransformPresAppLam.transform_lam _ _ _ (t0 := lambdabox_pres_app econf) (Σ', v'') prev H0).
-    rewrite -obseq. exact H2. cbn. red; tauto.
+    rw -obseq. exact H2. cbn. red; tauto.
   Qed.
 
   (* This version provides the evaluation proof. *)
@@ -2171,7 +2171,7 @@ Section PCUICErase.
     specialize (H0 H1).
     eapply (obseq_lambdabox (Σ', f') (Σ', v'') econf) in obseq.
     epose proof (ETransformPresAppLam.transform_lam _ _ _ (t0 := (lambdabox_pres_app econf)) (Σ', v'') prev H0).
-    rewrite -obseq. exact H2. cbn. red; tauto.
+    rw -obseq. exact H2. cbn. red; tauto.
   Qed.
 
   Lemma expand_lets_transform_env K p p' pre pre' :
@@ -2252,7 +2252,7 @@ Section PCUICErase.
     2:{ now rw heqtr; cbn. }
     clear heqtr.
     move: pre4.
-    rewrite heq. intros h.
+    rw heq. intros h.
     epose proof (transform_lambda_box_eta_app _ _ _ h econf).
     forward H. { cbn [fst snd].
       clear -eq eta extapp. revert pre3 extapp.
@@ -2281,7 +2281,7 @@ Section PCUICErase.
     rw fst_pair.
     { red. cbn. split => //. } reflexivity.
     eapply (transform_lambdabox_pres_term _ _ _ _ econf).
-    split. rewrite fst_pair.
+    split. rw fst_pair.
     { unfold run, time. destruct_compose_no_clear. intros H eq'. clear -extapp'.
       assert (pre''0 = H). apply proof_irrelevance. subst H. apply extapp'. }
     cbn [snd run]. unfold run, time.
@@ -2365,7 +2365,7 @@ Section pipeline_cond.
     destruct econf as [? ? ? []]; cbn.
     - unfold inline_program; destruct_inline_env; cbn. eapply EInlining.lookup_env_inline.
       apply pr.
-    - now rewrite option_map_id.
+    - now rw option_map_id.
   Qed.
 
   Opaque compose.
@@ -2393,7 +2393,7 @@ Section pipeline_cond.
   set (transform (inline_projections_optimization _ _) _ _) as t5.
   set (transform (rebuild_wf_env_transform true false) _ _) as t6.
   set (transform constructors_as_blocks_transformation _ _) as t7.
-  rewrite lookup_inline.
+  rw lookup_inline.
   (* set (if _ then inline_global_decl _ else _) as t8. *)
   subst t7.
   set (eenv := inline_env _ _). clearbody eenv.
@@ -2586,7 +2586,7 @@ Section pipeline_theorem.
     cbn [transform pcuic_expand_lets_transform].
     intros pre1. destruct_compose. intros pre2.
     destruct (lambdabox_pres_fo econf) as [fn [tr hfn]].
-    destruct tr. destruct typing as [typing']. pose proof (Heval' := Heval). sq. rewrite transform_fo.
+    destruct tr. destruct typing as [typing']. pose proof (Heval' := Heval). sq. rw transform_fo.
     { intro. eapply preserves_fo. }
     assert (eqtr : PCUICExpandLets.trans v = v).
     { clear -hv.
@@ -2637,7 +2637,7 @@ Section pipeline_theorem.
     unshelve eapply Hcorr in Heval as Hev. eapply precond; eauto.
     destruct Hev as [v' [[H1] H2]].
     move: H2.
-    rewrite v_t_spec.
+    rw v_t_spec.
     set (pre := precond2 _ _ _ _ _ _ _ _ _ _ _) in *. clearbody pre.
     subst v_t Σ_t t_t.
     revert H1.

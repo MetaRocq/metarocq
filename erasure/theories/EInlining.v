@@ -121,7 +121,7 @@ Ltac simple := repeat (
     | H : All _ _ |- _ => apply All_Forall in H
     | h : ?e = Some _ |-
         option_map _ ?e = Some _ =>
-          rewrite h
+          rw h
     end ||
     autorewrite with inlining_rw_hints in * ||
     destruct_inline_env ||
@@ -155,7 +155,7 @@ Lemma inline_env_cons_1 inlining ctx d :
   (inline_env inlining (d :: ctx)).1 = inline_decl (inline_env inlining ctx).2 d :: (inline_env inlining ctx).1.
 Proof.
   induction ctx as [|d' ctx IH]; first reflexivity.
-  rewrite /inline_env rev_cons fold_left_app.
+  rw /inline_env rev_cons fold_left_app.
   fold (inline_env inlining (d'::ctx)).
   now simple.
 Qed.
@@ -178,7 +178,7 @@ Lemma inline_env_cons_2 inlining ctx d :
     (inline_decl (inline_env inlining ctx).2 d).
 Proof.
   induction ctx as [|d' ctx IH]; first reflexivity.
-  rewrite /inline_env rev_cons fold_left_app.
+  rw /inline_env rev_cons fold_left_app.
   fold (inline_env inlining (d'::ctx)).
   now simple.
 Qed.
@@ -189,7 +189,7 @@ Lemma fresh_inline inlining ctx name :
   fresh_global name (inline_env inlining ctx).1 <-> fresh_global name ctx.
 Proof.
   induction ctx as [| [? decl] ? ?]; first reflexivity.
-  rewrite inline_env_cons_1 /inline_decl /= /fresh_global !Forall_cons_iff.
+  rw inline_env_cons_1 /inline_decl /= /fresh_global !Forall_cons_iff.
   apply ZifyClasses.and_morph; last assumption.
   now destruct decl.
 Qed.
@@ -233,7 +233,7 @@ Proof.
       | |- _ -> _ => intro
       | h : _ /\ _ |- _ => destruct h
       | |- _ /\ _ => split
-      | |- context[is_nil (map _ _)] => rewrite is_nil_map
+      | |- context[is_nil (map _ _)] => rw is_nil_map
       | h: is_true (_ <? _) |- _ => unfold is_true in h; rewrite ->Nat.ltb_lt in h
       | |- is_true (_ <? _) => unfold is_true; rewrite ->Nat.ltb_lt
       end ||
@@ -280,7 +280,7 @@ Lemma lookup_constant_fresh_None ctx name :
 Proof.
   intros.
   unfold lookup_constant.
-  now rewrite lookup_env_fresh_None.
+  now rw lookup_env_fresh_None.
 Qed.
 
 Lemma inline_decl_1 inlining d :
@@ -301,46 +301,46 @@ Proof.
   induction ctx
     as [|[name' [[[body|]] | B]] ctx IH]
     in h_in, h_wf_ctx, t |- *; simple.
-  - now rewrite KernameMapFact.F.empty_o.
+  - now rw KernameMapFact.F.empty_o.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
-    destruct (name == name') eqn:heq'; rewrite heq'.
+    destruct (name == name') eqn:heq'; rw heq'.
     + apply eqb_eq in heq'; subst.
-      rewrite h_in.
-      rewrite KernameMapFact.F.add_eq_o.
+      rw h_in.
+      rw KernameMapFact.F.add_eq_o.
       { apply KernameMap.E.eq_refl. }
       easy.
     + destruct (KernameSet.mem name' inlining) eqn:heq''.
-      * rewrite KernameMapFact.F.add_neq_o.
+      * rw KernameMapFact.F.add_neq_o.
         { unfold
             eqb,
             Kername.reflect_kername, Kername.eqb, Kername.compare
             in *.
           destruct name as [n1 n2], name' as [n1' n2'].
-          rewrite
+          rw
             (StringOT.compare_sym n2' n2)
             (ModPathComp.compare_sym n1 n1')
             -compare_cont_CompOpp.
           destruct (compare_cont (ModPathComp.compare n1 n1') (string_compare n2 n2')); easy. }
-        rewrite IH //.
+        rw IH //.
       * now apply IH.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
-    destruct (name == name') eqn:heq'; rewrite heq'; rewrite IH //.
+    destruct (name == name') eqn:heq'; rw heq'; rw IH //.
     split; last easy.
     apply eqb_eq in heq'; subst.
-    rewrite lookup_env_fresh_None //.
-    now rewrite fresh_inline.
+    rw lookup_env_fresh_None //.
+    now rw fresh_inline.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
-    destruct (name == name') eqn:heq'; rewrite heq'; rewrite IH //.
+    destruct (name == name') eqn:heq'; rw heq'; rw IH //.
     split; last easy.
     apply eqb_eq in heq'; subst.
-    rewrite lookup_env_fresh_None //.
-    now rewrite fresh_inline.
+    rw lookup_env_fresh_None //.
+    now rw fresh_inline.
 Qed.
 
 Lemma inline_env_lookup_no_inline_None (efl : EEnvFlags) inlining ctx name :
@@ -351,32 +351,32 @@ Proof.
   intros h_nin%negbTE h_wf_ctx.
   induction ctx
     as [|[name' [[[body|]] | B]] ctx IH]; simple.
-  - now rewrite KernameMapFact.F.empty_o.
+  - now rw KernameMapFact.F.empty_o.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
     destruct (name == name') eqn:cmp_name_name'.
     + apply eqb_eq in cmp_name_name'; subst.
-      now rewrite h_nin.
+      now rw h_nin.
     + destruct (KernameSet.mem name' inlining) eqn:heq''.
-      * rewrite KernameMapFact.F.add_neq_o.
+      * rw KernameMapFact.F.add_neq_o.
         { unfold
             eqb,
             Kername.reflect_kername, Kername.eqb, Kername.compare
             in *.
           destruct name as [n1 n2], name' as [n1' n2'].
-          rewrite
+          rw
             (StringOT.compare_sym n2' n2)
             (ModPathComp.compare_sym n1 n1')
             -compare_cont_CompOpp.
           destruct (compare_cont (ModPathComp.compare n1 n1') (string_compare n2 n2')); easy. }
-        rewrite IH //.
+        rw IH //.
       * now apply IH.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     now simple.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     now simple.
 Qed.
 
@@ -399,8 +399,8 @@ Proof.
       destruct (lookup_env ctx s) as [[|]|] eqn:heq;
       simple; try easy.
       now apply lookup_env_Some_fresh in heq.
-    + rewrite -Kername.compare_eq in hneq.
-      now rewrite KernameMapFact.F.add_neq_o.
+    + rw -Kername.compare_eq in hneq.
+      now rw KernameMapFact.F.add_neq_o.
   - destruct cstr_as_blocks; f_equal; apply All_map_eq.
     + now simple.
     + now destruct args.
@@ -465,7 +465,7 @@ Proof.
       fold lookup_env in *.
       simple.
       destruct (eqb_spec (inductive_mind i) kn); subst.
-      { now rewrite lookup_env_fresh_None in H0. }
+      { now rw lookup_env_fresh_None in H0. }
       easy.
   - inversion 1; subst.
     repeat split; try easy.
@@ -476,8 +476,8 @@ Proof.
       lookup_env in *.
       fold lookup_env in *.
       destruct (eqb_spec (inductive_mind p.1) kn); subst; simple.
-      { now rewrite lookup_env_fresh_None in H0. }
-      rewrite ifF.
+      { now rw lookup_env_fresh_None in H0. }
+      rw ifF.
       { now destruct (eqb_spec (inductive_mind p.1) kn). }
       easy.
   - inversion 1; subst.
@@ -491,7 +491,7 @@ Proof.
       fold lookup_env in *.
       simple.
       destruct (eqb_spec (inductive_mind (proj_ind s)) kn); subst; simple.
-      { now rewrite lookup_env_fresh_None in H0. }
+      { now rw lookup_env_fresh_None in H0. }
       easy.
   - unfold wf_fix; now simple.
   - unfold wf_fix; now simple.
@@ -526,32 +526,32 @@ Proof.
     as [|[name' [[[body|]] | B]] ctx IH]; simple.
   - reflexivity.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
     destruct (name == name') eqn:cmp_name_name'.
     + apply eqb_eq in cmp_name_name'; subst.
-      rewrite /inline_global_decl /inline_constant_decl; simple.
+      rw /inline_global_decl /inline_constant_decl; simple.
       do 4 f_equal.
       destruct (KernameSet.mem name' inlining); last reflexivity.
       now erewrite inline_add_fresh.
     + destruct (KernameSet.mem name' inlining) eqn:heq';
         last easy.
-      rewrite IH //.
+      rw IH //.
       destruct (lookup_env ctx name) as [[[[|]]|]|] eqn:heq''; try reflexivity.
       unfold inline_global_decl, inline_constant_decl.
       simple.
       erewrite inline_add_fresh; try easy.
       now eapply lookup_env_wf.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
-    rewrite
+    rw
       (fun_if (option_map _)) /=
       /inline_constant_decl /= IH //.
   - inversion h_wf_ctx; subst.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     simple.
-    rewrite
+    rw
       (fun_if (option_map _)) /=
       /inline_constant_decl /= IH //.
 Qed.
@@ -567,7 +567,7 @@ Lemma lookup_constant_inlining
   lookup_constant ctx' name = Some (inline_constant_decl (inline_env inlining ctx).2 d).
 Proof.
   intros wf_ctx. simple.
-  rewrite /lookup_constant lookup_env_inline //.
+  rw /lookup_constant lookup_env_inline //.
   destruct (lookup_env ctx name) as [[|]|]; simple; easy.
 Qed.
 
@@ -652,7 +652,7 @@ Proof.
     destruct
       (lookup_constant ctx s) as [[[|]]|] eqn:heq,
       (KernameMap.find (elt:=term) s inlining) eqn:heq';
-      simple; rewrite ?heq; easy.
+      simple; rw ?heq; easy.
   - intros. destruct cstr_as_blocks; now simple.
   - repeat split; try easy.
     intros. apply X; try easy.
@@ -705,7 +705,7 @@ Lemma wf_glob_inlining
   wf_glob Σ /\ wf_inlining Σ 0 inls.
 Proof.
   induction ctx; first easy.
-  rewrite inline_env_cons_1; simpl.
+  rw inline_env_cons_1; simpl.
   intros h; inversion h as [| name [[[?|]]|] ? wf_ctx wf_d fresh_name]; clear h; subst.
   - split.
     { constructor; simple; try easy.
@@ -721,12 +721,12 @@ Proof.
         + easy.
         + now apply wf_inlining_same_ctx, wf_inlining_ctx.
         + now apply fresh_inline.
-      - now rewrite /inline_add h_in /= in heq. }
-    rewrite /inline_add h_in  /= in heq.
+      - now rw /inline_add h_in /= in heq. }
+    rw /inline_add h_in  /= in heq.
     simple.
     destruct (name == name') eqn:comp_name_name'.
     + apply eqb_eq in comp_name_name'; subst.
-      rewrite KernameMapFact.F.add_eq_o in heq.
+      rw KernameMapFact.F.add_eq_o in heq.
       { apply KernameMap.E.eq_refl. }
       injection heq as heq; subst.
       apply wf_cons.
@@ -735,7 +735,7 @@ Proof.
         - now apply wf_inlining_same_ctx, wf_inlining_ctx.
         - now apply fresh_inline. }
       now apply wf_inlining_same_ctx, wf_inlining_ctx; try easy.
-    + rewrite KernameMapFact.F.add_neq_o in heq.
+    + rw KernameMapFact.F.add_neq_o in heq.
       { unfold
           eqb,
           Kername.reflect_kername, Kername.eqb, Kername.compare
@@ -750,9 +750,9 @@ Proof.
     assert (KernameSet.mem name' inlining).
     { destruct (KernameSet.mem name' inlining) eqn:h_in';
       first easy.
-      rewrite inline_env_lookup_no_inline_None // in heq.
-      now rewrite h_in'. }
-    rewrite inline_env_lookup // lookup_env_inline // in heq.
+      rw inline_env_lookup_no_inline_None // in heq.
+      now rw h_in'. }
+    rw inline_env_lookup // lookup_env_inline // in heq.
     destruct (lookup_env ctx name') as [[[[e'|]]|]|] eqn:h_lookup_name'; try easy.
     injection heq as heq; subst.
     now eapply
@@ -761,7 +761,7 @@ Proof.
       lookup_env_wf.
 
   - split; first now constructor; simple.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     intros name' e heq.
     unfold inline_add in heq.
     simple.
@@ -769,17 +769,17 @@ Proof.
     {apply wf_cons.
       - constructor; try easy.
         now apply fresh_inline.
-      - now rewrite /inline_add h_in /= in heq. }
-    rewrite /inline_add h_in  /= in heq.
+      - now rw /inline_add h_in /= in heq. }
+    rw /inline_add h_in  /= in heq.
     apply wf_cons.
     { constructor; try easy.
       now apply fresh_inline. }
     assert (KernameSet.mem name' inlining).
     { destruct (KernameSet.mem name' inlining) eqn:h_in';
       first easy.
-      rewrite inline_env_lookup_no_inline_None // in heq.
-      now rewrite h_in'. }
-    rewrite inline_env_lookup // lookup_env_inline // in heq.
+      rw inline_env_lookup_no_inline_None // in heq.
+      now rw h_in'. }
+    rw inline_env_lookup // lookup_env_inline // in heq.
     destruct (lookup_env ctx name') as [[[[e'|]]|]|] eqn:h_lookup_name'; try easy.
     injection heq as heq; subst.
     now eapply
@@ -787,7 +787,7 @@ Proof.
       wf_inlining_ctx,
       lookup_env_wf.
   - split; first now constructor; simple.
-    rewrite /inline_decl /= /inline_constant_decl /= /inline_add.
+    rw /inline_decl /= /inline_constant_decl /= /inline_add.
     intros name' e heq.
     unfold inline_add in heq.
     simple.
@@ -795,18 +795,18 @@ Proof.
     { apply wf_cons.
       - constructor; try easy.
         now apply fresh_inline.
-      - now rewrite /inline_add h_in /= in heq. }
+      - now rw /inline_add h_in /= in heq. }
     apply wf_cons.
     { constructor; try easy.
       now apply fresh_inline. }
-    rewrite /inline_add h_in  /= in heq.
+    rw /inline_add h_in  /= in heq.
     simple.
     assert (KernameSet.mem name' inlining).
     { destruct (KernameSet.mem name' inlining) eqn:h_in';
       first easy.
-      rewrite inline_env_lookup_no_inline_None // in heq.
-      now rewrite h_in'. }
-    rewrite inline_env_lookup // lookup_env_inline // in heq.
+      rw inline_env_lookup_no_inline_None // in heq.
+      now rw h_in'. }
+    rw inline_env_lookup // lookup_env_inline // in heq.
     destruct (lookup_env ctx name') as [[[[e'|]]|]|] eqn:h_lookup_name'; try easy.
     injection heq as heq; subst.
     now eapply
@@ -863,19 +863,19 @@ Proof.
   - simple. destruct (k ?= n); reflexivity.
   - simple.
     f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
   - unfold inline_clause_5.
     destruct (KernameMap.find (elt:=term) s inlining) eqn:heq; last reflexivity.
-    rewrite ECSubst.csubst_closed; last easy.
+    rw ECSubst.csubst_closed; last easy.
     now eapply wf_inlining_closed.
   - simple; f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
   - f_equal; first easy.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     unfold on_snd.
     simple.
@@ -885,14 +885,14 @@ Proof.
     now apply wf_inlining_monotone with (k := k).
   - simple; f_equal.
     unfold map_def.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     simple. intros. f_equal.
     apply X; first easy.
     now apply wf_inlining_monotone with (k := k).
   - simple; f_equal.
     unfold map_def.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     simple. intros. f_equal.
     apply X; first easy.
@@ -901,7 +901,7 @@ Proof.
     unfold map_prim, map_array_model;
     simple; try easy.
     do 4 f_equal; first easy.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
 Qed.
@@ -917,7 +917,7 @@ Proof.
   intros.
   induction l as [| ? ? IH]
     using list_ind_rev; simpl; first reflexivity.
-  rewrite map_app !fold_left_app -IH.
+  rw map_app !fold_left_app -IH.
   simple.
   now erewrite inline_csubst.
 Qed.
@@ -968,7 +968,7 @@ Proof.
   intros.
   unfold iota_red.
   erewrite inline_substl; last eassumption.
-  rewrite -map_skipn map_rev //.
+  rw -map_skipn map_rev //.
 Qed.
 Hint Rewrite inline_iota : inlining_rw_hints.
 
@@ -984,8 +984,8 @@ Proof.
   remember #|mfix| as n eqn:heq.
   clear heq.
   induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  rw map_cons /=; f_equal.
+  now rw IH.
 Qed.
 Hint Rewrite inline_map_fix_subst : inlining_rw_hints.
 
@@ -1002,8 +1002,8 @@ Proof.
   remember #|mfix| as n eqn:heq.
   clear heq.
   induction n as [|? IH]; first reflexivity.
-  rewrite map_cons /=; f_equal.
-  now rewrite IH.
+  rw map_cons /=; f_equal.
+  now rw IH.
 Qed.
 Hint Rewrite inline_map_cofix_subst : inlining_rw_hints.
 
@@ -1018,7 +1018,7 @@ Lemma inline_cunfold_fix
 Proof.
   intros.
   unfold cunfold_fix.
-  rewrite nth_error_map.
+  rw nth_error_map.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   erewrite inline_substl, inline_map_fix_subst; try easy.
 Qed.
@@ -1034,7 +1034,7 @@ Lemma inline_cunfold_cofix
 Proof.
   intros.
   unfold cunfold_cofix.
-  rewrite nth_error_map.
+  rw nth_error_map.
   destruct (nth_error mfix idx); unfold on_snd; simpl; last reflexivity.
   erewrite inline_substl, inline_map_cofix_subst; try easy.
 Qed.
@@ -1060,7 +1060,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       (negb_involutive_reverse (isLambda _))
       isLambda_mkApps //
       (negb_involutive_reverse (isLambda _))
@@ -1080,7 +1080,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       (negb_involutive_reverse (EAstUtils.isFix _))
       EAstUtils.nisFix_mkApps //
       (negb_involutive_reverse (EAstUtils.isFix _))
@@ -1097,7 +1097,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       !EAstUtils.isFixApp_mkApps
       /EAstUtils.isFixApp
       !EAstUtils.head_tApp.
@@ -1110,7 +1110,7 @@ Lemma inline_isFixApp_imp inlining ctx t :
 Proof.
   unfold EAstUtils.isFixApp.
   induction t; simple; try easy.
-  now rewrite !EAstUtils.head_tApp.
+  now rw !EAstUtils.head_tApp.
 Qed.
 
 Lemma inline_isCoFixHead_imp inlining ctx t :
@@ -1118,7 +1118,7 @@ Lemma inline_isCoFixHead_imp inlining ctx t :
   EAstUtils.isCoFix (EAstUtils.head (inline (inline_env inlining ctx).2 t)).
 Proof.
   induction t; simple; try easy.
-  now rewrite !EAstUtils.head_tApp.
+  now rw !EAstUtils.head_tApp.
 Qed.
 
 
@@ -1132,7 +1132,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       (negb_involutive_reverse (EAstUtils.isBox _))
       isBox_mkApps //
       (negb_involutive_reverse (EAstUtils.isBox _))
@@ -1150,7 +1150,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       !EAstUtils.isConstructApp_mkApps
       /EAstUtils.isConstructApp
       !EAstUtils.head_tApp.
@@ -1167,7 +1167,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       !EAstUtils.isPrimApp_mkApps
       /EAstUtils.isPrimApp
       !EAstUtils.head_tApp.
@@ -1184,7 +1184,7 @@ Proof.
   apply value_values_ind; try easy.
   - intros [] atom_v; easy.
   - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
+    rw
       !EAstUtils.isLazyApp_mkApps
       /EAstUtils.isLazyApp
       !EAstUtils.head_tApp.
@@ -1208,9 +1208,9 @@ Qed.
           easy || simple ||
           lazymatch goal with
           | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
-              rewrite wellformed_mkApps /= in h
+              rw wellformed_mkApps /= in h
           | |- is_true (wellformed _ _ (mkApps _ _)) =>
-              rewrite wellformed_mkApps /=
+              rw wellformed_mkApps /=
           | h : _ /\ _ |- _ => destruct h
           | h : cunfold_fix _ _ = Some (_, ?e) |-
               is_true (wellformed _ _ ?e) =>
@@ -1272,7 +1272,7 @@ Proof.
     now apply wf_glob_inlining.
   - destruct_IHs; simple.
     eapply eval_iota; subst Σ'; simple; try easy.
-    + now rewrite e2.
+    + now rw e2.
     + now simple.
     + simple.
     + now erewrite inline_iota in *.
@@ -1310,17 +1310,17 @@ Proof.
     eapply eval_cofix_proj; subst Σ'; simple; try easy.
     erewrite inline_cunfold_cofix; now simple.
   - destruct_IHs.
-    { rewrite /lookup_constant isdecl /= in wf_e.
+    { rw /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
-      rewrite /wf_global_decl e //= in isdecl. }
+      rw /wf_global_decl e //= in isdecl. }
     unfold inline_clause_5.
     destruct (KernameMap.find (elt:=term) c inls) eqn:heq.
     + unfold inls in *.
       eapply inline_env_lookup in heq; try easy; last first.
       { destruct (KernameSet.mem c inlining) eqn:heq'; first easy.
         unshelve epose proof inline_env_lookup_no_inline_None _ _ _ _ _ wf_ctx; try easy.
-        now rewrite heq'. }
-      rewrite
+        now rw heq'. }
+      rw
         lookup_env_inline // isdecl
         /inline_constant_decl /inline_global_decl
         /inline_constant_decl
@@ -1330,7 +1330,7 @@ Proof.
       easy.
     + econstructor; last eassumption.
       * unfold declared_constant. subst Σ'.
-        rewrite lookup_env_inline // isdecl /= /inline_constant_decl e /=.
+        rw lookup_env_inline // isdecl /= /inline_constant_decl e /=.
         reflexivity.
       * reflexivity.
   - destruct_IHs; simple.
@@ -1355,7 +1355,7 @@ Proof.
     apply eval_app_cong; try easy.
     apply eval_to_value in eval_e1.
     unfold inls.
-    now rewrite
+    now rw
       inline_isLambda //
       inline_isFixApp //
       inline_isFix //
@@ -1365,7 +1365,7 @@ Proof.
       inline_isLazyApp
     .
   - inversion X; subst; try solve[repeat constructor]; simple.
-    rewrite /test_prim /= /test_array_model /= in wf_e.
+    rw /test_prim /= /test_array_model /= in wf_e.
     simple.
     destruct_IHs.
     unfold map_prim; simpl.
@@ -1404,11 +1404,11 @@ Proof.
     assumption. }
   destruct decl as [[[?|]]|]; simple.
   - destruct (eqb_spec name name'); subst.
-    + rewrite KernameMapFact.F.add_eq_o.
+    + rw KernameMapFact.F.add_eq_o.
       { apply KernameMap.E.eq_refl. }
       exfalso. easy.
-    + rewrite KernameMapFact.F.add_neq_o.
-      { now rewrite Kername.compare_eq. }
+    + rw KernameMapFact.F.add_neq_o.
+      { now rw Kername.compare_eq. }
       easy.
   - apply IH; first assumption.
     intros [t h].
@@ -1434,7 +1434,7 @@ Proof.
   induction ctx as [|[name' d] ctx IH]; first easy.
   simple.
   unfold fresh_global.
-  rewrite Forall_cons_iff.
+  rw Forall_cons_iff.
   fold (fresh_global name ctx).
   intros [h_diff h_fresh].
   simple.
@@ -1442,8 +1442,8 @@ Proof.
   simple.
   destruct (KernameSet.mem name' inlining) eqn:heq; last easy.
   destruct d as [[[?|]]| ?]; simple; intros; try easy.
-  rewrite KernameMapFact.F.add_neq_o; last easy.
-  now rewrite Kername.compare_eq.
+  rw KernameMapFact.F.add_neq_o; last easy.
+  now rw Kername.compare_eq.
 Qed.
 
 
@@ -1579,19 +1579,19 @@ Proof.
       apply ctx'_extends_ctx.
       simple.
       destruct (eqb_spec n name'); subst; last easy.
-      now rewrite lookup_env_fresh_None in h_lookup_n. }
+      now rw lookup_env_fresh_None in h_lookup_n. }
     destruct (eqb_spec name name'); subst.
     - simple.
       destruct (KernameSet.mem name' inlining) eqn:heq.
       + simple.
         destruct decl as [[[t'|]]|]; simple.
-        * rewrite KernameMapFact.F.add_eq_o.
+        * rw KernameMapFact.F.add_eq_o.
           { apply KernameMap.E.eq_refl. }
           assert (lookup_env ctx' name' = Some (ConstantDecl {| cst_body := Some t' |})).
           { apply ctx'_extends_ctx. simple.
-            now rewrite eq_kername_refl. }
+            now rw eq_kername_refl. }
           symmetry.
-          rewrite
+          rw
             inline_env_lookup //
             lookup_env_inline // H0 /=
             /inline_constant_decl //=.
@@ -1600,27 +1600,27 @@ Proof.
           unfold my_size in IH; simple.
           unshelve epose proof IH (Some t') ctx _ ctx' wf_ctx wf_ctx' _ as [H' _]; try easy.
           now f_equal.
-        * rewrite find_inlining_fresh //.
-          rewrite find_inlining_not_declared //.
+        * rw find_inlining_fresh //.
+          rw find_inlining_not_declared //.
           intros [t' h].
           assert (lookup_env ctx' name' = Some (ConstantDecl {| cst_body := None|})); last easy.
           apply ctx'_extends_ctx.
-          now rewrite /= eq_kername_refl.
+          now rw /= eq_kername_refl.
         * assert (lookup_env ctx' name' = Some (InductiveDecl m)).
           { apply ctx'_extends_ctx.
-            now rewrite /= eq_kername_refl. }
-          rewrite find_inlining_fresh // find_inlining_not_declared //.
+            now rw /= eq_kername_refl. }
+          rw find_inlining_fresh // find_inlining_not_declared //.
           now intros [??].
       + intros.
         assert (~~ KernameSet.mem name' inlining)
-          by rewrite heq //.
-        rewrite !inline_env_lookup_no_inline_None //.
+          by rw heq //.
+        rw !inline_env_lookup_no_inline_None //.
     - unfold my_size, myP in *.
       unshelve epose proof IH None ctx _ _ _ _ _; simple; first easy.
       destruct (KernameSet.mem name' inlining) eqn:heq; last easy.
       destruct decl as [[[|]]|]; simple; try easy.
-      rewrite KernameMapFact.F.add_neq_o; last easy.
-      now rewrite Kername.compare_eq. }
+      rw KernameMapFact.F.add_neq_o; last easy.
+      now rw Kername.compare_eq. }
 Qed.
 
 
@@ -1656,15 +1656,15 @@ Lemma extends_inline_env (efl : EEnvFlags) inlining ctx ctx' :
   extends (inline_env inlining ctx).1 (inline_env inlining ctx').1.
 Proof.
   intros ? ? ? name decl heq.
-  rewrite lookup_env_inline // in heq.
+  rw lookup_env_inline // in heq.
   destruct (lookup_env ctx name) as [d|]eqn:heq';
   last easy.
   simple.
   injection heq as <-.
-  rewrite lookup_env_inline // (H1 _ _ heq') /inline_global_decl.
+  rw lookup_env_inline // (H1 _ _ heq') /inline_global_decl.
   destruct d as [[[t|]]|]; [|easy..].
   simple.
-  rewrite /inline_constant_decl /= (inline_extends _ _ ctx ctx' 0) //.
+  rw /inline_constant_decl /= (inline_extends _ _ ctx ctx' 0) //.
   now eapply lookup_env_wf.
 Qed.
 

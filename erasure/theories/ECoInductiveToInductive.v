@@ -1062,7 +1062,7 @@ Lemma trans_env_wf {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
   has_tRel ->
   wf_glob Σ -> wf_glob (trans_env Σ).
 Proof.
-  intros hasrel wfg. rewrite trans_env_eq //.
+  intros hasrel wfg. rw trans_env_eq //.
   destruct Σ as [Σ map repr wf]; cbn in *.
   clear map repr.
   induction wfg; cbn; constructor; auto.

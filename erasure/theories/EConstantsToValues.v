@@ -223,36 +223,36 @@ Proof.
   induction e2 using term_forall_list_ind in n, e1 |- *; simple; try easy.
   - destruct (n ?= n0); reflexivity.
   - f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
   - f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
   - f_equal; try easy.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     simple.
     intros [names t] hIn; unfold on_snd; simpl in *.
-    now rewrite (X (names, t)).
+    now rw (X (names, t)).
   - f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     simple.
     intros [dname body rarg] hIn; unfold map_def; simpl in *.
-    now rewrite (X _ hIn).
+    now rw (X _ hIn).
   - f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     simple.
     intros [dname body rarg] hIn.
-    now rewrite /map_def (X _ hIn).
+    now rw /map_def (X _ hIn).
   - f_equal.
     inversion X as [| | | ? [heq eq_All]]; subst; try reflexivity.
-    rewrite /map_prim /= /map_array_model /= heq.
+    rw /map_prim /= /map_array_model /= heq.
     do 3 f_equal.
-    rewrite !map_map_compose.
+    rw !map_map_compose.
     apply All_map_eq.
     now simple.
 Qed.
@@ -266,7 +266,7 @@ Proof.
   unfold ECSubst.substl.
   induction l as [| ? ? IH]
     using list_ind_rev; simpl; first reflexivity.
-  rewrite map_app !fold_left_app.
+  rw map_app !fold_left_app.
   now simple.
 Qed.
 Hint Rewrite consts_to_values_substl : consts_to_values_rw_hints.
@@ -351,7 +351,7 @@ Hint Rewrite consts_to_values_cst_body : consts_to_values_rw_hints.
 Lemma consts_to_values_head e :
   EAstUtils.head (consts_to_values e) = consts_to_values (EAstUtils.head e).
 Proof.
-  now induction e; simpl; rewrite ?EAstUtils.head_tApp.
+  now induction e; simpl; rw ?EAstUtils.head_tApp.
 Qed.
 Hint Rewrite consts_to_values_head : consts_to_values_rw_hints.
 
@@ -412,7 +412,7 @@ Lemma consts_to_values_iota pars args br :
     (on_snd consts_to_values br).
 Proof.
   unfold iota_red. simple.
-  now rewrite map_rev.
+  now rw map_rev.
 Qed.
 Hint Rewrite consts_to_values_iota : consts_to_values_rw_hints.
 
@@ -458,7 +458,7 @@ Lemma wf_glob_consts_to_values
 Proof.
   induction ctx as [|[? [[[|]]|?]] ? ?];
   inversion 2; subst; constructor;
-    now rewrite /=
+    now rw /=
       ?wf_consts_to_values_env_map_ctx
       ?wf_consts_to_values_same_ctx
       ?fresh_consts_to_values.
@@ -503,13 +503,13 @@ Ltac solve_wf :=
             apply lookup_env_wellformed in hdec as ?
         | heq: ?a = _,
               h: context[match ?a with _ => _ end] |- _ =>
-                rewrite heq in h
+                rw heq in h
         | h: In _ (repeat _ _) |- _ =>
               apply repeat_spec in h; subst
         | h : is_true (wellformed _ _ (mkApps _ _)) |- _ =>
-            rewrite wellformed_mkApps /= in h
+            rw wellformed_mkApps /= in h
         | |- is_true (wellformed _ _ (mkApps _ _)) =>
-            rewrite wellformed_mkApps /=
+            rw wellformed_mkApps /=
         | h : _ /\ _ |- _ => destruct h
         | h : cunfold_fix _ _ = Some (_, ?e) |-
             is_true (wellformed _ _ ?e) =>
@@ -569,14 +569,14 @@ Proof.
     { destruct args; last easy.
       inversion a; subst.
       constructor. }
-    rewrite /lookup_constructor_pars_args e0 /= in wf_e.
+    rw /lookup_constructor_pars_args e0 /= in wf_e.
     destruct wf_e as [[? ?] [? ?]%andb_andI].
     apply All2_All2_Set, All2_map.
     apply All2_over_undep in iha.
     unshelve eapply (All2_apply_dep_arrow _ iha).
     now simple.
   - inversion X; subst; try solve[repeat constructor]; simple.
-    rewrite /test_prim /= /test_array_model /= in wf_e.
+    rw /test_prim /= /test_array_model /= in wf_e.
     simple.
     destruct_IHs.
     unfold map_prim; simpl.
