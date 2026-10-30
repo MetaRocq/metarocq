@@ -10,7 +10,7 @@ From Equations Require Import Equations.
 Set Equations With UIP.
 
 Definition cmp_universe_instance (cmp_univ : Universe.t -> Universe.t -> Prop) : Instance.t -> Instance.t -> Prop :=
-  Forall2 (on_rel cmp_univ Universe.make').
+  Forall2 cmp_univ.
 
 (** Cumulative inductive types:
 
@@ -22,8 +22,8 @@ Definition cmp_universe_instance (cmp_univ : Universe.t -> Universe.t -> Prop) :
 Definition cmp_universe_variance (cmp_univ : conv_pb -> Universe.t -> Universe.t -> Prop) pb v u u' :=
   match v with
   | Variance.Irrelevant => True
-  | Variance.Covariant => on_rel (cmp_univ pb) Universe.make' u u'
-  | Variance.Invariant => on_rel (cmp_univ Conv) Universe.make' u u'
+  | Variance.Covariant => cmp_univ pb u u'
+  | Variance.Invariant => cmp_univ Conv u u'
   end.
 
 Definition cmp_universe_instance_variance cmp_univ pb v u u' :=
@@ -79,7 +79,7 @@ Qed.
 
 Lemma cmp_universe_universe_variance (cmp_univ : conv_pb -> Universe.t -> Universe.t -> Prop) pb v u u' :
   RelationClasses.subrelation (cmp_univ Conv) (cmp_univ pb) ->
-  on_rel (cmp_univ Conv) Universe.make' u u' -> cmp_universe_variance cmp_univ pb v u u'.
+  cmp_univ Conv u u' -> cmp_universe_variance cmp_univ pb v u u'.
 Proof.
   destruct v => //=.
   intros H H1; apply H, H1.

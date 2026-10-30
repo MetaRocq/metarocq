@@ -1,0 +1,17 @@
+{
+open Stdarg
+open LoopCheckingPlugin
+
+let vtopaqueaccessprog f =
+  let open Vernactypes in
+  typed_vernac { ignore_state with opaque_access = Access; prog = Modify }
+    (fun {opaque_access; prog} -> let prog = f ~opaque_access ~pm:prog in {no_state with prog})
+
+}
+
+DECLARE PLUGIN "rocq-metarocq-loop-checking.plugin"
+
+VERNAC COMMAND EXTEND Check_universes CLASSIFIED AS QUERY STATE CUSTOM
+   | [ "MetaRocq" "Check" "Universes" ] ->
+     { vtopaqueaccessprog (Run_extractable.run_vernac check_universes) }
+END

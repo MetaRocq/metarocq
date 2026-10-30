@@ -1202,7 +1202,7 @@ Proof.
   rewrite -{3}H. now rewrite simpl_subst_k.
 Qed.
 
-Lemma subst_compare_term {cf:checker_flags} Σ (φ : ConstraintSet.t) pb (l : list term) (k : nat) (T U : term) :
+Lemma subst_compare_term {cf:checker_flags} Σ (φ : UnivConstraintSet.t) pb (l : list term) (k : nat) (T U : term) :
   compare_term Σ φ pb T U -> compare_term Σ φ pb (subst l k T) (subst l k U).
 Proof.
   destruct pb; simpl.
@@ -1309,7 +1309,7 @@ Proof.
   now eapply typing_wf_local.
 Qed.
 
-Lemma shiftnPF_closedPT (Γ : context) : shiftnP #|Γ| xpred0 =1 closedP #|Γ| xpredT.
+Lemma shiftnPF_closedPT (Γ : context) : shiftnP #|Γ| xpred0 ≐1 closedP #|Γ| xpredT.
 Proof.
   intros i; rewrite /shiftnP /closedP orb_false_r.
   now destruct Nat.ltb.
@@ -1455,7 +1455,7 @@ Section SubstitutionLemmas.
     now rewrite (on_ctx_free_vars_concat _ _ [_]) on_ctx_free_vars_tip /= addnP_shiftnP.
   Qed.
 
-  Lemma addnP_shiftnP_k k n p : addnP (k + n) (shiftnP k p) =1 addnP n p.
+  Lemma addnP_shiftnP_k k n p : addnP (k + n) (shiftnP k p) ≐1 addnP n p.
   Proof using Type.
     now rewrite Nat.add_comm -addnP_add addnP_shiftnP.
   Qed.

@@ -5,21 +5,21 @@ From MetaRocq.Quotation.ToTemplate.QuotationOf.Stdlib.MSets Require Import MSetP
 Import List.ListNotations.
 Local Open Scope list_scope.
 
-Module qConstraintSetOrdProp <: QuotationOfOrdPropertiesT ConstraintSet ConstraintSetOrdProp.
-  Module qME <: QuotationOfOrderedTypeFactsT ConstraintSet.E ConstraintSetOrdProp.ME.
-    MetaRocq Run (tmMakeQuotationOfModule everything None "ConstraintSetOrdProp.ME").
+Module qUnivConstraintSetOrdProp <: QuotationOfOrdPropertiesT UnivConstraintSet UnivConstraintSetOrdProp.
+  Module qME <: QuotationOfOrderedTypeFactsT UnivConstraintSet.E UnivConstraintSetOrdProp.ME.
+    MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetOrdProp.ME").
   End qME.
   Module qML. (* OrderedTypeLists(M.E). *)
-    MetaRocq Run (tmMakeQuotationOfModule everything None "ConstraintSetOrdProp.ML").
+    MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetOrdProp.ML").
   End qML.
-  Module qP <: QuotationOfWPropertiesT ConstraintSet ConstraintSetOrdProp.P.
-    Module qDec <: QuotationOfWDecideOnT UnivConstraint ConstraintSet ConstraintSetOrdProp.P.Dec.
-      MetaRocq Run (tmMakeQuotationOfModule everything None "ConstraintSetOrdProp.P.Dec").
+  Module qP <: QuotationOfWPropertiesT UnivConstraintSet UnivConstraintSetOrdProp.P.
+    Module qDec <: QuotationOfWDecideOnT UnivConstraint UnivConstraintSet UnivConstraintSetOrdProp.P.Dec.
+      MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetOrdProp.P.Dec").
     End qDec.
-    Module qFM <: QuotationOfWFactsOnT UnivConstraint ConstraintSet ConstraintSetOrdProp.P.FM.
-      MetaRocq Run (tmMakeQuotationOfModule everything None "ConstraintSetOrdProp.P.FM").
+    Module qFM <: QuotationOfWFactsOnT UnivConstraint UnivConstraintSet UnivConstraintSetOrdProp.P.FM.
+      MetaRocq Run (tmMakeQuotationOfModule everything None "UnivConstraintSetOrdProp.P.FM").
     End qFM.
-    MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["Dec"]; ["FM"]]%bs) None "ConstraintSetOrdProp.P").
+    MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["Dec"]; ["FM"]]%bs) None "UnivConstraintSetOrdProp.P").
   End qP.
-  MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["ME"]; ["ML"]; ["P"]]%bs) None "ConstraintSetOrdProp").
-End qConstraintSetOrdProp.
+  MetaRocq Run (tmMakeQuotationOfModule (all_submodules_except [["ME"]; ["ML"]; ["P"]]%bs) None "UnivConstraintSetOrdProp").
+End qUnivConstraintSetOrdProp.

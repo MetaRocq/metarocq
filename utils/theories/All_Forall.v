@@ -189,7 +189,7 @@ Section alli.
 End alli.
 
 Lemma alli_ext {A} (p q : nat -> A -> bool) n (l : list A) :
-  (forall i, p i =1 q i) ->
+  (forall i, p i ≐1 q i) ->
   alli p n l = alli q n l.
 Proof.
   intros hfg.
@@ -365,14 +365,14 @@ Proof.
     constructor; auto. now destruct (Hp a).
 Qed.
 
-Lemma forallb_ext {A} (p q : A -> bool) : p =1 q -> forallb p =1 forallb q.
+Lemma forallb_ext {A} (p q : A -> bool) : p ≐1 q -> forallb p ≐1 forallb q.
 Proof.
   intros hpq l.
   induction l; simpl; auto.
   now rewrite (hpq a) IHl.
 Qed.
 
-#[global] Instance forallb_proper {A} : Proper (`=1` ==> eq ==> eq) (@forallb A).
+#[global] Instance forallb_proper {A} : Proper (`≐1` ==> eq ==> eq) (@forallb A).
 Proof.
   intros f g Hfg ? ? ->. now apply forallb_ext.
 Qed.
@@ -423,6 +423,14 @@ Qed.
     3) Apply Forall implication
     4) optionally simplify and call eauto.
 *)
+
+Lemma Forall_tip {A} {P : A -> Prop} {a : A} :
+  Forall P [a] <-> P a.
+Proof.
+  split.
+  - intros h; now depelim h.
+  - constructor; auto.
+Qed.
 
 Lemma Forall_mix {A} (P Q : A -> Prop) : forall l, Forall P l -> Forall Q l -> Forall (fun x => P x /\ Q x) l.
 Proof.
@@ -1908,7 +1916,7 @@ Proof.
 Qed.
 
 Lemma All_safe_nth {A} {P : A -> Type} {Γ n} (isdecl : n < length Γ) : All P Γ ->
-   P (safe_nth Γ (exist _ n isdecl)).
+   P (safe_nth Γ (exist n isdecl)).
 Proof.
   induction 1 in n, isdecl |- *.
   exfalso. inversion isdecl.

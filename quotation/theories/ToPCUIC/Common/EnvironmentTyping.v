@@ -132,8 +132,8 @@ Module QuoteGlobalMaps (Import T : Term) (Import E : EnvironmentSig T) (Import T
 
     #[export] Instance quote_satisfiable_udecl {univs ϕ} : ground_quotable (@satisfiable_udecl univs ϕ)
       := ltac:(cbv [satisfiable_udecl]; exact _).
-    #[export] Instance quote_valid_on_mono_udecl {univs ϕ} : ground_quotable (@valid_on_mono_udecl univs ϕ)
-      := ltac:(cbv [valid_on_mono_udecl]; exact _).
+    (* #[export] Instance quote_valid_on_mono_udecl {univs ϕ} : ground_quotable (@valid_on_mono_udecl univs ϕ) *)
+      (* := ltac:(cbv [valid_on_mono_udecl]; exact _). *)
     #[export] Instance quote_on_udecl {univs udecl} : ground_quotable (@on_udecl univs udecl)
       := ltac:(cbv [on_udecl]; exact _).
 
@@ -171,7 +171,7 @@ Module QuoteGlobalMaps (Import T : Term) (Import E : EnvironmentSig T) (Import T
     quote_on_type_rel
     quote_on_udecl
     quote_satisfiable_udecl
-    quote_valid_on_mono_udecl
+    (* quote_valid_on_mono_udecl *)
     quote_positive_cstr_arg
     quote_positive_cstr
     quote_ind_respects_variance
