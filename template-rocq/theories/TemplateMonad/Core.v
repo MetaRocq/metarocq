@@ -53,7 +53,7 @@ Cumulative Inductive TemplateMonad@{t u} : Type@{t} -> Prop :=
 | tmQuoteRecTransp : forall {A:Type@{t}}, A -> bool(* bypass opacity? *) -> TemplateMonad program
 (* Quote the body of a definition or inductive. Its name need not be fully qualified *)
 | tmQuoteInductive : kername -> TemplateMonad mutual_inductive_body
-| tmQuoteUniverses : TemplateMonad ConstraintSet.t
+| tmQuoteUniverses : TemplateMonad ContextSet.t
 | tmQuoteConstant : kername -> bool (* bypass opacity? *) -> TemplateMonad constant_body
 | tmQuoteModule : qualid -> TemplateMonad (list global_reference)
 | tmQuoteModFunctor : qualid -> TemplateMonad (list global_reference)
@@ -231,9 +231,9 @@ Definition tmFix@{a b t u} {A : Type@{a}} {B : Type@{b}} (f : (A -> TemplateMona
   := f (fun a
         => (qA <- tmQuote A;;
             qB <- tmQuote B;;
-            qa <- tmQuoteLevel@{a _ _};;
-            qb <- tmQuoteLevel@{b _ _};;
-            qt <- tmQuoteLevel@{t _ _};;
-            qu <- tmQuoteLevel@{u _ _};;
+            qa <- tmQuoteUniverse@{a _ _};;
+            qb <- tmQuoteUniverse@{b _ _};;
+            qt <- tmQuoteUniverse@{t _ _};;
+            qu <- tmQuoteUniverse@{u _ _};;
             let self := tConst (MPfile ["Core"; "TemplateMonad"; "Template"; "MetaRocq"], "tmFix'")%bs [qa;qb;qt;qu] in
             @tmFix'@{a b t u} A B (mkApps self [qA; qB]) f a)).

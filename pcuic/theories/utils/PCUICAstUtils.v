@@ -113,7 +113,7 @@ Ltac solve_all_one :=
 
 Ltac solve_all := repeat (progress solve_all_one).
 
-#[global] Hint Extern 4 (_ =1 _) => intro : all.
+#[global] Hint Extern 4 (_ ≐1 _) => intro : all.
 #[global] Hint Extern 10 => rewrite !map_branch_map_branch : all.
 #[global] Hint Extern 10 => rewrite !map_predicate_map_predicate : all.
 

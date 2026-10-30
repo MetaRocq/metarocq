@@ -1,6 +1,6 @@
-.PHONY: all bugd clean mrproper plugin-demo
+.PHONY: all bugd clean mrproper plugin-demo loop-checking
 
-all: bugs plugin-demo
+all: bugs plugin-demo loop-checking
 
 bugs: Makefile.rocq
 	$(MAKE) -f Makefile.rocq TIMED=$(TIMED)
@@ -20,6 +20,9 @@ mrproper:
 
 plugin-demo:
 	$(MAKE) -C plugin-demo
+
+loop-checking:
+	$(MAKE) -C loop-checking
 
 vos: Makefile.rocq
 	$(MAKE) -f Makefile.rocq vos

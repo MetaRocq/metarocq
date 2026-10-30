@@ -105,7 +105,7 @@ Section Trans.
   | Ast.tFloat n => tPrim (primFloat; primFloatModel n)
   | Ast.tString n => tPrim (primString; primStringModel n)
   | Ast.tArray l v d ty => tPrim (primArray; primArrayModel
-    {| array_level := l;
+    {| array_universe := l;
        array_value := List.map trans v;
        array_default := trans d;
        array_type := trans ty |})

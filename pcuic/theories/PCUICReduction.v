@@ -17,19 +17,19 @@ Reserved Notation " Σ ;;; Γ |- t ⇝ u " (at level 50, Γ, t, u at next level)
 Local Open Scope type_scope.
 
 Definition set_array_default (ar : array_model term) (v : term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := v;
      array_type := ar.(array_type);
      array_value := ar.(array_value) |}.
 
 Definition set_array_type (ar : array_model term) (v : term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := ar.(array_default);
      array_type := v;
      array_value := ar.(array_value) |}.
 
 Definition set_array_value (ar : array_model term) (v : list term) :=
-  {| array_level := ar.(array_level);
+  {| array_universe := ar.(array_universe);
      array_default := ar.(array_default);
      array_type := ar.(array_type);
      array_value := v |}.
@@ -1998,7 +1998,7 @@ Section ReductionCongruence.
     Qed.
 
     Lemma red_primArray_congr (arr arr' : array_model term) :
-      array_level arr = array_level arr' ->
+      array_universe arr = array_universe arr' ->
       All2 (red Σ Γ) (array_value arr) (array_value arr') ->
       red Σ Γ (array_default arr) (array_default arr') ->
       red Σ Γ (array_type arr) (array_type arr') ->

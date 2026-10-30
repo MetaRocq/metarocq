@@ -136,7 +136,7 @@ Proof.
   - f_equal.
     destruct o; auto.
     f_equal. f_equal. cbn in X, hu, hv. rtoProp.
-    destruct X as (hty & hdef & harr). eapply Universe.make'_inj in e.
+    destruct X as (hty & hdef & harr).
     destruct a, a'; cbn in *. f_equal; intuition eauto.
     apply All2_eq. solve_all.
 Qed.
@@ -937,7 +937,7 @@ Proof.
 Qed.
 
 Lemma map_anon_fold_context_k g g' ctx :
-  (forall i, nl ∘ g i =1 g' i ∘ nl) ->
+  (forall i, nl ∘ g i ≐1 g' i ∘ nl) ->
   map (map_decl_anon nl) (fold_context_k g ctx) =
   fold_context_k g' (map (map_decl_anon nl) ctx).
 Proof.
