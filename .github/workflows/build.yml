@@ -20,6 +20,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    # The rocq-prover:9.3 docker images still ship Rocq 9.3+rc1, which
+    # coq-ext-lib does not support: do not fail the workflow until they are
+    # rebuilt for 9.3.0. The nix workflow tests the actual 9.3.0 release.
+    continue-on-error: true
 
     strategy:
       matrix:
@@ -28,7 +32,7 @@ jobs:
         ocaml_version:
           - '4.14-flambda'
         target: [ local, opam ]
-      fail-fast: true
+      fail-fast: false
 
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.ocaml_version }}-${{ matrix.target }}-Ubuntu-${{ github.event_name }}-${{ github.head_ref || github.run_id }}
