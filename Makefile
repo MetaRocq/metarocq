@@ -30,21 +30,19 @@ html: all examples
 	  --with-footer $(CURDIR)/html/resources/footer.html \
 	  --coqlib_url https://rocq-prover.org/doc/V9.0.0/corelib \
 	  --external https://rocq-prover.org/doc/V9.0.0/stdlib Stdlib \
-	  -R utils/theories MetaRocq.Utils \
-	  -R common/theories MetaRocq.Common \
-	  -R template-rocq/theories MetaRocq.Template \
-	  -R template-pcuic MetaRocq.TemplatePCUIC \
-	  -R pcuic MetaRocq.PCUIC \
-	  -R safechecker MetaRocq.SafeChecker \
-	  -R safechecker-plugin/theories MetaRocq.SafeCheckerPlugin \
-	  -R erasure MetaRocq.Erasure \
-	  -R erasure-plugin/theories MetaRocq.ErasurePlugin \
-	  -R quotation/theories MetaRocq.Quotation \
-	  -R translations MetaRocq.Translations \
+	  -R theories/Utils MetaRocq.Utils \
+	  -R theories/Common MetaRocq.Common \
+	  -R theories/Template MetaRocq.Template \
+	  -R theories/TemplatePCUIC MetaRocq.TemplatePCUIC \
+	  -R theories/PCUIC MetaRocq.PCUIC \
+	  -R theories/SafeChecker MetaRocq.SafeChecker \
+	  -R theories/SafeCheckerPlugin MetaRocq.SafeCheckerPlugin \
+	  -R theories/Erasure MetaRocq.Erasure \
+	  -R theories/ErasurePlugin MetaRocq.ErasurePlugin \
+	  -R theories/Quotation MetaRocq.Quotation \
+	  -R theories/Translations MetaRocq.Translations \
 	  -R examples MetaRocq.Examples \
-	  -d $(CURDIR)/html */theories/*.v */theories/*/*.v \
-	  pcuic/*.v pcuic/*/*.v safechecker/*.v template-pcuic/*.v template-pcuic/*/*.v \
-	  erasure/*.v erasure/*/*.v translations/*.v examples/*.v
+	  -d $(CURDIR)/html theories/*/*.v theories/*/*/*.v examples/*.v
 	# Overwritten by rocq doc
 	git checkout html/coqdoc.css
 

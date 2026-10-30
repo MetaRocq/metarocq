@@ -11,7 +11,7 @@ You can use this project as a template for doing this.
    from your plugin, and list them in the `extracted_modules` field of the
    `rocq.extraction` stanza of `src/dune`. Do not list the modules that the
    extractable template-rocq plugin already provides: they are shared with
-   `-open Metarocq_template_plugin`, see `template-rocq/extractable/dune`.
+   `-open Metarocq_template_plugin`, see `src/template-extractable/dune`.
 3. In the `src` directory, write the entry point to your plugin. See
    `src/g_demo_plugin.mlg` for some examples. Its `DECLARE PLUGIN` name must
    be the findlib name of the plugin library (its `public_name`).

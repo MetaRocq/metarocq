@@ -1,6 +1,6 @@
 ; The extractable template-rocq plugin, running *extracted* template programs.
 ; It links the code extracted by ExtractTemplate.v with OCaml code shared with
-; the template-rocq plugin of ../src.
+; the template-rocq plugin of ../template-src.
 
 (rocq.extraction
  (prelude ExtractTemplate)
@@ -36,4 +36,4 @@
    -w -8-20-26-32-33-34-39-60))
  (libraries rocq-runtime.vernac))
 
-(copy_files# ../src/{tm_util,quoter,denoter,reification,plugin_core}.{ml,mli})
+(copy_files# ../template-src/{tm_util,quoter,denoter,reification,plugin_core}.{ml,mli})

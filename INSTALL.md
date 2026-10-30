@@ -113,7 +113,9 @@ MetaRocq is built with [`dune`](https://dune.build) (see `dune-project`):
 - `dune build` (or `make`) compiles the `template-rocq` plugins, the `pcuic`
   development, the `safechecker` and `erasure` libraries and plugins,
   and the `translations` and `quotation` libraries.
-  You can also selectively build a part, e.g. `dune build pcuic`.
+  You can also selectively build a part, e.g. `dune build theories/PCUIC`.
+  The Rocq sources are in `theories/<Name>`, for the `MetaRocq.<Name>`
+  libraries, and the OCaml sources of the plugins in `src`.
 
 - `dune test` (or `make test`) builds and checks the `test-suite` and the
   `examples`.
