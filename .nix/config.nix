@@ -35,21 +35,24 @@
 
   ## select an entry to build in the following `bundles` set
   ## defaults to "default"
-  default-bundle = "rocq-dev";
+  default-bundle = "rocq-9.3";
 
   # MetaRocq is expected to be compatible with a single coq version
   # The name of the bundle should finish with the coq version to use
   # cachedMake.sh
 
-  bundles."rocq-dev" = {
-    rocqPackages.rocq-core.override.version = "master";
-    rocqPackages.stdlib.override.version = "master";
-    coqPackages.equations.override.version = "main";
+  bundles."rocq-9.3" = {
+    rocqPackages.rocq-core.override.version = "9.3";
+    rocqPackages.stdlib.override.version = "9.2.0";
+    coqPackages.equations.override.version = "v1.3.2-9.3";
+    coqPackages.equations.job = false;
     coqPackages.ExtLib.override.version = "master";
-    coqPackages.coq.override.version = "master";
-    coqPackages.stdlib.override.version = "master";
+    coqPackages.ExtLib.job = false;
+    coqPackages.coq.override.version = "9.3";
+    coqPackages.stdlib.override.version = "9.2.0";
+    coqPackages.stdlib.job = false;
 
-    push-branches = ["main"];
+    push-branches = ["9.3"];
   };
 
   ## Cachix caches to use in CI
