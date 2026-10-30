@@ -21,7 +21,7 @@ From MetaRocq.SafeChecker Require Import PCUICEqualityDec PCUICSafeReduce PCUICE
   PCUICSafeConversion PCUICWfReduction PCUICWfEnv PCUICTypeChecker.
 
 From Equations Require Import Equations.
-From Stdlib Require Import ssreflect ssrbool.
+From Stdlib Require Import ssreflect ssrbool ssrfun.
 
 Local Set Keyed Unification.
 Set Equations Transparent.
@@ -31,79 +31,29 @@ From Stdlib Require Import Morphisms.
 
 Implicit Types (cf : checker_flags).
 
-Global Instance proper_add_level_edges levels : Morphisms.Proper (wGraph.EdgeSet.Equal ==> wGraph.EdgeSet.Equal)%signature (add_level_edges levels).
-Proof.
-  intros e e' he.
-  rewrite /add_level_edges.
-  rewrite !VSet.fold_spec.
-  induction (VSet.elements levels) in e, e', he |- *; cbn; auto.
-  apply IHl. destruct variable_of_level => //.
-  now rewrite he.
-Qed.
-
-Global Instance proper_add_uctx cstrs : Morphisms.Proper (Equal_graph ==> Equal_graph)%signature (add_uctx cstrs).
+(* Global Instance proper_add_uctx cstrs : Morphisms.Proper (Equal_graph ==> Equal_graph)%signature (push_uctx cstrs).
 Proof.
   intros g g' eq. rewrite /add_uctx; cbn.
   split. cbn. now rewrite (proj1 eq).
   cbn. split => //.
   rewrite /add_level_edges. now rewrite (proj1 (proj2 eq)).
   apply eq.
-Qed.
+Qed. *)
 
 
 Definition cs_equal (x y : ContextSet.t) : Prop :=
-  LevelSet.Equal x.1 y.1 /\ ConstraintSet.Equal x.2 y.2.
+  LevelSet.Equal x.1 y.1 /\ UnivConstraintSet.Equal x.2 y.2.
 
-Definition gcs_equal x y : Prop :=
-  LevelSet.Equal x.1 y.1 /\ GoodConstraintSet.Equal x.2 y.2.
-  Require Import Relation_Definitions.
 
-  Definition R_opt {A} (R : relation A) : relation (option A) :=
-    fun x y => match x, y with
-      | Some x, Some y => R x y
-      | None, None => True
-      | _, _ => False
-    end.
-
-  Global Instance gc_of_constraints_proper {cf} : Proper (ConstraintSet.Equal ==> R_opt GoodConstraintSet.Equal) gc_of_constraints.
-  Proof.
-    intros c c' eqc; cbn.
-    destruct (gc_of_constraintsP c);
-    destruct (gc_of_constraintsP c'); cbn.
-    - intros cs; rewrite i i0. firstorder eauto.
-    - destruct e0 as [cs [incs gcn]].
-      apply eqc in incs. destruct (e cs incs) as [? []]. congruence.
-    - destruct e as [cs [incs gcn]].
-      apply eqc in incs. destruct (e0 cs incs) as [? []]. congruence.
-    - exact I.
-  Qed.
-
-  Global Instance proper_add_level_edges' : Morphisms.Proper (LevelSet.Equal ==> wGraph.EdgeSet.Equal ==> wGraph.EdgeSet.Equal)%signature add_level_edges.
-  Proof.
-    intros l l' hl e e' <-.
-    intros x; rewrite !add_level_edges_spec. firstorder eauto.
-  Qed.
-
-  Global Instance make_graph_proper : Proper (gcs_equal ==> Equal_graph) make_graph.
+  (* Global Instance make_graph_proper : Proper (gcs_equal ==> Equal_graph) make_graph.
   Proof.
     intros [v c] [v' c'] [eqv eqc]; cbn.
     unfold make_graph; cbn in *.
     split; cbn; auto.
     split; cbn; try reflexivity.
     now rewrite eqc eqv.
-  Qed.
+  Qed.*)
   Require Import SetoidTactics.
-
-  Global Instance is_graph_of_uctx_proper {cf} G : Proper (cs_equal ==> iff) (is_graph_of_uctx G).
-  Proof.
-    intros [l c] [l' c'] [eql eqc]; cbn.
-    unfold is_graph_of_uctx; cbn. cbn in *.
-    pose proof (gc_of_constraints_proper _ _ eqc).
-    destruct (gc_of_constraints c); cbn in *; destruct (gc_of_constraints c'); cbn.
-    now setoid_replace (l, t) with (l', t0) using relation gcs_equal. elim H. elim H.
-    intuition.
-  Qed.
-
 
 (** It otherwise tries [auto with *], very bad idea. *)
 Ltac Corelib.Program.Tactics.program_solve_wf ::=
@@ -145,6 +95,13 @@ Section OnUdecl.
     apply LevelSetProp.of_list_1, InA_In_eq.
     eapply In_unfold_inj; try congruence.
   Qed.
+(*
+  Lemma bounded_poly_ext (ls : Universe.t) (inst : list name) (cstrs : UnivConstraintSet.t) Σ :
+    LevelSet.Subset (Universe.levels ls) (LevelSet.union (levels_of_udecl (Polymorphic_ctx (inst, cstrs))) (global_ext_levels Σ)) -> closedu_universe #|inst| ls.
+  Proof.
+    have hb := LSet_in_poly_bounded _ inst cstrs.
+    move/subset_levels => hl.
+    Search closedu_universe. *)
 
   Lemma on_udecl_poly_bounded X inst cstrs :
     wf X ->
@@ -158,38 +115,95 @@ Section OnUdecl.
     specialize (nlevs x incstrs).
     destruct x as [[l1 p] l2].
     destruct nlevs.
-    apply LevelSetProp.Dec.F.union_1 in H.
-    apply LevelSetProp.Dec.F.union_1 in H0.
-    destruct H. eapply LSet_in_poly_bounded in H.
-    destruct H0. eapply LSet_in_poly_bounded in H0. simpl. now rewrite H H0.
-    eapply (LSet_in_global_bounded #|inst|) in H0 => //. simpl.
-    now rewrite H H0.
-    eapply (LSet_in_global_bounded #|inst|) in H => //. simpl.
-    destruct H0. eapply LSet_in_poly_bounded in H0. simpl. now rewrite H H0.
-    eapply (LSet_in_global_bounded #|inst|) in H0 => //. simpl.
-    now rewrite H H0.
+    cbn. toProp; unshelve eapply bounded_poly_global_levels; tea.
   Qed.
 
   Lemma subst_instance_level_lift inst l :
     closedu_level #|inst| l ->
-    subst_instance_level (lift_instance #|inst| (level_var_instance 0 inst)) l = lift_level #|inst| l.
+    subst_instance_level (lift_instance #|inst| (Instance.of_level_instance (level_var_instance 0 inst))) l = Universe.of_level @@ lift_level #|inst| l.
   Proof using Type.
+    clear cf.
     destruct l => // /= /Nat.ltb_lt ltn.
-    rewrite nth_nth_error.
+    rewrite nth_error_map.
     destruct nth_error eqn:eq. move:eq.
-    rewrite nth_error_map /level_var_instance [mapi_rec _ _ _]mapi_unfold (proj1 (nth_error_unfold _ _ _) ltn).
-    simpl. now intros [=].
-    eapply nth_error_None in eq; len in eq.
+    - rewrite nth_error_map /level_var_instance [mapi_rec _ _ _]mapi_unfold (proj1 (nth_error_unfold _ _ _) ltn).
+      simpl. intros [=]. subst t.
+      unfold lift_universe. rewrite map_singleton //=.
+    - eapply nth_error_None in eq; len in eq.
+  Qed.
+
+  Lemma subst_instance_universe_lift inst l :
+    closedu_universe #|inst| l ->
+    subst_instance (lift_instance #|inst| (Instance.of_level_instance (level_var_instance 0 inst))) l = lift_universe #|inst| l.
+  Proof.
+    intros cl.
+    apply Universe.equal_exprsets => le.
+    rewrite In_subst_instance.
+    rewrite In_lift_universe.
+    rewrite /subst_instance_level_expr.
+    split.
+    - case=> x' [] hin hin'.
+      eapply Universe.map_spec in hin' as [e' [hin' heq]].
+      subst le. rewrite subst_instance_level_lift in hin'.
+      now move/LevelExprSet.for_all_spec: cl => /(_ _ hin).
+      apply LevelExprSet.singleton_spec in hin'. subst e'.
+      exists x'; split => //.
+      rewrite /LevelExpr.add /LevelExpr.make. cbn.
+      now rewrite Nat.add_0_r.
+    - case=> le' [hin ->].
+      exists le'; split => //.
+      apply Universe.map_spec. exists (lift_level #|inst| le'.1, 0).
+      split => //.
+      rewrite subst_instance_level_lift.
+      now move/LevelExprSet.for_all_spec: cl => /(_ _ hin).
+      now apply LevelExprSet.singleton_spec.
+      rewrite /LevelExpr.add /LevelExpr.make. cbn.
+      now rewrite Nat.add_0_r.
   Qed.
 
   Lemma subst_instance_level_var_instance inst l :
     closedu_level #|inst| l ->
-    subst_instance_level (level_var_instance 0 inst) l = l.
+    subst_instance_level (level_var_instance 0 inst) l = Universe.of_level l.
   Proof using Type.
     destruct l => // /= /Nat.ltb_lt ltn.
-    rewrite /level_var_instance.
-    rewrite nth_nth_error.
+    rewrite /level_var_instance nth_error_map.
     now rewrite /level_var_instance [mapi_rec _ _ _]mapi_unfold (proj1 (nth_error_unfold _ _ _) ltn).
+  Qed.
+
+  Lemma subst_instance_universe_var_instance inst l :
+    closedu_universe #|inst| l ->
+    subst_instance (level_var_instance 0 inst) l = l.
+  Proof using Type.
+    clear cf.
+    intros cl.
+    apply Universe.equal_exprsets => le.
+    rewrite In_subst_instance.
+    rewrite /subst_instance_level_expr.
+    setoid_rewrite Universe.map_spec.
+    split.
+    - case=> x' [] hin.
+      setoid_rewrite subst_instance_level_var_instance; revgoals.
+      { now move/LevelExprSet.for_all_spec: cl => /(_ _ hin). }
+      case=> x0 [] /LevelExprSet.singleton_spec -> ->.
+      now rewrite add_make; destruct x'.
+    - move=> hin. exists le; split => //.
+      setoid_rewrite subst_instance_level_var_instance; revgoals.
+      { now move/LevelExprSet.for_all_spec: cl => /(_ _ hin). }
+      eexists; split; trea.
+      apply LevelExprSet.singleton_spec; trea.
+      now rewrite add_make; destruct le.
+  Qed.
+
+  Ltac rw l := rewrite_strat (topdown l).
+  Ltac rw_in l H := rewrite_strat (topdown l) in H.
+
+  Lemma lift_universe_singleton n n' : lift_universe n (Universe.of_level (Level.lvar n')) = Universe.of_level (Level.lvar (n + n')).
+  Proof.
+    apply Universe.equal_exprsets=> l.
+    rw In_lift_universe; rw LevelExprSet.singleton_spec.
+    split.
+    - case=> le' [] -> -> //=.
+    - move=> ->. eexists; split; trea.
   Qed.
 
   Lemma variance_universes_spec Σ ctx v univs u u' :
@@ -202,16 +216,19 @@ Section OnUdecl.
     intros wfctx wfext.
     unfold variance_universes. destruct ctx as [|[inst cstrs]] => //.
     intros [= eq].
-    set (vcstrs := ConstraintSet.union _ _) in *.
+    set (vcstrs := UnivConstraintSet.union _ _) in *.
     subst univs. simpl.
     subst u u'. autorewrite with len.
     repeat (split; auto).
     - rewrite forallb_map /level_var_instance.
+      rewrite forallb_map.
       rewrite [mapi_rec _ _ _]mapi_unfold forallb_unfold /= //.
-      intros x Hx. apply In_Var_global_ext_poly. len.
+      intros x Hx. rewrite lift_universe_singleton //= Universe.levels_singleton //=.
+      apply LevelSet.subset_spec => lk. move/LS.singleton_spec => ->.
+      apply LevelSet.mem_spec.
+      apply In_Var_global_ext_poly. len.
     - destruct wfext as [onX onu]. simpl in *.
       destruct onu as [_ [_ [sat _]]].
-      do 2 red in sat.
       unfold PCUICLookup.global_ext_constraints in sat. simpl in sat.
       red. destruct check_univs => //.
       unfold valid_constraints0.
@@ -221,26 +238,28 @@ Section OnUdecl.
       intro. red in vsat.
       specialize (vsat x). intros hin. apply vsat.
       unfold global_ext_constraints. simpl.
-      rewrite ConstraintSet.union_spec; left.
-      rewrite /vcstrs !ConstraintSet.union_spec.
+      rewrite UnivConstraintSet.union_spec; left.
+      rewrite /vcstrs !UnivConstraintSet.union_spec.
       left. right.
       rewrite In_lift_constraints.
       rewrite -> In_subst_instance_cstrs in hin.
       destruct hin as [c' [eqx inc']]. clear vsat.
-      subst x. eexists. unfold subst_instance_cstr.
+      subst x. eexists. unfold subst_instance_univ_cstr.
       unfold lift_constraint. split; eauto. destruct c' as [[l comp] r].
       simpl.
       destruct wfctx as [_ wfctx]. simpl in wfctx.
       eapply on_udecl_poly_bounded in wfctx; auto.
       specialize (wfctx _ inc'). simpl in wfctx.
       move/andP: wfctx => [cll clr].
-      rewrite !subst_instance_level_lift //.
+      rewrite !subst_instance_universe_lift //.
     - rewrite /level_var_instance.
-      rewrite [mapi_rec _ _ _]mapi_unfold forallb_unfold /= //.
-      intros x Hx. apply In_Var_global_ext_poly. len.
+      rewrite forallb_map [mapi_rec _ _ _]mapi_unfold forallb_unfold /= //.
+      intros x Hx.
+      apply LevelSet.subset_spec => lk. move/LS.singleton_spec => ->.
+      apply LevelSet.mem_spec.
+      apply In_Var_global_ext_poly. len.
     - destruct wfext as [onX onu]. simpl in *.
       destruct onu as [_ [_ [sat _]]].
-      do 2 red in sat.
       unfold PCUICLookup.global_ext_constraints in sat. simpl in sat.
       red. destruct check_univs => //.
       unfold valid_constraints0.
@@ -250,8 +269,8 @@ Section OnUdecl.
       intro. red in vsat.
       specialize (vsat x). intros hin. apply vsat.
       unfold global_ext_constraints. simpl.
-      rewrite ConstraintSet.union_spec; left.
-      rewrite /vcstrs !ConstraintSet.union_spec.
+      rewrite UnivConstraintSet.union_spec; left.
+      rewrite /vcstrs !UnivConstraintSet.union_spec.
       left. left.
       rewrite -> In_subst_instance_cstrs in hin.
       destruct hin as [c' [eqx inc']]. clear vsat.
@@ -261,8 +280,8 @@ Section OnUdecl.
       destruct wfctx as [_ wfctx]. simpl in wfctx.
       eapply on_udecl_poly_bounded in wfctx; auto.
       specialize (wfctx _ inc'). simpl in wfctx.
-      move/andP: wfctx => [cll clr]. rewrite /subst_instance_cstr /=.
-      rewrite !subst_instance_level_var_instance //.
+      move/andP: wfctx => [cll clr]. rewrite /subst_instance_univ_cstr /=.
+      rewrite !subst_instance_universe_var_instance //.
   Qed.
 
 End OnUdecl.
@@ -323,66 +342,97 @@ Section CheckEnv.
   Section UniverseChecks.
   Obligation Tactic := idtac.
 
-  Lemma consistent_extension_on_global Σ uctx :
+  (* Lemma consistent_extension_on_global Σ uctx :
     consistent_extension_on (global_uctx Σ) uctx ->
     consistent_extension_on Σ uctx.
   Proof using Type.
     move=> hext v {}/hext [v' [satv' eqv']].
     exists v'; split=> // x hx; apply: eqv'.
     apply/LevelSet.union_spec; by left.
+  Qed. *)
+
+  Definition declared_universe (ls : LevelSet.t) u : bool :=
+    LevelSet.subset (Universe.levels u) ls.
+
+  Definition abstract_declared_universe X (ls : LevelSet.t) u : bool :=
+    LevelSet.for_all (abstract_env_level_mem' (abstract_env_empty_ext X) ls) (Universe.levels u).
+
+  Lemma abstract_declared_universe_spec X u ls :
+    abstract_declared_universe X ls u <->
+    (forall Σ : global_env, abstract_env_rel X Σ -> LevelSet.Subset (Universe.levels u) (LevelSet.union ls (global_levels Σ))).
+  Proof.
+    split.
+    - intros hd Σ eq.
+      destruct (abstract_env_wf _ eq) as [wfΣ].
+      red in hd.
+      apply LevelSet.for_all_spec in hd.
+      apply subset_levels.
+      intros [l k] hin.
+      specialize (hd l).
+      move: hd => /fwd. apply Universe.levels_spec. now exists k.
+      rewrite -(abstract_env_level_mem_correct' (abstract_env_empty_ext X) (Σ := (Σ, Monomorphic_ctx))) //.
+      rewrite -abstract_env_empty_ext_rel. split => //.
+      move/LevelSet.mem_spec => //. tc.
+    - intros h; apply LevelSet.for_all_spec; tc.
+      destruct (abstract_env_exists X) as [[Σ hΣ]].
+      specialize (h _ hΣ).
+      destruct (abstract_env_wf _ hΣ) => l.
+      move/h => hin.
+      rewrite -(abstract_env_level_mem_correct' (abstract_env_empty_ext X) (Σ := (Σ, Monomorphic_ctx))) //.
+      rewrite -abstract_env_empty_ext_rel. split => //.
+      now apply LevelSet.mem_spec.
   Qed.
 
+  Definition uctx_of_udecl decl := (levels_of_udecl decl, constraints_of_udecl decl).
+
   Program Definition check_udecl id X (udecl : universes_decl)
-    : EnvCheck X_env_ext_type (∑ uctx', gc_of_uctx (uctx_of_udecl udecl) = Some uctx' /\
-                         forall Σ : global_env, abstract_env_rel X Σ -> ∥ on_udecl Σ udecl ∥) :=
+    : EnvCheck X_env_ext_type (forall Σ : global_env, abstract_env_rel X Σ -> ∥ on_udecl Σ udecl ∥) :=
     let levels := levels_of_udecl udecl in
     check_eq_true_lazy (LevelSet.for_all (fun l => Level.is_var l) levels)
        (fun _ => (abstract_env_empty_ext X, IllFormedDecl id (Msg ("non fresh level in " ^ print_lset levels))));;
-    check_eq_true_lazy (ConstraintSet.for_all (fun '(l1, _, l2) => abstract_env_level_mem' (abstract_env_empty_ext X) levels l1 && abstract_env_level_mem' (abstract_env_empty_ext X) levels l2) (constraints_of_udecl udecl))
+    check_eq_true_lazy (UnivConstraintSet.for_all (fun '(l1, _, l2) => abstract_declared_universe X levels l1 &&
+      abstract_declared_universe X levels l2) (constraints_of_udecl udecl))
        (fun _ => (abstract_env_empty_ext X, IllFormedDecl id (Msg ("non declared level in " ^ print_lset levels ^
-                                    " |= " ^ print_constraint_set (constraints_of_udecl udecl)))));;
-    match gc_of_uctx (uctx_of_udecl udecl) as X' return (X' = _ -> EnvCheck X_env_ext_type _) with
-    | None => fun _ =>
-      raise (abstract_env_empty_ext X, IllFormedDecl id (Msg "constraints trivially not satisfiable"))
-    | Some uctx' => fun Huctx =>
-      check_eq_true (abstract_env_is_consistent X uctx')
-                    (abstract_env_empty_ext X, IllFormedDecl id (Msg "constraints not satisfiable"));;
-      ret (uctx'; _)
-    end eq_refl.
+                                    " |= " ^ print_univ_constraint_set (constraints_of_udecl udecl)))));;
+    check_eq_true (abstract_env_is_consistent X (uctx_of_udecl udecl))
+        (abstract_env_empty_ext X, IllFormedDecl id (Msg "constraints not satisfiable"));;
+      ret _.
   Next Obligation.
-    simpl. intros id X udecl H H0 uctx' Huctx H2.
-    rewrite <- Huctx.
-    split; auto.
-    intros Σ wfΣ.
-    assert (HH: ConstraintSet.For_all
-                  (declared_cstr_levels (LS.union (levels_of_udecl udecl) (global_levels Σ)))
+    simpl. intros id X udecl H H0 uctx' Σ wfΣ.
+    split.
+    pose proof (abstract_env_wf _ wfΣ) as [hΣ].
+    assert (HH: UnivConstraintSet.For_all
+                  (declared_univ_cstr_levels (LS.union (levels_of_udecl udecl) (global_levels Σ)))
                   (constraints_of_udecl udecl)).
     {
-      clear -H0 wfΣ. apply ConstraintSet.for_all_spec in H0.
+      clear -H0 wfΣ. apply UnivConstraintSet.for_all_spec in H0.
       2: now intros x y [].
       intros [[l ct] l'] Hl. specialize (H0 _ Hl). simpl in H0.
       apply andb_true_iff in H0. destruct H0 as [H H0].
-      rewrite <- abstract_env_level_mem_correct' with (Σ := (Σ, Monomorphic_ctx)) in H.
-      apply LevelSet.mem_spec in H.
-      rewrite <- abstract_env_level_mem_correct' with (Σ := (Σ, Monomorphic_ctx)) in H0.
-      apply LevelSet.mem_spec in H0.
-      now split. rewrite <- abstract_env_empty_ext_rel. split; eauto.
-      rewrite <- abstract_env_empty_ext_rel. split; eauto.
-       }
-    split; last (split; last split).
+      move/abstract_declared_universe_spec: H => /(_ _ wfΣ).
+      move/abstract_declared_universe_spec: H0 => /(_ _ wfΣ).
+      now cbn. }
+    split; auto.
     - clear -H wfΣ. apply LevelSet.for_all_spec in H.
       2: now intros x y [].
       intros l Hl Hlglob.
       move: (wf_env_non_var_levels Σ (heΣ _ _ wfΣ) l Hlglob).
       now rewrite (H l Hl).
-    - eauto.
-    - pose (HΣ := abstract_env_wf _ wfΣ); sq.
+    - split; eauto.
+      pose (HΣ := abstract_env_wf _ wfΣ); sq.
       apply wf_global_uctx_invariants in HΣ.
-      pose (HΣ' := abstract_env_wf _ wfΣ); sq.
-      enough (valid_on_mono_udecl (global_uctx Σ) udecl).
+      (* enough (valid_on_mono_udecl (global_uctx Σ) udecl).
       1: { split. apply wf_consistent_extension_on_consistent => //.
-           apply: consistent_extension_on_global=> //. }
-      eapply abstract_env_is_consistent_correct with (udecl := uctx_of_udecl udecl); eauto=> //.
+           apply: consistent_extension_on_global=> //. } *)
+      red. cbn.
+      eapply abstract_env_is_consistent_correct in uctx'; tea.
+      cbn in uctx'. rewrite /global_constraints in uctx'.
+      rewrite /univs_ext_constraints. now rewrite UnivConstraintSetProp.union_sym.
+      split => //.
+      intros l hin hin'. apply LevelSet.for_all_spec in H.
+      specialize (H l hin).
+      have h := not_var_global_levels hΣ l hin' => //.
+      now rewrite H in h. tc.
   Qed.
 
   Definition check_wf_env_ext_prop X X_ext ext :=
@@ -406,12 +456,11 @@ Section CheckEnv.
     - now apply abstract_env_empty_ext_rel in H.
   Qed.
   Next Obligation.
-    simpl; cbn; intros. eapply (proj2 uctx.π2); eauto.
+    simpl; cbn; intros. now apply uctx.
   Qed.
   Next Obligation.
     simpl; cbn; intros. split; intros ? ?.
-    { rewrite Heq_ext.
-      destruct uctx as [uctx' [gcof onu]]. cbn.
+    { rewrite Heq_ext. cbn.
       eapply abstract_env_add_udecl_rel; cbn; eauto. }
     { eapply abstract_env_add_udecl_rel with (udecl := ext) in H; cbn; try now eauto. }
   Qed.
@@ -1401,7 +1450,7 @@ Section CheckEnv.
   Proof using Type.
     split; simpl.
     intros x hin. now eapply LS.empty_spec in hin.
-    intros x hin. now eapply CS.empty_spec in hin.
+    intros x hin. now eapply UCS.empty_spec in hin.
   Qed.
 
   Lemma cumul_ctx_rel_close' Σ Γ Δ Δ' :
@@ -1480,18 +1529,18 @@ Section CheckEnv.
     now eapply isType_weaken.
   Qed.
 
-  Equations? check_variance {X} (id : kername) univs (variances : option (list Variance.t))
+  Equations? check_variance {X} (name : kername) univs (variances : option (list Variance.t))
     (wfunivs : forall Σ, abstract_env_rel X Σ -> ∥ wf_ext (Σ, univs) ∥) :
     EnvCheck X_env_ext_type (forall Σ, abstract_env_rel X Σ -> ∥ on_variance Σ univs variances ∥) :=
-    | id, univs, None, wfunivs := ret _
-    | id, univs, Some v, wfunivs with inspect (variance_universes univs v) := {
+    | name, univs, None, wfunivs := ret _
+    | name, univs, Some v, wfunivs with inspect (variance_universes univs v) := {
       | exist (Some (univs', i, i')) eqvu =>
         check_leq <-
           check_eq_true (eqb #|v| #|polymorphic_instance univs|)
-            (abstract_env_empty_ext abstract_env_empty, IllFormedDecl (string_of_kername id) (Msg "Variance annotation does not have the right length"));;
-        Σ' <- make_abstract_env_ext X id univs' ;;
+            (abstract_env_empty_ext abstract_env_empty, IllFormedDecl (string_of_kername name) (Msg "Variance annotation does not have the right length"));;
+        Σ' <- make_abstract_env_ext X name univs' ;;
         ret _
-        | exist None eqvu => raise (abstract_env_empty_ext abstract_env_empty, IllFormedDecl (string_of_kername id) (Msg "Ill-formed variance annotation")) }.
+        | exist None eqvu => raise (abstract_env_empty_ext abstract_env_empty, IllFormedDecl (string_of_kername name) (Msg "Ill-formed variance annotation")) }.
   Proof.
     - destruct H0 as [? ?]; eauto. specialize_Σ H.
       have [wfΣ] := abstract_env_ext_wf _ H0. sq.
@@ -2267,9 +2316,16 @@ End monad_Alli_nth_forall.
 
   Lemma levels_global_levels_declared univs :
     LevelSet.mem Level.lzero (ContextSet.levels univs) ->
-    LevelSet.Equal (PCUICLookup.global_levels univs) (ContextSet.levels univs).
+    LevelSet.Equal (PCUICLookup.global_levels (LevelSet.remove Level.lzero univs.1, univs.2)) (ContextSet.levels univs).
   Proof using Type.
     clear. move / LevelSet.mem_spec. intros Hin l. unfold global_levels. rewrite LS.union_spec LevelSet.singleton_spec.
+    cbn. rewrite LevelSet.remove_spec. firstorder. now subst.
+    destruct l => //. now right. left. intuition. congruence.
+     left. intuition. congruence.
+  Qed.
+
+  Lemma add_singleton l : LevelSet.add l (LevelSet.singleton l) =_lset LevelSet.singleton l.
+  Proof.
     lsets.
   Qed.
 
@@ -2279,53 +2335,58 @@ End monad_Alli_nth_forall.
                       /\ ∥ on_global_univs univs ∥ }) :=
     let id := "toplevel" in
     let levels := ContextSet.levels univs in
-    check_eq_true_lazy (LevelSet.mem Level.lzero levels)
-       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Set not in the global levels " ^ print_lset levels))));;
+    check_eq_true_lazy (~~ (LevelSet.mem Level.lzero levels))
+       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Level zero is declared in the global levels " ^ print_lset levels))));;
     check_eq_true_lazy (LevelSet.for_all (fun l => negb (Level.is_var l)) levels)
-       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("variable level in the global levels " ^ print_lset levels))));;
-    check_eq_true_lazy (ConstraintSet.for_all (fun c => LevelSet.mem c.1.1 levels && LevelSet.mem c.2 levels) (ContextSet.constraints univs))
-       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("non declared level in " ^ print_lset levels ^
-                                    " |= " ^ print_constraint_set (ContextSet.constraints univs)))));;
-    match gc_of_uctx univs as X' return (X' = _ -> EnvCheck X_env_ext_type _) with
-    | None => fun _ => raise (abstract_env_ext_empty, IllFormedDecl id (Msg "constraints trivially not satisfiable"))
-    | Some uctx => fun _ => check_eq_true_lazy (@abstract_env_is_consistent_empty _ X_impl uctx)
-        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg "constraints not satisfiable"))) ;;
-    ret (let Hunivs := _ in exist (abstract_env_init univs retro Hunivs) _) end eq_refl .
+       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Variable level in the global levels " ^ print_lset levels))));;
+    check_eq_true_lazy (UnivConstraintSet.for_all (fun c => declared_universe (LevelSet.add Level.lzero levels) c.1.1 && declared_universe (LevelSet.add Level.lzero levels) c.2) (ContextSet.constraints univs))
+       (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Non declared level in " ^ print_lset levels ^
+                                    " |= " ^ print_univ_constraint_set (ContextSet.constraints univs)))));;
+    check_eq_true_lazy (@abstract_env_is_consistent_empty _ X_impl univs)
+        (fun _ => (abstract_env_ext_empty, IllFormedDecl id (Msg ("Constraints are not satisfiable:" ^
+          print_univ_constraint_set (ContextSet.constraints univs))))) ;;
+    ret (let Hunivs := _ in exist (abstract_env_init (univs.1, univs.2) retro Hunivs) _).
   Next Obligation.
     intros. have decll :
-          ConstraintSet.For_all (declared_cstr_levels (ContextSet.levels univs)) (ContextSet.constraints univs).
-    { clear -i1. apply ConstraintSet.for_all_spec in i1.
+          UnivConstraintSet.For_all (declared_univ_cstr_levels (LevelSet.add Level.lzero (ContextSet.levels univs))) (ContextSet.constraints univs).
+    { clear -i1. apply UnivConstraintSet.for_all_spec in i1.
       2: now intros x y [].
-      intros [[l ct] l'] Hl. specialize (i1 _ Hl). simpl in i1.
-      apply andb_true_iff in i1. destruct i1 as [H H1].
-      apply LevelSet.mem_spec in H. apply LevelSet.mem_spec in H1.
+      move=> [[l ct] l'] /i1 /andb_true_iff //=> [] h h'.
+      apply LevelSet.subset_spec in h. apply LevelSet.subset_spec in h'.
       now split. }
       intros. split; eauto.
-      { intros l Hl. specialize (decll l Hl). red. destruct l, p. now rewrite levels_global_levels_declared. }
-      split; eauto.  unfold declared_cstr_levels. cbn.
+      { intros l Hl. specialize (decll l Hl). red. destruct l, p. unfold PCUICLookup.global_levels. cbn.
+        (* rewrite -LevelSetProp.union_sym -LevelSetProp.add_union_singleton levelset_add_remove. *)
+        cbn in Hl. destruct decll. split; lsets. }
+      split; eauto.  unfold declared_univ_cstr_levels. cbn.
       repeat split => //.
     + clear - i i0. apply LevelSet.for_all_spec in i0.
       2: now intros x y [].
-      intros l Hl. rewrite levels_global_levels_declared in Hl; eauto.
-    + cbn in e. rename e into Huctx.
-      case_eq (gc_of_constraints univs.2);
-      [|intro XX; rewrite XX in Huctx; noconf Huctx].
-      intros Σctrs HΣctrs.
-      unfold abstract_env_is_consistent_empty in i2.
+      subst levels.
+      rewrite /i0 => l. cbn. destruct l => //=.
+      rewrite /PCUICLookup.global_levels //=.
+      rewrite LevelSet.union_spec LevelSet.singleton_spec => //.
+      move: (i0 (Level.lvar n)) => hl.
+      intros [|]. cbn in hl. specialize (hl H). congruence.
+      congruence.
+    + unfold abstract_env_is_consistent_empty in i2.
       pose proof (abs_init := abstract_env_init_correct (abstract_env_impl := X_env_type)
-      (LS.singleton Level.lzero, CS.empty) Retroknowledge.empty PCUICWfEnv.abstract_env_empty_obligation_1).
-      pose proof (abs_consist := abstract_env_is_consistent_correct (@abstract_env_empty cf X_impl) _ uctx univs abs_init); cbn in *.
-      rewrite HΣctrs in abs_consist, Huctx.
+      (LevelSet.singleton Level.lzero, UCS.empty) Retroknowledge.empty PCUICWfEnv.abstract_env_empty_obligation_1).
+      epose proof (abs_consist := abstract_env_is_consistent_correct _ _ univs abs_init); cbn in *.
+      rewrite /declared_univ_cstr_levels //= in abs_consist.
+      forward abs_consist.
+      { split.
+        { move=> l hin hin'. apply LevelSet.singleton_spec in hin'. subst l.
+          move/LevelSet.mem_spec: hin => e. now rewrite e in i. }
+        unfold global_levels. cbn.
+        rewrite LevelSetProp.union_sym -LevelSetProp.add_union_singleton add_singleton -LevelSetProp.add_union_singleton //. }
+      rewrite /global_uctx //= /global_levels /global_constraints //= in abs_consist.
       pose (abstract_env_wf _ abs_init). sq.
-      rewrite <- abs_consist in i2; eauto ; clear abs_consist; cbn; sq.
-      - pose proof (wf_consistent_extension_on_consistent _ _ i2).
-        rewrite ConstraintSetProp.union_sym in H. now rewrite CS_union_empty in H.
-      - intros ? H. specialize (decll _ H). eapply PCUICWeakeningEnv.declared_cstr_levels_sub; eauto.
-        apply wGraph.VSetProp.union_subset_1.
+      apply abs_consist in i2; eauto ; clear abs_consist; cbn; sq.
   Qed.
   Next Obligation.
-      cbv beta. intros univs retro id levels X H H0 Hconsistent ? ? Hunivs. clearbody Hunivs.
-    split.
+     cbv beta. intros [] retro name levels H nv hd habs Hunivs. clearbody Hunivs.
+      split.
     - intros. eapply (abstract_env_irr _ _ (abstract_env_init_correct _ _ _)); eauto.
     - now sq.
     Unshelve. eauto.

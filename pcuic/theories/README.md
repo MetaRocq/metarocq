@@ -9,7 +9,6 @@
 | [PCUICPrimitive]    | Definitions and lemmas for primitives datatypes
 | [PCUICTactics]      | Tactics used throughout the library
 | [Extraction]        | Setup to extract the development
-| [PCUICLoader]       | For plugins
 
 
 
@@ -18,7 +17,6 @@
 [PCUICPrimitive]: ./utils/PCUICPrimitive.v
 [PCUICTactics]: ./Syntax/PCUICTactics.v
 [Extraction]: Extraction.v
-[PCUICLoader]: PCUICLoader.v
 
 ## AST
 

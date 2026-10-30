@@ -29,7 +29,7 @@ Fixpoint isArity T :=
   | _ => false
   end.
 
-Definition type_of_constructor mdecl cdecl (c : inductive * nat) (u : list Level.t) :=
+Definition type_of_constructor mdecl cdecl (c : inductive * nat) (u : Instance.t) :=
   let mind := inductive_mind (fst c) in
   subst0 (inds mind u mdecl.(ind_bodies)) (subst_instance u cdecl.(cstr_type)).
 
@@ -504,10 +504,10 @@ Inductive red Σ Γ M : term -> Type :=
   We hence implement first an equality which considers casts and do a stripping
   phase of casts before checking equality. *)
 
-Definition eq_term_nocast `{checker_flags} (Σ : global_env) (φ : ConstraintSet.t) (t u : term) :=
+Definition eq_term_nocast `{checker_flags} (Σ : global_env) (φ : UnivConstraintSet.t) (t u : term) :=
   eq_term Σ φ (strip_casts t) (strip_casts u).
 
-Definition leq_term_nocast `{checker_flags} (Σ : global_env) (φ : ConstraintSet.t) (t u : term) :=
+Definition leq_term_nocast `{checker_flags} (Σ : global_env) (φ : UnivConstraintSet.t) (t u : term) :=
   leq_term Σ φ (strip_casts t) (strip_casts u).
 
 Reserved Notation " Σ ;;; Γ |- t : T " (at level 50, Γ, t, T at next level).
@@ -893,7 +893,7 @@ Inductive typing `{checker_flags} (Σ : global_env_ext) (Γ : context) : term ->
     primitive_constant Σ primArray = Some prim_ty ->
     declared_constant Σ prim_ty cdecl ->
     primitive_invariants primArray cdecl ->
-    let s := sType (Universe.make' u) in
+    let s := sType u in
     Σ ;;; Γ |- ty : tSort s ->
     Σ ;;; Γ |- def : ty ->
     All (fun t => Σ ;;; Γ |- t : ty) arr ->
@@ -1309,7 +1309,7 @@ Lemma typing_ind_env `{cf : checker_flags} :
         primitive_constant Σ primArray = Some prim_ty ->
         declared_constant Σ prim_ty cdecl ->
         primitive_invariants primArray cdecl ->
-        let s := sType (Universe.make' u) in
+        let s := sType u in
         Σ ;;; Γ |- ty : tSort s ->
         P Σ Γ ty (tSort s) ->
         Σ ;;; Γ |- def : ty ->

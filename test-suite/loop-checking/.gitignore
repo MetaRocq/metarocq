@@ -1,0 +1,3 @@
+gen-src/*.ml*
+Makefile.plugin.conf
+src/g_metarocq_loop_checking_plugin.ml

@@ -353,11 +353,13 @@ Lemma LevelExprSet_For_all (P : LevelExpr.t -> Prop) (u : Universe.t) :
   LevelExprSet.For_all P u <->
   Forall P (LevelExprSet.elements u).
 Proof using Type.
-  rewrite NonEmptySetFacts.LevelExprSet_For_all_exprs.
-  pose proof (NonEmptySetFacts.to_nonempty_list_spec u).
-  destruct (NonEmptySetFacts.to_nonempty_list u). rewrite -H. simpl.
-  split. constructor; intuition.
-  intros H'; inv H'; intuition.
+  pose proof (Universe.to_nonempty_list_spec u).
+  pose proof (Universe.to_nonempty_list_spec' u).
+  rewrite (Universe.For_all_exprs P u).
+  destruct (Universe.to_nonempty_list u). rewrite -H. simpl.
+  split.
+  - constructor; intuition.
+  - intros H'; inv H'; intuition.
 Qed.
 
 Lemma univ_expr_set_in_elements e s :
@@ -368,16 +370,12 @@ Proof using Type.
 Qed.
 
 Lemma univ_epxrs_elements_map g s :
-  forall e, In e (LevelExprSet.elements (NonEmptySetFacts.map g s)) <->
+  forall e, In e (LevelExprSet.elements (Universe.map g s)) <->
       In e (map g (LevelExprSet.elements s)).
 Proof using Type.
   intros e.
-  unfold NonEmptySetFacts.map.
-  pose proof (NonEmptySetFacts.to_nonempty_list_spec s).
-  destruct (NonEmptySetFacts.to_nonempty_list s) as [e' l] eqn:eq.
-  rewrite -univ_expr_set_in_elements NonEmptySetFacts.add_list_spec.
-  rewrite -H. simpl. rewrite LevelExprSet.singleton_spec.
-  intuition auto.
+  rewrite -Universe.In_elements Universe.map_spec in_map_iff; setoid_rewrite <- Universe.In_elements.
+  firstorder.
 Qed.
 
 Lemma Forall_elements_in P s : Forall P (LevelExprSet.elements s) <->
@@ -394,18 +392,18 @@ Proof using Type.
 Qed.
 
 Lemma univ_exprs_map_all P g s :
-  Forall P (LevelExprSet.elements (NonEmptySetFacts.map g s)) <->
+  Forall P (LevelExprSet.elements (Universe.map g s)) <->
   Forall (fun x => P (g x)) (LevelExprSet.elements s).
 Proof using Type.
   rewrite !Forall_elements_in.
-  setoid_rewrite NonEmptySetFacts.map_spec.
+  setoid_rewrite Universe.map_spec.
   intuition auto.
   eapply H. now exists x.
   destruct H0 as [e' [ins ->]]. apply H; auto.
 Qed.
 
 Lemma expr_set_forall_map f g s :
-  LevelExprSet.for_all f (NonEmptySetFacts.map g s) <->
+  LevelExprSet.for_all f (Universe.map g s) <->
   LevelExprSet.for_all (fun e => f (g e)) s.
 Proof using Type.
   rewrite /is_true !LevelExprSet.for_all_spec !LevelExprSet_For_all.

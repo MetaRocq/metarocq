@@ -22,7 +22,7 @@ Open Scope sigma_scope.
 Definition inst_context σ (Γ : context) : context :=
   fold_context_k (fun i => inst (⇑^i σ)) Γ.
 
-#[global] Instance inst_context_ext : Proper (`=1` ==> Logic.eq ==> Logic.eq) inst_context.
+#[global] Instance inst_context_ext : Proper (`≐1` ==> Logic.eq ==> Logic.eq) inst_context.
 Proof.
   intros f g Hfg x y ->.
   apply fold_context_k_ext => i t.

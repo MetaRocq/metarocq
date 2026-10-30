@@ -301,6 +301,7 @@ test-suite/plugin-demo/Makefile.plugin
 template-rocq/Makefile.plugin-e
 template-rocq/Makefile.template-e
 template-rocq/src/g_template_coq.ml
+template-rocq/src/g_template_rocq.ml
 pcuic/Makefile.plugin-e
 erasure/Makefile.plugin-e
 safechecker/Makefile.plugin-e
@@ -372,6 +373,13 @@ test-suite/metarocq-config
 test-suite/plugin-demo/_RocqProject
 test-suite/plugin-demo/_PluginProject
 test-suite/plugin-demo/metarocq-config
+test-suite/loop-checking/src/META.rocq-metarocq-loop-checking
+test-suite/loop-checking/_RocqProject
+test-suite/loop-checking/_PluginProject
+test-suite/loop-checking/metarocq-config
+test-suite/loop-checking/Makefile.plugin
+test-suite/loop-checking/Makefile.rocq
+test-suite/loop-checking/Makefile.rocq.conf
 erasure/META
 safechecker/META
 template-rocq/META
@@ -413,3 +421,7 @@ template-rocq/_TemplateRocqProject
 template-rocq/_PluginProject
 template-rocq/_RocqProject
 **/Makefile.*.conf
+template-coq/extraction_clauses/clauses.ml
+template-coq/extraction_clauses/clauses.mli
+template-coq/extraction_clauses/loop_checking.mli
+template-coq/extraction_clauses/loop_checking.ml

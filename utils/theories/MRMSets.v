@@ -207,7 +207,7 @@ Module MSetAVL.
                                                    => { bl : _ | { br : _ | { ltl : _ | { gtr : _  | M.Raw.BSNode c x l r bl br ltl gtr = b }}}}
                                               end x with
            | M.Raw.BSLeaf => eq_refl
-           | M.Raw.BSNode c x l r bl br ltl gtr => exist _ bl (exist _ br (exist _ ltl (exist _ gtr eq_refl)))
+           | M.Raw.BSNode c x l r bl br ltl gtr => exist bl (exist br (exist ltl (exist gtr eq_refl)))
            end.
       Lemma bst_irrel t (x y : M.Raw.bst t) : x = y.
       Proof.

@@ -2369,7 +2369,7 @@ Qed.
 
 Lemma incl_cs_refl cs : cs ⊂_cs cs.
 Proof using Type.
-  split; [lsets|csets].
+  split; [lsets|ucsets].
 Qed.
 
 Lemma weaken_prefix {decls Σ kn decl} :

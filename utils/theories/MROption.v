@@ -46,6 +46,34 @@ Definition R_opt {A} (R : relation A) : relation (option A) :=
     | _, _ => False
   end.
 
+Instance R_opt_refl {A R} : @Reflexive A R -> Reflexive (R_opt R).
+Proof.
+  intros hr []; cbn; reflexivity.
+Qed.
+
+Instance R_opt_sym {A R} : @Symmetric A R -> Symmetric (R_opt R).
+Proof.
+  intros hr [] []; cbn => //. now symmetry.
+Qed.
+
+Instance R_opt_trans {A R} : @Transitive A R -> Transitive (R_opt R).
+Proof.
+  intros hr [] [] []; cbn => //. intros; now etransitivity.
+Qed.
+
+Instance R_opt_equiv {A R} : @Equivalence A R -> Equivalence (R_opt R).
+Proof.
+  split; tc.
+Qed.
+
+Definition option_map2 {A B} (f : A -> A -> B) (o o' : option A) : option B :=
+  match o, o' with
+  | Some x, Some y => Some (f x y)
+  | None, Some _
+  | Some _, None
+  | None, None => None
+  end.
+
 Definition option_default {A B} (f : A -> B) (o : option A) (b : B) :=
   match o with Some x => f x | None => b end.
 
@@ -94,12 +122,12 @@ Proof.
   intros []; cbn; congruence.
 Qed.
 
-#[global] Instance option_map_proper {A B} : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
+#[global] Instance option_map_proper {A B} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@option_map A B).
 Proof.
   intros f g Hfg x y <-. now apply option_map_ext.
 Qed.
 
-Lemma option_map_id {A} : option_map (@id A) =1 id.
+Lemma option_map_id {A} : option_map (@id A) ≐1 id.
 Proof. by intros []. Qed.
 
 Lemma nth_map_option_out {A B} (f : nat -> A -> option B) l l' i t : map_option_out (mapi f l) = Some l' ->
@@ -177,13 +205,13 @@ Definition foroptb2 {A : Type} (p : A -> A -> bool) (o o': option A) : bool :=
   | _, _ => false
   end.
 
-#[global] Instance foroptb_proper A : Proper (`=1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
+#[global] Instance foroptb_proper A : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@foroptb A).
 Proof.
   intros f g Hfg x y ->; rewrite /foroptb.
   destruct y; simpl; rewrite // ?Hfg.
 Qed.
 
-#[global] Instance foroptb_proper_pointwise A : Proper (`=1` ==> `=1`) (@foroptb A).
+#[global] Instance foroptb_proper_pointwise A : Proper (`≐1` ==> `≐1`) (@foroptb A).
 Proof.
   intros f g Hfg y; rewrite /foroptb.
   destruct y; simpl; rewrite // ?Hfg.

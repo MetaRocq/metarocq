@@ -280,7 +280,7 @@ Section CtxReduction.
       let k := Nat.pred #|ctx| - #|Γ| in
       P k ==> on_free_vars_decl (addnP (S k) P) d) ctx.
 
-  Lemma addnP_closedP n P : addnP 1 (closedP (S n) P) =1 closedP n (addnP 1 P).
+  Lemma addnP_closedP n P : addnP 1 (closedP (S n) P) ≐1 closedP n (addnP 1 P).
   Proof using Type.
     intros i. rewrite /addnP /closedP /shiftnP /=.
     repeat (PCUICSigmaCalculus.nat_compare_specs => //).

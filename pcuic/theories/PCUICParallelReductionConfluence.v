@@ -507,7 +507,7 @@ Section Rho.
     let ty := rho Γ a.(array_type) _ in
     let value := map_terms rho Γ a.(array_value) _ in
     let a' := {|
-        array_level := array_level a;
+        array_universe := array_universe a;
         array_type := ty;
         array_default := default;
         array_value := value
@@ -1141,7 +1141,7 @@ Section Rho.
               | None => nth_error Δ (r x) = None
               end.
 
-  Instance renaming_ext Γ Δ : Morphisms.Proper (`=1` ==> iff)%signature (renaming Γ Δ).
+  Instance renaming_ext Γ Δ : Morphisms.Proper (`≐1` ==> iff)%signature (renaming Γ Δ).
   Proof using Type.
     red. red. intros.
     split; intros.
@@ -1177,7 +1177,6 @@ Section Rho.
     destruct H as [b' [Hb Heq']].
     exists b'; intuition auto.
     rewrite -ren_shiftn. autorewrite with sigma in Heq' |- *.
-    rewrite Nat.sub_0_r.
     rewrite -?subst_compose_assoc -inst_assoc.
     rewrite -[b.[_]]inst_assoc. rewrite Heq'.
     now sigma.
