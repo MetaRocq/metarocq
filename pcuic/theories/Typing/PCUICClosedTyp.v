@@ -26,19 +26,19 @@ Proof.
   destruct onp as [_ onp].
   red in onp.
   destruct (nth_error (smash_context [] _) _) eqn:Heq'; try contradiction.
-  destruct onp as [onna onp]. rewrite {}onp.
+  destruct onp as [onna onp]. rw {}onp.
   pose proof (onConstructors oib) as onc.
-  red in onc. rewrite Heq in onc. inv onc. clear X1.
+  red in onc. rw Heq in onc. inv onc. clear X1.
   eapply on_cargs in X.
   simpl.
   replace (S (ind_npars mdecl)) with (0 + (1 + ind_npars mdecl)) by lia.
   eapply closedn_subst.
   { clear. unfold inds. generalize (ind_bodies mdecl).
     induction l; simpl; auto. }
-  rewrite inds_length.
+  rw inds_length.
   eapply closedn_subst0.
   { clear. unfold projs. induction p.(proj_arg); simpl; auto. }
-  rewrite projs_length /=.
+  rw projs_length /=.
   eapply (@closed_upwards (ind_npars mdecl + #|ind_bodies mdecl| + p.(proj_arg) + 1)).
   2:lia.
   eapply closedn_lift.
@@ -48,26 +48,26 @@ Proof.
   red in onpars.
   eapply All_local_env_Pclosed in onpars.
   eapply (Alli_impl (Q:=fun i d => closed_decl (#|ind_params mdecl| + i + #|arities_context (ind_bodies mdecl)|) d)) in args.
-  2:{ intros n x. rewrite app_context_length.
+  2:{ intros n x. rw app_context_length.
       intros H; eapply closed_decl_upwards; eauto. lia. }
   eapply (Alli_shiftn (P:=fun i d => closed_decl (i + #|arities_context (ind_bodies mdecl)|) d)) in args.
-  rewrite Nat.add_0_r in args.
+  rw Nat.add_0_r in args.
   eapply (Alli_impl (Q:=fun i d => closed_decl (i + #|arities_context (ind_bodies mdecl)|) d)) in onpars.
   2:{ intros n x d. eapply closed_decl_upwards; eauto; lia. }
-  epose proof (Alli_app_inv onpars). rewrite List.length_rev /= in X.
-  specialize (X args). rewrite -List.rev_app_distr in X.
+  epose proof (Alli_app_inv onpars). rw List.length_rev /= in X.
+  specialize (X args). rw -List.rev_app_distr in X.
   clear onpars args.
   eapply (Alli_impl (Q:=fun i d => closed_decl (#|arities_context (ind_bodies mdecl)| + i) d)) in X.
   2:intros; eapply closed_decl_upwards; eauto; lia.
   eapply closed_smash_context_unfold in X.
   eapply Alli_rev_nth_error in X; eauto.
-  rewrite smash_context_length in X. simpl in X.
-  eapply nth_error_Some_length in Heq'. rewrite smash_context_length in Heq'.
+  rw smash_context_length in X. simpl in X.
+  eapply nth_error_Some_length in Heq'. rw smash_context_length in Heq'.
   simpl in Heq'. unfold closed_decl in X.
   move/andP: X => [] _ cl.
-  eapply closed_upwards. eauto. rewrite arities_context_length.
-  rewrite context_assumptions_app parslen.
-  rewrite context_assumptions_app in Heq'. lia.
+  eapply closed_upwards. eauto. rw arities_context_length.
+  rw context_assumptions_app parslen.
+  rw context_assumptions_app in Heq'. lia.
 Qed.
 
 
@@ -105,15 +105,15 @@ Proof.
   clear decl.
   eapply Alli_All; eauto.
   intros n x [decli oib].
-  rewrite /closed_inductive_body.
+  rw /closed_inductive_body.
   apply andb_and; split. apply andb_and. split.
-  - rewrite andb_and. split.
+  - rw andb_and. split.
     * apply onArity in oib.
       now move/andP: oib => [] /=.
     * pose proof (onArity oib) as X. unfold on_type_rel in X.
-      rewrite oib.(ind_arity_eq) in X.
+      rw oib.(ind_arity_eq) in X.
       cbn in X.
-      rewrite !closedn_it_mkProd_or_LetIn /= !andb_true_r in X.
+      rw !closedn_it_mkProd_or_LetIn /= !andb_true_r in X.
       now move/andP: X.
   - pose proof (onConstructors oib).
     red in X. eapply All_forallb. eapply All2_All_left; eauto.
@@ -121,13 +121,13 @@ Proof.
     move: (on_ctype X0) => /=. unfold on_type_rel. cbn.
     simpl. unfold closed_constructor_body.
     intros Hty.
-    rewrite arities_context_length in Hty.
-    rewrite Hty.
-    rewrite X0.(cstr_eq) closedn_it_mkProd_or_LetIn in Hty.
+    rw arities_context_length in Hty.
+    rw Hty.
+    rw X0.(cstr_eq) closedn_it_mkProd_or_LetIn in Hty.
     move/andP: Hty => [] _.
-    rewrite closedn_it_mkProd_or_LetIn.
-    move/andP=> [] ->. rewrite closedn_mkApps /=.
-    move/andP=> [] _. rewrite forallb_app.
+    rw closedn_it_mkProd_or_LetIn.
+    move/andP=> [] ->. rw closedn_mkApps /=.
+    move/andP=> [] _. rw forallb_app.
     now move/andP=> [] _ ->.
 
   - eapply All_forallb.
@@ -140,7 +140,7 @@ Proof.
       (mkProjection {| inductive_mind := mind; inductive_ind := n |} mdecl.(ind_npars) i) mdecl x cdecl pdecl)
       0 (ind_projs x)).
     { eapply forall_nth_error_Alli.
-      intros. split; auto. split; auto. cbn. now rewrite hcdecl. }
+      intros. split; auto. split; auto. cbn. now rw hcdecl. }
     eapply (Alli_All X0). intros.
     now eapply declared_projection_closed_ind in H.
 Qed.
@@ -158,7 +158,7 @@ Proof.
   rewrite -> ?andb_and in *; try solve [intuition auto].
 
   - destruct X0 as (Htm & s & (_ & Hty) & _).
-    rewrite /= andb_true_r in Hty. split; tas.
+    rw /= andb_true_r in Hty. split; tas.
     destruct j_term => //=.
     move:Htm => [] _ /andP [] //.
 
@@ -168,60 +168,60 @@ Proof.
     elim (Nat.ltb_spec n #|Γ|); intuition auto. all: try lia. clear H1.
 
     induction Γ in n, H, H0, H2 |- *.
-    { rewrite nth_error_nil in H. cbn in *. discriminate. }
+    { rw nth_error_nil in H. cbn in *. discriminate. }
     destruct n.
     simpl in H. noconf H. simpl.
-    rewrite -Nat.add_1_r. apply closedn_lift.
-    rewrite closedn_ctx_cons in H0. move/andP: H0 => [_ ca].
+    rw -Nat.add_1_r. apply closedn_lift.
+    rw closedn_ctx_cons in H0. move/andP: H0 => [_ ca].
     destruct a as [na [b|] ty]. simpl in ca.
-    rewrite /test_decl /= in ca.
+    rw /test_decl /= in ca.
     now move/andP: ca => [_ cty].
-    now rewrite /test_decl /= in ca.
+    now rw /test_decl /= in ca.
     simpl.
-    rewrite -Nat.add_1_r.
-    rewrite -(simpl_lift _ (S n) 0 1 0); try lia.
+    rw -Nat.add_1_r.
+    rw -(simpl_lift _ (S n) 0 1 0); try lia.
     apply closedn_lift. apply IHΓ; auto.
-    rewrite closedn_ctx_cons in H0.
+    rw closedn_ctx_cons in H0.
     now move/andP: H0 => [H0 _]. simpl in H2; lia.
 
   - intuition auto.
-    generalize (closedn_subst [u] #|Γ| 0 B). rewrite Nat.add_0_r.
-    move=> Hs. apply: Hs => /=. simpl. rewrite H1 => //.
-    rewrite Nat.add_1_r. auto.
+    generalize (closedn_subst [u] #|Γ| 0 B). rw Nat.add_0_r.
+    move=> Hs. apply: Hs => /=. simpl. rw H1 => //.
+    rw Nat.add_1_r. auto.
 
   - unshelve eapply declared_constant_to_gen in H0; tea.
-    rewrite closedn_subst_instance.
+    rw closedn_subst_instance.
     eapply lookup_on_global_env in X0; eauto.
     destruct X0 as (Σ' & hext & [onu HΣ'] & [IHtm IHty]%andb_and).
     simpl in *.
     eauto using closed_upwards with arith.
 
-  - rewrite closedn_subst_instance.
+  - rw closedn_subst_instance.
     eapply declared_inductive_inv in X0; eauto with extends.
     apply onArity in X0.
-    rewrite /on_type_rel /lift_wfb_term /= in X0.
+    rw /on_type_rel /lift_wfb_term /= in X0.
     intuition eauto using closed_upwards with arith.
 
   - destruct isdecl as [Hidecl Hcdecl].
     apply closedn_subst0.
     + unfold inds. clear. simpl. induction #|ind_bodies mdecl|. constructor.
-      simpl. now rewrite IHn.
-    + rewrite inds_length.
-      rewrite closedn_subst_instance.
+      simpl. now rw IHn.
+    + rw inds_length.
+      rw closedn_subst_instance.
       eapply declared_inductive_inv in X0; eauto with extends.
       pose proof X0.(onConstructors) as XX.
       eapply All2_nth_error_Some in Hcdecl; eauto.
       destruct Hcdecl as [? [? ?]]. cbn in *.
       destruct o as [? ? HT _].
-      rewrite /on_type_rel /lift_wfb_term /= in HT.
-      rewrite arities_context_length in HT.
+      rw /on_type_rel /lift_wfb_term /= in HT.
+      rw arities_context_length in HT.
       eauto using closed_upwards with arith.
 
   - destruct H3 as [clret _].
     destruct H7 as [clc clty].
-    rewrite closedn_mkApps in clty. simpl in clty.
-    rewrite forallb_app in clty. move/andP: clty => [clpar clinds].
-    rewrite app_context_length in clret.
+    rw closedn_mkApps in clty. simpl in clty.
+    rw forallb_app in clty. move/andP: clty => [clpar clinds].
+    rw app_context_length in clret.
     red in H9. eapply Forall2_All2 in H9.
     eapply All2i_All2_mix_left in X5; eauto.
     eapply declared_minductive_closed_ind in X0; tea. 2:exact isdecl.
@@ -229,61 +229,61 @@ Proof.
     eapply All2i_All_mix_left in X5; tea. clear X6.
     intuition auto.
     + unfold test_predicate_k. simpl. rtoProp; intuition eauto.
-      rewrite (closedn_ctx_alpha X1).
+      rw (closedn_ctx_alpha X1).
       eapply closed_ind_predicate_context in X0; tea.
-      rewrite (wf_predicate_length_pars H1).
-      now rewrite (declared_minductive_ind_npars isdecl).
-      rewrite (All2_length X1).
-      rewrite /predctx in clret.
-      rewrite case_predicate_context_length_indices // in clret.
-      { now rewrite ind_predicate_context_length. }
+      rw (wf_predicate_length_pars H1).
+      now rw (declared_minductive_ind_npars isdecl).
+      rw (All2_length X1).
+      rw /predctx in clret.
+      rw case_predicate_context_length_indices // in clret.
+      { now rw ind_predicate_context_length. }
     + clear H9. solve_all. unfold test_branch_k. clear H7. solve_all.
-      * rewrite (closedn_ctx_alpha a1).
+      * rw (closedn_ctx_alpha a1).
         unshelve eapply closed_cstr_branch_context_gen in X0; tea. exact ci.
-        rewrite (wf_predicate_length_pars H1).
-        now rewrite (declared_minductive_ind_npars isdecl).
-      * rewrite (All2_length a1).
+        rw (wf_predicate_length_pars H1).
+        now rw (declared_minductive_ind_npars isdecl).
+      * rw (All2_length a1).
         len in H9.
         (*unfold case_branch_context_gen in H8. simpl in H9.
         rewrite case_branch_type_fst in H8. *)
-        rewrite case_branch_context_length_args in H9 => //.
-        now rewrite cstr_branch_context_length.
-    + rewrite closedn_mkApps; auto.
-      rewrite closedn_it_mkLambda_or_LetIn //.
-      rewrite closedn_ctx_app in H4.
+        rw case_branch_context_length_args in H9 => //.
+        now rw cstr_branch_context_length.
+    + rw closedn_mkApps; auto.
+      rw closedn_it_mkLambda_or_LetIn //.
+      rw closedn_ctx_app in H4.
       now move/andP: H4 => [].
-      now rewrite Nat.add_comm.
-      rewrite forallb_app. simpl. now rewrite clc clinds.
+      now rw Nat.add_comm.
+      rw forallb_app. simpl. now rw clc clinds.
 
   - intuition auto.
     apply closedn_subst0.
-    + simpl. rewrite closedn_mkApps in H3.
-      rewrite forallb_rev H2. apply H3.
-    + rewrite closedn_subst_instance.
+    + simpl. rw closedn_mkApps in H3.
+      rw forallb_rev H2. apply H3.
+    + rw closedn_subst_instance.
       eapply declared_projection_closed_ind in X0; eauto.
-      simpl; rewrite List.length_rev H1.
+      simpl; rw List.length_rev H1.
       eapply closed_upwards; eauto. lia.
 
   - clear H.
     split. solve_all.
-    rewrite /on_def_type /on_def_body ?andb_and in a0, b |- *. cbn in *.
+    rw /on_def_type /on_def_body ?andb_and in a0, b |- *. cbn in *.
     simpl in *. unfold test_def.
     rewrite -> app_context_length in *.
     subst types.
-    rewrite fix_context_length in b. intuition auto.
+    rw fix_context_length in b. intuition auto.
     eapply nth_error_all in X1 as (_ & X1)%andb_and; eauto.
 
   - split. solve_all.
-    rewrite /on_def_type /on_def_body ?andb_and in a0, b |- *. cbn in *.
+    rw /on_def_type /on_def_body ?andb_and in a0, b |- *. cbn in *.
     simpl in *. unfold test_def.
     rewrite -> app_context_length in *.
     subst types.
-    rewrite fix_context_length in b. intuition auto.
+    rw fix_context_length in b. intuition auto.
     eapply nth_error_all in X1 as (_ & X1)%andb_and; eauto.
 
   - destruct p as [[] pv]; cbn in X0 |- *; simp prim_type => //.
     depelim pv. simp prim_type. cbn. depelim X1.
-    move/andP: hdef => [] -> ->; rewrite !andb_true_r. split => //.
+    move/andP: hdef => [] -> ->; rw !andb_true_r. split => //.
     solve_all.
 Qed.
 
@@ -324,7 +324,7 @@ Proof.
   move/declared_inductive_closed.
   move/andP => [] /andP [] clind clbodies.
   move/andP: clind => [] _ indpars _.
-  now rewrite closedn_ctx_app clpars indpars.
+  now rw closedn_ctx_app clpars indpars.
 Qed.
 
 Lemma declared_constructor_closed {cf:checker_flags} {Σ : global_env} {wfΣ : wf Σ} {mdecl idecl c cdecl} :
@@ -333,8 +333,8 @@ Lemma declared_constructor_closed {cf:checker_flags} {Σ : global_env} {wfΣ : w
 Proof.
   intros declc.
   generalize (declared_minductive_closed declc).
-  rewrite /closed_inductive_decl.
-  rewrite /closed_inductive_body.
+  rw /closed_inductive_decl.
+  rw /closed_inductive_body.
   move/andP=> [_ clbs].
   destruct declc.
   destruct H.
@@ -398,15 +398,15 @@ Proof. move/lift_typing_closed => [] //. Qed.
 Lemma is_open_term_closed (Γ : context) t :
   closedn #|Γ| t = is_open_term Γ t.
 Proof.
-  rewrite closedP_on_free_vars.
+  rw closedP_on_free_vars.
   eapply on_free_vars_ext.
-  now rewrite closedP_shiftnP.
+  now rw closedP_shiftnP.
 Qed.
 
 Lemma is_closed_ctx_closed (Γ : context) :
   closed_ctx Γ = is_closed_context Γ.
 Proof.
-  rewrite closedn_ctx_on_free_vars //.
+  rw closedn_ctx_on_free_vars //.
 Qed.
 
 #[global]
@@ -418,14 +418,14 @@ Lemma subject_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf �
   is_open_term Γ t.
 Proof.
   move/subject_closed.
-  now rewrite is_open_term_closed.
+  now rw is_open_term_closed.
 Qed.
 
 Lemma type_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ t T} :
   Σ ;;; Γ |- t : T ->
   is_open_term Γ T.
 Proof.
-  move/type_closed. now rewrite is_open_term_closed.
+  move/type_closed. now rw is_open_term_closed.
 Qed.
 
 Lemma lift_typing_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ j} :
@@ -434,21 +434,21 @@ Lemma lift_typing_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : 
 Proof.
   move/lift_typing_closed => Hj.
   apply lift_wf_term_impl with (1 := Hj) => t.
-  rewrite is_open_term_closed //.
+  rw is_open_term_closed //.
 Qed.
 
 Lemma isTypeRel_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ T r} :
   isTypeRel Σ Γ T r ->
   is_open_term Γ T.
 Proof.
-  move/isType_closed. now rewrite is_open_term_closed.
+  move/isType_closed. now rw is_open_term_closed.
 Qed.
 
 Lemma isType_is_open_term {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ.1} {Γ T} :
   isType Σ Γ T ->
   is_open_term Γ T.
 Proof.
-  move/isType_closed. now rewrite is_open_term_closed.
+  move/isType_closed. now rw is_open_term_closed.
 Qed.
 
 Lemma closed_wf_local `{checker_flags} {Σ Γ} :
@@ -482,14 +482,14 @@ Qed.
 
 Lemma closed_ctx_on_ctx_free_vars Γ : closed_ctx Γ = on_ctx_free_vars (closedP #|Γ| xpredT) Γ.
 Proof.
-  rewrite closedn_ctx_on_free_vars.
-  now rewrite -on_free_vars_ctx_on_ctx_free_vars shiftnP_closedP shiftnP_xpredT Nat.add_0_r.
+  rw closedn_ctx_on_free_vars.
+  now rw -on_free_vars_ctx_on_ctx_free_vars shiftnP_closedP shiftnP_xpredT Nat.add_0_r.
 Qed.
 
 Lemma wf_local_closed_context `{checker_flags} {Σ Γ} {wfΣ : wf Σ} : wf_local Σ Γ -> on_free_vars_ctx xpred0 Γ.
 Proof.
   move/PCUICClosedTyp.closed_wf_local.
-  now rewrite closed_ctx_on_ctx_free_vars on_free_vars_ctx_on_ctx_free_vars_closedP.
+  now rw closed_ctx_on_ctx_free_vars on_free_vars_ctx_on_ctx_free_vars_closedP.
 Qed.
 
 Lemma typing_closed_context {cf} {Σ} {wfΣ : wf Σ} {Γ T U} :
@@ -549,7 +549,7 @@ Proof.
   eapply lookup_on_global_env in h. 2: eauto.
   destruct h as (Σ' & ext & wfΣ' & [Htm _]%andb_and).
   simpl in Htm.
-  rewrite e in Htm.
+  rw e in Htm.
   easy.
 Qed.
 
@@ -589,7 +589,7 @@ Lemma declared_inductive_closed_params_inst {cf:checker_flags} {Σ mdecl ind ide
   closed_ctx (subst_instance u mdecl.(ind_params)).
 Proof.
   intros h.
-  rewrite closedn_subst_instance_context.
+  rw closedn_subst_instance_context.
   now apply (declared_inductive_closed_params h).
 Qed.
 
@@ -618,11 +618,11 @@ Proof.
   eapply declared_minductive_closed in h.
   move/andP: h => [] _ clbs.
   induction (ind_bodies mdecl) => //.
-  rewrite /arities_context /= rev_map_spec /=.
+  rw /arities_context /= rev_map_spec /=.
   move: clbs; simpl. move=> /andP[] cla clbs.
-  rewrite closedn_ctx_app /=. apply/andP; split; auto.
-  rewrite /test_decl /=. now move/andP: cla => [] /andP[] /andP[].
-  eapply closedn_ctx_upwards. rewrite -rev_map_spec. eapply IHl => //. lia.
+  rw closedn_ctx_app /=. apply/andP; split; auto.
+  rw /test_decl /=. now move/andP: cla => [] /andP[] /andP[].
+  eapply closedn_ctx_upwards. rw -rev_map_spec. eapply IHl => //. lia.
 Qed.
 
 
@@ -656,8 +656,8 @@ Proof.
   eapply closedn_subst0.
   - eapply declared_minductive_closed_inds.
     now destruct hidecl.
-  - simpl. rewrite inds_length.
-    rewrite closedn_subst_instance. assumption.
+  - simpl. rw inds_length.
+    rw closedn_subst_instance. assumption.
 Qed.
 
 Lemma declared_constructor_closed_args {cf:checker_flags}
@@ -702,7 +702,7 @@ Lemma closed_cstr_branch_context_npars {cf : checker_flags} {Σ : global_env_ext
   closedn_ctx (ind_npars mdecl) (cstr_branch_context ind mdecl cdecl).
 Proof.
   intros declc.
-  rewrite (declared_minductive_ind_npars declc).
+  rw (declared_minductive_ind_npars declc).
   now apply (closed_cstr_branch_context declc).
 Qed.
 
@@ -738,26 +738,26 @@ Proof.
   all:try move/andP: hav => [h1 h2].
   all:try move/andP: h3 => [] h3 h4.
   all:try move/andP: h4 => [] h4 h5.
-  all:try rewrite ?h1 // ?h2 // ?h3 // ?h4 // ?IHh /= // ?andb_true_r.
+  all:try rw ?h1 // ?h2 // ?h3 // ?h4 // ?IHh /= // ?andb_true_r.
   all:try eapply on_free_vars_subst1; eauto.
   - destruct (nth_error Γ i) eqn:hnth => //.
     simpl in H. noconf H.
     epose proof (nth_error_on_free_vars_ctx P 0 Γ i c).
-    forward H0. { now rewrite addnP0. }
+    forward H0. { now rw addnP0. }
     specialize (H0 hav hnth). simpl in H0.
-    rewrite /test_decl H in H0.
-    rewrite on_free_vars_lift0 //.
+    rw /test_decl H in H0.
+    rw on_free_vars_lift0 //.
     now move/andP: H0 => [] /=.
-  - rewrite /iota_red.
+  - rw /iota_red.
     rename h5 into hbrs.
-    move: h4. rewrite on_free_vars_mkApps => /andP [] /= _ hargs.
+    move: h4. rw on_free_vars_mkApps => /andP [] /= _ hargs.
     apply on_free_vars_subst.
-    { rewrite forallb_rev forallb_skipn //. }
+    { rw forallb_rev forallb_skipn //. }
     len.
-    rewrite length_skipn; try lia; rewrite H0.
+    rw length_skipn; try lia; rw H0.
     replace (ci_npar ci + context_assumptions (bcontext br) - ci_npar ci)
     with (context_assumptions (bcontext br)) by lia.
-    rewrite /expand_lets /expand_lets_k /=.
+    rw /expand_lets /expand_lets_k /=.
     eapply forallb_nth_error in hbrs.
     erewrite H in hbrs; simpl in hbrs.
     move/andP: hbrs => [] hbr hbody.
@@ -766,69 +766,69 @@ Proof.
       + unshelve eapply foron_free_vars_extended_subst. eauto.
         eapply on_free_vars_ctx_inst_case_context; tea => //.
       + unfold inst_case_branch_context. now len.
-    * rewrite extended_subst_length.
-      rewrite shiftnP_add.
+    * rw extended_subst_length.
+      rw shiftnP_add.
       eapply on_free_vars_lift_impl in hbody. unfold inst_case_branch_context. len.
-      now rewrite Nat.add_comm.
-  - rewrite !on_free_vars_mkApps in hav |- *.
+      now rw Nat.add_comm.
+  - rw !on_free_vars_mkApps in hav |- *.
     rtoProp.
     eapply on_free_vars_unfold_fix in H; eauto.
-  - move: h4; rewrite !on_free_vars_mkApps.
+  - move: h4; rw !on_free_vars_mkApps.
     move=> /andP [] hcofix ->.
     eapply on_free_vars_unfold_cofix in hcofix; eauto.
-  - move: hav; rewrite !on_free_vars_mkApps => /andP [] hcofix ->.
+  - move: hav; rw !on_free_vars_mkApps => /andP [] hcofix ->.
     eapply on_free_vars_unfold_cofix in H as ->; eauto.
-  - eapply closed_on_free_vars. rewrite closedn_subst_instance.
+  - eapply closed_on_free_vars. rw closedn_subst_instance.
     eapply declared_constant_closed_body; eauto.
-  - move: hav; rewrite on_free_vars_mkApps /=.
+  - move: hav; rw on_free_vars_mkApps /=.
     now move/(nth_error_forallb H).
-  - rewrite (on_ctx_free_vars_concat _ _ [_]) // /= hctx
+  - rw (on_ctx_free_vars_concat _ _ [_]) // /= hctx
       on_ctx_free_vars_tip /= addnP_shiftnP /on_free_vars_decl
       /test_decl /= // hctx h2.
-  - rewrite (on_ctx_free_vars_concat _ _ [_]) // hctx
+  - rw (on_ctx_free_vars_concat _ _ [_]) // hctx
       on_ctx_free_vars_tip /= addnP_shiftnP /on_free_vars_decl /test_decl /= h2 /=
       /foroptb /= h1 // h2.
   - solve_all.
     + eapply OnOne2_impl_All_r; eauto. solve_all.
-    + now rewrite -(OnOne2_length X).
-    + now rewrite -(OnOne2_length X).
+    + now rw -(OnOne2_length X).
+    + now rw -(OnOne2_length X).
   - relativize #|pcontext p|; unfold inst_case_predicate_context.
-    * erewrite on_ctx_free_vars_extend; rewrite // hctx.
+    * erewrite on_ctx_free_vars_extend; rw // hctx.
       erewrite on_free_vars_ctx_inst_case_context => //.
     * now len.
   - toAll.
     clear -h1 hctx X h5.
     eapply OnOne2_All_mix_left in X; tea.
-    toAll. eapply OnOne2_impl_All_r in X; tea; solve_all; rewrite -?b0 //.
+    toAll. eapply OnOne2_impl_All_r in X; tea; solve_all; rw -?b0 //.
     eapply b1 => //.
     relativize #|bcontext x|; unfold inst_case_branch_context.
-    * erewrite on_ctx_free_vars_extend; rewrite // hctx.
+    * erewrite on_ctx_free_vars_extend; rw // hctx.
       erewrite on_free_vars_ctx_inst_case_context => //. solve_all.
     * now len.
-  - rewrite (on_ctx_free_vars_concat _ _ [_]) // /= hctx
+  - rw (on_ctx_free_vars_concat _ _ [_]) // /= hctx
       on_ctx_free_vars_tip /= addnP_shiftnP /on_free_vars_decl /test_decl /= h1 /= //.
   - toAll. eapply OnOne2_impl_All_r; eauto; solve_all.
   - toAll. unfold test_def.
-    rewrite -(OnOne2_length X).
+    rw -(OnOne2_length X).
     eapply OnOne2_impl_All_r; eauto; solve_all.
     destruct x, y; noconf b; simpl in *. rtoProp; solve_all.
-  - toAll. unfold test_def in *. rewrite -(OnOne2_length X).
+  - toAll. unfold test_def in *. rw -(OnOne2_length X).
     eapply OnOne2_impl_All_r; eauto; solve_all;
      destruct x, y; noconf b; simpl in *; rtoProp; solve_all.
     apply b0 => //.
-    rewrite -(fix_context_length mfix0).
-    erewrite on_ctx_free_vars_extend; rewrite // hctx.
+    rw -(fix_context_length mfix0).
+    erewrite on_ctx_free_vars_extend; rw // hctx.
     now apply on_free_vars_fix_context.
   - toAll. unfold test_def.
-    rewrite -(OnOne2_length X).
+    rw -(OnOne2_length X).
     eapply OnOne2_impl_All_r; eauto; solve_all.
     destruct x, y; noconf b; simpl in *. rtoProp; solve_all.
-  - toAll. unfold test_def in *. rewrite -(OnOne2_length X).
+  - toAll. unfold test_def in *. rw -(OnOne2_length X).
     eapply OnOne2_impl_All_r; eauto; solve_all;
     destruct x, y; noconf b; simpl in *; rtoProp; solve_all.
     apply b0 => //.
-    rewrite -(fix_context_length mfix0).
-    rewrite on_ctx_free_vars_extend // hctx.
+    rw -(fix_context_length mfix0).
+    rw on_ctx_free_vars_extend // hctx.
     now apply on_free_vars_fix_context.
   - cbn. toAll. solve_all.
     eapply OnOne2_impl_All_r; eauto; solve_all.
@@ -894,7 +894,7 @@ Proof.
       destruct l; [constructor|]; cbn.
       move=> /= /andP []. simpl. move=> /= clt cll.
       constructor; [|apply auxl'].
-      apply auxt => //. now rewrite cll /=.
+      apply auxt => //. now rw cll /=.
     * revert clctx.
       unfold onctx_k.
       generalize (pcontext p).
@@ -903,16 +903,16 @@ Proof.
       move=>  /andP []. simpl. move=> /= clctx /andP [] clt cll.
       destruct c as [na [b|] ty]; simpl in *;
       constructor; simpl.
-      split; apply auxt; rewrite Nat.sub_0_r //. simpl.
+      split; apply auxt; rw Nat.sub_0_r //. simpl.
       eapply Alli_shift, Alli_impl; eauto. simpl.
       intros n x. now replace (Nat.pred #|l| - n + #|pparams p|) with (#|l| - S n + #|pparams p|) by lia.
-      rewrite Nat.sub_0_r //. split; auto. exact tt.
+      rw Nat.sub_0_r //. split; auto. exact tt.
       eapply Alli_shift, Alli_impl; eauto. simpl.
       intros n x. now replace (Nat.pred #|l| - n + #|pparams p|) with (#|l| - S n + #|pparams p|) by lia.
     * apply auxt => //.
   - unfold tCaseBrsProp_k.
     revert brs cl2. clear cl1 cl1'.
-    rewrite /test_branch_k.
+    rw /test_branch_k.
     fix auxl' 1.
     destruct brs; constructor; [|apply auxl'].
     simpl in cl2. move/andP: cl2  => [/andP [clctx clt] cll].
@@ -924,17 +924,17 @@ Proof.
     move=>  /andP []. simpl. move=> /= clctx /andP [] clt' cll'.
     destruct c as [na [bod|] ty]; simpl in *;
     constructor; simpl.
-    split; apply auxt; rewrite Nat.sub_0_r //.
+    split; apply auxt; rw Nat.sub_0_r //.
     eapply Alli_shift, Alli_impl; eauto. eapply auxl'' => //. simpl.
     intros n x. now replace (Nat.pred #|l| - n + #|pparams p|) with (#|l| - S n + #|pparams p|) by lia.
-    repeat split. rewrite Nat.sub_0_r. apply auxt => //.
+    repeat split. rw Nat.sub_0_r. apply auxt => //.
     eapply Alli_shift, Alli_impl; eauto. eapply auxl'' => //. simpl.
     intros n x. now replace (Nat.pred #|l| - n + #|pparams p|) with (#|l| - S n + #|pparams p|) by lia.
     eapply auxt => //.
     simpl in cl2. now move/andP: cl2 => [].
 
   - red.
-    rewrite fix_context_length.
+    rw fix_context_length.
     revert clt.
     generalize (#|mfix|).
     revert mfix.
@@ -945,7 +945,7 @@ Proof.
     move/andP: clt => [cd cmfix]. apply auxm; auto.
 
   - red.
-    rewrite fix_context_length.
+    rw fix_context_length.
     revert clt.
     generalize (#|mfix|).
     revert mfix.
@@ -1018,9 +1018,9 @@ Proof.
       clear -auxt.
       unfold onctx_k, ondecl.
       generalize (pcontext p).
-      fix auxl' 1; destruct l; [constructor|]; simpl; rewrite ?Nat.sub_0_r.
+      fix auxl' 1; destruct l; [constructor|]; simpl; rw ?Nat.sub_0_r.
       move/andP => [] tl /andP [tdef tty]. constructor.
-      + rewrite Nat.sub_0_r. simpl. split; [|apply auxt]; tas.
+      + rw Nat.sub_0_r. simpl. split; [|apply auxt]; tas.
         destruct (decl_body c); simpl in *; auto.
       + eapply Alli_shift, Alli_impl; eauto. simpl.
         intros n' x.
@@ -1035,9 +1035,9 @@ Proof.
     * unfold onctx_k, ondecl.
       revert clctx.
       generalize (bcontext b).
-      fix auxl'' 1; destruct l; [constructor|]; simpl; rewrite ?Nat.sub_0_r.
+      fix auxl'' 1; destruct l; [constructor|]; simpl; rw ?Nat.sub_0_r.
       move/andP => [] tl /andP [tdef tty]. constructor.
-      + rewrite Nat.sub_0_r. simpl. split; [|apply auxt]; tas.
+      + rw Nat.sub_0_r. simpl. split; [|apply auxt]; tas.
         destruct (decl_body c); simpl in *; auto.
       + eapply Alli_shift, Alli_impl; eauto. simpl.
         intros n' x.
@@ -1046,7 +1046,7 @@ Proof.
     * now simpl in cl2; move/andP: cl2 => [].
 
   - red.
-    rewrite fix_context_length.
+    rw fix_context_length.
     revert clt.
     generalize (#|mfix|).
     revert mfix.
@@ -1057,7 +1057,7 @@ Proof.
     move/andP: clt => [cd cmfix]. apply auxm; auto.
 
   - red.
-    rewrite fix_context_length.
+    rw fix_context_length.
     revert clt.
     generalize (#|mfix|).
     revert mfix.

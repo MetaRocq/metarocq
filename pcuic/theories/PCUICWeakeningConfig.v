@@ -68,7 +68,7 @@ Lemma weakening_config_consistent_instance cf1 cf2 Σ ctrs u :
   @consistent_instance_ext cf1 Σ ctrs u ->
   @consistent_instance_ext cf2 Σ ctrs u.
 Proof.
-  rewrite /consistent_instance_ext/consistent_instance/valid_constraints/config.impl.
+  rw /consistent_instance_ext/consistent_instance/valid_constraints/config.impl.
   do 2 case: check_univs; cbn => //=.
   case: ctrs => //=; intuition auto.
 Qed.

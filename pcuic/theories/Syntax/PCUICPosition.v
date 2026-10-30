@@ -1794,42 +1794,42 @@ Lemma closedn_fill_hole k t se : closedn k (fill_hole t se) = closedn (#|stack_e
 Proof.
   destruct se; simpl => //; try bool_congr; try ring.
   - destruct mfix as ((mfix1&[])&mfix2); cbn; len.
-    * rewrite -app_tip_assoc !forallb_app.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /=. ring.
-    * rewrite -app_tip_assoc !forallb_app.
+      rw !andb_assoc andb_true_r /=. ring.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /= length_map. ring.
+      rw !andb_assoc andb_true_r /= length_map. ring.
   - destruct mfix as ((mfix1&[])&mfix2); cbn; len.
-    * rewrite -app_tip_assoc !forallb_app.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /=. ring.
-    * rewrite -app_tip_assoc !forallb_app.
+      rw !andb_assoc andb_true_r /=. ring.
+    * rw -app_tip_assoc !forallb_app.
       replace (k + #|mfix1| + 1 + #|mfix2|) with (#|mfix1| + S #|mfix2| + k) by lia.
-      rewrite !andb_assoc andb_true_r /= length_map. ring.
+      rw !andb_assoc andb_true_r /= length_map. ring.
   - destruct p; cbn.
     * unfold test_predicate_k; cbn.
-      rewrite !forallb_app /=. len. ring_simplify.
+      rw !forallb_app /=. len. ring_simplify.
       replace (k + #|pcontext|) with (#|pcontext| + k) by lia.
-      rewrite - !andb_assoc. repeat bool_congr.
+      rw - !andb_assoc. repeat bool_congr.
       apply forallb_ext. intros []; cbn.
       unfold test_branch_k, test_branch_k_pars; cbn; len.
-      now rewrite -Nat.add_assoc /=.
+      now rw -Nat.add_assoc /=.
     * unfold test_predicate_k; cbn; len.
-      rewrite - !andb_assoc. repeat bool_congr.
+      rw - !andb_assoc. repeat bool_congr.
   - destruct brs as [[brs []] brs']; cbn.
-    rewrite -app_tip_assoc !forallb_app; cbn.
-    len; ring_simplify; rewrite - !andb_assoc; repeat bool_congr.
+    rw -app_tip_assoc !forallb_app; cbn.
+    len; ring_simplify; rw - !andb_assoc; repeat bool_congr.
   - cbn. bool_congr.
-  - cbn; rewrite -!andb_assoc; bool_congr.
-  - cbn. rewrite !forallb_app -!andb_assoc; repeat bool_congr.
+  - cbn; rw -!andb_assoc; bool_congr.
+  - cbn. rw !forallb_app -!andb_assoc; repeat bool_congr.
 Qed.
 
 Lemma closedn_zip k t π : closedn k (zipc t π) = closedn_stack k π && closedn (#|stack_context π| + k) t.
 Proof.
   induction π in k, t |- * => //.
   simpl.
-  rewrite IHπ. bool_congr. len.
-  rewrite closedn_fill_hole.
-  rewrite Nat.add_assoc (Nat.add_comm #|stack_context π| k). ring.
+  rw IHπ. bool_congr. len.
+  rw closedn_fill_hole.
+  rw Nat.add_assoc (Nat.add_comm #|stack_context π| k). ring.
 Qed.

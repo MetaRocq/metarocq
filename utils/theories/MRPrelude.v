@@ -55,7 +55,7 @@ Infix "≐2" := (pointwise_relation _ (pointwise_relation _ Logic.eq)) (at level
 Proof.
   intros f f' Hff' g g' Hgg'. split; intros.
   - intros x. now rewrite <- Hff', <- Hgg'.
-  - intros x. now rewrite Hff' Hgg'.
+  - intros x. now rw Hff' Hgg'.
 Qed.
 
 #[global] Instance id_proper_proxy {A} : ProperProxy (`≐1`) (@id A).
@@ -65,12 +65,12 @@ Qed.
 
 #[global] Instance pointwise_subrelation {A B} : subrelation (`≐1`) (@Logic.eq A ==> @Logic.eq B)%signature.
 Proof.
-  intros f g Hfg x y ->. now rewrite Hfg.
+  intros f g Hfg x y ->. now rw Hfg.
 Qed.
 
 #[global] Instance pointwise_subrelation2 {A B C} : subrelation (`≐2`) (@Logic.eq A ==> @Logic.eq B ==> @Logic.eq C)%signature.
 Proof.
-  intros f g Hfg x y -> ? ? ->. now rewrite Hfg.
+  intros f g Hfg x y -> ? ? ->. now rw Hfg.
 Qed.
 
 (** Common abbreviations *)

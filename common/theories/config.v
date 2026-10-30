@@ -49,13 +49,13 @@ Local Instance extraction_checker_flags : checker_flags := {|
      && implb cf1.(@lets_in_constructor_types) cf2.(@lets_in_constructor_types).
 
 #[local] Definition impl_reflb cf : impl cf cf = true.
-Proof. rewrite /impl !implb_same ?orb_true_r //. Qed.
+Proof. rw /impl !implb_same ?orb_true_r //. Qed.
 #[local] Definition impl_refl : Reflexive impl := impl_reflb.
 #[local] Definition impl_crefl : CRelationClasses.Reflexive impl := impl_reflb.
 #[local] Definition impl_trans : Transitive impl.
 Proof.
-  rewrite /impl => x y z; destruct x, y, z; cbn.
-  rewrite !implb_orb.
+  rw /impl => x y z; destruct x, y, z; cbn.
+  rw !implb_orb.
   repeat match goal with
          | [ |- is_true (andb _ _) -> _ ] => move => /andP[]
          | [ |- is_true (orb _ _) -> _ ] => move => /orP[]
@@ -64,7 +64,7 @@ Proof.
          | [ |- is_true false -> _ ] => move => //=
          | [ |- is_true ?x -> _ ] => is_var x; let H := fresh in intro H; cbv [is_true] in H; subst
          end.
-  all: rewrite ?orb_true_l ?orb_true_r ?andb_false_l ?andb_false_r //.
+  all: rw ?orb_true_l ?orb_true_r ?andb_false_l ?andb_false_r //.
 Qed.
 #[local] Definition impl_ctrans : CRelationClasses.Transitive impl := impl_trans.
 #[global] Existing Instances

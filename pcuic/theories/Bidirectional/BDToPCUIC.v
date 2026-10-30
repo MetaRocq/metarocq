@@ -36,31 +36,31 @@ Lemma wf_local_rel_subst1 `{checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ} 
 Proof.
   induction Γ' as [|d Γ']; [now inversion 1|].
   change (d :: Γ') with (Γ' ,, d).
-  destruct d as [na' [bd|] ty]; rewrite !app_context_cons; intro HH.
-  - rewrite subst_context_snoc0. simpl.
+  destruct d as [na' [bd|] ty]; rw !app_context_cons; intro HH.
+  - rw subst_context_snoc0. simpl.
     inversion HH; subst; cbn in *.
     change (Γ,, vdef na b t ,,, Γ') with (Γ ,,, [vdef na b t] ,,, Γ') in *.
     assert (subslet Σ (Δ ,,, Γ) [b] [vdef na b t]). {
       pose proof (cons_let_def Σ (Δ ,,, Γ) [] [] na b t) as XX.
-      rewrite !subst_empty in XX. apply XX. constructor.
+      rw !subst_empty in XX. apply XX. constructor.
       apply All_local_env_app_l in X. inversion X; subst; cbn in * ; now eapply unlift_TermTyp.
     }
     constructor; cbn; auto.
     1: apply IHΓ' ; exact X.
     apply lift_typing_f_impl with (1 := X0) => // ?? Hs.
-    rewrite !app_context_assoc in Hs |- *.
+    rw !app_context_assoc in Hs |- *.
     eapply substitution; tea.
-  - rewrite subst_context_snoc0. simpl.
+  - rw subst_context_snoc0. simpl.
     inversion HH; subst; cbn in *.
     change (Γ,, vdef na b t ,,, Γ') with (Γ ,,, [vdef na b t] ,,, Γ') in *.
     assert (subslet Σ (Δ ,,, Γ) [b] [vdef na b t]). {
       pose proof (cons_let_def Σ (Δ ,,, Γ) [] [] na b t) as XX.
-      rewrite !subst_empty in XX. apply XX. constructor.
+      rw !subst_empty in XX. apply XX. constructor.
       apply All_local_env_app_l in X. inversion X; subst; cbn in *; now eapply unlift_TermTyp. }
     constructor; cbn; auto.
     1: apply IHΓ' ; exact X.
     apply lift_typing_f_impl with (1 := X0) => // ?? Hs.
-    rewrite !app_context_assoc in Hs |- *.
+    rw !app_context_assoc in Hs |- *.
     eapply substitution; tea.
 Qed.
 
@@ -173,14 +173,14 @@ Section BDToPCUICTyping.
       apply isTypeRel_isType in X2 as X2'.
       constructor ; auto.
       apply X ; auto.
-      1: by rewrite subst_telescope_length ; reflexivity.
-      rewrite -(rev_involutive Γ0) -subst_context_telescope.
+      1: by rw subst_telescope_length ; reflexivity.
+      rw -(rev_involutive Γ0) -subst_context_telescope.
       cbn in wfΔ.
       apply All_local_rel_app_inv in wfΔ as [].
       apply wf_local_local_rel.
       eapply substitution_wf_local ; eauto.
       1: repeat constructor.
-      1: rewrite subst_empty ; eauto.
+      1: rw subst_empty ; eauto.
       apply All_local_env_app.
       1: constructor ; eauto.
       eassumption.
@@ -194,8 +194,8 @@ Section BDToPCUICTyping.
       }
       constructor ; auto.
       apply X ; auto.
-      1: by rewrite subst_telescope_length ; reflexivity.
-      rewrite -(rev_involutive Γ0) -subst_context_telescope.
+      1: by rw subst_telescope_length ; reflexivity.
+      rw -(rev_involutive Γ0) -subst_context_telescope.
       rewrite <- app_nil_r.
       eapply wf_local_rel_subst1.
       cbn in wfΔ |- *.
@@ -252,7 +252,7 @@ Section BDToPCUICTyping.
 
       assert (cparams : ctx_inst Σ Γ (pparams p) (List.rev (ind_params mdecl)@[puinst p])).
       { apply ctx_inst_impl ; auto.
-        rewrite rev_involutive.
+        rw rev_involutive.
         apply wf_rel_weak ; auto.
         move: (H) => [decl ?].
         pose proof (decl' := declared_minductive_to_gen (wfΣ := wfΣ) decl).
@@ -269,7 +269,7 @@ Section BDToPCUICTyping.
         - now constructor.
         - eapply type_is_open_term in X0 ; eauto.
           move: X0.
-          rewrite on_free_vars_mkApps -{-3}(firstn_skipn (ci_npar ci) args)
+          rw on_free_vars_mkApps -{-3}(firstn_skipn (ci_npar ci) args)
           forallb_app /= => /andP [? ?].
           apply All2_app ; tea.
           + assert (forallb (is_open_term Γ) p.(pparams)).
@@ -277,7 +277,7 @@ Section BDToPCUICTyping.
               eapply All_forallb'.
               1: now eapply ctx_inst_closed.
               intros.
-              by rewrite -is_open_term_closed.
+              by rw -is_open_term_closed.
             }
             solve_all.
             eapply into_ws_cumul_pb ; tea.
@@ -288,10 +288,10 @@ Section BDToPCUICTyping.
       assert (ctx_inst Σ Γ (pparams p ++ skipn (ci_npar ci) args)
         (List.rev (subst_instance (puinst p) (ind_params mdecl,,, ind_indices idecl)))).
       {
-        rewrite -H0.
+        rw -H0.
         eapply ctx_inst_app_weak ; eauto.
         1: eapply validity ; auto.
-        now rewrite H0.
+        now rw H0.
       }
 
       assert (isType Σ Γ (mkApps (tInd ci (puinst p))
@@ -302,7 +302,7 @@ Section BDToPCUICTyping.
         1: econstructor ; eauto.
         erewrite PCUICGlobalMaps.ind_arity_eq.
         2: by eapply PCUICInductives.oib ; eauto.
-        rewrite !subst_instance_it_mkProd_or_LetIn -it_mkProd_or_LetIn_app -subst_instance_app - (app_nil_r (pparams p ++ skipn (ci_npar ci) args)).
+        rw !subst_instance_it_mkProd_or_LetIn -it_mkProd_or_LetIn_app -subst_instance_app - (app_nil_r (pparams p ++ skipn (ci_npar ci) args)).
         eapply arity_spine_it_mkProd_or_LetIn ; auto.
         - unshelve apply ctx_inst_spine_subst ; auto.
           apply weaken_wf_local ; auto.
@@ -509,14 +509,14 @@ Theorem ctx_inst_bd_typing `{checker_flags} (Σ : global_env_ext) Γ l Δ (wfΣ 
   PCUICTyping.ctx_inst (typing Σ) Γ l (List.rev Δ).
 Proof.
   intros wfΓ inl.
-  rewrite -(List.rev_involutive Δ) in wfΓ.
+  rw -(List.rev_involutive Δ) in wfΓ.
   remember (List.rev Δ) as Δ'.
   clear HeqΔ'.
   induction inl in wfΓ |- *.
   - constructor.
   - assert (Σ ;;; Γ |- i : t).
     {
-      rewrite /= app_context_assoc in wfΓ.
+      rw /= app_context_assoc in wfΓ.
       eapply All_local_env_app_inv in wfΓ as [wfΓ _].
       inversion wfΓ ; subst.
       apply isTypeRel_isType in X0.
@@ -524,21 +524,21 @@ Proof.
     }
     constructor ; tea.
     eapply IHinl.
-    rewrite /= app_context_assoc in wfΓ.
-    rewrite -subst_context_rev_subst_telescope.
+    rw /= app_context_assoc in wfΓ.
+    rw -subst_context_rev_subst_telescope.
     eapply substitution_wf_local ; tea.
     constructor.
     1: constructor.
-    now rewrite subst_empty.
+    now rw subst_empty.
   - constructor.
     eapply IHinl.
-    rewrite /= app_context_assoc in wfΓ.
-    rewrite -subst_context_rev_subst_telescope.
+    rw /= app_context_assoc in wfΓ.
+    rw -subst_context_rev_subst_telescope.
     eapply substitution_wf_local ; tea.
-    rewrite -{1}(subst_empty 0 b).
+    rw -{1}(subst_empty 0 b).
     constructor.
     1: constructor.
-    rewrite !subst_empty.
+    rw !subst_empty.
     eapply All_local_env_app_inv in wfΓ as [wfΓ _].
     inversion wfΓ ; subst.
     now eapply unlift_TermTyp.

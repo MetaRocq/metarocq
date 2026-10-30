@@ -169,15 +169,15 @@ Lemma alpha_eq_extended_subst {Γ Δ k} :
 Proof.
   induction 1 in k |- *; cbn; auto.
   destruct r; subst; cbn; f_equal; auto.
-  rewrite IHX. now rewrite (alpha_eq_context_assumptions X).
+  rw IHX. now rw (alpha_eq_context_assumptions X).
 Qed.
 
 Lemma expand_lets_eq {Γ Δ t} :
   eq_context_upto_names Γ Δ ->
   expand_lets Γ t = expand_lets Δ t.
 Proof.
-  intros. rewrite /expand_lets /expand_lets_k.
-  now rewrite (All2_length X) (alpha_eq_context_assumptions X) (alpha_eq_extended_subst X).
+  intros. rw /expand_lets /expand_lets_k.
+  now rw (All2_length X) (alpha_eq_context_assumptions X) (alpha_eq_extended_subst X).
 Qed.
 
 Lemma alpha_eq_subst_context {Γ Δ s k} :
@@ -185,11 +185,11 @@ Lemma alpha_eq_subst_context {Γ Δ s k} :
   eq_context_upto_names (subst_context s k Γ) (subst_context s k Δ).
 Proof.
   intros.
-  rewrite /subst_context.
+  rw /subst_context.
   induction X.
   - cbn; auto.
-  - rewrite !fold_context_k_snoc0. constructor; auto.
-    rewrite -(All2_length X).
+  - rw !fold_context_k_snoc0. constructor; auto.
+    rw -(All2_length X).
     destruct r; subst; constructor; cbn; auto.
 Qed.
 
@@ -444,7 +444,7 @@ Lemma global_variance_napp_mon Σ gr {napp napp'} :
   end.
 Proof.
   intros hnapp.
-  rewrite /global_variance_gen.
+  rw /global_variance_gen.
   destruct gr => //=.
   - destruct lookup_inductive_gen as [[mdecl idec]|] => //=.
     destruct destArity as [[ctx s]|] => //=.
@@ -574,16 +574,16 @@ Proof.
   - assumption.
   - pose proof (eq_term_upto_univ_App _ _ _ _ _ _ _ e).
     case_eq (isApp f).
-    + intro X; rewrite X in H0.
+    + intro X; rw X in H0.
       destruct f; try discriminate.
       destruct f'; try discriminate.
       cbn. inversion_clear e. constructor.
-      rewrite length_app /= -Nat.add_assoc //.
+      rw length_app /= -Nat.add_assoc //.
       apply All2_app. assumption.
       now constructor.
-    + intro X; rewrite X in H0.
+    + intro X; rw X in H0.
       eapply negbT in X. symmetry in H0; eapply negbT in H0.
-      rewrite - !mkApps_tApp //.
+      rw - !mkApps_tApp //.
       constructor. simpl. now simpl in e.
       now constructor.
 Qed.

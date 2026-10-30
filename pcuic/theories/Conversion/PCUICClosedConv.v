@@ -42,12 +42,12 @@ Proof.
   induction Δ; simpl; auto; try constructor.
   destruct a as [? [] ?]; intuition auto.
   - apply Alli_app_inv; auto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
-    rewrite app_context_length Nat.add_comm in b.
+    rw List.length_rev. 2:constructor.
+    rw app_context_length Nat.add_comm in b.
     apply b.
   - apply Alli_app_inv; auto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
-    rewrite app_context_length Nat.add_comm in b.
+    rw List.length_rev. 2:constructor.
+    rw app_context_length Nat.add_comm in b.
     apply b.
 Qed.
 
@@ -58,13 +58,13 @@ Proof.
   induction Δ in s |- *; simpl; auto; try constructor.
   destruct a as [? [] ?]; intuition auto.
   - apply Alli_app_inv; eauto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
-    rewrite app_context_length Nat.add_comm in b.
+    rw List.length_rev. 2:constructor.
+    rw app_context_length Nat.add_comm in b.
     apply b.
   - destruct s as [|u us]; auto. destruct X as [X b].
     apply Alli_app_inv; eauto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
-    rewrite app_context_length Nat.add_comm in b.
+    rw List.length_rev. 2:constructor.
+    rw app_context_length Nat.add_comm in b.
     apply b.
 Qed.
 
@@ -75,10 +75,10 @@ Proof.
   induction Γ; simpl; auto; try constructor.
   intros all; depelim all; intuition auto.
   - apply Alli_app_inv; auto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
+    rw List.length_rev. 2:constructor.
     assumption.
   - apply Alli_app_inv; auto. constructor. simpl.
-    rewrite List.length_rev. 2:constructor.
+    rw List.length_rev. 2:constructor.
     assumption.
 Qed.
 
@@ -92,8 +92,8 @@ Lemma closedn_ctx_alpha {k ctx ctx'} :
   closedn_ctx k ctx = closedn_ctx k ctx'.
 Proof.
   induction 1 in k |- *; simpl; auto.
-  rewrite IHX. f_equal.
-  rewrite (All2_length X).
+  rw IHX. f_equal.
+  rw (All2_length X).
   destruct r; cbn; now subst.
 Qed.
 
@@ -102,7 +102,7 @@ Lemma closedn_All_local_env (ctx : list context_decl) :
     closedn_ctx 0 ctx.
 Proof.
   induction 1 using All_local_env_ind1; auto.
-  rewrite closedn_ctx_cons IHX //=.
+  rw closedn_ctx_cons IHX //=.
 Qed.
 
 Lemma declared_minductive_closed_inds {cf} {Σ ind mdecl u} {wfΣ : wf Σ} :
@@ -115,7 +115,7 @@ Proof.
   eapply lookup_on_global_env in h. 2: eauto.
   destruct h as (Σ' & ext & wfΣ' & decl').
   red in decl'. destruct decl' as [h ? ? ?].
-  rewrite inds_spec. rewrite forallb_rev.
+  rw inds_spec. rw forallb_rev.
   unfold mapi.
   generalize 0 at 1. generalize 0. intros n m.
   induction h in n, m |- *.
@@ -131,9 +131,9 @@ Proof.
   intros cl clc.
   move/andP: cl => [] clpars _.
   move/andP: clc => [] /andP [] clargs clinds cltype.
-  rewrite /cstr_branch_context /=.
+  rw /cstr_branch_context /=.
   eapply (closedn_ctx_expand_lets 0) => // /=.
-  eapply (closedn_ctx_subst 0). len. now rewrite Nat.add_comm.
+  eapply (closedn_ctx_subst 0). len. now rw Nat.add_comm.
   eapply closed_inds.
 Qed.
 
@@ -144,7 +144,7 @@ Lemma closedn_All_local_closed:
 Proof.
   intros cf Σ Γ wfΓ al.
   induction al; try constructor;
-  rewrite closedn_ctx_cons IHal /= /test_decl //; cbn.
+  rw closedn_ctx_cons IHal /= /test_decl //; cbn.
   now move/andP: Hs => [] /= -> _.
 Qed.
 

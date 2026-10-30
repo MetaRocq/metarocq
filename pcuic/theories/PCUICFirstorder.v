@@ -144,17 +144,17 @@ Proof using Type.
   intros d. unshelve epose proof (d_ := declared_inductive_to_gen d); eauto.
   pose proof d_ as [d1 d2]. intros H. red in d1. unfold firstorder_ind in H.
   unfold isPropositional.
-  unfold PCUICEnvironment.fst_ctx in *. rewrite d1 in H |- *.
+  unfold PCUICEnvironment.fst_ctx in *. rw d1 in H |- *.
   unfold firstorder_mutind in H.
-  rewrite /lookup_inductive /lookup_inductive_gen /lookup_minductive_gen /= d1 d2.
+  rw /lookup_inductive /lookup_inductive_gen /lookup_minductive_gen /= d1 d2.
   move/andP: H => [ind H0].
   eapply forallb_nth_error in H0; tea.
   erewrite d2 in H0. cbn in H0.
   unfold firstorder_oneind in H0. solve_all.
   destruct (ind_sort oind) eqn:E2; inv H0.
   eapply PCUICInductives.declared_inductive_type in d.
-  rewrite d. rewrite E2. unfold isPropositionalArity.
-  now rewrite destArity_it_mkProd_or_LetIn.
+  rw d. rw E2. unfold isPropositionalArity.
+  now rw destArity_it_mkProd_or_LetIn.
 Qed.
 
 Inductive firstorder_spine Σ (Γ : context) : term -> list term -> term -> Type :=
@@ -209,30 +209,30 @@ Proof using Type.
     + eapply invert_cumul_ind_prod in w. eauto.
   - cbn. depelim H.
     + econstructor; eauto.
-    + rewrite it_mkProd_or_LetIn_app in w, i0 |- *. cbn. destruct d as [name [body |] type]; cbn in *.
-      -- constructor. rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps. eapply X. now len.
+    + rw it_mkProd_or_LetIn_app in w, i0 |- *. cbn. destruct d as [name [body |] type]; cbn in *.
+      -- constructor. rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps. eapply X. now len.
          econstructor; tea. eapply isType_tLetIn_red in i0.
-         rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps Nat.add_0_r in i0. now rewrite Nat.add_0_r. pcuic.
+         rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps Nat.add_0_r in i0. now rw Nat.add_0_r. pcuic.
          etransitivity; tea. eapply into_ws_cumul_pb. 2,4:fvs.
          econstructor 3. 2:{ econstructor. }
-         rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps //. constructor 1. reflexivity.
+         rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps //. constructor 1. reflexivity.
          eapply isType_tLetIn_red in i0. 2:pcuic.
-         rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps in i0.
+         rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps in i0.
          now eapply PCUICClosedTyp.isType_is_open_term.
       -- eapply cumul_Prod_inv in w as []. econstructor.
          ++ eapply type_ws_cumul_pb. 3: eapply PCUICContextConversion.ws_cumul_pb_eq_le; symmetry. all:eauto.
             eapply isType_tProd in i0. eapply isTypeRel_isType, i0.
-         ++ rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. autorewrite with subst.
+         ++ rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. autorewrite with subst.
             cbn. eapply X. len.
             eapply typing_spine_strengthen. eauto.
             2:{ replace (it_mkProd_or_LetIn (subst_context [hd] 0 Γ0)
             (mkApps (tInd i u) (map (subst [hd] (#|Γ0| + 0)) pars))) with ((PCUICAst.subst10 hd (it_mkProd_or_LetIn Γ0 (mkApps (tInd i u) pars)))).
-            2:{ rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. now autorewrite with subst. }
+            2:{ rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. now autorewrite with subst. }
             eapply substitution0_ws_cumul_pb. eauto. eauto.
             }
             replace (it_mkProd_or_LetIn (subst_context [hd] 0 Γ0)
             (mkApps (tInd i u) (map (subst [hd] (#|Γ0| + 0)) pars))) with ((PCUICAst.subst10 hd (it_mkProd_or_LetIn Γ0 (mkApps (tInd i u) pars)))).
-            2:{ rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. now autorewrite with subst. }
+            2:{ rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn. now autorewrite with subst. }
             eapply PCUICSubstitution.isType_subst. eapply PCUICSubstitution.subslet_ass_tip. eauto.
             eapply isType_tProd in i0 as [_ tprod].
             eapply isType_context_conversion; tea. constructor. eapply ws_cumul_ctx_pb_refl. now eapply typing_wf_local, PCUICClosedTyp.wf_local_closed_context in t.
@@ -283,7 +283,7 @@ Proof using.
   destruct a as [kn' d] => //. cbn.
   case: eqb_specT.
   * intros ->.
-    destruct d => //; cbn; rewrite eqb_refl => [=] <-;
+    destruct d => //; cbn; rw eqb_refl => [=] <-;
     exists {| universes := univs; declarations := Σ; retroknowledge := retro |}.
     eexists; split => //. cbn. split => //.
     red. split => //. eexists (_ :: []); cbn; trea.
@@ -296,12 +296,12 @@ Proof using.
     specialize (IHΣ h') as [Σ' [decl [Hdecl [ext' ?]]]].
     exists Σ', decl; split => //. split => //.
     destruct ext' as [equ [Σ'' eq]]. split => //.
-    eexists (_ :: Σ''). cbn in *. rewrite eq. trea.
-    move: h. cbn. apply neqb in neq. rewrite (negbTE neq).
+    eexists (_ :: Σ''). cbn in *. rw eq. trea.
+    move: h. cbn. apply neqb in neq. rw (negbTE neq).
     intros h'; specialize (IHΣ h') as [Σ' [decl [Hdecl [ext' ?]]]].
     exists Σ', decl; split => //. split => //.
     destruct ext' as [equ [Σ'' eq]]. split => //.
-    eexists (_ :: Σ''). cbn in *. rewrite eq. trea.
+    eexists (_ :: Σ''). cbn in *. rw eq. trea.
 Qed.
 
 Lemma firstorder_spine_let {Σ : global_env_ext} {wfΣ : wf Σ} {Γ na a A B args T'} :
@@ -389,9 +389,9 @@ Lemma plookup_env_extends {Σ Σ' : global_env} kn b :
   plookup_env (firstorder_env' (declarations Σ')) kn = Some b ->
   plookup_env (firstorder_env' (declarations Σ)) kn = Some b.
 Proof using Type.
-  intros [equ [Σ'' eq] eqr]. rewrite eq.
+  intros [equ [Σ'' eq] eqr]. rw eq.
   clear equ eqr. intros []. clear o.
-  rewrite eq in o0. clear eq. move: o0.
+  rw eq in o0. clear eq. move: o0.
   generalize (declarations Σ'). clear Σ'.
   induction Σ''.
   - cbn => //.
@@ -420,11 +420,11 @@ Lemma firstorder_mutind_ext {Σ Σ' : global_env_ext} m :
   firstorder_mutind (firstorder_env Σ) m.
 Proof using Type.
   intros [equ [Σ'' eq]] wf.
-  unfold firstorder_env. rewrite eq.
+  unfold firstorder_env. rw eq.
   unfold firstorder_mutind.
   move/andP => [] -> /=. apply forallb_impl => x _.
   unfold firstorder_oneind.
-  move/andP => [] h -> /=; rewrite andb_true_r.
+  move/andP => [] h -> /=; rw andb_true_r.
   eapply forallb_impl; tea => c _.
   unfold firstorder_con.
   eapply alli_impl => i [] _ _ ty.
@@ -433,7 +433,7 @@ Proof using Type.
   destruct t => //. destruct ind => //.
   destruct plookup_env eqn:hl => //. destruct b => //.
   eapply (plookup_env_extends (Σ:=Σ)) in hl. 2:split; eauto.
-  rewrite eq in hl. rewrite hl //. apply wf.
+  rw eq in hl. rw hl //. apply wf.
   all: destruct l; eauto.
 Qed.
 
@@ -452,8 +452,8 @@ Proof using Type.
   (* revert Hspine. *) unfold type_of_constructor.
   erewrite cstr_eq. 2: eapply p.
   rewrite <- it_mkProd_or_LetIn_app.
-  rewrite PCUICUnivSubst.subst_instance_it_mkProd_or_LetIn.
-  rewrite PCUICSpine.subst0_it_mkProd_or_LetIn. intros Hspine.
+  rw PCUICUnivSubst.subst_instance_it_mkProd_or_LetIn.
+  rw PCUICSpine.subst0_it_mkProd_or_LetIn. intros Hspine.
 
   match goal with
    | [ |- firstorder_spine _ _ ?T _ _ ] =>
@@ -461,7 +461,7 @@ Proof using Type.
   { clear Hspine. destruct Hdecl as [[d1 d3] d2]. pose proof d3 as Hdecl.
     unfold firstorder_ind in Hind.
     unshelve epose proof (d1_ := declared_minductive_to_gen d1); eauto.
-    rewrite d1_ in Hind. solve_all. clear a.
+    rw d1_ in Hind. solve_all. clear a.
     move/andP: Hind => [indf H0].
     eapply forallb_nth_error in H0 as H'.
     erewrite d3 in H'.
@@ -471,10 +471,10 @@ Proof using Type.
     unfold firstorder_con in H.
     revert H. cbn.
     unfold cstr_concl.
-    rewrite PCUICUnivSubst.subst_instance_mkApps subst_mkApps.
-    rewrite subst_instance_length length_app.
-    unfold cstr_concl_head. rewrite PCUICInductives.subst_inds_concl_head. now eapply nth_error_Some_length in Hdecl.
-    rewrite -length_app.
+    rw PCUICUnivSubst.subst_instance_mkApps subst_mkApps.
+    rw subst_instance_length length_app.
+    unfold cstr_concl_head. rw PCUICInductives.subst_inds_concl_head. now eapply nth_error_Some_length in Hdecl.
+    rw -length_app.
     generalize (cstr_args cbody ++ ind_params mind)%list.
     clear -wfΣ d1 indf H1 H0 Hdecl.
     (* generalize conclusion to mkApps tInd args *)
@@ -482,122 +482,122 @@ Proof using Type.
     change (list context_decl) with context in c.
     move: (map (subst (inds _ _ _) _) _).
     intros args.
-    rewrite (alli_subst_instance _ ui (fun k t => firstorder_type _ #|ind_bodies mind| k t)).
+    rw (alli_subst_instance _ ui (fun k t => firstorder_type _ #|ind_bodies mind| k t)).
     { intros k t.
-      rewrite /firstorder_type.
-      rewrite -PCUICUnivSubstitutionConv.subst_instance_decompose_app /=.
+      rw /firstorder_type.
+      rw -PCUICUnivSubstitutionConv.subst_instance_decompose_app /=.
       destruct (decompose_app) => //=. destruct t0 => //; destruct l; eauto. }
     replace (List.rev c)@[ui] with (List.rev c@[ui]).
-    2:{ rewrite /subst_instance /subst_instance_context /map_context map_rev //. }
+    2:{ rw /subst_instance /subst_instance_context /map_context map_rev //. }
     revert args.
     induction (c@[ui]) using PCUICInduction.ctx_length_rev_ind => args.
     - unfold cstr_concl, cstr_concl_head. cbn.
       autorewrite with substu subst.
-      rewrite subst_context_nil. cbn -[subst0].
+      rw subst_context_nil. cbn -[subst0].
       econstructor.
-    - rewrite rev_app_distr /=. destruct d as [na [b|] t].
+    - rw rev_app_distr /=. destruct d as [na [b|] t].
       + move=> /andP[] fot foΓ.
-        rewrite subst_context_app /=.
-        rewrite it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
+        rw subst_context_app /=.
+        rw it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
         constructor.
-        rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=. len.
-        rewrite -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
+        rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=. len.
+        rw -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
         cbn. len. eapply X. now len.
-        rewrite -subst_telescope_subst_context. clear -foΓ.
+        rw -subst_telescope_subst_context. clear -foΓ.
         revert foΓ. move: (lift0 #|ind_bodies mind| _).
         generalize 0.
         induction (List.rev Γ) => //.
         cbn -[subst_telescope]. intros n t.
         destruct a; cbn -[subst_telescope].
         move/andP => [] fo fol.
-        rewrite PCUICContextSubst.subst_telescope_cons /=.
+        rw PCUICContextSubst.subst_telescope_cons /=.
         apply/andP; split; eauto.
         clear -fo.
         move: fo.
         unfold firstorder_type; cbn.
         destruct (decompose_app decl_type) eqn:da.
-        rewrite (decompose_app_inv da) subst_mkApps /=.
+        rw (decompose_app_inv da) subst_mkApps /=.
         destruct t0 => //=; destruct l; eauto.
         { move/andP => [/Nat.leb_le hn /Nat.ltb_lt hn'].
           destruct (Nat.leb_spec n n0).
           destruct (n0 - n) eqn:E. lia.
-          cbn. rewrite nth_error_nil /=.
+          cbn. rw nth_error_nil /=.
           apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia.
-          rewrite decompose_app_mkApps //=.
+          rw decompose_app_mkApps //=.
           apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia. }
         { destruct ind => //. }
       + move=> /andP[] fot foΓ.
-        rewrite subst_context_app /=.
-        rewrite it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
+        rw subst_context_app /=.
+        rw it_mkProd_or_LetIn_app /= /mkProd_or_LetIn /=.
         unfold firstorder_type in fot.
         destruct ((PCUICAstUtils.decompose_app t)) eqn:E.
         cbn in fot. destruct t0; try solve [inv fot].
-        * rewrite (decompose_app_inv E) /= subst_mkApps.
-          rewrite Nat.add_0_r in fot. destruct l; try solve [inversion fot].
+        * rw (decompose_app_inv E) /= subst_mkApps.
+          rw Nat.add_0_r in fot. destruct l; try solve [inversion fot].
           eapply Nat.ltb_lt in fot.
-          cbn. rewrite nth_error_inds. lia. cbn.
+          cbn. rw nth_error_inds. lia. cbn.
           eapply instantiated_tProd with (args := []).
           unshelve epose proof (d1_ := declared_minductive_to_gen d1); eauto.
-          { rewrite /firstorder_ind d1_ /= /firstorder_mutind indf H0 //. }
+          { rw /firstorder_ind d1_ /= /firstorder_mutind indf H0 //. }
           intros x.
-          rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=. len.
-          rewrite -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
+          rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=. len.
+          rw -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
           cbn. len. eapply X. now len.
-          rewrite -subst_telescope_subst_context. clear -foΓ.
+          rw -subst_telescope_subst_context. clear -foΓ.
           revert foΓ. generalize (lift0 #|ind_bodies mind| x).
           generalize 0.
           induction (List.rev Γ) => //.
           cbn -[subst_telescope]. intros n t.
           destruct a; cbn -[subst_telescope].
           move/andP => [] fo fol.
-          rewrite PCUICContextSubst.subst_telescope_cons /=.
+          rw PCUICContextSubst.subst_telescope_cons /=.
           apply/andP; split; eauto.
           clear -fo.
           move: fo.
           unfold firstorder_type; cbn.
           destruct (decompose_app decl_type) eqn:da.
-          rewrite (decompose_app_inv da) subst_mkApps /=.
+          rw (decompose_app_inv da) subst_mkApps /=.
           destruct t0 => //=; destruct l; eauto.
           { move/andP => [/Nat.leb_le hn /Nat.ltb_lt hn'].
             destruct (Nat.leb_spec n n0).
             destruct (n0 - n) eqn:E. lia.
-            cbn. rewrite nth_error_nil /=.
+            cbn. rw nth_error_nil /=.
             apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia.
-            rewrite decompose_app_mkApps //=.
+            rw decompose_app_mkApps //=.
             apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia. }
           { destruct ind => //. }
-        * rewrite (decompose_app_inv E) subst_mkApps //=.
+        * rw (decompose_app_inv E) subst_mkApps //=.
           constructor. {
              unfold firstorder_ind. destruct ind. cbn in *.
              destruct l; [|inversion fot].
              destruct plookup_env eqn:hp => //.
              eapply plookup_env_lookup_env in hp as [Σ' [decl [eq [ext he]]]].
-             rewrite eq. destruct decl; subst b => //.
+             rw eq. destruct decl; subst b => //.
              eapply (firstorder_mutind_ext (Σ' := (empty_ext Σ'))); tea. }
-          intros x. rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=; len.
-          rewrite -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
+          intros x. rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn subst_mkApps /=; len.
+          rw -subst_app_context' // PCUICSigmaCalculus.subst_context_decompo.
           eapply X. now len. len.
-          rewrite -subst_telescope_subst_context. clear -foΓ.
+          rw -subst_telescope_subst_context. clear -foΓ.
           revert foΓ. generalize (lift0 #|ind_bodies mind| x).
           generalize 0.
           induction (List.rev Γ) => //.
           cbn -[subst_telescope]. intros n t.
           destruct a; cbn -[subst_telescope].
           move/andP => [] fo fol.
-          rewrite PCUICContextSubst.subst_telescope_cons /=.
+          rw PCUICContextSubst.subst_telescope_cons /=.
           apply/andP; split; eauto.
           clear -fo.
           move: fo.
           unfold firstorder_type; cbn.
           destruct (decompose_app decl_type) eqn:da.
-          rewrite (decompose_app_inv da) subst_mkApps /=.
+          rw (decompose_app_inv da) subst_mkApps /=.
           destruct t0 => //=; destruct l; eauto.
           { move/andP => [/Nat.leb_le hn /Nat.ltb_lt hn'].
             destruct (Nat.leb_spec n n0).
             destruct (n0 - n) eqn:E. lia.
-            cbn. rewrite nth_error_nil /=.
+            cbn. rw nth_error_nil /=.
             apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia.
-            rewrite decompose_app_mkApps //=.
+            rw decompose_app_mkApps //=.
             apply/andP. split. apply Nat.leb_le. lia. apply Nat.ltb_lt. lia. }
           { destruct ind => //. }
   }
@@ -605,8 +605,8 @@ Proof using Type.
   revert Hi Hspine. cbn.
   unfold cstr_concl, cstr_concl_head.
   autorewrite with substu subst.
-  rewrite subst_instance_length length_app.
-  rewrite PCUICInductives.subst_inds_concl_head. { cbn. destruct Hdecl as [[d1 d2] d3]. eapply nth_error_Some. rewrite d2. congruence. }
+  rw subst_instance_length length_app.
+  rw PCUICInductives.subst_inds_concl_head. { cbn. destruct Hdecl as [[d1 d2] d3]. eapply nth_error_Some. rw d2. congruence. }
   match goal with [ |- context[mkApps _ ?args]] => generalize args end.
   intros args' Hi Spine.
   eapply instantiated_typing_spine_firstorder_spine; tea.
@@ -619,10 +619,10 @@ Lemma invert_cumul_it_mkProd_or_LetIn_Sort_Ind {Σ : global_env_ext} {wfΣ : wf 
 Proof using Type.
   induction Δ using PCUICInduction.ctx_length_rev_ind; cbn.
   - eapply invert_cumul_sort_ind.
-  - rewrite it_mkProd_or_LetIn_app; destruct d as [na [b|] ty]; cbn.
+  - rw it_mkProd_or_LetIn_app; destruct d as [na [b|] ty]; cbn.
     * intros hl.
       eapply ws_cumul_pb_LetIn_l_inv in hl.
-      rewrite /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn in hl.
+      rw /subst1 PCUICLiftSubst.subst_it_mkProd_or_LetIn in hl.
       eapply H, hl. now len.
     * intros hl. now eapply invert_cumul_prod_ind in hl.
 Qed.
@@ -648,14 +648,14 @@ Proof using Type.
       now eapply invert_cumul_prod_ind in Hcumul.
     + exfalso. eapply inversion_Ind in Hty as (? & ? & ? & ? & ? & ?); eauto.
       eapply PCUICInductives.declared_inductive_type in d.
-      rewrite d in w.
+      rw d in w.
       destruct (ind_params x ,,, ind_indices x0) as [ | [? [] ?] ? _] using rev_ind.
       * cbn in w. now eapply invert_cumul_sort_ind in w.
-      * rewrite it_mkProd_or_LetIn_app in w. cbn in w.
+      * rw it_mkProd_or_LetIn_app in w. cbn in w.
         eapply ws_cumul_pb_LetIn_l_inv in w.
-        rewrite /subst1 PCUICUnivSubst.subst_instance_it_mkProd_or_LetIn PCUICLiftSubst.subst_it_mkProd_or_LetIn in w.
+        rw /subst1 PCUICUnivSubst.subst_instance_it_mkProd_or_LetIn PCUICLiftSubst.subst_it_mkProd_or_LetIn in w.
         now eapply invert_cumul_it_mkProd_or_LetIn_Sort_Ind in w.
-      * rewrite it_mkProd_or_LetIn_app in w. cbn in w.
+      * rw it_mkProd_or_LetIn_app in w. cbn in w.
         now eapply invert_cumul_prod_ind in w.
     + eapply inversion_Construct in Hty as Hty'; eauto.
       destruct Hty' as (? & ? & ? & ? & ? & ? & ?).
@@ -674,7 +674,7 @@ Proof using Type.
       destruct lookup_env eqn:E; try congruence.
       destruct g; try congruence.
       eapply andb_true_iff in Hfo as [Hfo _].
-      rewrite /check_recursivity_kind E in Hty.
+      rw /check_recursivity_kind E in Hty.
       now eapply (negb_False _ Hfo).
   - eapply inversion_Prim in Hty as [prim_ty [cdecl [wf hp hdecl inv ty cum]]]; eauto.
       now eapply invert_cumul_prim_type_ind in cum; tea.
@@ -715,7 +715,7 @@ Proof using Type.
       destruct lookup_env eqn:E; try congruence.
       destruct g; try congruence.
       eapply andb_true_iff in Hfo as [Hfo _].
-      rewrite /check_recursivity_kind E in Hty.
+      rw /check_recursivity_kind E in Hty.
       now eapply (negb_False _ Hfo).
 Qed.
 

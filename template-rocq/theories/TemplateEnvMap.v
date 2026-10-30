@@ -27,7 +27,7 @@ Module GlobalEnvMap.
 
   Lemma lookup_env_spec (Σ : t) kn : lookup_env Σ kn = Env.lookup_env Σ kn.
   Proof.
-    rewrite /lookup_env /Env.lookup_env.
+    rw /lookup_env /Env.lookup_env.
     apply (EnvMap.lookup_spec Σ.(env).(declarations)); apply Σ.
   Qed.
 
@@ -40,8 +40,8 @@ Module GlobalEnvMap.
 
   Lemma lookup_minductive_spec Σ kn : lookup_minductive Σ kn = Ast.lookup_minductive Σ kn.
   Proof.
-    rewrite /lookup_minductive /Ast.lookup_minductive.
-    rewrite lookup_env_spec //.
+    rw /lookup_minductive /Ast.lookup_minductive.
+    rw lookup_env_spec //.
   Qed.
 
   Definition lookup_inductive Σ kn : option (mutual_inductive_body * one_inductive_body) :=
@@ -51,8 +51,8 @@ Module GlobalEnvMap.
 
   Lemma lookup_inductive_spec Σ kn : lookup_inductive Σ kn = Ast.lookup_inductive Σ kn.
   Proof.
-    rewrite /lookup_inductive /Ast.lookup_inductive.
-    rewrite lookup_minductive_spec //.
+    rw /lookup_inductive /Ast.lookup_inductive.
+    rw lookup_minductive_spec //.
   Qed.
 
   Definition lookup_constructor Σ kn c : option (mutual_inductive_body * one_inductive_body * constructor_body) :=
@@ -62,8 +62,8 @@ Module GlobalEnvMap.
 
   Lemma lookup_constructor_spec Σ kn : lookup_constructor Σ kn = Ast.lookup_constructor Σ kn.
   Proof.
-    rewrite /lookup_constructor /Ast.lookup_constructor.
-    rewrite lookup_inductive_spec //.
+    rw /lookup_constructor /Ast.lookup_constructor.
+    rw lookup_inductive_spec //.
   Qed.
 
   Definition lookup_projection Σ (p : projection) :
@@ -74,8 +74,8 @@ Module GlobalEnvMap.
 
   Lemma lookup_projection_spec Σ kn : lookup_projection Σ kn = Ast.lookup_projection Σ kn.
   Proof.
-    rewrite /lookup_projection /Ast.lookup_projection.
-    rewrite lookup_constructor_spec //.
+    rw /lookup_projection /Ast.lookup_projection.
+    rw lookup_constructor_spec //.
   Qed.
 
   Program Definition make (g : global_env) (Hg : EnvMap.fresh_globals g.(declarations)): t :=

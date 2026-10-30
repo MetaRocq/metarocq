@@ -76,7 +76,7 @@ Module Semilattice.
 
     Lemma le_trans x y z : x ≤ y -> y ≤ z -> x ≤ z.
     Proof.
-      unfold le; intros le le'. now rewrite -le' -join_assoc le.
+      unfold le; intros le le'. now rw -le' -join_assoc le.
     Qed.
 
     #[export] Instance le_preorder : @PreOrder A le.
@@ -90,10 +90,10 @@ Module Semilattice.
     Proof.
       split.
       - intros he. split.
-        red. rewrite -he. apply join_idem.
-        red. rewrite -he. apply join_idem.
+        red. rw -he. apply join_idem.
+        red. rw -he. apply join_idem.
       - intros [le le'].
-        red in le, le'. rewrite -le. rewrite -{1}le'.
+        red in le, le'. rw -le. rw -{1}le'.
         apply join_comm.
     Qed.
 
@@ -109,14 +109,14 @@ Module Semilattice.
     #[export] Instance po : PartialOrder eq le.
     Proof.
       split.
-      - intros eq; split. now rewrite eq. red.
-        now rewrite eq.
+      - intros eq; split. now rw eq. red.
+        now rw eq.
       - intros []. red in H0. apply eq_antisym. split => //.
     Qed.
 
     Lemma join_le_left {s t : A} : s ≤ s ∨ t.
     Proof.
-      red. now rewrite -join_assoc join_idem.
+      red. now rw -join_assoc join_idem.
     Qed.
 
     Lemma join_le_left_trans {s t u : A} : s ≤ t -> s ≤ t ∨ u.
@@ -124,7 +124,7 @@ Module Semilattice.
 
     Lemma join_le_right {s t} : t ≤ s ∨ t.
     Proof.
-      rewrite join_comm; apply join_le_left.
+      rw join_comm; apply join_le_left.
     Qed.
 
     Lemma join_le_right_trans {s t u} : s ≤ u -> s ≤ t ∨ u.
@@ -137,14 +137,14 @@ Module Semilattice.
       - intros le; split; transitivity (s ∨ t) => //. apply join_le_left.
         apply join_le_right.
       - intros [le le']. red in le, le'. red.
-        now rewrite join_assoc le' le.
+        now rw join_assoc le' le.
     Qed.
 
     Lemma join_le_pres {s t u v} :
       s ≤ t -> u ≤ v -> s ∨ u ≤ t ∨ v.
     Proof.
       intros le le'.
-      rewrite join_le_left_eq. split.
+      rw join_le_left_eq. split.
       - setoid_rewrite le. apply join_le_left.
       - setoid_rewrite le'. apply join_le_right.
     Qed.
@@ -156,8 +156,8 @@ Module Semilattice.
       s ≤ t \/ s ≤ u -> s ≤ t ∨ u.
     Proof.
       intros [le|le]; red in le; red.
-      now rewrite -join_assoc le.
-      now rewrite (join_comm t) -join_assoc le.
+      now rw -join_assoc le.
+      now rw (join_comm t) -join_assoc le.
     Qed.
 
     Lemma le_dec {JD : @EqDec A incr CM SL} (x y : A) :
@@ -185,8 +185,8 @@ Module Semilattice.
     Proof.
       unfold le.
       split.
-      - now rewrite -add_join => ->.
-      - rewrite -add_join => h.
+      - now rw -add_join => ->.
+      - rw -add_join => h.
         now apply add_inj in h.
     Qed.
 
@@ -225,7 +225,7 @@ Module Semilattice.
         have := fold_right_max_in n inal'.
         move: (IHl l') => /fwd.
         intros. apply h. now right.
-        intros hle; rewrite join_le_left_eq. now split.
+        intros hle; rw join_le_left_eq. now split.
     Qed.
 
     Lemma fold_right_max_spec n l :
@@ -278,9 +278,9 @@ Module Semilattice.
       induction l in acc |- *.
       - intros; congruence.
       - intros _. cbn. destruct l; cbn. apply join_comm.
-        cbn in IHl. rewrite (IHl acc). congruence.
-        rewrite (IHl a). congruence.
-        now rewrite -!join_assoc (join_comm a).
+        cbn in IHl. rw (IHl acc). congruence.
+        rw (IHl a). congruence.
+        now rw -!join_assoc (join_comm a).
     Qed.
 
   End FoldSemilattice.
@@ -304,7 +304,7 @@ Section OptSemilattice.
     join := option_map2 join |}.
   Proof.
     all: intros.
-    - destruct x => //=. now rewrite add_distr.
+    - destruct x => //=. now rw add_distr.
     - destruct x, y; cbn in * => //. now apply add_congr.
     - destruct x => //=. apply add_neutral.
     - destruct x, y, z => //=. apply join_assoc.
@@ -322,7 +322,7 @@ Section OptSemilattice.
   Lemma le_spec {x y : option S} : x ≤ y <->
     (y = None) \/ (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
   Proof.
-    rewrite /le. cbn. destruct x, y => //=.
+    rw /le. cbn. destruct x, y => //=.
     - split.
       * intros hc. right. exists s, s0. split => //.
       * now move=> [] => // -[x' [y' [[= ->]]]] [[= ->]].
@@ -343,7 +343,7 @@ Section OptSemilattice.
   Lemma le_strict_spec {x y : option S} : x ≤! y <->
     (exists x' y', x = Some x' /\ y = Some y' /\ le x' y').
   Proof.
-    rewrite /le. cbn. destruct x, y => //=.
+    rw /le. cbn. destruct x, y => //=.
     - split.
       * intros hc. exists s, s0. split => //.
       * now move=> // -[x' [y' [[= ->]]]] [[= ->]].

@@ -25,7 +25,7 @@ Next Obligation.
   intros. cbn -[eqb].
   destruct (eqb_spec (ReflectEq := EqDec_ReflectEq SpecFloat.spec_float) (FloatOps.Prim2SF x) (FloatOps.Prim2SF y)) as [H|H]; constructor.
   now apply FloatAxioms.Prim2SF_inj.
-  intros e; apply H. rewrite e.
+  intros e; apply H. rw e.
   reflexivity.
 Qed.
 
@@ -296,12 +296,12 @@ Proof.
     now elim (irreflexivity l4).
   - intros l'; depelim l'.
     now elim (irreflexivity (R:=ConstraintType.lt) l).
-    now rewrite (constraint_type_lt_level_irrel l l4).
+    now rw (constraint_type_lt_level_irrel l l4).
     now elim (irreflexivity l4).
   - intros l'; depelim l'.
     now elim (irreflexivity l).
     now elim (irreflexivity l).
-    now rewrite (lt_universe_irrel l l4).
+    now rw (lt_universe_irrel l l4).
 Qed.
 
 Module LevelSetsUIP.

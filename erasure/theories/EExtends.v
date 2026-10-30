@@ -83,7 +83,7 @@ Section EEnvFlags.
       intros hl; specialize (IHΣ wf hl); intuition auto.
     - induction wf => /= //.
       intros [eq|hin]; eauto. subst d.
-      now rewrite eqb_refl.
+      now rw eqb_refl.
       specialize (IHwf hin).
       destruct (eqb_spec d.1 kn). subst kn.
       eapply lookup_env_Some_fresh in IHwf. contradiction.
@@ -135,8 +135,8 @@ Section EEnvFlags.
   Proof using Type.
     intros wf wf' gs.
     assert (wf_glob Σ'). now depelim wf'.
-    rewrite (global_subset_In _ _ wf H) in gs.
-    rewrite global_subset_In //.
+    rw (global_subset_In _ _ wf H) in gs.
+    rw global_subset_In //.
     intros decl. specialize (gs decl).
     intros hin; specialize (gs hin). cbn. now right.
   Qed.

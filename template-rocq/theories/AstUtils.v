@@ -87,7 +87,7 @@ Definition decompose_app (t : term) :=
 Lemma decompose_app_mkApps f l :
   ~~ isApp f -> decompose_app (mkApps f l) = (f, l).
 Proof.
-  intros Hf. rewrite /decompose_app.
+  intros Hf. rw /decompose_app.
   destruct l. simpl. destruct f; try discriminate; auto.
   remember (mkApps f (t :: l)) eqn:Heq. simpl in Heq.
   destruct f; simpl in *; subst; auto.
@@ -110,7 +110,7 @@ Lemma mkApps_eq_inj {t t' l l'} :
   ~~ isApp t -> ~~ isApp t' -> t = t' /\ l = l'.
 Proof.
   intros Happ Ht Ht'. eapply (f_equal decompose_app) in Happ.
-  rewrite !decompose_app_mkApps in Happ => //. intuition congruence.
+  rw !decompose_app_mkApps in Happ => //. intuition congruence.
 Qed.
 
 Inductive mkApps_spec : term -> list term -> term -> list term -> term -> Type :=
@@ -162,14 +162,14 @@ Ltac solve_discr' :=
 
 Lemma mkApps_app f l l' : mkApps f (l ++ l') = mkApps (mkApps f l) l'.
 Proof.
-  induction l; destruct f; destruct l'; simpl; rewrite ?app_nil_r; auto.
+  induction l; destruct f; destruct l'; simpl; rw ?app_nil_r; auto.
   f_equal. now rewrite <- app_assoc.
 Qed.
 
 Lemma mkApp_mkApps f a l : mkApp (mkApps f l) a = mkApps f (l ++ [a]).
 Proof.
   destruct l. simpl. reflexivity.
-  rewrite mkApps_app //.
+  rw mkApps_app //.
 Qed.
 
 Lemma mkAppMkApps s t:
@@ -302,9 +302,9 @@ Lemma decompose_prod_n_assum_it_mkProd ctx ctx' ty :
   decompose_prod_n_assum ctx #|ctx'| (it_mkProd_or_LetIn ctx' ty) = Some (ctx' ++ ctx, ty).
 Proof.
   revert ctx ty. induction ctx' using rev_ind; move=> // ctx ty.
-  rewrite length_app /= it_mkProd_or_LetIn_app /=.
+  rw length_app /= it_mkProd_or_LetIn_app /=.
   destruct x as [na [body|] ty'] => /=;
-  now rewrite !Nat.add_1_r /= IHctx' -app_assoc.
+  now rw !Nat.add_1_r /= IHctx' -app_assoc.
 Qed.
 
 Definition is_ind_app_head t :=
@@ -323,8 +323,8 @@ Lemma decompose_prod_assum_it_mkProd ctx ctx' ty :
 Proof.
   revert ctx ty. induction ctx' using rev_ind; move=> // ctx ty /=.
   destruct ty; simpl; try (congruence || reflexivity).
-  move=> Hty. rewrite it_mkProd_or_LetIn_app /=.
-  case: x => [na [body|] ty'] /=; by rewrite IHctx' // /snoc -app_assoc.
+  move=> Hty. rw it_mkProd_or_LetIn_app /=.
+  case: x => [na [body|] ty'] /=; by rw IHctx' // /snoc -app_assoc.
 Qed.
 
 Definition isConstruct_app t :=
@@ -426,11 +426,11 @@ Definition make_inductive_body (id : ident) (params : context) (indices : contex
 Ltac change_Sk :=
   repeat match goal with
     | |- context [S (?x + ?y)] => progress change (S (x + y)) with (S x + y)
-    | |- context [#|?l| + (?x + ?y)] => progress replace (#|l| + (x + y)) with ((#|l| + x) + y) by now rewrite Nat.add_assoc
+    | |- context [#|?l| + (?x + ?y)] => progress replace (#|l| + (x + y)) with ((#|l| + x) + y) by now rw Nat.add_assoc
   end.
 
 #[global] Hint Extern 10 => progress unfold map_branches_k : all.
-#[global] Hint Extern 10 => rewrite !map_branch_map_branch : all.
+#[global] Hint Extern 10 => rw !map_branch_map_branch : all.
 
 Definition tCaseBrsType {A} (P : A -> Type) (l : list (branch A)) :=
   All (fun x => P (bbody x)) l.

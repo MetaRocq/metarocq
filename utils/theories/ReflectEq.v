@@ -79,7 +79,7 @@ Next Obligation.
   now apply eqb_eq.
 Qed.
 Next Obligation.
-  rewrite eqb_refl in Heq_anonymous.
+  rw eqb_refl in Heq_anonymous.
   discriminate.
 Qed.
 
@@ -205,6 +205,6 @@ Lemma eq_prod_refl :
     forall p, eq_prod eqA eqB p p.
 Proof.
   intros A B eqA eqB eqA_refl eqB_refl [a b].
-  simpl. rewrite eqA_refl. apply eqB_refl.
+  simpl. rw eqA_refl. apply eqB_refl.
 Qed.
 

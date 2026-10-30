@@ -135,12 +135,12 @@ Section fix_sigma.
     split. eapply case_red_return; eauto. unshelve eexists. repeat constructor.
     eapply (term_direct_subterm_11_2 ci (set_preturn p s')). simpl. reflexivity.
     - simpl. intros.
-    rewrite app_context_assoc in X.
+    rw app_context_assoc in X.
     specialize (IHts1 _ _ X) as [t' [[yt' [ts Hts]]]].
     specialize (IHts2 _ _ yt') as [t'' [[zt' [ts'' Hts'']]]].
     exists t''. split; split; auto.
     unshelve eexists. econstructor 2; eauto. simpl.
-    now rewrite Hts Hts''.
+    now rw Hts Hts''.
   Qed.
 
   Lemma term_subterm_redp {Γ s s' t} {ts : term_subterm s t} :
@@ -155,12 +155,12 @@ Section fix_sigma.
       exists t'; split; auto. split; auto. now constructor. exists ts'; auto.
     - intros t ts ->. specialize (IHr1 t ts eq_refl) as [t' [[yt' [ts' Hts]]]].
       specialize (IHr2 t' ts').
-      forward IHr2. now rewrite Hts.
+      forward IHr2. now rw Hts.
       destruct IHr2 as [t'' [[zt' [ts'' Hts'']]]].
       exists t''. split; split; auto.
       now transitivity t'.
       exists ts''.
-      now rewrite Hts'' Hts.
+      now rw Hts'' Hts.
   Qed.
 
   Definition hnf_subterm_rel : Relation_Definitions.relation (∑ Γ t, welltyped Σ Γ t) :=
@@ -186,19 +186,19 @@ Section fix_sigma.
       * subst.
         destruct (term_subterm_red1 X0) as [t'' [[redt' [tst' Htst']]]].
         eapply IH. econstructor. eauto. red.
-        sq. exists t''. split; eauto. exists tst'. now rewrite Htst'.
+        sq. exists t''. split; eauto. exists tst'. now rw Htst'.
         Unshelve.
         eapply red_welltyped; sq. 3:eapply red1_red; tea. all:eauto.
       * subst. eapply cored_redp in H2 as [].
         pose proof (term_subterm_redp X1) as [t'' [[redt' [tst' Htst']]]].
-        rewrite -Htst' in X0.
+        rw -Htst' in X0.
         destruct (term_subterm_red1 X0) as [t''' [[redt'' [tst'' Htst'']]]].
         eapply IH.
         eapply cored_redp. sq. transitivity t''; eauto.
         constructor; eauto.
         split.
         exists t'''. split; auto. exists tst''.
-        now rewrite Htst'' Htst'.
+        now rw Htst'' Htst'.
         Unshelve.
         eapply red_welltyped in H; eauto. all:sq; eauto.
         eapply redp_red in redt'.
@@ -264,7 +264,7 @@ Section fix_sigma.
       intros. eapply cored_redp in H0 as [].
       destruct (term_subterm_redp X0) as [t'' [[redt' [tst' Htst']]]].
       eapply IH. eapply cored_redp. sq. eassumption. red. intros.
-      sq. right. exists tst'. now rewrite Htst'.
+      sq. right. exists tst'. now rw Htst'.
     Unshelve. intros. erewrite (abstract_env_ext_irr _ _ wfΣ); eauto.
               eapply redp_red in redt'; eapply red_welltyped; sq; eauto.
     Unshelve. eauto.

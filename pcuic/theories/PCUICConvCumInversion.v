@@ -86,7 +86,7 @@ Qed.
 
 Lemma shiftnP_up n m : n <= m -> forall i, shiftnP n xpred0 i -> shiftnP m xpred0 i.
 Proof.
-  intros lt i; rewrite /shiftnP !orb_false_r.
+  intros lt i; rw /shiftnP !orb_false_r.
   move/Nat.ltb_lt => H; apply Nat.ltb_lt. lia.
 Qed.
 
@@ -103,45 +103,45 @@ Lemma inst_case_ws_cumul_ctx_pb {cf Σ} {wfΣ : wf Σ} {ind mdecl idecl Γ pars 
   Σ ⊢ Γ,,, inst_case_context pars puinst ctx = Γ,,, inst_case_context pars' puinst' ctx'.
 Proof.
   intros decli wfp wfp' onp onp' clΓ eqpars eqinst eqctx.
-  rewrite /inst_case_context.
+  rw /inst_case_context.
   eapply ws_cumul_ctx_pb_rel_app.
   have clpars : is_closed_context (Γ,,, smash_context [] (ind_params mdecl)).
-  { rewrite on_free_vars_ctx_app clΓ /=.
+  { rw on_free_vars_ctx_app clΓ /=.
     apply on_free_vars_ctx_smash => //.
     generalize (declared_inductive_closed_params decli).
     now move/(closed_ctx_on_free_vars (shiftnP #|Γ| xpred0)). }
   have lenpars : #|pars| = context_assumptions (ind_params mdecl).
-  { rewrite -(declared_minductive_ind_npars decli).
-    now rewrite wfp. }
+  { rw -(declared_minductive_ind_npars decli).
+    now rw wfp. }
   have asspars : assumption_context (smash_context [] (ind_params mdecl)).
   { eapply PCUICContexts.smash_context_assumption_context => //. constructor. }
   have lenpars' : #|pars| = context_assumptions (smash_context [] (ind_params mdecl)).
-  { rewrite context_assumptions_smash_context /= //. }
+  { rw context_assumptions_smash_context /= //. }
   eapply (substitution_ws_cumul_ctx_pb_subst_conv (Γ'':=[])
     (Γ' := smash_context [] mdecl.(ind_params))
     (Γ'0 := smash_context [] mdecl.(ind_params))) => //.
   * eapply (PCUICSpine.ws_cumul_ctx_pb_rel_trans (Δ' := ctx'@[puinst])).
     - eapply ws_cumul_ctx_pb_rel_app.
       eapply eq_context_upto_ws_cumul_ctx_pb.
-      { rewrite on_free_vars_ctx_app clpars /=. len.
-        rewrite on_free_vars_ctx_subst_instance -lenpars.
+      { rw on_free_vars_ctx_app clpars /=. len.
+        rw on_free_vars_ctx_subst_instance -lenpars.
         eapply on_free_vars_ctx_impl; tea. apply shiftnP_up. lia. }
-      { rewrite on_free_vars_ctx_app clpars /=. len.
-        rewrite on_free_vars_ctx_subst_instance -lenpars.
+      { rw on_free_vars_ctx_app clpars /=. len.
+        rw on_free_vars_ctx_subst_instance -lenpars.
         eapply on_free_vars_ctx_impl; tea. apply shiftnP_up. lia. }
       eapply eq_context_upto_cat; [reflexivity|].
       eapply eq_context_upto_names_subst_instance; tc. 1:reflexivity.
       assumption.
     - cbn.
       eapply subst_instance_ws_cumul_ctx_pb_rel => //.
-      rewrite !on_free_vars_ctx_app clΓ /=. len.
+      rw !on_free_vars_ctx_app clΓ /=. len.
       apply /andP; split.
       { apply on_free_vars_ctx_smash => //.
         generalize (declared_inductive_closed_params decli).
         now move/(closed_ctx_on_free_vars (shiftnP #|Γ| xpred0)). }
-      rewrite -(declared_minductive_ind_npars decli) -wfp'.
+      rw -(declared_minductive_ind_npars decli) -wfp'.
       eapply on_free_vars_ctx_impl; tea.
-      intros i. rewrite closedP_shiftnP.
+      intros i. rw closedP_shiftnP.
       eapply shiftnP_up. lia.
   * now eapply All2_rev.
   * apply (untyped_subslet_ass asspars). now len.
@@ -202,7 +202,7 @@ Section fixed.
   Proof using Type.
     unfold isIndConstructApp.
     destruct (mkApps_elim hd args).
-    rewrite !decompose_app_mkApps; by easy.
+    rw !decompose_app_mkApps; by easy.
   Qed.
 
   Lemma eq_term_upto_univ_napp_nonind cmp_universe cmp_sort pb napp t t' :
@@ -214,7 +214,7 @@ Section fixed.
     generalize 0.
     intros k.
     induction eq in k, not_ind |- *; eauto using eq_term_upto_univ_napp.
-    - rewrite (isIndConstructApp_mkApps _ [u]) in not_ind.
+    - rw (isIndConstructApp_mkApps _ [u]) in not_ind.
       constructor; auto.
     - discriminate not_ind.
     - discriminate not_ind.
@@ -226,7 +226,7 @@ Section fixed.
   Proof using Type.
     intros r.
     induction r; auto.
-    rewrite (isIndConstructApp_mkApps _ [arg']) (isIndConstructApp_mkApps _ [arg]).
+    rw (isIndConstructApp_mkApps _ [arg']) (isIndConstructApp_mkApps _ [arg]).
     apply IHr.
   Qed.
 
@@ -267,9 +267,9 @@ Section fixed.
     apply eq_termp_mkApps_inv in e as (?&?); try congruence.
     have clΓ : is_closed_context Γ by fvs.
     have [clhd clargs] : is_open_term Γ hd /\ forallb (is_open_term Γ) args.
-    { move/clrel_src: r1. now rewrite on_free_vars_mkApps => /andP. }
+    { move/clrel_src: r1. now rw on_free_vars_mkApps => /andP. }
     have [clhd' clargs'] : is_open_term Γ hd' /\ forallb (is_open_term Γ) args'.
-    { move/clrel_src: r2. now rewrite on_free_vars_mkApps => /andP. }
+    { move/clrel_src: r2. now rw on_free_vars_mkApps => /andP. }
     split.
     - apply whnf_red_isIndConstructApp in w as ?.
       destruct hd.
@@ -282,7 +282,7 @@ Section fixed.
       1-13: cbn in *; congruence.
       1-3: depelim w; subst; depelim e; depelim w0; subst;
        apply All2_length in a;
-       try (constructor; constructor; rewrite a; auto).
+       try (constructor; constructor; rw a; auto).
 
       sq. exists (tPrim i'), (tPrim i'0). split => //. all:eauto with pcuic.
       now constructor.
@@ -356,20 +356,20 @@ Section fixed.
       { eapply ws_cumul_pb_alt_closed. exists motiveret, motiveret0.
         split; auto.
         * split; auto.
-          + rewrite on_free_vars_ctx_app. apply /andP. split; auto.
+          + rw on_free_vars_ctx_app. apply /andP. split; auto.
             eapply on_free_vars_ctx_inst_case_context; tea => //.
-            rewrite test_context_k_closed_on_free_vars_ctx //.
+            rw test_context_k_closed_on_free_vars_ctx //.
           + len. now setoid_rewrite shiftnP_add in p6.
         * eapply closed_red_refl.
-          + rewrite on_free_vars_ctx_app. apply /andP. split; auto.
+          + rw on_free_vars_ctx_app. apply /andP. split; auto.
             eapply on_free_vars_ctx_inst_case_context; tea => //.
-            now rewrite test_context_k_closed_on_free_vars_ctx.
+            now rw test_context_k_closed_on_free_vars_ctx.
           + eapply red_on_free_vars in r1; tea.
-            { len. rewrite (All2_length a4).
+            { len. rw (All2_length a4).
               now setoid_rewrite shiftnP_add in p1. }
-            len. rewrite -shiftnP_add (All2_length a4).
+            len. rw -shiftnP_add (All2_length a4).
             eapply on_ctx_free_vars_inst_case_context; auto.
-            1:now rewrite test_context_k_closed_on_free_vars_ctx.
+            1:now rw test_context_k_closed_on_free_vars_ctx.
             now erewrite -> on_free_vars_ctx_on_ctx_free_vars. }
       eapply (ws_cumul_pb_ws_cumul_ctx (Γ := Γ ,,, inst_case_predicate_context p') (pb':=Conv)) => //.
       symmetry. eapply red_ws_cumul_pb.
@@ -390,19 +390,19 @@ Section fixed.
       constructor.
       2: { apply IHbrseq; auto. }
       have eqctx : Σ ⊢ Γ ,,, inst_case_branch_context p x0 = Γ ,,, inst_case_branch_context p' x1.
-      { rewrite /inst_case_branch_context.
+      { rw /inst_case_branch_context.
         eapply (inst_case_ws_cumul_ctx_pb decli); tea.
         { apply (wf_predicate_length_pars wfp). }
         { apply (wf_predicate_length_pars wfp'). }
-        { rewrite -test_context_k_closed_on_free_vars_ctx //.
+        { rw -test_context_k_closed_on_free_vars_ctx //.
           now move/andP: fv'. }
-        { rewrite -test_context_k_closed_on_free_vars_ctx; now move/andP: fv. }
-        now rewrite e e0. }
-      rewrite e e0; split => //.
+        { rw -test_context_k_closed_on_free_vars_ctx; now move/andP: fv. }
+        now rw e e0. }
+      rw e e0; split => //.
       transitivity (bbody x); tea.
-      { eapply red_ws_cumul_pb. rewrite /inst_case_branch_context. split; auto.
+      { eapply red_ws_cumul_pb. rw /inst_case_branch_context. split; auto.
         1:now eapply ws_cumul_ctx_pb_closed_left in eqctx.
-        move/andP: fv' => []. now len; rewrite shiftnP_add. }
+        move/andP: fv' => []. now len; rw shiftnP_add. }
       transitivity (bbody y); tea.
       { constructor; auto. 1:now eapply ws_cumul_ctx_pb_closed_left.
         { eapply closed_red_open_right. eapply into_closed_red; tea.
@@ -410,15 +410,15 @@ Section fixed.
           move/andP: fv' => []. len. now setoid_rewrite shiftnP_add. }
         move/andP: fv => [] fv fvx1. len.
         eapply red_on_free_vars in fvx1; tea.
-        { rewrite e (All2_length a0) -e0. now setoid_rewrite shiftnP_add in fvx1. }
-        rewrite shiftnP_add. relativize (#|bcontext x1| + _).
+        { rw e (All2_length a0) -e0. now setoid_rewrite shiftnP_add in fvx1. }
+        rw shiftnP_add. relativize (#|bcontext x1| + _).
         1:rewrite -> on_free_vars_ctx_on_ctx_free_vars. 2:now len.
         now eapply ws_cumul_ctx_pb_closed_right in eqctx. }
       symmetry.
       eapply ws_cumul_pb_ws_cumul_ctx; tea.
-      eapply red_ws_cumul_pb. rewrite /inst_case_branch_context. split; auto.
+      eapply red_ws_cumul_pb. rw /inst_case_branch_context. split; auto.
       1:now eapply ws_cumul_ctx_pb_closed_right in eqctx.
-      move/andP: fv => []. len. now rewrite shiftnP_add.
+      move/andP: fv => []. len. now rw shiftnP_add.
   Qed.
 
   Lemma conv_cum_tFix_inv leq Γ mfix idx mfix' idx' :
@@ -438,7 +438,7 @@ Section fixed.
     { intros defs i.
       apply whnf_fixapp with (args := []).
       destruct nth_error; [|easy]. left; eexists; split; eauto.
-      now rewrite nth_error_nil. }
+      now rw nth_error_nil. }
     have clΓ := clrel_ctx r1.
     have cll := clrel_src r1.
     have clr := clrel_src r2.
@@ -452,9 +452,9 @@ Section fixed.
     split; [easy|].
     cbn in cll, clr, clx, cly.
     have clmfixctx : is_closed_context (Γ ,,, fix_context mfix).
-    { rewrite on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
+    { rw on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
     have clmfixctx' : is_closed_context (Γ ,,, fix_context mfix').
-    { rewrite on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
+    { rw on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
     unfold eq_mfixpoint in *.
     solve_all.
     move: clmfixctx clmfixctx'.
@@ -480,10 +480,10 @@ Section fixed.
       exists (dbody x), (dbody y).
       split; [| |easy].
       all:eapply into_closed_red; auto.
-      * move/andP: i1 => []. now len; rewrite shiftnP_add.
+      * move/andP: i1 => []. now len; rw shiftnP_add.
       * eapply PCUICRedTypeIrrelevance.context_pres_let_bodies_red; eauto.
         eapply PCUICRedTypeIrrelevance.fix_context_pres_let_bodies; eauto.
-      * move/andP: i2 => []. len. now rewrite len_eq shiftnP_add.
+      * move/andP: i2 => []. len. now rw len_eq shiftnP_add.
   Qed.
 
   Lemma conv_cum_tCoFix_inv leq Γ mfix idx mfix' idx' :
@@ -514,9 +514,9 @@ Section fixed.
     split; [easy|].
     cbn in cll, clr, clx, cly.
     have clmfixctx : is_closed_context (Γ ,,, fix_context mfix).
-    { rewrite on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
+    { rw on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
     have clmfixctx' : is_closed_context (Γ ,,, fix_context mfix').
-    { rewrite on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
+    { rw on_free_vars_ctx_app clΓ /=. apply on_free_vars_fix_context; solve_all. }
     unfold eq_mfixpoint in *.
     solve_all.
     move: clmfixctx clmfixctx'.
@@ -542,10 +542,10 @@ Section fixed.
       exists (dbody x), (dbody y).
       split; [| |easy].
       all:eapply into_closed_red; auto.
-      * move/andP: i1 => []. now len; rewrite shiftnP_add.
+      * move/andP: i1 => []. now len; rw shiftnP_add.
       * eapply PCUICRedTypeIrrelevance.context_pres_let_bodies_red; eauto.
         eapply PCUICRedTypeIrrelevance.fix_context_pres_let_bodies; eauto.
-      * move/andP: i2 => []. len. now rewrite len_eq shiftnP_add.
+      * move/andP: i2 => []. len. now rw len_eq shiftnP_add.
   Qed.
 
   Lemma conv_cum_tProj_inv leq Γ p c p' c' :

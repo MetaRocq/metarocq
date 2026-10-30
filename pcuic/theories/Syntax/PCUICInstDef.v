@@ -26,7 +26,7 @@ Definition inst_context σ (Γ : context) : context :=
 Proof.
   intros f g Hfg x y ->.
   apply fold_context_k_ext => i t.
-  now rewrite Hfg.
+  now rw Hfg.
 Qed.
 
 Definition inst_decl σ d := map_decl (inst σ) d.
@@ -34,7 +34,7 @@ Definition inst_decl σ d := map_decl (inst σ) d.
 Definition inst_context_snoc0 s Γ d :
   inst_context s (d :: Γ) =
   inst_context s Γ ,, map_decl (inst (⇑^#|Γ| s)) d.
-Proof. unfold inst_context. now rewrite fold_context_k_snoc0. Qed.
+Proof. unfold inst_context. now rw fold_context_k_snoc0. Qed.
 #[global] Hint Rewrite inst_context_snoc0 : sigma.
 
 Definition inst_mutual_inductive_body σ m :=

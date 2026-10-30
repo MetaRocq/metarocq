@@ -61,8 +61,8 @@ Derive NoConfusion NoConfusionHom for term.
 Proof.
   intros s1 s2. destruct (PrimString.compare s1 s2) eqn:Hcmp; [left|right|right].
   - by apply PString.compare_eq.
-  - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. discriminate Hcmp.
-  - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. discriminate Hcmp.
+  - intros Heq%PString.compare_eq. rw Heq in Hcmp. discriminate Hcmp.
+  - intros Heq%PString.compare_eq. rw Heq in Hcmp. discriminate Hcmp.
 Qed.
 
 #[global] Instance EqDec_term : EqDec term.

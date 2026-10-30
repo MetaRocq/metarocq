@@ -143,7 +143,7 @@ Lemma weakening_config_wf {cf1 cf2 : checker_flags} Σ :
   -> @wf cf1 Σ
   -> @wf cf2 Σ.
 Proof.
-  rewrite /wf.
+  rw /wf.
   intros; eapply (@on_global_env_impl_config cf1 cf2); try eassumption; cbn.
   { intros; eapply @lift_typing_impl; [ eassumption | ].
     intros; eapply (@weakening_config cf1 cf2); eassumption. }

@@ -29,7 +29,7 @@ Qed.
 #[export] Instance fold_left_ext {A B} : Proper (`≐2` ==> eq ==> eq ==> eq) (@fold_left A B).
 Proof.
   intros f g hfg ? ? -> ? ? ->.
-  induction y in y0 |- *; cbn; auto. now rewrite (hfg y0 a).
+  induction y in y0 |- *; cbn; auto. now rw (hfg y0 a).
 Qed.
 
 (* None is smaller than anything *)
@@ -54,12 +54,12 @@ Proof. now intros h; depelim h. Qed.
 
 Instance option_map_2_comm {A} f : @Commutative A f -> @Commutative (option A) (option_map2 f).
 Proof.
-  intros com [x|] [y|] => //=. now rewrite comm.
+  intros com [x|] [y|] => //=. now rw comm.
 Qed.
 
 Instance option_map_2_assoc {A} f : @Associative A f -> @Associative (option A) (option_map2 f).
 Proof.
-  intros assoc [x|] [y|] [z|]; cbn => //. now rewrite assoc.
+  intros assoc [x|] [y|] [z|]; cbn => //. now rw assoc.
 Qed.
 
 
@@ -69,16 +69,16 @@ Lemma fold_left_comm {A B} (f : B -> A -> B) (l : list A) (x : A) (acc : B) :
 Proof.
   intros.
   induction l in acc, x |- *; cbn. auto.
-  rewrite -IHl. f_equal. now rewrite H.
+  rw -IHl. f_equal. now rw H.
 Qed.
 
 Lemma fold_left_min_opt_comm {A} (f : A -> A -> A) l x acc :
   Associative f -> Commutative f ->
   fold_left (option_map2 f) l (option_map2 f acc x) = option_map2 f (fold_left (option_map2 f) l acc) x.
 Proof.
-  intros ass c. rewrite fold_left_comm => //.
-  intros. rewrite -(assoc (f := option_map2 f)).
-  rewrite -(assoc (f := option_map2 f) z y x0).
+  intros ass c. rw fold_left_comm => //.
+  intros. rw -(assoc (f := option_map2 f)).
+  rw -(assoc (f := option_map2 f) z y x0).
   f_equal. apply comm.
 Qed.
 
@@ -111,8 +111,8 @@ Proof.
   { destruct H3 as [x []]. cbn in H3. destruct H3; subst => //.
     now eapply (H4 acc acc0). }
   cbn in IHl.
-  rewrite hf hg.
-  rewrite fold_left_comm //. rewrite (fold_left_comm g) //.
+  rw hf hg.
+  rw fold_left_comm //. rw (fold_left_comm g) //.
   destruct H3 as [min [hmin hfg]].
   destruct hmin as [<-|hel].
   - apply hfg. apply fold_left_le => //. intros; eapply H1 => //. now right; right.
@@ -210,13 +210,13 @@ Qed.
 Lemma fold_comm_assoc_nat x y z : option_map2 Nat.max x (option_map2 Nat.max y z) =
   option_map2 Nat.max y (option_map2 Nat.max x z).
 Proof.
-  now rewrite (assoc (f := option_map2 Nat.max)) (comm (f := option_map2 Nat.max) x y) -assoc.
+  now rw (assoc (f := option_map2 Nat.max)) (comm (f := option_map2 Nat.max) x y) -assoc.
 Qed.
 
 Lemma fold_comm_assoc x y z : option_map2 Z.max x (option_map2 Z.max y z) =
   option_map2 Z.max y (option_map2 Z.max x z).
 Proof.
-  now rewrite (assoc (f := option_map2 Z.max)) (comm (f := option_map2 Z.max) x y) -assoc.
+  now rw (assoc (f := option_map2 Z.max)) (comm (f := option_map2 Z.max) x y) -assoc.
 Qed.
 
 Lemma fold_left_map {A B C} (f : B -> A -> A) (g : C -> B) l acc :
@@ -250,8 +250,8 @@ Proof.
     exists n. split => //. now left.
   - cbn. split; intros.
     { destruct (IHl n) as [hle [min [hin heq]]].
-    rewrite fold_left_comm.
-    { now intros; rewrite -option_map2_assoc (option_map2_comm x0 y) option_map2_assoc. }
+    rw fold_left_comm.
+    { now intros; rw -option_map2_assoc (option_map2_comm x0 y) option_map2_assoc. }
     repeat destruct H; subst.
     * specialize (hle n). forward hle. now left.
       transitivity (fn l n); auto. eapply Zmin_opt_left.
@@ -261,10 +261,10 @@ Proof.
     * specialize (IHl (option_map2 Z.min n a)).
       destruct IHl as [hle [min [hin heq]]]. subst min. eexists. split; trea.
       destruct hin.
-      rewrite -H.
+      rw -H.
       destruct n, a; cbn; firstorder.
       destruct (Z.min_spec z z0) as [[? heq]|[? heq]].
-      rewrite -{1}heq. now left. right; left. f_equal. lia.
+      rw -{1}heq. now left. right; left. f_equal. lia.
       now right.
 Qed.
 
@@ -275,10 +275,10 @@ Proof.
   intros heq.
   destruct (fold_left_impl n l) as [hle [minl [hin heq']]].
   destruct (fold_left_impl n' l') as [hle' [minl' [hin' heq'']]].
-  rewrite heq' heq''.
+  rw heq' heq''.
   specialize (hle minl'). forward hle. now apply heq.
   specialize (hle' minl). forward hle'. now apply heq.
-  rewrite heq'' in hle'. rewrite heq' in hle. depelim hle'. depelim hle. f_equal; lia.
+  rw heq'' in hle'. rw heq' in hle. depelim hle'. depelim hle. f_equal; lia.
   now depelim hle.
 Qed.
 
@@ -287,8 +287,8 @@ Lemma fold_left_comm_f {A} (f : A -> A -> A) n l :
   fold_left f l n = fold_left (flip f) l n.
 Proof.
   induction l in n |- *; cbn; auto.
-  intros hf. rewrite IHl //.
-  unfold flip. now rewrite hf.
+  intros hf. rw IHl //.
+  unfold flip. now rw hf.
 Qed.
 
 Local Open Scope Z_scope.
@@ -331,11 +331,11 @@ Proof. red. lia. Qed.
 Lemma equivlistA_app_comm {A} (l l' : list A) :
   equivlistA Logic.eq (l ++ l') (l' ++ l).
 Proof.
-  intros x. rewrite !InA_In_eq !in_app_iff. firstorder.
+  intros x. rw !InA_In_eq !in_app_iff. firstorder.
 Qed.
 
 Lemma equivlistA_app_cons_comm {A} (x : A) (l l' : list A) :
   equivlistA Logic.eq (l ++ x :: l') (x :: l' ++ l).
 Proof.
-  intros y. rewrite !InA_In_eq !in_app_iff //= in_app_iff. firstorder.
+  intros y. rw !InA_In_eq !in_app_iff //= in_app_iff. firstorder.
 Qed.

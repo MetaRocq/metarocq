@@ -259,7 +259,7 @@ Proof.
   move=> wfΣ.
   induction Σ in wfΣ |- *; cbn => //.
   case: eqb_spec.
-  - intros -> [= <-]. destruct f. left. cbn. now rewrite eqb_refl.
+  - intros -> [= <-]. destruct f. left. cbn. now rw eqb_refl.
     right. depelim wfΣ. cbn. now apply lookup_env_filter.
   - intros diff hl.
     destruct f. cbn. case: eqb_spec.
@@ -293,7 +293,7 @@ Lemma lookup_inductive_filter_deps_Some {efl : EEnvFlags} {Σ f i p} :
   lookup_inductive (filter f Σ) i = None.
 Proof.
   move => wfΣ.
-  rewrite /lookup_inductive /lookup_minductive.
+  rw /lookup_inductive /lookup_minductive.
   destruct lookup_env eqn:hle => //=.
   eapply lookup_env_filter_deps in hle as [-> | ->] => //; destruct g => //=. now left.
   now right.
@@ -305,7 +305,7 @@ Lemma lookup_inductive_filter_deps_None {efl : EEnvFlags} {Σ f i} :
   lookup_inductive (filter f Σ) i = None.
 Proof.
   move => wfΣ.
-  rewrite /lookup_inductive /lookup_minductive.
+  rw /lookup_inductive /lookup_minductive.
   destruct lookup_env eqn:hle => //=; try destruct g => //=.
   eapply (lookup_env_filter_deps) in hle as [-> | ->] => //; destruct g => //=.
   eapply (lookup_env_filter_deps) in hle as [-> | ->] => //; destruct g => //=.
@@ -317,7 +317,7 @@ Lemma erases_global_lookup_env_constant Σ Σ' kn :
   forall d, PCUICAst.PCUICEnvironment.lookup_env Σ kn = Some (ConstantDecl d) ->
   exists d', lookup_env Σ' kn = Some (EAst.ConstantDecl d').
 Proof.
-  destruct Σ as [? ? ?]. rewrite /erases_global //=.
+  destruct Σ as [? ? ?]. rw /erases_global //=.
   induction 1; cbn => //.
   - intros d. case: eqb_spec.
     + intros ->. intros [=]; subst. now eexists.
@@ -332,7 +332,7 @@ Lemma erases_global_lookup_env_inductive Σ Σ' kn :
   forall d, PCUICAst.PCUICEnvironment.lookup_env Σ kn = Some (InductiveDecl d) ->
   exists d', lookup_env Σ' kn = Some (EAst.InductiveDecl d') /\ erases_mutual_inductive_body d d'.
 Proof.
-  destruct Σ as [? ? ?]. rewrite /erases_global //=.
+  destruct Σ as [? ? ?]. rw /erases_global //=.
   induction 1; cbn => //.
   - intros d. case: eqb_spec.
     + intros ->. intros [=]; subst.
@@ -347,7 +347,7 @@ Lemma erases_global_lookup_env_none Σ Σ' kn :
   PCUICAst.PCUICEnvironment.lookup_env Σ kn = None ->
   lookup_env Σ' kn = None.
 Proof.
-  destruct Σ as [? ? ?]. rewrite /erases_global //=.
+  destruct Σ as [? ? ?]. rw /erases_global //=.
   induction 1; cbn => //.
   - case: eqb_spec.
     + intros ->. intros [=]; subst.
@@ -365,9 +365,9 @@ Lemma erases_wf_inductives_mapping {Σ : global_env_ext} {Σ' deps m} :
 Proof.
   move=> wfΣ  er.
   have wfΣ' := ErasureCorrectness.erases_global_wf_glob _ (fst wfΣ) er.
-  rewrite /wf_pcuic_inductives_mapping /wf_inductives_mapping.
+  rw /wf_pcuic_inductives_mapping /wf_inductives_mapping.
   solve_all. move: H.
-  rewrite /wf_pcuic_inductive_mapping /wf_inductive_mapping.
+  rw /wf_pcuic_inductive_mapping /wf_inductive_mapping.
   destruct x as [ind [na tags]].
   have eral := EDeps.erases_global_all_deps _ _ (PCUICElimination.wf_ext_wf _ wfΣ) er.
   have trind := ErasureProperties.trans_lookup_inductive eral ind.
@@ -375,21 +375,21 @@ Proof.
   specialize (trind _ _ eq_refl).
   - intros wftags.
     destruct trind as [mib' [oib' [hli' hctors]]].
-    rewrite (filter_deps_filter (efl := all_env_flags)) //.
+    rw (filter_deps_filter (efl := all_env_flags)) //.
     set (f := fun x => _).
-    eapply (lookup_inductive_filter_deps_Some (efl := all_env_flags) (f:=f)) in hli' as [H|H] => //; rewrite H //.
+    eapply (lookup_inductive_filter_deps_Some (efl := all_env_flags) (f:=f)) in hli' as [H|H] => //; rw H //.
     congruence.
   - intros _. clear trind.
     destruct (lookup_inductive (filter_deps deps Σ') ind) eqn:li' => //.
     apply False_rect. move: li'.
-    rewrite (filter_deps_filter (efl:=all_env_flags)) //.
+    rw (filter_deps_filter (efl:=all_env_flags)) //.
     generalize (fun x : KernameSet.elt × EAst.global_decl => flip KernameSet.mem (global_deps Σ' deps) x.1).
     intros f li'.
     have nli : lookup_inductive Σ' ind = None.
     { clear -wfΣ wfΣ' er li.
-      move: li. rewrite /PCUICAst.PCUICLookup.lookup_inductive /lookup_inductive.
-      rewrite /PCUICAst.PCUICLookup.lookup_inductive_gen /lookup_minductive.
-      rewrite /PCUICAst.PCUICLookup.lookup_minductive_gen /lookup_minductive.
+      move: li. rw /PCUICAst.PCUICLookup.lookup_inductive /lookup_inductive.
+      rw /PCUICAst.PCUICLookup.lookup_inductive_gen /lookup_minductive.
+      rw /PCUICAst.PCUICLookup.lookup_minductive_gen /lookup_minductive.
       destruct PCUICAst.PCUICEnvironment.lookup_env eqn:hle => //=. destruct g => //.
       eapply erases_global_lookup_env_constant in hle as [? ->]; tea => //.
       eapply erases_global_lookup_env_inductive in hle as [? [-> ?]]; tea => //=.
@@ -399,7 +399,7 @@ Proof.
       eapply nth_error_Some_length in hnth'. eapply nth_error_None in hnth. eapply Forall2_length in H. lia.
       intros _.
       eapply erases_global_lookup_env_none in hle as ->; tea => //. }
-    now rewrite (lookup_inductive_filter_deps_None wfΣ' nli) in li'.
+    now rw (lookup_inductive_filter_deps_None wfΣ' nli) in li'.
 Qed.
 
 
@@ -422,14 +422,14 @@ Next Obligation.
   unfold erase_program, erase_pcuic_program;
   set (egf := erase_global_fast _ _ _ _ _);
   set (ef := ErasureFunction.erase _ _ _ _ _);
-  cbn -[egf ef]; unfold erase_global_fast in egf; rewrite /egf; clear egf ef;
+  cbn -[egf ef]; unfold erase_global_fast in egf; rw /egf; clear egf ef;
   set (deps := EAstUtils.term_global_deps _); clearbody deps;
   match goal with
   |- context [erase_global_deps_fast ?deps ?X_type ?X ?decls (normalization_in:=?normalization_in) ?hprefix ] =>
     have heq := @erase_global_deps_fast_erase_global_deps deps X_type X decls normalization_in hprefix
   end; cbn in heq; specialize (heq (fun Σ eq => f_equal declarations eq));
-  destruct heq as [nin' eq]; rewrite eq; clear eq.
-  rewrite erase_global_deps_erase_global.
+  destruct heq as [nin' eq]; rw eq; clear eq.
+  rw erase_global_deps_erase_global.
   cbn -[ErasureFunction.erase_global].
   match goal with
   |- context [@erase_global ?X_type ?X ?decls ?SN ?eq] =>
@@ -457,12 +457,12 @@ Program Definition pcuic_expand_lets_transform_mapping {cf : checker_flags} K : 
    obseq p hp p' := obseq (pcuic_expand_lets_transform K) p.2 (proj2 hp) p'.2 |}.
 Next Obligation.
   cbn. intros cf K input []. split => //.
-  - move: H; rewrite /wf_pcuic_inductives_mapping.
-    solve_all. move: H; rewrite /wf_pcuic_inductive_mapping.
+  - move: H; rw /wf_pcuic_inductives_mapping.
+    solve_all. move: H; rw /wf_pcuic_inductive_mapping.
     destruct x as [ind [na tags]].
-    rewrite /PCUICAst.PCUICLookup.lookup_inductive /PCUICAst.PCUICLookup.lookup_inductive_gen /PCUICAst.PCUICLookup.lookup_minductive_gen.
-    rewrite PCUICExpandLetsCorrectness.trans_lookup. destruct PCUICAst.PCUICEnvironment.lookup_env => //. destruct g => //=.
-    rewrite nth_error_mapi. destruct nth_error => //=. now len.
+    rw /PCUICAst.PCUICLookup.lookup_inductive /PCUICAst.PCUICLookup.lookup_inductive_gen /PCUICAst.PCUICLookup.lookup_minductive_gen.
+    rw PCUICExpandLetsCorrectness.trans_lookup. destruct PCUICAst.PCUICEnvironment.lookup_env => //. destruct g => //=.
+    rw nth_error_mapi. destruct nth_error => //=. now len.
   - unshelve eapply (correctness (pcuic_expand_lets_transform K)). apply H0.
 Qed.
 Next Obligation.
@@ -598,16 +598,16 @@ Lemma lookup_lookup_global_env_None (Σ : GlobalEnvMap.t) kn :
 Proof.
   intros hl.
   induction Σ => // /=. induction env => //=. cbn in hl.
-  rewrite /eta_global_declarations. cbn in *. rewrite lookup_global_map_on_snd hl //.
+  rw /eta_global_declarations. cbn in *. rw lookup_global_map_on_snd hl //.
 Qed.
 
 Lemma eta_lookup_inductive_ctors (Σ : GlobalEnvMap.t) ind :
   option_map (fun '(mib, oib) => #|Env.ind_ctors oib|) (Ast.lookup_inductive Σ ind) = option_map (fun '(mib, oib) => #|Env.ind_ctors oib|) (Ast.lookup_inductive (eta_expand_global_env Σ) ind).
 Proof.
-  rewrite /Ast.lookup_inductive /eta_expand_global_env /lookup_inductive_gen /lookup_minductive_gen.
+  rw /Ast.lookup_inductive /eta_expand_global_env /lookup_inductive_gen /lookup_minductive_gen.
   destruct Env.lookup_env eqn:le => //.
-  cbn. eapply eta_lookup_global in le. rewrite le /=.
-  destruct g => //=. rewrite nth_error_map. destruct nth_error => //=. len.
+  cbn. eapply eta_lookup_global in le. rw le /=.
+  destruct g => //=. rw nth_error_map. destruct nth_error => //=. len.
   cbn. now eapply lookup_lookup_global_env_None in le as ->.
 Qed.
 
@@ -621,9 +621,9 @@ Program Definition eta_expand_mapping K :
    obseq p hp p' := obseq (eta_expand K) p.2 (proj2 hp) p'.2 |}.
 Next Obligation.
   cbn; intros K input [? ?]. split. 2:now unshelve eapply (correctness (eta_expand K)).
-  move: H. rewrite /wf_template_inductives_mapping.
+  move: H. rw /wf_template_inductives_mapping.
   solve_all. move: H.
-  rewrite /wf_template_inductive_mapping.
+  rw /wf_template_inductive_mapping.
   destruct x as [ind [na tags]].
   have eqe := eta_lookup_inductive_ctors input.2.1 ind.
   do 2 destruct Ast.lookup_inductive as [[? ?]|]; cbn in *; congruence.
@@ -645,9 +645,9 @@ Next Obligation.
   cbn; intros K input [wfm pre].
   pose proof (correctness (template_to_pcuic_transform K) _ pre) as post.
   split. 2:now unshelve eapply (correctness (template_to_pcuic_transform K)).
-  move: wfm. rewrite /wf_template_inductives_mapping.
+  move: wfm. rw /wf_template_inductives_mapping.
   solve_all. move: H.
-  rewrite /wf_template_inductive_mapping /wf_pcuic_inductive_mapping.
+  rw /wf_template_inductive_mapping /wf_pcuic_inductive_mapping.
   unfold Ast.lookup_inductive, PCUICAst.PCUICLookup.lookup_inductive, Ast.lookup_inductive_gen,
     PCUICAst.PCUICLookup.lookup_inductive_gen,
     PCUICAst.PCUICLookup.lookup_minductive_gen,
@@ -656,8 +656,8 @@ Next Obligation.
   destruct x as [ind [na tags]].
   destruct pre as [[wta] _].
   have trl := TemplateToPCUICCorrectness.trans_lookup input.2.1 (inductive_mind ind) wta.1 wtr.1.
-  destruct Env.lookup_env; cbn in *; rewrite trl //.
-  destruct g => //=. rewrite nth_error_map. destruct nth_error => //=. len.
+  destruct Env.lookup_env; cbn in *; rw trl //.
+  destruct g => //=. rw nth_error_map. destruct nth_error => //=. len.
 Qed.
 Next Obligation.
   cbn; intros K ? ? [? []] ev. cbn.
@@ -797,20 +797,20 @@ Lemma wf_inductive_mapping_trans {Σ Σ' m} :
   wf_inductive_mapping (ExAst.trans_env Σ') m.
 Proof.
   intros hkn.
-  rewrite /wf_pcuic_inductive_mapping /wf_inductive_mapping.
+  rw /wf_pcuic_inductive_mapping /wf_inductive_mapping.
   destruct m as [ind [na tags]].
   destruct lookup_inductive as [decl|]eqn:hl => //.
   have [pdecl [hl' htr]] : exists p, ExAst.lookup_inductive Σ' ind = Some p /\ ExAst.trans_oib p = decl.2.
-  { move: hl; rewrite /lookup_inductive /ExAst.lookup_inductive.
-    rewrite /lookup_minductive /= /ExAst.lookup_minductive.
-    rewrite OptimizeCorrectness.lookup_env_trans_env.
+  { move: hl; rw /lookup_inductive /ExAst.lookup_inductive.
+    rw /lookup_minductive /= /ExAst.lookup_minductive.
+    rw OptimizeCorrectness.lookup_env_trans_env.
     destruct ExAst.lookup_env => //=. destruct g => //=.
-    rewrite nth_error_map //=. destruct nth_error => //=. intros [= <-].
+    rw nth_error_map //=. destruct nth_error => //=. intros [= <-].
     now eexists. }
   eapply hkn in hl' as [decl' [hl''hct]].
-  rewrite hl''hct. destruct decl'; cbn in *. destruct decl. cbn in *. subst o0.
-  rewrite H. rewrite /ExAst.trans_oib /=.
-  rewrite /ExAst.trans_ctors. now rewrite length_map.
+  rw hl''hct. destruct decl'; cbn in *. destruct decl. cbn in *. subst o0.
+  rw H. rw /ExAst.trans_oib /=.
+  rw /ExAst.trans_ctors. now rw length_map.
 Qed.
 
 From Equations Require Import Equations.
@@ -820,7 +820,7 @@ Lemma nth_error_map_In {A B} (l : list A) (f : forall x, In x l -> B) n o :
   exists a (ha : In a l), nth_error l n = Some a /\ o = f a ha.
 Proof.
   funelim (map_In l f); cbn.
-  - rewrite nth_error_nil => //.
+  - rw nth_error_nil => //.
   - destruct n; cbn.
     * intros [= <-]; now eexists.
     * intros h. have [a [hin []]]:= H _ _ h.
@@ -835,7 +835,7 @@ Lemma lookup_inductive_erase_global_decls_deps {X_type X} {decls : global_env} {
   ExAst.lookup_inductive (@Erasure.erase_global_decls_deps_recursive X_type X (declarations decls) (universes decls) (retroknowledge decls) prop incl ignore) kn = Some decl ->
   exists decl', PCUICAst.lookup_inductive decls kn = Some decl' /\ #|ind_ctors decl'.2| = #|ExAst.ind_ctors decl|.
 Proof.
-  rewrite /ExAst.lookup_inductive /ExAst.lookup_minductive.
+  rw /ExAst.lookup_inductive /ExAst.lookup_minductive.
   destruct decls as [univs' decls retro].
   cbn. unfold ExAst.lookup_env.
   induction decls as [|[kn' []]] in X, prop, incl |- *. cbn => //.
@@ -867,10 +867,10 @@ Proof.
         intros h; specialize (IHdecls _ iprop iincl h).
         destruct IHdecls as [decl'' []].
         subst kn'. move: H0.
-        rewrite /PCUICAst.lookup_inductive /PCUICAst.lookup_inductive_gen.
-        rewrite /PCUICAst.lookup_minductive /PCUICAst.lookup_minductive_gen. cbn.
+        rw /PCUICAst.lookup_inductive /PCUICAst.lookup_inductive_gen.
+        rw /PCUICAst.lookup_minductive /PCUICAst.lookup_minductive_gen. cbn.
         destruct lookup_global eqn:hl => //=.
-        eapply PCUICAst.fresh_global_iff_lookup_global_None in H. rewrite H in hl. congruence.
+        eapply PCUICAst.fresh_global_iff_lookup_global_None in H. rw H in hl. congruence.
       + intros diff. eapply IHdecls.
   - cbn [Erasure.erase_global_decls_deps_recursive] => //.
     destruct KernameSet.mem; cbn [ExAst.lookup_env Erasure.erase_global_decl];
@@ -882,8 +882,8 @@ Proof.
       + intros <-. cbn.
         destruct nth_error eqn:hmi => //. intros [= <-].
         eapply nth_error_map_In in hmi as [oib [hin [hnth ->]]].
-        exists (m, oib); rewrite hnth. split => //=.
-        now rewrite /Erasure.erase_ind_body map_In_length.
+        exists (m, oib); rw hnth. split => //=.
+        now rw /Erasure.erase_ind_body map_In_length.
       + intros diff. eapply IHdecls.
     * case: eqb_spec.
       + intros heq.
@@ -900,10 +900,10 @@ Proof.
         intros h; specialize (IHdecls _ iprop iincl h).
         destruct IHdecls as [decl'' []].
         subst kn'. move: H0.
-        rewrite /PCUICAst.lookup_inductive /PCUICAst.lookup_inductive_gen.
-        rewrite /PCUICAst.lookup_minductive /PCUICAst.lookup_minductive_gen. cbn.
+        rw /PCUICAst.lookup_inductive /PCUICAst.lookup_inductive_gen.
+        rw /PCUICAst.lookup_minductive /PCUICAst.lookup_minductive_gen. cbn.
         destruct lookup_global eqn:hl => //=.
-        eapply PCUICAst.fresh_global_iff_lookup_global_None in H. rewrite H in hl. congruence.
+        eapply PCUICAst.fresh_global_iff_lookup_global_None in H. rw H in hl. congruence.
       + intros diff. eapply IHdecls.
 Qed.
 
@@ -922,7 +922,7 @@ Next Obligation.
 Proof.
   destruct s. cbn -[ExAst.trans_env typed_erase_transform]. split => //.
   2:{ eapply (correctness typed_erase_transform). }
-  move: i; rewrite /wf_pcuic_inductives_mapping /wf_inductives_mapping.
+  move: i; rw /wf_pcuic_inductives_mapping /wf_inductives_mapping.
   solve_all.
   destruct w as [wf wt].
   eapply wf_inductive_mapping_trans; tea.
@@ -936,8 +936,8 @@ Qed.
 Lemma lookup_inductive_map_on_snd_remove_decl Σ Σ' kn :
   lookup_inductive (map (on_snd (EOptimizePropDiscr.remove_match_on_box_decl Σ')) Σ) kn = lookup_inductive Σ kn.
 Proof.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite EGenericGlobalMap.lookup_env_map_snd. destruct lookup_env => //=.
+  rw /lookup_inductive /lookup_minductive.
+  rw EGenericGlobalMap.lookup_env_map_snd. destruct lookup_env => //=.
   destruct g => //.
 Qed.
 
@@ -954,11 +954,11 @@ Next Obligation.
 Proof.
   split. 2:{ cbn. now unshelve eapply (correctness remove_match_on_box_typed_transform). }
   cbn.
-  move: i; rewrite /wf_inductives_mapping; solve_all.
-  move: H; rewrite /wf_inductive_mapping.
-  rewrite /remove_match_on_box_typed_env.
-  rewrite -map_trans_env.
-  destruct x as [ind [na tags]]. now rewrite lookup_inductive_map_on_snd_remove_decl.
+  move: i; rw /wf_inductives_mapping; solve_all.
+  move: H; rw /wf_inductive_mapping.
+  rw /remove_match_on_box_typed_env.
+  rw -map_trans_env.
+  destruct x as [ind [na tags]]. now rw lookup_inductive_map_on_snd_remove_decl.
 Qed.
 Next Obligation.
   intros p v pr ev.
@@ -997,18 +997,18 @@ Next Obligation.
 Proof.
   split => //.
   2:{ now unshelve eapply (correctness (dearging_transform cf)). }
-  move: H; rewrite /wf_inductives_mapping; solve_all.
-  move: H; rewrite /wf_inductive_mapping. destruct x as [ind [na tags]].
-  rewrite /dearg. destruct input.2.1.1 => //.
-  rewrite /OptimizeCorrectness.dearg_env.
-  rewrite /lookup_inductive /lookup_minductive /=.
-  rewrite !OptimizeCorrectness.lookup_env_trans_env.
-  rewrite OptimizeCorrectness.lookup_env_debox_env_types option_map_two /=.
-  rewrite OptimizeCorrectness.lookup_env_dearg_env option_map_two /=.
+  move: H; rw /wf_inductives_mapping; solve_all.
+  move: H; rw /wf_inductive_mapping. destruct x as [ind [na tags]].
+  rw /dearg. destruct input.2.1.1 => //.
+  rw /OptimizeCorrectness.dearg_env.
+  rw /lookup_inductive /lookup_minductive /=.
+  rw !OptimizeCorrectness.lookup_env_trans_env.
+  rw OptimizeCorrectness.lookup_env_debox_env_types option_map_two /=.
+  rw OptimizeCorrectness.lookup_env_dearg_env option_map_two /=.
   destruct ExAst.lookup_env => //=; destruct g => //=.
-  rewrite !nth_error_map option_map_two /=.
-  rewrite /Optimize.dearg_mib /=. destruct Optimize.get_mib_masks => //=.
-  rewrite !nth_error_mapi.
+  rw !nth_error_map option_map_two /=.
+  rw /Optimize.dearg_mib /=. destruct Optimize.get_mib_masks => //=.
+  rw !nth_error_mapi.
   1-2:destruct nth_error eqn:hnth => //=; len.
   intros _. destruct o => //=. destruct p => //.
 Qed.

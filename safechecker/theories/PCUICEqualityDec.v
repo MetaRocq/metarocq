@@ -22,7 +22,7 @@ Lemma consistent_instance_wf_sort `{checker_flags} Σ uctx u :
   Forall (wf_universe Σ) u.
 Proof.
   move => /consistent_instance_ext_wf /wf_instanceP.
-  rewrite -wf_universeb_instance_forall.
+  rw -wf_universeb_instance_forall.
   move => /forallb_Forall ?.
   eapply Forall_impl ; tea.
   move => ? /wf_universeP //.
@@ -237,7 +237,7 @@ Lemma reflect_cmp_global_instance' lookup (p : Universe.t -> bool) cmpu cmp_univ
     (compare_global_instance lookup cmpu pb gr napp ui ui').
 Proof.
   intros he hle hui hui'.
-  rewrite /compare_global_instance /cmp_global_instance_gen /cmp_opt_variance.
+  rw /compare_global_instance /cmp_global_instance_gen /cmp_opt_variance.
   destruct (global_variance_gen _ gr napp) as [| |v].
   - eapply reflect_cmp_universe_instance; tea.
   - apply eqb_specT.
@@ -262,9 +262,9 @@ Proof.
   intros he hleh hlookup hui hui'.
   pose proof (Hglobal := reflect_cmp_global_instance' lookup p
         cmpu cmp_universe pb gr napp ui ui' he hleh hui hui').
-  rewrite /cmp_global_instance_gen /compare_global_instance /cmp_opt_variance.
-  rewrite /global_variance_gen /lookup_constructor_gen /lookup_inductive_gen /lookup_minductive_gen.
-  destruct gr; auto; now repeat rewrite hlookup.
+  rw /cmp_global_instance_gen /compare_global_instance /cmp_opt_variance.
+  rw /global_variance_gen /lookup_constructor_gen /lookup_inductive_gen /lookup_minductive_gen.
+  destruct gr; auto; now repeat rw hlookup.
 Qed.
 
 Lemma forallb_true {A : Type} (l : list A) : forallb xpredT l.
@@ -364,16 +364,16 @@ Proof.
   induction t using term_forall_list_ind => //=.
   - now apply All_forallb.
   - now destruct s.
-  - now rewrite IHt1 IHt2.
-  - now rewrite IHt1 IHt2.
-  - now rewrite IHt1 IHt2 IHt3.
-  - now rewrite IHt1 IHt2.
+  - now rw IHt1 IHt2.
+  - now rw IHt1 IHt2.
+  - now rw IHt1 IHt2 IHt3.
+  - now rw IHt1 IHt2.
   - now apply forallb_true.
   - now apply forallb_true.
   - now apply forallb_true.
-  - rewrite forallb_true IHt /=.
+  - rw forallb_true IHt /=.
     destruct X as [? [? ->]].
-    rewrite All_forallb //=.
+    rw All_forallb //=.
     apply/andP ; split.
     + clear.
       induction (pcontext p) as [|[? [] ?]] => //=.
@@ -519,14 +519,14 @@ Proof.
 
   - destruct p0 as [? []], prim as [? []];
     cbn in X, ht, ht';
-    rewrite /eqb_prim_val /eqb_prim_model; cbn -[eqb]; try eqspecs;
+    rw /eqb_prim_val /eqb_prim_model; cbn -[eqb]; try eqspecs;
     try repeat constructor.
     1-15:intros e; depelim e; try depelim o; intuition eauto.
     rtoProp. destruct X as (hty & hdef & harr).
     eapply reflectT_change_left. { split; intros XE. 1: constructor; now apply XE. now depelim XE. }
     eapply reflectT_change_left4. { split; intros XE. 1: destruct XE as [XE1 XE2 XE3 XE4]; constructor; [apply XE1|apply XE3|apply XE4|apply XE2]. now depelim XE. }
     3,4:  ih => //; constructor; assumption.
-    + rewrite andb_true_r. eapply reflect_reflectT. eauto.
+    + rw andb_true_r. eapply reflect_reflectT. eauto.
     + eapply All_reflect_reflect_All2. 2: now apply forallb_All.
       solve_all.
 Qed.
@@ -564,7 +564,7 @@ Proof.
   - eapply reflect_iff.
     eapply reflect_cmp_global_instance' with (p := xpredT); intros; eauto.
     3-4: apply forallb_true.
-    1-2: rewrite Hequ; apply idP.
+    1-2: rw Hequ; apply idP.
 Defined.
 
 Definition eqb_term_upto_univ_proper Σ cmpu cmpu' cmps cmps'
@@ -587,12 +587,12 @@ Proof.
   1: eassert _ as X; [eapply reflect_eq_term_upto_univ with (cmp_universe := cmpu) (cmp_sort := cmps) | split; [apply introT|apply elimT]; eapply X].
   all: intros; eauto.
   1-4: apply idP.
-  1-2: rewrite -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
-  1-2: rewrite Hequ; eauto using idP.
+  1-2: rw -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
+  1-2: rw Hequ; eauto using idP.
   1-4: now apply/wf_universeP.
-  1-2: rewrite Heqs; eauto using idP.
+  1-2: rw Heqs; eauto using idP.
   1-4: now apply/wf_sort_reflect.
-  1-2: rewrite -Hgen_compare -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
+  1-2: rw -Hgen_compare -Hcompare; eapply reflect_cmp_global_instance; intros; eauto using idP.
 Defined.
 
 
@@ -603,7 +603,7 @@ Lemma compare_global_instance_refl :
     compare_global_instance Σ cmpu pb gr napp u u.
 Proof.
   intros Σ cmpu gr pb napp u cmpu_refl cmpu_refl'.
-  rewrite /compare_global_instance.
+  rw /compare_global_instance.
   destruct global_variance_gen as [| |v].
   - apply All2_forallb2, All2_refl; auto.
   - apply eqb_refl.
@@ -640,7 +640,7 @@ Lemma cmp_global_instance_refl_wf Σ (cmp_universe : conv_pb -> Universe.t -> Un
   cmp_global_instance Σ cmp_universe pb gr napp l l.
 Proof.
   intros rRE Hl.
-  rewrite /cmp_global_instance_gen.
+  rw /cmp_global_instance_gen.
   destruct global_variance_gen as [| |v] => //=. 2: left. all: now eapply cmp_universe_instance_refl_wf.
 Qed.
 
@@ -820,10 +820,10 @@ Qed.
 Lemma model_of_clean_uctx m uctx : model_of_uctx m (clean_uctx uctx) <-> model_of_uctx m uctx.
 Proof.
   unfold model_of_uctx. cbn -[init_constraints_of_levels].
-  rewrite [LevelSet.union (LevelSet.remove _ _) _]LevelSetProp.union_sym.
-    rewrite -LevelSetProp.add_union_singleton levelset_add_remove LevelSetProp.add_union_singleton
+  rw [LevelSet.union (LevelSet.remove _ _) _]LevelSetProp.union_sym.
+    rw -LevelSetProp.add_union_singleton levelset_add_remove LevelSetProp.add_union_singleton
       LevelSetProp.union_sym.
-    rewrite -init_constraints_of_clean_uctx. reflexivity.
+    rw -init_constraints_of_clean_uctx. reflexivity.
 Qed.
 
 Equations? graph_of_wf {cf:checker_flags} {Σ : global_env} (HΣ : ∥ wf Σ ∥) : ∑ G, model_of_uctx G (global_uctx Σ) :=
@@ -896,7 +896,7 @@ Lemma wf_universe_declared {cf : checker_flags} Σ u :
   levels_declared (clean_uctx (global_ext_uctx Σ)) u.
 Proof.
   move=> wf l /wf.
-  rewrite /expr_declared //= levelset_add_remove.
+  rw /expr_declared //= levelset_add_remove.
   destruct l; cbn. lsets.
 Qed.
 
@@ -922,11 +922,11 @@ Proof.
   split.
   - unfold check_spec.
     intros. apply H.
-    rewrite /clean_uctx //=. red. destruct c as [[l d] r]. rewrite levelset_add_remove.
+    rw /clean_uctx //=. red. destruct c as [[l d] r]. rw levelset_add_remove.
     apply H0.
   - unfold check_spec.
     intros. apply H.
-    rewrite /clean_uctx //=. red. destruct c as [[l d] r]. cbn in H0. rewrite levelset_add_remove in H0.
+    rw /clean_uctx //=. red. destruct c as [[l d] r]. cbn in H0. rw levelset_add_remove in H0.
     apply H0.
 Qed.
 
@@ -950,7 +950,7 @@ Section EqualityDecGen.
   Proof using hΣ.
     intros. destruct Σ as [Σ' φ].
     apply (equivP idP).
-    rewrite -valid_cstr_eq.
+    rw -valid_cstr_eq.
      pose proof hΣ as hΣ' ; sq.
     eapply check_eqb_universe_spec_gen
          with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) ; eauto.
@@ -969,7 +969,7 @@ Section EqualityDecGen.
   Proof using hΣ.
     intros. destruct Σ as [Σ' φ].
     apply (equivP idP).
-    rewrite -valid_cstr_le.
+    rw -valid_cstr_le.
      pose proof hΣ as hΣ' ; sq.
     eapply check_leqb_universe_spec_gen
          with (uctx := clean_uctx (global_ext_uctx (Σ', φ))) ; eauto.

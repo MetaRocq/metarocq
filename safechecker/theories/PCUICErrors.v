@@ -517,7 +517,7 @@ Proof using Type.
     simpl.
     case_eq (monad_map f l1). all: try discriminate. intros l' el.
     simpl. intro h. inv h.
-    rewrite (IHl1 _ el H0). simpl. reflexivity.
+    rw (IHl1 _ el H0). simpl. reflexivity.
 Qed.
 
 Lemma monad_map_app_invs X Y (f : X -> typing_result Y) (l1 l2 : list X) a :

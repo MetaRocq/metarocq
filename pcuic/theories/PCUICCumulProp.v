@@ -58,7 +58,7 @@ Proof using Type.
   destruct (closed_red_confluence redl redr) as [nf [redl' redr']].
   eapply invert_red_mkApps_tInd in redl'  as [args' [eqnf clΓ conv]].
   eapply invert_red_mkApps_tInd in redr'  as [args'' [eqnf' _ conv']].
-  rewrite eqnf in eqnf'. solve_discr. subst nf.
+  rw eqnf in eqnf'. solve_discr. subst nf.
   all:auto. exists u'u, args'; split; auto.
   - transitivity (mkApps (tInd ind u'u) l'u).
     auto. eapply closed_red_mkApps => //.
@@ -77,7 +77,7 @@ Proof using Type.
   epose proof (red_expand_let wf).
   etransitivity. eapply red_conv, X.
   eapply ws_cumul_pb_is_open_term_left in Hlet.
-  { rewrite on_fvs_letin in Hlet. now move/and3P: Hlet => []. }
+  { rw on_fvs_letin in Hlet. now move/and3P: Hlet => []. }
   eapply (@weakening_ws_cumul_pb _ _ _ _ Γ [] [vdef _ _ _]); auto.
   now eapply ws_cumul_pb_LetIn_l_inv in Hlet.
   now eapply wf_local_closed_context.
@@ -93,7 +93,7 @@ Proof using Hcf.
   destruct (cumul_sort_confluence hs hs') as [x' [conv [leq leq']]].
   move: leq leq'.
   destruct x', s, s' => //=.
-  now rewrite Hcf.
+  now rw Hcf.
 Qed.
 
 Lemma is_prop_bottom {Σ Γ T s s'} :
@@ -106,7 +106,7 @@ Proof using Hcf.
   destruct (cumul_sort_confluence hs hs') as [x' [conv [leq leq']]].
   move: leq leq'.
   destruct x', s, s' => //=.
-  now rewrite Hcf.
+  now rw Hcf.
 Qed.
 
 Lemma is_sprop_bottom {Σ Γ T s s'} :
@@ -292,7 +292,7 @@ Lemma cumul_prop_props {Σ Γ u u'} {wfΣ : wf Σ}:
   Sort.is_prop u'.
 Proof using Hcf.
   move => isp /cumul_prop_sort. move: isp.
-  destruct u, u' => //=. cbn. rewrite Hcf //.
+  destruct u, u' => //=. cbn. rw Hcf //.
 Qed.
 
 Lemma cumul_sprop_props {Σ Γ u u'} {wfΣ : wf Σ} :
@@ -355,8 +355,8 @@ Lemma LevelExprSet_For_all (P : LevelExpr.t -> Prop) (u : Universe.t) :
 Proof using Type.
   pose proof (Universe.to_nonempty_list_spec u).
   pose proof (Universe.to_nonempty_list_spec' u).
-  rewrite (Universe.For_all_exprs P u).
-  destruct (Universe.to_nonempty_list u). rewrite -H. simpl.
+  rw (Universe.For_all_exprs P u).
+  destruct (Universe.to_nonempty_list u). rw -H. simpl.
   split.
   - constructor; intuition.
   - intros H'; inv H'; intuition.
@@ -365,7 +365,7 @@ Qed.
 Lemma univ_expr_set_in_elements e s :
   LevelExprSet.In e s <-> In e (LevelExprSet.elements s).
 Proof using Type.
-  rewrite -LevelExprSet.elements_spec1. generalize (LevelExprSet.elements s).
+  rw -LevelExprSet.elements_spec1. generalize (LevelExprSet.elements s).
   now eapply InA_In_eq.
 Qed.
 
@@ -374,7 +374,7 @@ Lemma univ_epxrs_elements_map g s :
       In e (map g (LevelExprSet.elements s)).
 Proof using Type.
   intros e.
-  rewrite -Universe.In_elements Universe.map_spec in_map_iff; setoid_rewrite <- Universe.In_elements.
+  rw -Universe.In_elements Universe.map_spec in_map_iff; setoid_rewrite <- Universe.In_elements.
   firstorder.
 Qed.
 
@@ -395,7 +395,7 @@ Lemma univ_exprs_map_all P g s :
   Forall P (LevelExprSet.elements (Universe.map g s)) <->
   Forall (fun x => P (g x)) (LevelExprSet.elements s).
 Proof using Type.
-  rewrite !Forall_elements_in.
+  rw !Forall_elements_in.
   setoid_rewrite Universe.map_spec.
   intuition auto.
   eapply H. now exists x.
@@ -406,7 +406,7 @@ Lemma expr_set_forall_map f g s :
   LevelExprSet.for_all f (Universe.map g s) <->
   LevelExprSet.for_all (fun e => f (g e)) s.
 Proof using Type.
-  rewrite /is_true !LevelExprSet.for_all_spec !LevelExprSet_For_all.
+  rw /is_true !LevelExprSet.for_all_spec !LevelExprSet_For_all.
   apply univ_exprs_map_all.
 Qed.
 
@@ -519,7 +519,7 @@ Proof using Type.
     noconf H; simpl in H; noconf H.
     eapply All2_fold_nth in X; eauto.
     destruct X as [d' [Hnth [ctxrel cp]]].
-    red in cp. rewrite H in cp. rewrite Hnth /=.
+    red in cp. rw H in cp. rw Hnth /=.
     destruct (decl_body d'); subst => //.
   - econstructor. eapply IHHred. constructor; simpl; auto => //.
   - econstructor. eapply IHHred. constructor; simpl => //.
@@ -545,7 +545,7 @@ Proof using Type.
   intros clΓ' [] conv.
   eapply red1_upto_conv_ctx_prop in clrel_rel; eauto.
   split; auto.
-  now rewrite -(All2_fold_length conv).
+  now rw -(All2_fold_length conv).
 Qed.
 
 Lemma red_upto_conv_ctx_prop Σ Γ Γ' t t' :
@@ -568,7 +568,7 @@ Proof using Type.
   intros clΓ' [] conv.
   eapply red_upto_conv_ctx_prop in clrel_rel; eauto.
   split; auto.
-  now rewrite -(All2_fold_length conv).
+  now rw -(All2_fold_length conv).
 Qed.
 
 Lemma cumul_prop_prod_inv {Σ Γ na A B na' A' B'} {wfΣ : wf Σ} :
@@ -647,13 +647,13 @@ Qed.
 Lemma is_closed_context_snoc_inv Γ d : is_closed_context (d :: Γ) ->
   is_closed_context Γ /\ closed_decl #|Γ| d.
 Proof using Type.
-  rewrite on_free_vars_ctx_snoc.
+  rw on_free_vars_ctx_snoc.
   move/andP => []; split; auto.
   unfold ws_decl in b. destruct d as [na [bod|] ty]; cbn in *; auto.
   move/andP: b => /= [] clb clt.
   unfold closed_decl. cbn.
-  now rewrite !closedP_on_free_vars clb clt.
-  now rewrite closedP_on_free_vars.
+  now rw !closedP_on_free_vars clb clt.
+  now rw closedP_on_free_vars.
 Qed.
 
 Lemma red_conv_prop {Σ Γ T U} {wfΣ : wf_ext Σ} :
@@ -682,23 +682,23 @@ Lemma context_conversion_cumul_prop {Σ Γ Δ M N} {wfΣ : wf_ext Σ} :
   Σ ;;; Δ |- M ~~ N.
 Proof using Type.
   induction 1; intros.
-  - constructor => //. eauto with fvs. now rewrite -(All2_fold_length X).
-    now rewrite -(All2_fold_length X).
+  - constructor => //. eauto with fvs. now rw -(All2_fold_length X).
+    now rw -(All2_fold_length X).
   - specialize (IHX X0). transitivity v => //.
     eapply red1_red in r.
     assert (Σ ;;; Γ ⊢ t ⇝ v) by (now apply into_closed_red).
     symmetry in X0.
     eapply conv_red_conv in X1. 2:exact X0.
-    3:{ eapply ws_cumul_pb_refl. fvs. now rewrite (All2_fold_length X0). }
-    2:{ eapply closed_red_refl. fvs. now rewrite (All2_fold_length X0). }
+    3:{ eapply ws_cumul_pb_refl. fvs. now rw (All2_fold_length X0). }
+    2:{ eapply closed_red_refl. fvs. now rw (All2_fold_length X0). }
     symmetry in X1. now eapply cumul_pb_cumul_prop.
   - specialize (IHX X0). transitivity v => //.
     eapply red1_red in r.
     assert (Σ ;;; Γ ⊢ u ⇝ v) by (now apply into_closed_red).
     symmetry in X0.
     eapply conv_red_conv in X1. 2:exact X0.
-    3:{ eapply ws_cumul_pb_refl. fvs. now rewrite (All2_fold_length X0). }
-    2:{ eapply closed_red_refl. fvs. now rewrite (All2_fold_length X0). }
+    3:{ eapply ws_cumul_pb_refl. fvs. now rw (All2_fold_length X0). }
+    2:{ eapply closed_red_refl. fvs. now rw (All2_fold_length X0). }
     symmetry in X1. now eapply cumul_pb_cumul_prop.
 Qed.
 
@@ -722,17 +722,17 @@ Proof using Type.
   * eapply (substitution_red_terms_conv_prop (Γ':=[])). 3:tea. all:tea.
   * transitivity (subst0 nf' M).
     constructor.
-    - rewrite on_free_vars_ctx_app in clctx. now move/andP: clctx.
+    - rw on_free_vars_ctx_app in clctx. now move/andP: clctx.
     - eapply (is_open_term_subst (Γ' := [])). apply clctx.
       eapply closed_red_terms_open_right in redl. solve_all.
-      now rewrite -(All2_length redl) -(untyped_subslet_length subs). apply clM.
+      now rw -(All2_length redl) -(untyped_subslet_length subs). apply clM.
     - eapply (is_open_term_subst (Γ' := [])). apply clctx.
       eapply closed_red_terms_open_right in redr. solve_all.
-      now rewrite -(All2_length redr) -(untyped_subslet_length subs). apply clM.
+      now rw -(All2_length redr) -(untyped_subslet_length subs). apply clM.
     - eapply PCUICEquality.eq_term_upto_univ_substs => //. reflexivity.
     - eapply cumul_prop_sym; auto.
       eapply (substitution_red_terms_conv_prop (Γ':=[])). 3:tea. all:tea.
-      len. len in clM. now rewrite -(untyped_subslet_length subs') -lens' (untyped_subslet_length subs).
+      len. len in clM. now rw -(untyped_subslet_length subs') -lens' (untyped_subslet_length subs).
 Qed.
 
 Lemma substitution1_untyped_cumul_prop {Σ Γ na t u M N} {wfΣ : wf Σ.1} :
@@ -742,7 +742,7 @@ Lemma substitution1_untyped_cumul_prop {Σ Γ na t u M N} {wfΣ : wf Σ.1} :
 Proof using Type.
   intros clu Hcum.
   eapply (substitution_untyped_cumul_prop (Δ := [_]) (Γ' := [])) in Hcum; cbn; eauto.
-  cbn; rewrite clu //.
+  cbn; rw clu //.
   repeat constructor.
 Qed.
 
@@ -785,7 +785,7 @@ Proof using Type.
     apply IHT.
     eapply All2_map.
     eapply All_All2; tea. cbn. unfold eq_branch.
-    intuition auto. rewrite /id. reflexivity.
+    intuition auto. rw /id. reflexivity.
   - constructor. unfold eq_mfixpoint.
     eapply All2_map. eapply All_All2; tea.
     cbn. intros d [].
@@ -822,13 +822,13 @@ Proof using Type Hcf cf.
   generalize (ind_bodies mdecl) at 1 3 4.
   unfold inds.
   induction l using rev_ind; simpl; first constructor.
-  simpl. rewrite length_app /= => Hlen.
+  simpl. rw length_app /= => Hlen.
   unfold arities_context.
-  simpl. rewrite /arities_context rev_map_spec /=.
-  rewrite map_app /= rev_app_distr /=.
-  rewrite /= Nat.add_1_r /=.
+  simpl. rw /arities_context rev_map_spec /=.
+  rw map_app /= rev_app_distr /=.
+  rw /= Nat.add_1_r /=.
   constructor.
-  rewrite -rev_map_spec. apply IHl. lia.
+  rw -rev_map_spec. apply IHl. lia.
 Qed.
 
 Hint Resolve conv_ctx_prop_refl : core.
@@ -844,13 +844,13 @@ Proof using Type.
   eapply cumul_prop_alt. eexists (tProd na t nf), (tProd na' t' nf'); split; eauto.
   - eapply closed_red_prod_codom; auto.
   - eapply clrel_ctx in redl.
-    move: redl; rewrite on_free_vars_ctx_snoc /= => /andP[]; rewrite /on_free_vars_decl /test_decl /= => onΓ ont.
+    move: redl; rw on_free_vars_ctx_snoc /= => /andP[]; rw /on_free_vars_decl /test_decl /= => onΓ ont.
     have clt' : is_open_term Γ t'.
     eapply PCUICConfluence.eq_term_upto_univ_napp_on_free_vars in eq; tea.
     eapply closed_red_prod; auto.
     now eapply closed_red_refl.
     eapply closed_red_upto_conv_ctx_prop; eauto.
-    now rewrite on_free_vars_ctx_snoc /= onΓ.
+    now rw on_free_vars_ctx_snoc /= onΓ.
     repeat (constructor; auto).
   - repeat (constructor; auto).
     eapply eq_term_eq_term_prop_impl; eauto.
@@ -869,12 +869,12 @@ Proof using Type.
   assert(eq_context Σ Σ (Γ ,, vdef na d t) (Γ ,, vdef na' d' t')).
   { repeat constructor; pcuic. eapply eq_context_upto_refl; typeclasses eauto. }
   eapply (closed_red_eq_context_upto_l (pb:=Conv)) in redr; eauto.
-  2:{ eapply clrel_ctx in redl. rewrite !on_free_vars_ctx_snoc in redl |- *.
+  2:{ eapply clrel_ctx in redl. rw !on_free_vars_ctx_snoc in redl |- *.
       move/andP: redl => [] -> /= /andP[] cld clt.
       eapply PCUICConfluence.eq_term_upto_univ_napp_on_free_vars in cld; tea.
       eapply PCUICConfluence.eq_term_upto_univ_napp_on_free_vars in clt; tea.
-      rewrite /on_free_vars_decl /test_decl /=.
-      now rewrite cld clt. }
+      rw /on_free_vars_decl /test_decl /=.
+      now rw cld clt. }
   destruct redr as [v' [redv' eq''']].
   eexists (tLetIn na d t nf), (tLetIn na' d' t' v'); split.
   - now eapply closed_red_letin_body.
@@ -927,7 +927,7 @@ Proof using Type.
   intros H.
   destruct args' using rev_case. depelim H. solve_discr.
   apply app_eq_nil in H1 as [_ H]; discriminate.
-  rewrite !mkApps_app /= in H. depelim H.
+  rw !mkApps_app /= in H. depelim H.
   eapply All2_app => //.
   eapply IHargs; eauto. repeat constructor.
   red. apply H0.
@@ -975,7 +975,7 @@ Lemma is_closed_context_weaken {Γ Δ} :
   is_closed_context Δ ->
   is_closed_context (Γ ,,, Δ).
 Proof using Type.
-  rewrite on_free_vars_ctx_app => -> /=.
+  rw on_free_vars_ctx_app => -> /=.
   eapply on_free_vars_ctx_impl. discriminate.
 Qed.
 
@@ -1021,22 +1021,22 @@ Proof using Type Hcf cf.
       now eapply subject_is_open_term.
       destruct (cumul_prop_is_open cum).
       constructor; auto. eapply on_free_vars_subst => /= //.
-      eapply subject_is_open_term in X4. now rewrite X4.
-      rewrite shiftnP_add. now eapply cumul_prop_is_open in X3 as [].
+      eapply subject_is_open_term in X4. now rw X4.
+      rw shiftnP_add. now eapply cumul_prop_is_open in X3 as [].
       eapply eq_term_eq_term_prop_impl => //.
       eapply PCUICEquality.eq_term_upto_univ_substs.
       all: try reflexivity.
       constructor. 2:constructor. now symmetry. }
 
   - eapply inversion_Rel in X0 as [decl' [wfΓ' [Hnth Hcum]]]; auto.
-    rewrite Hnth in H; noconf H. now eapply cumul_pb_cumul_prop in Hcum.
+    rw Hnth in H; noconf H. now eapply cumul_pb_cumul_prop in Hcum.
 
   - eapply inversion_Sort in X0 as [wf [wfs Hs]]; auto.
     apply subrelation_compare_sort_eq_prop in c => //.
     apply cumul_pb_cumul_prop in Hs => //.
     eapply cumul_prop_trans; eauto.
     destruct (cumul_prop_is_open Hs) as [].
-    constructor => //. constructor. rewrite /eq_univ_prop !Sort.sType_super //.
+    constructor => //. constructor. rw /eq_univ_prop !Sort.sType_super //.
 
   - eapply inversion_Prod in X4 as [s1' [s2' [Ha [Hb Hs]]]]; auto.
     specialize (X1 H). apply unlift_TypUniv in X1, Ha.
@@ -1080,7 +1080,7 @@ Proof using Type Hcf cf.
     pose proof (declared_constant_inj _ _ H declc); subst decl'.
     eapply cumul_prop_subst_instance; eauto. fvs.
     destruct (cumul_prop_is_open cum) as [].
-    now rewrite on_free_vars_subst_instance in i0.
+    now rw on_free_vars_subst_instance in i0.
 
   - eapply inversion_Ind in X1 as [decl' [idecl' [wf [declc [cu cum]]]]]; auto.
     unshelve eapply declared_inductive_to_gen in isdecl, declc; eauto.
@@ -1089,7 +1089,7 @@ Proof using Type Hcf cf.
     eapply cumul_prop_trans; eauto.
     eapply cumul_prop_subst_instance; tea. fvs.
     destruct (cumul_prop_is_open cum) as [].
-    now rewrite on_free_vars_subst_instance in i0.
+    now rw on_free_vars_subst_instance in i0.
 
   - eapply inversion_Construct in X1 as [decl' [idecl' [cdecl' [wf [declc [cu cum]]]]]]; auto.
     unshelve eapply declared_constructor_to_gen in declc; eauto.
@@ -1103,16 +1103,16 @@ Proof using Type Hcf cf.
     have clty : is_open_term (Γ,,, arities_context (ind_bodies mdecl)) (cstr_type cdecl').
     { eapply closedn_on_free_vars, closed_upwards.
       eapply PCUICClosedTyp.declared_constructor_closed_gen_type; tea. len. }
-    rewrite on_free_vars_ctx_subst_instance in clars.
+    rw on_free_vars_ctx_subst_instance in clars.
     etransitivity.
     eapply (@substitution_untyped_cumul_prop_equiv _ Γ (subst_instance u (arities_context mdecl.(ind_bodies))) []); auto.
     * simpl.
       apply is_closed_context_weaken. fvs.
-      now rewrite on_free_vars_ctx_subst_instance.
+      now rw on_free_vars_ctx_subst_instance.
     * eapply on_free_vars_terms_inds.
     * eapply on_free_vars_terms_inds.
     * simpl.
-      rewrite on_free_vars_subst_instance /=.
+      rw on_free_vars_subst_instance /=.
       len. len in clty.
     * len.
     * len.
@@ -1137,16 +1137,16 @@ Proof using Type Hcf cf.
     specialize (X7 _ _ H6 scrut_ty _ _ X10).
     eapply cumul_prop_sym => //.
     destruct e as [eqpars [eqinst [eqpctx eqpret]]].
-    rewrite /ptm.
+    rw /ptm.
     eapply cumul_prop_mkApps => //. fvs.
     { eapply cumul_prop_is_open in cum as [].
-      rewrite on_free_vars_mkApps in i0.
+      rw on_free_vars_mkApps in i0.
       move/andP: i0 => [] //. }
     { now eapply type_it_mkLambda_or_LetIn, subject_is_open_term in pret. }
     { eapply PCUICEquality.eq_term_upto_univ_it_mkLambda_or_LetIn => //. tc.
-      rewrite /predctx.
-      rewrite /case_predicate_context /case_predicate_context_gen.
-      rewrite /pre_case_predicate_context_gen /inst_case_context.
+      rw /predctx.
+      rw /case_predicate_context /case_predicate_context_gen.
+      rw /pre_case_predicate_context_gen /inst_case_context.
       eapply eq_context_upto_names_map2_set_binder_name; tea.
       eapply eq_context_upto_subst_context; tea. 1,2: tc.
       eapply eq_context_upto_univ_subst_instance; try tc. tas.
@@ -1180,9 +1180,9 @@ Proof using Type Hcf cf.
     * cbn -[projection_context on_free_vars_ctx].
       eapply is_closed_context_weaken; tas. fvs. now eapply wf_local_closed_context in X6.
     * epose proof (declared_projection_closed a).
-      len. rewrite on_free_vars_subst_instance. simpl; len.
-      rewrite (declared_minductive_ind_npars a) in H1.
-      rewrite closedn_on_free_vars //. eapply closed_upwards; tea. lia.
+      len. rw on_free_vars_subst_instance. simpl; len.
+      rw (declared_minductive_ind_npars a) in H1.
+      rw closedn_on_free_vars //. eapply closed_upwards; tea. lia.
     * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ isdecl wfΣ X1 (validity X1)).
       now eapply subslet_untyped_subslet.
     * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ a wfΣ a0 (validity a0)).
@@ -1196,8 +1196,8 @@ Proof using Type Hcf cf.
       cbn -[projection_context on_free_vars_ctx]; eapply is_closed_context_weaken => //; fvs.
       epose proof (declared_projection_closed a).
       simpl; len.
-      rewrite (declared_minductive_ind_npars a) in H1.
-      rewrite closedn_on_free_vars //. eapply closed_upwards; tea. lia.
+      rw (declared_minductive_ind_npars a) in H1.
+      rw closedn_on_free_vars //. eapply closed_upwards; tea. lia.
 
   - eapply inversion_Fix in X4 as (decl' & fixguard' & Hnth & types' & bodies & wffix & cum); auto.
     eapply cumul_pb_cumul_prop in cum; eauto.
@@ -1225,9 +1225,9 @@ Proof using Type Hcf cf.
 
   - depelim X3.
     eapply inversion_Prim in X2 as [prim_ty' [cdecl' []]]; tea. depelim o.
-    1-3:rewrite H in e; noconf e; eapply cumul_pb_cumul_prop; eauto; pcuic.
+    1-3:rw H in e; noconf e; eapply cumul_pb_cumul_prop; eauto; pcuic.
     depelim X1.
-    cbn in H, e2. rewrite H in e2. noconf e2. eapply cumul_pb_cumul_prop; eauto; pcuic.
+    cbn in H, e2. rw H in e2. noconf e2. eapply cumul_pb_cumul_prop; eauto; pcuic.
     move: w; simp prim_type. intro. etransitivity; tea. constructor; fvs. cbn.
     depelim X0. fvs. eapply eq_term_leq_term. symmetry; repeat constructor; eauto.
 Qed.

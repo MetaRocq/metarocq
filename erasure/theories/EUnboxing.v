@@ -98,11 +98,11 @@ Section unbox.
 
   Lemma map_repeat {A B} (f : A -> B) x n : map f (repeat x n) = repeat (f x) n.
   Proof using Type.
-    now induction n; simpl; auto; rewrite IHn.
+    now induction n; simpl; auto; rw IHn.
   Qed.
 
   Lemma map_unbox_repeat_box n : map unbox (repeat tBox n) = repeat tBox n.
-  Proof using Type. now rewrite map_repeat. Qed.
+  Proof using Type. now rw map_repeat. Qed.
 
   Arguments eqb : simpl never.
 
@@ -381,10 +381,10 @@ Section unbox.
 End unbox.
 
 #[universes(polymorphic)] Global Hint Rewrite @map_primIn_spec @map_InP_spec : unbox.
-Tactic Notation "simp_eta" "in" hyp(H) := simp isEtaExp in H; rewrite -?isEtaExp_equation_1 in H.
-Ltac simp_eta := simp isEtaExp; rewrite -?isEtaExp_equation_1.
-Tactic Notation "simp_unbox" "in" hyp(H) := simp unbox in H; rewrite -?unbox_equation_1 in H.
-Ltac simp_unbox := simp unbox; rewrite -?unbox_equation_1.
+Tactic Notation "simp_eta" "in" hyp(H) := simp isEtaExp in H; rw -?isEtaExp_equation_1 in H.
+Ltac simp_eta := simp isEtaExp; rw -?isEtaExp_equation_1.
+Tactic Notation "simp_unbox" "in" hyp(H) := simp unbox in H; rw -?unbox_equation_1 in H.
+Ltac simp_unbox := simp unbox; rw -?unbox_equation_1.
 
 Definition unbox_constant_decl Σ cb :=
   {| cst_body := option_map (unbox Σ) cb.(cst_body) |}.
@@ -423,8 +423,8 @@ Lemma lookup_constructor_unbox {Σ kn c} :
   | None => None
   end.
 Proof.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_unbox.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_unbox.
   destruct lookup_env as [[]|] => /= //.
   do 2 destruct nth_error => //.
 Qed.
@@ -433,7 +433,7 @@ Lemma lookup_constructor_pars_args_unbox (Σ : GlobalContextMap.t) i n npars nar
   EGlobalEnv.lookup_constructor_pars_args Σ i n = Some (npars, nargs) ->
   EGlobalEnv.lookup_constructor_pars_args (unbox_env Σ) i n = Some (0, nargs).
 Proof.
-  rewrite /EGlobalEnv.lookup_constructor_pars_args. rewrite lookup_constructor_unbox //=.
+  rw /EGlobalEnv.lookup_constructor_pars_args. rw lookup_constructor_unbox //=.
   destruct EGlobalEnv.lookup_constructor => //. destruct p as [[] ?] => //=. now intros [= <- <-].
 Qed.
 
@@ -445,8 +445,8 @@ Lemma is_propositional_unbox (Σ : GlobalContextMap.t) ind :
     inductive_isprop_and_pars (unbox_env Σ) ind = None
   end.
 Proof.
-  rewrite /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_unbox.
+  rw /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
+  rw lookup_env_unbox.
   destruct lookup_env; simpl; auto.
   destruct g; simpl; auto. destruct nth_error => //.
 Qed.
@@ -459,8 +459,8 @@ Lemma is_propositional_cstr_unbox {Σ : GlobalContextMap.t} {ind c} :
   constructor_isprop_pars_decl (unbox_env Σ) ind c = None
   end.
 Proof.
-  rewrite /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_unbox.
+  rw /constructor_isprop_pars_decl /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_unbox.
   destruct lookup_env; simpl; auto.
   destruct g; simpl; auto. do 2 destruct nth_error => //.
 Qed.
@@ -470,9 +470,9 @@ Lemma lookup_inductive_pars_unbox {efl : EEnvFlags} {Σ : GlobalContextMap.t} in
   forall pars, lookup_inductive_pars Σ ind = Some pars ->
   EGlobalEnv.lookup_inductive_pars (unbox_env Σ) ind = Some 0.
 Proof.
-  rewrite /lookup_inductive_pars => wf pars.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_unbox _ ind).
+  rw /lookup_inductive_pars => wf pars.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_unbox _ ind).
   destruct lookup_env as [[decl|]|] => //=.
 Qed.
 
@@ -497,16 +497,16 @@ Proof.
   pose proof (decompose_app_inv da).
   pose proof (decompose_app_notApp _ _ _ da).
   destruct l using rev_case. cbn. intuition auto. solve_discr. noconf H.
-  rewrite mkApps_app in H. noconf H.
-  rewrite remove_last_app last_last. intuition auto.
+  rw mkApps_app in H. noconf H.
+  rw remove_last_app last_last. intuition auto.
   destruct l; cbn in *; congruence.
   pose proof (decompose_app_inv da).
   pose proof (decompose_app_notApp _ _ _ da).
   destruct l using rev_case. cbn. intuition auto. destruct t => //.
-  rewrite mkApps_app in H. noconf H.
-  move=> /andP[] etat. rewrite forallb_app => /andP[] etal /=.
-  rewrite andb_true_r => etaa. rewrite etaa andb_true_r.
-  rewrite etat etal. cbn. rewrite andb_true_r.
+  rw mkApps_app in H. noconf H.
+  move=> /andP[] etat. rw forallb_app => /andP[] etal /=.
+  rw andb_true_r => etaa. rw etaa andb_true_r.
+  rw etat etal. cbn. rw andb_true_r.
   eapply isEtaExp_mkApps_intro; auto; solve_all.
 Qed.
 
@@ -515,10 +515,10 @@ Lemma decompose_app_tApp_split f a hd args :
 Proof.
   unfold decompose_app. cbn.
   move/decompose_app_rec_inv' => [n [napp [hskip heq]]].
-  rewrite -(firstn_skipn n args).
-  rewrite -hskip. rewrite last_last; split => //.
-  rewrite heq. f_equal.
-  now rewrite remove_last_app.
+  rw -(firstn_skipn n args).
+  rw -hskip. rw last_last; split => //.
+  rw heq. f_equal.
+  now rw remove_last_app.
 Qed.
 
 (*

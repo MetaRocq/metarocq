@@ -274,7 +274,7 @@ Lemma map_branch_id_spec {A} (f : A -> A) (x : branch A) :
   f (bbody x) = (bbody x) ->
   map_branch f x = x.
 Proof.
-  intros. rewrite (map_branch_eq_spec _ id); auto. destruct x; auto.
+  intros. rw (map_branch_eq_spec _ id); auto. destruct x; auto.
 Qed.
 #[global] Hint Resolve map_branch_id_spec : all.
 
@@ -309,7 +309,7 @@ Lemma map_branches_k_map_branches_k
   map (fun b => map_branch (f #|bcontext (map_branch g b)|) (map_branch (f' k) b)) l =
   map (fun b => map_branch (f #|bcontext b|) (map_branch (f' k) b)) l.
 Proof.
-  eapply map_ext => b. now rewrite map_branch_map_branch.
+  eapply map_ext => b. now rw map_branch_map_branch.
 Qed.
 
 Lemma case_brs_map_spec {A B} {P : A -> Type} {l} {f g : A -> B} :
@@ -774,7 +774,7 @@ Lemma inds_spec ind u l :
   inds ind u l = List.rev (mapi (fun i _ => tInd {| inductive_mind := ind; inductive_ind := i |} u) l).
 Proof.
   unfold inds, mapi. induction l using rev_ind. simpl. reflexivity.
-  now rewrite length_app /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
+  now rw length_app /= Nat.add_1_r IHl mapi_rec_app /= rev_app_distr /= Nat.add_0_r.
 Qed.
 
 (** Helpers for "compact" case representation, reconstructing predicate and

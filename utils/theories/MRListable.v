@@ -130,7 +130,7 @@ Section with_listable.
   Proof using FinitelyListable_T. rewrite <- !find_index_iff in *; subst; reflexivity. Qed.
 
   Lemma find_index_inj x y : find_index x = find_index y -> x = y.
-  Proof using FinitelyListable_T. rewrite find_index_iff find_index_ok; congruence. Qed.
+  Proof using FinitelyListable_T. rw find_index_iff find_index_ok; congruence. Qed.
 
   Definition eqb_of_listable : T -> T -> bool := fun x y => Nat.eqb (find_index x) (find_index y).
   Lemma eqb_of_listable_refl x : eqb_of_listable x x = true.
@@ -138,7 +138,7 @@ Section with_listable.
   Lemma eqb_of_listable_lb x y : x = y -> eqb_of_listable x y = true.
   Proof using Type. intros; subst; apply eqb_of_listable_refl. Qed.
   Lemma eqb_of_listable_bl x y : eqb_of_listable x y = true -> x = y.
-  Proof using FinitelyListable_T. cbv [eqb_of_listable]; rewrite Nat.eqb_eq. apply find_index_inj. Qed.
+  Proof using FinitelyListable_T. cbv [eqb_of_listable]; rw Nat.eqb_eq. apply find_index_inj. Qed.
   Lemma eqb_of_listable_eq x y : eqb_of_listable x y = true <-> x = y.
   Proof using FinitelyListable_T. split; auto using eqb_of_listable_lb, eqb_of_listable_bl. Qed.
   Lemma eqb_of_listable_spec x y : reflectProp (x = y) (eqb_of_listable x y).

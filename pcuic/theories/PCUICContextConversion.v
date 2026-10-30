@@ -68,10 +68,10 @@ Section ContextReduction.
     red1_red_ctxP Γ Γ' ->
     red1_red_ctxP (skipn i Γ) (skipn i Γ').
   Proof using Type.
-    rewrite /red1_red_ctxP => H n b b'.
-    rewrite !nth_error_skipn => H0 H1.
+    rw /red1_red_ctxP => H n b b'.
+    rw !nth_error_skipn => H0 H1.
     specialize (H (i + n)).
-    rewrite !skipn_skipn. rewrite - !Nat.add_succ_comm.
+    rw !skipn_skipn. rw - !Nat.add_succ_comm.
     move=> H'.
     eapply H; auto.
   Qed.
@@ -97,11 +97,11 @@ Section ContextReduction.
   Proof using Type.
     induction Δ as [|[na [b|] ty] Δ]; intros; auto.
     - case.
-      * move=> bod bod' => /= [=] -> [=] ->. rewrite !skipn_S !skipn_0. exists bod'.
+      * move=> bod bod' => /= [=] -> [=] ->. rw !skipn_S !skipn_0. exists bod'.
         split; reflexivity.
       * move=> /= n bod b' hn hn' r.
         specialize (IHΔ X n bod b' hn hn' r) as [t [redl redr]].
-        exists t. rewrite !skipn_S in r |- *. split; auto.
+        exists t. rw !skipn_S in r |- *. split; auto.
     - case; move => n b b' //. eapply IHΔ. apply X.
   Qed.
 
@@ -124,7 +124,7 @@ Section ContextReduction.
     move=> /red_ctx_red_context r onΓ.
     pose proof (All2_fold_length r).
     move: r => /red_context_on_ctx_free_vars.
-    move: onΓ. now rewrite - !on_free_vars_ctx_on_ctx_free_vars -H.
+    move: onΓ. now rw - !on_free_vars_ctx_on_ctx_free_vars -H.
   Qed.
 
   Lemma red1_red_ctx_aux {Γ Γ' T U} :
@@ -144,43 +144,43 @@ Section ContextReduction.
 
     - pose proof H.
       eapply nth_error_pred1_ctx_l in H as [body' [? ?]]; eauto.
-      rewrite -(firstn_skipn (S i) Γ').
+      rw -(firstn_skipn (S i) Γ').
       assert (i < #|Γ'|). destruct (nth_error Γ' i) eqn:Heq; noconf e. eapply nth_error_Some_length in Heq. lia.
       move: (All2_fold_length H0) => Hlen.
       specialize (X _ _ _ H1 e). forward X. eapply All2_fold_app_inv.
       instantiate (1 := firstn (S i) Γ').
       instantiate (1 := firstn (S i) Γ).
-      rewrite !length_firstn. lia.
-      now rewrite !(firstn_skipn (S i) _).
+      rw !length_firstn. lia.
+      now rw !(firstn_skipn (S i) _).
       destruct X as [x' [bt b't]]. exists (lift0 (S i) x').
       split; eauto with pcuic.
       * etransitivity. eapply red1_red. constructor.
-        rewrite firstn_skipn. eauto. cbn in *.
+        rw firstn_skipn. eauto. cbn in *.
         eapply red_ctx_on_free_vars in onΓ. 2:tea.
         eapply weakening_red_0; eauto.
-        rewrite firstn_length_le //.
+        rw firstn_length_le //.
         erewrite on_free_vars_ctx_on_ctx_free_vars.
-        rewrite -(firstn_skipn (S i) Γ') on_free_vars_ctx_app in onΓ.
+        rw -(firstn_skipn (S i) Γ') on_free_vars_ctx_app in onΓ.
         now move/andP: onΓ => [].
         destruct (nth_error Γ' i) eqn:hnth => //.
         epose proof (nth_error_on_free_vars_ctx xpredT 0 Γ' i c).
-        forward H2. rewrite addnP0. eauto with fvs.
+        forward H2. rw addnP0. eauto with fvs.
         forward H2 by auto.
         specialize (H2 hnth). noconf e.
-        move/andP: H3 => [] /=. rewrite H /=.
-        rewrite PCUICInstConv.addnP_xpredT shiftnP_xpredT //.
+        move/andP: H3 => [] /=. rw H /=.
+        rw PCUICInstConv.addnP_xpredT shiftnP_xpredT //.
       * epose proof (red_ctx_on_free_vars _ _ _ H0 onΓ).
         eapply weakening_red_0; eauto.
-        rewrite firstn_length_le //.
+        rw firstn_length_le //.
         erewrite on_free_vars_ctx_on_ctx_free_vars.
-        rewrite -(firstn_skipn (S i) Γ') on_free_vars_ctx_app in H2.
+        rw -(firstn_skipn (S i) Γ') on_free_vars_ctx_app in H2.
         now move/andP: H2 => [].
         destruct (nth_error Γ i) eqn:hnth => //.
         epose proof (nth_error_on_free_vars_ctx xpredT 0 Γ i c).
-        forward H3. rewrite addnP0. eauto with fvs.
+        forward H3. rw addnP0. eauto with fvs.
         forward H3 by auto.
         specialize (H3 hnth). noconf H1.
-        move/andP: H3 => [] /=. rewrite H /=.
+        move/andP: H3 => [] /=. rw H /=.
         eauto with fvs.
 
     - exists (tLambda na x N). split; apply red_abs; auto.
@@ -221,13 +221,13 @@ Section ContextReduction.
         inv_on_free_vars_xpredT.
         specialize (b1 ltac:(eauto with fvs)).
         forward b1. eapply on_free_vars_ctx_inst_case_context_xpredT; eauto with fvs. solve_all.
-        now rewrite test_context_k_closed_on_free_vars_ctx in a0.
+        now rw test_context_k_closed_on_free_vars_ctx in a0.
         specialize (b1 (Γ' ,,, inst_case_branch_context p y)) as [body' [rl rr]].
-        + rewrite /inst_case_branch_context -b0. now eapply red_ctx_app => //.
-        + rewrite /inst_case_branch_context -b0. now eapply red1_red_ctxP_app.
-        + exists {| bcontext := bcontext x; bbody := body' |}; cbn; split; rewrite -?b;
+        + rw /inst_case_branch_context -b0. now eapply red_ctx_app => //.
+        + rw /inst_case_branch_context -b0. now eapply red1_red_ctxP_app.
+        + exists {| bcontext := bcontext x; bbody := body' |}; cbn; split; rw -?b;
           intuition eauto.
-          rewrite /inst_case_branch_context b0 //.
+          rw /inst_case_branch_context b0 //.
     - exists (tProj p x). u; now eapply red_proj_c.
     - exists (tApp x M2). u; now eapply red_app.
     - exists (tApp M1 x). u; now eapply red_app.
@@ -254,7 +254,7 @@ Section ContextReduction.
       destruct (b1 _ H X0) as [d' [r0 r1]].
       refine (existT _ {| dtype := d' |} _); simpl; eauto.
     - assert (fix_context mfix0 = fix_context mfix1).
-      { rewrite /fix_context /mapi. generalize 0 at 2 4.
+      { rw /fix_context /mapi. generalize 0 at 2 4.
         induction X. destruct p. simpl. intuition congruence.
         intros. specialize (IHX (S n)). simpl. congruence. }
       eapply OnOne2_All_mix_left in X; tea.
@@ -280,7 +280,7 @@ Section ContextReduction.
       destruct (b1 byfvs byfvs _ H X0) as [d' [r0 r1]].
       refine (existT _ {| dtype := d' |} _); simpl; eauto.
     - assert (fix_context mfix0 = fix_context mfix1).
-      { rewrite /fix_context /mapi. generalize 0 at 2 4.
+      { rw /fix_context /mapi. generalize 0 at 2 4.
         induction X. destruct p. simpl. intuition congruence.
         intros. specialize (IHX (S n)). simpl. congruence. }
       eapply OnOne2_All_mix_left in X; tea.
@@ -326,7 +326,7 @@ Section ContextReduction.
       assert (on_free_vars_ctx xpred0 Γ'). eapply red_ctx_on_free_vars; tea. eauto with fvs.
       pose proof (All2_fold_length rc).
       unshelve epose proof (red_confluence (Γ := exist Γ' _) (t := exist y _) redr redl'); cbn; eauto with fvs.
-      rewrite -H0; eauto with fvs.
+      rw -H0; eauto with fvs.
       destruct X as [v' [redxl redxr]].
       exists v'. split; [transitivity xl|transitivity xr]; auto.
   Qed.
@@ -338,9 +338,9 @@ Section ContextReduction.
     intros X. cbn in *.
     induction Γ in Γ', X, onΓ |- *.
     - depelim X.
-      intros n t t'. rewrite nth_error_nil //.
+      intros n t t'. rw nth_error_nil //.
     - depelim X.
-      move: onΓ; rewrite on_free_vars_ctx_snoc => /andP /= [onΓ ond].
+      move: onΓ; rw on_free_vars_ctx_snoc => /andP /= [onΓ ond].
       depelim a0.
       + specialize (IHΓ byfvs _ X).
         case => n b b' /= //.
@@ -348,7 +348,7 @@ Section ContextReduction.
       + specialize (IHΓ byfvs _ X).
         case.
         * move=> b0 b1 [] <- [] <- H.
-          rewrite skipn_S /skipn /= in H.
+          rw skipn_S /skipn /= in H.
           move/andP: ond => /= [] onb ont.
           eapply (@red_red_ctx' (exist Γ onΓ) _ (exist b onb)) in H; eauto.
         * simpl. eapply IHΓ.
@@ -379,7 +379,7 @@ Lemma red_ctx_on_free_vars_term {Σ P Γ Γ' t} :
   on_free_vars (shiftnP #|Γ| P) t ->
   on_free_vars (shiftnP #|Γ'| P) t.
 Proof.
-  intros r. now rewrite (All2_fold_length r).
+  intros r. now rw (All2_fold_length r).
 Qed.
 #[global] Hint Resolve red_ctx_on_free_vars_term : fvs.
 
@@ -440,15 +440,15 @@ Section ContextConversion.
   Lemma red_ctx_closed_left {Γ Γ'} : Σ ⊢ Γ ⇝ Γ' -> is_closed_context Γ.
   Proof using Type.
     induction 1; simpl; auto.
-    rewrite on_free_vars_ctx_snoc IHX /=.
+    rw on_free_vars_ctx_snoc IHX /=.
     destruct p; eauto with fvs.
   Qed.
 
   Lemma red_ctx_closed_right {Γ Γ'} : Σ ⊢ Γ ⇝ Γ' -> is_closed_context Γ'.
   Proof using wfΣ.
     induction 1; simpl; auto.
-    rewrite on_free_vars_ctx_snoc IHX /=.
-    destruct p; rewrite -(All2_fold_length X); cbn; eauto with fvs.
+    rw on_free_vars_ctx_snoc IHX /=.
+    destruct p; rw -(All2_fold_length X); cbn; eauto with fvs.
     eapply closed_red_open_right in c.
     eapply closed_red_open_right in c0.
     eauto with fvs.
@@ -505,9 +505,9 @@ Section ContextConversion.
     eapply (red_red_ctx Σ wfΣ (Γ := exist Γ clΓ) (T := exist T clT)) in r as [t [r r']].
     2:exact rctx.
     exists t. split. split; auto. eauto with fvs.
-    rewrite -(length_of rctx); eauto with fvs.
+    rw -(length_of rctx); eauto with fvs.
     split; eauto with fvs.
-    rewrite -(length_of rctx); eauto with fvs.
+    rw -(length_of rctx); eauto with fvs.
   Qed.
 
   Lemma ws_cumul_pb_red {pb} {Γ t u} :
@@ -542,7 +542,7 @@ Section ContextConversion.
     destruct (closed_red_red_ctx Hctx redl) as [lnf [redl0 redr0]].
     eapply ws_cumul_pb_red.
     eapply closed_red_compare_term_l in leq as [? [? ?]]. 3:exact redr0.
-    2:{ rewrite -(length_of Hctx). now eapply closed_red_open_right. }
+    2:{ rw -(length_of Hctx). now eapply closed_red_open_right. }
     destruct (closed_red_red_ctx Hctx redr) as [rnf [redl1 redr1]].
     destruct (closed_red_confluence c redr1) as [nf [redl' redr']].
     unshelve epose proof (closed_red_compare_term_r _ c0 redl') as [lnf' [? ?]]. exact byfvs.
@@ -570,9 +570,9 @@ Section ContextConversion.
     eapply red_ctx_red_context in rc.
     eapply PCUICContextReduction.red_red_ctx in r.
     econstructor; tea. all:eauto with fvs.
-    all:try now rewrite (All2_fold_length rc).
+    all:try now rw (All2_fold_length rc).
     all:eauto with fvs.
-    rewrite -(All2_fold_length rc); eauto with fvs.
+    rw -(All2_fold_length rc); eauto with fvs.
   Qed.
 
   Lemma cumul_red_ctx_inv {pb} {Γ Γ' : context} {T U : term} :
@@ -597,7 +597,7 @@ Section ContextConversion.
     intros clΔ [onΓ onu r] c.
     destruct (red_eq_context_upto_l _ c r) as [nf [red eq]].
     exists nf. split; auto. split; eauto with fvs.
-    now rewrite -(All2_fold_length c).
+    now rw -(All2_fold_length c).
   Qed.
 
   Lemma closed_red_eq_context_upto_r {pb Γ Δ} {u} {v} :
@@ -610,7 +610,7 @@ Section ContextConversion.
     destruct (red_eq_context_upto_r _ c r) as [nf [red eq]].
     symmetry in eq.
     exists nf. split; auto. split; eauto with fvs.
-    now rewrite (All2_fold_length c).
+    now rw (All2_fold_length c).
   Qed.
 
   Lemma cumul_trans_red_leqterm {Γ : closed_context} {t u v : open_term Γ} :
@@ -1135,8 +1135,8 @@ Lemma is_closed_context_cumul_app Γ Δ Γ' :
   #|Γ| = #|Γ'| ->
   is_closed_context (Γ' ,,, Δ).
 Proof.
-  rewrite !on_free_vars_ctx_app => /andP[] onΓ onΔ onΓ' <-.
-  now rewrite onΓ' onΔ.
+  rw !on_free_vars_ctx_app => /andP[] onΓ onΔ onΓ' <-.
+  now rw onΓ' onΔ.
 Qed.
 
 Lemma on_free_vars_decl_eq n m d :
@@ -1187,7 +1187,7 @@ Proof.
     move/on_free_vars_ctx_All_fold: onΔ => onΓ'.
     destruct X1 as [wsd [wsd' cumd]].
     eapply into_ws_cumul_decls; cbn; tea.
-    rewrite (All2_fold_length X0) //. }
+    rw (All2_fold_length X0) //. }
   { intros cum.
     eapply All2_fold_All_fold_mix in cum; tea.
     eapply All2_fold_impl_ind; tea. clear -wfΣ.
@@ -1197,7 +1197,7 @@ Proof.
     move/on_free_vars_ctx_All_fold: onΔ => onΓ'.
     destruct X1 as [wsd [wsd' cumd]].
     eapply into_ws_cumul_decls; cbn; tea.
-    rewrite (All2_fold_length X0) //. }
+    rw (All2_fold_length X0) //. }
 Qed.
 
 Lemma ws_cumul_ctx_pb_refl {cf} {Σ} {wfΣ : wf Σ} {pb} {Γ : context} :
@@ -1216,7 +1216,7 @@ Proof.
   move=> iscl cum.
   eapply into_ws_cumul_ctx_pb => //.
   eapply is_closed_context_cumul_app; tea; eauto with fvs.
-  now rewrite (All2_fold_length cum).
+  now rw (All2_fold_length cum).
   destruct pb.
   - apply conv_context_app_same.
     now apply ws_cumul_ctx_pb_false_forget.

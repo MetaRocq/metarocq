@@ -96,7 +96,7 @@ Lemma subst_rel_eq :
     subst u n (tRel p) = lift0 n t.
 Proof.
   intros; simpl in |- *. subst p.
-  elim (leb_spec n (n + i)). intros. assert (n + i - n = i) by lia. rewrite H1 H.
+  elim (leb_spec n (n + i)). intros. assert (n + i - n = i) by lia. rw H1 H.
   reflexivity. intros. lia.
 Qed.
 
@@ -117,14 +117,14 @@ Lemma lift0_id : forall M k, lift 0 k M = M.
 Proof.
   intros M.
   elim M using term_forall_list_ind; simpl in |- *; intros; try easy ;
-    try (try rewrite H; try rewrite H0 ; try rewrite H1 ; easy);
+    try (try rw H; try rw H0 ; try rw H1 ; easy);
     try solve [(f_equal; auto; solve_all)].
 
   now elim (leb k n).
 Qed.
 
 Lemma map_lift0 l : map (lift0 0) l = l.
-Proof. induction l; simpl; auto. now rewrite lift0_id. Qed.
+Proof. induction l; simpl; auto. now rw lift0_id. Qed.
 
 Lemma lift0_p : forall M, lift0 0 M = M.
 Proof. intro; apply lift0_id. Qed.
@@ -145,7 +145,7 @@ Proof.
 Qed.
 
 Lemma simpl_lift0 : forall M n, lift0 (S n) M = lift0 1 (lift0 n M).
-Proof. intros; now rewrite simpl_lift. Qed.
+Proof. intros; now rw simpl_lift. Qed.
 
 Lemma simpl_lift_ext n k p i :
   i <= k + n -> k <= i ->
@@ -171,7 +171,7 @@ Lemma permute_lift0 :
 Proof.
   intros.
   change (lift 1 0 (lift 1 k M) = lift 1 (1 + k) (lift 1 0 M)).
-  now rewrite permute_lift.
+  now rw permute_lift.
 Qed.
 
 Lemma lift_isApp n k t : ~ isApp t = true -> ~ isApp (lift n k t) = true.
@@ -197,22 +197,22 @@ Qed.
 Lemma simpl_subst :
   forall N M n p, p <= n -> subst N p (lift0 (length N + n) M) = lift0 n M.
 Proof.
-  intros. rewrite simpl_subst_rec; auto.
-  now rewrite Nat.add_0_r. lia.
+  intros. rw simpl_subst_rec; auto.
+  now rw Nat.add_0_r. lia.
 Qed.
 
 Lemma lift_mkApps n k t l :
   lift n k (mkApps t l) = mkApps (lift n k t) (map (lift n k) l).
 Proof.
   revert n k t; induction l; intros n k t. auto.
-  simpl. rewrite (IHl n k (tApp t a)). reflexivity.
+  simpl. rw (IHl n k (tApp t a)). reflexivity.
 Qed.
 
 Lemma commut_lift_subst_rec M N n p k :
   k <= p -> lift n k (subst N p M) = subst N (p + n) (lift n k M).
 Proof.
   revert N n p k; elim M using term_forall_list_ind; intros; cbnr;
-    f_equal; auto; solve_all; rewrite ?Nat.add_succ_r -?Nat.add_assoc; eauto with all.
+    f_equal; auto; solve_all; rw ?Nat.add_succ_r -?Nat.add_assoc; eauto with all.
 
   - repeat nth_leb_simpl.
     rewrite -> simpl_lift by easy. f_equal; lia.
@@ -221,7 +221,7 @@ Qed.
 Lemma commut_lift_subst M N k :
   subst N (S k) (lift0 1 M) = lift0 1 (subst N k M).
 Proof.
-  now intros; rewrite commut_lift_subst_rec.
+  now intros; rw commut_lift_subst_rec.
 Qed.
 
 Lemma distr_lift_subst_rec M N n p k :
@@ -232,8 +232,8 @@ Proof.
     f_equal; auto; solve_all.
 
   - repeat nth_leb_simpl.
-    rewrite nth_error_map in e0. rewrite e in e0.
-    invs e0. now rewrite (permute_lift x n0 k p 0).
+    rw nth_error_map in e0. rw e in e0.
+    invs e0. now rw (permute_lift x n0 k p 0).
 Qed.
 
 Lemma distr_lift_subst M N n k :
@@ -258,7 +258,7 @@ Lemma subst_mkApps u k t l :
 Proof.
   revert u k t; induction l; intros u k t; auto.
   intros. simpl mkApps at 1. simpl subst at 1 2.
-  now rewrite IHl.
+  now rw IHl.
 Qed.
 
 Lemma subst1_mkApps u k t l :
@@ -286,18 +286,18 @@ Proof.
       ++ rewrite -> subst_rel_lt by lia.
          erewrite subst_rel_eq; try easy.
          2:rewrite -> nth_error_map, e; reflexivity.
-         now rewrite commut_lift_subst_rec. lia.
+         now rw commut_lift_subst_rec. lia.
       ++ unfold subst at 4.
          elim (leb_spec (p + length N + n0) n); intros; subst; try easy.
          destruct (nth_error_spec P (n - (p + length N + n0))).
          +++ erewrite subst_rel_eq. 2:eauto. 2:lia.
              assert (p + length N + n0 = length (map (subst P n0) N) + (p + n0))
-               by (rewrite length_map; lia).
-             rewrite H1. rewrite simpl_subst_rec; eauto; try lia.
-         +++ rewrite !subst_rel_gt; rewrite ?length_map; try lia. f_equal; lia.
-         +++ rewrite subst_rel_lt; try easy.
-             rewrite -> subst_rel_gt; rewrite length_map. trivial. lia.
-    + rewrite !subst_rel_lt; try easy.
+               by (rw length_map; lia).
+             rw H1. rw simpl_subst_rec; eauto; try lia.
+         +++ rw !subst_rel_gt; rw ?length_map; try lia. f_equal; lia.
+         +++ rw subst_rel_lt; try easy.
+             rewrite -> subst_rel_gt; rw length_map. trivial. lia.
+    + rw !subst_rel_lt; try easy.
 Qed.
 
 Lemma distr_subst P N M k :
@@ -318,7 +318,7 @@ Proof.
     simpl closed in *;
     unfold test_predicate_k, test_def, test_branch_k in *;
     try solve [simpl lift; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
-  - rewrite lift_rel_lt; auto.
+  - rw lift_rel_lt; auto.
     revert H. elim (Nat.ltb_spec n0 k); intros; try easy.
 Qed.
 
@@ -340,20 +340,20 @@ Proof.
     try solve [f_equal; eauto; solve_all].
 
   - elim (Nat.compare_spec k n); destruct (Nat.leb_spec k n); intros; try easy.
-    subst. rewrite Nat.sub_diag. simpl. rewrite Nat.sub_0_r. reflexivity.
+    subst. rw Nat.sub_diag. simpl. rw Nat.sub_0_r. reflexivity.
     assert (n - k > 0) by lia.
     assert (exists n', n - k = S n'). exists (pred (n - k)). lia.
-    destruct H2. rewrite H2. simpl. now rewrite Nat.sub_0_r.
+    destruct H2. rw H2. simpl. now rw Nat.sub_0_r.
 Qed.
 
 Lemma subst_empty_eq k : subst [] k ≐1 id.
-Proof. intros x; now rewrite subst_empty. Qed.
+Proof. intros x; now rw subst_empty. Qed.
 
 Lemma lift_to_extended_list_k Γ k : forall k',
     to_extended_list_k Γ (k' + k) = map (lift0 k') (to_extended_list_k Γ k).
 Proof.
   unfold to_extended_list_k.
-  intros k'. rewrite !reln_alt_eq !app_nil_r.
+  intros k'. rw !reln_alt_eq !app_nil_r.
   induction Γ in k, k' |- *; simpl; auto.
   destruct a as [na [body|] ty].
   now rewrite <- Nat.add_assoc, (IHΓ (k + 1) k').
@@ -371,12 +371,12 @@ Lemma subst_app_decomp l l' k t :
   subst (l ++ l') k t = subst l' k (subst (List.map (lift0 (length l')) l) k t).
 Proof.
   induction t in k |- * using term_forall_list_ind; simpl; auto;
-    rewrite ?subst_mkApps; try change_Sk;
+    rw ?subst_mkApps; try change_Sk;
     try (f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def,
                   ?length_map, ?map_predicate_map_predicate; eauto; solve_all).
 
   - repeat nth_leb_simpl.
-    rewrite nth_error_map in e0. rewrite e in e0.
+    rw nth_error_map in e0. rw e in e0.
     injection e0; intros <-.
     rewrite -> permute_lift by auto.
     rewrite <- (Nat.add_0_r #|l'|).
@@ -387,7 +387,7 @@ Lemma subst_app_simpl l l' k t :
   subst (l ++ l') k t = subst l k (subst l' (k + length l) t).
 Proof.
   induction t in k |- * using term_forall_list_ind; simpl; eauto;
-    rewrite ?subst_mkApps; try change_Sk;
+    rw ?subst_mkApps; try change_Sk;
     try (f_equal; rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def,
                   ?length_map, ?Nat.add_assoc, ?map_predicate_map_predicate; solve_all).
 
@@ -412,7 +412,7 @@ Lemma map_vass_map_def g l n k :
   = mapi (fun i d => map_decl (lift n (i + k)) d)
          (mapi (fun i (d : def term) => vass (dname d) (lift0 i (dtype d))) l).
 Proof.
-  rewrite mapi_mapi mapi_map. apply mapi_ext.
+  rw mapi_mapi mapi_map. apply mapi_ext.
   intros. unfold map_decl, vass; simpl; f_equal.
   rewrite -> permute_lift. f_equal; lia. lia.
 Qed.
@@ -423,16 +423,16 @@ Definition fix_context_gen k mfix :=
 Lemma lift_decl0 k d : map_decl (lift 0 k) d = d.
 Proof.
   destruct d; destruct decl_body; unfold map_decl; simpl;
-  f_equal; now rewrite ?lift0_id.
+  f_equal; now rw ?lift0_id.
 Qed.
 
 Lemma lift0_context k Γ : lift_context 0 k Γ = Γ.
 Proof.
   unfold lift_context, fold_context_k.
-  rewrite rev_mapi. rewrite List.rev_involutive.
+  rw rev_mapi. rw List.rev_involutive.
   unfold mapi. generalize 0 at 2. generalize #|List.rev Γ|.
   induction Γ; intros; simpl; trivial.
-  rewrite lift_decl0; f_equal; auto.
+  rw lift_decl0; f_equal; auto.
 Qed.
 
 Lemma lift_context_length n k Γ : #|lift_context n k Γ| = #|Γ|.
@@ -441,7 +441,7 @@ Proof. apply fold_context_k_length. Qed.
 Hint Rewrite lift_context_length : lift len.
 
 Definition lift_context_snoc0 n k Γ d : lift_context n k (d :: Γ) = lift_context n k Γ ,, lift_decl n (#|Γ| + k) d.
-Proof. unfold lift_context. now rewrite fold_context_k_snoc0. Qed.
+Proof. unfold lift_context. now rw fold_context_k_snoc0. Qed.
 #[global]
 Hint Rewrite lift_context_snoc0 : lift.
 
@@ -463,9 +463,9 @@ Lemma lift_context_app n k Γ Δ :
   lift_context n k (Γ ,,, Δ) = lift_context n k Γ ,,, lift_context n (#|Γ| + k) Δ.
 Proof.
   unfold lift_context, fold_context_k, app_context.
-  rewrite List.rev_app_distr.
-  rewrite mapi_app. rewrite <- List.rev_app_distr. f_equal. f_equal.
-  apply mapi_ext. intros. f_equal. rewrite List.length_rev. f_equal. lia.
+  rw List.rev_app_distr.
+  rw mapi_app. rewrite <- List.rev_app_distr. f_equal. f_equal.
+  apply mapi_ext. intros. f_equal. rw List.length_rev. f_equal. lia.
 Qed.
 
 Lemma lift_it_mkProd_or_LetIn n k ctx t :
@@ -492,29 +492,29 @@ Qed.
 
 Lemma map_lift_lift n k l : map (fun x => lift0 n (lift0 k x)) l = map (lift0 (n + k)) l.
 Proof. apply map_ext => x.
-  rewrite simpl_lift; try lia. reflexivity.
+  rw simpl_lift; try lia. reflexivity.
 Qed.
 
 Lemma simpl_subst' :
   forall N M n p k, k = List.length N -> p <= n -> subst N p (lift0 (k + n) M) = lift0 n M.
 Proof.
-  intros. subst k. rewrite simpl_subst_rec; auto.
-  + now rewrite Nat.add_0_r.
+  intros. subst k. rw simpl_subst_rec; auto.
+  + now rw Nat.add_0_r.
   + lia.
 Qed.
 
 Lemma subst_subst_lift (s s' : list term) n t : n = #|s| + #|s'| ->
   subst0 s (subst0 s' (lift0 n t)) = t.
 Proof.
-  intros ->. rewrite Nat.add_comm simpl_subst' //; try lia.
-  now rewrite -(Nat.add_0_r #|s|) simpl_subst' // lift0_id.
+  intros ->. rw Nat.add_comm simpl_subst' //; try lia.
+  now rw -(Nat.add_0_r #|s|) simpl_subst' // lift0_id.
 Qed.
 
 Lemma map_subst_lift_id s l : map (subst0 s ∘ lift0 #|s|) l = l.
 Proof.
   induction l; simpl; auto.
-  rewrite -{1}(Nat.add_0_r #|s|) simpl_subst'; auto.
-  now rewrite lift0_id IHl.
+  rw -{1}(Nat.add_0_r #|s|) simpl_subst'; auto.
+  now rw lift0_id IHl.
 Qed.
 
 Lemma map_subst_lift_id_eq s l k : k = #|s| -> map (subst0 s ∘ lift0 k) l = l.
@@ -532,7 +532,7 @@ Lemma map_subst_subst_lift_lift (s s' : list term) k k' l : k + k' = #|s| + #|s'
   map (fun t => subst0 s (subst0 s' (lift k k' (lift0 k' t)))) l = l.
 Proof.
   intros H. eapply All_map_id. eapply All_refl => x.
-  rewrite simpl_lift; try lia. rewrite subst_subst_lift //.
+  rw simpl_lift; try lia. rw subst_subst_lift //.
 Qed.
 
 Lemma nth_error_lift_context:
@@ -543,7 +543,7 @@ Lemma nth_error_lift_context:
 Proof.
   induction Γ'; intros.
   - easy.
-  - simpl. destruct v; rewrite lift_context_snoc0.
+  - simpl. destruct v; rw lift_context_snoc0.
     + simpl. repeat f_equal; try lia. simpl in *. congruence.
     + simpl. apply IHΓ'; simpl in *; (lia || congruence).
 Qed.
@@ -554,8 +554,8 @@ Lemma nth_error_lift_context_eq:
     option_map (lift_decl #|Γ''| (#|Γ'| - S v + k)) (nth_error Γ' v).
 Proof.
   induction Γ'; intros.
-  - simpl. unfold lift_context, fold_context_k; simpl. now rewrite nth_error_nil.
-  - simpl. destruct v; rewrite lift_context_snoc0.
+  - simpl. unfold lift_context, fold_context_k; simpl. now rw nth_error_nil.
+  - simpl. destruct v; rw lift_context_snoc0.
     + simpl. repeat f_equal; try lia.
     + simpl. apply IHΓ'; simpl in *; (lia || congruence).
 Qed.
@@ -570,13 +570,13 @@ Lemma subst_decl0 k d : map_decl (subst [] k) d = d.
 Proof.
   destruct d; destruct decl_body;
     unfold subst_decl, map_decl; simpl in *;
-    f_equal; simpl; rewrite subst_empty; intuition trivial.
+    f_equal; simpl; rw subst_empty; intuition trivial.
 Qed.
 
 Lemma subst0_context k Γ : subst_context [] k Γ = Γ.
 Proof.
   unfold subst_context, fold_context_k.
-  rewrite rev_mapi. rewrite List.rev_involutive.
+  rw rev_mapi. rw List.rev_involutive.
   unfold mapi. generalize 0. generalize #|List.rev Γ|.
   induction Γ; intros; simpl; trivial.
   erewrite subst_decl0; f_equal; eauto.
@@ -584,7 +584,7 @@ Qed.
 
 Lemma subst_context_snoc0 s Γ d : subst_context s 0 (Γ ,, d) = subst_context s 0 Γ ,, subst_decl s #|Γ| d.
 Proof.
-  unfold snoc. now rewrite subst_context_snoc Nat.add_0_r.
+  unfold snoc. now rw subst_context_snoc Nat.add_0_r.
 Qed.
 #[global]
 Hint Rewrite subst_context_snoc : subst.
@@ -593,31 +593,31 @@ Lemma subst_context_app s k Γ Δ :
   subst_context s k (Γ ,,, Δ) = subst_context s k Γ ,,, subst_context s (#|Γ| + k) Δ.
 Proof.
   unfold subst_context, fold_context_k, app_context.
-  rewrite List.rev_app_distr.
-  rewrite mapi_app. rewrite <- List.rev_app_distr. f_equal. f_equal.
-  apply mapi_ext. intros. f_equal. rewrite List.length_rev. f_equal. lia.
+  rw List.rev_app_distr.
+  rw mapi_app. rewrite <- List.rev_app_distr. f_equal. f_equal.
+  apply mapi_ext. intros. f_equal. rw List.length_rev. f_equal. lia.
 Qed.
 
 Lemma distr_lift_subst_context n k s Γ : lift_context n k (subst_context s 0 Γ) =
   subst_context (map (lift n k) s) 0 (lift_context n (#|s| + k) Γ).
 Proof.
-  rewrite !lift_context_alt !subst_context_alt.
-  rewrite !mapi_compose.
+  rw !lift_context_alt !subst_context_alt.
+  rw !mapi_compose.
   apply mapi_ext.
   intros n' x.
-  rewrite /lift_decl /subst_decl !compose_map_decl.
+  rw /lift_decl /subst_decl !compose_map_decl.
   apply map_decl_ext => y.
-  rewrite !mapi_length Nat.add_0_r; autorewrite with len. unf_term.
-  rewrite distr_lift_subst_rec; f_equal. f_equal. lia.
+  rw !mapi_length Nat.add_0_r; autorewrite with len. unf_term.
+  rw distr_lift_subst_rec; f_equal. f_equal. lia.
 Qed.
 
 Lemma skipn_subst_context n s k Γ : skipn n (subst_context s k Γ) =
   subst_context s k (skipn n Γ).
 Proof.
-  rewrite !subst_context_alt.
-  rewrite skipn_mapi_rec. rewrite mapi_rec_add /mapi.
+  rw !subst_context_alt.
+  rw skipn_mapi_rec. rw mapi_rec_add /mapi.
   apply mapi_rec_ext. intros.
-  f_equal. rewrite List.length_skipn. lia.
+  f_equal. rw List.length_skipn. lia.
 Qed.
 
 Lemma nth_error_extended_subst Γ k i :
@@ -636,16 +636,16 @@ Lemma nth_error_extended_subst Γ k i :
   end.
 Proof.
   induction Γ in k, i |- *.
-  - cbn. rewrite !nth_error_nil //.
-  - rewrite skipn_S. cbn. destruct a as [na [] ty].
+  - cbn. rw !nth_error_nil //.
+  - rw skipn_S. cbn. destruct a as [na [] ty].
     cbn [decl_body].
     destruct i.
     + cbn => //.
-    + cbn. rewrite IHΓ //.
+    + cbn. rw IHΓ //.
     + cbn.
       destruct i.
       * cbn. lia_f_equal.
-      * cbn. rewrite IHΓ.
+      * cbn. rw IHΓ.
         destruct nth_error => //.
         destruct (decl_body c) => //; try lia_f_equal.
         cbn. lia_f_equal.
@@ -655,42 +655,42 @@ Lemma lift_extended_subst (Γ : context) k :
   extended_subst Γ k = map (lift0 k) (extended_subst Γ 0).
 Proof.
   induction Γ as [|[? [] ?] ?] in k |- *; simpl; auto; unf_term.
-  - rewrite IHΓ. f_equal.
+  - rw IHΓ. f_equal.
     autorewrite with len.
-    rewrite distr_lift_subst. f_equal.
-    autorewrite with len. rewrite simpl_lift; lia_f_equal.
-  - rewrite Nat.add_0_r; f_equal.
-    rewrite IHΓ (IHΓ 1).
-    rewrite map_map_compose. apply map_ext => x.
-    rewrite simpl_lift; try lia.
-    now rewrite Nat.add_1_r.
+    rw distr_lift_subst. f_equal.
+    autorewrite with len. rw simpl_lift; lia_f_equal.
+  - rw Nat.add_0_r; f_equal.
+    rw IHΓ (IHΓ 1).
+    rw map_map_compose. apply map_ext => x.
+    rw simpl_lift; try lia.
+    now rw Nat.add_1_r.
 Qed.
 
 Lemma lift_extended_subst' Γ k k' : extended_subst Γ (k + k') = map (lift0 k) (extended_subst Γ k').
 Proof.
   induction Γ as [|[? [] ?] ?] in k |- *; simpl; auto.
-  - rewrite IHΓ. f_equal.
+  - rw IHΓ. f_equal.
     autorewrite with len.
-    rewrite distr_lift_subst. f_equal.
-    autorewrite with len. rewrite simpl_lift; lia_f_equal.
+    rw distr_lift_subst. f_equal.
+    autorewrite with len. rw simpl_lift; lia_f_equal.
   - f_equal.
-    rewrite (IHΓ (S k)) (IHΓ 1).
-    rewrite map_map_compose. apply map_ext => x.
-    rewrite simpl_lift; lia_f_equal.
+    rw (IHΓ (S k)) (IHΓ 1).
+    rw map_map_compose. apply map_ext => x.
+    rw simpl_lift; lia_f_equal.
 Qed.
 
 Lemma subst_extended_subst_k s Γ k k' : extended_subst (subst_context s k Γ) k' =
   map (subst s (k + context_assumptions Γ + k')) (extended_subst Γ k').
 Proof.
-  induction Γ as [|[na [b|] ty] Γ]; simpl; auto; rewrite subst_context_snoc /=;
+  induction Γ as [|[na [b|] ty] Γ]; simpl; auto; rw subst_context_snoc /=;
     autorewrite with len; f_equal; auto.
-  - rewrite IHΓ.
-    rewrite commut_lift_subst_rec; try lia.
-    rewrite distr_subst. now len.
+  - rw IHΓ.
+    rw commut_lift_subst_rec; try lia.
+    rw distr_subst. now len.
   - elim: Nat.leb_spec => //. lia.
-  - rewrite (lift_extended_subst' _ 1 k') IHΓ.
-    rewrite (lift_extended_subst' _ 1 k').
-    rewrite !map_map_compose.
+  - rw (lift_extended_subst' _ 1 k') IHΓ.
+    rw (lift_extended_subst' _ 1 k').
+    rw !map_map_compose.
     apply map_ext.
     intros x.
     erewrite (commut_lift_subst_rec); lia_f_equal.
@@ -704,24 +704,24 @@ Lemma extended_subst_app Γ Γ' :
 Proof.
   induction Γ as [|[na [b|] ty] Γ] in |- *; simpl; auto.
   - autorewrite with len.
-    rewrite IHΓ. simpl.  rewrite app_comm_cons.
+    rw IHΓ. simpl.  rw app_comm_cons.
     f_equal.
     erewrite subst_app_simpl'.
     2:autorewrite with len; reflexivity.
     simpl.
-    rewrite lift_context_snoc subst_context_snoc /=.
+    rw lift_context_snoc subst_context_snoc /=.
     len. f_equal. f_equal.
-    rewrite -{3}(Nat.add_0_r #|Γ|).
+    rw -{3}(Nat.add_0_r #|Γ|).
     erewrite <- (simpl_lift _ _ _ _ (#|Γ| + #|Γ'|)). all:try lia.
-    rewrite distr_lift_subst_rec. autorewrite with len.
+    rw distr_lift_subst_rec. autorewrite with len.
     f_equal. apply lift_extended_subst.
-  - rewrite lift_context_snoc  subst_context_snoc /=. lia_f_equal.
-    rewrite lift_extended_subst. rewrite IHΓ /=.
-    rewrite map_app. rewrite !(lift_extended_subst _ (S _)).
-    rewrite (lift_extended_subst _ (context_assumptions Γ)).
-    rewrite map_map_compose.
+  - rw lift_context_snoc  subst_context_snoc /=. lia_f_equal.
+    rw lift_extended_subst. rw IHΓ /=.
+    rw map_app. rw !(lift_extended_subst _ (S _)).
+    rw (lift_extended_subst _ (context_assumptions Γ)).
+    rw map_map_compose.
     f_equal. apply map_ext. intros.
-    rewrite simpl_lift; lia_f_equal.
+    rw simpl_lift; lia_f_equal.
 Qed.
 
 Lemma subst_context_comm s s' Γ :
@@ -729,24 +729,24 @@ Lemma subst_context_comm s s' Γ :
   subst_context (map (subst s 0) s' ++ s) 0 Γ.
 Proof.
   intros.
-  rewrite !subst_context_alt !mapi_compose.
+  rw !subst_context_alt !mapi_compose.
   apply mapi_ext => i x.
   destruct x as [na [b|] ty] => //.
-  - rewrite /subst_decl /map_decl /=; f_equal.
-    + rewrite !mapi_length. f_equal. rewrite {2}Nat.add_0_r.
-      rewrite subst_app_simpl.
-      rewrite distr_subst_rec. rewrite Nat.add_0_r; f_equal; try lia.
-      rewrite length_map. f_equal; lia.
-    + rewrite mapi_length.
-      rewrite subst_app_simpl.
-      rewrite {2}Nat.add_0_r.
-      rewrite distr_subst_rec. rewrite Nat.add_0_r; f_equal; try lia.
-      rewrite length_map. f_equal; lia.
-  - rewrite /subst_decl /map_decl /=; f_equal.
-    rewrite !mapi_length. rewrite {2}Nat.add_0_r.
-    rewrite subst_app_simpl.
-    rewrite distr_subst_rec. rewrite Nat.add_0_r; f_equal; try lia.
-    rewrite length_map. f_equal. lia.
+  - rw /subst_decl /map_decl /=; f_equal.
+    + rw !mapi_length. f_equal. rw {2}Nat.add_0_r.
+      rw subst_app_simpl.
+      rw distr_subst_rec. rw Nat.add_0_r; f_equal; try lia.
+      rw length_map. f_equal; lia.
+    + rw mapi_length.
+      rw subst_app_simpl.
+      rw {2}Nat.add_0_r.
+      rw distr_subst_rec. rw Nat.add_0_r; f_equal; try lia.
+      rw length_map. f_equal; lia.
+  - rw /subst_decl /map_decl /=; f_equal.
+    rw !mapi_length. rw {2}Nat.add_0_r.
+    rw subst_app_simpl.
+    rw distr_subst_rec. rw Nat.add_0_r; f_equal; try lia.
+    rw length_map. f_equal. lia.
 Qed.
 
 Lemma context_assumptions_subst s n Γ :
@@ -758,13 +758,13 @@ Hint Rewrite context_assumptions_subst : pcuic.
 Lemma subst_app_context s s' Γ : subst_context (s ++ s') 0 Γ = subst_context s 0 (subst_context s' #|s| Γ).
 Proof.
   induction Γ; simpl; auto.
-  rewrite !subst_context_snoc /= /subst_decl /map_decl /=. simpl.
-  rewrite IHΓ. f_equal. f_equal.
+  rw !subst_context_snoc /= /subst_decl /map_decl /=. simpl.
+  rw IHΓ. f_equal. f_equal.
   - destruct a as [na [b|] ty]; simpl; auto.
-    f_equal. rewrite subst_context_length Nat.add_0_r.
-    now rewrite subst_app_simpl.
-  - rewrite subst_context_length Nat.add_0_r.
-    now rewrite subst_app_simpl.
+    f_equal. rw subst_context_length Nat.add_0_r.
+    now rw subst_app_simpl.
+  - rw subst_context_length Nat.add_0_r.
+    now rw subst_app_simpl.
 Qed.
 
 Lemma subst_app_context' (s s' : list term) (Γ : context) n :
@@ -779,7 +779,7 @@ Lemma map_subst_app_simpl l l' k (ts : list term) :
   map (subst (l ++ l') k) ts.
 Proof.
   eapply map_ext. intros.
-  now rewrite subst_app_simpl.
+  now rw subst_app_simpl.
 Qed.
 
 Lemma simpl_map_lift x n k :
@@ -787,9 +787,9 @@ Lemma simpl_map_lift x n k :
   map (lift k n ∘ lift0 n) x.
 Proof.
   apply map_ext => t.
-  rewrite simpl_lift => //; try lia.
-  rewrite simpl_lift; try lia.
-  now rewrite Nat.add_comm.
+  rw simpl_lift => //; try lia.
+  rw simpl_lift; try lia.
+  now rw Nat.add_comm.
 Qed.
 
 Lemma subst_it_mkProd_or_LetIn n k ctx t :
@@ -797,7 +797,7 @@ Lemma subst_it_mkProd_or_LetIn n k ctx t :
   it_mkProd_or_LetIn (subst_context n k ctx) (subst n (length ctx + k) t).
 Proof.
   induction ctx in n, k, t |- *; simpl; try congruence.
-  pose (subst_context_snoc n k ctx a). unfold snoc in e. rewrite e. clear e.
+  pose (subst_context_snoc n k ctx a). unfold snoc in e. rw e. clear e.
   simpl. rewrite -> IHctx.
   pose (subst_context_snoc n k ctx a). simpl. now destruct a as [na [b|] ty].
 Qed.
@@ -819,10 +819,10 @@ Proof.
   unfold to_extended_list_k. revert k'.
   unf_term. generalize (@nil term) at 1 2.
   induction c in n, k |- *; simpl; intros. 1: reflexivity.
-  rewrite subst_context_snoc. unfold snoc. simpl.
+  rw subst_context_snoc. unfold snoc. simpl.
   destruct a. destruct decl_body.
   - unfold subst_decl, map_decl. simpl.
-    now rewrite IHc.
+    now rw IHc.
   - simpl. apply IHc.
 Qed.
 
@@ -831,8 +831,8 @@ Lemma it_mkProd_or_LetIn_inj ctx s ctx' s' :
   ctx = ctx' /\ s = s'.
 Proof.
   move/(f_equal (destArity [])).
-  rewrite !destArity_it_mkProd_or_LetIn /=.
-  now rewrite !app_context_nil_l => [= -> ->].
+  rw !destArity_it_mkProd_or_LetIn /=.
+  now rw !app_context_nil_l => [= -> ->].
 Qed.
 
 Lemma destArity_spec ctx T :
@@ -851,7 +851,7 @@ Lemma destArity_spec_Some ctx T ctx' s :
   -> it_mkProd_or_LetIn ctx T = it_mkProd_or_LetIn ctx' (tSort s).
 Proof.
   pose proof (destArity_spec ctx T) as H.
-  intro e; now rewrite e in H.
+  intro e; now rw e in H.
 Qed.
 
 (** Standard substitution lemma for a context with no lets. *)
@@ -870,12 +870,12 @@ Inductive nth_error_app_spec {A} (l l' : list A) (n : nat) : option A -> Type :=
 Lemma nth_error_appP {A} (l l' : list A) (n : nat) : nth_error_app_spec l l' n (nth_error (l ++ l') n).
 Proof.
   destruct (Nat.ltb n #|l|) eqn:lt; [apply Nat.ltb_lt in lt|apply Nat.ltb_nlt in lt].
-  * rewrite nth_error_app_lt //.
+  * rw nth_error_app_lt //.
     destruct (snd (nth_error_Some' _ _) lt) as [x eq].
-    rewrite eq.
+    rw eq.
     constructor; auto.
   * destruct (Nat.ltb n (#|l| + #|l'|)) eqn:ltb'; [apply Nat.ltb_lt in ltb'|apply Nat.ltb_nlt in ltb'].
-    + rewrite nth_error_app2; try lia.
+    + rw nth_error_app2; try lia.
       destruct nth_error eqn:hnth.
       - constructor 2; auto; try lia.
       - constructor.
@@ -892,7 +892,7 @@ Proof.
 Qed.
 
 Lemma expand_lets_k_nil k t : expand_lets_k [] k t = t.
-Proof. by rewrite /expand_lets_k /= subst_empty lift0_id. Qed.
+Proof. by rw /expand_lets_k /= subst_empty lift0_id. Qed.
 
 
 

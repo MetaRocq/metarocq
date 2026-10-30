@@ -609,7 +609,7 @@ Proof.
 
   - elim (Nat.leb_spec k' n); intros. simpl.
     destruct nth_error eqn:Heq.
-    -- rewrite closedn_lift.
+    -- rw closedn_lift.
        now eapply nth_error_all in Heq; simpl; eauto; simpl in *.
        eapply nth_error_Some_length in Heq.
        eapply Nat.ltb_lt. lia.
@@ -623,24 +623,24 @@ Proof.
   - eapply All_forallb_eq_forallb; tea; eauto.
   - specialize (IHt (S k')).
     rewrite <- Nat.add_succ_comm in IHt.
-    rewrite IHt //.
+    rw IHt //.
   - specialize (IHt2 (S k')).
     rewrite <- Nat.add_succ_comm in IHt2.
-    rewrite IHt1 // IHt2 //.
+    rw IHt1 // IHt2 //.
   - solve_all.
   - eapply All_forallb_eq_forallb; eauto.
-  - rewrite IHt //.
+  - rw IHt //.
     f_equal. eapply All_forallb_eq_forallb; tea. cbn.
     intros. specialize (H (#|x.1| + k')).
-    rewrite Nat.add_assoc (Nat.add_comm k) in H.
-    now rewrite !Nat.add_assoc.
+    rw Nat.add_assoc (Nat.add_comm k) in H.
+    now rw !Nat.add_assoc.
   - solve_all.
   - eapply All_forallb_eq_forallb; tea. cbn.
     intros. specialize (H (#|m| + k')).
-    now rewrite !Nat.add_assoc !(Nat.add_comm k) in H |- *.
+    now rw !Nat.add_assoc !(Nat.add_comm k) in H |- *.
   - eapply All_forallb_eq_forallb; tea. cbn.
     intros. specialize (H (#|m| + k')).
-    now rewrite !Nat.add_assoc !(Nat.add_comm k) in H |- *.
+    now rw !Nat.add_assoc !(Nat.add_comm k) in H |- *.
   - solve_all.
   - solve_all.
   - solve_all.
@@ -652,6 +652,6 @@ Lemma closedn_subst s k t :
 Proof.
   intros.
   epose proof (closedn_subst_eq s k 0).
-  rewrite Nat.add_0_r in H1.
-  rewrite -H1 //. rewrite Nat.add_comm //.
+  rw Nat.add_0_r in H1.
+  rw -H1 //. rw Nat.add_comm //.
 Qed.

@@ -30,13 +30,13 @@ Proof.
   pose proof (env_prop_wf_local typing_rename_prop _ wfΣ _ wfΓ') as X. simpl in X.
   eapply All_local_env_app_inv in X as [XΓ XΓ'].
   apply All_local_env_app => //.
-  rewrite /lift_context.
+  rw /lift_context.
   apply All_local_env_fold.
   eapply (All_local_env_impl_ind XΓ').
   intros Δ j IH H; simpl.
   eapply lift_typing_f_impl => //.
-  2: intros ?? Hf; rewrite -/(lift_context #|Γ''| 0 Δ).
-  2: rewrite Nat.add_0_r; rewrite !lift_rename; apply Hf.
+  2: intros ?? Hf; rw -/(lift_context #|Γ''| 0 Δ).
+  2: rw Nat.add_0_r; rw !lift_rename; apply Hf.
   eapply (H xpredT).
   split.
   + apply All_local_env_app; auto.
@@ -61,7 +61,7 @@ Lemma weakening_rename_typing `{cf : checker_flags} {Σ : global_env_ext} {wfΣ 
     rename (lift_renaming #|Γ''| #|Γ'|) T.
 Proof.
   intros wfext Ht.
-  eapply (typing_rename); eauto; rewrite rename_context_lift_context.
+  eapply (typing_rename); eauto; rw rename_context_lift_context.
   - eapply weakening_wf_local; cbn; eauto with pcuic.
   - now apply weakening_renaming.
 Qed.
@@ -72,7 +72,7 @@ Lemma weakening_typing `{cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ
   Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| t : lift #|Γ''| #|Γ'| T.
 Proof.
   intros wfext Ht.
-  rewrite !lift_rename.
+  rw !lift_rename.
   eapply (typing_rename); eauto.
   - eapply weakening_wf_local; eauto with pcuic.
   - now apply weakening_renaming.
@@ -94,9 +94,9 @@ Lemma weaken_wf_local {cf:checker_flags} {Σ Δ} Γ :
 Proof.
   intros wfΣ wfΓ wfΔ.
   generalize (weakening_wf_local (Γ := []) (Γ'' := Γ) (Γ' := Δ)) => /=.
-  rewrite !app_context_nil_l.
+  rw !app_context_nil_l.
   move/(_ wfΔ wfΓ).
-  rewrite closed_ctx_lift //.
+  rw closed_ctx_lift //.
   now eapply closed_wf_local.
 Qed.
 
@@ -107,13 +107,13 @@ Lemma lift_declared_constant `{checker_flags} Σ cst decl n k :
   decl = map_constant_body (lift n k) decl.
 Proof.
   intros wf declc.
-  rewrite /map_constant_body; destruct decl; simpl; f_equal; rewrite ?lift_rename.
+  rw /map_constant_body; destruct decl; simpl; f_equal; rw ?lift_rename.
   - eapply declared_constant_closed_type in declc; eauto.
-    now rewrite rename_closed.
+    now rw rename_closed.
   - destruct cst_body0 eqn:cb => /= //.
     f_equal.
     eapply declared_constant_closed_body in declc; simpl; eauto.
-    now rewrite lift_rename rename_closed.
+    now rw lift_rename rename_closed.
 Qed.
 
 
@@ -134,12 +134,12 @@ Lemma weaken_ctx {cf:checker_flags} {Σ Γ t T} Δ :
 Proof.
   intros wfΣ wfΔ ty.
   epose proof (weakening_typing (Γ := [])).
-  rewrite !app_context_nil_l in X.
+  rw !app_context_nil_l in X.
   forward X by eauto using typing_wf_local.
   specialize (X ty).
   eapply typecheck_closed in ty as [_ [clΓ [clt clT]%andb_and]]; auto.
-  rewrite !lift_closed // in X.
-  now rewrite closed_ctx_lift in X.
+  rw !lift_closed // in X.
+  now rw closed_ctx_lift in X.
 Qed.
 
 Lemma weakening_gen : forall (cf : checker_flags) (Σ : global_env_ext)
@@ -160,7 +160,7 @@ Lemma shift_typing {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ t T n Δ} :
   Σ ;;; Γ ,,, Δ |- t.[↑^n] : T.[↑^n].
 Proof.
   intros ht hΔ ->.
-  eapply meta_conv_all. 3-4:now rewrite -rename_inst -lift0_rename.
+  eapply meta_conv_all. 3-4:now rw -rename_inst -lift0_rename.
   2:reflexivity.
   eapply weakening_gen => //.
 Qed.
@@ -194,7 +194,7 @@ Proof.
   change (fix_context mfix) with (fix_context_gen #|@nil context_decl| mfix).
   change Γ with (Γ ,,, []).
   generalize (@nil context_decl) as Δ.
-  rewrite /fix_context_gen.
+  rw /fix_context_gen.
   intros Δ wfΔ.
   eapply All_local_env_app; auto.
   induction a in Δ, wfΔ |- *; simpl; auto.
@@ -204,13 +204,13 @@ Proof.
   * constructor. 1: constructor.
     now eapply lift_typing_weakening in p.
   * specialize (IHa (Δ ,,, [vass (dname x) (lift0 #|Δ| (dtype x))])).
-    rewrite length_app in IHa. simpl in IHa.
+    rw length_app in IHa. simpl in IHa.
     forward IHa.
     + simpl; constructor; auto.
       now eapply lift_typing_weakening in p.
     + eapply All_local_env_impl; eauto.
       simpl; intros.
-      rewrite app_context_assoc. apply X.
+      rw app_context_assoc. apply X.
 Qed.
 
 Lemma lift_typing_weakening_skipn {cf:checker_flags} {Σ : global_env_ext} {n Γ j}
@@ -221,8 +221,8 @@ Lemma lift_typing_weakening_skipn {cf:checker_flags} {Σ : global_env_ext} {n Γ
 Proof.
   intros wfΣ wfΓ wfty. rewrite <- (firstn_skipn n Γ) in wfΓ |- *.
   assert (n = #|firstn n Γ|).
-  { rewrite firstn_length_le; auto with arith. }
-  rewrite {3}H.
+  { rw firstn_length_le; auto with arith. }
+  rw {3}H.
   now eapply lift_typing_weakening in wfty.
 Qed.
 

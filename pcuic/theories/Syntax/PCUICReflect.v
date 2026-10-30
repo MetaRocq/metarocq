@@ -178,11 +178,11 @@ Proof.
   induction a; intros []; cbn; try constructor; try congruence.
   destruct (IHa l0).
   destruct (p0 a0); try constructor; try congruence.
-  rewrite andb_false_r. constructor; congruence.
+  rw andb_false_r. constructor; congruence.
 Qed.
 
 Local Ltac t := try constructor; intuition auto; try congruence.
-Local Ltac t' := rewrite /= ?andb_false_r ?andb_true_r /=; t.
+Local Ltac t' := rw /= ?andb_false_r ?andb_true_r /=; t.
 
 Lemma reflect_prop_context_decl d d' :
   ondecl (fun x : term => forall y : term, reflectProp (x = y) (eqb_term x y)) d ->

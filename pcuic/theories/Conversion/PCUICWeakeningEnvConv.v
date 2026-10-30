@@ -59,17 +59,17 @@ Lemma global_variance_sigma_mon {Σ Σ'} gr napp :
   end.
 Proof using P Pcmp cf.
   intros wfΣ' ext.
-  rewrite /global_variance_gen /lookup_constructor /lookup_constructor_gen
+  rw /global_variance_gen /lookup_constructor /lookup_constructor_gen
     /lookup_inductive /lookup_inductive_gen /lookup_minductive /lookup_minductive_gen.
   destruct gr as [|ind|[ind i]|] => //=.
   - destruct (lookup_env Σ ind) eqn:look => //.
-    eapply extends_lookup in look; eauto. rewrite look //.
+    eapply extends_lookup in look; eauto. rw look //.
     destruct g => //=; destruct nth_error => //=.
     destruct destArity as [[ctx s]|] => //=.
     destruct Nat.leb => //=.
     destruct ind_variance => //=.
   - destruct (lookup_env Σ (inductive_mind i)) eqn:look => //.
-    eapply extends_lookup in look; eauto. rewrite look //.
+    eapply extends_lookup in look; eauto. rw look //.
     destruct g => //=; destruct nth_error => //=; destruct nth_error => //=.
     destruct Nat.leb => //=.
 Qed.

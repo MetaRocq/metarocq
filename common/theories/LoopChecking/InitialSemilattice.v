@@ -79,7 +79,7 @@ Module InitialSemilattice (LS : LevelSets).
     intros he he'.
     eapply entails_trans with (x' ∨ y).
     now apply entails_join_congr.
-    rewrite (@union_comm x' y) (@union_comm x' y').
+    rw (@union_comm x' y) (@union_comm x' y').
     now apply entails_join_congr.
   Qed.
 
@@ -94,7 +94,7 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     intros he he'.
     eapply entails_trans with (x ∨ y) => //.
-    rewrite !(@union_comm x).
+    rw !(@union_comm x).
     apply entails_join_congr => //. now eapply entails_sym.
   Qed.
 
@@ -166,29 +166,29 @@ Module InitialSemilattice (LS : LevelSets).
         * now apply univ_eq_refl.
         * now apply univ_eq_sym, H.
         * now eapply univ_eq_trans; eauto.
-      - rewrite add_prems_add_prems. now apply univ_eq_refl.
+      - rw add_prems_add_prems. now apply univ_eq_refl.
       - specialize (H H0). destruct H as [le le'].
         split; move=> l k /In_add_prems => -[[l' k'] [hin [=]]] -> ->.
         * exists (CommutativeMonoid.add n k'). split => //. apply In_add_prems.
           exists (l', k'). split => //. reflexivity.
         * exists (CommutativeMonoid.add n k')%Q; split => //. apply In_add_prems.
           exists (l', k'); split => //. reflexivity.
-      - rewrite add_prems_0. now apply univ_eq_refl.
-      - apply univ_eq_refl. now rewrite union_assoc.
-      - apply univ_eq_refl. now rewrite union_comm.
-      - split. intros l k; rewrite !LevelExprSet.union_spec.
+      - rw add_prems_0. now apply univ_eq_refl.
+      - apply univ_eq_refl. now rw union_assoc.
+      - apply univ_eq_refl. now rw union_comm.
+      - split. intros l k; rw !LevelExprSet.union_spec.
         intros []; exists k; split => //; try lia.
-        now rewrite union_spec. reflexivity.
-        now rewrite union_spec. reflexivity.
+        now rw union_spec. reflexivity.
+        now rw union_spec. reflexivity.
         intros l k hin. exists k. split => //. reflexivity.
-      - split. intros l k; rewrite !LevelExprSet.union_spec.
+      - split. intros l k; rw !LevelExprSet.union_spec.
         intros []; exists k; split => //; try lia;
-          now rewrite ?union_spec.
+          now rw ?union_spec.
         intros l k hin. exists k. split => //. reflexivity.
       - split. intros l k hin. exists k. split => //. reflexivity.
         intros l k hin. exists k. split => //; reflexivity.
       - specialize (H H0). now eapply univ_add_inj.
-      - apply univ_eq_refl. now rewrite add_prems_union.
+      - apply univ_eq_refl. now rw add_prems_union.
     Qed.
   End pres_Semilattice.
 
@@ -206,12 +206,12 @@ Module InitialSemilattice (LS : LevelSets).
     intros le le'.
     eapply entails_trans. 2:exact le'.
     eapply entails_trans with (x ∨ y ∨ z).
-    rewrite union_assoc. eapply entails_sym.
+    rw union_assoc. eapply entails_sym.
     eapply entails_join_congr_all => //. apply entails_refl.
-    rewrite union_assoc.
+    rw union_assoc.
     eapply entails_trans with (x ∨ ((y ∨ y) ∨ z)).
     eapply entails_join_congr_all; auto with entails_L.
-    rewrite union_assoc -union_assoc.
+    rw union_assoc -union_assoc.
     now eapply entails_join_congr_all.
   Qed.
 
@@ -219,14 +219,14 @@ Module InitialSemilattice (LS : LevelSets).
     u ⊂_leset u' -> u ∨ u' = u'.
   Proof.
     intros hincl; apply equal_exprsets => l.
-    rewrite union_spec. firstorder.
+    rw union_spec. firstorder.
   Qed.
 
   Lemma incl_entails_L {cls} {u u' : t} :
     u ⊂_leset u' -> cls ⊢ℒ u ≤ u'.
   Proof.
     move=> hincl. unfold rel_le.
-    rewrite subset_union //; auto with entails_L.
+    rw subset_union //; auto with entails_L.
   Qed.
 
   Lemma entails_L_subset {cls} {prems prems' prems'' : t} :
@@ -279,28 +279,28 @@ Module InitialSemilattice (LS : LevelSets).
   Instance Forall_proper {A} (P : A -> Prop) : Proper (equivlistA Logic.eq ==> iff) (Forall P).
   Proof.
     intros x y eq.
-    rewrite !Forall_forall.
+    rw !Forall_forall.
     now setoid_rewrite eq.
   Qed.
 
   Instance Forall_ext_proper {A} : Proper ((Logic.eq ==> iff) ==> equivlistA Logic.eq ==> iff) (@Forall A).
   Proof.
     intros x y eq ? ? ->. red in eq.
-    rewrite !Forall_forall.
-    split; intros hyp ? hin. now rewrite -eq; trea.
-    now rewrite eq; trea.
+    rw !Forall_forall.
+    split; intros hyp ? hin. now rw -eq; trea.
+    now rw eq; trea.
   Qed.
 
   Instance entails_L_rels_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) entails_L_rels.
   Proof.
-    intros l l' h ?? h'. unfold entails_L_rels. split; now rewrite h h'.
+    intros l l' h ?? h'. unfold entails_L_rels. split; now rw h h'.
   Qed.
 
   Instance entails_L_equiv_proper : Proper (equivlistA Logic.eq ==> equivlistA Logic.eq ==> iff) equiv_L_rels.
   Proof.
-    intros l l' h ?? h'. split; split. 1-2:rewrite -h -h'; apply H.
-    rewrite h h'; apply H.
-    rewrite h h'; apply H.
+    intros l l' h ?? h'. split; split. 1-2:rw -h -h'; apply H.
+    rw h h'; apply H.
+    rw h h'; apply H.
   Qed.
 
 
@@ -334,7 +334,7 @@ Module InitialSemilattice (LS : LevelSets).
     split.
     - unfold rel_le. intros [le le'].
       eapply entails_trans with (l ∨ r) => //.
-      apply entails_sym. now rewrite union_comm.
+      apply entails_sym. now rw union_comm.
     - intros eq; split. now apply entails_L_eq_le_1. now apply entails_L_eq_le_2.
   Qed.
 
@@ -344,7 +344,7 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     intros le.
     unfold rel_le in le |- *.
-    rewrite union_assoc (@union_comm r) union_assoc -union_assoc.
+    rw union_assoc (@union_comm r) union_assoc -union_assoc.
     eapply entails_join_congr_all => //.
     apply entails_idem.
   Qed.
@@ -356,7 +356,7 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     move/(entails_L_le_join_l (r:=y)) => le le'.
     eapply entails_L_le_trans; tea.
-    rewrite !(@union_comm x').
+    rw !(@union_comm x').
     now eapply entails_L_le_join_l.
   Qed.
 
@@ -380,14 +380,14 @@ Module InitialSemilattice (LS : LevelSets).
   Lemma entails_L_le_left {p x y} :
     p ⊢ℒ x ≤ x ∨ y.
   Proof.
-    rewrite /rel_le. rewrite -union_assoc.
+    rw /rel_le. rw -union_assoc.
     eapply entails_join_congr_all. apply entails_idem. apply entails_refl.
   Qed.
 
   Lemma entails_L_le_right {p x y} :
     p ⊢ℒ y ≤ x ∨ y.
   Proof.
-    rewrite union_comm; apply entails_L_le_left.
+    rw union_comm; apply entails_L_le_left.
   Qed.
 
   Lemma entails_L_in p l (t : t) :
@@ -398,10 +398,10 @@ Module InitialSemilattice (LS : LevelSets).
     - move=>[l' k] /LevelExprSet.singleton_spec => ->.
       apply entails_L_le_refl.
     - move=> le x h hnin /NES.add_spec [].
-      * intros ->. rewrite -union_add_singleton.
+      * intros ->. rw -union_add_singleton.
         apply entails_L_le_right.
       * move/h => hle.
-        rewrite -union_add_singleton.
+        rw -union_add_singleton.
         eapply entails_L_le_trans with x => //.
         apply entails_L_le_left.
   Qed.
@@ -430,20 +430,20 @@ Module InitialSemilattice (LS : LevelSets).
   Lemma entails_L_valid {p r} :
     p ⊢ℒ r -> valid_relation p r.
   Proof.
-    rewrite /valid_relation //=.
+    rw /valid_relation //=.
     destruct r as [l r] => //=.
     intros h; depind h; cbn; move=> S SL v hv.
-    1:{ red in hv. rewrite Forall_forall in hv; eapply hv in H. exact H. }
+    1:{ red in hv. rw Forall_forall in hv; eapply hv in H. exact H. }
     all:try specialize (IHh _ _ Logic.eq_refl S SL _ hv).
     all:try specialize (IHh1 _ _ Logic.eq_refl S SL _ hv).
     all:try specialize (IHh2 _ _ Logic.eq_refl S SL _ hv).
     all:try lia; eauto.
-    all:rewrite ?interp_add_prems ?interp_nes_union ?interp_add_prems; try lia.
+    all:rw ?interp_add_prems ?interp_nes_union ?interp_add_prems; try lia.
     - eapply reflexivity.
     - now eapply symmetry, IHh.
     - eapply transitivity; [eapply IHh1|eapply IHh2] => //.
     - now apply add_congr.
-    - rewrite ?interp_add_prems in IHh.
+    - rw ?interp_add_prems in IHh.
       now apply add_inj in IHh.
     - now apply join_congr.
     - apply join_assoc.
@@ -465,8 +465,8 @@ Module InitialSemilattice (LS : LevelSets).
       * intros x. eapply entails_refl.
       * intros x y. eapply entails_sym.
       * intros x y z. eapply entails_trans.
-    - rewrite add_prems_add_prems. eapply entails_refl.
-    - rewrite add_prems_0. apply entails_refl.
+    - rw add_prems_add_prems. eapply entails_refl.
+    - rw add_prems_0. apply entails_refl.
   Defined.
 
   #[export] Existing Instance init_model.
@@ -477,13 +477,13 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     move: l; apply: elim.
     - intros [l k].
-      rewrite interp_nes_singleton //= /ids //=.
-      rewrite add_prems_singleton //=. rewrite /add_expr //= comm neutral.
+      rw interp_nes_singleton //= /ids //=.
+      rw add_prems_singleton //=. rw /add_expr //= comm neutral.
       apply entails_refl.
     - move=> [] l k x ih hnin.
       have ha := (interp_nes_add (SL := init_model rs) (ids rs) (l, k)).
-      rewrite ha ih. rewrite /interp_expr. rewrite -union_add_singleton /ids.
-      rewrite [add _ _]add_prems_singleton /add_expr comm neutral.
+      rw ha ih. rw /interp_expr. rw -union_add_singleton /ids.
+      rw [add _ _]add_prems_singleton /add_expr comm neutral.
       apply (join_comm (Semilattice := init_model rs)).
   Qed.
 
@@ -498,7 +498,7 @@ Module InitialSemilattice (LS : LevelSets).
     - constructor.
     - destruct a. constructor.
       * change (eq (Semilattice := init_model rs) (interp_nes (SL := init_model rs) (ids rs) t0) (interp_nes (SL := init_model rs) (ids rs) t1)).
-        rewrite !interp_triv.
+        rw !interp_triv.
         constructor. apply ir. now constructor.
       * apply IHrs0. intros r hin; apply ir. now right.
   Qed.
@@ -508,15 +508,15 @@ Module InitialSemilattice (LS : LevelSets).
 
   Lemma syntax_model rs r : valid (init_model rs) (ids rs) r <-> rs ⊢ℒ r.
   Proof.
-    rewrite /valid.
+    rw /valid.
     destruct r as [l r]. unfold interp_rel.
-    rewrite !interp_triv; split; apply.
+    rw !interp_triv; split; apply.
   Qed.
 
   Lemma valid_entails_L {p r} :
     valid_relation p r -> p ⊢ℒ r.
   Proof.
-    rewrite /valid_relation.
+    rw /valid_relation.
     intros ha. apply syntax_model.
     destruct r as [l r]. cbn.
     change (eq (Semilattice := init_model p) (interp_nes (SL := init_model p) (ids p) l) (interp_nes (SL := init_model p) (ids p) r)).
@@ -580,7 +580,7 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     induction 1; constructor.
     eapply entails_L_rels_subset; tea => //.
-    intros a hin. rewrite in_app_iff. now right.
+    intros a hin. rw in_app_iff. now right.
     exact IHForall.
   Qed.
 
@@ -595,14 +595,14 @@ Module InitialSemilattice (LS : LevelSets).
     x ⊩ℒ x' -> y ⊩ℒ y' -> x ++ y ⊩ℒ x' ++ y'.
   Proof.
     intros hx hy.
-    rewrite equivlistA_app_comm.
+    rw equivlistA_app_comm.
     induction hy.
-    - rewrite app_nil_r.
+    - rw app_nil_r.
       now eapply entails_L_all_weaken.
-    - rewrite equivlistA_app_cons_comm. constructor.
-      rewrite -equivlistA_app_comm. eapply entails_L_rels_subset; tea.
-      move=> ?; rewrite in_app_iff; now right.
-      rewrite (equivlistA_app_comm l x'). exact IHhy.
+    - rw equivlistA_app_cons_comm. constructor.
+      rw -equivlistA_app_comm. eapply entails_L_rels_subset; tea.
+      move=> ?; rw in_app_iff; now right.
+      rw (equivlistA_app_comm l x'). exact IHhy.
   Qed.
 
   Lemma entails_L_all_union {x y x' y'} :

@@ -27,9 +27,9 @@ Ltac Equations.CoreTactics.destruct_tele_eq H ::= noconf H.
 Lemma closed_ctx_lift n k ctx : closed_ctx ctx -> lift_context n k ctx = ctx.
 Proof.
   induction ctx in n, k |- *; auto.
-  rewrite closedn_ctx_cons lift_context_snoc0 /snoc.
+  rw closedn_ctx_cons lift_context_snoc0 /snoc.
   move/andb_and => /= [Hctx Hd].
-  rewrite IHctx // lift_decl_closed //. now apply: closed_decl_upwards.
+  rw IHctx // lift_decl_closed //. now apply: closed_decl_upwards.
 Qed.
 
 Lemma weaken_nth_error_ge {Γ Γ' v Γ''} : #|Γ'| <= v ->
@@ -40,8 +40,8 @@ Proof.
   rewrite -> !nth_error_app_context_ge, ?lift_context_length.
   - f_equal. lia.
   - auto.
-  - rewrite lift_context_length. lia.
-  - rewrite lift_context_length. lia.
+  - rw lift_context_length. lia.
+  - rw lift_context_length. lia.
 Qed.
 
 Lemma weaken_nth_error_lt {Γ Γ' Γ'' v} : v < #|Γ'| ->
@@ -50,22 +50,22 @@ Lemma weaken_nth_error_lt {Γ Γ' Γ'' v} : v < #|Γ'| ->
 Proof.
   simpl. intros Hv.
   rewrite -> !nth_error_app_context_lt.
-  - rewrite nth_error_lift_context_eq.
+  - rw nth_error_lift_context_eq.
     do 2 f_equal. lia.
   - lia.
-  - now rewrite lift_context_length.
+  - now rw lift_context_length.
 Qed.
 
 Lemma lift_context_lift_context n k Γ : lift_context n 0 (lift_context k 0 Γ) =
   lift_context (n + k) 0 Γ.
-Proof. rewrite !lift_context_alt.
-  rewrite mapi_compose.
+Proof. rw !lift_context_alt.
+  rw mapi_compose.
   apply mapi_ext.
   intros n' x.
-  rewrite /lift_decl compose_map_decl.
+  rw /lift_decl compose_map_decl.
   apply map_decl_ext => y.
-  rewrite mapi_length; autorewrite with  len.
-  rewrite simpl_lift //; lia.
+  rw mapi_length; autorewrite with  len.
+  rw simpl_lift //; lia.
 Qed.
 
 Lemma weakening_renaming P Γ Γ' Γ'' :
@@ -73,24 +73,24 @@ Lemma weakening_renaming P Γ Γ' Γ'' :
     (lift_renaming #|Γ''| #|Γ'|).
 Proof.
   intros i d hpi hnth.
-  rewrite /lift_renaming.
+  rw /lift_renaming.
   destruct (Nat.leb #|Γ'| i) eqn:leb; [apply Nat.leb_le in leb|eapply Nat.leb_nle in leb].
-  - rewrite weaken_nth_error_ge //.
+  - rw weaken_nth_error_ge //.
     exists d; split; auto.
     split; auto.
     split.
-    * apply rename_ext => k. rewrite /rshiftk /lift_renaming.
+    * apply rename_ext => k. rw /rshiftk /lift_renaming.
       repeat nat_compare_specs.
     * destruct (decl_body d) => /= //.
       f_equal. apply rename_ext => k.
-      rewrite /rshiftk; now nat_compare_specs.
-  - rewrite weaken_nth_error_lt; try lia.
-    rewrite hnth /=. eexists. split; [eauto|].
-    simpl. rewrite !lift_rename !rename_compose /lift_renaming /rshiftk /=.
+      rw /rshiftk; now nat_compare_specs.
+  - rw weaken_nth_error_lt; try lia.
+    rw hnth /=. eexists. split; [eauto|].
+    simpl. rw !lift_rename !rename_compose /lift_renaming /rshiftk /=.
     repeat split.
     * apply rename_ext => k. now repeat nat_compare_specs.
     * destruct (decl_body d) => /= //. f_equal.
-      rewrite lift_rename rename_compose /lift_renaming.
+      rw lift_rename rename_compose /lift_renaming.
       apply rename_ext => k. simpl. now repeat nat_compare_specs.
 Qed.
 
@@ -139,9 +139,9 @@ Qed. *)
 Lemma rename_context_lift_context n k Γ :
   rename_context (lift_renaming n k) Γ = lift_context n k Γ.
 Proof.
-  rewrite /rename_context /lift_context.
+  rw /rename_context /lift_context.
   apply fold_context_k_ext => i t.
-  now rewrite lift_rename shiftn_lift_renaming.
+  now rw lift_rename shiftn_lift_renaming.
 Qed.
 
 
@@ -150,25 +150,25 @@ Lemma smash_context_lift Δ k n Γ :
   lift_context n k (smash_context Δ Γ).
 Proof.
   revert Δ. induction Γ as [|[na [b|] ty]]; intros Δ; simpl; auto.
-  - now rewrite Nat.add_0_r.
-  - rewrite -IHΓ.
-    rewrite lift_context_snoc /=. f_equal.
-    rewrite !subst_context_alt !lift_context_alt !mapi_compose.
+  - now rw Nat.add_0_r.
+  - rw -IHΓ.
+    rw lift_context_snoc /=. f_equal.
+    rw !subst_context_alt !lift_context_alt !mapi_compose.
     apply mapi_ext=> n' x.
     destruct x as [na' [b'|] ty']; simpl.
-    * rewrite !mapi_length /lift_decl /subst_decl /= /map_decl /=; f_equal.
-      + f_equal. rewrite Nat.add_0_r distr_lift_subst_rec /=.
+    * rw !mapi_length /lift_decl /subst_decl /= /map_decl /=; f_equal.
+      + f_equal. rw Nat.add_0_r distr_lift_subst_rec /=.
         lia_f_equal.
-      + rewrite Nat.add_0_r distr_lift_subst_rec; simpl. lia_f_equal.
-    * rewrite !mapi_length /lift_decl /subst_decl /= /map_decl /=; f_equal.
-      rewrite Nat.add_0_r distr_lift_subst_rec /=.
+      + rw Nat.add_0_r distr_lift_subst_rec; simpl. lia_f_equal.
+    * rw !mapi_length /lift_decl /subst_decl /= /map_decl /=; f_equal.
+      rw Nat.add_0_r distr_lift_subst_rec /=.
       repeat (lia || f_equal).
-  - rewrite -IHΓ.
-    rewrite lift_context_snoc /= // /lift_decl /subst_decl /map_decl /=.
+  - rw -IHΓ.
+    rw lift_context_snoc /= // /lift_decl /subst_decl /map_decl /=.
     f_equal.
-    rewrite lift_context_app. simpl.
-    rewrite /app_context; lia_f_equal.
-    rewrite /lift_context // /fold_context_k /= /map_decl /=.
+    rw lift_context_app. simpl.
+    rw /app_context; lia_f_equal.
+    rw /lift_context // /fold_context_k /= /map_decl /=.
     now lia_f_equal.
 Qed.
 
@@ -215,10 +215,10 @@ Lemma lift_fix_context:
     fix_context (map (map_def (lift n k) (lift n (#|mfix| + k))) mfix) = lift_context n k (fix_context mfix).
 Proof.
   intros mfix n k. unfold fix_context.
-  rewrite PCUICLiftSubst.map_vass_map_def rev_mapi.
+  rw PCUICLiftSubst.map_vass_map_def rev_mapi.
   fold (fix_context mfix).
-  rewrite (lift_context_alt n k (fix_context mfix)).
-  unfold lift_decl. now rewrite mapi_length fix_context_length.
+  rw (lift_context_alt n k (fix_context mfix)).
+  unfold lift_decl. now rw mapi_length fix_context_length.
 Qed.
 
 #[global]
@@ -256,7 +256,7 @@ Lemma weakening_red1 `{cf:checker_flags} {Σ} Γ Γ' Γ'' M N :
   red1 Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
   intros.
-  rewrite !lift_rename.
+  rw !lift_rename.
   eapply red1_rename; eauto.
   eapply weakening_renaming.
 Qed.
@@ -268,7 +268,7 @@ Lemma weakening_red `{cf:checker_flags} {Σ:global_env_ext} {wfΣ : wf Σ} {P Γ
   red Σ (Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ') (lift #|Γ''| #|Γ'| M) (lift #|Γ''| #|Γ'| N).
 Proof.
   intros.
-  rewrite !lift_rename.
+  rw !lift_rename.
   eapply red_rename; eauto.
   eapply weakening_renaming.
 Qed.
@@ -310,9 +310,9 @@ Lemma weakening_cumul `{CF:checker_flags} {Σ Γ Γ' Γ'' M N} :
   Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M <= lift #|Γ''| #|Γ'| N.
 Proof.
   intros.
-  rewrite !lift_rename -rename_context_lift_context.
+  rw !lift_rename -rename_context_lift_context.
   eapply cumul_renameP ; tea.
-  rewrite rename_context_lift_context.
+  rw rename_context_lift_context.
   now eapply weakening_renaming.
 Qed.
 
@@ -331,9 +331,9 @@ Lemma weakening_conv `{cf:checker_flags} :
     Σ ;;; Γ ,,, Γ'' ,,, lift_context #|Γ''| 0 Γ' |- lift #|Γ''| #|Γ'| M = lift #|Γ''| #|Γ'| N.
 Proof.
   intros.
-  rewrite !lift_rename -rename_context_lift_context.
+  rw !lift_rename -rename_context_lift_context.
   eapply conv_renameP ; tea.
-  rewrite rename_context_lift_context.
+  rw rename_context_lift_context.
   now eapply weakening_renaming.
 Qed.
 
@@ -342,7 +342,7 @@ Lemma isType_on_free_vars {cf} {Σ : global_env_ext} {wfΣ : wf Σ} {Γ T} :
 Proof.
   intros (_ & s & Hs & _).
   eapply subject_closed in Hs.
-  rewrite closedP_on_free_vars in Hs.
+  rw closedP_on_free_vars in Hs.
   eapply on_free_vars_impl; tea => //.
 Qed.
 

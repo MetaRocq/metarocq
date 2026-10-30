@@ -15,14 +15,14 @@ Lemma subst_level_instance_length (u1 : LevelInstance.t) u2 :
   #|subst_level_instance u2 u1| = #|u1|.
 Proof.
   unfold subst_level_instance.
-  now rewrite length_map.
+  now rw length_map.
 Qed.
 
 Lemma subst_instance_instance_length (u1 : Instance.t) u2 :
   #|subst_instance u2 u1| = #|u1|.
 Proof.
   unfold subst_instance.
-  now rewrite length_map.
+  now rw length_map.
 Qed.
 #[global]
 Hint Rewrite subst_level_instance_length subst_instance_instance_length : len.
@@ -57,7 +57,7 @@ Lemma subst_instance_mkApps u f a :
   mkApps (subst_instance u f) (map (subst_instance u) a).
 Proof.
   induction a in f |- *; auto.
-  simpl map. simpl. now rewrite IHa.
+  simpl map. simpl. now rw IHa.
 Qed.
 
 Lemma subst_instance_it_mkProd_or_LetIn u ctx t :
@@ -66,7 +66,7 @@ Lemma subst_instance_it_mkProd_or_LetIn u ctx t :
 Proof.
   unfold subst_instance; cbn.
   induction ctx in u, t |- *; simpl; unfold mkProd_or_LetIn; try congruence.
-  rewrite IHctx.  f_equal; unfold mkProd_or_LetIn.
+  rw IHctx.  f_equal; unfold mkProd_or_LetIn.
   destruct a as [na [b|] ty]; simpl; eauto.
 Qed.
 
@@ -76,7 +76,7 @@ Lemma subst_instance_it_mkLambda_or_LetIn u ctx t :
 Proof.
   unfold subst_instance; cbn.
   induction ctx in u, t |- *; simpl; unfold mkProd_or_LetIn; try congruence.
-  rewrite IHctx.  f_equal; unfold mkProd_or_LetIn.
+  rw IHctx.  f_equal; unfold mkProd_or_LetIn.
   destruct a as [na [b|] ty]; simpl; eauto.
 Qed.
 
@@ -89,9 +89,9 @@ Proof.
     try solve [f_equal; eauto; solve_all; eauto].
 
   elim (Nat.leb k n); auto.
-  rewrite nth_error_map.
+  rw nth_error_map.
   destruct (nth_error s (n - k)). simpl.
-  now rewrite [subst_instance_constr _ _]subst_instance_lift.
+  now rw [subst_instance_constr _ _]subst_instance_lift.
   reflexivity.
 Qed.
 
@@ -121,7 +121,7 @@ Proof.
     try f_equal; auto with substu;
       unfold test_def, test_predicate_ku, test_branch in *; simpl;
       try solve [f_equal; eauto; repeat (rtoProp; solve_all); intuition auto with substu].
-  rewrite [#|subst_instance_instance _ _|]subst_instance_instance_length. solve_all.
+  rw [#|subst_instance_instance _ _|]subst_instance_instance_length. solve_all.
   eauto with substu.
 Qed.
 
@@ -129,7 +129,7 @@ Lemma rev_subst_instance {u Γ} :
   List.rev (subst_instance u Γ) = subst_instance u (List.rev Γ).
 Proof.
   unfold subst_instance, subst_instance_context, map_context.
-  now rewrite map_rev.
+  now rw map_rev.
 Qed.
 
 Lemma subst_instance_extended_subst u Γ n :
@@ -139,7 +139,7 @@ Proof.
   induction Γ as [|[?[]?] ?] in n |- *; simpl; auto.
   - autorewrite with len.
     f_equal; auto.
-    rewrite subst_instance_subst -IHΓ.
+    rw subst_instance_subst -IHΓ.
     rewrite <-subst_instance_lift; simpl.
     f_equal.
   - f_equal; auto.

@@ -27,13 +27,13 @@ Qed.
 Lemma decompose_app_rec_mkApps f l l' :
   decompose_app_rec (mkApps f l) l' = decompose_app_rec f (l ++ l').
 Proof.
-  induction l in f, l' |- *; simpl; auto; rewrite IHl ?app_nil_r; auto.
+  induction l in f, l' |- *; simpl; auto; rw IHl ?app_nil_r; auto.
 Qed.
 
 Lemma decompose_app_mkApps f l :
   ~~ isApp f -> decompose_app (mkApps f l) = (f, l).
 Proof.
-  intros Hf. unfold decompose_app. rewrite decompose_app_rec_mkApps. rewrite app_nil_r.
+  intros Hf. unfold decompose_app. rw decompose_app_rec_mkApps. rw app_nil_r.
   destruct f; simpl in *; (discriminate || reflexivity).
 Qed.
 
@@ -56,10 +56,10 @@ Proof. by apply/decompose_app_rec_inv. Qed.
 
 Lemma head_mkApps f a : head (mkApps f a) = head f.
 Proof.
-  rewrite /head /decompose_app /=.
-  rewrite decompose_app_rec_mkApps /= app_nil_r.
+  rw /head /decompose_app /=.
+  rw decompose_app_rec_mkApps /= app_nil_r.
   induction f in a |- *; simpl; auto.
-  now rewrite !IHf1.
+  now rw !IHf1.
 Qed.
 
 Lemma head_tApp f a : head (tApp f a) = head f.
@@ -92,7 +92,7 @@ Qed.
 
 Lemma head_nApp t : ~~ isApp (head t).
 Proof.
-  rewrite /head. destruct decompose_app eqn:da => //=.
+  rw /head. destruct decompose_app eqn:da => //=.
   now eapply decompose_app_notApp.
 Qed.
 
@@ -100,12 +100,12 @@ Global Hint Resolve head_nApp : core.
 
 Lemma spine_mkApps f a : spine (mkApps f a) = spine f ++ a.
 Proof.
-  rewrite /spine /decompose_app /=.
-  rewrite decompose_app_rec_mkApps /= app_nil_r.
+  rw /spine /decompose_app /=.
+  rw decompose_app_rec_mkApps /= app_nil_r.
   destruct (decompose_app_rec f []) eqn:da. cbn.
-  rewrite (decompose_app_inv da).
-  rewrite decompose_app_rec_mkApps.
-  rewrite nApp_decompose_app.
+  rw (decompose_app_inv da).
+  rw decompose_app_rec_mkApps.
+  rw nApp_decompose_app.
   eapply decompose_app_rec_notApp; tea. now cbn.
 Qed.
 
@@ -120,13 +120,13 @@ Proof.
 Qed.
 
 Lemma mkApps_head_spine t : mkApps (head t) (spine t) = t.
-Proof. induction t => //. rewrite head_tApp /=.
-  rewrite spine_tApp mkApps_app /=. f_equal. auto.
+Proof. induction t => //. rw head_tApp /=.
+  rw spine_tApp mkApps_app /=. f_equal. auto.
 Qed.
 
 Lemma mkApps_head_spine_decompose f l : mkApps f l = mkApps (head f) (spine f ++ l).
 Proof.
-  now rewrite mkApps_app mkApps_head_spine.
+  now rw mkApps_app mkApps_head_spine.
 Qed.
 
 Lemma mkApps_eq_decompose_app_rec {f args t l} :
@@ -138,8 +138,8 @@ Lemma mkApps_eq_decompose_app_rec {f args t l} :
 Proof.
   revert f t l.
   induction args using rev_ind; simpl.
-  - intros * -> **. rewrite nApp_decompose_app; auto.
-  - intros. rewrite mkApps_app in H.
+  - intros * -> **. rw nApp_decompose_app; auto.
+  - intros. rw mkApps_app in H.
     specialize (IHargs f).
     destruct (isApp t) eqn:Heq.
     destruct t; try discriminate.
@@ -163,8 +163,8 @@ Qed.
 
 Lemma head_mkApps_nApp f a : ~~ EAst.isApp f -> head (EAst.mkApps f a) = f.
 Proof.
-  rewrite head_mkApps /head => appf.
-  rewrite (decompose_app_mkApps f []) //.
+  rw head_mkApps /head => appf.
+  rw (decompose_app_mkApps f []) //.
 Qed.
 
 Lemma mkApps_eq_inj {t t' l l'} :
@@ -172,8 +172,8 @@ Lemma mkApps_eq_inj {t t' l l'} :
   ~~ isApp t -> ~~ isApp t' -> t = t' /\ l = l'.
 Proof.
   intros Happ Ht Ht'. eapply (f_equal decompose_app) in Happ. unfold decompose_app in Happ.
-  rewrite !decompose_app_rec_mkApps in Happ. rewrite !nApp_decompose_app in Happ; auto.
-  rewrite !app_nil_r in Happ. intuition congruence.
+  rw !decompose_app_rec_mkApps in Happ. rw !nApp_decompose_app in Happ; auto.
+  rw !app_nil_r in Happ. intuition congruence.
 Qed.
 
 Lemma mkApps_head_inj {f l f' l'} : mkApps (head f) l = mkApps (head f') l' -> head f = head f' /\ l = l'.
@@ -183,7 +183,7 @@ Qed.
 
 Lemma mkApps_eq_right t l l' : mkApps t l = mkApps t l' -> l = l'.
 Proof.
-  rewrite mkApps_head_spine_decompose (mkApps_head_spine_decompose t l').
+  rw mkApps_head_spine_decompose (mkApps_head_spine_decompose t l').
   move/mkApps_head_inj => [] _ eqapp.
   now eapply app_inv_head in eqapp.
 Qed.
@@ -209,16 +209,16 @@ Proof.
   induction f; try discriminate. intros.
   simpl in H.
   destruct (isApp f1) eqn:Hf1.
-  2:{ rewrite decompose_app_rec_eq in H => //. now apply negbT.
+  2:{ rw decompose_app_rec_eq in H => //. now apply negbT.
       revert Hf1.
       inv H. exists 1. simpl. intuition auto. now eapply negbT. }
   destruct (IHf1 eq_refl _ _ _ H).
   clear IHf1.
   exists (S x); intuition auto. eapply (f_equal (skipn 1)) in H2.
-  rewrite [l]H2. now rewrite skipn_skipn Nat.add_1_r.
-  rewrite -Nat.add_1_r firstn_add H3 -H2.
-  now rewrite -[tApp _ _](mkApps_app hd _ [f2]).
-  rewrite decompose_app_rec_eq; auto. now apply negbT.
+  rw [l]H2. now rw skipn_skipn Nat.add_1_r.
+  rw -Nat.add_1_r firstn_add H3 -H2.
+  now rw -[tApp _ _](mkApps_app hd _ [f2]).
+  rw decompose_app_rec_eq; auto. now apply negbT.
   move=> [] H ->. subst f. exists 0. intuition auto.
   now apply negbT.
 Qed.
@@ -229,12 +229,12 @@ Lemma mkApps_elim_rec t l l' :
 Proof.
   destruct app' as [hd args] eqn:Heq.
   subst app'.
-  rewrite decompose_app_rec_mkApps in Heq.
+  rw decompose_app_rec_mkApps in Heq.
   have H := decompose_app_rec_inv' _ _ _ _ Heq.
   destruct H. simpl. destruct a as [isapp [Hl' Hl]].
   subst t.
-  have H' := mkApps_intro hd args x. rewrite Hl'.
-  rewrite -mkApps_app. now rewrite firstn_skipn.
+  have H' := mkApps_intro hd args x. rw Hl'.
+  rw -mkApps_app. now rw firstn_skipn.
 Qed.
 
 Lemma mkApps_elim t l  :
@@ -242,7 +242,7 @@ Lemma mkApps_elim t l  :
   mkApps_spec app'.1 app'.2 t l (mkApps t l).
 Proof.
   have H := @mkApps_elim_rec t l [].
-  now rewrite app_nil_r in H.
+  now rw app_nil_r in H.
 Qed.
 
 Lemma mkApps_eq f args a t : ~~ isApp f -> mkApps f args = tApp a t ->
@@ -252,9 +252,9 @@ Proof.
   destruct args using rev_case.
   * cbn in eq. destruct f => //.
   * split => //.
-    rewrite mkApps_app in eq. cbn in eq. noconf eq.
-    rewrite remove_last_app. split => //.
-    now rewrite last_last.
+    rw mkApps_app in eq. cbn in eq. noconf eq.
+    rw remove_last_app. split => //.
+    now rw last_last.
 Qed.
 
 Ltac solve_discr :=
@@ -330,34 +330,34 @@ Definition isPrimApp t := isPrim (head t).
 Definition isLazyApp t := isLazy (head t).
 
 Lemma isFixApp_mkApps f l : isFixApp (mkApps f l) = isFixApp f.
-Proof. rewrite /isFixApp head_mkApps //. Qed.
+Proof. rw /isFixApp head_mkApps //. Qed.
 Lemma isConstructApp_mkApps f l : isConstructApp (mkApps f l) = isConstructApp f.
-Proof. rewrite /isConstructApp head_mkApps //. Qed.
+Proof. rw /isConstructApp head_mkApps //. Qed.
 Lemma isPrimApp_mkApps f l : isPrimApp (mkApps f l) = isPrimApp f.
-Proof. rewrite /isPrimApp head_mkApps //. Qed.
+Proof. rw /isPrimApp head_mkApps //. Qed.
 Lemma isLazyApp_mkApps f l : isLazyApp (mkApps f l) = isLazyApp f.
-Proof. rewrite /isLazyApp head_mkApps //. Qed.
+Proof. rw /isLazyApp head_mkApps //. Qed.
 
 Lemma is_box_mkApps f a : is_box (mkApps f a) = is_box f.
 Proof.
-  now rewrite /is_box head_mkApps.
+  now rw /is_box head_mkApps.
 Qed.
 
 Lemma is_box_tApp f a : is_box (tApp f a) = is_box f.
 Proof.
-  now rewrite /is_box head_tApp.
+  now rw /is_box head_tApp.
 Qed.
 
 Lemma nisLambda_mkApps f args : ~~ isLambda f -> ~~ isLambda (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 Lemma nisFix_mkApps f args : ~~ isFix f -> ~~ isFix (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 Lemma nisBox_mkApps f args : ~~ isBox f -> ~~ isBox (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 Lemma nisPrim_mkApps f args : ~~ isPrim f -> ~~ isPrim (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 Lemma nisLazy_mkApps f args : ~~ isLazy f -> ~~ isLazy (mkApps f args).
-Proof. destruct args using rev_case => //. rewrite mkApps_app /= //. Qed.
+Proof. destruct args using rev_case => //. rw mkApps_app /= //. Qed.
 
 Definition string_of_def {A : Set} (f : A -> string) (def : def A) :=
   "(" ^ string_of_name (dname def) ^ "," ^ f (dbody def) ^ ","

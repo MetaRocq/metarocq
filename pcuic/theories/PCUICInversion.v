@@ -67,9 +67,9 @@ Section Inversion.
     intros ht. apply into_ws_cumul_pb; auto. destruct le ; reflexivity.
     eauto with fvs.
     eapply PCUICClosedTyp.type_closed in ht.
-    now rewrite -is_open_term_closed.
+    now rw -is_open_term_closed.
     eapply PCUICClosedTyp.type_closed in ht.
-    now rewrite -is_open_term_closed.
+    now rw -is_open_term_closed.
   Qed.
   Hint Immediate typing_closed_ctx : fvs.
 
@@ -98,10 +98,10 @@ Section Inversion.
     is_open_term Γ (lift0 (S n) (decl_type d)).
   Proof using Type.
     intros isc hnth.
-    rewrite -on_free_vars_ctx_on_ctx_free_vars in isc.
+    rw -on_free_vars_ctx_on_ctx_free_vars in isc.
     rewrite <- (addnP0) in isc.
     eapply nth_error_on_free_vars_ctx in isc; tea.
-    2:{ rewrite /shiftnP orb_false_r. eapply Nat.ltb_lt.
+    2:{ rw /shiftnP orb_false_r. eapply Nat.ltb_lt.
         eapply nth_error_Some_length in hnth. lia. }
     now move/andP: isc=> [] _ /on_free_vars_lift0 /=.
   Qed.

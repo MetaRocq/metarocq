@@ -47,7 +47,7 @@ Fixpoint string_of_term (t : term) :=
 Ltac change_Sk :=
   repeat match goal with
     | |- context [S (?x + ?y)] => progress change (S (x + y)) with (S x + y)
-    | |- context [#|?l| + (?x + ?y)] => progress replace (#|l| + (x + y)) with ((#|l| + x) + y) by now rewrite Nat.add_assoc
+    | |- context [#|?l| + (?x + ?y)] => progress replace (#|l| + (x + y)) with ((#|l| + x) + y) by now rw Nat.add_assoc
   end.
 
 #[global] Hint Rewrite mapu_prim_equation_1 mapu_prim_equation_2 mapu_prim_equation_3 : map.
@@ -114,8 +114,8 @@ Ltac solve_all_one :=
 Ltac solve_all := repeat (progress solve_all_one).
 
 #[global] Hint Extern 4 (_ ≐1 _) => intro : all.
-#[global] Hint Extern 10 => rewrite !map_branch_map_branch : all.
-#[global] Hint Extern 10 => rewrite !map_predicate_map_predicate : all.
+#[global] Hint Extern 10 => rw !map_branch_map_branch : all.
+#[global] Hint Extern 10 => rw !map_predicate_map_predicate : all.
 
 Lemma lookup_env_nil c s : lookup_global [] c = Some s -> False.
 Proof.
@@ -160,7 +160,7 @@ Proof.
   revert l; induction t; try reflexivity.
   intro l; cbn in *.
   transitivity (mkApps t1 ((t2 ::l))). reflexivity.
-  now rewrite IHt1.
+  now rw IHt1.
 Qed.
 
 Definition mkApps_decompose_app t :
@@ -170,7 +170,7 @@ Definition mkApps_decompose_app t :
 Lemma decompose_app_rec_mkApps f l l' : decompose_app_rec (mkApps f l) l' =
                                     decompose_app_rec f (l ++ l').
 Proof.
-  induction l in f, l' |- *; simpl; auto; rewrite IHl ?app_nil_r; auto.
+  induction l in f, l' |- *; simpl; auto; rw IHl ?app_nil_r; auto.
 Qed.
 
 From Stdlib Require Import ssrbool.
@@ -178,14 +178,14 @@ From Stdlib Require Import ssrbool.
 Lemma decompose_app_mkApps f l :
   ~~ isApp f -> decompose_app (mkApps f l) = (f, l).
 Proof.
-  intros Hf. rewrite /decompose_app decompose_app_rec_mkApps. rewrite app_nil_r.
+  intros Hf. rw /decompose_app decompose_app_rec_mkApps. rw app_nil_r.
   destruct f; simpl in *; (discriminate || reflexivity).
 Qed.
 
 Lemma mkApps_app f l l' : mkApps f (l ++ l') = mkApps (mkApps f l) l'.
 Proof.
-  induction l in f, l' |- *; destruct l'; simpl; rewrite ?app_nil_r; [auto..|].
-  rewrite IHl //.
+  induction l in f, l' |- *; destruct l'; simpl; rw ?app_nil_r; [auto..|].
+  rw IHl //.
 Qed.
 
 
@@ -197,23 +197,23 @@ Proof.
   intros napp eqapp.
   destruct args using rev_case => //.
   simpl in eqapp. subst fn => //.
-  rewrite mkApps_app in eqapp. noconf eqapp.
-  now rewrite removelast_app // last_app // /= app_nil_r.
+  rw mkApps_app in eqapp. noconf eqapp.
+  now rw removelast_app // last_app // /= app_nil_r.
 Qed.
 
 Lemma removelast_length {A} (args : list A) : #|removelast args| = Nat.pred #|args|.
 Proof.
   induction args => //. destruct args => //.
-  now rewrite (removelast_app [_]) // length_app IHargs /=.
+  now rw (removelast_app [_]) // length_app IHargs /=.
 Qed.
 
 Lemma nth_error_removelast {A} {args : list A} {n arg} :
   nth_error (removelast args) n = Some arg ->
   nth_error args n = Some arg.
 Proof.
-  intros h. rewrite nth_error_removelast //.
+  intros h. rw nth_error_removelast //.
   apply nth_error_Some_length in h.
-  now rewrite removelast_length in h.
+  now rw removelast_length in h.
 Qed.
 
 Lemma mkApps_discr f args t :
@@ -223,7 +223,7 @@ Lemma mkApps_discr f args t :
 Proof.
   intros.
   destruct args using rev_case => //.
-  rewrite mkApps_app in H0. destruct t => //.
+  rw mkApps_app in H0. destruct t => //.
 Qed.
 
 Fixpoint decompose_prod (t : term) : (list aname) * (list term) * term :=
@@ -293,14 +293,14 @@ Lemma decompose_prod_assum_ctx ctx t : decompose_prod_assum ctx t =
   (ctx ,,, ctx', t').
 Proof.
   induction t in ctx |- *; simpl; auto.
-  - simpl. rewrite IHt2.
-    rewrite (IHt2 ([] ,, vass _ _)).
+  - simpl. rw IHt2.
+    rw (IHt2 ([] ,, vass _ _)).
     destruct (decompose_prod_assum [] t2). simpl.
-    unfold snoc. now rewrite app_context_assoc.
-  - simpl. rewrite IHt3.
-    rewrite (IHt3 ([] ,, vdef _ _ _)).
+    unfold snoc. now rw app_context_assoc.
+  - simpl. rw IHt3.
+    rw (IHt3 ([] ,, vdef _ _ _)).
     destruct (decompose_prod_assum [] t3). simpl.
-    unfold snoc. now rewrite app_context_assoc.
+    unfold snoc. now rw app_context_assoc.
 Qed.
 
 Fixpoint decompose_prod_n_assum (Γ : context) n (t : term) : option (context * term) :=
@@ -323,9 +323,9 @@ Lemma decompose_prod_n_assum_it_mkProd ctx ctx' ty :
   decompose_prod_n_assum ctx #|ctx'| (it_mkProd_or_LetIn ctx' ty) = Some (ctx' ++ ctx, ty).
 Proof.
   revert ctx ty. induction ctx' using rev_ind; move=> // ctx ty.
-  rewrite length_app /= it_mkProd_or_LetIn_app /=.
+  rw length_app /= it_mkProd_or_LetIn_app /=.
   destruct x as [na [body|] ty'] => /=;
-  now rewrite !Nat.add_1_r /= IHctx' -app_assoc.
+  now rw !Nat.add_1_r /= IHctx' -app_assoc.
 Qed.
 
 Definition is_ind_app_head t :=
@@ -338,7 +338,7 @@ Definition is_ind_app_head t :=
 Lemma is_ind_app_head_mkApps ind u l : is_ind_app_head (mkApps (tInd ind u) l).
 Proof.
   unfold is_ind_app_head.
-  unfold decompose_app. rewrite decompose_app_rec_mkApps. now simpl; trivial.
+  unfold decompose_app. rw decompose_app_rec_mkApps. now simpl; trivial.
 Qed.
 
 Lemma decompose_prod_assum_it_mkProd ctx ctx' ty :
@@ -347,20 +347,20 @@ Lemma decompose_prod_assum_it_mkProd ctx ctx' ty :
 Proof.
   revert ctx ty. induction ctx' using rev_ind; move=> // ctx ty /=.
   destruct ty; unfold is_ind_app_head; simpl; try (congruence || reflexivity).
-  move=> Hty. rewrite it_mkProd_or_LetIn_app /=.
-  case: x => [na [body|] ty'] /=; by rewrite IHctx' // /snoc -app_assoc.
+  move=> Hty. rw it_mkProd_or_LetIn_app /=.
+  case: x => [na [body|] ty'] /=; by rw IHctx' // /snoc -app_assoc.
 Qed.
 
 Lemma reln_length Γ Γ' n : #|reln Γ n Γ'| = #|Γ| + context_assumptions Γ'.
 Proof.
   induction Γ' in n, Γ |- *; simpl; auto.
   destruct a as [? [b|] ?]; simpl; auto.
-  rewrite Nat.add_1_r. simpl. rewrite IHΓ' => /= //.
+  rw Nat.add_1_r. simpl. rw IHΓ' => /= //.
 Qed.
 
 Lemma to_extended_list_k_length Γ n : #|to_extended_list_k Γ n| = context_assumptions Γ.
 Proof.
-  now rewrite /to_extended_list_k reln_length.
+  now rw /to_extended_list_k reln_length.
 Qed.
 
 Lemma reln_list_lift_above l p Γ :
@@ -409,8 +409,8 @@ Lemma reln_alt_eq l Γ k : reln l k Γ = List.rev (reln_alt k Γ) ++ l.
 Proof.
   induction Γ in l, k |- *; simpl; auto.
   destruct a as [na [body|] ty]; simpl.
-  now rewrite IHΓ.
-  now rewrite IHΓ -app_assoc.
+  now rw IHΓ.
+  now rw IHΓ -app_assoc.
 Qed.
 
 Lemma to_extended_list_k_cons d Γ k :
@@ -420,11 +420,11 @@ Lemma to_extended_list_k_cons d Γ k :
   | Some b => to_extended_list_k Γ (S k)
   end.
 Proof.
-  rewrite /to_extended_list_k reln_alt_eq. simpl.
+  rw /to_extended_list_k reln_alt_eq. simpl.
   destruct d as [na [body|] ty]. simpl.
-  now rewrite reln_alt_eq Nat.add_1_r.
-  simpl. rewrite reln_alt_eq.
-  now rewrite -app_assoc !app_nil_r Nat.add_1_r.
+  now rw reln_alt_eq Nat.add_1_r.
+  simpl. rw reln_alt_eq.
+  now rw -app_assoc !app_nil_r Nat.add_1_r.
 Qed.
 
 Ltac merge_All :=
@@ -543,7 +543,7 @@ Proof.
   intros t l.
   induction l in t |- *.
   - simpl. lia.
-  - simpl. rewrite IHl. cbn. lia.
+  - simpl. rw IHl. cbn. lia.
 Qed.
 
 Lemma decompose_app_eq_mkApps :
@@ -554,7 +554,7 @@ Proof.
   intros t u l l' e.
   apply decompose_app_notApp in e.
   apply isApp_false_nApp in e.
-  rewrite nApp_mkApps in e.
+  rw nApp_mkApps in e.
   destruct l' ; cbn in e ; try lia.
   reflexivity.
 Qed.
@@ -570,10 +570,10 @@ Proof.
   - cbn in e. subst.
     destruct l' ; auto.
     exfalso.
-    rewrite nApp_mkApps in h. cbn in h. lia.
+    rw nApp_mkApps in h. cbn in h. lia.
   - destruct l'.
     + cbn in e. subst. exfalso.
-      rewrite nApp_mkApps in h. cbn in h. lia.
+      rw nApp_mkApps in h. cbn in h. lia.
     + cbn in e. apply IHl in e.
       * destruct e as [e1 e2].
         inversion e1. subst. auto.
@@ -608,15 +608,15 @@ Qed.
 
 Lemma fst_decompose_app_rec t l : fst (decompose_app_rec t l) = fst (decompose_app t).
 Proof.
-  induction t in l |- *; simpl; auto. rewrite IHt1.
-  unfold decompose_app. simpl. now rewrite (IHt1 [t2]).
+  induction t in l |- *; simpl; auto. rw IHt1.
+  unfold decompose_app. simpl. now rw (IHt1 [t2]).
 Qed.
 
 Lemma decompose_app_rec_head t l f : fst (decompose_app_rec t l) = f ->
   negb (isApp f).
 Proof.
   induction t; unfold isApp; simpl; try intros [= <-]; auto.
-  intros. apply IHt1. now rewrite !fst_decompose_app_rec.
+  intros. apply IHt1. now rw !fst_decompose_app_rec.
 Qed.
 
 Lemma head_nApp x : negb (isApp (head x)).
@@ -626,30 +626,30 @@ Proof.
 Qed.
 
 Lemma head_tapp t1 t2 : head (tApp t1 t2) = head t1.
-Proof. rewrite /head /decompose_app /= fst_decompose_app_rec //. Qed.
+Proof. rw /head /decompose_app /= fst_decompose_app_rec //. Qed.
 
 Lemma head_mkApps t args : head (mkApps t args) = head t.
 Proof.
   induction args using rev_ind; simpl; auto.
-  now rewrite mkApps_app /= head_tapp.
+  now rw mkApps_app /= head_tapp.
 Qed.
 
 Lemma arguments_mkApps_nApp f args :
   ~~ isApp f ->
   arguments (mkApps f args) = args.
 Proof.
-  rewrite /arguments => isa.
-  rewrite decompose_app_mkApps //.
+  rw /arguments => isa.
+  rw decompose_app_mkApps //.
 Qed.
 
 Lemma arguments_mkApps f args :
   arguments (mkApps f args) = arguments f ++ args.
 Proof.
-  rewrite /arguments.
-  rewrite /decompose_app decompose_app_rec_mkApps //.
-  rewrite app_nil_r.
+  rw /arguments.
+  rw /decompose_app decompose_app_rec_mkApps //.
+  rw app_nil_r.
   induction f in args |- * => //=.
-  rewrite IHf1. now rewrite (IHf1 [f2]) -app_assoc.
+  rw IHf1. now rw (IHf1 [f2]) -app_assoc.
 Qed.
 
 Lemma mkApps_Fix_spec mfix idx args t : mkApps (tFix mfix idx) args = t ->
@@ -659,7 +659,7 @@ Lemma mkApps_Fix_spec mfix idx args t : mkApps (tFix mfix idx) args = t ->
                                         end.
 Proof.
   intros H; apply (f_equal decompose_app) in H.
-  rewrite decompose_app_mkApps in H. reflexivity.
+  rw decompose_app_mkApps in H. reflexivity.
   destruct t; noconf H. rewrite <- H. reflexivity.
   simpl. reflexivity.
 Qed.
@@ -683,7 +683,7 @@ Proof.
   assert (WF : WellFounded (precompose lt PCUICSize.size))
     by apply wf_precompose, lt_wf.
   induction l. simpl. constructor.
-  apply apply_noCycle_right. simpl. red. rewrite size_mkApps. simpl. lia.
+  apply apply_noCycle_right. simpl. red. rw size_mkApps. simpl. lia.
 Qed.
 
 Lemma mkApps_eq_inv {x y l} : x = mkApps y l -> size y <= size x.
@@ -709,8 +709,8 @@ Qed.
 Lemma mkApps_eq_right t l l' : mkApps t l = mkApps t l' -> l = l'.
 Proof.
   intros. eapply (f_equal decompose_app) in H. unfold decompose_app in H.
-  rewrite !decompose_app_rec_mkApps in H. apply decompose_app_eq_right in H.
-  now rewrite !app_nil_r in H.
+  rw !decompose_app_rec_mkApps in H. apply decompose_app_eq_right in H.
+  now rw !app_nil_r in H.
 Qed.
 
 Lemma atom_decompose_app t l : ~~ isApp t -> decompose_app_rec t l = pair t l.
@@ -721,8 +721,8 @@ Lemma mkApps_eq_inj {t t' l l'} :
   ~~ isApp t -> ~~ isApp t' -> t = t' /\ l = l'.
 Proof.
   intros Happ Ht Ht'. eapply (f_equal decompose_app) in Happ. unfold decompose_app in Happ.
-  rewrite !decompose_app_rec_mkApps in Happ. rewrite !atom_decompose_app in Happ; auto.
-  rewrite !app_nil_r in Happ. intuition congruence.
+  rw !decompose_app_rec_mkApps in Happ. rw !atom_decompose_app in Happ; auto.
+  rw !app_nil_r in Happ. intuition congruence.
 Qed.
 
 Ltac solve_discr' :=
@@ -742,8 +742,8 @@ Lemma mkApps_eq_decompose_app {t t' l l'} :
   decompose_app_rec t l = decompose_app_rec t' l'.
 Proof.
   induction l in t, t', l' |- *; simpl.
-  - intros ->. rewrite !decompose_app_rec_mkApps.
-    now rewrite app_nil_r.
+  - intros ->. rw !decompose_app_rec_mkApps.
+    now rw app_nil_r.
   - intros H. apply (IHl _ _ _ H).
 Qed.
 
@@ -753,7 +753,7 @@ Lemma mkApps_eq_decompose {f args t} :
   fst (decompose_app t) = f.
 Proof.
   intros H Happ; apply (f_equal decompose_app) in H.
-  rewrite decompose_app_mkApps in H. auto. rewrite <- H. reflexivity.
+  rw decompose_app_mkApps in H. auto. rewrite <- H. reflexivity.
 Qed.
 
 Ltac finish_discr :=
@@ -805,16 +805,16 @@ Proof.
   induction f; try discriminate. intros.
   simpl in H.
   destruct (isApp f1) eqn:Hf1.
-  2:{ rewrite decompose_app_rec_eq in H => //. now apply negbT.
+  2:{ rw decompose_app_rec_eq in H => //. now apply negbT.
       revert Hf1.
       inv H. exists 1. simpl. intuition auto. now eapply negbT. }
   destruct (IHf1 eq_refl _ _ _ H).
   clear IHf1.
   exists (S x); intuition auto. eapply (f_equal (skipn 1)) in H2.
-  rewrite [l]H2. now rewrite skipn_skipn Nat.add_1_r.
-  rewrite -Nat.add_1_r firstn_add H3 -H2.
-  now rewrite -[tApp _ _](mkApps_app hd _ [f2]).
-  rewrite decompose_app_rec_eq; auto. now apply negbT.
+  rw [l]H2. now rw skipn_skipn Nat.add_1_r.
+  rw -Nat.add_1_r firstn_add H3 -H2.
+  now rw -[tApp _ _](mkApps_app hd _ [f2]).
+  rw decompose_app_rec_eq; auto. now apply negbT.
   move=> [] H ->. subst f. exists 0. intuition auto.
   now apply negbT.
 Qed.
@@ -825,12 +825,12 @@ Lemma mkApps_elim_rec t l l' :
 Proof.
   destruct app' as [hd args] eqn:Heq.
   subst app'.
-  rewrite decompose_app_rec_mkApps in Heq.
+  rw decompose_app_rec_mkApps in Heq.
   have H := decompose_app_rec_inv' _ _ _ _ Heq.
   destruct H. simpl. destruct a as [isapp [Hl' Hl]].
   subst t.
-  have H' := mkApps_intro hd args x. rewrite Hl'.
-  rewrite -mkApps_app. now rewrite firstn_skipn.
+  have H' := mkApps_intro hd args x. rw Hl'.
+  rw -mkApps_app. now rw firstn_skipn.
 Qed.
 
 Lemma mkApps_elim t l  :
@@ -838,7 +838,7 @@ Lemma mkApps_elim t l  :
   mkApps_spec app'.1 app'.2 t l (mkApps t l).
 Proof.
   have H := @mkApps_elim_rec t l [].
-  now rewrite app_nil_r in H.
+  now rw app_nil_r in H.
 Qed.
 
 Lemma nisApp_mkApps {t l} : ~~ isApp (mkApps t l) -> ~~ isApp t /\ l = [].
@@ -916,7 +916,7 @@ Lemma destArity_app_Some {Γ t ctx s}
   : destArity Γ t = Some (ctx, s)
     -> ∑ ctx', destArity [] t = Some (ctx', s) /\ ctx = Γ ,,, ctx'.
 Proof.
-  intros H. rewrite destArity_app in H.
+  intros H. rw destArity_app in H.
   destruct (destArity [] t) as [[ctx' s']|]; cbn in *.
   exists ctx'. inversion H. now subst.
   discriminate H.
@@ -927,16 +927,16 @@ Lemma destArity_it_mkProd_or_LetIn ctx ctx' t :
   destArity (ctx ,,, ctx') t.
 Proof.
   induction ctx' in ctx, t |- *; simpl; auto.
-  rewrite IHctx'. destruct a as [na [b|] ty]; reflexivity.
+  rw IHctx'. destruct a as [na [b|] ty]; reflexivity.
 Qed.
 
 Lemma mkApps_nonempty f l :
   l <> [] -> mkApps f l = tApp (mkApps f (removelast l)) (last l f).
 Proof.
   destruct l using rev_ind. intros; congruence.
-  intros. rewrite mkApps_app. simpl. f_equal.
-  rewrite removelast_app. congruence. simpl. now rewrite app_nil_r.
-  rewrite last_app. congruence.
+  intros. rw mkApps_app. simpl. f_equal.
+  rw removelast_app. congruence. simpl. now rw app_nil_r.
+  rw last_app. congruence.
   reflexivity.
 Qed.
 
@@ -944,7 +944,7 @@ Lemma destArity_tFix {mfix idx args} :
   destArity [] (mkApps (tFix mfix idx) args) = None.
 Proof.
   induction args. reflexivity.
-  rewrite mkApps_nonempty.
+  rw mkApps_nonempty.
   intros e; discriminate e.
   reflexivity.
 Qed.
@@ -953,7 +953,7 @@ Lemma destArity_tApp {t u l} :
   destArity [] (mkApps (tApp t u) l) = None.
 Proof.
   induction l. reflexivity.
-  rewrite mkApps_nonempty.
+  rw mkApps_nonempty.
   intros e; discriminate e.
   reflexivity.
 Qed.
@@ -962,7 +962,7 @@ Lemma destArity_tInd {t u l} :
   destArity [] (mkApps (tInd t u) l) = None.
 Proof.
   induction l. reflexivity.
-  rewrite mkApps_nonempty.
+  rw mkApps_nonempty.
   intros e; discriminate e.
   reflexivity.
 Qed.
@@ -997,7 +997,7 @@ Lemma map_InP_spec {A B : Type} {P : A -> Type} (f : A -> B) (l : list A) (H : f
 Proof.
   remember (fun (x : A) (_ : P x) => f x) as g.
   funelim (map_InP g l H) => //; simpl. f_equal.
-  now rewrite H0.
+  now rw H0.
 Qed.
 
 Lemma nth_error_map_InP {A B : Type} {P : A -> Type} (f : forall x : A, P x -> B) (l : list A) (H : forall x, In x l -> P x) n x :
@@ -1005,7 +1005,7 @@ Lemma nth_error_map_InP {A B : Type} {P : A -> Type} (f : forall x : A, P x -> B
   ∑ a, (nth_error l n = Some a) *
   ∑ p : P a, x = f a p.
 Proof.
-  induction l in n, H |- *. simpl. rewrite nth_error_nil => //.
+  induction l in n, H |- *. simpl. rw nth_error_nil => //.
   destruct n; simpl; intros [=].
   subst x.
   eexists; intuition eauto.
@@ -1085,7 +1085,7 @@ Lemma nth_error_ass_subst_context s k Γ :
   forall n d, nth_error (subst_context s k Γ) n = Some d -> decl_body d = None.
 Proof.
   induction Γ as [|[? [] ?] ?] in |- *; simpl; auto;
-  intros; destruct n; simpl in *; rewrite ?subst_context_snoc in H0; simpl in H0.
+  intros; destruct n; simpl in *; rw ?subst_context_snoc in H0; simpl in H0.
   - noconf H0; simpl.
     specialize (H 0 _ eq_refl). simpl in H; discriminate.
   - specialize (H 0 _ eq_refl). simpl in H; discriminate.
@@ -1106,10 +1106,10 @@ Proof.
     pose proof (nth_error_Some_length H1). autorewrite with len in H2. simpl in H2.
     destruct (eq_dec n0 #|Δ|).
     * subst.
-      rewrite nth_error_app_ge in H1; try lia.
-      rewrite Nat.sub_diag /= in H1. noconf H1.
+      rw nth_error_app_ge in H1; try lia.
+      rw Nat.sub_diag /= in H1. noconf H1.
       reflexivity.
-    * rewrite nth_error_app_lt in H1; try lia. eauto.
+    * rw nth_error_app_lt in H1; try lia. eauto.
 Qed.
 
 
@@ -1118,13 +1118,13 @@ Lemma context_assumptions_smash_context Δ Γ :
   context_assumptions Δ + context_assumptions Γ.
 Proof.
   induction Γ as [|[? [] ?] ?] in Δ |- *; simpl; auto;
-  rewrite IHΓ.
-  - now rewrite context_assumptions_fold.
-  - rewrite context_assumptions_app /=. lia.
+  rw IHΓ.
+  - now rw context_assumptions_fold.
+  - rw context_assumptions_app /=. lia.
 Qed.
 
 Lemma context_assumptions_expand_lets_ctx Γ Δ :
   context_assumptions (expand_lets_ctx Γ Δ) = context_assumptions Δ.
-Proof. now rewrite /expand_lets_ctx /expand_lets_k_ctx; len. Qed.
+Proof. now rw /expand_lets_ctx /expand_lets_k_ctx; len. Qed.
 #[global]
 Hint Rewrite context_assumptions_expand_lets_ctx : len.

@@ -36,28 +36,28 @@ Module Models (LS : LevelSets).
     (l <> l' /\ LevelMap.MapsTo l k m).
   Proof.
     funelim (add_max l' k' m).
-    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq. firstorder; subst.
-      left. split => //. rewrite Heq. now rewrite max_opt_of_l.
-      left. firstorder. now rewrite Heq max_opt_of_l.
+    - rw LevelMapFact.F.add_mapsto_iff /Level.eq. firstorder; subst.
+      left. split => //. rw Heq. now rw max_opt_of_l.
+      left. firstorder. now rw Heq max_opt_of_l.
     - clear Heqcall.
       destruct (Level.eq_dec l0 l).
-      * subst l0. rewrite Heq0.
+      * subst l0. rw Heq0.
         move/check_atom_value_spec: Heq.
-        rewrite (maps_to_update (level_value_MapsTo' Heq0)).
+        rw (maps_to_update (level_value_MapsTo' Heq0)).
         firstorder; subst; try left; try split; auto; depelim Heq; cbn; lia_f_equal.
       * firstorder.
-    - rewrite LevelMapFact.F.add_mapsto_iff /Level.eq.
-      have := check_atom_value_spec k (Some k'). rewrite {}Heq.
+    - rw LevelMapFact.F.add_mapsto_iff /Level.eq.
+      have := check_atom_value_spec k (Some k'). rw {}Heq.
       intros h; depelim h. apply nleq_optZ in H as [z [-> hlt]].
       firstorder; subst.
-      * left; split => //. rewrite Heq0 //=. lia_f_equal.
-      * left; split => //. rewrite Heq0 //=. lia_f_equal.
+      * left; split => //. rw Heq0 //=. lia_f_equal.
+      * left; split => //. rw Heq0 //=. lia_f_equal.
   Qed.
 
   Lemma In_add_max l l' k acc :
     LevelMap.In l (add_max l' k acc) <-> (l = l' \/ LevelMap.In l acc).
   Proof.
-    rewrite /LevelMap.In.
+    rw /LevelMap.In.
     rws add_max_spec. firstorder subst.
     eexists; left; eauto.
     destruct (Level.eq_dec l l'); subst; eexists; eauto.
@@ -82,33 +82,33 @@ Module Models (LS : LevelSets).
     ((LevelSet.In l (clauses_premises_levels cls) /\ k = max_clause_premise_of l cls /\ isSome k) \/
     (~ LevelSet.In l (clauses_premises_levels cls) /\ LevelMap.MapsTo l k m)).
   Proof.
-    intros l k; rewrite /premises_model_map.
+    intros l k; rw /premises_model_map.
     eapply LevelSetProp.fold_rec.
     - intros s' he. split. intros hm. right. split => //.
       firstorder.
     - intros x a s' s'' hin hnin hadd ih.
       split.
-      * rewrite LevelMapFact.F.add_mapsto_iff.
+      * rw LevelMapFact.F.add_mapsto_iff.
         firstorder. subst k. red in H; subst. firstorder.
         left; firstorder.
         apply clauses_premises_levels_spec in hin as [cl [incl inlev]].
         apply levels_spec in inlev as [k inprem].
         have hs := max_clause_premise_of_spec l k cls cl incl inprem.
-        depelim hs. now rewrite H3.
+        depelim hs. now rw H3.
       * intros [[hin' [-> iss]]|].
-        rewrite LevelMapFact.F.add_mapsto_iff.
+        rw LevelMapFact.F.add_mapsto_iff.
         destruct (Level.eq_dec x l); subst; firstorder.
         destruct (Level.eq_dec x l); subst; firstorder.
-        rewrite LevelMapFact.F.add_mapsto_iff. right; split => //.
+        rw LevelMapFact.F.add_mapsto_iff. right; split => //.
   Qed.
 
   Lemma zero_model_spec {l ls i n} : LevelMap.MapsTo l n (zero_model i ls) <-> LevelSet.In l ls /\ n = i.
   Proof.
     unfold zero_model.
     eapply LevelSetProp.fold_rec.
-    - intros s' he. rewrite LevelMapFact.F.empty_mapsto_iff. firstorder.
+    - intros s' he. rw LevelMapFact.F.empty_mapsto_iff. firstorder.
     - intros x a s s' hin hnin hadd eq.
-      rewrite LevelMapFact.F.add_mapsto_iff. firstorder.
+      rw LevelMapFact.F.add_mapsto_iff. firstorder.
       destruct (Level.eq_dec x l).
       * subst. now left.
       * right. split => //. apply hadd in H1. destruct H1; try congruence. now apply H0.
@@ -124,23 +124,23 @@ Module Models (LS : LevelSets).
   Proof.
     set (m := premises_model_map _ _).
     have [minple [[minp mink] [inminp mineq]]] := min_premise_spec m prems.
-    rewrite mineq. rewrite /min_atom_value.
+    rw mineq. rw /min_atom_value.
     destruct level_value eqn:hl => //. intros [= <-].
     eapply level_value_MapsTo' in hl.
     eapply premises_model_map_spec in hl as [[inpcls [hm _]]|[ninpcls h']].
     2:{ apply zero_model_spec in h' as [h' [= eq]]. right. do 3 eexists; split; tea. subst i. split; trea. }
-    left. exists minp, mink. split => //. noconf hm. rewrite -hm.
+    left. exists minp, mink. split => //. noconf hm. rw -hm.
     eexists; split => //.
   Qed.
 
   Lemma premises_model_map_in m cls l :
     LevelMap.In l (premises_model_map m cls) <-> (LevelSet.In l (clauses_premises_levels cls) \/ LevelMap.In l m).
   Proof.
-    rewrite /premises_model_map.
+    rw /premises_model_map.
     eapply LevelSetProp.fold_rec.
     - intros s' he. firstorder.
     - intros x a s' s'' hin hnin hadd ih.
-      rewrite LevelMapFact.F.add_in_iff.
+      rw LevelMapFact.F.add_in_iff.
       firstorder.
   Qed.
 
@@ -151,21 +151,21 @@ Module Models (LS : LevelSets).
     set (m := premises_model_map _ _).
     move=> cl hin.
     have [minple [[minp mink] [inminp mineq]]] := min_premise_spec m (premise cl).
-    rewrite mineq. rewrite /min_atom_value.
+    rw mineq. rw /min_atom_value.
     destruct level_value eqn:hl => //.
     - eexists. split; trea.
       have ps := proj1 (premises_model_map_spec _ cls minp (Some z)) (level_value_MapsTo' hl).
       destruct ps as [[minpsl [eq _]]|].
       * symmetry in eq.
         have sp := (max_clause_premise_of_spec _ _ _ _ hin inminp).
-        depelim sp. rewrite eq in H0. noconf H0. lia.
+        depelim sp. rw eq in H0. noconf H0. lia.
       * destruct H. elim H.
         eapply clauses_premises_levels_spec. exists cl. split => //.
         eapply levels_spec. now exists mink.
     - unfold level_value in hl.
       destruct LevelMap.find eqn:hl'. subst o.
       2:{ move/LevelMapFact.F.not_find_in_iff: hl'. elim.
-        rewrite premises_model_map_in. left.
+        rw premises_model_map_in. left.
         eapply clauses_premises_levels_spec. exists cl. split => //.
         eapply levels_spec. now exists mink. }
       eapply LevelMap.find_2 in hl'.
@@ -181,8 +181,8 @@ Module Models (LS : LevelSets).
     LevelMap.In l (premises_model V i cl).2 <->
     LevelSet.In l V \/ LevelSet.In l (clause_levels cl).
   Proof.
-    intros l. rewrite premises_model_map_in.
-    rewrite clauses_premises_levels_spec.
+    intros l. rw premises_model_map_in.
+    rw clauses_premises_levels_spec.
     firstorder.
     - right. apply Clauses.singleton_spec in H.
       apply clause_levels_spec. left. now subst.
@@ -199,12 +199,12 @@ Module Models (LS : LevelSets).
     cls ⊢a premise cl → of_level_map (premises_model_map (zero_model None V) (Clauses.singleton cl)) ne.
   Proof.
     intros [l k].
-    rewrite of_level_map_spec. move/premises_model_map_spec; cbn.
+    rw of_level_map_spec. move/premises_model_map_spec; cbn.
     intros [[hin' [[= heq] _]]|[hnin hm]].
     2:{ now apply zero_model_spec in hm as []. }
-    move: hin'; cbn; rewrite LevelSet.union_spec. intros []; [|lsets].
+    move: hin'; cbn; rw LevelSet.union_spec. intros []; [|lsets].
     eapply max_premise_of_spec_in in H as [maxp' [eq hin']].
-    rewrite eq in heq; noconf heq.
+    rw eq in heq; noconf heq.
     now constructor.
   Qed.
 
@@ -213,14 +213,14 @@ Module Models (LS : LevelSets).
       of_level_map (premises_model_map (zero_model (Some i) V) (Clauses.singleton cl)) ne.
   Proof.
     intros [l k].
-    rewrite of_level_map_spec. move/premises_model_map_spec; cbn.
+    rw of_level_map_spec. move/premises_model_map_spec; cbn.
     intros [[hin' [[= heq] _]]|[hnin hm]].
     2:{ apply zero_model_spec in hm as []. noconf H0.
       constructor. eapply LevelExprSet.union_spec; left.
       eapply of_level_map_spec. now eapply zero_model_spec. }
-    move: hin'; cbn; rewrite LevelSet.union_spec. intros []; [|lsets].
+    move: hin'; cbn; rw LevelSet.union_spec. intros []; [|lsets].
     eapply max_premise_of_spec_in in H as [maxp' [eq hin']].
-    rewrite eq in heq; noconf heq.
+    rw eq in heq; noconf heq.
     constructor. now eapply LevelExprSet.union_spec; right.
   Qed.
 
@@ -254,13 +254,13 @@ Module Models (LS : LevelSets).
     pose proof (to_nonempty_list_spec' prems).
     set (l := (to_nonempty_list prems).1) in *.
     have hs := max_clause_premise_of_spec l.1 l.2 cls (prems, concl) hin.
-    forward hs. cbn. eapply LevelExprSet.elements_spec1; rewrite -H.
+    forward hs. cbn. eapply LevelExprSet.elements_spec1; rw -H.
     constructor. destruct l; reflexivity. depelim hs.
     exists l.1, y. apply premises_model_map_spec. left.
     split => //.
     eapply clauses_premises_levels_spec. eexists; split; tea => //.
-    rewrite //= levels_spec. exists l.2.
-    setoid_rewrite <- LevelExprSet.elements_spec1. rewrite -H //=.
+    rw //= levels_spec. exists l.2.
+    setoid_rewrite <- LevelExprSet.elements_spec1. rw -H //=.
     constructor. destruct l; reflexivity.
   Qed.
 
@@ -304,18 +304,18 @@ Module Models (LS : LevelSets).
 
   Lemma is_higher_le l k l' k' m : is_higher l k m -> is_higher l k (add_max l' k' m).
   Proof.
-    rewrite /is_higher.
+    rw /is_higher.
     rws add_max_spec.
     intros [k'0 [hm hle]].
     destruct (Level.eq_dec l l').
-    - subst. eexists. split; eauto. rewrite (level_value_MapsTo hm).
+    - subst. eexists. split; eauto. rw (level_value_MapsTo hm).
       transitivity k'0 => //. apply max_opt_of_le_r.
     - exists k'0. split; eauto.
   Qed.
 
   Lemma is_higher_add l k m : is_higher l k (add_max l k m).
   Proof.
-    rewrite /is_higher.
+    rw /is_higher.
     rws add_max_spec. eexists. split; eauto.
     apply max_opt_of_le_l.
   Qed.
@@ -339,7 +339,7 @@ Module Models (LS : LevelSets).
   Proof.
     eapply LevelExprSetProp.fold_rec.
     - intros s' he. cbn.
-      rewrite /is_in_premise /is_higher.
+      rw /is_in_premise /is_higher.
       setoid_rewrite (LevelExprSetProp.empty_is_empty_1 he).
       intuition auto. right. split; eauto.
       intros kl. now move/LevelExprSet.empty_spec.
@@ -360,26 +360,26 @@ Module Models (LS : LevelSets).
           intros l' hin. move/H2 => [k'0 [hm hle]].
           rws add_max_spec. destruct (Level.eq_dec l' xl).
           - eexists; split. left; eauto. subst l'.
-            rewrite (level_value_MapsTo hm). transitivity (k'0) => //.
+            rw (level_value_MapsTo hm). transitivity (k'0) => //.
             apply max_opt_of_le_r.
           - eexists; split; eauto. } }
       intros.
-      rewrite add_max_spec in H3; destruct H3 as [[<- hk]|[hdiff hm]].
+      rw add_max_spec in H3; destruct H3 as [[<- hk]|[hdiff hm]].
       * destruct H2 as [hin hnin]. symmetry in hk.
         have [[leacc eqms]|[len eqms]] := max_opt_of_spec hk.
         { depelim leacc. specialize (hin _ (level_value_MapsTo' H3)) as [[kl [inkl [= <-] les' lea]]|].
           { left. exists y. split => //. apply H1; now right. congruence. intros.
             apply H1 in H4 as [[=]|ins']. 2:now apply les'. subst kl'. lia. }
-          { destruct H4. right. split. now rewrite -H3 -eqms in H4. intros.
-            apply H1 in H6 as [[=]|ins']; subst; trea. rewrite H3; cbn; constructor; lia_f_equal.
-            rewrite H3; cbn; constructor. apply H5 in ins'. depelim ins'. lia. } }
+          { destruct H4. right. split. now rw -H3 -eqms in H4. intros.
+            apply H1 in H6 as [[=]|ins']; subst; trea. rw H3; cbn; constructor; lia_f_equal.
+            rw H3; cbn; constructor. apply H5 in ins'. depelim ins'. lia. } }
         { left. exists k'. split => //.
           * apply H1. now left.
           * move=> kl' /H1 [[=]|ins']. lia. depelim len. transitivity x; tea. specialize (hin _ (level_value_MapsTo' H3)) as
           [[kl [inkl [= <-] les' lea]]|[]].
             { now eapply les'. }
             { specialize (H5 _ ins'). depelim H5. lia. }
-            { move: H2 hk. rewrite /level_value. destruct (find_spec l a0).
+            { move: H2 hk. rw /level_value. destruct (find_spec l a0).
               * intros ->. apply hin in H2 as [[kl []]|[hm hkl']] => //. apply hkl' in ins'. depelim ins'.
               * intros _; cbn; intros <-.
                 destruct hnin as [hnin _].
@@ -402,7 +402,7 @@ Module Models (LS : LevelSets).
     let map := min_model_clause cl a in
     is_max_of_clause_map map l cl a.
   Proof.
-    intros m. rewrite /is_max_of_clause_map /is_max_of_clause_model.
+    intros m. rw /is_max_of_clause_map /is_max_of_clause_model.
     have h := MapsTo_fold_add_max l (premise cl) (add_max (concl cl).1 None a).
     change (LevelExprSet.fold (fun '(l, k0) (acc : model) => add_max l (Some k0) acc) (premise cl)
         (add_max (concl cl).1 None a)) with (min_model_clause cl a) in h.
@@ -410,16 +410,16 @@ Module Models (LS : LevelSets).
     - intros k hm. specialize (H k hm) as [[kl []]|[hm' hle]].
       * split => //. subst k. red. split. intros kl' hin. constructor. now apply H2.
         move=> kl' hm''. specialize (H3 kl').
-        rewrite add_max_spec in H3. forward H3.
+        rw add_max_spec in H3. forward H3.
         destruct (Level.eq_dec l (concl cl).1).
-        { subst l. left. split => //. rewrite max_opt_of_r. apply level_value_MapsTo in hm''. now rewrite hm''. }
+        { subst l. left. split => //. rw max_opt_of_r. apply level_value_MapsTo in hm''. now rw hm''. }
         { right. split => //. }
         exact H3. left.
         red. left. red. subst k. eauto.
-      * rewrite add_max_spec in hm'.
-        rewrite max_opt_of_r in hm'. destruct hm' as [[]|[]]; try subst l.
+      * rw add_max_spec in hm'.
+        rw max_opt_of_r in hm'. destruct hm' as [[]|[]]; try subst l.
         { repeat split => //.
-          { intros l hin'. subst k. rewrite (level_value_MapsTo hin'). reflexivity. }
+          { intros l hin'. subst k. rw (level_value_MapsTo hin'). reflexivity. }
           { destruct k. right. symmetry in H1. now apply level_value_MapsTo' in H1.
             left. red. right. split => //. } }
         { split => //. split => //.
@@ -427,10 +427,10 @@ Module Models (LS : LevelSets).
           firstorder. }
     - intros l' k. destruct H0 as [H0 hext]. specialize (H0 l' k).
       intros [hm|hinc].
-      { forward H0. left. rewrite add_max_spec.
+      { forward H0. left. rw add_max_spec.
         destruct (Level.eq_dec l' (concl cl).1); eauto.
-        { left. split => //. rewrite max_opt_of_r.
-          now rewrite (level_value_MapsTo hm). }
+        { left. split => //. rw max_opt_of_r.
+          now rw (level_value_MapsTo hm). }
         destruct H0 as [? [hinm hle]].
         eapply is_higher_mon; tea. exists x. split; eauto. reflexivity. }
       { red in hinc. destruct hinc. apply H0. now right.
@@ -440,15 +440,15 @@ Module Models (LS : LevelSets).
         destruct (LevelMap.find (concl cl).1 a) eqn:hl.
         * apply LevelMap.find_2 in hl.
           specialize (hext (concl cl).1 o).
-          forward hext. rewrite add_max_spec. left. split => //.
-          rewrite max_opt_of_r. now rewrite (level_value_MapsTo hl).
+          forward hext. rw add_max_spec. left. split => //.
+          rw max_opt_of_r. now rw (level_value_MapsTo hl).
           destruct hext as [k' []]. exists k'. split => //. constructor.
         * specialize (hext (concl cl).1 None).
-          forward hext. rewrite add_max_spec. left. split => //.
-          now rewrite /level_value hl.
+          forward hext. rw add_max_spec. left. split => //.
+          now rw /level_value hl.
           destruct cl; unfold clause_conclusion in *. exact hext.
         * specialize (hext (concl cl).1 (level_value a (concl cl).1)).
-          forward hext. rewrite add_max_spec. left. split => //.
+          forward hext. rw add_max_spec. left. split => //.
           destruct hext as [l' []]; exists l'; split => //. constructor. }
   Qed.
 
@@ -457,13 +457,13 @@ Module Models (LS : LevelSets).
     (forall l k, LevelMap.MapsTo l k map -> max_of_map l k m) /\
     m ⩽ map.
   Proof.
-    cbn. rewrite /min_model_map.
+    cbn. rw /min_model_map.
     eapply ClausesProp.fold_rec.
     2:{ intros. destruct H2 as [hf hin].
       split.
       intros l k.
       have [hm hnin] := min_model_clause_spec l x a.
-      move/hm. rewrite /is_max_of_clause_model. intros [[ism' ism] hasm].
+      move/hm. rw /is_max_of_clause_model. intros [[ism' ism] hasm].
       destruct hasm; eauto. intros kl'. move/hin => [k' [hmk' lek']].
       red in ism. specialize (ism _ hmk'). now transitivity k'.
       transitivity a => //.
@@ -497,7 +497,7 @@ Module Models (LS : LevelSets).
       m ⩽ map.
   Proof.
     cbn.
-    rewrite /min_model_map.
+    rw /min_model_map.
     have hgen : forall cls m, (forall l k, LevelMap.MapsTo l k (Clauses.fold min_model_clause cls m) ->
       [/\ (exists cl : Clauses.elt, Clauses.In cl cls /\ is_in_clause l k cl) \/
       LevelMap.MapsTo l k m,
@@ -525,7 +525,7 @@ Module Models (LS : LevelSets).
         * have := min_model_clause_spec l' x a. cbn.
           intros [_ hm']. eapply clause_levels_spec in inlev as [].
           + eapply levels_spec in H as [k' incl].
-            specialize (hm' l' (Some k')). forward hm'. right. left. rewrite /is_in_premise. exists k'; eauto.
+            specialize (hm' l' (Some k')). forward hm'. right. left. rw /is_in_premise. exists k'; eauto.
             destruct hm' as [? []]; now eexists.
           + subst l'. specialize (hm' (concl x).1 None). forward hm'.
             right. right. split => //.
@@ -576,7 +576,7 @@ Module Models (LS : LevelSets).
         apply clause_levels_spec.
         clear -incl'. firstorder. subst. left. apply levels_spec.
         firstorder.
-      * rewrite (om l). now exists x.
+      * rw (om l). now exists x.
   Qed.
 
   Lemma min_model_map_enabled m cls cls' :
@@ -584,12 +584,12 @@ Module Models (LS : LevelSets).
     enabled_clauses (min_model_map m cls') (Clauses.union cls cls').
   Proof.
     intros en cl.
-    rewrite Clauses.union_spec => -[].
-    - move/en; rewrite /enabled_clause => -[z hmin].
+    rw Clauses.union_spec => -[].
+    - move/en; rw /enabled_clause => -[z hmin].
       have := @min_premise_pres m (min_model_map m cls') (premise cl) => /fwd.
       apply min_model_map_acc.
-      rewrite hmin => h; depelim h. now exists y.
-    - intros hin; rewrite /enabled_clause.
+      rw hmin => h; depelim h. now exists y.
+    - intros hin; rw /enabled_clause.
       have [hm [incl hext]] := min_model_map_spec cls' m.
       have [hle [minp [inp ->]]] := min_premise_spec (min_model_map m cls') (premise cl).
       move: (incl _ hin). move/(_ minp.1) => /fwd.
@@ -598,7 +598,7 @@ Module Models (LS : LevelSets).
       specialize (hm minp.1 k hmap) as [_ hm _].
       destruct minp.
       move: hm => /(_ _ hin)/(_ _ inp). intros le; depelim le.
-      exists (y - z). now rewrite /min_atom_value (level_value_MapsTo hmap).
+      exists (y - z). now rw /min_atom_value (level_value_MapsTo hmap).
   Qed.
 
 

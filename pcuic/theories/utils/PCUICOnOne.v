@@ -198,7 +198,7 @@ Lemma OnOne2_local_env_mapi_context R Γ Δ (f : nat -> term -> term) :
   OnOne2_local_env R (mapi_context f Γ) (mapi_context f Δ).
 Proof.
   unfold on_Trel in *; induction 1; simpl; try solve [econstructor; intuition auto].
-  rewrite -(length_of X). now constructor.
+  rw -(length_of X). now constructor.
 Qed.
 
 Lemma test_context_k_impl {p q : nat -> term -> bool} {k k'} {ctx} :
@@ -208,7 +208,7 @@ Lemma test_context_k_impl {p q : nat -> term -> bool} {k k'} {ctx} :
 Proof.
   intros Hfg <-.
   induction ctx as [|[na [b|] ty] ctx]; simpl; auto;
-  move/andb_and=> [testp testd]; rewrite (IHctx testp);
+  move/andb_and=> [testp testd]; rw (IHctx testp);
   eapply test_decl_impl; tea; eauto.
 Qed.
 
@@ -226,16 +226,16 @@ Proof.
   intros hq onenv HPq.
   induction onenv.
   * move=> /= /andb_and [testq testd].
-    rewrite (test_context_k_impl _ _ testq) //.
+    rw (test_context_k_impl _ _ testq) //.
     simpl; eauto.
   * move=> /= /andb_and [testq testd].
-    rewrite (test_context_k_impl _ _ testq) //.
+    rw (test_context_k_impl _ _ testq) //.
     simpl; eauto.
   * move=> /= /andb_and [testq testd].
-    rewrite (IHonenv testq).
+    rw (IHonenv testq).
     eapply test_decl_impl; tea.
     intros x Hx. eapply hq.
-    now rewrite -(length_of onenv).
+    now rw -(length_of onenv).
 Qed.
 
 Lemma on_one_decl_test_decl (P : term -> term -> Type)

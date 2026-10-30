@@ -87,7 +87,7 @@ Definition fix_context (m : mfixpoint term) : context :=
   List.rev (mapi (fun i d => vass d.(dname) (lift0 i d.(dtype))) m).
 
 Lemma fix_context_length mfix : #|fix_context mfix| = #|mfix|.
-Proof. unfold fix_context. now rewrite List.length_rev mapi_length. Qed.
+Proof. unfold fix_context. now rw List.length_rev mapi_length. Qed.
 
 Definition dummy_branch : branch term := mk_branch [] tDummy.
 

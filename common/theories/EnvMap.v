@@ -33,7 +33,7 @@ Module EnvMap.
   Proof using Type.
     intros ne.
     unfold lookup, add.
-    rewrite KernameMapFact.F.add_neq_o //.
+    rw KernameMapFact.F.add_neq_o //.
     intros eq. apply Kername.compare_eq in eq. congruence.
   Qed.
 
@@ -42,7 +42,7 @@ Module EnvMap.
   Proof using Type.
     intros eq.
     unfold lookup, add.
-    rewrite KernameMapFact.F.add_eq_o //.
+    rw KernameMapFact.F.add_eq_o //.
     now apply Kername.compare_eq.
   Qed.
 
@@ -98,7 +98,7 @@ Module EnvMap.
   Lemma fresh_global_iff_not_In kn Σ
     : fresh_global kn Σ <-> ~ In kn (map fst Σ).
   Proof using Type.
-    rewrite /fresh_global; split; [ induction 1 | induction Σ; constructor ]; cbn in *.
+    rw /fresh_global; split; [ induction 1 | induction Σ; constructor ]; cbn in *.
     all: tauto.
   Qed.
 
@@ -107,7 +107,7 @@ Module EnvMap.
     elim; [ | case ]; split; cbn; inversion 1; subst; constructor.
     all: repeat match goal with H : iff _ _ |- _ => destruct H end.
     all: repeat match goal with H : ?T |- _ => match type of T with Prop => revert H end end.
-    all: rewrite -?fresh_global_iff_not_In; auto.
+    all: rw -?fresh_global_iff_not_In; auto.
   Qed.
 
   Lemma fold_left_cons d g acc :
@@ -138,16 +138,16 @@ Module EnvMap.
     repr ((k, g) :: Σ) (add k g e).
   Proof using Type.
     intros wfΣ fresh repr.
-    red. rewrite /add. do 2 red in repr.
-    rewrite repr. rewrite of_global_env_cons //.
+    red. rw /add. do 2 red in repr.
+    rw repr. rw of_global_env_cons //.
     constructor => //.
   Qed.
 
   Lemma lookup_add k v g : lookup k (add k v g) = Some v.
-  Proof using Type. rewrite gss //. Qed.
+  Proof using Type. rw gss //. Qed.
 
   Lemma lookup_add_other k k' v g : k <> k' -> lookup k (add k' v g) = lookup k g.
-  Proof using Type. move=> eqk. rewrite gso //. Qed.
+  Proof using Type. move=> eqk. rw gso //. Qed.
 
   Lemma remove_add_eq Σ k v e :
     fresh_globals Σ ->
@@ -158,13 +158,13 @@ Module EnvMap.
     unfold repr, equal, remove, add.
     intros frΣ frk eq.
     intros k'.
-    rewrite KernameMapFact.F.remove_o.
+    rw KernameMapFact.F.remove_o.
     destruct KernameMap.E.eq_dec. eapply Kername.compare_eq in e0. subst k'.
-    - rewrite {}eq. induction frk. now cbn.
-      rewrite of_global_env_cons //. depelim frΣ. simpl in H0 |- *.
-      rewrite KernameMapFact.F.add_neq_o //. intros c. eapply Kername.compare_eq in c. contradiction.
+    - rw {}eq. induction frk. now cbn.
+      rw of_global_env_cons //. depelim frΣ. simpl in H0 |- *.
+      rw KernameMapFact.F.add_neq_o //. intros c. eapply Kername.compare_eq in c. contradiction.
       now apply IHfrk.
-    - rewrite KernameMapFact.F.add_neq_o //.
+    - rw KernameMapFact.F.add_neq_o //.
   Qed.
 
   Lemma remove_add_o k k' v e :
@@ -173,15 +173,15 @@ Module EnvMap.
   Proof using Type.
     unfold repr, equal, remove, add.
     intros neq k''.
-    rewrite KernameMapFact.F.remove_o.
+    rw KernameMapFact.F.remove_o.
     destruct KernameMap.E.eq_dec. eapply Kername.compare_eq in e0. subst k'.
-    - rewrite KernameMapFact.F.add_neq_o //. intros c. eapply Kername.compare_eq in c. contradiction.
-      rewrite KernameMapFact.F.remove_o.
+    - rw KernameMapFact.F.add_neq_o //. intros c. eapply Kername.compare_eq in c. contradiction.
+      rw KernameMapFact.F.remove_o.
       destruct KernameMap.E.eq_dec => //.
       exfalso; apply n. now apply Kername.compare_eq.
-    - rewrite !KernameMapFact.F.add_o //.
+    - rw !KernameMapFact.F.add_o //.
       destruct (KernameMap.E.eq_dec k k'') => //.
-      rewrite KernameMapFact.F.remove_neq_o //.
+      rw KernameMapFact.F.remove_neq_o //.
   Qed.
 
   Fixpoint lookup_global (Σ : list (kername × A)) (kn : kername) {struct Σ} : option A :=
@@ -200,19 +200,19 @@ Module EnvMap.
     induction g in e, k, wf |- *.
     - simpl. intros eq.
       unfold lookup.
-      rewrite -KernameMapFact.F.not_find_in_iff.
+      rw -KernameMapFact.F.not_find_in_iff.
       intros hin.
-      red in eq. rewrite eq in hin.
+      red in eq. rw eq in hin.
       now eapply KernameMapFact.F.empty_in_iff in hin.
     - cbn -[of_global_env eqb].
       destruct (eqb_spec k a.1).
       * subst.
-        rewrite of_global_env_cons //.
-        intros he. unfold lookup. rewrite he.
-        now rewrite [KernameMap.find _ _]lookup_add.
-      * rewrite of_global_env_cons //.
-        intros he. unfold lookup. rewrite he.
-        rewrite [KernameMap.find _ _]lookup_add_other //.
+        rw of_global_env_cons //.
+        intros he. unfold lookup. rw he.
+        now rw [KernameMap.find _ _]lookup_add.
+      * rw of_global_env_cons //.
+        intros he. unfold lookup. rw he.
+        rw [KernameMap.find _ _]lookup_add_other //.
         apply IHg. now depelim wf.
         reflexivity.
   Qed.

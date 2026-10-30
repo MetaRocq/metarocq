@@ -51,7 +51,7 @@ Fixpoint size t : nat :=
 Lemma size_mkApps f l : size (mkApps f l) = size f + list_size size l.
 Proof.
   induction l in f |- *; simpl; try lia.
-  rewrite IHl. simpl. lia.
+  rw IHl. simpl. lia.
 Qed.
 
 Lemma nth_error_size {A} (f : A -> nat) {l : list A} {n x} :

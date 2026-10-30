@@ -48,7 +48,7 @@ intros ext wf; cbn -[lookup_projection].
 unfold lookup_projection.
 destruct lookup_constructor as [[[mdecl idecl] cdecl]|] eqn:hl => //.
 simpl.
-rewrite (extends_lookup_constructor wf ext _ _ _ hl) //.
+rw (extends_lookup_constructor wf ext _ _ _ hl) //.
 Qed.
 
 Variable efl' : EEnvFlags.
@@ -92,7 +92,7 @@ case: eqb_specT => //.
   exists Σ''. split => //.
   * destruct ext as [? ->].
     now exists (a :: x).
-  * rewrite -hl'. f_equal.
+  * rw -hl'. f_equal.
     clear -wfg wellformed_gen_transform_extends.
     eapply map_ext_in => kn hin. unfold on_snd. f_equal.
     symmetry. eapply wellformed_gen_transform_decl_extends => //. cbn.
@@ -112,7 +112,7 @@ Lemma lookup_env_gen_transform_env_None {Σ : global_context} kn :
 lookup_env Σ kn = None ->
 lookup_env (gen_transform_env Σ) kn = None.
 Proof.
-cbn. intros hl. rewrite lookup_env_map_snd hl //.
+cbn. intros hl. rw lookup_env_map_snd hl //.
 Qed.
 
 Lemma lookup_env_gen_transform {Σ : global_context} kn :
@@ -122,7 +122,7 @@ Proof.
 intros wf.
 destruct (lookup_env Σ kn) eqn:hl.
 - eapply lookup_env_gen_transform_env_Some in hl as [Σ' [ext wf' hl']] => /=.
-  rewrite hl'. f_equal.
+  rw hl'. f_equal.
   eapply wellformed_gen_transform_decl_extends; eauto.
   eapply extends_prefix_extends; auto.
   eapply extends_wf_glob; eauto.
@@ -136,10 +136,10 @@ Lemma is_propositional_gen_transform {Σ : global_context} ind :
   wf_glob Σ ->
   inductive_isprop_and_pars Σ ind = inductive_isprop_and_pars (gen_transform_env Σ) ind.
 Proof.
-  rewrite /inductive_isprop_and_pars => wf.
-  rewrite /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_gen_transform (inductive_mind ind) wf).
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /inductive_isprop_and_pars => wf.
+  rw /lookup_inductive /lookup_minductive.
+  rw (lookup_env_gen_transform (inductive_mind ind) wf).
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -148,10 +148,10 @@ Lemma is_propositional_cstr_gen_transform {Σ : global_context} ind c :
   wf_glob Σ ->
   constructor_isprop_pars_decl Σ ind c = constructor_isprop_pars_decl (gen_transform_env Σ) ind c.
 Proof.
-  rewrite /constructor_isprop_pars_decl => wf.
-  rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite (lookup_env_gen_transform (inductive_mind ind) wf).
-  rewrite /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
+  rw /constructor_isprop_pars_decl => wf.
+  rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw (lookup_env_gen_transform (inductive_mind ind) wf).
+  rw /GlobalContextMap.inductive_isprop_and_pars /GlobalContextMap.lookup_inductive
     /GlobalContextMap.lookup_minductive.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
@@ -159,16 +159,16 @@ Qed.
 Lemma isFix_mkApps t l : isFix (mkApps t l) = isFix t && match l with [] => true | _ => false end.
 Proof.
   induction l using rev_ind; cbn.
-  - now rewrite andb_true_r.
-  - rewrite mkApps_app /=. now destruct l => /= //; rewrite andb_false_r.
+  - now rw andb_true_r.
+  - rw mkApps_app /=. now destruct l => /= //; rw andb_false_r.
 Qed.
 
 Lemma lookup_constructor_gen_transform {Σ : global_context} {ind c} :
   wf_glob Σ ->
   lookup_constructor Σ ind c = lookup_constructor (gen_transform_env Σ) ind c.
 Proof.
-  intros wfΣ. rewrite /lookup_constructor /lookup_inductive /lookup_minductive.
-  rewrite lookup_env_gen_transform // /=. destruct lookup_env => // /=.
+  intros wfΣ. rw /lookup_constructor /lookup_inductive /lookup_minductive.
+  rw lookup_env_gen_transform // /=. destruct lookup_env => // /=.
   destruct g => //.
 Qed.
 
@@ -176,15 +176,15 @@ Lemma lookup_projection_gen_transform {Σ : global_context} {p} :
   wf_glob Σ ->
   lookup_projection Σ p = lookup_projection (gen_transform_env Σ) p.
 Proof.
-  intros wfΣ. rewrite /lookup_projection.
-  rewrite -lookup_constructor_gen_transform //.
+  intros wfΣ. rw /lookup_projection.
+  rw -lookup_constructor_gen_transform //.
 Qed.
 
 Lemma constructor_isprop_pars_decl_inductive {Σ ind c} {prop pars cdecl} :
   constructor_isprop_pars_decl Σ ind c = Some (prop, pars, cdecl)  ->
   inductive_isprop_and_pars Σ ind = Some (prop, pars).
 Proof.
-  rewrite /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
+  rw /constructor_isprop_pars_decl /inductive_isprop_and_pars /lookup_constructor.
   destruct lookup_inductive as [[mdecl idecl]|]=> /= //.
   destruct nth_error => //. congruence.
 Qed.
@@ -193,12 +193,12 @@ Lemma constructor_isprop_pars_decl_constructor {Σ ind c} {mdecl idecl cdecl} :
   lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
   constructor_isprop_pars_decl Σ ind c = Some (ind_propositional idecl, ind_npars mdecl, cdecl).
 Proof.
-  rewrite /constructor_isprop_pars_decl. intros -> => /= //.
+  rw /constructor_isprop_pars_decl. intros -> => /= //.
 Qed.
 
 Lemma wf_mkApps (ha : has_tApp) Σ k f args : reflect (wellformed Σ k f /\ forallb (wellformed Σ k) args) (wellformed Σ k (mkApps f args)).
 Proof.
-  rewrite wellformed_mkApps //. eapply andP.
+  rw wellformed_mkApps //. eapply andP.
 Qed.
 
 Lemma extends_cons_inv Σ kn d Σ' :
@@ -207,7 +207,7 @@ Lemma extends_cons_inv Σ kn d Σ' :
   extends Σ Σ'.
 Proof.
   intros ext fr kn' d' hl.
-  apply ext. rewrite elookup_env_cons_fresh => //.
+  apply ext. rw elookup_env_cons_fresh => //.
   intros <-. now apply lookup_env_Some_fresh in hl.
 Qed.
 
@@ -273,19 +273,19 @@ Lemma gen_transform_wellformed_irrel {Σ : global_context} t :
 Proof.
   intros wfΣ. induction t using EInduction.term_forall_list_ind; cbn => //.
   all:try solve [intros; unfold wf_fix_gen in *; rtoProp; intuition eauto; solve_all].
-  - rewrite lookup_env_gen_transform //.
+  - rw lookup_env_gen_transform //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. destruct (cst_body c); cbn; eauto.
-  - rewrite lookup_env_gen_transform //.
+  - rw lookup_env_gen_transform //.
     destruct lookup_env eqn:hl => // /=; intros; rtoProp; eauto.
     destruct g eqn:hg => /= //; intros; rtoProp; eauto.
     repeat split; eauto. destruct cstr_as_blocks; rtoProp; repeat split; eauto. solve_all.
-  - rewrite /wf_brs; cbn. rewrite lookup_env_gen_transform //.
+  - rw /wf_brs; cbn. rw lookup_env_gen_transform //.
     destruct lookup_env eqn:hl => // /=.
     destruct g eqn:hg => /= //. subst g.
     destruct nth_error => /= //.
     intros; rtoProp; intuition auto; solve_all.
-  - rewrite lookup_env_gen_transform //.
+  - rw lookup_env_gen_transform //.
     destruct lookup_env eqn:hl => // /=; intros; rtoProp; repeat split; eauto.
     destruct g eqn:hg => /= //.
 Qed.
@@ -320,7 +320,7 @@ Proof.
   destruct efl => //; eauto. destruct m => //. cbn. unfold wf_minductive.
   cbn. move/andP => [] hp //. rtoProp. solve_all.
    eapply orb_true_iff. eapply orb_true_iff in hp as []; eauto.
-   left. eapply cstrs_efl. now rewrite H.
+   left. eapply cstrs_efl. now rw H.
 Qed.
 
 Lemma fresh_global_gen_transform_env {Σ : global_context} kn :
@@ -342,11 +342,11 @@ Lemma gen_transform_env_wf {Σ : global_context} :
   wf_glob Σ -> wf_glob (efl := efl') (gen_transform_env Σ).
 Proof.
   intros hasb hasrel pre.
-  intros wfg. rewrite gen_transform_env_eq //.
+  intros wfg. rw gen_transform_env_eq //.
   induction wfg; cbn; constructor; invs pre; auto.
-  - rewrite /= -(gen_transform_env_eq Σ) => //. eauto.
+  - rw /= -(gen_transform_env_eq Σ) => //. eauto.
     eapply gen_transform_decl_wf => //.
-  - rewrite /= -(gen_transform_env_eq Σ) //.
+  - rw /= -(gen_transform_env_eq Σ) //.
     now eapply fresh_global_gen_transform_env.
 Qed.
 
