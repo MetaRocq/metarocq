@@ -852,13 +852,14 @@ Proof.
     rewrite vc. rewrite -mkApps_app !map_app //.
 Qed.
 
- #[export] Instance Qpreserves_closedn (efl := all_env_flags) Σ : closed_env Σ ->
-  Qpreserves (fun n x => closedn n x) Σ.
+(* #[export] Instance Qpreserves_closedn (efl : EEnvFlags) Σ : wf_glob Σ ->
+  Qpreserves (fun n x => wellformed Σ n x) Σ.
 Proof.
   intros clΣ.
   split.
   - red. move=> n t.
-    destruct t; cbn; intuition auto; try solve [constructor; auto].
+    destruct t; cbn; rtoProp; intuition auto; try solve [constructor; auto].
+    constructor. cbn. rtoProp; intuition auto. constructor.
     eapply on_evar; solve_all.
     eapply on_letin; rtoProp; intuition auto.
     eapply on_app; rtoProp; intuition auto.
@@ -881,13 +882,15 @@ Proof.
     intros; rtoProp; intuition auto; solve_all.
   - red. move=> n mfix idx. cbn.
     intros; rtoProp; intuition auto; solve_all.
-Qed.
+Qed. *)
 
-Lemma strip_eval (efl := all_env_flags) {wfl:WcbvFlags} {wcon : with_constructor_as_block = false} {Σ : GlobalContextMap.t} t v :
+Hint Resolve wellformed_closed : core.
+
+Lemma strip_eval {efl : EEnvFlags} {wfl:WcbvFlags} {wcon : with_constructor_as_block = false} {cstr : cstr_as_blocks = false} (has_app : has_tApp) {Σ : GlobalContextMap.t} t v :
   isEtaExp_env Σ ->
   closed_env Σ ->
   wf_glob Σ ->
-  closedn 0 t ->
+  wellformed Σ 0 t ->
   isEtaExp Σ t ->
   eval Σ t v ->
   eval (strip_env Σ) (strip Σ t) (strip Σ v).
@@ -895,8 +898,8 @@ Proof.
   intros etaΣ clΣ wfΣ.
   revert t v.
   unshelve eapply (eval_preserve_mkApps_ind wfl wcon Σ (fun x y => eval (strip_env Σ) (strip Σ x) (strip Σ y))
-    (fun n x => closedn n x) (Qpres := Qpreserves_closedn Σ clΣ)) => //.
-  { intros. eapply eval_closed; tea. }
+    (fun n x => wellformed Σ n x) (Qpres := Qpreserves_wellformed efl Σ cstr wfΣ)) => //.
+  { intros. eapply eval_wellformed; tea. }
   all:intros; simpl in *.
   (* 1-15: try solve [econstructor; eauto]. *)
   all:repeat destruct_nary_times => //.
@@ -905,11 +908,10 @@ Proof.
 
   - rewrite strip_tApp //. simp_strip in e1.
     econstructor; eauto.
-    rewrite strip_csubst // in e. now simp_eta in i10.
+    rewrite strip_csubst // in e; eauto. now simp_eta in i10.
 
   - simp_strip.
-    rewrite strip_csubst // in e.
-    econstructor; eauto.
+    rewrite strip_csubst // in e; eauto.
 
   - simp_strip.
     set (brs' := map _ brs). cbn -[strip].
@@ -928,7 +930,8 @@ Proof.
       { rewrite isEtaExp_Constructor in i6.
         now move/andP: i6 => [] /andP[]. }
       rewrite strip_iota_red // in e.
-      rewrite closedn_mkApps in i4. now move/andP: i4.
+      rewrite wellformed_mkApps in i4 => //.
+      move/andP: i4 => [] _ wf; solve_all.
       cbn. now eapply nth_error_forallb in H; tea.
 
   - subst brs. cbn in H4.
@@ -947,8 +950,8 @@ Proof.
     eapply eval_fix; tea.
     * rewrite length_map.
       eapply strip_cunfold_fix; tea.
-      eapply closed_fix_subst. tea.
-      move: i8; rewrite closedn_mkApps => /andP[] //.
+      eapply closed_fix_subst.
+      move/wellformed_closed: i8; rewrite closedn_mkApps => // /andP[] //.
       move: i10; rewrite isEtaExp_mkApps_napp // /= => /andP[] //. simp_eta.
     * move: e.
       rewrite -[tApp _ _](mkApps_app _ _ [av]).
@@ -963,7 +966,7 @@ Proof.
     eapply eval_fix_value; tea.
     eapply strip_cunfold_fix; eauto.
     eapply closed_fix_subst => //.
-    { move: i4.
+    { move/wellformed_closed: i4.
       rewrite closedn_mkApps. now move/andP => []. }
     { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
     now rewrite length_map.
@@ -972,7 +975,7 @@ Proof.
     simp_strip in e1.
     eapply eval_fix'; tea.
     eapply strip_cunfold_fix; tea.
-    { eapply closed_fix_subst => //. }
+    { change (wellformed Σ 0 (tFix mfix idx) = true) in i8. move/wellformed_closed: i8; eapply closed_fix_subst => //. }
     { simp isEtaExp in i10. }
     rewrite strip_tApp // in e.
 
@@ -984,7 +987,7 @@ Proof.
     eapply eval_cofix_case; tea.
     eapply strip_cunfold_cofix; tea => //.
     { eapply closed_cofix_subst; tea.
-      move: i5; rewrite closedn_mkApps => /andP[] //. }
+      move/wellformed_closed: i5; rewrite closedn_mkApps => /andP[] //. }
     { move: i7. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
     rewrite strip_mkApps_etaexp // in e.
 
@@ -998,7 +1001,7 @@ Proof.
     eapply eval_cofix_proj; tea.
     eapply strip_cunfold_cofix; tea.
     { eapply closed_cofix_subst; tea.
-      move: i4; rewrite closedn_mkApps => /andP[] //. }
+      move/wellformed_closed: i4; rewrite closedn_mkApps => /andP[] //. }
     { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
 
   - econstructor. red in H |- *.
@@ -1168,7 +1171,7 @@ Proof.
   now eapply strip_wellformed_irrel.
 Qed.
 
-Lemma strip_decl_wf (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_decl_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false) {Σ : GlobalContextMap.t} :
   wf_glob Σ ->
   forall d, wf_global_decl Σ d ->
   wf_global_decl (efl := switch_no_params efl) (strip_env Σ) (strip_decl Σ d).
@@ -1177,6 +1180,8 @@ Proof.
   destruct d => /= //.
   destruct (cst_body c) => /= //.
   now apply (strip_wellformed (Σ := Σ) 0 t).
+  destruct m => /=.
+  unfold wf_minductive; cbn. rtoProp. intuition auto.
 Qed.
 
 Lemma fresh_global_strip_env {Σ : GlobalContextMap.t} kn :
@@ -1314,7 +1319,7 @@ Proof.
   now apply (gen_transform_extends (gt := GTExt efl hast) ext).
 Qed.
 
-Lemma strip_env_eq (efl := all_env_flags) (Σ : GlobalContextMap.t) : wf_glob Σ -> strip_env Σ = strip_env' Σ.(GlobalContextMap.global_decls) Σ.(GlobalContextMap.wf).
+Lemma strip_env_eq {efl : EEnvFlags} (has_app : has_tApp) (Σ : GlobalContextMap.t) : wf_glob Σ -> strip_env Σ = strip_env' Σ.(GlobalContextMap.global_decls) Σ.(GlobalContextMap.wf).
 Proof.
   intros wf.
   unfold strip_env.
@@ -1332,11 +1337,12 @@ Proof.
   cbn. now depelim wf.
 Qed.
 
-Lemma strip_env_wf (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_env_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false)
+  {Σ : GlobalContextMap.t} :
   wf_glob Σ -> wf_glob (efl := switch_no_params efl) (strip_env Σ).
 Proof.
   intros wf.
-  rewrite (strip_env_eq _ wf).
+  rewrite (strip_env_eq has_app _ wf).
   destruct Σ as [Σ map repr fr]; cbn in *.
   induction Σ in map, repr, fr, wf |- *.
   - cbn. constructor.
@@ -1345,18 +1351,18 @@ Proof.
     constructor; eauto.
     eapply (IHΣ (GlobalContextMap.map Σg) (GlobalContextMap.repr Σg)). now depelim wf.
     depelim wf. cbn.
-    rewrite -(strip_env_eq Σg). now cbn. cbn.
-    now eapply (strip_decl_wf (Σ:=Σg)).
-    rewrite -(strip_env_eq Σg). now depelim wf.
+    rewrite -(strip_env_eq has_app Σg). now cbn. cbn.
+    now eapply (strip_decl_wf has_app cstrs (Σ:=Σg)).
+    rewrite -(strip_env_eq has_app Σg). now depelim wf.
     eapply fresh_global_strip_env. now depelim fr.
 Qed.
 
-Lemma strip_program_wf (efl := all_env_flags) (p : eprogram_env) :
+Lemma strip_program_wf {efl : EEnvFlags} (has_app : has_tApp) (cstrs : cstr_as_blocks = false) (p : eprogram_env) :
   wf_eprogram_env efl p ->
   wf_eprogram (switch_no_params efl) (strip_program p).
 Proof.
   intros []; split => //.
-  eapply (strip_env_wf H).
+  eapply (strip_env_wf has_app cstrs H).
   now eapply strip_wellformed.
 Qed.
 
@@ -1395,7 +1401,7 @@ Proof.
   apply strip_expanded.
 Qed.
 
-Lemma strip_env_expanded (efl := all_env_flags) {Σ : GlobalContextMap.t} :
+Lemma strip_env_expanded {efl : EEnvFlags} (has_app : has_tApp) {Σ : GlobalContextMap.t} :
   wf_glob Σ -> expanded_global_env Σ -> expanded_global_env (strip_env Σ).
 Proof.
   unfold expanded_global_env.
@@ -1407,13 +1413,13 @@ Proof.
     constructor; auto.
     eapply IHexp. eapply Σ'. now depelim wf. cbn.
     eapply (strip_expanded_decl (Σ := Σ')) in H.
-    rewrite -(strip_env_eq Σ'). cbn. now depelim wf.
+    rewrite -(strip_env_eq has_app Σ'). cbn. now depelim wf.
     exact H.
 Qed.
 
 Import EProgram.
 
-Lemma strip_program_expanded (efl := all_env_flags) (p : eprogram_env) :
+Lemma strip_program_expanded {efl : EEnvFlags} (has_app : has_tApp) (p : eprogram_env) :
   wf_eprogram_env efl p ->
   expanded_eprogram_env_cstrs p ->
   expanded_eprogram_cstrs (strip_program p).

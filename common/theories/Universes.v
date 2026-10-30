@@ -1293,7 +1293,7 @@ Ltac unfold_univ_rel :=
   unfold eq_universe, leq_universe, lt_universe, leq_universe_n, valid_constraints in *;
   destruct check_univs; [unfold_univ_rel0 | trivial].
 
-Section Univ.
+Section Universe.
   Context {cf}.
 
   Lemma valid_subset φ φ' ctrs
@@ -1452,7 +1452,7 @@ Section Univ.
       -> leq_universe φ t u -> leq_universe φ' t u.
   Proof using Type. apply cmp_universe_subset with (pb := Cumul). Qed.
 
-End Univ.
+End Universe.
 
 Module Sort.
   Inductive t_ {univ} :=

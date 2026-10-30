@@ -1420,7 +1420,7 @@ Section wffix.
   Fixpoint wf_fixpoints (t : term) : bool :=
     match t with
     | tRel i => true
-    | tEvar ev args => List.forallb (wf_fixpoints) args
+    | tEvar ev args => false
     | tLambda N M => wf_fixpoints M
     | tApp u v => wf_fixpoints u && wf_fixpoints v
     | tLetIn na b b' => wf_fixpoints b && wf_fixpoints b'
@@ -1434,7 +1434,7 @@ Section wffix.
       (idx <? #|mfix|) && List.forallb (wf_fixpoints ∘ dbody) mfix
     | tConst kn => true
     | tConstruct ind c _ => true
-    | tVar _ => true
+    | tVar _ => false
     | tBox => true
     | tPrim p => test_prim wf_fixpoints p
     | tLazy t => wf_fixpoints t

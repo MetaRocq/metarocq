@@ -964,7 +964,7 @@ Proof.
 Qed.
 
 Lemma trans_wellformed {efl : EEnvFlags} {Σ : GlobalContextMap.t} n t :
-  has_tBox -> has_tRel ->
+  has_tRel ->
   wf_glob Σ -> EWellformed.wellformed Σ n t -> EWellformed.wellformed Σ n (trans Σ t).
 Proof.
   intros wfΣ hbox hrel.
@@ -1037,11 +1037,10 @@ Proof.
 Qed.
 
 Lemma trans_decl_wf {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
-  has_tBox -> has_tRel -> wf_glob Σ ->
+  has_tRel -> wf_glob Σ ->
   forall d, wf_global_decl Σ d -> wf_global_decl (trans_env Σ) (trans_decl Σ d).
 Proof.
-  intros hasb hasr wf d.
-  intros hd.
+  intros hasr wf d hd.
   eapply trans_wellformed_decl_irrel; tea.
   move: hd.
   destruct d => /= //.
@@ -1059,11 +1058,10 @@ Proof.
 Qed.
 
 Lemma trans_env_wf {efl : EEnvFlags} {Σ : GlobalContextMap.t} :
-  has_tBox -> has_tRel ->
+  has_tRel ->
   wf_glob Σ -> wf_glob (trans_env Σ).
 Proof.
-  intros hasb hasrel.
-  intros wfg. rewrite trans_env_eq //.
+  intros hasrel wfg. rewrite trans_env_eq //.
   destruct Σ as [Σ map repr wf]; cbn in *.
   clear map repr.
   induction wfg; cbn; constructor; auto.
@@ -1076,7 +1074,7 @@ Qed.
 Definition trans_program (p : eprogram_env) :=
   (trans_env p.1, trans p.1 p.2).
 
-Definition trans_program_wf {efl} (p : eprogram_env) {hastbox : has_tBox} {hastrel : has_tRel} :
+Definition trans_program_wf {efl} (p : eprogram_env) {hastrel : has_tRel} :
   wf_eprogram_env efl p -> wf_eprogram efl (trans_program p).
 Proof.
   intros []; split.
