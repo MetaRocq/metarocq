@@ -413,7 +413,7 @@ End ZUnivConstraint.
     eapply UnivConstraintSetProp.fold_rec.
     - now move=> s' he c /he.
     - intros x a s' s'' hin hnin hadd h cl.
-      rw ZUnivConstraintSet.add_spec => /hadd [].
+      rws ZUnivConstraintSet.add_spec => /hadd [].
       * intros ->. eexists; split => //. now left.
       * move/h => [cstr [hin' incl]]. subst cstr.
         exists (to_constraint cl). firstorder.
@@ -1840,10 +1840,10 @@ End ZUnivConstraint.
   Proof.
     move: u. refine (Universe.interp_nes_elim v (fun u i => _ -> _ -> i = val (to_valuation v) u) _ _ _).
     - intros [l k]; rewrite val_singleton //= /val; rsets. cbn in *.
-      rewrite /Universe.interp_expr (to_valuation_val V) //; cbn. apply H; lsets.
+      rewrite /Universe.interp_expr (to_valuation_val V v) //; cbn. apply H; lsets.
     - move=>[l k] u k' ih hnin.
       rewrite Universe.levels_add //= => hincl wfv.
-      rewrite val_add; cbn. rewrite (to_valuation_val V) //; cbn. lsets.
+      rewrite val_add; cbn. rewrite (to_valuation_val V v) //; cbn. lsets.
       forward ih. lsets. specialize (ih wfv). lia.
   Qed.
 

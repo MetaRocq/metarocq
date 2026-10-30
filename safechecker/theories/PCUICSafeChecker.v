@@ -194,15 +194,15 @@ Section OnUdecl.
       now rewrite add_make; destruct le.
   Qed.
 
-  Ltac rw l := rewrite_strat (topdown l).
+  Ltac rws l := rewrite_strat (topdown l).
   Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
   Lemma lift_universe_singleton n n' : lift_universe n (Universe.of_level (Level.lvar n')) = Universe.of_level (Level.lvar (n + n')).
   Proof.
     apply Universe.equal_exprsets=> l.
-    rw In_lift_universe; rw LevelExprSet.singleton_spec.
+    rws In_lift_universe; rws LevelExprSet.singleton_spec.
     split.
-    - case=> le' [] -> -> //=.
+    - intros [le' [-> ->]]; rewrite //=.
     - move=> ->. eexists; split; trea.
   Qed.
 

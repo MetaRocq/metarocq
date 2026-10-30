@@ -58,7 +58,7 @@ Module Models (LS : LevelSets).
     LevelMap.In l (add_max l' k acc) <-> (l = l' \/ LevelMap.In l acc).
   Proof.
     rewrite /LevelMap.In.
-    rw add_max_spec. firstorder subst.
+    rws add_max_spec. firstorder subst.
     eexists; left; eauto.
     destruct (Level.eq_dec l l'); subst; eexists; eauto.
   Qed.
@@ -305,7 +305,7 @@ Module Models (LS : LevelSets).
   Lemma is_higher_le l k l' k' m : is_higher l k m -> is_higher l k (add_max l' k' m).
   Proof.
     rewrite /is_higher.
-    rw add_max_spec.
+    rws add_max_spec.
     intros [k'0 [hm hle]].
     destruct (Level.eq_dec l l').
     - subst. eexists. split; eauto. rewrite (level_value_MapsTo hm).
@@ -316,7 +316,7 @@ Module Models (LS : LevelSets).
   Lemma is_higher_add l k m : is_higher l k (add_max l k m).
   Proof.
     rewrite /is_higher.
-    rw add_max_spec. eexists. split; eauto.
+    rws add_max_spec. eexists. split; eauto.
     apply max_opt_of_le_l.
   Qed.
 
@@ -358,7 +358,7 @@ Module Models (LS : LevelSets).
           * apply is_higher_le, H2. right. eexists; eauto. } }
         { destruct H2 as [_ [_ H2]].
           intros l' hin. move/H2 => [k'0 [hm hle]].
-          rw add_max_spec. destruct (Level.eq_dec l' xl).
+          rws add_max_spec. destruct (Level.eq_dec l' xl).
           - eexists; split. left; eauto. subst l'.
             rewrite (level_value_MapsTo hm). transitivity (k'0) => //.
             apply max_opt_of_le_r.

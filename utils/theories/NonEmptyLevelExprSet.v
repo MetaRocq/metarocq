@@ -228,11 +228,15 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Proof.
     funelim (to_nonempty_list (singleton e)). Tactics.bang.
     clear H.
-    pose proof (LevelExprSet.singleton_spec e1 e).
+    match goal with
+    | [ H : context [singleton ?x] |- _ ] =>
+      lazymatch type of H with _ = _ :: _ => rename x into e', H into hel end
+    end.
+    pose proof (LevelExprSet.singleton_spec e' e).
     rewrite LevelExprSetFact.elements_iff in H.
-    rewrite InA_In_eq in H. rewrite e0 in H.
+    rewrite InA_In_eq in H. rewrite hel in H.
     destruct H. forward H. now left. noconf H. f_equal.
-    pose proof (LevelExprSet.cardinal_spec (LevelExprSet.singleton e1)). rewrite e0 in H. cbn in H.
+    pose proof (LevelExprSet.cardinal_spec (LevelExprSet.singleton e')). rewrite hel in H. cbn in H.
     rewrite LevelExprSetProp.singleton_cardinal in H.
     destruct l => //.
   Qed.
@@ -241,7 +245,8 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
     let '(e, u') := to_nonempty_list u in
     e :: u' = LevelExprSet.elements u.
   Proof.
-    funelim (to_nonempty_list u). Tactics.bang. now rewrite e0.
+    funelim (to_nonempty_list u). Tactics.bang.
+    match goal with [ H : _ = _ :: _ |- _ ] => now rewrite H end.
   Qed.
 
   Lemma to_nonempty_list_spec' u :

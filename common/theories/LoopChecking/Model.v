@@ -709,7 +709,7 @@ Module Model (LS : LevelSets).
     forall cls', strictly_updates cls' w init_model m ->
     strictly_updates (Clauses.union cls cls') w' init_model m' /\ w ⊂_lset w'.
   Proof.
-    move/check_model_spec => [w'' [su eq]]. rw eq.
+    move/check_model_spec => [w'' [su eq]]. rws eq.
     intros cls' su'. split. 2:lsets.
     eapply trans_update; eapply strictly_updates_weaken; tea; clsets.
   Qed.
@@ -1911,7 +1911,7 @@ Module Model (LS : LevelSets).
     - apply strictly_updates_incl in su. lsets.
     - clear -su eq.
       move: w'' m m' su w' eq; apply: strictly_updates_elim.
-      { intros ? ? meq ? ? -> ? ? ->. rw meq. reflexivity. }
+      { intros ? ? meq ? ? -> ? ? ->. rws meq. reflexivity. }
       * move=> m cl m' incl su w' eq. exists cl. split => //. now eapply strict_update_invalid.
         unfold clause_conclusion. rewrite eq. rewrite /clause_conclusion. lsets.
         destruct cl as [prems [concl k]].
@@ -2081,6 +2081,7 @@ Module Model (LS : LevelSets).
     intros hcl.
     unfold min_premise.
     funelim (to_nonempty_list prems). bang. clear H.
+    match goal with [ H : _ = _ :: _ |- _ ] => rename H into e0 end.
     rw_in levels_spec hcl.
     have -> : min_atom_value m e = min_atom_value m' e.
     { destruct e as [k l'].
@@ -2145,7 +2146,7 @@ Module Model (LS : LevelSets).
   Proof.
     intros hm l hin.
     move/hm: hin => [k hin].
-    red. rw model_update_spec.
+    red. rws model_update_spec.
     destruct (LevelMapFact.F.In_dec m' l).
     - destruct i as [k' hin']. exists k'. right; split => //. now exists k.
     - exists k; left; split => //.
@@ -2154,7 +2155,7 @@ Module Model (LS : LevelSets).
   Lemma strictly_updates_restrict_only_model {cls W m m'} : strictly_updates cls W m m' ->
     only_model_of W (restrict_model W m').
   Proof.
-    intros su. red. rw restrict_model_spec.
+    intros su. red. rws restrict_model_spec.
     split => //. 2:clear; firstorder.
     eapply strictly_updates_total_model in su. move/[dup]/su. clear; firstorder.
   Qed.
@@ -2162,7 +2163,7 @@ Module Model (LS : LevelSets).
   Lemma only_model_of_restrict W m :
     model_of W m -> only_model_of W (restrict_model W m).
   Proof.
-    intros mof x. rw restrict_model_spec. firstorder.
+    intros mof x. rws restrict_model_spec. firstorder.
   Qed.
 
   Lemma strictly_updates_from_restrict {cls W W' m m'} :
@@ -2200,7 +2201,7 @@ Module Model (LS : LevelSets).
   Proof.
     intros hl l. apply levelmap_find_eq => k.
     rewrite !model_update_spec /LevelMap.In.
-    rw model_update_spec. firstorder.
+    rws model_update_spec. firstorder.
     right. split => //.
     destruct (LevelMapFact.F.In_dec upd l).
     - destruct i as [updv hk].
@@ -2645,7 +2646,7 @@ Module Model (LS : LevelSets).
   Lemma check_model_update_of {cls U m W m'} : check_model cls (U, m) = Some (W, m') ->
     exists W', is_update_of cls W' m m' /\ W =_lset LevelSet.union U W'.
   Proof.
-    move/check_model_spec => [w'' [su eq]]. rw eq. exists w''. split => //.
+    move/check_model_spec => [w'' [su eq]]. rws eq. exists w''. split => //.
     now eapply is_update_of_strictly_updates.
   Qed.
 
@@ -2889,7 +2890,7 @@ Module Model (LS : LevelSets).
     eapply entails_all_lower.
     intros l k. rewrite In_add_prems.
     intros [[prem premk] [inprem [= -> ->]]].
-    rw premise_values_spec. eexists.
+    rws premise_values_spec. eexists.
     split. exists premk. split => //.
     have hmz'' := hmz' prem _ inprem.
     depelim hmz''. depelim H2. rewrite H3 //=.

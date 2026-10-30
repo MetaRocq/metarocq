@@ -7,7 +7,7 @@ From MetaRocq.Utils Require Import utils NonEmptyLevelExprSet SemiLattice.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
-Ltac rw l := rewrite_strat (topdown l).
+Ltac rws l := rewrite_strat (topdown l).
 Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
 #[program] Global Instance reflect_eq_Z : ReflectEq Z := {
