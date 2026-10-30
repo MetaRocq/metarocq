@@ -32,7 +32,7 @@ depends: [
   "rocq-core" { >= "9.3~" & < "9.4~" }
   "rocq-stdlib" { (>= "9.2~" & < "10") | = "dev" }
   "rocq-equations" { >= "1.3.2" }
-  "coq-ext-lib" {>= "0.12"}
+  "coq-ext-lib" {>= "0.13.2"}
 ]
 synopsis: "The utility library of Template Rocq and PCUIC"
 description: """
