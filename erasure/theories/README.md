@@ -71,7 +71,6 @@ extended with a box construct for erased terms.
 [EWcbvEvalInd]: EWcbvEvalInd.v 
 [EWellformed]: EWellformed.v 
 [EWndEval]: EWndEval.v 
-[EWtAst]: EWtAst.v 
 [Erasure]: Erasure.v
 [EConstructorsAsBlocks]: EConstructorsAsBlocks.v
 [ErasureCorrectness]: ErasureCorrectness.v 

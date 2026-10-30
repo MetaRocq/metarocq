@@ -30,6 +30,12 @@ Import Init.Nat.
 Extract Inductive Common.hint_locality => "Hints.hint_locality" ["Hints.Local" "Hints.Export" "Hints.SuperGlobal"].
 Extract Constant Typing.guard_checking => "{ fix_guard = (fun _ _ _ -> true); cofix_guard = (fun _ _ _ -> true) }".
 
+(* The constant constructors of byte are represented as the integers 0..255 in declaration
+   order, so they can be compared natively instead of going through binary naturals. *)
+Extract Inlined Constant MetaRocq.Utils.ByteCompare.compare =>
+  "(fun x y -> let c = Stdlib.compare (Obj.magic x : int) (Obj.magic y : int) in
+               if c < 0 then Datatypes.Lt else if c = 0 then Datatypes.Eq else Datatypes.Gt)".
+
 Set Extraction Output Directory "gen-src".
 
 (* Silence the warnings for specifications axioms of int63 *)

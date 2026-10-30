@@ -1,6 +1,17 @@
 Utils
 Ssrbool
-WGraph
+MRInstances
+
+Common1
+Interfaces
+HornClauses
+InitialSemilattice
+HornSemilatticeEquiv
+Model
+Models
+PartialLoopChecking
+Deciders
+UnivLoopChecking
 UGraph0
 Reflect
 MRProd
@@ -13,6 +24,7 @@ PCUICPrimitive
 PCUICAst
 PCUICCases
 PCUICAstUtils
+PCUICGlobalEnv
 PCUICReflect
 PCUICEquality
 PCUICTyping

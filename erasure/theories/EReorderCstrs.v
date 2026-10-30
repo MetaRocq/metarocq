@@ -41,23 +41,6 @@ Section Tags.
   Definition new_tag tags tag := find_tag tags 0 tag.
   Definition old_tag (tags : list nat) tag := nth_error tags tag.
 
-  (*Lemma old_of_new tags oldidx :
-    old_tag tags oldidx >>= new_tag tags = Some oldidx.
-  Proof.
-    rewrite /old_tag /new_tag.
-    destruct nth_error eqn:hnth => //=. 2:admit.
-    revert hnth.
-    rewrite -{2}[oldidx]Nat.add_0_r. generalize 0.
-    induction tags in oldidx, n |- *.
-    - intros n0. now rewrite nth_error_nil.
-    - cbn. intros n0 hnth. case: eqb_spec.
-      intros ->. destruct oldidx => //. (* tags are unique *) admit.
-      intros neq.
-      destruct oldidx.
-      * cbn in hnth. now noconf hnth.
-      * cbn in hnth. rewrite (IHtags oldidx) //. f_equal. lia.
-  Qed.*)
-
   Lemma new_tag_spec tags newidx oldidx :
     new_tag tags newidx = Some oldidx ->
     old_tag tags oldidx = Some newidx.

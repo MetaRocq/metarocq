@@ -7,7 +7,7 @@ From Stdlib Require Import ssreflect.
 From Stdlib Require Import Uint63 SpecFloat.
 
 Record array_model {term : Type} :=
-  { array_level : Level.t;
+  { array_universe : Universe.t;
     array_type : term;
     array_default : term;
     array_value : list term }.
@@ -87,8 +87,8 @@ Instance reflect_eq_spec_float : ReflectEq SpecFloat.spec_float := EqDec_Reflect
 
 Import ReflectEq.
 
-Definition eqb_array {term} {equ : Level.t -> Level.t -> bool} {eqt : term -> term -> bool} (x y : array_model term) : bool :=
-   equ x.(array_level) y.(array_level) &&
+Definition eqb_array {term} {equ : Universe.t -> Universe.t -> bool} {eqt : term -> term -> bool} (x y : array_model term) : bool :=
+   equ x.(array_universe) y.(array_universe) &&
    forallb2 eqt x.(array_value) y.(array_value) &&
    eqt x.(array_default) y.(array_default) &&
    eqt x.(array_type) y.(array_type).
@@ -119,7 +119,7 @@ Next Obligation.
   - intros Heq%PString.compare_eq. rewrite Heq in Hcmp. inversion Hcmp.
 Qed.
 
-Equations eqb_prim_model {term} {equ : Level.t -> Level.t -> bool} {req : term -> term -> bool} {t : prim_tag} (x y : prim_model term t) : bool :=
+Equations eqb_prim_model {term} {equ : Universe.t -> Universe.t -> bool} {req : term -> term -> bool} {t : prim_tag} (x y : prim_model term t) : bool :=
   | primIntModel x, primIntModel y := ReflectEq.eqb x y
   | primFloatModel x, primFloatModel y := ReflectEq.eqb x y
   | primStringModel x, primStringModel y := ReflectEq.eqb x y
@@ -140,7 +140,7 @@ Qed.
 #[global]
 Instance prim_model_eqdec {term} {req : ReflectEq term} : forall p : prim_tag, EqDec (prim_model term p) := _.
 
-Equations eqb_prim_val {term} {equ : Level.t -> Level.t -> bool} {req : term -> term -> bool} (x y : prim_val term) : bool :=
+Equations eqb_prim_val {term} {equ : Universe.t -> Universe.t -> bool} {req : term -> term -> bool} (x y : prim_val term) : bool :=
   | (primInt; i), (primInt; i') := eqb_prim_model (equ := equ) (req := req) i i'
   | (primFloat; f), (primFloat; f') := eqb_prim_model (equ := equ) (req := req) f f'
   | (primString; s), (primString; s') := eqb_prim_model (equ := equ) (req := req) s s'
@@ -194,7 +194,7 @@ Inductive onPrims {term} (eq_term : term -> term -> Type) Re : prim_val term -> 
   | onPrimsFloat f : onPrims eq_term Re (primFloat; primFloatModel f) (primFloat; primFloatModel f)
   | onPrimsString s : onPrims eq_term Re (primString; primStringModel s) (primString; primStringModel s)
   | onPrimsArray a a' :
-    Re (Universe.make' a.(array_level)) (Universe.make' a'.(array_level)) ->
+    Re a.(array_universe) a'.(array_universe) ->
     eq_term a.(array_default) a'.(array_default) ->
     eq_term a.(array_type) a'.(array_type) ->
     All2 eq_term a.(array_value) a'.(array_value) ->
@@ -215,7 +215,7 @@ Inductive onPrims_dep {term} (eq_term : term -> term -> Type) (Re : Universe.t -
   | onPrimsFloat_dep f : onPrims_dep eq_term Re eq_term_dep Re' (primFloat; primFloatModel f) (primFloat; primFloatModel f) (onPrimsFloat _ _ f)
   | onPrimsString_dep s : onPrims_dep eq_term Re eq_term_dep Re' (primString; primStringModel s) (primString; primStringModel s) (onPrimsString _ _ s)
   | onPrimsArray_dep a a' :
-    forall (hre : Re (Universe.make' a.(array_level)) (Universe.make' a'.(array_level)))
+    forall (hre : Re  a.(array_universe) a'.(array_universe))
     (eqdef : eq_term a.(array_default) a'.(array_default))
     (eqty : eq_term a.(array_type) a'.(array_type))
     (eqt : All2 eq_term a.(array_value) a'.(array_value)),
@@ -229,14 +229,14 @@ Derive Signature for onPrims_dep.
 
 Set Equations Transparent.
 
-Definition mapu_array_model {term term'} (fl : Level.t -> Level.t) (f : term -> term')
+Definition mapu_array_model {term term'} (fl : Universe.t -> Universe.t) (f : term -> term')
   (ar : array_model term) : array_model term' :=
-  {| array_level := fl ar.(array_level);
+  {| array_universe := fl ar.(array_universe);
       array_value := map f ar.(array_value);
       array_default := f ar.(array_default);
       array_type := f ar.(array_type) |}.
 
-Equations mapu_prim {term term'} (f : Level.t -> Level.t) (g : term -> term')
+Equations mapu_prim {term term'} (f : Universe.t -> Universe.t) (g : term -> term')
   (p : PCUICPrimitive.prim_val term) : PCUICPrimitive.prim_val term' :=
 | _, _, (primInt; primIntModel i) => (primInt; primIntModel i)
 | _, _, (primFloat; primFloatModel fl) => (primFloat; primFloatModel fl)
@@ -254,12 +254,12 @@ Equations test_prim {term} (p : term -> bool) (p : prim_val term) : bool :=
 | p, (primArray; primArrayModel ar) =>
   List.forallb p ar.(array_value) && p ar.(array_default) && p ar.(array_type).
 
-Equations test_primu {term} (p : Level.t -> bool) (t : term -> bool) (p : prim_val term) : bool :=
+Equations test_primu {term} (p : Universe.t -> bool) (t : term -> bool) (p : prim_val term) : bool :=
 | _, _, (primInt; _) => true
 | _, _, (primFloat; _) => true
 | _, _, (primString; _) => true
 | p, pt, (primArray; primArrayModel ar) =>
-  p ar.(array_level) && forallb pt ar.(array_value) &&
+  p ar.(array_universe) && forallb pt ar.(array_value) &&
   pt ar.(array_default) && pt ar.(array_type).
 
 Lemma onPrims_map_prop {term term'} R R' Re p p' P f : @tPrimProp term P p ->

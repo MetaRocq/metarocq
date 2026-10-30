@@ -60,3 +60,9 @@ Lemma reflectT_pred2 {A B} {p : A -> B -> bool} : forall x y, reflectT (p x y) (
 Proof.
   intros x y. now apply equiv_reflectT.
 Qed.
+
+Inductive reflect_opt (PN PS : Prop) : option bool -> Prop :=
+  | ReflectNone : PN -> reflect_opt PN PS None
+  | ReflectSomeT : PS -> reflect_opt PN PS (Some true)
+  | ReflectSomeF : ~ PS -> reflect_opt PN PS (Some false).
+Derive Signature for reflect_opt.

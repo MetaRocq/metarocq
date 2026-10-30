@@ -789,7 +789,7 @@ Proof with eauto with wcbv; try congruence.
     + destruct a as []; cbn in *.
       clear hty.
       solve_all. clear -hvalue0 Hargs v.
-      set (a := {| array_level := _ |}).
+      set (a := {| array_universe := _ |}).
       assert (All (fun x : term => ((∑ t' : term, Σ ⊢ x ⇝ᵥ t') + value Σ x))%type array_value).
       { solve_all. } clear hvalue0 Hargs.
       eapply All_or_disj in X as [].
