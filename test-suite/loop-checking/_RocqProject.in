@@ -1,0 +1,8 @@
+-R theories MetaRocq.LoopChecking
+
+theories/LoopCheckingPlugin.v
+theories/Extraction.v
+
+# For testing
+theories/all_stdlib.v
+theories/loop_checking_live_test.v

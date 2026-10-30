@@ -177,9 +177,11 @@ let tmQuoteInductive (kn : kername) : (Names.MutInd.t * mutual_inductive_body) o
     with
       Not_found -> success ~st env evm None
 
-let tmQuoteUniverses : UGraph.t tm =
+let tmQuoteUniverses : Univ.ContextSet.t tm =
   fun ~st env evm success _fail ->
-    success ~st env evm (Environ.universes env)
+    let graph = Environ.universes env in
+    let uctx = Tm_util.ugraph_contextset graph in
+    success ~st env evm uctx
 
 let quote_module ~(include_functor : bool) ~(include_submodule : bool) ~(include_submodtype : bool) (qualid : qualid) : global_reference list =
   let mp = Nametab.locate_module qualid in

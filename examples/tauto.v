@@ -835,8 +835,6 @@ Proof.
       repeat inst. lia.
 Qed.
 
-Definition inspect {A} (x : A) : { y : A | y = x } := exist _ x eq_refl.
-
 Definition tmLocateInd (q : qualid) : TemplateMonad kername :=
   l <- tmLocate q ;;
   match l with
@@ -901,28 +899,28 @@ Equations reify (Σ : global_env_ext) (Γ : context) (P : term) : option form
     }
   }.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. lia.
 Qed.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. pose proof (tsize_downlift_le B 0).
   lia.
 Qed.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. lia.
 Qed.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. lia.
 Qed.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. lia.
 Qed.
 Next Obligation.
-  symmetry in e1. apply tsize_decompose_app in e1 as h1.
+  apply tsize_decompose_app in e1 as h1.
   simpl in h1. lia.
 Qed.
 

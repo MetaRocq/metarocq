@@ -38,7 +38,7 @@ end.
 Next Obligation.
 destruct Σ.(reference_impl_wf). sq.
 destruct X as [onu ond]; split => //. rewrite <- Heq_anonymous in ond.
-now depelim ond.
+depelim ond. apply ond.
 Qed.
 
 Program Definition make_wf_env_ext {cf:checker_flags} {guard : abstract_guard_impl}
@@ -50,7 +50,7 @@ Program Global Instance canonical_abstract_env_struct {cf:checker_flags} {guard 
   abstract_env_struct reference_impl reference_impl_ext :=
   {|
   abstract_env_lookup := fun Σ => lookup_env (reference_impl_env_ext Σ) ;
-  abstract_env_leqb_level_n := fun Σ => leqb_level_n (reference_impl_ext_graph Σ) ;
+  abstract_env_check := fun Σ => checkb (reference_impl_ext_graph Σ) ;
   abstract_env_level_mem := fun Σ l => LevelSet.mem l (global_ext_levels (reference_impl_env_ext Σ));
   abstract_env_guard := fun Σ fix_cofix => guard_impl fix_cofix (reference_impl_env_ext Σ);
   abstract_env_ext_rel := fun X Σ => Σ = reference_impl_env_ext X;
@@ -62,8 +62,11 @@ Program Global Instance canonical_abstract_env_struct {cf:checker_flags} {guard 
     {| reference_impl_env := add_global_decl X.(reference_impl_env) (kn,d); |};
   abstract_env_is_consistent X uctx :=
    let G := reference_impl_graph X in
-   let G' := add_uctx uctx G in
-   wGraph.is_acyclic G' && wGraph.IsFullSubgraph.is_full_extension G G' ;
+   (match push_uctx G uctx with
+    | Some G' => true
+      (* wGraph.IsFullSubgraph.is_full_extension G G' *)
+    | None => false
+    end) ;
   abstract_env_add_udecl X udecl Hglobal :=
     {| reference_impl_env_ext := (X.(reference_impl_env) , udecl); |} ;
   abstract_primitive_constant := fun X tag => primitive_constant X tag;
@@ -175,7 +178,7 @@ Program Global Instance optimized_abstract_env_struct {cf:checker_flags} {guard 
   abstract_env_struct wf_env wf_env_ext :=
  {|
  abstract_env_lookup := fun Σ k => EnvMap.lookup k (wf_env_ext_map Σ);
- abstract_env_leqb_level_n X := abstract_env_leqb_level_n X.(wf_env_ext_reference);
+ abstract_env_check X := abstract_env_check X.(wf_env_ext_reference);
  abstract_env_level_mem X := abstract_env_level_mem X.(wf_env_ext_reference);
  abstract_env_guard := fun Σ fix_cofix => guard_impl fix_cofix (wf_env_ext_reference Σ);
  abstract_env_ext_rel X := abstract_env_ext_rel X.(wf_env_ext_reference);
@@ -256,7 +259,7 @@ Definition build_wf_env_ext {cf : checker_flags} {guard : abstract_guard_impl} (
 Section GraphSpec.
   Context {cf:checker_flags} {guard : abstract_guard_impl} {Σ : global_env_ext} (HΣ : ∥ wf Σ ∥)
       (Hφ : ∥ on_udecl Σ.1 Σ.2 ∥)
-      (G : universes_graph) (HG : is_graph_of_uctx G (global_ext_uctx Σ)).
+      (G : universe_model) (HG : model_of_uctx G (global_ext_uctx Σ)).
 
   Local Definition HΣ' : ∥ wf_ext Σ ∥.
   Proof.
@@ -264,20 +267,26 @@ Section GraphSpec.
   Qed.
 
   Lemma is_graph_of_uctx_levels (l : Level.t) :
-    LevelSet.mem l (uGraph.wGraph.V G) <->
+    LevelSet.mem l (UnivLoopChecking.UnivLoopChecking.levels G) <->
     LevelSet.mem l (global_ext_levels Σ).
   Proof using HG.
-    unfold is_graph_of_uctx in HG.
-    case_eq (gc_of_uctx (global_ext_uctx Σ)); [intros [lvs cts] XX|intro XX];
-      rewrite -> XX in *; simpl in *; [|contradiction].
-    unfold gc_of_uctx in XX; simpl in XX.
-    destruct (gc_of_constraints Σ); [|discriminate].
-    inversion XX; subst.
-    unfold is_true. rewrite !LevelSet.mem_spec.
-    symmetry. apply HG.
+    destruct HG as [-> _].
+    rewrite ![is_true _]LevelSet.mem_spec LevelSet.union_spec LevelSet.singleton_spec.
+    split => //. intros [] => //. subst.
+    apply global_ext_levels_InSet. intuition.
   Qed.
 
 End GraphSpec.
+
+Import UnivLoopChecking.UnivLoopChecking.
+
+From Stdlib Require Import Morphisms.
+
+Instance wf_uctx_ext_proper : Morphisms.Proper (LevelSet.Equal ==> eq ==> iff) wf_uctx_ext.
+Proof.
+  intros ? ? ls ? ? ->.
+  rewrite /wf_uctx_ext. now setoid_rewrite ls.
+Qed.
 
 Program Global Instance canonical_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
   @abstract_env_prop _ _ _ canonical_abstract_env_struct :=
@@ -296,53 +305,58 @@ Next Obligation.
 Qed.
 Next Obligation.
   pose proof (reference_impl_ext_wf X); sq.
-  set (uctx := wf_ext_gc_of_uctx _) in *; destruct uctx as [[lc ctrs] Huctx].
   assert (consistent (global_ext_uctx X).2) as HC.
-      { sq; apply (global_ext_uctx_consistent _ H). }
-  simpl in HC. apply gc_consistent_iff in HC.
-  eapply leqb_level_n_spec; eauto.
-    + eapply gc_of_uctx_invariants; try eapply wf_ext_global_uctx_invariants; eauto.
-    + clear Hl Hl'. Opaque gc_of_constraints. cbn in *. Transparent gc_of_constraints.
-      destruct (gc_of_constraints X); inversion Huctx. now destruct H2.
-    + unfold reference_impl_ext_graph; cbn.
-      set (G := graph_of_wf_ext _); destruct G as [G HG].
-      cbn. unfold is_graph_of_uctx in HG. now rewrite Huctx in HG.
+      { sq; apply (global_ext_uctx_consistent _ H0). }
+  rewrite (checkb_spec (reference_impl_ext_graph X) (clean_uctx (global_ext_uctx X))).
+  + eapply wf_ext_global_uctx_invariants, H0.
+  + eapply model_of_clean_uctx.
+    apply (reference_impl_ext_graph_wf X).
+  + rewrite /clean_uctx. destruct c as [[l d] r]; cbn; rewrite levelset_add_remove. exact H.
+  + reflexivity.
 Qed.
 Next Obligation. pose (reference_impl_ext_wf X). sq. symmetry; apply LevelSet.Raw.mem_spec. typeclasses eauto. Defined.
 Next Obligation.
   pose (reference_impl_wf X). sq.
-  rename H0 into Hudecl. rename H1 into Hudecl'.
-  assert (H0 : global_uctx_invariants (global_uctx X)).
+  rename H0 into Hudecl.
+  assert (H0 : global_uctx_invariants (clean_uctx (global_uctx X))).
   { eapply wf_global_uctx_invariants; eauto. }
-  set (udecl := (t , t0)).
-  assert (H1 : global_uctx_invariants (ContextSet.union udecl (global_uctx X))).
-  { split => //.
-    - apply LevelSet.union_spec; right ; now destruct H0.
-    - intros [[l ct] l'] [Hl|Hl]%CS.union_spec.
-      + now specialize (Hudecl _ Hl).
-      + destruct H0 as [_ H0]. specialize (H0 _ Hl).
-        split; apply LevelSet.union_spec; right;
-        now cbn in H0.
-     }
-  unfold reference_impl_graph; rewrite andb_and.
-  pose proof (reference_impl_graph_wf X) as HG.
-  set (gph := (graph_of_wf X).π1) in *. clearbody gph. simpl in HG.
-  pose proof (HG' := is_graph_of_uctx_add Hudecl' HG).
-  pose (global_ext_uctx := ContextSet.union udecl (global_uctx X)).
-  pose (wf_consistent_extension_on_consistent udecl.2 s).
-  assert (reorder : forall a a' b c : Prop, (b -> a) -> (a /\ b <-> a' /\ c) -> b <-> a' /\ c) by intuition; eapply reorder; try eassumption; clear reorder.
-  rewrite - (is_consistent_spec global_ext_uctx) (is_consistent_spec2 HG').
-  assert (reorder : forall a b c : Prop, (a -> b <-> c) -> a /\ b <-> a /\ c) by intuition; apply reorder.
-  move=> ?; rewrite consistent_extension_on_union.
-  1:{ pose proof (reference_impl_wf X); sq.
-      apply: PCUICUnivSubstitutionConv.levels_global_constraint. }
-  cbn.
-  change (CS.union _ _) with global_ext_uctx.2.
-  apply: consistent_ext_on_full_ext=> //.
-  apply: add_uctx_subgraph.
+  destruct (push_uctx _ udecl) eqn:hp.
+  - split => // _.
+    have h := is_model_of_uctx (reference_impl_graph X). cbn in h.
+    pose proof (reference_impl_graph_wf X) as HG. simpl in HG.
+    unfold reference_impl_graph in hp.
+    eapply push_uctx_model in hp; tea.
+    exists (to_valuation (LoopCheck.valuation u.(model))).
+    destruct hp as [hl hc].
+    have hv := model_satisfies u. rewrite hc in hv.
+    apply satisfies_union in hv as [hv hv'].
+    apply satisfies_union in hv as [ht hg].
+    apply satisfies_union => //.
+  - split=> // hcon.
+    pose proof (reference_impl_graph_wf X) as HG. simpl in HG.
+    have hs := push_uctx_spec (reference_impl_graph X) udecl.
+    rewrite hp in hs. cbn in hs.
+    apply push_uctx_model_unsat in hp.
+    * exfalso; apply hp.
+      destruct hcon as [v h]. exists v. apply satisfies_union in h as [].
+      apply satisfies_union => //. split => //.
+      unfold reference_impl_graph. unfold global_constraints in H.
+      destruct HG as [hl hc]. rewrite hc.
+      apply satisfies_union. split => //. apply satisfies_init.
+    * clear H. move: Hudecl.
+      destruct HG as [hl hc].
+      move=> [hl' hc'].
+      rewrite /reference_impl_graph hl. cbn.
+      split.
+      { move=> l hin hin'. specialize (hl' l hin).
+        apply hl'. apply LevelSet.union_spec in hin' as [] => //.
+        apply LevelSet.singleton_spec in H. subst l.
+        apply global_levels_InSet. }
+      { move=> cl /hc'.
+        eapply declared_univ_cstr_levels_subset. lsets. reflexivity. }
 Qed.
-Next Obligation. apply guard_correct. Qed.
 
+Next Obligation. apply guard_correct. Qed.
 
 Program Global Instance optimized_abstract_env_prop {cf:checker_flags} {guard : abstract_guard_impl} :
   @abstract_env_prop _ _ _ optimized_abstract_env_struct :=
@@ -367,14 +381,15 @@ Next Obligation.
   now rewrite <- H.
 Qed.
 Next Obligation.
-    revert n l l' Hl Hl'. erewrite wf_ext_gc_of_uctx_irr.
-    exact (abstract_env_leqb_level_n_correct X.(wf_env_ext_reference) eq_refl).
+ (* erewrite wf_ext_gc_of_uctx_irr. *)
+ have h := abstract_env_check_correct X.(wf_env_ext_reference).
+ specialize (h cf _ _ _ X eq_refl). now apply h.
 Qed.
 Next Obligation.
   now erewrite (abstract_env_level_mem_correct X.(wf_env_ext_reference)).
 Qed.
 Next Obligation.
-  now erewrite (abstract_env_is_consistent_correct X.(wf_env_reference)) with (udecl := (t,t0)); eauto.
+  rewrite (abstract_env_is_consistent_correct X.(wf_env_reference)) //.
 Qed.
 Next Obligation. eapply guard_correct. Qed.
 

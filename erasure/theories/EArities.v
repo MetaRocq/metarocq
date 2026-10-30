@@ -513,13 +513,13 @@ Proof.
     now apply PCUICValidity.validity in t2.
 Qed.
 
-Lemma leq_sort_propositional_r {cf : checker_flags} (ϕ : ConstraintSet.t) (u1 u2 : sort) :
+Lemma leq_sort_propositional_r {cf : checker_flags} (ϕ : UnivConstraintSet.t) (u1 u2 : sort) :
   leq_sort ϕ u1 u2 -> Sort.is_propositional u2 -> Sort.is_propositional u1.
 Proof.
   destruct u1, u2 => //.
 Qed.
 
-Lemma leq_sort_propositional_l {cf : checker_flags} (ϕ : ConstraintSet.t) (u1 u2 : sort) :
+Lemma leq_sort_propositional_l {cf : checker_flags} (ϕ : UnivConstraintSet.t) (u1 u2 : sort) :
   prop_sub_type = false ->
   leq_sort ϕ u1 u2 -> Sort.is_propositional u1 -> Sort.is_propositional u2.
 Proof.

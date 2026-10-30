@@ -112,7 +112,7 @@ Module Type QuoteGlobalMapsSig (Import T: Term) (Import E: EnvironmentSig T) (Im
 
   #[export] Declare Instance quote_on_udecl {univs udecl} : ground_quotable (@on_udecl univs udecl).
   #[export] Declare Instance quote_satisfiable_udecl {univs ϕ} : ground_quotable (@satisfiable_udecl univs ϕ).
-  #[export] Declare Instance quote_valid_on_mono_udecl {univs ϕ} : ground_quotable (@valid_on_mono_udecl univs ϕ).
+  (* #[export] Declare Instance quote_valid_on_mono_udecl {univs ϕ} : ground_quotable (@valid_on_mono_udecl univs ϕ). *)
 
   #[export] Declare Instance quote_positive_cstr_arg {mdecl ctx t} : ground_quotable (@positive_cstr_arg mdecl ctx t).
   #[export] Declare Instance quote_positive_cstr {mdecl i ctx t} : ground_quotable (@positive_cstr mdecl i ctx t).

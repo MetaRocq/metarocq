@@ -2,7 +2,7 @@
 (* For primitive integers and floats  *)
 From Stdlib Require Numbers.Cyclic.Int63.Uint63 Floats.PrimFloat Floats.FloatAxioms.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import BasicAst Universes Kernames.
+From MetaRocq.Common Require Import BasicAst UnivConstraintType Universes Kernames.
 From Stdlib Require Import ssreflect.
 From Equations Require Import Equations.
 
@@ -203,7 +203,7 @@ Defined.
 
 Definition eqb_ConstraintType x y :=
   match x, y with
-  | ConstraintType.Le n, ConstraintType.Le m => Z.eqb n m
+  | ConstraintType.Le, ConstraintType.Le => true
   | ConstraintType.Eq, ConstraintType.Eq => true
   | _, _ => false
   end.
@@ -212,8 +212,6 @@ Definition eqb_ConstraintType x y :=
 Proof.
   refine {| eqb := eqb_ConstraintType |}.
   destruct x, y; simpl; try constructor; try congruence.
-  destruct (Z.eqb_spec z z0); constructor. now subst.
-  cong.
 Defined.
 
 #[global, program] Instance Z_as_int : ReflectEq Int.Z_as_Int.t :=
@@ -223,6 +221,7 @@ Next Obligation.
 Qed.
 
 Scheme level_lt_ind_dep := Induction for Level.lt_ Sort Prop.
+Scheme level_expr_lt_ind_dep := Induction for LevelExpr.lt_ Sort Prop.
 Scheme constraint_type_lt_ind_dep := Induction for ConstraintType.lt_ Sort Prop.
 Scheme constraint_lt_ind_dep := Induction for UnivConstraint.lt_ Sort Prop.
 Derive Signature for UnivConstraint.lt_.
@@ -254,10 +253,36 @@ Proof.
   - f_equal. apply nat_le_irrel.
 Qed.
 
+Lemma lt_levelexpr_irrel {x y : LevelExpr.t} (l l' : LevelExpr.lt_ x y) : l = l'.
+Proof.
+  induction l using level_expr_lt_ind_dep.
+  - depelim l'; auto.
+    * now replace l0 with l2 by now apply nat_le_irrel.
+    * exfalso. now eapply RelationClasses.irreflexivity in l2.
+  - depelim l'; auto.
+    * exfalso. now eapply RelationClasses.irreflexivity in l0.
+    * now replace l0 with l2 by now apply lt_level_irrel.
+Qed.
+
+From Stdlib Require Import ProofIrrelevance.
+
+Lemma lt_universe_irrel {x y : Universe.t} (l l' : LevelExprSet.lt x y) : l = l'.
+Proof.
+  apply ProofIrrelevance.proof_irrelevance.
+Qed.
+  (* destruct l.
+  induction l using level_expr_set_lt_ind_dep.
+  - depelim l'; auto.
+    * now replace l0 with l2 by now apply nat_le_irrel.
+    * exfalso. now eapply RelationClasses.irreflexivity in l2.
+  - depelim l'; auto.
+    * exfalso. now eapply RelationClasses.irreflexivity in l0.
+    * now replace l0 with l2 by now apply lt_level_irrel.
+Qed. *)
+
 Lemma constraint_type_lt_level_irrel {x y} (l l' : ConstraintType.lt_ x y) : l = l'.
 Proof.
   induction l using constraint_type_lt_ind_dep; depelim l'; auto.
-  f_equal. apply uip.
 Qed.
 
 From Stdlib Require Import RelationClasses.
@@ -265,8 +290,8 @@ From Stdlib Require Import RelationClasses.
 Lemma constraint_lt_irrel (x y : UnivConstraint.t) (l l' : UnivConstraint.lt_ x y) : l = l'.
 Proof.
   revert l'. induction l using constraint_lt_ind_dep.
-  - intros l'. depelim l'.
-    now rewrite (lt_level_irrel l l4).
+  - intros l'. depelim l'. f_equal.
+    apply lt_universe_irrel.
     now elim (irreflexivity (R:=ConstraintType.lt) l4).
     now elim (irreflexivity l4).
   - intros l'; depelim l'.
@@ -276,7 +301,7 @@ Proof.
   - intros l'; depelim l'.
     now elim (irreflexivity l).
     now elim (irreflexivity l).
-    now rewrite (lt_level_irrel l l4).
+    now rewrite (lt_universe_irrel l l4).
 Qed.
 
 Module LevelSetsUIP.
@@ -335,19 +360,19 @@ Module LevelSetsUIP.
 End LevelSetsUIP.
 
 Module ConstraintSetsUIP.
-  Import ConstraintSet.Raw.
+  Import UnivConstraintSet.Raw.
 
   Fixpoint cs_tree_eqb (x y : t) :=
     match x, y with
-    | ConstraintSet.Raw.Leaf, ConstraintSet.Raw.Leaf => true
-    | ConstraintSet.Raw.Node h l o r, ConstraintSet.Raw.Node h' l' o' r' =>
+    | UnivConstraintSet.Raw.Leaf, UnivConstraintSet.Raw.Leaf => true
+    | UnivConstraintSet.Raw.Node h l o r, UnivConstraintSet.Raw.Node h' l' o' r' =>
       eqb h h' && cs_tree_eqb l l' && eqb o o' && cs_tree_eqb r r'
     | _, _ => false
     end.
 
-  Scheme cs_tree_rect := Induction for ConstraintSet.Raw.tree Sort Type.
+  Scheme cs_tree_rect := Induction for UnivConstraintSet.Raw.tree Sort Type.
 
-  #[global,program] Instance cs_tree_reflect : ReflectEq ConstraintSet.Raw.t :=
+  #[global,program] Instance cs_tree_reflect : ReflectEq UnivConstraintSet.Raw.t :=
    {| eqb := cs_tree_eqb |}.
   Next Obligation.
     induction x using cs_tree_rect; destruct y; try constructor; auto; try congruence.
@@ -359,10 +384,10 @@ Module ConstraintSetsUIP.
   Qed.
 
   Definition eqb_ConstraintSet x y :=
-    eqb (ConstraintSet.this x) (ConstraintSet.this y).
+    eqb (UnivConstraintSet.this x) (UnivConstraintSet.this y).
 
-  Derive NoConfusion for ConstraintSet.Raw.tree.
-  Derive Signature for ConstraintSet.Raw.bst.
+  Derive NoConfusion for UnivConstraintSet.Raw.tree.
+  Derive Signature for UnivConstraintSet.Raw.bst.
 
   Lemma ok_irrel (x : t) (o o' : Ok x) : o = o'.
   Proof.
@@ -377,7 +402,7 @@ Module ConstraintSetsUIP.
       apply constraint_lt_irrel.
   Qed.
 
-  #[global,program] Instance reflect_ConstraintSet : ReflectEq ConstraintSet.t :=
+  #[global,program] Instance reflect_ConstraintSet : ReflectEq UnivConstraintSet.t :=
    {| eqb := eqb_ConstraintSet |}.
   Next Obligation.
     intros [thisx okx] [thisy oky].

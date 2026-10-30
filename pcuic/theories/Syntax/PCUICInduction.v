@@ -32,9 +32,9 @@ Lemma term_forall_list_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t u : term, P t -> P u -> P (tApp t u)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ind : case_info) (p : predicate term),
         tCasePredProp P P p -> forall c : term, P c -> forall l : list (branch term),
         tCaseBrsProp P l -> P (tCase ind p c l)) ->
@@ -255,9 +255,9 @@ Lemma term_forall_mkApps_ind :
     (forall (n : aname) (t : term),
         P t -> forall t0 : term, P t0 -> forall t1 : term, P t1 -> P (tLetIn n t t0 t1)) ->
     (forall t : term, forall v, ~ isApp t -> P t -> v <> [] -> All P v -> P (mkApps t v)) ->
-    (forall (s : kername) (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall (s : kername) (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ind : case_info) (p : predicate term),
         tCasePredProp P P p ->
         forall c : term, P c -> forall l : list (branch term),
@@ -482,9 +482,9 @@ Lemma term_forall_ctx_list_ind :
     (forall Γ (n : aname) (t : term),
         P Γ t -> forall t0 : term, P Γ t0 -> forall t1 : term, P (vdef n t t0 :: Γ) t1 -> P Γ (tLetIn n t t0 t1)) ->
     (forall Γ (t u : term), P Γ t -> P Γ u -> P Γ (tApp t u)) ->
-    (forall Γ s (u : list Level.t), P Γ (tConst s u)) ->
-    (forall Γ (i : inductive) (u : list Level.t), P Γ (tInd i u)) ->
-    (forall Γ (i : inductive) (n : nat) (u : list Level.t), P Γ (tConstruct i n u)) ->
+    (forall Γ s (u : Instance.t), P Γ (tConst s u)) ->
+    (forall Γ (i : inductive) (u : Instance.t), P Γ (tInd i u)) ->
+    (forall Γ (i : inductive) (n : nat) (u : Instance.t), P Γ (tConstruct i n u)) ->
     (forall Γ (ci : case_info) (p : predicate term) (t : term) (brs : list (branch term)),
         CasePredProp P Γ p ->
         P Γ t ->
@@ -599,9 +599,9 @@ Lemma term_ind_size_app :
     (forall (t u : term),
         (forall t', size t' < size (tApp t u) -> P t') ->
         P t -> P u -> P (tApp t u)) ->
-    (forall s (u : list Level.t), P (tConst s u)) ->
-    (forall (i : inductive) (u : list Level.t), P (tInd i u)) ->
-    (forall (i : inductive) (n : nat) (u : list Level.t), P (tConstruct i n u)) ->
+    (forall s (u : Instance.t), P (tConst s u)) ->
+    (forall (i : inductive) (u : Instance.t), P (tInd i u)) ->
+    (forall (i : inductive) (n : nat) (u : Instance.t), P (tConstruct i n u)) ->
     (forall (ci : case_info) (p : PCUICAst.predicate term) (c : term) (brs : list (branch term)),
         tCasePredProp P P p -> P c ->
         tCaseBrsProp P brs -> P (tCase ci p c brs)) ->

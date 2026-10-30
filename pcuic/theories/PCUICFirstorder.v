@@ -437,6 +437,9 @@ Proof using Type.
   all: destruct l; eauto.
 Qed.
 
+Arguments Nat.leb : simpl never.
+Arguments Nat.ltb : simpl never.
+
 Lemma firstorder_args {Σ : global_env_ext} {wfΣ : wf Σ} { mind cbody i n ui args u pandi oind} :
   declared_constructor Σ (i, n) mind oind cbody ->
   PCUICArities.typing_spine Σ [] (type_of_constructor mind cbody (i, n) ui) args (mkApps (tInd i u) pandi) ->

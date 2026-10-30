@@ -24,7 +24,7 @@ From MetaRocq.SafeChecker Require Import PCUICEqualityDec PCUICSafeReduce PCUICE
   PCUICSafeConversion PCUICWfReduction PCUICWfEnv.
 
 From Equations Require Import Equations.
-From Stdlib Require Import ssreflect ssrbool.
+From Stdlib Require Import ssreflect ssrbool ssrfun.
 From Stdlib Require Import Program.
 
 Local Set Keyed Unification.
@@ -47,81 +47,50 @@ Proof.
 Qed.
 
 
-Lemma subst_global_uctx_invariants {cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf_ext Σ} {inst cstrs} {u : Instance.t} :
-  global_uctx_invariants (global_ext_uctx (Σ,Polymorphic_ctx (inst, cstrs))) ->
-  Forall (fun l => LevelSet.mem l (global_ext_levels Σ)) u ->
-  global_uctx_invariants ((global_ext_uctx Σ).1,subst_instance_cstrs u cstrs).
+Lemma subst_univ_scope Σ t u inst cstrs :
+  Forall (fun l : Universe.t => LevelSet.subset (Universe.levels l) (global_ext_levels Σ)) u ->
+  LevelSet.Subset (Universe.levels t) (LevelSet.add Level.lzero (LevelSet.union (AUContext.levels (inst, cstrs)) (global_levels Σ))) ->
+  LevelSet.Subset (Universe.levels t@[u]) (LevelSet.add Level.lzero (global_ext_levels Σ)).
 Proof.
-  intros [_ Hcs] Hu. split.
-  - apply global_ext_levels_InSet.
+  move=> hf hs l /Universe.levels_spec; case=> k /In_subst_instance; case=> x [] hin' /subst_instance_level_expr_spec.
+  case=> [[hv eq]|[n [k' [heq hnth]]]].
+  + subst x. cbn in hv.
+    move/subset_levels: hs => /(_ _ hin') //=.
+    rewrite LS.add_spec => -[->|] //; try lsets.
+    move/LS.union_spec => -[|].
+    { destruct l => //.
+      + lsets.
+      + intros h; by apply monomorphic_level_notin_AUContext in h. }
+    rewrite /global_ext_levels; lsets.
+  + subst x.
+    destruct nth_error eqn:hnth'.
+    eapply Forall_All in hf.
+    eapply All_nth_error in hf; tea.
+    apply Universe.map_spec in hnth as [? []].
+    destruct x; noconf H0. cbn. apply LevelSet.subset_spec in hf.
+    move/subset_levels: hf => /(_ _ H) //=. lsets. noconf hnth. lsets.
+Qed.
+
+Lemma subst_global_uctx_invariants {cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf_ext Σ} {inst cstrs} {u : Instance.t} :
+  global_uctx_invariants (clean_uctx (global_ext_uctx (Σ,Polymorphic_ctx (inst, cstrs)))) ->
+  Forall (fun l => LevelSet.subset (Universe.levels l) (global_ext_levels Σ)) u ->
+  global_uctx_invariants (clean_uctx ((global_ext_uctx Σ).1,subst_instance_cstrs u cstrs)).
+Proof.
+  intros [he Hcs] Hu. split.
+  - cbn in he |- *. intros hin; apply he.
+    now rewrite LevelSet.remove_spec in hin.
   - pose proof Σ as [Σ' φ]. pose proof wfΣ as [HΣ' Hφ].
     rewrite /uctx_invariants /= in Hcs |- *.
     intros [[l ct] l'] Hctr.
-    rewrite /subst_instance_cstrs /= in Hctr.
-    rewrite ConstraintSetProp.fold_spec_right in Hctr.
-    set cstrs' := (List.rev (CS.elements cstrs)) in Hctr.
-    set Σ'' := (Σ.1,Polymorphic_ctx (inst, cstrs)) in Hcs.
-    assert ((exists ct' l'', SetoidList.InA eq (l,ct',l'') cstrs') ->
-      declared l (global_ext_levels Σ'')) as Hcs'.
-    {
-      intros [ct' [l'' in']].
-      specialize (Hcs (l,ct',l'')).
-      apply Hcs.
-      eapply ConstraintSet.union_spec. left.
-      now apply ConstraintSetFact.elements_2, SetoidList.InA_rev.
-    }
-    assert ((exists ct' l'', SetoidList.InA eq (l'',ct',l') cstrs') ->
-      declared l' (global_ext_levels Σ'')) as Hcs''.
-    {
-      intros [ct' [l'' in']].
-      specialize (Hcs (l'',ct',l')).
-      apply Hcs.
-      eapply ConstraintSet.union_spec. left.
-      now apply ConstraintSetFact.elements_2, SetoidList.InA_rev.
-    }
-    clear Hcs.
-    induction cstrs' ; cbn in Hctr.
-    + now apply ConstraintSetFact.empty_iff in Hctr.
-    + apply CS.add_spec in Hctr as [].
-      2:{
-        apply IHcstrs' ; tea.
-        all: intros [? []].
-        1: apply Hcs'.
-        2: apply Hcs''.
-        all: do 2 eexists.
-        all: now constructor 2.
-      }
-      clear IHcstrs'.
-      rewrite /subst_instance_cstr in H.
-      inversion H ; subst ; clear H.
-      destruct a as [[l t] l'] ; cbn -[global_ext_levels] in *.
-      rewrite /subst_instance_level.
-      split.
-      * destruct l.
-        -- now eapply wf_ext_global_uctx_invariants.
-        -- cbn in Hcs'.
-          forward Hcs'.
-          do 2 eexists.
-          constructor.
-          reflexivity.
-          eapply In_Level_global_ext_poly in Hcs'.
-          red. eapply LevelSet.union_spec. now right.
-        -- apply LevelSetFact.mem_2.
-          pattern (nth n u Level.lzero).
-          apply Forall_nth_def ; tea.
-          now eapply LevelSetFact.mem_1, wf_ext_global_uctx_invariants.
-      * destruct l'.
-        -- now eapply wf_ext_global_uctx_invariants.
-        -- forward Hcs''.
-          do 2 eexists.
-          constructor.
-          reflexivity.
-          eapply In_Level_global_ext_poly in Hcs''.
-          eapply LevelSet.union_spec. now right.
-        -- apply LevelSetFact.mem_2.
-          pattern (nth n u Level.lzero).
-          apply Forall_nth_def ; tea.
-          now eapply LevelSetFact.mem_1, wf_ext_global_uctx_invariants.
+    apply In_subst_instance_cstrs in Hctr as [c' [heq hin]].
+    destruct c' as [[? ?] ?]; noconf heq. cbn.
+    red in Hcs. move: (Hcs (t, t0, t1)) => /fwd.
+    unfold global_ext_constraints. cbn. ucsets.
+    intros [hl hr]. cbn in hl, hr.
+    rewrite /global_ext_levels //= in hl, hr.
+    rewrite levelset_add_remove in hl, hr |- *.
+    rewrite levelset_add_remove.
+    split; eapply subst_univ_scope; tea.
 Qed.
 
 (** It otherwise tries [auto with *], very bad idea. *)
@@ -136,8 +105,8 @@ Ltac Corelib.Program.Tactics.program_solve_wf ::=
 Implicit Types (cf : checker_flags) (Σ : global_env_ext).
 
 Lemma declared_global_uctx_global_ext_uctx {l} {Σ : global_env} {univs} :
-  declared l (global_uctx Σ).1 ->
-  declared l (global_ext_uctx (Σ, univs)).1.
+  LevelSet.In l (global_uctx Σ).1 ->
+  LevelSet.In l (global_ext_uctx (Σ, univs)).1.
 Proof.
   intros hd.
   eapply LevelSet.union_spec. now right.
@@ -145,20 +114,31 @@ Qed.
 
 Lemma global_uctx_invariants_ext {cf} {Σ : global_env} {wfΣ : wf Σ} {univs} :
   on_udecl_prop Σ univs ->
-  global_uctx_invariants (global_ext_uctx (Σ, univs)).
+  global_uctx_invariants (clean_uctx (global_ext_uctx (Σ, univs))).
 Proof.
   intros ond.
   pose proof (wf_global_uctx_invariants _ wfΣ) as [Hs Hc].
   split.
-  - eapply LevelSet.union_spec. right. apply Hs.
+  - cbn. rewrite LevelSet.remove_spec. intros []; congruence.
   - intros x hx.
     cbn in hx. unfold global_ext_constraints in hx.
-    eapply ConstraintSet.union_spec in hx.
-    destruct hx. cbn in H.
-    * now apply ond.
-    * specialize (Hc x H).
-      destruct x as ((l'&d')&r').
-      now destruct Hc; split; eapply declared_global_uctx_global_ext_uctx.
+    eapply UnivConstraintSet.union_spec in hx.
+    destruct hx.
+    + cbn in H.
+      specialize (ond x H).
+      destruct x as [[l d] r]; cbn.
+      cbn in ond. rewrite levelset_add_remove.
+      rewrite /global_ext_levels //=. split; lsets.
+    + cbn in H.
+      specialize (Hc x).
+      destruct x as [[l d] r]; cbn.
+      cbn in ond. rewrite levelset_add_remove.
+      rewrite /global_ext_levels //=. forward Hc.
+      now cbn. destruct Hc. split.
+      * rewrite H0. rewrite /clean_uctx.
+        rewrite levelset_add_remove. lsets.
+      * rewrite H1. rewrite /clean_uctx.
+        rewrite levelset_add_remove. lsets.
 Qed.
 
 Lemma spine_subst_smash_inv {cf : checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ}
@@ -1027,19 +1007,60 @@ Section Typecheck.
   Qed.
 
   Definition abstract_env_level_mem_forallb {Σ} (wfΣ : abstract_env_ext_rel X Σ) u :
-    forallb (level_mem Σ) u = forallb (abstract_env_level_mem X) u.
+    forallb (LevelSet.for_all (level_mem Σ) $ Universe.levels) u = forallb (LevelSet.for_all (abstract_env_level_mem X) $ Universe.levels) u.
   Proof using Type.
     induction u; eauto; cbn.
-    set (b := LevelSet.Raw.mem _ _). set (b' := abstract_env_level_mem _ _).
-    assert (Hbb' : b = b').
-    { unfold b'. apply eq_true_iff_eq. split; intro.
-      eapply (abstract_env_level_mem_correct X wfΣ a); apply (LevelSet.Raw.mem_spec _ a); eauto.
-      apply (LevelSet.Raw.mem_spec _ a); eapply (abstract_env_level_mem_correct X wfΣ a); eauto.
-    }
-    now destruct Hbb'.
+    rewrite IHu. f_equal. unfold compose. apply eqb_iff.
+    rewrite ![_ = true]LevelSet.for_all_spec.
+    change (fun x => abstract_env_level_mem X x = true) with (fun x => is_true (abstract_env_level_mem X x)).
+    split => ha l /ha h.
+    - rewrite -[is_true _](abstract_env_level_mem_correct X wfΣ).
+      unfold level_mem in h. now apply LevelSet.mem_spec in h.
+    - apply LevelSet.mem_spec.
+      now rewrite -[is_true _](abstract_env_level_mem_correct X wfΣ) in h.
   Qed.
 
-  Equations check_consistent_instance  uctx (wfg : forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ global_uctx_invariants (global_ext_uctx (Σ.1, uctx)) ∥)
+  Definition levels_subset Σ (ls : LevelSet.t) := LevelSet.subset ls (global_ext_levels Σ).
+
+  Lemma forall_mem_subset Σ u :
+    forallb (LevelSet.for_all (level_mem Σ) ∘ Universe.levels) u =
+    forallb (fun u0 : Universe.t => LevelSet.subset (Universe.levels u0) (global_ext_levels Σ)) u.
+  Proof.
+    apply forallb_ext => x.
+    apply eqb_iff. rewrite LevelSet.subset_spec LS.for_all_spec.
+    rewrite subset_levels.
+    rewrite /LS.For_all. setoid_rewrite Universe.levels_spec; rewrite /level_mem.
+    setoid_rewrite LevelSet.mem_spec. split.
+    * clear. intros h lk hin. apply h. exists lk.2; now destruct lk.
+    * clear. intros h l [k h']. move/h: h' => //=.
+  Qed.
+
+  Lemma eq_false_true b : b = false ->
+    b -> False.
+  Proof. destruct b => //. Qed.
+
+  Equations declared_universe u : typing_result_comp (forall Σ (wfΣ : abstract_env_ext_rel X Σ), wf_universe Σ u) :=
+  declared_universe u with inspect (LevelSet.for_all (abstract_env_level_mem X) @@ Universe.levels u) := {
+        | exist false e2 := raise (Msg "undeclared level in universe")
+        | exist true e2 := ret _ }.
+  Next Obligation.
+    pose proof (heΣ _ wfΣ) as [[_wfΣ s]]. specialize_Σ wfΣ.
+    symmetry in e2. eapply LevelSet.for_all_spec in e2.
+    specialize (e2 l.1).
+    move: e2 => /fwd. apply Universe.levels_spec. now exists l.2; destruct l.
+    move/(abstract_env_level_mem_correct X wfΣ). destruct l => //. tc.
+  Qed.
+  Next Obligation.
+    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]]; specialize_Σ wfΣ;
+    pose proof (heΣ _ wfΣ) as [heΣ].
+    symmetry in e2; move: e2.
+    move/eq_false_true; apply.
+    apply LevelSet.for_all_spec; tc => l.
+    move/Universe.levels_spec => -[k] /H //=.
+    now rewrite abstract_env_level_mem_correct; tea.
+  Qed.
+
+  Equations check_consistent_instance  uctx (wfg : forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ global_uctx_invariants (clean_uctx (global_ext_uctx (Σ.1, uctx))) ∥)
     u
     : typing_result_comp (forall Σ (wfΣ : abstract_env_ext_rel X Σ), consistent_instance_ext Σ uctx u) :=
   check_consistent_instance (Monomorphic_ctx) wfg u
@@ -1051,7 +1072,7 @@ Section Typecheck.
     with inspect (AUContext.repr (inst, cstrs)) := {
     | exist inst' _ with (Nat.eq_dec #|u| #|inst'.1|) := {
       | right e1 := raise (Msg "instance does not have the right length") ;
-      | left e1 with inspect (forallb (abstract_env_level_mem X) u) := {
+      | left e1 with inspect (forallb (LevelSet.for_all (abstract_env_level_mem X) $ Universe.levels) u) := {
         | exist false e2 := raise (Msg "undeclared level in instance") ;
         | exist true e2 with inspect (abstract_env_check_constraints X (subst_instance_cstrs u cstrs)) := {
           | exist false e3 := raise (Msg "ctrs not satisfiable") ;
@@ -1062,13 +1083,15 @@ Section Typecheck.
   Qed.
   Next Obligation.
     pose proof (heΣ _ wfΣ) as [[_wfΣ s]]. specialize_Σ wfΣ.
-    assert (forallb (fun l : LevelSet.elt => LevelSet.mem l (global_ext_levels Σ)) u).
-    { symmetry in e2. rewrite abstract_env_level_mem_forallb; eauto. }
+    assert (forallb (fun u : Universe.t => LevelSet.subset (Universe.levels u) (global_ext_levels Σ)) u).
+    { symmetry in e2. erewrite <- abstract_env_level_mem_forallb in e2; eauto.
+      now rewrite -forall_mem_subset. }
     repeat split; eauto.
-    - sq. unshelve eapply (abstract_env_check_constraints_correct X); eauto.
-      now apply nor_check_univs. pose proof (abstract_env_ext_wf _ wfΣ) as [HΣ].
-      eapply (subst_global_uctx_invariants (u := u)) in wfg; eauto. apply wfg.
-      solve_all.
+    sq. unshelve eapply (abstract_env_check_constraints_correct X); eauto.
+    now apply nor_check_univs. pose proof (abstract_env_ext_wf _ wfΣ) as [HΣ].
+    eapply (subst_global_uctx_invariants (u := u)) in wfg; eauto.
+    apply wfg.
+    solve_all.
   Qed.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]]; specialize_Σ wfΣ;
@@ -1080,17 +1103,15 @@ Section Typecheck.
       now clear -H.
       now apply nor_check_univs.
       pose proof (abstract_env_ext_wf _ wfΣ) as [HΣ].
-      eapply (subst_global_uctx_invariants (u := u)) in wfg; eauto. apply wfg.
-      assert (forallb (fun l : LevelSet.elt => LevelSet.mem l (global_ext_levels Σ)) u).
-      { rewrite abstract_env_level_mem_forallb; eauto. }
-      solve_all.
+      eapply (subst_global_uctx_invariants (u := u)) in wfg; eauto.
+      apply wfg. destruct H. solve_all.
   Qed.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]]; specialize_Σ wfΣ;
     pose proof (heΣ _ wfΣ) as [heΣ]. sq.
     clear -e2 H heΣ wfΣ.
-    erewrite <- abstract_env_level_mem_forallb in e2; eauto.
-    now rewrite <- e2 in H.
+    erewrite <-abstract_env_level_mem_forallb in e2; eauto.
+    now rewrite forall_mem_subset in e2.
   Qed.
   Next Obligation.
     now destruct (abstract_env_ext_exists X) as [[Σ wfΣ]]; specialize_Σ wfΣ.
@@ -1390,7 +1411,7 @@ Section Typecheck.
       check_eq_true (eqb decl.(cst_type) (tSort Sort.type0)) (Msg "primitive type for strings is registered to an axiom whose type is not the sort Set") ;;
       ret _
    | primArray | decl :=
-      let s := sType (Universe.make' (Level.lvar 0)) in
+      let s := sType (Universe.of_level (Level.lvar 0)) in
       check_eq_true (eqb decl.(cst_body) None) (Msg "primitive type is registered to a defined constant") ;;
       check_eq_true (eqb decl.(cst_universes) (Polymorphic_ctx array_uctx)) (Msg "primitive type is registered to a monomorphic constant") ;;
       check_eq_true (eqb decl.(cst_type) (tImpl (tSort s) (tSort s))) (Msg "primitive type for arrays is registered to an axiom whose type is not of shape Type -> Type") ;;
@@ -1400,6 +1421,7 @@ Section Typecheck.
     all:try apply eqb_eq in i0.
     all:try apply eqb_eq in i1 => //.
     all:destruct H as []; apply absurd; rewrite ?H ?H0 ?H1; eauto.
+    all:apply eqb_refl.
   Qed.
 
   Section make_All.
@@ -1427,8 +1449,8 @@ Section Typecheck.
       | (primFloat; primFloatModel f) := ret _
       | (primString; primStringModel f) := ret _
       | (primArray; primArrayModel a) :=
-        check_eq_true (abstract_env_ext_wf_universeb X (Universe.make' a.(array_level))) (Msg "primitive array level is not well-formed") ;;
-        check_type <- bdcheck infer Γ wfΓ a.(array_type) (tSort (sType (Universe.make' a.(array_level)))) _ ;;
+        check_eq_true (abstract_env_ext_wf_universeb X a.(array_universe)) (Msg "primitive array level is not well-formed") ;;
+        check_type <- bdcheck infer Γ wfΓ a.(array_type) (tSort (sType a.(array_universe))) _ ;;
         check_default <- bdcheck infer Γ wfΓ a.(array_default) a.(array_type) _ ;;
         check_values <- make_All (fun x => bdcheck infer Γ wfΓ x a.(array_type) _) a.(array_value) ;;
         ret _.
@@ -1440,23 +1462,24 @@ Section Typecheck.
       - eauto.
       - sq. erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
         eapply has_sort_isType; eapply type_Sort; eauto.
-        now move/@wf_universe_reflect: i.
+        now move/@wf_universeP: i.
       - specialize (check_type _ wfΣ) as [].
         sq; eapply checking_typing in X0; eauto. now eapply has_sort_isType.
         erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
         eapply has_sort_isType; eapply type_Sort; eauto.
-        now move/@wf_universe_reflect: i.
+        now move/@wf_universeP: i.
       - specialize (check_type _ wfΣ) as [].
         sq; eapply checking_typing in X0; eauto. now eapply has_sort_isType.
         erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
         eapply has_sort_isType; eapply type_Sort; eauto.
-        now move/@wf_universe_reflect: i.
+        now move/@wf_universeP: i.
       - specialize (check_type _ wfΣ) as [].
         specialize (check_default _ wfΣ) as [].
-        assert (∥ Σ;;; Γ |- array_type a : tSort (sType (Universe.make' (array_level a))) ∥) as [].
+        assert (∥ Σ;;; Γ |- array_type a : tSort (sType (array_universe a)) ∥) as [].
         { sq. eapply checking_typing in X0; eauto.
           erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
-          eapply has_sort_isType; eapply type_Sort; eauto. now move/@wf_universe_reflect: i. }
+          eexists; cbn. exact tt. eexists; split => //.
+          eapply type_Sort; eauto. now move/@wf_universeP: i. }
         assert (∥ All (fun x : term => Σ;;; Γ |- x ◃ array_type a) (array_value a) ∥).
         { induction check_values.
           - repeat constructor.
@@ -1465,7 +1488,7 @@ Section Typecheck.
             constructor. constructor; eauto. }
         sq; constructor; eauto.
         erewrite <- abstract_env_ext_wf_universeb_correct in i; tea.
-        now move/@wf_universe_reflect: i.
+        now move/@wf_universeP: i.
       - destruct (abstract_env_ext_exists X) as [[Σ hΣ]].
         specialize (H _ hΣ) as [tyh].
         depelim tyh. eapply absurd. solve_all.
@@ -1483,7 +1506,7 @@ Section Typecheck.
         specialize (H _ hΣ) as [tyh].
         erewrite <- abstract_env_ext_wf_universeb_correct in absurd; tea.
         eapply absurd. depelim tyh.
-        now move/wf_universe_reflect: wfl.
+        now move/wf_universeP: wfl.
     Qed.
   End check_primitive.
 
@@ -1846,9 +1869,9 @@ Section Typecheck.
   (* tConst *)
   Next Obligation.
     pose proof (heΣ _ wfΣ) as [heΣ]. specialize_Σ wfΣ ; sq.
-    eapply global_uctx_invariants_ext.
     symmetry in HH. erewrite <- abstract_env_lookup_correct' in HH; eauto.
-    now apply (weaken_lookup_on_global_env' _ _ _ (heΣ : wf _) HH).
+    have h := (weaken_lookup_on_global_env' _ _ _ (heΣ : wf _) HH).
+    now eapply global_uctx_invariants_ext in h.
   Qed.
   Next Obligation.
     pose proof (heΣ _ wfΣ) as [heΣ]. specialize_Σ wfΣ ; sq.

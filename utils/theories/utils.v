@@ -4,8 +4,9 @@
 (** If you don't want to have the following scopes opened you should *)
 (** not import this file or close them. *)
 
+From Corelib Require Import ssreflect ssrfun ssrbool.
 From Stdlib Require Export Bool ZArith Arith Lia List.
-
+From Corelib Require Import RelationClasses.
 From MetaRocq.Utils Require Export MRUtils monad_utils.
 
 Global Set Asymmetric Patterns.
