@@ -21,13 +21,11 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "-C" "pcuic"]
-]
-install: [
-  [make "-C" "pcuic" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "rocq-metarocq-common" {= version}
 ]
 synopsis: "A type system equivalent to Rocq's and its metatheory"

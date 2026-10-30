@@ -21,15 +21,10 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 depends: [
-  "rocq-metarocq-safechecker-plugin" {= version}
-  "rocq-metarocq-erasure-plugin" {= version}
+  "rocq-metarocq-safechecker" {= version}
+  "rocq-metarocq-erasure" {= version}
   "rocq-metarocq-translations" {= version}
   "rocq-metarocq-quotation" {= version}
-]
-build: [
-  ["bash" "./configure.sh" ] {with-test}
-  [make "-C" "examples" ] {with-test}
-  [make "-C" "test-suite" ] {with-test}
 ]
 synopsis: "A meta-programming framework for Rocq"
 description: """

@@ -1,0 +1,19 @@
+; `dune build` builds the libraries and plugins; the test-suite and the
+; examples are built and checked by `dune test`.
+
+(rule
+ (alias default)
+ (deps
+  (alias_rec utils/all)
+  (alias_rec common/all)
+  (alias_rec template-rocq/all)
+  (alias_rec pcuic/all)
+  (alias_rec safechecker/all)
+  (alias_rec template-pcuic/all)
+  (alias_rec quotation/all)
+  (alias_rec safechecker-plugin/all)
+  (alias_rec erasure/all)
+  (alias_rec erasure-plugin/all)
+  (alias_rec translations/all))
+ (action
+  (progn)))

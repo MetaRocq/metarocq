@@ -30,10 +30,9 @@ MetaRocq is split into multiple packages that get all installed using the
  - `rocq-metarocq-pcuic` for the PCUIC metatheory development
  - `rocq-metarocq-template-pcuic` for the verified Template-Rocq <-> PCUIC translations
  - `rocq-metarocq-safechecker` for the verified checker on PCUIC terms
- - `rocq-metarocq-safechecker-plugin` for the extracted verified checker plugin
+   and the extracted verified checker plugin
  - `rocq-metarocq-erasure` for the verifed erasure from PCUIC to
-   untyped lambda-calculus.
- - `rocq-metarocq-erasure-plugin` for the extracted verifed erasure plugin
+   untyped lambda-calculus and the extracted verified erasure plugin
  - `rocq-metarocq-translations` for example translations from type theory
    to type theory: e.g. variants of parametricity.
  - `rocq-metarocq-quotation` for a quotation library, allowing to
@@ -56,6 +55,7 @@ To compile the library, you need:
 - The `Rocq` version corrsponding to your branch (you can use the `coq.dev` package
   for the `main` branch).
 - `OCaml` (tested with `4.14.0`)
+- [`dune`](https://dune.build) 3.21 or later
 - [`Equations 1.3`](http://mattam82.github.io/Rocq-Equations/)
 
 The recommended way to build a development environment for MetaRocq is
@@ -108,31 +108,27 @@ the sources directory.
 
 ### Compiling from sources
 
-**Important**: To compile locally without using `opam`, use `./configure.sh local` at the root.
+MetaRocq is built with [`dune`](https://dune.build) (see `dune-project`):
 
-Then use:
+- `dune build` (or `make`) compiles the `template-rocq` plugins, the `pcuic`
+  development, the `safechecker` and `erasure` libraries and plugins,
+  and the `translations` and `quotation` libraries.
+  You can also selectively build a part, e.g. `dune build pcuic`.
 
-- `make` to compile the `template-rocq` plugin, the `pcuic`
-  development and the `safechecker` and `erasure` plugins,
-  along with the `test-suite`, `translations`, `examples`
-  and `quotation` libraries.
-  You can also selectively build each target.
+- `dune test` (or `make test`) builds and checks the `test-suite` and the
+  `examples`.
 
-- `make install` to install the plugins in `Rocq`'s `user-contrib` local
-  library. Then the `MetaRocq` namespace can be used for `Require
-  Import` statements, e.g. `From MetaRocq.Template Require Import All.`.
+- `dune install` (or `make install`) installs the libraries in `Rocq`'s
+  `user-contrib` library and the plugins as findlib libraries. Then the
+  `MetaRocq` namespace can be used for `Require Import` statements, e.g.
+  `From MetaRocq.Template Require Import All.`.
 
-- `make uninstall` to undo the last line.
+- `dune uninstall` (or `make uninstall`) to undo the last line.
 
-For faster development one can use:
-
-- `make vos` to compile `vos` files (bypassing proofs)
-  for `pcuic`, `safechecker` and `erasure`. The template-rocq library is still using the regular `vo` target to be able
-  to construct the template-rocq plugin. The `safechecker` and
-  `erasure` ML plugins *cannot* be built using this mode.
-
-- `make quick` is a synonymous for `make vos` with the addition of a global `Unset Universe Checking` option, i.e.
-universes are not checked anywhere.
+The plugins are the findlib libraries `rocq-metarocq-template.plugin` (the
+quoting and template monad plugin), `rocq-metarocq-template.extractable` (the
+plugin running extracted template programs),
+`rocq-metarocq-safechecker.plugin` and `rocq-metarocq-erasure.plugin`.
 
 ### Develop with Vs Code
 

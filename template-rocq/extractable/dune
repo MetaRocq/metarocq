@@ -1,0 +1,39 @@
+; The extractable template-rocq plugin, running *extracted* template programs.
+; It links the code extracted by ExtractTemplate.v with OCaml code shared with
+; the template-rocq plugin of ../src.
+
+(rocq.extraction
+ (prelude ExtractTemplate)
+ (extracted_modules
+  All_Forall Applicative Ascii Ast0 AstUtils BasicAst Basics BinInt BinNat
+  BinNums BinPos Bool Byte Byte0 ByteCompare ByteCompareSpec bytestring
+  CarryType Classes0 Common0 Compare_dec config0 CoreTactics
+  CRelationClasses Datatypes DecidableClass DecidableType Decimal DepElim
+  Environment EnvironmentTyping EnvMap EqDec EqDecInstances Equalities
+  Extractable FloatClass FloatOps FMapAVL FMapFacts FMapInterface FMapList
+  Functor Hexadecimal Induction0 Init Int0 IntDef Kernames LiftSubst List0
+  ListDef Logic0 Logic1 Logic2 monad_utils Monad0 MonadExc MonadPlus
+  MonadReader MonadState MonadTrans MonadZero MRClasses MRCompare MRFSets
+  MRList MRMSets MROption MRPrelude MRProd MRReflect MRRelations MRString
+  MRUtils MSetAVL MSetDecide MSetFacts MSetInterface MSetList
+  MSetProperties Nat0 NatDef NoConfusion NonEmptyLevelExprSet Number
+  OptionMonad OrderedType0 OrderedTypeAlt Orders OrdersAlt OrdersFacts
+  OrdersLists OrdersTac PeanoNat PosDef Pretty PrimFloat PrimInt63
+  Primitive PrimString PrimStringAxioms Reflect ReflectEq Relation
+  SemiLattice Show Signature Sint63Axioms SpecFloat Specif String0
+  TemplateEnvMap TemplateProgram TermEquality Transform Typing0
+  Uint63Axioms UnivConstraintType Universes0 Wf)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template))
+
+(library
+ (name metarocq_template_plugin)
+ (public_name rocq-metarocq-template.extractable)
+ (synopsis "The MetaRocq extractable template-rocq plugin")
+ (modules :standard \ genbytes)
+ (flags
+  (-strict-sequence
+   -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70
+   -w -8-20-26-32-33-34-39-60))
+ (libraries rocq-runtime.vernac))
+
+(copy_files# ../src/{tm_util,quoter,denoter,reification,plugin_core}.{ml,mli})

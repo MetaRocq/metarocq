@@ -21,13 +21,11 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "-C" "template-rocq"]
-]
-install: [
-  [make "-C" "template-rocq" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "rocq-metarocq-common" {= version}
 ]
 synopsis: "A quoting and unquoting library for Rocq in Rocq"

@@ -1,0 +1,39 @@
+opam-version: "2.0"
+version: "dev"
+maintainer: "matthieu.sozeau@inria.fr"
+homepage: "https://metarocq.github.io/metarocq"
+dev-repo: "git+https://github.com/MetaRocq/metarocq.git#main"
+bug-reports: "https://github.com/MetaRocq/metarocq/issues"
+authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
+          "Danil Annenkov <danil.v.annenkov@gmail.com>"
+          "Simon Boulier <simon.boulier@inria.fr>"
+          "Cyril Cohen <cyril.cohen@inria.fr>"
+          "Yannick Forster <forster@ps.uni-saarland.de>"
+          "Jason Gross <jgross@mit.edu>"
+          "Fabian Kunze <fkunze@fakusb.de>"
+          "Meven Lennon-Bertrand <Meven.Bertrand@univ-nantes.fr>"
+          "Kenji Maillard <kenji.maillard@inria.fr>"
+          "Gregory Malecha <gmalecha@gmail.com>"
+          "Jakob Botsch Nielsen <Jakob.botsch.nielsen@gmail.com>"
+          "Matthieu Sozeau <matthieu.sozeau@inria.fr>"
+          "Nicolas Tabareau <nicolas.tabareau@inria.fr>"
+          "Théo Winterhalter <theo.winterhalter@inria.fr>"
+]
+license: "MIT"
+build: [
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs "@install" "@runtest" {with-test}]
+]
+depends: [
+  "dune" {>= "3.21"}
+  "rocq-metarocq-safechecker" {= version}
+  "rocq-metarocq-erasure" {= version}
+  "rocq-metarocq-translations" {= version}
+  "rocq-metarocq-quotation" {= version}
+]
+synopsis: "The test-suite of MetaRocq"
+description: """
+The test-suite of MetaRocq, with the plugins it exercises: a demonstration
+plugin built by extraction and the loop-checking plugin. The tests are run
+with `dune test`.
+"""

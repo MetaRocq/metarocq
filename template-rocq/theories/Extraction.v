@@ -28,6 +28,24 @@ From MetaRocq.Template Require Import TemplateMonad.Extractable Induction
 Import Init.Nat.
 
 Extract Inductive Common.hint_locality => "Hints.hint_locality" ["Hints.Local" "Hints.Export" "Hints.SuperGlobal"].
+
+(* Qualify the constructors that ExtrOCamlFloats maps to Float64's, so that the
+   extracted modules do not need to open Float64. *)
+Extract Inductive FloatClass.float_class =>
+  "Float64.float_class"
+  [ "Float64.PNormal" "Float64.NNormal" "Float64.PSubn" "Float64.NSubn"
+    "Float64.PZero" "Float64.NZero" "Float64.PInf" "Float64.NInf" "Float64.NaN" ].
+Extract Inductive PrimFloat.float_comparison =>
+  "Float64.float_comparison"
+  [ "Float64.FEq" "Float64.FLt" "Float64.FGt" "Float64.FNotComparable" ].
+
+(* Extracted as is, eq_equivalence is a record of applications, whose type cannot
+   be generalized to match its interface. *)
+Extract Constant CRelationClasses.eq_equivalence =>
+  "{ rocq_Equivalence_Reflexive = (fun _ -> __);
+     rocq_Equivalence_Symmetric = (fun _ _ _ -> __);
+     rocq_Equivalence_Transitive = (fun _ _ _ _ _ -> __) }".
+
 Extract Constant Typing.guard_checking => "{ fix_guard = (fun _ _ _ -> true); cofix_guard = (fun _ _ _ -> true) }".
 
 (* The constant constructors of byte are represented as the integers 0..255 in declaration
@@ -35,27 +53,3 @@ Extract Constant Typing.guard_checking => "{ fix_guard = (fun _ _ _ -> true); co
 Extract Inlined Constant MetaRocq.Utils.ByteCompare.compare =>
   "(fun x y -> let c = Stdlib.compare (Obj.magic x : int) (Obj.magic y : int) in
                if c < 0 then Datatypes.Lt else if c = 0 then Datatypes.Eq else Datatypes.Gt)".
-
-Set Extraction Output Directory "gen-src".
-
-(* Silence the warnings for specifications axioms of int63 *)
-Set Warnings "-extraction-logical-axiom".
-(* Floats *)
-Separate Extraction FloatOps.Prim2SF.
-
-Recursive Extraction Library Extractable.
-Extraction Library MRPrelude.
-Extraction Library MROption.
-Extraction Library MRUtils.
-Extraction Library MRList.
-Extraction Library EqDecInstances.
-Extraction Library Induction.
-Extraction Library LiftSubst.
-Extraction Library UnivSubst.
-Extraction Library BasicAst.
-
-Extraction Library Reflect.
-Extraction Library Pretty.
-Extraction Library config.
-
-Recursive Extraction Library TemplateProgram.

@@ -3,24 +3,28 @@
 You can use `Template.TemplateMonad.Extractable` to write plugins in Gallina.
 You can use this project as a template for doing this.
 
-
-**Beware**: Things are a little bit convoluted/brittle due to the extraction processes.
-Pull requests are welcome.
-
 ## How to use it
 
-1. Write your plugin inside the `gen-src` directory (using the `_RocqProject` in that directory). The plugin should use the `Template.TemplateMonad.Extractable` monad to interact with Rocq.
-2. Modify the `gen-src/Extract.v` file to extract the module that you want to call from your plugin.
-3. Run `make sources` which will build the Rocq sources to your plugin and extract them to OCaml.
-4. In the `src` directory, write the entry point to your plugin. See `src/g_plugin_demo.ml4` for some examples. *Make sure that you do not use any names that conflict with names of `ml` files inside of `template-rocq`.*
-5. In the `src` directory, create an `mlpack` file which includes all the files that you need. This file *must* start with the template located in `template-rocq/gen-src/meta_coq_plugin_template.mlpack` to ensure that it uses the appropriate dependencies.
-6. Include any Rocq files that your plugin requires in the top-level `theories` directory.
-7. Build the plugin from the root directory and you should be good to go.
-
+1. Write your plugin inside the `theories` directory. The plugin should use
+   the `Template.TemplateMonad.Extractable` monad to interact with Rocq.
+2. Modify `src/ExtractDemo.v` to extract the modules that you want to call
+   from your plugin, and list them in the `extracted_modules` field of the
+   `rocq.extraction` stanza of `src/dune`. Do not list the modules that the
+   extractable template-rocq plugin already provides: they are shared with
+   `-open Metarocq_template_plugin`, see `template-rocq/extractable/dune`.
+3. In the `src` directory, write the entry point to your plugin. See
+   `src/g_demo_plugin.mlg` for some examples. Its `DECLARE PLUGIN` name must
+   be the findlib name of the plugin library (its `public_name`).
+4. Load the plugin with `Declare ML Module` in a file of `theories`
+   (see `theories/Loader.v`), and list the plugin in the `plugins` field of
+   the `rocq.theory` stanza.
+5. Run `dune build` and you should be good to go.
 
 ## How it works
 
-As mentioned above, things are a bit brittle.
-Essentially, what the `Makefile` does is first build the contents of `gen-src` to build the OCaml for the plugin.
-The recursive extraction command will generate all of the files into the `src` directory, including the files that `template-rocq` provides.
-The top-level `Makefile` then copies the contents of the `template-rocq/gen-src` directory over the `src` directory before building it to ensure that everything is consistent.
+The `rocq.extraction` stanza of `src/dune` compiles `src/ExtractDemo.v`,
+which extracts the Gallina code of the plugin to OCaml in `src`. The plugin
+library then links the extracted modules with the entry point of the plugin,
+on top of the extractable template-rocq plugin, which provides the OCaml
+code for the modules that are shared by all extracted plugins and the
+quoting and unquoting functions.

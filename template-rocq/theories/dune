@@ -1,0 +1,7 @@
+(rocq.theory
+ (name MetaRocq.Template)
+ (package rocq-metarocq-template)
+ (plugins rocq-metarocq-template.plugin rocq-metarocq-template.extractable)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common))
+
+(include_subdirs qualified)

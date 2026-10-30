@@ -38,8 +38,6 @@
   default-bundle = "rocq-dev";
 
   # MetaRocq is expected to be compatible with a single coq version
-  # The name of the bundle should finish with the coq version to use
-  # cachedMake.sh
 
   bundles."rocq-dev" = {
     rocqPackages.rocq-core.override.version = "master";

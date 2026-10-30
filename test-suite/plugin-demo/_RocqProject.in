@@ -1,6 +1,0 @@
-META.rocq-metarocq-demo-plugin
--R theories MetaRocq.ExtractedPluginDemo
-
-theories/Lens.v
-theories/MyPlugin.v
-theories/Extraction.v

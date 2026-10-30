@@ -32,7 +32,6 @@ Extraction Inline Equations.Prop.Logic.True_rect_dep Equations.Prop.Logic.False_
 (** This Inline is because of a problem of weak type variables (partial application?) *)
 Extraction Inline PCUICPrimitive.prim_val_reflect_eq.
 
-Set Extraction Output Directory "src".
 Axiom fake_abstract_guard_impl_properties:
   forall (fix_cofix : PCUICTyping.FixCoFix)
     (Σ : PCUICAst.PCUICEnvironment.global_env_ext)
@@ -49,8 +48,3 @@ Next Obligation. eapply fake_abstract_guard_impl_properties. Qed.
 
 Definition infer_and_print_template_program_with_guard {cf} {nor} :=
   @SafeTemplateChecker.infer_and_print_template_program cf nor fake_abstract_guard_impl.
-
-Separate Extraction Wf.Fix_sub MakeOrderTac PCUICSafeChecker.typecheck_program
-         infer_and_print_template_program_with_guard
-         (* The following directives ensure separate extraction does not produce name clashes *)
-         Stdlib.Strings.String UnivSubst PCUICPretty.

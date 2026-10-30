@@ -1,0 +1,12 @@
+(rocq.theory
+ (name MetaRocq.LoopCheckingTest)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common
+  MetaRocq.Template MetaRocq.LoopChecking))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias_rec all))
+ (action
+  (progn)))

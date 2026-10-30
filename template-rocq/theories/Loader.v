@@ -3,7 +3,7 @@ From MetaRocq.Common Require BasicAst.
 
 From MetaRocq.Template Require TemplateMonad.Core TemplateMonad.Extractable Ast Constants.
 
-Declare ML Module "rocq-metarocq-template-rocq.plugin".
+Declare ML Module "rocq-metarocq-template.plugin".
 
 Notation "<% x %>" := (ltac:(let p y := exact y in quote_term x p))
   (only parsing).

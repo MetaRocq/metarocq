@@ -21,14 +21,13 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "-C" "safechecker"]
-]
-install: [
-  [make "-C" "safechecker" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "rocq-metarocq-pcuic" {= version}
+  "rocq-metarocq-template-pcuic" {= version}
 ]
 synopsis: "Implementation and verification of safe conversion and typechecking algorithms for Rocq"
 description: """

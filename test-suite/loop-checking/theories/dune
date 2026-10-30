@@ -1,0 +1,5 @@
+(rocq.theory
+ (name MetaRocq.LoopChecking)
+ (package rocq-metarocq-test-suite)
+ (plugins rocq-metarocq-test-suite.loop-checking)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template))

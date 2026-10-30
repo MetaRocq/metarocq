@@ -1,0 +1,5 @@
+(rocq.theory
+ (name MetaRocq.ExtractedPluginDemo)
+ (package rocq-metarocq-test-suite)
+ (plugins rocq-metarocq-test-suite.demo-plugin)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template))

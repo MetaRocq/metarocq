@@ -89,7 +89,7 @@ In addition to this representation of terms, Template Rocq includes:
 - A formalization of the typing rules reflecting the ones of Rocq, covering all of Rocq
   except eta-expansion and template polymorphism.
 
-### [PCUIC](https://github.com/MetaRocq/metarocq/blob/-/pcuic/theories)
+### [PCUIC](https://github.com/MetaRocq/metarocq/blob/-/pcuic)
 
 PCUIC, the Polymorphic Cumulative Calculus of Inductive Constructions is
 a cleaned up version of the term language of Rocq and its associated
@@ -122,10 +122,10 @@ calculus has proofs of standard metatheoretical results:
 - Weak call-by-value standardization: Normal forms of terms of first-order inductive type
 can be found via weak call-by-value evaluation.
 
-See the PCUIC [README](https://github.com/MetaRocq/metarocq/blob/-/pcuic/theories/README.md) for
+See the PCUIC [README](https://github.com/MetaRocq/metarocq/blob/-/pcuic/README.md) for
 a detailed view of the development.
 
-### [Safe Checker](https://github.com/MetaRocq/metarocq/blob/-/safechecker/theories)
+### [Safe Checker](https://github.com/MetaRocq/metarocq/blob/-/safechecker)
 
 Implementation of a fuel-free and verified reduction machine, conversion
 checker and type checker for PCUIC. This relies on a postulate of
@@ -145,10 +145,10 @@ type-checker, one can use:
 This also includes a verified, efficient re-typing procedure (useful in tactics) in
 `MetaRocq.SafeChecker.PCUICSafeRetyping`.
 
-See the SafeChecker [README](https://github.com/MetaRocq/metarocq/blob/-/safechecker/theories/README.md) for
+See the SafeChecker [README](https://github.com/MetaRocq/metarocq/blob/-/safechecker/README.md) for
 a detailed view of the development.
 
-### [Erasure](https://github.com/MetaRocq/metarocq/blob/-/erasure/theories)
+### [Erasure](https://github.com/MetaRocq/metarocq/blob/-/erasure)
 
 An erasure procedure to untyped lambda-calculus accomplishing the
 same as the type and proof erasure phase of the Extraction plugin of Rocq.
@@ -162,7 +162,7 @@ The erasure pipeline includes verified optimizations to remove lets in construct
 remove cases on propositional terms, switch to an unguarded fixpoint reduction rule and
 transform the higher-order constructor applications to first-order blocks for easier
 translation to usual programming languages. See the erasure
-[README](https://github.com/MetaRocq/metarocq/blob/-/erasure/theories/README.md) for
+[README](https://github.com/MetaRocq/metarocq/blob/-/erasure/README.md) for
 a detailed view of the development.
 
 ### [Translations](https://github.com/MetaRocq/metarocq/blob/-/translations)

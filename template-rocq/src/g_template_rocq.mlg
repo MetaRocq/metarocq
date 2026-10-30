@@ -1,5 +1,5 @@
 
-DECLARE PLUGIN "rocq-metarocq-template-rocq.plugin"
+DECLARE PLUGIN "rocq-metarocq-template.plugin"
 
 {
 

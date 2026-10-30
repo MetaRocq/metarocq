@@ -21,13 +21,11 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "-C" "quotation"]
-]
-install: [
-  [make "-C" "quotation" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "rocq-metarocq-template" {= version}
   "rocq-metarocq-pcuic" {= version}
   "rocq-metarocq-template-pcuic" {= version}

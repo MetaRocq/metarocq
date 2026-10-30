@@ -1,0 +1,7 @@
+(rocq.theory
+ (name MetaRocq.Utils)
+ (package rocq-metarocq-utils)
+ (modules :standard \ ByteCompare_opt)
+ (theories Stdlib Ltac2 Equations ExtLib))
+
+(include_subdirs qualified)

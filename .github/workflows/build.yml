@@ -53,10 +53,12 @@ jobs:
             startGroup "Workaround permission issue"
               sudo chown -R 1000:1000 .
             endGroup
+            startGroup "Install dune with the rocq language"
+              opam install -y "dune>=3.21"
+            endGroup
           script: |
             startGroup "Build project"
-              opam exec -- ./configure.sh --enable-${{matrix.target}}
-              opam exec -- make -j 2 ci-${{matrix.target}}
+              opam exec -- make ci-${{matrix.target}}
             endGroup
           # Already done by the ci-opam target
           uninstall: |

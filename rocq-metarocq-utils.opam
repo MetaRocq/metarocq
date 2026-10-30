@@ -21,13 +21,11 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "utils"]
-]
-install: [
-  [make "-C" "utils" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "stdlib-shims"
   "rocq-core" { = "dev" }
   "rocq-stdlib" { = "dev" }

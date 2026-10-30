@@ -1,0 +1,8 @@
+(rocq.theory
+ (name MetaRocq.Erasure)
+ (package rocq-metarocq-erasure)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template
+  MetaRocq.PCUIC MetaRocq.SafeChecker MetaRocq.TemplatePCUIC))
+
+(include_subdirs qualified)

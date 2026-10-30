@@ -9,7 +9,7 @@ let vtopaqueaccessprog f =
 
 }
 
-DECLARE PLUGIN "rocq-metarocq-loop-checking.plugin"
+DECLARE PLUGIN "rocq-metarocq-test-suite.loop-checking"
 
 VERNAC COMMAND EXTEND Check_universes CLASSIFIED AS QUERY STATE CUSTOM
    | [ "MetaRocq" "Check" "Universes" ] ->

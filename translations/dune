@@ -1,0 +1,7 @@
+(rocq.theory
+ (name MetaRocq.Translations)
+ (package rocq-metarocq-translations)
+ (modules :standard \ param_generous_unpacked)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common
+  MetaRocq.Template))

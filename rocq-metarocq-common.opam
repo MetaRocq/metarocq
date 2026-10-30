@@ -21,13 +21,11 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 ]
 license: "MIT"
 build: [
-  ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "-C" "common"]
-]
-install: [
-  [make "-C" "common" "install"]
+  ["dune" "subst"] {dev}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "dune" {>= "3.21"}
   "rocq-metarocq-utils" {= version}
 ]
 synopsis: "The common library of Template Rocq and PCUIC"
