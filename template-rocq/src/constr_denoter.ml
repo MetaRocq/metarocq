@@ -281,7 +281,12 @@ struct
 
   let unquote_universe_instance evm trm (* of type universe_instance *) =
     let l = unquote_list trm in
-    let evm, l = map_evm unquote_level evm l in
+    let evm, l = map_evm unquote_universe evm l in
+    let l = List.map (fun u ->
+        match Univ.Universe.level u with
+        | Some l -> l
+        | None -> bad_term_verb trm "unquote_universe_instance_not_level") l
+    in
     evm, UVars.Instance.of_array ([||], Array.of_list l)
 
   let unquote_variance v =
@@ -382,7 +387,7 @@ struct
 
   let inspect_term (t:Constr.t)
   : (Constr.t, quoted_int, quoted_ident, quoted_name, quoted_sort, quoted_cast_kind, quoted_kernel_name,
-    quoted_inductive, quoted_relevance, quoted_univ_level, quoted_univ_instance, quoted_proj,
+    quoted_inductive, quoted_relevance, quoted_universe, quoted_univ_instance, quoted_proj,
     quoted_int63, quoted_float64, quoted_pstring) structure_of_term =
     (* debug (fun () -> Pp.(str "denote_term" ++ spc () ++ print_term t)) ; *)
     let (h,args) = app_full t [] in

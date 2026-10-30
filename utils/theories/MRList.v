@@ -4,6 +4,8 @@ From MetaRocq.Utils Require Import MRPrelude MRRelations.
 
 Set Equations Transparent.
 
+Derive Signature for InA.
+
 Export ListNotations.
 
 Arguments firstn : simpl nomatch.
@@ -24,6 +26,13 @@ Qed.
 
 Lemma app_tip_assoc {A} (l : list A) x l' : (l ++ [x]) ++ l' = l ++ (x :: l').
 Proof. now rewrite <- app_assoc. Qed.
+
+Lemma fold_right_map {A B C} (f : B -> A -> A) (g : C -> B) acc l :
+  fold_right (fun x acc => f (g x) acc) acc l =
+  fold_right (fun x acc => f x acc) acc (List.map g l).
+Proof.
+  induction l; cbn; auto. congruence.
+Qed.
 
 Fixpoint fold_left_i_aux {A B} (f : A -> nat -> B -> A) (n0 : nat) (l : list B)
          (a0 : A) {struct l} : A
@@ -78,7 +87,7 @@ Proof.
 Qed.
 
 Lemma nth_error_safe_nth {A} n (l : list A) (isdecl : n < Datatypes.length l) :
-  nth_error l n = Some (safe_nth l (exist _ n isdecl)).
+  nth_error l n = Some (safe_nth l (exist n isdecl)).
 Proof.
   revert n isdecl; induction l; intros.
   - inversion isdecl.

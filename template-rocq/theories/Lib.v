@@ -1,3 +1,4 @@
+(* Distributed under the terms of the MIT license. *)
 From MetaRocq.Common Require Import uGraph.
 From MetaRocq.Template Require Import Ast TemplateMonad Loader Checker.
 From MetaRocq.Utils Require Import utils.
@@ -73,9 +74,10 @@ Notation "'$quote_def_rec' x" :=
 
 (** * Useful shortcuts. *)
 
-(** [term_eqb t1 t2] checks if [t1] and [t2] are equal modulo alpha equivalence. *)
+(** [term_eqb t1 t2] checks if [t1] and [t2] are equal modulo alpha equivalence.
+  No universe constraints are taken into account. *)
 Definition term_eqb (t1 t2 : term) :=
-  @eq_term config.default_checker_flags init_graph t1 t2.
+  @eq_term config.default_checker_flags init_model t1 t2.
 
 (** Short-form notation for [tLambda]. *)
 Notation tLam x A b :=

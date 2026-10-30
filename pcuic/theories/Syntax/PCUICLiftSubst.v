@@ -144,7 +144,7 @@ Proof. intros; now rewrite simpl_lift. Qed.
 
 Lemma simpl_lift_ext n k p i :
   i <= k + n -> k <= i ->
-  lift p i ∘ lift n k =1 lift (p + n) k.
+  lift p i ∘ lift n k ≐1 lift (p + n) k.
 Proof. intros ? ? ?; now apply simpl_lift. Qed.
 
 #[global]
@@ -341,7 +341,7 @@ Proof.
     destruct H2. rewrite H2. simpl. now rewrite Nat.sub_0_r.
 Qed.
 
-Lemma subst_empty_eq k : subst [] k =1 id.
+Lemma subst_empty_eq k : subst [] k ≐1 id.
 Proof. intros x; now rewrite subst_empty. Qed.
 
 Lemma lift_to_extended_list_k Γ k : forall k',

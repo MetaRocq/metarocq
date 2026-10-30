@@ -187,6 +187,12 @@ End String.
 Definition bs := String.t.
 Notation string := String.t.
 
+Fixpoint to_bytes (s : string) : list Byte.byte :=
+  match s with
+  | String.EmptyString => nil
+  | String.String b s => b :: to_bytes s
+  end.
+
 Bind Scope bs_scope with bs.
 
 String Notation String.t String.parse String.print : bs_scope.

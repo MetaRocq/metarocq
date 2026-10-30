@@ -114,7 +114,7 @@ Variant and8 (P1 P2 P3 P4 P5 P6 P7 P8 : Type) : Type := Times8 of P1 & P2 & P3 &
 Variant and9 (P1 P2 P3 P4 P5 P6 P7 P8 P9 : Type) : Type := Times9 of P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9.
 Variant and10 (P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 : Type) : Type := Times10 of P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9 & P10.
 
-#[global] Hint Constructors and3 and3 and5 and6 and7 and8 and9 : core.
+#[global] Hint Constructors and3 and4 and5 and6 and7 and8 and9 : core.
 
 Notation "[ × P1 & P2 ]" := (pair P1 P2) (only parsing) : type_scope.
 Notation "[ × P1 , P2 & P3 ]" := (and3 P1 P2 P3) : type_scope.
@@ -132,3 +132,26 @@ Notation "[ × P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 , P9 & P10 ]" := (and10 P1 
 Proof.
   econstructor; reflexivity.
 Defined.
+
+Reserved Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 & P7 ]" (at level 0, format
+"'[hv' [ /\ '['  P1 , '/'  P2 , '/'  P3 , '/'  P4 , '/'  P5 , '/'  P6  ']' '/ '  &  P7 ] ']'").
+Reserved Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 & P8 ]" (at level 0, format
+"'[hv' [ /\ '['  P1 , '/'  P2 , '/'  P3 , '/'  P4 , '/'  P5 , '/'  P6 , '/'  P7 ']' '/ '  &  P8 ] ']'").
+Reserved Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 & P9 ]" (at level 0, format
+"'[hv' [ /\ '['  P1 , '/'  P2 , '/'  P3 , '/'  P4 , '/'  P5 , '/'  P6 , '/'  P7 , '/'  P8 ']' '/ '  &  P9 ] ']'").
+Reserved Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 , P9 & P10 ]" (at level 0, format
+"'[hv' [ /\ '['  P1 , '/'  P2 , '/'  P3 , '/'  P4 , '/'  P5 , '/'  P6 , '/'  P7 , '/'  P8 , '/'  P9 ']' '/ '  &  P10 ] ']'").
+
+Variant andP6 (P1 P2 P3 P4 P5 P6 : Prop) : Prop := conj6 of P1 & P2 & P3 & P4 & P5 & P6.
+Variant andP7 (P1 P2 P3 P4 P5 P6 P7 : Prop) : Prop := conj7 of P1 & P2 & P3 & P4 & P5 & P6 & P7.
+Variant andP8 (P1 P2 P3 P4 P5 P6 P7 P8 : Prop) : Prop := conj8 of P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8.
+Variant andP9 (P1 P2 P3 P4 P5 P6 P7 P8 P9 : Prop) : Prop := conj9 of P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9.
+Variant andP10 (P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 : Prop) : Prop := conj10 of P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 & P9 & P10.
+
+Notation "[ /\ P1 , P2 , P3 , P4 , P5 & P6 ]" := (andP6 P1 P2 P3 P4 P5 P6) : type_scope.
+Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 & P7 ]" := (andP7 P1 P2 P3 P4 P5 P6 P7) : type_scope.
+Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 & P8 ]" := (andP8 P1 P2 P3 P4 P5 P6 P7 P8) : type_scope.
+Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 & P9 ]" := (andP9 P1 P2 P3 P4 P5 P6 P7 P8 P9) : type_scope.
+Notation "[ /\ P1 , P2 , P3 , P4 , P5 , P6 , P7 , P8 , P9 & P10 ]" := (andP10 P1 P2 P3 P4 P5 P6 P7 P8 P9 P10) : type_scope.
+
+#[global] Hint Constructors andP6 andP7 andP8 andP9 andP10 : core.
