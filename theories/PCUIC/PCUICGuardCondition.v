@@ -7,7 +7,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils
 
 (* AXIOM postulate correctness of the guard condition checker *)
 
-Definition tFixCoFix (b:FixCoFix) := if b then tFix else tCoFix.
+Definition tFixCoFix (b:FixCoFix) := if b is Fix then tFix else tCoFix.
 
 Definition nl_mfix mfix := map (map_def_anon nl nl) mfix.
 

@@ -1398,6 +1398,10 @@ Proof.
 Qed.
 
 
+Create HintDb wcbv.
+#[global] Hint Constants Opaque : wcbv.
+#[global] Hint Projections Opaque : wcbv.
+#[global] Hint Variables Opaque : wcbv.
 Global Hint Constructors value eval : wcbv.
 Global Hint Resolve value_final : wcbv.
 

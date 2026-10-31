@@ -39,6 +39,7 @@ Defined.
 
 Lemma SN_to_WN {cf:checker_flags} {no:normalizing_flags} {Σ} {normalization:NormalizationIn Σ} {A t} : wf Σ -> axiom_free Σ ->
   Acc (cored Σ []) t -> Σ ;;; [] |- t : A -> { v & eval Σ t v}.
+Proof.
   intros Hwf Hax HSN HA.
   induction HSN as [t H IH].
   edestruct progress_env_prop as [_ [_ [[t' Ht'] | Hval]]]; eauto.

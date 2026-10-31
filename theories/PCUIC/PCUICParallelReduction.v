@@ -236,7 +236,7 @@ Section ParallelReduction.
     end.
 
   Reserved Notation "'pred1_ctx'" (at level 0).
-  Reserved Notation "'pred1_ctx_over' Γ Γ'" (at level 200, Γ, Γ' at level 9).
+  Reserved Notation "'pred1_ctx_over' Γ Γ'" (at level 10, Γ, Γ' at level 9).
 
   Inductive pred1 (Γ Γ' : context) : term -> term -> Type :=
   (** Reductions *)
@@ -1888,7 +1888,7 @@ Section ParallelSubstitution.
       reflexivity.
     - len in l.
       move: hx.
-      assert (x <? #|Δ0| = false) as ->.
+      assert ((x <? #|Δ0|) = false) as ->.
       eapply Nat.ltb_nlt. lia. simpl.
       intros hx. specialize (Hrel _ hx).
       destruct Hrel as [onx [pred Hrel]]. split; [|split].

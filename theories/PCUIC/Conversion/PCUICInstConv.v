@@ -125,7 +125,7 @@ Qed.
 #[global]
 Hint Rewrite inst_subst0 : sigma.
 
-Lemma subst10_inst a b τ : b {0 := a}.[τ] = (b.[⇑ τ] {0 := a.[τ]}).
+Lemma subst10_inst a b τ : (b {0 := a}).[τ] = (b.[⇑ τ] {0 := a.[τ]}).
 Proof.
   unfold subst10. sigma. simpl. rw subst_consn_tip /= //.
 Qed.
@@ -1340,6 +1340,7 @@ Lemma closed_subst_ext {Δ σ σ' Γ} :
   closed_subst Γ σ Δ ->
   σ ≐1 σ' ->
   closed_subst Γ σ' Δ.
+Proof.
   intros [HΔ Hσ] eq. destruct Hσ as [closed_σ Hσ]. repeat split; eauto.
   - intros n decl hnth. rewrite <- (eq n). eapply closed_σ; eauto.
   - eapply usubst_ext; eauto.

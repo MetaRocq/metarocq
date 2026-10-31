@@ -496,6 +496,8 @@ Qed.
 Definition wt_cumul_ctx_pb {cf:checker_flags} (pb : conv_pb) (Σ : global_env_ext) :=
   All2_fold (wt_cumul_pb_decls pb Σ).
 
+(* Extends the level-50 judgment notations and must stay at their level. *)
+#[warning="-postfix-notation-not-level-1"]
 Notation "Σ ⊢ Γ ≤[ pb ] Δ ✓" := (wt_cumul_ctx_pb pb Σ Γ Δ) (at level 50, Γ, Δ at next level,
   format "Σ  ⊢  Γ  ≤[ pb ]  Δ  ✓") : pcuic.
 

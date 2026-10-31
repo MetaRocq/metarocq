@@ -1232,6 +1232,7 @@ Proof.
     setoid_rewrite subst_instance_lift.
     now rw -map_map_compose IHΓ.
 Qed.
+Create Rewrite HintDb substu.
 #[global] Hint Rewrite subst_instance_extended_subst : substu.
 
 Lemma expand_lets_subst_instance u Γ t :

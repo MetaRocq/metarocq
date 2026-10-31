@@ -812,6 +812,10 @@ Proof.
 Qed.
 *)
 
+Create HintDb subst.
+#[global] Hint Constants Opaque : subst.
+#[global] Hint Projections Opaque : subst.
+#[global] Hint Variables Opaque : subst.
 #[global]
 Hint Unfold subst1 : subst.
 #[global]
@@ -1265,7 +1269,10 @@ Arguments wt_cumul_pb_eq {cf pb Σ Γ T U}.
 Definition wt_cumul {cf} Σ Γ := wt_cumul_pb Cumul Σ Γ.
 Definition wt_conv {cf} Σ Γ := wt_cumul_pb Conv Σ Γ.
 
+(* These extend the level-50 judgment notations and must stay at their level. *)
+#[warning="-postfix-notation-not-level-1"]
 Notation " Σ ;;; Γ |- t <= u ✓" := (wt_cumul Σ Γ t u) (at level 50, Γ, t, u at next level).
+#[warning="-postfix-notation-not-level-1"]
 Notation " Σ ;;; Γ |- t = u ✓" := (wt_conv Σ Γ t u) (at level 50, Γ, t, u at next level).
 
 Definition wt_cumul_cum {cf} {Σ Γ T U} : Σ ;;; Γ |- T <= U ✓ -> Σ ;;; Γ |- T <= U.

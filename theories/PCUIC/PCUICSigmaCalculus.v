@@ -26,6 +26,7 @@ Definition substitutionT := nat -> term.
 
 Bind Scope sigma_scope with substitutionT.
 
+Create Rewrite HintDb sigma.
 #[global]
 Hint Rewrite Nat.add_0_r : sigma.
 
@@ -703,7 +704,7 @@ Hint Rewrite @rename_inst : sigma.
     Additional combinators: [idsn n] for n-identity, [consn] for consing a parallel substitution.
  *)
 
-Notation "t '.[' σ ]" := (inst σ t) (at level 6, format "t .[ σ ]") : sigma_scope.
+Notation "t '.[' σ ]" := (inst σ t) (at level 1, left associativity, format "t .[ σ ]") : sigma_scope.
 
 Definition subst_cons (t : term) (f : substitutionT) :=
   fun i =>
@@ -1484,7 +1485,7 @@ Qed.
 Lemma Upn_1 σ : ⇑^1 σ ≐1 ⇑ σ.
 Proof. now rw Upn_Up Upn_0. Qed.
 
-Lemma Upn_S σ n : ⇑^(S n) σ ≐1 ⇑ ⇑^n σ.
+Lemma Upn_S σ n : ⇑^(S n) σ ≐1 ⇑ (⇑^n σ).
 Proof.
   rw Upn_Up. induction n in σ |- *.
   * rw !Upn_0. now eapply Up_ext.
@@ -1746,7 +1747,7 @@ Qed.
 Lemma lift_renaming_0 k : ren (lift_renaming k 0) = ren (rshiftk k).
 Proof. reflexivity. Qed.
 
-Lemma ren_lift_renaming n k : ren (lift_renaming n k) ≐1 (⇑^k ↑^n).
+Lemma ren_lift_renaming n k : ren (lift_renaming n k) ≐1 (⇑^k (↑^n)).
 Proof.
   unfold subst_compose. intros i.
   simpl. rw -{1}(Nat.add_0_r k). unfold ren. rw - (shiftn_lift_renaming n k 0).

@@ -7,8 +7,13 @@ From Equations Require Import Equations.
 From Equations.Prop Require Import Subterm.
 
 Set Asymmetric Patterns.
-#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import PCUICEnvTyping.
+
+(* Declared here rather than in PCUICLiftSubst, which is used as a module
+   alias, so that the alias does not redeclare them. *)
+Create Rewrite HintDb subst.
+Create Rewrite HintDb wf.
+Create Rewrite HintDb pcuic.
 
 (** Derive the well-founded subterm relation for terms. Not so useful
   yet as it doesn't go throught lists.

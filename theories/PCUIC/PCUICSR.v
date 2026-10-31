@@ -3167,6 +3167,11 @@ Proof.
   intros Ht Hr. eapply type_reduction; tea. exact Hr.
 Defined.
 
+Create HintDb aa.
+#[global] Hint Constants Opaque : aa.
+#[global] Hint Projections Opaque : aa.
+#[global] Hint Variables Opaque : aa.
+
 Section SRContext.
   Context {cf:checker_flags}.
 

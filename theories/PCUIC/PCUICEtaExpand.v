@@ -46,7 +46,7 @@ Section map_All.
   Fixpoint map_All {x} (a : All P x) : All P' x :=
     match a with
     | All_nil => All_nil
-    | All_cons _ _ p a => All_cons (ont _ p) (map_All a)
+    | All_cons p a => All_cons (ont _ p) (map_All a)
     end.
 End map_All.
 

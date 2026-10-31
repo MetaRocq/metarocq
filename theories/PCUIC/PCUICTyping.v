@@ -427,6 +427,7 @@ Section PrimitiveSize.
   (typing_size : forall {Σ Γ t T}, typing Σ Γ t T -> size).
 
   Definition primitive_typing_hyps_size Σ Γ p (h : primitive_typing_hyps (typing Σ) Σ Γ p) : size.
+  Proof.
     destruct h.
     - exact 0.
     - exact 0.
@@ -508,8 +509,6 @@ Proof. now destruct hΣ as [[[_ [? _]] _]]. Qed.
 
 Definition wf_ext `{checker_flags} := on_global_env_ext cumulSpec0 (lift_typing typing).
 Existing Class wf_ext.
-#[global]
-Hint Mode wf_ext + + : typeclass_intances.
 Lemma wf_ext_wf {cf:checker_flags} Σ : wf_ext Σ -> wf Σ.
 
 Proof. intro H; apply H. Qed.
@@ -585,6 +584,7 @@ Proof. intros.
 Qed.
 
 Lemma type_Prop `{checker_flags} Σ : Σ ;;; [] |- tSort sProp : tSort Sort.type1.
+Proof.
   repeat constructor.
 Defined.
 

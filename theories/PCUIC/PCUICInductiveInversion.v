@@ -1002,7 +1002,7 @@ Proof.
   destruct declp as [decli [nthp parseq]].
   simpl in *. rw parseq. lia.
 Qed.
-Notation "!! t" := ltac:(refine t) (at level 200, only parsing).
+Notation "!! t" := ltac:(refine t) (at level 10, t at level 200, only parsing).
 
 Lemma isType_mkApps_Ind_smash {cf:checker_flags} {Σ Γ ind u params args} {wfΣ : wf Σ} {mdecl idecl} :
   declared_inductive Σ.1 ind mdecl idecl ->
@@ -1771,7 +1771,7 @@ Section UniverseClosedSubst.
     now have -> : #|u'| + n - #|u'| = n by lia.
   Qed.
 
-  Notation lift_level_expr n e := (lift_level n e.1, e.2).
+  Abbreviation lift_level_expr n e := (lift_level n e.1, e.2).
 
   Lemma closedu_subst_instance_level_expr_lift u u' e
     : closedu_level_expr #|u| e -> subst_instance_level_expr (u' ++ u) (lift_level_expr #|u'| e) = subst_instance_level_expr u e.

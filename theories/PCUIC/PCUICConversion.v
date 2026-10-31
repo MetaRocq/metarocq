@@ -3763,7 +3763,7 @@ Proof using Type.
         now constructor.
       * enough (nth_error (@nil term) n0 = None) as ->;
           [cbn|now destruct n0].
-        enough (i <=? n - 1 = true) as ->; try (apply Nat.leb_le; lia).
+        enough ((i <=? n - 1) = true) as ->; try (apply Nat.leb_le; lia).
         enough (S (n - 1) = n) as ->; try lia. auto.
     + cbn. rw H0. auto.
   - eapply red_evar. repeat eapply All2_map_right.
@@ -3826,6 +3826,7 @@ Section MoreCongruenceLemmas.
 
   Lemma red_terms_evar Γ args args0 ev :
     red_terms Σ Γ args args0 -> red Σ Γ (tEvar ev args) (tEvar ev args0).
+  Proof.
     intros Hargs. eapply red_evar.
     eapply All2_impl. 1: tea. intros. destruct X; eauto.
   Defined.
@@ -3852,6 +3853,7 @@ Section MoreCongruenceLemmas.
   [×  cumul_Ind_univ Σ pb ind #|l| ui ui',
       is_closed_context Γ & ws_cumul_pb_terms Σ Γ l l'] ->
   Σ ;;; Γ ⊢ mkApps (tInd ind ui) l ≤[pb] mkApps (tInd ind ui') l'.
+  Proof.
     intros [Rglob Rclosed Hll']. apply ws_cumul_pb_terms_alt in Hll'. destruct Hll' as [l0 [l0'  [Hl0 Hl0' Hl0l0']]].
     assert (Σ ;;; Γ ⊢ mkApps (tInd ind ui) l0 ≤[pb] mkApps (tInd ind ui') l0').
     { econstructor 1; eauto.
@@ -3878,6 +3880,7 @@ Section MoreCongruenceLemmas.
   [× cumul_Construct_univ Σ pb i k #|l| ui ui',
      is_closed_context Γ & ws_cumul_pb_terms Σ Γ l l'] ->
   Σ ;;; Γ ⊢ mkApps (tConstruct i k ui) l ≤[pb] mkApps (tConstruct i k ui') l'.
+Proof.
   intros [Rglob Rclosed Hll']. apply ws_cumul_pb_terms_alt in Hll'. destruct Hll' as [l0 [l0'  [Hl0 Hl0' Hl0l0']]].
   assert (Σ ;;; Γ ⊢ mkApps (tConstruct i k ui) l0 ≤[pb] mkApps (tConstruct i k ui') l0').
   { econstructor 1; eauto.

@@ -314,6 +314,11 @@ induction Γ in inst, s' |- *.
     rw app_assoc /=. now constructor.
 Qed.
 
+Create HintDb lia.
+#[global] Hint Constants Opaque : lia.
+#[global] Hint Projections Opaque : lia.
+#[global] Hint Variables Opaque : lia.
+
 Section WfEnv.
   Context {cf} {Σ : global_env_ext} {wfΣ : wf Σ}.
 

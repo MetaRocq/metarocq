@@ -1154,6 +1154,7 @@ Proof.
   now rw on_ctx_free_vars_tip {1}/shiftnP /= addnP_shiftnP.
 Qed.
 
+Create Rewrite HintDb fvs.
 #[global]
 Hint Rewrite @on_ctx_free_vars_snoc : fvs.
 

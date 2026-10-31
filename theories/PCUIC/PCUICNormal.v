@@ -9,7 +9,6 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICTactics PCUICOnOn
      PCUICInduction PCUICRedTypeIrrelevance PCUICOnFreeVars PCUICEtaExpand.
 From Stdlib Require Import ssreflect ssrbool.
 Set Asymmetric Patterns.
-#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 
 (* Require Import Equations.Type.DepElim. *)
 

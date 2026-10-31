@@ -84,6 +84,7 @@ Proof.
   now noconf H.
 Qed.
 
+Create Rewrite HintDb rho.
 #[global]
 Hint Rewrite view_lambda_fix_app_fix_app view_lambda_fix_app_lambda_app : rho.
 

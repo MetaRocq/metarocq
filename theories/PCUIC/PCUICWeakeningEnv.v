@@ -49,6 +49,10 @@ Proof.
   apply LevelSet.union_spec in Hl.
   apply LevelSet.union_spec; intuition auto.
 Qed.
+Create HintDb extends.
+#[global] Hint Constants Opaque : extends.
+#[global] Hint Projections Opaque : extends.
+#[global] Hint Variables Opaque : extends.
 #[global] Hint Resolve weakening_env_global_ext_level : extends.
 
 Lemma weakening_env_global_ext_levels Σ Σ' φ (H : extends Σ Σ') ls

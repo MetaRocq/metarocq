@@ -318,7 +318,7 @@ Proof.
         }
       unshelve epose proof (wf_projection_context _ _ _ _) ; eauto.
       change Γ with (Γ,,, subst_context (c :: List.rev args') 0 []).
-      change 0 with #|[] : context| at 2 3.
+      change 0 with #|([] : context)| at 2 3.
       eapply PCUICConversion.substitution_ws_cumul_pb_subst_conv.
       * eapply subslet_untyped_subslet, projection_subslet.
         4: eapply validity.
