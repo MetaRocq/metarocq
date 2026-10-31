@@ -430,7 +430,7 @@ struct
                 let envpars = push_rel_context (indbinder :: ctxwolet) env in
                 let ps, acc = CArray.fold_right3 (fun proj ty rel (ls,acc) ->
                   let (ty, acc) = quote_term acc envpars sigma ty in
-                  let na = Q.quote_ident (Names.Label.to_id proj) in
+                  let na = Q.quote_ident proj in
                   let rel = Q.quote_relevance rel in
                   ((na, rel, ty) :: ls, acc)) projections tys relevances ([],acc)
                 in ps, acc
@@ -488,7 +488,7 @@ struct
         univs mib.mind_packets
 
   let quote_term_rec ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
-    let visited_terms = ref Names.KNset.empty in
+    let visited_terms = ref Names.KerName.Set.empty in
     let visited_types = ref Mindset.empty in
     let universes = ref Univ.Level.Set.empty in
     let constants = ref [] in
@@ -511,10 +511,10 @@ struct
             constants := (kn,d) :: !constants
           end
       | Const kn ->
-        if Names.KNset.mem kn !visited_terms then ()
+        if Names.KerName.Set.mem kn !visited_terms then ()
         else
           begin
-            visited_terms := Names.KNset.add kn !visited_terms ;
+            visited_terms := Names.KerName.Set.add kn !visited_terms ;
             let c = Names.Constant.make kn kn in
             let cd = Environ.lookup_constant c env in
             let body = match cd.const_body with

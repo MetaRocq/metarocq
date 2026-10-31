@@ -184,10 +184,10 @@ struct
     | MPfile dp -> MPfile (unquote_dirpath dp)
     | MPbound (dp, id, i) ->
       MPbound (Obj.magic (unquote_int i, unquote_ident id, unquote_dirpath dp) : MBId.t)
-    | MPdot (mp, id) -> MPdot (unquote_modpath mp, Label.of_id (unquote_ident id))
+    | MPdot (mp, id) -> MPdot (unquote_modpath mp, unquote_ident id)
 
   let unquote_kn ((mp, id) : quoted_kernel_name) : KerName.t =
-    KerName.make (unquote_modpath mp) (Label.of_id (unquote_ident id))
+    KerName.make (unquote_modpath mp) (unquote_ident id)
 
   let unquote_inductive (q: quoted_inductive) : Names.inductive =
     let { inductive_mind = kn; inductive_ind = i } = q in

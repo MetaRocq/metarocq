@@ -381,11 +381,11 @@ struct
     | MPfile dp -> constr_mkApp (tMPfile, [|quote_dirpath dp|])
     | MPbound mbid -> let (i, id, dp) = MBId.repr mbid in
       constr_mkApp (tMPbound, [|quote_dirpath dp ; quote_ident id; quote_int i|])
-    | MPdot (mp, id) -> constr_mkApp (tMPdot, [|quote_modpath mp; quote_ident (Label.to_id id)|])
+    | MPdot (mp, id) -> constr_mkApp (tMPdot, [|quote_modpath mp; quote_ident id|])
 
   let quote_kn kn =
     pairl tmodpath tident (quote_modpath (KerName.modpath kn))
-      (quote_ident (Label.to_id (KerName.label kn)))
+      (quote_ident (KerName.label kn))
 
   let quote_proj ind pars args =
     constr_mkApp (tmkProjection, [| ind; pars; args |])

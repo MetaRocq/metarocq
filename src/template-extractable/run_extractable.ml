@@ -93,7 +93,7 @@ let of_mib (env : Environ.env) (t : Names.MutInd.t) (mib : Plugin_core.mutual_in
         let ps, acc = CArray.fold_right2 (fun cst pb (ls,acc) ->
             let ty = quote_term envpars pb in
             let kn = cst in
-            let na = quote_ident (Names.Label.to_id kn) in
+            let na = quote_ident kn in
             ((na, ty) :: ls, acc)) labels ps ([],acc)
         in ps, acc
       | _ -> [], acc

@@ -130,11 +130,11 @@ struct
     | MPfile dp -> MPfile (quote_dirpath dp)
     | MPbound mbid -> let (i, id, dp) = MBId.repr mbid in
       MPbound (quote_dirpath dp, quote_ident id, quote_int i)
-    | MPdot (mp, id) -> MPdot (quote_modpath mp, quote_ident (Label.to_id id))
+    | MPdot (mp, id) -> MPdot (quote_modpath mp, quote_ident id)
 
   let quote_kn (kn : KerName.t) : Kernames.kername =
     (quote_modpath (KerName.modpath kn),
-     quote_ident (Label.to_id (KerName.label kn)))
+     quote_ident (KerName.label kn))
 
   let quote_inductive (kn, i) = { inductive_mind = kn ; inductive_ind = i }
   let quote_proj ind p a = { proj_ind = ind; proj_npars = p; proj_arg = a }

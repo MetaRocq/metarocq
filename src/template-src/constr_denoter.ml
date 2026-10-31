@@ -313,14 +313,14 @@ struct
       | _ -> bad_term_verb mp "unquote_modpath"
     else if constr_equall h tMPdot then
       match args with
-      | mp'::id::[] -> ModPath.MPdot (unquote_modpath mp', Label.of_id (unquote_ident id))
+      | mp'::id::[] -> ModPath.MPdot (unquote_modpath mp', unquote_ident id)
       | _ -> bad_term_verb mp "unquote_modpath"
     else
       not_supported_verb mp "unquote_modpath"
 
   let unquote_kn (k : quoted_kernel_name) : KerName.t =
     let (mp, id) = unquote_pair k in
-    KerName.make (unquote_modpath mp) (Label.of_id (unquote_ident id))
+    KerName.make (unquote_modpath mp) (unquote_ident id)
 
   let unquote_proj (qp : quoted_proj) : (quoted_inductive * quoted_int * quoted_int) =
     let (h,args) = app_full qp [] in

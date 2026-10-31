@@ -133,7 +133,7 @@ VERNAC COMMAND EXTEND TemplateRocq_Run_Template_Program CLASSIFIED AS SIDEFF STA
       { vtopaqueaccessprog (fun ~opaque_access ~pm ->
         let (env, evm) = fresh_env () in
         let (pgm, ctx) = Constrintern.interp_constr env evm def in
-        let evm = Evd.from_ctx ctx in
+        let evm = Evd.from_ustate ctx in
         let pgm = EConstr.to_constr ~abort_on_undefined_evars:true evm pgm in
         run_template_program ~opaque_access ~pm env evm ~poly pgm) }
 END
@@ -175,8 +175,10 @@ TACTIC EXTEND TemplateRocq_run_template_program
          let ret = ref None in
          (* We don't allow opening obligations / updating the vernacular inside proofs / as tactics *)
          let pm = Declare.OblState.empty in
+         (* Tactics have no "opaque_access" state specifier, unlike the
+            vernacular commands above. *)
          let _pm = Run_template_monad.run_template_program_rec
-             Library.indirect_accessor
+             (Library.indirect_accessor [@ocaml.warning "-3"])
              ~poly ~intactic:true ~st:pm (fun ~st env evm t -> ret := Some (env,evm,t); st)
              env (evm, to_constr_evars evm c)
          in
