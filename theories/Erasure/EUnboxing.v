@@ -10,7 +10,6 @@ From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EInduction EAriti
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
-#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Import MonadNotation.
 
 From Equations Require Import Equations.
@@ -114,6 +113,7 @@ Ltac simple := repeat (
     simpl in *
   ).
 
+Create Rewrite HintDb unboxing_rw_hints.
 Hint Rewrite @Forall_All : unboxing_rw_hints.
 Hint Rewrite <-@forallb_Forall : unboxing_rw_hints.
 Hint Rewrite <-@forallb_Forall : unboxing_rw_hints.

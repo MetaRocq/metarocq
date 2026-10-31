@@ -50,6 +50,11 @@ Local Existing Instance extraction_checker_flags.
 Local Obligation Tactic := simpl in *; program_simplify; CoreTactics.equations_simpl;
                               try program_solve_wf.
 
+Create HintDb erase.
+#[global] Hint Constants Opaque : erase.
+#[global] Hint Projections Opaque : erase.
+#[global] Hint Variables Opaque : erase.
+
 Section FixSigmaExt.
 Import ErasureFunction.
 
@@ -827,7 +832,7 @@ erase_type_aux Γ erΓ t isT next_tvar
                 (Γ,, vass na A) (var :: erΓ)%vector
                 B _
                 (option_map S next_tvar) in
-          (if next_tvar then binder_name na :: tvars else tvars, TArr TBox cod)
+          (if next_tvar is Some _ then binder_name na :: tvars else tvars, TArr TBox cod)
         };
 
       | et_view_app orig_hd orig_arg with inspect (decompose_app (tApp orig_hd orig_arg)) := {
@@ -994,7 +999,7 @@ Definition type_var_info_of_flag (na : aname) {Σ : global_env_ext} {Γ t} (w : 
   {| tvar_name := binder_name na;
      tvar_is_logical := is_logical f;
      tvar_is_arity := if is_arity w (conv_ar f) then true else false;
-     tvar_is_sort := if is_sort (conv_ar f) then true else false; |}.
+     tvar_is_sort := if is_sort (conv_ar f) is Some _ then true else false; |}.
 
 (** For a non-lambda type scheme, i.e.
     t : T1 -> T2 -> ... -> Tn -> Type

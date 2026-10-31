@@ -129,6 +129,7 @@ Ltac simple := repeat (
   ).
 
 (* Hint Rewrite @Forall_All : inlining_rw_hints. *)
+Create Rewrite HintDb inlining_rw_hints.
 Hint Rewrite <-@forallb_Forall : inlining_rw_hints.
 Hint Rewrite <-@forallb_Forall : inlining_rw_hints.
 Hint Rewrite Forall_forall : inlining_rw_hints.

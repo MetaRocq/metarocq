@@ -16,7 +16,6 @@ From MetaRocq.Erasure Require Import EPrimitive EAstUtils ELiftSubst EArities Ex
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
-#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Local Set Keyed Unification.
 Set Default Proof Using "Type*".
 Import MonadNotation.
@@ -776,6 +775,10 @@ Proof.
   induction t; cbn; f_equal; eauto.
 Qed.
 
+Create HintDb expanded.
+#[global] Hint Constants Opaque : expanded.
+#[global] Hint Projections Opaque : expanded.
+#[global] Hint Variables Opaque : expanded.
 Local Hint Constructors expanded : expanded.
 
 Local Arguments erase_global_deps _ _ _ _ _ : clear implicits.

@@ -85,6 +85,8 @@ Fixpoint subst s k u :=
 Abbreviation subst0 t := (subst t 0).
 Definition subst1 t k u := subst [t] k u.
 Abbreviation subst10 t := (subst1 t 0).
+(* At level 10 like the corresponding Template and PCUIC notation. *)
+#[warning="-postfix-notation-not-level-1"]
 Notation "M { j := N }" := (subst1 N j M) (at level 10, right associativity) : erasure.
 
 Fixpoint closedn k (t : term) : bool :=
@@ -263,6 +265,7 @@ Proof.
 Qed.
 
 Lemma lift0_p : forall M, lift0 0 M = M.
+Proof.
   intros; unfold lift in |- *.
   apply lift0_id; easy.
 Qed.
@@ -287,6 +290,7 @@ Proof.
 Qed.
 
 Lemma simpl_lift0 : forall M n, lift0 (S n) M = lift0 1 (lift0 n M).
+Proof.
   now intros; rewrite simpl_lift.
 Qed.
 
@@ -307,6 +311,7 @@ Qed.
 
 Lemma permute_lift0 :
   forall M k, lift0 1 (lift 1 k M) = lift 1 (S k) (lift0 1 M).
+Proof.
   intros.
   change (lift 1 0 (lift 1 k M) = lift 1 (1 + k) (lift 1 0 M))
     in |- *.
@@ -379,6 +384,7 @@ Qed.
 
 Lemma commut_lift_subst :
   forall M N k, subst N (S k) (lift0 1 M) = lift0 1 (subst N k M).
+Proof.
   now intros; rewrite commut_lift_subst_rec.
 Qed.
 

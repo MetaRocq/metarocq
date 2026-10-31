@@ -49,23 +49,27 @@ Next Obligation. apply fake_normalization; eauto. Qed.
 
 Definition length_app_transparent {A} (l1 l2 : list A) :
   #|l1| + #|l2| = #|l1 ++ l2|.
+Proof.
 induction l1.
 - reflexivity.
 - cbn. now rewrite IHl1.
 Defined.
 
 Definition mapi_length_transparent {A B} {f : nat -> A -> B} (l : list A) : forall n, #|mapi_rec f l n| = #|l|.
+Proof.
 induction l;intros.
 - reflexivity.
 - cbn. now rewrite IHl.
 Defined.
 
 Definition Sn_plus_one_transparent {n} : S n = n + 1.
+Proof.
 now induction n. Defined.
 
 (* NOTE: borrowed from metarocq's MRList. There it's defined for some other [rev] *)
 Definition length_rev_transparent {A} (l : list A) :
   #|List.rev l| = #|l|.
+Proof.
 induction l.
   - reflexivity.
   - cbn. rewrite <- length_app_transparent.
@@ -74,6 +78,7 @@ Defined.
 
 Definition rev_mapi_length_app {A B} {f : nat -> A -> B} (l1 : list A) (l2 : list B) :
   #|List.rev l1| + #|l2| = #|List.rev (mapi f l1) ++ l2|.
+Proof.
 transitivity (#|List.rev (mapi f l1)| + #|l2|).
 repeat rewrite length_rev_transparent.
 unfold mapi. rewrite mapi_length_transparent;reflexivity.
@@ -182,7 +187,7 @@ Qed.
 Program Definition erase_type_of Γ erΓ t (wt : welltyped Σ Γ t) : box_type :=
   let ty := type_of_impl Γ _ t _ in
   let flag := flag_of_type_impl Σ _ Γ ty _ in
-  if conv_ar flag then
+  if conv_ar flag is inl _ then
     TBox
   else
     let next_type_var :=

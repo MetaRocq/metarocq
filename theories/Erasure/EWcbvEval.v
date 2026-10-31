@@ -697,6 +697,10 @@ End eval_rect.
 Register Scheme eval_rect as rect_dep for eval.
 Register Scheme eval_rec as rec_dep for eval.
 Register Scheme eval_ind as ind_dep for eval.
+Create HintDb value.
+#[global] Hint Constants Opaque : value.
+#[global] Hint Projections Opaque : value.
+#[global] Hint Variables Opaque : value.
 Global Hint Constructors value : value.
 
 Section Wcbv.
@@ -760,7 +764,7 @@ Section Wcbv.
     - intros. depelim X0; solve_discr; do 2 left; split => //; constructor 2; eauto.
     - intros * wcon lup len H IH t ht hcon.
       destruct l using rev_ind.
-      + cbn in hcon. invs hcon. left. right.
+      + cbn in hcon. inversion hcon; subst. left. right.
         repeat eexists; eauto.
       + rw mkApps_app in hcon. invs hcon.
     - intros * vh nargs hargs ih t isapp appeq.
@@ -1737,6 +1741,7 @@ Definition mk_env_flags has_ax has_pars tfl has_blocks :=
      term_switches := tfl ;
      cstr_as_blocks := has_blocks |}.
 
+Create Rewrite HintDb simplifications.
 Global Hint Rewrite andb_true_r andb_false_r : simplifications.
 Global Hint Rewrite orb_false_r orb_true_r : simplifications.
 

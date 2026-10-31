@@ -15,7 +15,6 @@ From MetaRocq.Erasure Require Import EPrimitive EAstUtils ELiftSubst EArities Ex
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
-#[warning="-unknown-option"] Set Asymmetric Patterns No Implicits.
 Local Set Keyed Unification.
 Set Default Proof Using "Type*".
 Import MonadNotation.

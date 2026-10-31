@@ -328,7 +328,7 @@ Qed.
 Fixpoint sum_deriv_lengths {Σ ts tsv} (a : All2 (eval Σ) ts tsv) : nat :=
   match a with
   | All2_nil => 0
-  | All2_cons _ _ _ _ ev a => deriv_length ev + sum_deriv_lengths a
+  | All2_cons ev a => deriv_length ev + sum_deriv_lengths a
   end.
 
 Fixpoint app_All2

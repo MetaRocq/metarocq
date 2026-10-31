@@ -80,6 +80,7 @@ Ltac simple := repeat (
     simpl in *
   ).
 
+Create Rewrite HintDb consts_to_values_rw_hints.
 Hint Rewrite @Forall_All : consts_to_values_rw_hints.
 Hint Rewrite <-@forallb_Forall : consts_to_values_rw_hints.
 Hint Rewrite <-@forallb_Forall : consts_to_values_rw_hints.

@@ -223,6 +223,7 @@ Section primtheory.
     do 2 f_equal. destruct a; rw /map_array_model //= map_map_compose //.
   Qed.
 End primtheory.
+Create Rewrite HintDb all.
 #[global] Hint Rewrite @map_prim_compose : map all.
 
 Lemma reflectT_forallb {A} {P : A -> Type} {p l} :
@@ -438,7 +439,7 @@ Section All2_size.
   Fixpoint all2_size {l1 l2} (f : All2_Set P l1 l2) : nat :=
   match f with
   | All2_nil => 0
-  | All2_cons _ _ _ _ rxy rll' => fn _ _ rxy + all2_size rll'
+  | All2_cons rxy rll' => fn _ _ rxy + all2_size rll'
   end.
 End All2_size.
 
