@@ -4,7 +4,7 @@
     The extraction directives are in [MetaRocq.SafeCheckerPlugin.Extraction]; this file
     only performs the extraction, as a dune [rocq.extraction] prelude. *)
 
-From Stdlib Require Import OrdersTac Ascii ExtrOcamlBasic ExtrOCamlInt63 ExtrOCamlFloats.
+From Stdlib Require Import OrdersTac Ascii ExtrOcamlBasic ExtrOCamlInt63 ExtrOCamlFloats ExtrOCamlPString.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl PCUICSafeChecker PCUICSafeConversion.
 From MetaRocq.SafeCheckerPlugin Require Import SafeTemplateChecker.
