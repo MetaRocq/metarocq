@@ -365,7 +365,7 @@ Definition string_of_type_error Σ (e : type_error) : string :=
   | UndeclaredConstant c => "Undeclared constant " ^ string_of_kername c
   | UndeclaredInductive c => "Undeclared inductive " ^ string_of_kername (inductive_mind c)
   | UndeclaredConstructor c i => "Undeclared inductive " ^ string_of_kername (inductive_mind c)
-  | NotCumulSmaller _ le G Γ t u t' u' e => "Types are not " ^
+  | NotCumulSmaller le G Γ t u t' u' e => "Types are not " ^
       (if le then "<= for cumulativity:" ^ nl
        else "convertible:" ^ nl) ^
       print_term Σ Γ t ^ nl ^ "and:" ^ nl ^ print_term Σ Γ u ^
@@ -374,7 +374,7 @@ Definition string_of_type_error Σ (e : type_error) : string :=
       nl ^ "error:" ^ nl ^ string_of_conv_error Σ e ^
       (* nl ^ "in universe graph:" ^ nl ^ print_universes_graph G ^ nl ^ *)
       " and context: " ^ nl ^ print_context Σ [] Γ
-  | NotConvertible _ G Γ t u => "Terms are not convertible:" ^ nl ^
+  | NotConvertible G Γ t u => "Terms are not convertible:" ^ nl ^
       print_term Σ Γ t ^ nl ^ "and:" ^ nl ^ print_term Σ Γ u ^
       (* nl ^ "in universe graph:" ^ nl ^ print_universes_graph G ^ nl ^ *)
       " and context: " ^ nl ^ print_context Σ [] Γ

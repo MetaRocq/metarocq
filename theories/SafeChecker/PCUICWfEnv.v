@@ -121,10 +121,12 @@ Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_i
 Definition abstract_env_impl {cf:checker_flags} := ∑ X Y Z, @abstract_env_prop _ X Y Z.
 
 Global Instance abstract_env_impl_abstract_env_struct {cf:checker_flags} (Σ : abstract_env_impl) : abstract_env_struct Σ.π1 Σ.π2.π1.
+Proof.
   exact (Σ.π2.π2.π1).
 Defined.
 
 Global Instance abstract_env_impl_abstract_env_prop {cf:checker_flags} (Σ : abstract_env_impl) : abstract_env_prop Σ.π1 Σ.π2.π1.
+Proof.
   exact (Σ.π2.π2.π2).
 Defined.
 
@@ -136,6 +138,7 @@ Defined.
 
 Definition abstract_env_ext_sq_wf {cf:checker_flags} (X : abstract_env_impl) (x : X.π2.π1)
   Σ (wfΣ : abstract_env_ext_rel x Σ) : ∥ wf Σ∥.
+Proof.
   destruct (abstract_env_ext_wf _ wfΣ).
   sq. auto.
 Qed.

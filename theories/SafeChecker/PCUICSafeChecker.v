@@ -489,6 +489,7 @@ Section CheckEnv.
 
   Definition check_judgment_wf_env X_ext {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X_ext -> NormalizationIn Σ} Γ (wfΓ : forall Σ (wfΣ : abstract_env_ext_rel X_ext Σ), ∥ wf_local Σ Γ ∥) j (Hu : j_univ j = None)
     : typing_result (forall Σ (wfΣ : abstract_env_ext_rel X_ext Σ), ∥ lift_typing typing Σ Γ j ∥).
+  Proof.
     eapply typing_error_forget.
     pose proof (infer_judgment X_impl X_ext (infer X_impl X_ext) Γ wfΓ (j_term j) (j_typ j) (j_rel j)) as X.
     rw -Hu in X.
@@ -932,7 +933,7 @@ Section CheckEnv.
     ∑ l' : list B, All2 P l l' :=
     match a with
     | All_nil => ([]; All2_nil)
-    | All_cons x l px pl =>
+    | All_cons px pl =>
       let '(l'; pl') := All_sigma pl in
       ((px.π1 :: l'); All2_cons px.π2 pl')
     end.
@@ -941,7 +942,7 @@ Section CheckEnv.
     (a : All2 (fun x y => forall (aa:AA) (bb:BB aa), ∥ P aa bb x y ∥) l l') (aa:AA) (bb:BB aa) : ∥ All2 (P aa bb) l l' ∥ :=
     match a with
     | All2_nil => sq All2_nil
-    | All2_cons _ _ _ _ rxy all' =>
+    | All2_cons rxy all' =>
       let 'sq all := All2_sq all' aa bb in
       let 'sq rxy := rxy aa bb in
       sq (All2_cons rxy all)
@@ -1199,7 +1200,7 @@ Section CheckEnv.
 
   Notation "'if' c 'then' vT 'else' vF" :=
     (match c with true => vT | false => vF end)
-    (at level 200, c, vT, vF at level 200, only parsing).
+    (at level 10, c, vT, vF at level 200, only parsing).
 
   Equations discr_prod_letin (t : term) : Prop :=
     discr_prod_letin (tProd _ _ _) := False ;
