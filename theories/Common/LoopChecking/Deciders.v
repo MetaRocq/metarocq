@@ -12,13 +12,15 @@ From MetaRocq.Common.LoopChecking Require Import Common Interfaces HornClauses M
 
 Set Equations Transparent.
 
+Create Rewrite HintDb set_specs'.
+
 Module Type LoopCheckingItf (LS : LevelSets).
 
   (* Type of consistent models of a set of universe constraints *)
   Parameter model : Type.
   Parameter univ : Type.
 
-  Notation constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
+  Abbreviation constraint := (univ * UnivConstraintType.ConstraintType.t * univ).
 
   (* Returns the valuation of the model: a minimal assignement from levels to constraints
     that make the enforced clauses valid. *)
@@ -3526,7 +3528,7 @@ Module LoopChecking (LS : LevelSets).
     apply clauses_levels_declared.
   Qed.
 
-  Notation univ := NES.t.
+  Abbreviation univ := NES.t.
 
   Import UnivConstraintType.ConstraintType (Le, Eq).
 

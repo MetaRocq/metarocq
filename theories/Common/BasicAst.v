@@ -98,7 +98,7 @@ Definition conv_pb_leqb (pb1 pb2 : conv_pb) : bool
 
 (* This opaque natural number is a hack to inform unquoting to generate
   a fresh evar when encountering it. *)
-Definition fresh_evar_id : nat. exact 0. Qed.
+Definition fresh_evar_id : nat. Proof. exact 0. Qed.
 
 (* Parametrized by term because term is not yet defined *)
 Record def term := mkdef {
@@ -166,6 +166,8 @@ Lemma map_def_id {t} x : map_def (@id t) (@id t) x = id x.
 Proof. now destruct x. Qed.
 
 Create Rewrite HintDb map.
+(* Used by both the Template and PCUIC lifting lemmas. *)
+Create Rewrite HintDb lift.
 #[global] Hint Rewrite @map_def_id @map_id : map.
 
 Lemma map_def_spec {A B} (P P' : A -> Type) (f f' g g' : A -> B) (x : def A) :

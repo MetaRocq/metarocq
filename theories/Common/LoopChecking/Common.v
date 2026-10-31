@@ -123,7 +123,7 @@ Proof.
     * exists min. split => //.
 Qed.
 
-Notation min_opt := (option_map2 Z.min).
+Abbreviation min_opt := (option_map2 Z.min).
 
 Declare Scope opt_rel.
 Delimit Scope opt_rel with opt.
@@ -238,7 +238,7 @@ Proof.
   destruct x, y, z; cbn; lia_f_equal.
 Qed.
 
-Local Notation fn := (fold_left (option_map2 Z.min)).
+Local Abbreviation fn := (fold_left (option_map2 Z.min)).
 
 Lemma fold_left_impl n l :
   (forall x, In x (n :: l) -> fn l n ≤ x) /\
@@ -299,7 +299,7 @@ Proof.
   - elim. constructor.
 Qed.
 
-Notation max_opt := (option_map2 Z.max).
+Abbreviation max_opt := (option_map2 Z.max).
 
 Lemma max_opt_spec x y z : max_opt x y = Some z -> exists x' y', x = Some x' /\ y = Some y' /\ z = Z.max x' y'.
 Proof.

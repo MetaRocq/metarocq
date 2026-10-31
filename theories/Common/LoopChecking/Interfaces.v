@@ -10,6 +10,8 @@ From MetaRocq.Common Require Import LoopChecking.Common.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
+Create Rewrite HintDb set_specs.
+
 Module Autorew.
   Import Ltac2.
   #[global] Ltac2 autorewrite0 ids cl :=

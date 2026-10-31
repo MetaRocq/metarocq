@@ -75,6 +75,7 @@ Module LevelExprZ.
   Qed.
 
   Definition lt_compat : Proper (Logic.eq ==> Logic.eq ==> iff) lt.
+  Proof.
     intros x x' H1 y y' H2; now rw H1 H2.
   Qed.
 

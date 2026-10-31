@@ -364,7 +364,7 @@ Definition option_of_result {V U m cls} (r : result V U m cls) : option model :=
   | Loop v _ _ => None
   end.
 
-Notation loop_measure V W := (#|V|, #|V| - #|W|)%nat.
+Abbreviation loop_measure V W := (#|V|, #|V| - #|W|)%nat.
 
 Definition lexprod_rel := lexprod lt lt.
 
@@ -610,7 +610,7 @@ Proof.
   move/level_value_MapsTo => ->. now constructor.
 Qed.
 
-Lemma restrict_with_concl_subset {cls W} : cls ⇂ W ⊂_clset (cls ↓ W).
+Lemma restrict_with_concl_subset {cls W} : (cls ⇂ W) ⊂_clset (cls ↓ W).
 Proof.
   move=> cl /in_restrict_clauses => -[conclW premsW hin].
   rw in_clauses_with_concl. split => //.

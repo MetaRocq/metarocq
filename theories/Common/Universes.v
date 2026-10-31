@@ -274,6 +274,7 @@ Module PropLevel.
   Definition lt := lt_.
 
   Global Instance lt_strorder : StrictOrder lt.
+  Proof.
   split.
   - intros n X. destruct n;inversion X.
   - intros n1 n2 n3 X1 X2. destruct n1,n2,n3;auto; try inversion X1;try inversion X2.
@@ -332,6 +333,7 @@ Module LevelExpr.
   Qed.
 
   Definition lt_compat : Proper (Logic.eq ==> Logic.eq ==> iff) lt.
+  Proof.
     intros x x' H1 y y' H2; now rw H1 H2.
   Qed.
 
@@ -449,7 +451,7 @@ Module Universe.
   Definition of_level (l: Level.t) : t := singleton (LevelExpr.make l).
 
   #[deprecated(since = "1.4", note="use of_level instead")]
-  Notation make' := of_level (only parsing).
+  Abbreviation make' := of_level (only parsing).
 
   Lemma make'_inj l l' : of_level l = of_level l' -> l = l'.
   Proof.
@@ -2531,7 +2533,7 @@ Definition fresh_universe : Universe.t := Universe.of_level fresh_level.
 
 Class UnivLevelSubst A := subst_level_instance : LevelInstance.t -> A -> A.
 
-Notation "x @@[ u ]" := (subst_level_instance u x) (at level 3,
+Notation "x @@[ u ]" := (subst_level_instance u x) (at level 1,
   format "x @@[ u ]").
 
 Class UnivSubst A := subst_instance : Instance.t -> A -> A.
@@ -2786,6 +2788,11 @@ Section UniverseClosedSubst.
 
 End UniverseClosedSubst.
 
+Create HintDb substu.
+#[global] Hint Constants Opaque : substu.
+#[global] Hint Projections Opaque : substu.
+#[global] Hint Variables Opaque : substu.
+
 #[global]
 Hint Resolve
   closedu_subst_level_instance_level
@@ -2862,7 +2869,6 @@ Section SubstLevelInstanceClosed.
 
 End SubstLevelInstanceClosed.
 
-Create HintDb substu.
 #[global]
 Hint Resolve subst_level_instance_level_closedu subst_level_instance_level_expr_closedu
      subst_level_instance_universe_closedu

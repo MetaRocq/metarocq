@@ -1128,8 +1128,8 @@ Module EnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
     Fixpoint All_local_env_size_gen base Γ (w : All_local_env (lift_sorting1 checking sorting) Γ) : size :=
       match w with
       | localenv_nil => base
-      | localenv_cons_abs Γ' na t w' p => ssize _ _ _ p.2.π2.1 + All_local_env_size_gen base _ w'
-      | localenv_cons_def Γ' na b t w' p => csize _ _ _ p.1 + ssize _ _ _ p.2.π2.1 + All_local_env_size_gen base _ w'
+      | localenv_cons_abs w' p => ssize _ _ _ p.2.π2.1 + All_local_env_size_gen base _ w'
+      | localenv_cons_def w' p => csize _ _ _ p.1 + ssize _ _ _ p.2.π2.1 + All_local_env_size_gen base _ w'
       end.
 
     Lemma All_local_env_size_pos base Γ w : base <= All_local_env_size_gen base Γ w.

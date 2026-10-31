@@ -16,7 +16,7 @@ Module HornSemilattice (LS : LevelSets).
 
   Local Open Scope sl_scope.
 
-  Notation relation_of_clause cl := (singleton (concl cl) ≤ premise cl).
+  Abbreviation relation_of_clause cl := (singleton (concl cl) ≤ premise cl).
 
   Definition relations_of_clauses c :=
     Clauses.fold (fun '(prems, concl) acc => (NES.union (singleton concl) prems, prems) :: acc) c [].

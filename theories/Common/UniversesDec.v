@@ -97,7 +97,7 @@ Qed.
 
 Definition leq0_universe_dec (cf := config.default_checker_flags) ϕ u u' : {@leq0_universe ϕ u u'} + {~@leq0_universe ϕ u u'}.
 Proof.
-  set (levels := Universe.levels u ∪ Universe.levels u' ∪ (univ_constraints_levels ϕ)).
+  set (levels := (Universe.levels u ∪ Universe.levels u') ∪ (univ_constraints_levels ϕ)).
   set (uctx := (LevelSet.remove Level.lzero levels, ϕ)).
   have hc : global_uctx_invariants uctx.
   { red. split.

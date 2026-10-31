@@ -9,6 +9,11 @@ From MetaRocq.Common.LoopChecking Require Import Common Interfaces.
 From Equations Require Import Equations.
 Set Equations Transparent.
 
+Create HintDb entails_L.
+#[global] Hint Constants Opaque : entails_L.
+#[global] Hint Projections Opaque : entails_L.
+#[global] Hint Variables Opaque : entails_L.
+
 Module InitialSemilattice (LS : LevelSets).
   Import Q.
   Existing Instance comm_monoid.
@@ -205,7 +210,7 @@ Module InitialSemilattice (LS : LevelSets).
   Proof.
     intros le le'.
     eapply entails_trans. 2:exact le'.
-    eapply entails_trans with (x ∨ y ∨ z).
+    eapply entails_trans with ((x ∨ y) ∨ z).
     rw union_assoc. eapply entails_sym.
     eapply entails_join_congr_all => //. apply entails_refl.
     rw union_assoc.

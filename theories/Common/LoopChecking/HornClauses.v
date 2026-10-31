@@ -89,6 +89,11 @@ Set Equations Transparent.
 Ltac rws l := rewrite_strat (topdown l).
 Ltac rw_in l H := rewrite_strat (topdown l) in H.
 
+Create HintDb entails.
+#[global] Hint Constants Opaque : entails.
+#[global] Hint Projections Opaque : entails.
+#[global] Hint Variables Opaque : entails.
+
 Module Clauses (LS : LevelSets).
   Module Export FLS := FromLevelSets LS.
   Import (notations) NES.
@@ -99,7 +104,7 @@ Module Clauses (LS : LevelSets).
     map, map_spec, add_list, add_list_spec, equal_exprsets).
   Coercion t_set : NES.t >-> LevelExprSet.t.
 
-  Notation premises := NES.t.
+  Abbreviation premises := NES.t.
   Definition clause : Type := premises × LevelExpr.t.
 
   Module Clause.
@@ -127,6 +132,7 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Definition lt_compat : Proper (Logic.eq ==> Logic.eq ==> iff) lt.
+  Proof.
     intros x x' H1 y y' H2. unfold lt. subst. reflexivity.
   Qed.
 
@@ -167,7 +173,7 @@ Module Clauses (LS : LevelSets).
   Infix "⊂_clset" := Clauses.Subset (at level 70).
   Infix "=_clset" := Clauses.Equal (at level 70).
 
-  Notation clauses := Clauses.t.
+  Abbreviation clauses := Clauses.t.
 
   Lemma filter_add {p x s} : Clauses.filter p (Clauses.add x s) =_clset if p x then Clauses.add x (Clauses.filter p s) else Clauses.filter p s.
   Proof.
@@ -327,7 +333,7 @@ Module Clauses (LS : LevelSets).
     Clauses.filter (fun '(prem, concla) => LevelSet.mem (level concla) concl) cls.
   Infix "↓" := clauses_with_concl (at level 70). (* \downarrow *)
 
-  Notation cls_diff cls W := (Clauses.diff (cls ↓ W) (cls ⇂ W)) (only parsing).
+  Abbreviation cls_diff cls W := (Clauses.diff (cls ↓ W) (cls ⇂ W)) (only parsing).
 
   Lemma in_restrict_clauses (cls : clauses) (concls : LevelSet.t) cl :
     Clauses.In cl (restrict_clauses cls concls) <->
@@ -843,9 +849,9 @@ Module Clauses (LS : LevelSets).
     now rw add_prems_add_prems add_expr_add_expr.
   Qed.
 
-  Notation succ_expr := (add_expr 1).
-  Notation succ_prems := (add_prems 1).
-  Notation succ_clause := (add_clause 1).
+  Abbreviation succ_expr := (add_expr 1).
+  Abbreviation succ_prems := (add_prems 1).
+  Abbreviation succ_clause := (add_clause 1).
 
   Arguments add_prems : simpl never.
 
@@ -855,7 +861,7 @@ Module Clauses (LS : LevelSets).
     apply: pair_inj. now move=> /add_prems_inj -> /add_expr_inj ->.
   Qed.
   Definition add_clauses n cls := ClausesProp.of_list (List.map (fun cl => add_clause n cl) (ClausesProp.to_list cls)).
-  Notation succ_clauses := (add_clauses 1).
+  Abbreviation succ_clauses := (add_clauses 1).
   Import SetoidList.
 
   Lemma add_clauses_spec {cl cls} n : Clauses.In cl cls <-> Clauses.In (add_clause n cl) (add_clauses n cls).
@@ -1768,7 +1774,7 @@ Module Clauses (LS : LevelSets).
   Qed.
 
   Infix "∨" := union (at level 30).
-  Notation succ x := (add_prems 1%Z x).
+  Abbreviation succ x := (add_prems 1%Z x).
 
   Definition clauses_of_le l r :=
     LevelExprSet.fold (fun lk acc => Clauses.add (r, lk) acc) (NES.t_set l) Clauses.empty.
@@ -1963,7 +1969,7 @@ Module Clauses (LS : LevelSets).
     Proof. rw union_comm; auto with entails. Qed.
 
     Lemma join_assoc {cls s t u} :
-      cls ⊢ℋ s ∨ t ∨ u ≡ s ∨ (t ∨ u).
+      cls ⊢ℋ (s ∨ t) ∨ u ≡ s ∨ (t ∨ u).
     Proof.
       rw union_assoc; auto with entails.
     Qed.
