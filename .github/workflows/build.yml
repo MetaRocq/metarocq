@@ -1,9 +1,13 @@
 name: MetaRocq CI
 
 on:
+  # Test what lands on the long-lived branches; everything else is tested
+  # through its pull request, so that a PR branch is not built twice.
   push:
+    branches: [ main, '9.*' ]
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [ opened, synchronize, reopened, ready_for_review ]
+  workflow_dispatch:
 
 jobs:
   checktodos:
