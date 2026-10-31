@@ -535,10 +535,12 @@ Notation " Σ ;;; Γ |- t = u " := (cumul_gen Σ Γ Conv t u) (at level 50, Γ, 
 Notation " Σ ;;; Γ |- t <= u " := (cumul_gen Σ Γ Cumul t u) (at level 50, Γ, t, u at next level) : type_scope.
 
 Lemma conv_refl' `{checker_flags} : forall Σ Γ t, Σ ;;; Γ |- t = t.
+Proof.
   intros. constructor. apply eq_term_refl.
 Defined.
 
 Lemma cumul_refl' `{checker_flags} : forall Σ Γ t, Σ ;;; Γ |- t <= t.
+Proof.
   intros. constructor. apply leq_term_refl.
 Defined.
 
@@ -1059,6 +1061,7 @@ Defined.
 
 Lemma type_Prop `{checker_flags} Σ :
   Σ ;;; [] |- tSort sProp : tSort Sort.type1.
+Proof.
   change (  Σ ;;; [] |- tSort (sProp) : tSort Sort.type1);
   constructor;auto. constructor. constructor.
 Defined.

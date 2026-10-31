@@ -394,6 +394,7 @@ Proof.
     clear - all f. induction all; econstructor; eauto.
   - eapply Harr; eauto. clear -all f. induction all; constructor; auto.
 Qed.
+Register Scheme expanded_ind as ind_nodep for expanded.
 
 Local Hint Constructors expanded : core.
 
@@ -778,7 +779,7 @@ Proof.
     {
       replace ((Init.Nat.min (S n0 - #|l|)
       (#|[]| + context_assumptions (decompose_prod_assum [] T).1 - #|l|))) with (S n0 - #|l|). 2:{ len. destruct #|l|; lia. }
-    assert (0 <=? n = true) as -> by now destruct n.
+    assert ((0 <=? n) = true) as -> by now destruct n.
     rewrite <- H2.
     rewrite !nth_error_app2. 2,3: rewrite repeat_length; lia.
     f_equal. rewrite !repeat_length. lia.

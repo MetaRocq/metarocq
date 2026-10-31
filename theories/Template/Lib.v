@@ -10,19 +10,19 @@ From MetaRocq.Utils Require Import utils.
 (** Quote a term. *)
 Notation "'$quote' x" :=
   ltac:((let p y := exact y in quote_term x p))
-  (at level 0, only parsing).
+  (at level 10, x at level 9, only parsing).
 
 (** Run a template program. *)
 Notation "'$run' f" :=
   ltac:(
     let p y := exact y in
     run_template_program f p
-  ) (at level 0, only parsing).
+  ) (at level 10, f at level 9, only parsing).
 
 (** Quote and term and its environment. *)
 Notation "'$quote_rec' x" :=
   ($run (tmQuoteRec x))
-  (at level 0, only parsing).
+  (at level 10, x at level 9, only parsing).
 
 (** Unquote a term (using [tmUnquote]). *)
 Notation "'$unquote' x" :=
@@ -33,12 +33,12 @@ Notation "'$unquote' x" :=
       end
     in
     run_template_program (tmUnquote x) p
-  ) (at level 0, only parsing).
+  ) (at level 10, x at level 9, only parsing).
 
 (** Unquote a term (using [tmUnquoteTyped]). *)
 Notation "'$unquote' x : T" :=
   ($run (tmUnquoteTyped T x))
-  (at level 0, T at level 100, x at next level, only parsing).
+  (at level 10, x at level 9, T at level 100, only parsing).
 
 (** [unfold_toplevel x] replaces the constant [x] by its definition.
     Fails if [x] is not a constant. *)
@@ -52,7 +52,7 @@ Definition unfold_toplevel {A} (x : A) : TemplateMonad A :=
 (** Quote the _definition_ of a constant. *)
 Notation "'$quote_def' x" :=
   ($run (tmBind (unfold_toplevel x) tmQuote))
-  (at level 0, only parsing).
+  (at level 10, x at level 9, only parsing).
 
 (** [get_kername t] returns the kernel name of [t].
     Fails if [t] is not of the form [tConst _ _]. *)
@@ -65,12 +65,12 @@ Definition get_kername (t : term) : TemplateMonad kername :=
 (** Get the kernel name of a constant. *)
 Notation "'$name' x" :=
   ($run (get_kername ($quote x)))
-  (at level 0, only parsing).
+  (at level 10, x at level 9, only parsing).
 
 (** Recursively quote the _definition_ of a constant. *)
 Notation "'$quote_def_rec' x" :=
   ($run (tmBind (unfold_toplevel x) tmQuoteRec))
-  (at level 0, only parsing).
+  (at level 10, x at level 9, only parsing).
 
 (** * Useful shortcuts. *)
 
