@@ -27,7 +27,8 @@ jobs:
           - 'dev'
         ocaml_version:
           - '4.14-flambda'
-        target: [ local, opam ]
+        # The local build is covered by the nix build
+        target: [ opam ]
       fail-fast: true
 
     concurrency:
