@@ -67,7 +67,7 @@ Module Type DSO_to_OTSig (O : DecStrOrder) <: Orders.OrderedType := Nop <+ DSO_t
 Module QuotationOfDSO_to_OT (O : DecStrOrder) (E : DSO_to_OTSig O) (qO : QuotationOfDecStrOrder O) <: QuotationOfOrderedType E :=
   qO <+ QuotationOfCompare2EqBool O E <+ QuotationOfHasEqBool2Dec O E E.
 *)
-Local Set Warnings Append "-notation-overridden".
+Local Set Warnings "-notation-overridden".
 Module Type OT_to_FullSig (O : Orders.OrderedType) <: OrderedTypeFull := Nop <+ OT_to_Full O.
 Module QuotationOfOT_to_Full (O : Orders.OrderedType) (E : OT_to_FullSig O) (qO : QuotationOfOrderedType O) <: QuotationOfOrderedTypeFull E.
   Include qO.
