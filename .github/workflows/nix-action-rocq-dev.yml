@@ -1,3 +1,6 @@
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
 jobs:
   ExtLib:
     needs:
@@ -12,6 +15,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -26,6 +30,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -75,6 +80,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -89,6 +95,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -135,6 +142,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -149,6 +157,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -205,6 +214,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -219,6 +229,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -296,6 +307,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -310,6 +322,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -376,6 +389,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -390,6 +404,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -460,6 +475,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -474,6 +490,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -543,6 +560,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -557,6 +575,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -624,6 +643,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -638,6 +658,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -711,6 +732,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -725,6 +747,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -791,6 +814,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -805,6 +829,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -875,6 +900,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -889,6 +915,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -958,6 +985,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -972,6 +1000,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -1037,6 +1066,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -1051,6 +1081,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -1115,6 +1146,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -1129,6 +1161,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -1185,6 +1218,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -1199,6 +1233,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -1240,6 +1275,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.target_commit }}
     - name: Determine which commit to test
@@ -1254,6 +1290,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v7
       with:
+        allow-unsafe-pr-checkout: true
         fetch-depth: 0
         ref: ${{ env.tested_commit }}
     - name: Cachix install
@@ -1302,3 +1339,5 @@ on:
   push:
     branches:
     - main
+permissions:
+  contents: read
