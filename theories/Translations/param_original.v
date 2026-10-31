@@ -115,6 +115,7 @@ Definition tsl_rec1 := tsl_rec1_app None.
 
 Definition tsl_mind_body (E : tsl_table) (mp : modpath) (kn : kername)
            (mind : mutual_inductive_body) : tsl_table * list mutual_inductive_body.
+Proof.
   refine (_, [{| ind_npars := 2 * mind.(ind_npars);
                  ind_params := _;
                  ind_bodies := _;

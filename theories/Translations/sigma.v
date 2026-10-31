@@ -22,7 +22,7 @@ Notation "( x ; y )" := (mk_sig x y) : sigma_scope.
 Notation "x .1" := (π1 x) : sigma_scope.
 Notation "x .2" := (π2 x) : sigma_scope.
 Notation "'∃' x .. y , p" := (sigma _ (fun x => .. (sigma _ (fun y => p)) ..))
-  (at level 200, x binder, right associativity,
+  (at level 10, x binder, p at level 200,
    format "'[' '∃'  '/  ' x  ..  y ,  '/  ' p ']'")
                                   : type_scope.
 

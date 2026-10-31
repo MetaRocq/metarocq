@@ -154,6 +154,7 @@ Definition tsl_rec1 := tsl_rec1_app [].
 
 Definition tsl_mind_body (E : tsl_table) (mp : modpath) (kn : kername)
            (mind : mutual_inductive_body) : tsl_table * list mutual_inductive_body.
+Proof.
   refine (_, [{| ind_npars := 3 * mind.(ind_npars);
                  ind_params := _;
                  ind_bodies := _;
@@ -251,11 +252,13 @@ Module FreeTheorems.
 
   Definition map_rel_map A B (f : A -> B) :
     forall (l : list A), map_rel f l (map f l).
+Proof.
   induction l; constructor; compute; auto.
   Defined.
 
   Lemma rel_map_map A B (f : A -> B) :
     forall (l : list A) fl, map_rel f l fl -> fl = map f l.
+Proof.
   intros l fl H. induction H; unfold graph in *; subst; auto.
   Defined.
 

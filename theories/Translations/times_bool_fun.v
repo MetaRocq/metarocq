@@ -133,6 +133,7 @@ Fixpoint subst_app (t : term) (us : list term) : term :=
 (* If tm of type typ = Π [A0] [A1] ... . [B], returns *)
 (* a term of type [Π A0 A1 ... . B] *)
 Definition pouet (tm typ : term) : term.
+Proof.
   simple refine (let '((names, types), last) := decompose_prod typ in
                  let L' := List.fold_left _ (List.combine names types) [] in _).
   exact (fun Γ' A => Γ' ,, vass (fst A) (snd A)).
@@ -149,6 +150,7 @@ Defined.
 Definition tsl_mind_body (ΣE : tsl_context) (mp : modpath) (kn : kername)
            (mind : mutual_inductive_body)
   : tsl_result (tsl_table * list mutual_inductive_body).
+Proof.
   refine (let tsl := fun Γ t => match tsl_rec fuel (fst ΣE) (snd ΣE) Γ t with
                              | Success x => x
                              | Error _ => todo "tsl"
@@ -360,6 +362,7 @@ Defined.
 
 
 Definition bool_of_Equivᵗ {A B} (e : Equivᵗ A B) : bool.
+Proof.
   now destruct e as [[_ b] _].
 Defined.
 
@@ -375,6 +378,7 @@ Axiom ua : UA.
 
 
 Lemma eqᵗ_unit_unit (e e' : eqᵗ Type unit unit) : e = e'.
+Proof.
   refine (equiv_inj (eqᵗ_eq _ _) _).
   - apply isequiv_eqᵗ_eq.
   - refine (equiv_inj _ (H:=ua _ _) _).

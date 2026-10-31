@@ -20,11 +20,14 @@ Generalizable All Variables.
 
 Local Unset Elimination Schemes.
 Inductive paths (A : Type) (a : A) : A -> Type :=  idpath : paths A a a.
+Scheme Rewriting for paths.
 Definition paths_ind : forall A a (P : forall y, paths A a y -> Type),
     P a (idpath A a) -> forall y p, P y p.
+Proof.
   intros A a P X y p. destruct p; assumption.
 Defined.
 Definition paths_ind_beta : forall A a P u, paths _ (paths_ind A a P u a (idpath A a)) u.
+Proof.
   reflexivity.
 Defined.
 
@@ -39,7 +42,7 @@ Arguments projT1 {A P} _ / .
 Arguments projT2 {A P} _ / .
 
 Notation "'exists' x .. y , p" := (sigT (fun x => .. (sigT (fun y => p)) ..))
-  (at level 200, x binder, right associativity,
+  (at level 10, x binder, p at level 200,
    format "'[' 'exists'  '/  ' x  ..  y ,  '/  ' p ']'")
   : type_scope.
 Notation "{ x : A  & P }" := (sigT (fun x:A => P)) : type_scope.
@@ -177,6 +180,7 @@ Arguments symmetric_paths / .
 
 Definition concat {A : Type} {x y z : A} (p : x = y) (q : y = z) : x = z.
   (* := transport (paths _ x) q (transport (fun y => x = y) p 1). *)
+Proof.
   now destruct p, q.
 Defined.
 
@@ -185,8 +189,8 @@ Arguments concat {A x y z} p q : simpl nomatch.
 Global Instance transitive_paths {A} : Transitive (@paths A) | 0 := @concat A.
 Arguments transitive_paths / .
 
-Notation "p @ q" := (concat p%path q%path) (at level 20) : path_scope.
-Notation "p ^" := (inverse p%path) (at level 3, format "p '^'") : path_scope.
+Notation "p @ q" := (concat p%path q%path) (at level 21, left associativity) : path_scope.
+Notation "p ⁻¹" := (inverse p%path) (at level 1, format "p '⁻¹'") : path_scope.
 
 Definition ap {A B:Type} (f:A -> B) {x y:A} (p:x = y) : f x = f y
   := transport (fun y => f x = f y) p 1.
@@ -260,7 +264,7 @@ Bind Scope equiv_scope with Equiv.
 
 Notation "A <~> B" := (Equiv A B) (at level 90) : type_scope.
 
-Notation "f ^-1" := (@equiv_inv _ _ f _) (at level 3, format "f '^-1'") : function_scope.
+Notation "f ^-1" := (@equiv_inv _ _ f _) (at level 1, format "f '^-1'") : function_scope.
 
 Definition ap10_equiv {A B : Type} {f g : A <~> B} (h : f = g) : f == g
   := ap10 (ap equiv_fun h).
@@ -294,187 +298,202 @@ Global Arguments path_forall2 {_} {A B}%_type_scope {P} (f g)%_function_scope _.
 
 Definition concat_p1 {A : Type} {x y : A} (p : x = y) :
   p @ 1 = p.
+Proof.
   now destruct p.
 Defined.
 
 Definition concat_1p {A : Type} {x y : A} (p : x = y) :
   1 @ p = p.
+Proof.
   now destruct p.
 Defined.
 
 
 Definition concat_p_pp {A : Type} {x y z t : A} (p : x = y) (q : y = z) (r : z = t) :
   p @ (q @ r) = (p @ q) @ r.
+Proof.
   now destruct p, q, r.
 Defined.
 
 Definition concat_pp_p {A : Type} {x y z t : A} (p : x = y) (q : y = z) (r : z = t) :
   (p @ q) @ r = p @ (q @ r).
+Proof.
   now destruct p, q, r.
 Defined.
 
 Definition concat_pV {A : Type} {x y : A} (p : x = y) :
-  p @ p^ = 1.
+  p @ p⁻¹ = 1.
+Proof.
   now destruct p.
 Defined.
 
 Definition concat_Vp {A : Type} {x y : A} (p : x = y) :
-  p^ @ p = 1.
+  p⁻¹ @ p = 1.
+Proof.
   now destruct p.
 Defined.
 
 Definition concat_V_pp {A : Type} {x y z : A} (p : x = y) (q : y = z) :
-  p^ @ (p @ q) = q.
+  p⁻¹ @ (p @ q) = q.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition concat_p_Vp {A : Type} {x y z : A} (p : x = y) (q : x = z) :
-  p @ (p^ @ q) = q.
+  p @ (p⁻¹ @ q) = q.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition concat_pp_V {A : Type} {x y z : A} (p : x = y) (q : y = z) :
-  (p @ q) @ q^ = p.
+  (p @ q) @ q⁻¹ = p.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition concat_pV_p {A : Type} {x y z : A} (p : x = z) (q : y = z) :
-  (p @ q^) @ q = p.
+  (p @ q⁻¹) @ q = p.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition inv_pp {A : Type} {x y z : A} (p : x = y) (q : y = z) :
-  (p @ q)^ = q^ @ p^.
+  (p @ q)⁻¹ = q⁻¹ @ p⁻¹.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition inv_Vp {A : Type} {x y z : A} (p : y = x) (q : y = z) :
-  (p^ @ q)^ = q^ @ p.
+  (p⁻¹ @ q)⁻¹ = q⁻¹ @ p.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition inv_pV {A : Type} {x y z : A} (p : x = y) (q : z = y) :
-  (p @ q^)^ = q @ p^.
+  (p @ q⁻¹)⁻¹ = q @ p⁻¹.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition inv_VV {A : Type} {x y z : A} (p : y = x) (q : z = y) :
-  (p^ @ q^)^ = q @ p.
+  (p⁻¹ @ q⁻¹)⁻¹ = q @ p.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition inv_V {A : Type} {x y : A} (p : x = y) :
-  p^^ = p.
+  p⁻¹⁻¹ = p.
+Proof.
   now destruct p.
 Defined.
 
 Definition moveR_Mp {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x) :
-  p = r^ @ q -> r @ p = q.
+  p = r⁻¹ @ q -> r @ p = q.
 Proof.
   destruct r.
   intro h. exact (concat_1p _ @ h @ concat_1p _).
 Defined.
 
 Definition moveR_pM {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x) :
-  r = q @ p^ -> r @ p = q.
+  r = q @ p⁻¹ -> r @ p = q.
 Proof.
   destruct p.
   intro h. exact (concat_p1 _ @ h @ concat_p1 _).
 Defined.
 
 Definition moveR_Vp {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : x = y) :
-  p = r @ q -> r^ @ p = q.
+  p = r @ q -> r⁻¹ @ p = q.
 Proof.
   destruct r.
   intro h. exact (concat_1p _ @ h @ concat_1p _).
 Defined.
 
 Definition moveR_pV {A : Type} {x y z : A} (p : z = x) (q : y = z) (r : y = x) :
-  r = q @ p -> r @ p^ = q.
+  r = q @ p -> r @ p⁻¹ = q.
 Proof.
   destruct p.
   intro h. exact (concat_p1 _ @ h @ concat_p1 _).
 Defined.
 
 Definition moveL_Mp {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x) :
-  r^ @ q = p -> q = r @ p.
+  r⁻¹ @ q = p -> q = r @ p.
 Proof.
   destruct r.
-  intro h. exact ((concat_1p _)^ @ h @ (concat_1p _)^).
+  intro h. exact ((concat_1p _)⁻¹ @ h @ (concat_1p _)⁻¹).
 Defined.
 
 Definition moveL_pM {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x) :
-  q @ p^ = r -> q = r @ p.
+  q @ p⁻¹ = r -> q = r @ p.
 Proof.
   destruct p.
-  intro h. exact ((concat_p1 _)^ @ h @ (concat_p1 _)^).
+  intro h. exact ((concat_p1 _)⁻¹ @ h @ (concat_p1 _)⁻¹).
 Defined.
 
 Definition moveL_Vp {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : x = y) :
-  r @ q = p -> q = r^ @ p.
+  r @ q = p -> q = r⁻¹ @ p.
 Proof.
   destruct r.
-  intro h. exact ((concat_1p _)^ @ h @ (concat_1p _)^).
+  intro h. exact ((concat_1p _)⁻¹ @ h @ (concat_1p _)⁻¹).
 Defined.
 
 Definition moveL_pV {A : Type} {x y z : A} (p : z = x) (q : y = z) (r : y = x) :
-  q @ p = r -> q = r @ p^.
+  q @ p = r -> q = r @ p⁻¹.
 Proof.
   destruct p.
-  intro h. exact ((concat_p1 _)^ @ h @ (concat_p1 _)^).
+  intro h. exact ((concat_p1 _)⁻¹ @ h @ (concat_p1 _)⁻¹).
 Defined.
 
 Definition moveL_1M {A : Type} {x y : A} (p q : x = y) :
-  p @ q^ = 1 -> p = q.
+  p @ q⁻¹ = 1 -> p = q.
 Proof.
   destruct q.
-  intro h. exact ((concat_p1 _)^ @ h).
+  intro h. exact ((concat_p1 _)⁻¹ @ h).
 Defined.
 
 Definition moveL_M1 {A : Type} {x y : A} (p q : x = y) :
-  q^ @ p = 1 -> p = q.
+  q⁻¹ @ p = 1 -> p = q.
 Proof.
   destruct q.
-  intro h. exact ((concat_1p _)^ @ h).
+  intro h. exact ((concat_1p _)⁻¹ @ h).
 Defined.
 
 Definition moveL_1V {A : Type} {x y : A} (p : x = y) (q : y = x) :
-  p @ q = 1 -> p = q^.
+  p @ q = 1 -> p = q⁻¹.
 Proof.
   destruct q.
-  intro h. exact ((concat_p1 _)^ @ h).
+  intro h. exact ((concat_p1 _)⁻¹ @ h).
 Defined.
 
 Definition moveL_V1 {A : Type} {x y : A} (p : x = y) (q : y = x) :
-  q @ p = 1 -> p = q^.
+  q @ p = 1 -> p = q⁻¹.
 Proof.
   destruct q.
-  intro h. exact ((concat_1p _)^ @ h).
+  intro h. exact ((concat_1p _)⁻¹ @ h).
 Defined.
 
 Definition moveR_M1 {A : Type} {x y : A} (p q : x = y) :
-  1 = p^ @ q -> p = q.
+  1 = p⁻¹ @ q -> p = q.
 Proof.
   destruct p.
   intro h. exact (h @ (concat_1p _)).
 Defined.
 
 Definition moveR_1M {A : Type} {x y : A} (p q : x = y) :
-  1 = q @ p^ -> p = q.
+  1 = q @ p⁻¹ -> p = q.
 Proof.
   destruct p.
   intro h. exact (h @ (concat_p1 _)).
 Defined.
 
 Definition moveR_1V {A : Type} {x y : A} (p : x = y) (q : y = x) :
-  1 = q @ p -> p^ = q.
+  1 = q @ p -> p⁻¹ = q.
 Proof.
   destruct p.
   intro h. exact (h @ (concat_p1 _)).
 Defined.
 
 Definition moveR_V1 {A : Type} {x y : A} (p : x = y) (q : y = x) :
-  1 = p @ q -> p^ = q.
+  1 = p @ q -> p⁻¹ = q.
 Proof.
   destruct p.
   intro h. exact (h @ (concat_1p _)).
@@ -482,7 +501,7 @@ Defined.
 
 Definition moveR_transport_p {A : Type} (P : A -> Type) {x y : A}
   (p : x = y) (u : P x) (v : P y)
-  : u = p^ # v -> p # u = v.
+  : u = p⁻¹ # v -> p # u = v.
 Proof.
   destruct p.
   exact idmap.
@@ -490,7 +509,7 @@ Defined.
 
 Definition moveR_transport_V {A : Type} (P : A -> Type) {x y : A}
   (p : y = x) (u : P x) (v : P y)
-  : u = p # v -> p^ # u = v.
+  : u = p # v -> p⁻¹ # u = v.
 Proof.
   destruct p.
   exact idmap.
@@ -498,7 +517,7 @@ Defined.
 
 Definition moveL_transport_V {A : Type} (P : A -> Type) {x y : A}
   (p : x = y) (u : P x) (v : P y)
-  : p # u = v -> u = p^ # v.
+  : p # u = v -> u = p⁻¹ # v.
 Proof.
   destruct p.
   exact idmap.
@@ -506,36 +525,36 @@ Defined.
 
 Definition moveL_transport_p {A : Type} (P : A -> Type) {x y : A}
   (p : y = x) (u : P x) (v : P y)
-  : p^ # u = v -> u = p # v.
+  : p⁻¹ # u = v -> u = p # v.
 Proof.
   destruct p.
   exact idmap.
 Defined.
 
 Definition moveR_transport_p_V {A : Type} (P : A -> Type) {x y : A}
-           (p : x = y) (u : P x) (v : P y) (q : u = p^ # v)
-  : (moveR_transport_p P p u v q)^ = moveL_transport_p P p v u q^.
+           (p : x = y) (u : P x) (v : P y) (q : u = p⁻¹ # v)
+  : (moveR_transport_p P p u v q)⁻¹ = moveL_transport_p P p v u q⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
 
 Definition moveR_transport_V_V {A : Type} (P : A -> Type) {x y : A}
            (p : y = x) (u : P x) (v : P y) (q : u = p # v)
-  : (moveR_transport_V P p u v q)^ = moveL_transport_V P p v u q^.
+  : (moveR_transport_V P p u v q)⁻¹ = moveL_transport_V P p v u q⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
 
 Definition moveL_transport_V_V {A : Type} (P : A -> Type) {x y : A}
            (p : x = y) (u : P x) (v : P y) (q : p # u = v)
-  : (moveL_transport_V P p u v q)^ = moveR_transport_V P p v u q^.
+  : (moveL_transport_V P p u v q)⁻¹ = moveR_transport_V P p v u q⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
 
 Definition moveL_transport_p_V {A : Type} (P : A -> Type) {x y : A}
-           (p : y = x) (u : P x) (v : P y) (q : p^ # u = v)
-  : (moveL_transport_p P p u v q)^ = moveR_transport_p P p v u q^.
+           (p : y = x) (u : P x) (v : P y) (q : p⁻¹ # u = v)
+  : (moveL_transport_p P p u v q)⁻¹ = moveR_transport_p P p v u q⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -551,6 +570,7 @@ Definition apD_1 {A B} (x : A) (f : forall x : A, B x) :
 
 Definition ap_pp {A B : Type} (f : A -> B) {x y z : A} (p : x = y) (q : y = z) :
   ap f (p @ q) = (ap f p) @ (ap f q).
+Proof.
   now destruct p, q.
 Defined.
 
@@ -569,47 +589,56 @@ Proof.
 Defined.
 
 Definition inverse_ap {A B : Type} (f : A -> B) {x y : A} (p : x = y) :
-  (ap f p)^ = ap f (p^).
+  (ap f p)⁻¹ = ap f (p⁻¹).
+Proof.
   now destruct p.
 Defined.
 
 Definition ap_V {A B : Type} (f : A -> B) {x y : A} (p : x = y) :
-  ap f (p^) = (ap f p)^.
+  ap f (p⁻¹) = (ap f p)⁻¹.
+Proof.
   now destruct p.
 Defined.
 
 Definition ap_idmap {A : Type} {x y : A} (p : x = y) :
   ap idmap p = p.
+Proof.
   now destruct p.
 Defined.
 
 Definition ap_compose {A B C : Type} (f : A -> B) (g : B -> C) {x y : A} (p : x = y) :
   ap (g o f) p = ap g (ap f p).
+Proof.
   now destruct p.
 Defined.
 
 Definition ap_compose' {A B C : Type} (f : A -> B) (g : B -> C) {x y : A} (p : x = y) :
   ap (fun a => g (f a)) p = ap g (ap f p).
+Proof.
   now destruct p.
 Defined.
 
 Definition ap_const {A B : Type} {x y : A} (p : x = y) (z : B) :
   ap (fun _ => z) p = 1.
+Proof.
   now destruct p.
 Defined.
 
 Definition concat_Ap {A B : Type} {f g : A -> B} (p : forall x, f x = g x) {x y : A} (q : x = y) :
   (ap f q) @ (p y) = (p x) @ (ap g q).
+Proof.
   destruct q. cbn. now rewrite concat_p1, concat_1p.
 Defined.
 
 Definition concat_A1p {A : Type} {f : A -> A} (p : forall x, f x = x) {x y : A} (q : x = y) :
   (ap f q) @ (p y) = (p x) @ q.
+Proof.
   destruct q. cbn. now rewrite concat_p1, concat_1p.
 Defined.
 
 Definition concat_pA1 {A : Type} {f : A -> A} (p : forall x, x = f x) {x y : A} (q : x = y) :
   (p x) @ (ap f q) =  q @ (p y).
+Proof.
   destruct q. cbn. now rewrite concat_p1, concat_1p.
 Defined.
 
@@ -716,7 +745,7 @@ Lemma concat_1p_1 {A} {x : A} (p : x = x) (q : p = 1)
 : concat_1p p @ q = ap (fun p' => 1 @ p') q.
 Proof.
   rewrite <- (inv_V q).
-  set (r := q^). clearbody r; clear q; destruct r.
+  set (r := q⁻¹). clearbody r; clear q; destruct r.
   reflexivity.
 Defined.
 
@@ -724,7 +753,7 @@ Lemma concat_p1_1 {A} {x : A} (p : x = x) (q : p = 1)
 : concat_p1 p @ q = ap (fun p' => p' @ 1) q.
 Proof.
   rewrite <- (inv_V q).
-  set (r := q^). clearbody r; clear q; destruct r.
+  set (r := q⁻¹). clearbody r; clear q; destruct r.
   reflexivity.
 Defined.
 
@@ -740,7 +769,8 @@ Proof.
 Defined.
 
 Definition apD10_V {A} {B:A->Type} {f g : forall x, B x} (h:f=g) (x:A)
-  : apD10 (h^) x = (apD10 h x)^.
+  : apD10 (h⁻¹) x = (apD10 h x)⁻¹.
+Proof.
   now destruct h.
 Defined.
 
@@ -752,7 +782,7 @@ Definition ap10_pp {A B} {f f' f'':A->B} (h:f=f') (h':f'=f'') (x:A)
 := apD10_pp h h' x.
 
 Definition ap10_V {A B} {f g : A->B} (h : f = g) (x:A)
-  : ap10 (h^) x = (ap10 h x)^
+  : ap10 (h⁻¹) x = (ap10 h x)⁻¹
 := apD10_V h x.
 
 Definition apD10_ap_precompose {A B C} (f : A -> B) {g g' : forall x:B, C x} (p : g = g') a
@@ -782,17 +812,18 @@ Definition transport_1 {A : Type} (P : A -> Type) {x : A} (u : P x)
 
 Definition transport_pp {A : Type} (P : A -> Type) {x y z : A} (p : x = y) (q : y = z) (u : P x) :
   p @ q # u = q # p # u.
+Proof.
   now destruct p, q.
 Defined.
 
 Definition transport_pV {A : Type} (P : A -> Type) {x y : A} (p : x = y) (z : P y)
-  : p # p^ # z = z
-  := (transport_pp P p^ p z)^
+  : p # p⁻¹ # z = z
+  := (transport_pp P p⁻¹ p z)⁻¹
   @ ap (fun r => transport P r z) (concat_Vp p).
 
 Definition transport_Vp {A : Type} (P : A -> Type) {x y : A} (p : x = y) (z : P x)
-  : p^ # p # z = z
-  := (transport_pp P p p^ z)^
+  : p⁻¹ # p # z = z
+  := (transport_pp P p p⁻¹ z)⁻¹
   @ ap (fun r => transport P r z) (concat_pV p).
 
 Definition transport_p_pp {A : Type} (P : A -> Type)
@@ -814,8 +845,8 @@ Proof.
 Defined.
 
 Definition transport_VpV {A} (P : A -> Type) {x y : A} (p : x = y) (z : P y)
-  : transport_Vp P p (transport P p^ z)
-    = ap (transport P p^) (transport_pV P p z).
+  : transport_Vp P p (transport P p⁻¹ z)
+    = ap (transport P p⁻¹) (transport_pV P p z).
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -830,7 +861,7 @@ Defined.
 
 Definition moveL_transport_V_1 {A} (P : A -> Type) {x y : A}
            (p : x = y) (u : P x)
-  : moveL_transport_V P p u (p # u) 1 = (transport_Vp P p u)^.
+  : moveL_transport_V P p u (p # u) 1 = (transport_Vp P p u)⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -839,18 +870,21 @@ Defined.
 
 Definition ap11_is_ap10_ap01 {A B} {f g:A->B} (h:f=g) {x y:A} (p:x=y)
 : ap11 h p = ap10 h x @ ap g p.
+Proof.
   now destruct h, p.
 Defined.
 
 Definition transportD {A : Type} (B : A -> Type) (C : forall a:A, B a -> Type)
   {x1 x2 : A} (p : x1 = x2) (y : B x1) (z : C x1 y)
   : C x2 (p # y).
+Proof.
   now destruct p.
 Defined.
 
 Definition transportD2 {A : Type} (B C : A -> Type) (D : forall a:A, B a -> C a -> Type)
   {x1 x2 : A} (p : x1 = x2) (y : B x1) (z : C x1) (w : D x1 y z)
   : D x2 (p # y) (p # z).
+Proof.
   now destruct p.
 Defined.
 
@@ -887,6 +921,7 @@ Definition transport2 {A : Type} (P : A -> Type) {x y : A} {p q : x = y}
 Definition transport2_is_ap10 {A : Type} (Q : A -> Type) {x y : A} {p q : x = y}
   (r : p = q) (z : Q x)
   : transport2 Q r z = ap10 (ap (transport Q) r) z.
+Proof.
   now destruct r.
 Defined.
 
@@ -899,7 +934,8 @@ Defined.
 
 Definition transport2_V {A : Type} (Q : A -> Type) {x y : A} {p q : x = y}
   (r : p = q) (z : Q x)
-  : transport2 Q (r^) z = (transport2 Q r z)^.
+  : transport2 Q (r⁻¹) z = (transport2 Q r z)⁻¹.
+Proof.
   now destruct r.
 Defined.
 
@@ -907,11 +943,13 @@ Definition concat_AT {A : Type} (P : A -> Type) {x y : A} {p q : x = y}
   {z w : P x} (r : p = q) (s : z = w)
   : ap (transport P p) s  @  transport2 P r w
     = transport2 P r z  @  ap (transport P q) s.
+Proof.
   now destruct r, s.
 Defined.
 
 Lemma ap_transport {A} {P Q : A -> Type} {x y : A} (p : x = y) (f : forall x, P x -> Q x) (z : P x) :
   f y (p # z) = (p # (f x z)).
+Proof.
   now destruct p.
 Defined.
 
@@ -937,15 +975,15 @@ Defined.
 
 Lemma ap_transport_pV {X} (Y : X -> Type) {x1 x2 : X} (p : x1 = x2)
       {y1 y2 : Y x2} (q : y1 = y2)
-: ap (transport Y p) (ap (transport Y p^) q) =
-  transport_pV Y p y1 @ q @ (transport_pV Y p y2)^.
+: ap (transport Y p) (ap (transport Y p⁻¹) q) =
+  transport_pV Y p y1 @ q @ (transport_pV Y p y2)⁻¹.
 Proof.
   destruct p, q; reflexivity.
 Defined.
 
 Definition transport_pV_ap {X} (P : X -> Type) (f : forall x, P x)
       {x1 x2 : X} (p : x1 = x2)
-: ap (transport P p) (apD f p^) @ apD f p = transport_pV P p (f x2).
+: ap (transport P p) (apD f p⁻¹) @ apD f p = transport_pV P p (f x2).
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -960,7 +998,7 @@ Defined.
 
 Definition apD_V {A} {P : A -> Type} (f : forall x, P x)
            {x y : A} (p : x = y)
-  : apD f p^ = moveR_transport_V _ _ _ _ (apD f p)^.
+  : apD f p⁻¹ = moveR_transport_V _ _ _ _ (apD f p)⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -973,6 +1011,7 @@ Defined.
 Definition transport2_const {A B : Type} {x1 x2 : A} {p q : x1 = x2}
   (r : p = q) (y : B)
   : transport_const p y = transport2 (fun _ => B) r y @ transport_const q y.
+Proof.
   destruct r. symmetry; apply concat_1p.
 Defined.
 
@@ -986,7 +1025,7 @@ Defined.
 Lemma transportD_compose {A A'} B {x x' : A} (C : forall x : A', B x -> Type) (f : A -> A')
       (p : x = x') y (z : C (f x) y)
 : transportD (B o f) (C oD f) p y z
-  = transport (C (f x')) (transport_compose B f p y)^ (transportD B C (ap f p) y z).
+  = transport (C (f x')) (transport_compose B f p y)⁻¹ (transportD B C (ap f p) y z).
 Proof.
   destruct p; reflexivity.
 Defined.
@@ -1008,6 +1047,7 @@ Defined.
 
 Definition transport_idmap_ap A (P : A -> Type) x y (p : x = y) (u : P x)
 : transport P p u = transport idmap (ap P p) u.
+Proof.
   now destruct p.
 Defined.
 
@@ -1039,10 +1079,11 @@ Defined.
 
 Definition concat2 {A} {x y z : A} {p p' : x = y} {q q' : y = z} (h : p = p') (h' : q = q')
   : p @ q = p' @ q'.
+Proof.
   now destruct h, h'.
 Defined.
 
-Notation "p @@ q" := (concat2 p q)%path (at level 20) : path_scope.
+Notation "p @@ q" := (concat2 p q)%path (at level 21, left associativity) : path_scope.
 
 Arguments concat2 : simpl nomatch.
 
@@ -1055,18 +1096,18 @@ Proof.
 Defined.
 
 Definition inverse2 {A : Type} {x y : A} {p q : x = y} (h : p = q)
-  : p^ = q^
+  : p⁻¹ = q⁻¹
 := ap inverse h.
 
 Lemma ap_pp_concat_pV {A B} (f : A -> B) {x y : A} (p : x = y)
-: ap_pp f p p^ @ ((1 @@ ap_V f p) @ concat_pV (ap f p))
+: ap_pp f p p⁻¹ @ ((1 @@ ap_V f p) @ concat_pV (ap f p))
   = ap (ap f) (concat_pV p).
 Proof.
   destruct p; reflexivity.
 Defined.
 
 Lemma ap_pp_concat_Vp {A B} (f : A -> B) {x y : A} (p : x = y)
-: ap_pp f p^ p @ ((ap_V f p @@ 1) @ concat_Vp (ap f p))
+: ap_pp f p⁻¹ p @ ((ap_V f p @@ 1) @ concat_Vp (ap f p))
   = ap (ap f) (concat_Vp p).
 Proof.
   destruct p; reflexivity.
@@ -1094,29 +1135,33 @@ Definition whiskerR {A : Type} {x y z : A} {p q : x = y}
 
 Definition cancelL {A} {x y z : A} (p : x = y) (q r : y = z)
 : (p @ q = p @ r) -> (q = r)
-:= fun h => (concat_V_pp p q)^ @ whiskerL p^ h @ (concat_V_pp p r).
+:= fun h => (concat_V_pp p q)⁻¹ @ whiskerL p⁻¹ h @ (concat_V_pp p r).
 
 Definition cancelR {A} {x y z : A} (p q : x = y) (r : y = z)
 : (p @ r = q @ r) -> (p = q)
-:= fun h => (concat_pp_V p r)^ @ whiskerR h r^ @ (concat_pp_V q r).
+:= fun h => (concat_pp_V p r)⁻¹ @ whiskerR h r⁻¹ @ (concat_pp_V q r).
 
 Definition whiskerR_p1 {A : Type} {x y : A} {p q : x = y} (h : p = q) :
-  (concat_p1 p) ^ @ whiskerR h 1 @ concat_p1 q = h.
+  (concat_p1 p) ⁻¹ @ whiskerR h 1 @ concat_p1 q = h.
+Proof.
   now destruct h, p.
 Defined.
 
 Definition whiskerR_1p {A : Type} {x y z : A} (p : x = y) (q : y = z) :
   whiskerR 1 q = 1 :> (p @ q = p @ q).
+Proof.
   reflexivity.
 Defined.
 
 Definition whiskerL_p1 {A : Type} {x y z : A} (p : x = y) (q : y = z) :
   whiskerL p 1 = 1 :> (p @ q = p @ q).
+Proof.
   reflexivity.
 Defined.
 
 Definition whiskerL_1p {A : Type} {x y : A} {p q : x = y} (h : p = q) :
-  (concat_1p p) ^ @ whiskerL 1 h @ concat_1p q = h.
+  (concat_1p p) ⁻¹ @ whiskerL 1 h @ concat_1p q = h.
+Proof.
   now destruct h, p.
 Defined.
 
@@ -1136,11 +1181,13 @@ Defined.
 
 Definition concat2_p1 {A : Type} {x y : A} {p q : x = y} (h : p = q) :
   h @@ 1 = whiskerR h 1 :> (p @ 1 = q @ 1).
+Proof.
   now destruct h.
 Defined.
 
 Definition concat2_1p {A : Type} {x y : A} {p q : x = y} (h : p = q) :
   1 @@ h = whiskerL 1 h :> (1 @ p = 1 @ q).
+Proof.
   now destruct h.
 Defined.
 
@@ -1149,7 +1196,7 @@ Definition cancel2L {A : Type} {x y z : A} {p p' : x = y} {q q' : y = z}
 : (g @@ h = g @@ k) -> (h = k).
 Proof.
   intro r. destruct g, p, q.
-  refine ((whiskerL_1p h)^ @ _). refine (_ @ (whiskerL_1p k)).
+  refine ((whiskerL_1p h)⁻¹ @ _). refine (_ @ (whiskerL_1p k)).
   refine (whiskerR _ _). refine (whiskerL _ _).
   apply r.
 Defined.
@@ -1159,7 +1206,7 @@ Definition cancel2R {A : Type} {x y z : A} {p p' : x = y} {q q' : y = z}
 : (g @@ k = h @@ k) -> (g = h).
 Proof.
   intro r. destruct k, p, q.
-  refine ((whiskerR_p1 g)^ @ _). refine (_ @ (whiskerR_p1 h)).
+  refine ((whiskerR_p1 g)⁻¹ @ _). refine (_ @ (whiskerR_p1 h)).
   refine (whiskerR _ _). refine (whiskerL _ _).
   apply r.
 Defined.
@@ -1180,7 +1227,7 @@ Defined.
 
 Definition whiskerL_VpL {A} {x y z : A} (p : x = y)
            {q q' : y = z} (r : q = q')
-: (concat_V_pp p q)^ @ whiskerL p^ (whiskerL p r) @ concat_V_pp p q'
+: (concat_V_pp p q)⁻¹ @ whiskerL p⁻¹ (whiskerL p r) @ concat_V_pp p q'
   = r.
 Proof.
   destruct p, r, q. reflexivity.
@@ -1188,7 +1235,7 @@ Defined.
 
 Definition whiskerL_pVL {A} {x y z : A} (p : y = x)
            {q q' : y = z} (r : q = q')
-: (concat_p_Vp p q)^ @ whiskerL p (whiskerL p^ r) @ concat_p_Vp p q'
+: (concat_p_Vp p q)⁻¹ @ whiskerL p (whiskerL p⁻¹ r) @ concat_p_Vp p q'
   = r.
 Proof.
   destruct p, r, q. reflexivity.
@@ -1196,7 +1243,7 @@ Defined.
 
 Definition whiskerR_pVR {A} {x y z : A} {p p' : x = y}
            (r : p = p') (q : y = z)
-: (concat_pp_V p q)^ @ whiskerR (whiskerR r q) q^ @ concat_pp_V p' q
+: (concat_pp_V p q)⁻¹ @ whiskerR (whiskerR r q) q⁻¹ @ concat_pp_V p' q
   = r.
 Proof.
   destruct p, r, q. reflexivity.
@@ -1204,7 +1251,7 @@ Defined.
 
 Definition whiskerR_VpR {A} {x y z : A} {p p' : x = y}
            (r : p = p') (q : z = y)
-: (concat_pV_p p q)^ @ whiskerR (whiskerR r q^) q @ concat_pV_p p' q
+: (concat_pV_p p q)⁻¹ @ whiskerR (whiskerR r q⁻¹) q @ concat_pV_p p' q
   = r.
 Proof.
   destruct p, r, q. reflexivity.
@@ -1223,6 +1270,7 @@ Defined.
 
 Definition concat_whisker {A} {x y z : A} (p p' : x = y) (q q' : y = z) (a : p = p') (b : q = q') :
   (whiskerR a q) @ (whiskerL p' b) = (whiskerL p b) @ (whiskerR a q').
+Proof.
   destruct b, a; symmetry; eapply concat_1p.
 Defined.
 
@@ -1243,15 +1291,16 @@ Proof.
 Defined.
 
 Definition eckmann_hilton {A : Type} {x:A} (p q : 1 = 1 :> (x = x)) : p @ q = q @ p :=
-  (whiskerR_p1 p @@ whiskerL_1p q)^
+  (whiskerR_p1 p @@ whiskerL_1p q)⁻¹
   @ (concat_p1 _ @@ concat_p1 _)
   @ (concat_1p _ @@ concat_1p _)
   @ (concat_whisker _ _ _ _ p q)
-  @ (concat_1p _ @@ concat_1p _)^
-  @ (concat_p1 _ @@ concat_p1 _)^
+  @ (concat_1p _ @@ concat_1p _)⁻¹
+  @ (concat_p1 _ @@ concat_p1 _)⁻¹
   @ (whiskerL_1p q @@ whiskerR_p1 p).
 
 Definition ap02 {A B : Type} (f:A->B) {x y:A} {p q:x=y} (r:p=q) : ap f p = ap f q.
+Proof.
   now destruct r.
 Defined.
 
@@ -1264,7 +1313,7 @@ Defined.
 Definition ap02_p2p {A B} (f:A->B) {x y z:A} {p p':x=y} {q q':y=z} (r:p=p') (s:q=q')
   : ap02 f (r @@ s) =   ap_pp f p q
                       @ (ap02 f r  @@  ap02 f s)
-                      @ (ap_pp f p' q')^.
+                      @ (ap_pp f p' q')⁻¹.
 Proof.
   case r, s, p, q. reflexivity.
 Defined.
@@ -1272,14 +1321,16 @@ Defined.
 Definition apD02 {A : Type} {B : A -> Type} {x y : A} {p q : x = y}
   (f : forall x, B x) (r : p = q)
   : apD f p = transport2 B r (f x) @ apD f q.
+Proof.
   destruct r; symmetry; eapply concat_1p.
 Defined.
 
 Definition apD02_const {A B : Type} (f : A -> B) {x y : A} {p q : x = y} (r : p = q)
 : apD02 f r = (apD_const f p)
               @ (transport2_const r (f x) @@ ap02 f r)
-              @ (concat_p_pp _ _ _)^
-              @ (whiskerL (transport2 _ r (f x)) (apD_const f q)^).
+              @ (concat_p_pp _ _ _)⁻¹
+              @ (whiskerL (transport2 _ r (f x)) (apD_const f q)⁻¹).
+Proof.
   now destruct r, p.
 Defined.
 
@@ -1289,13 +1340,13 @@ Definition apD02_pp {A} (B : A -> Type) (f : forall x:A, B x) {x y : A}
   = apD02 f r1
   @ whiskerL (transport2 B r1 (f x)) (apD02 f r2)
   @ concat_p_pp _ _ _
-  @ (whiskerR (transport2_p2p B r1 r2 (f x))^ (apD f p3)).
+  @ (whiskerR (transport2_p2p B r1 r2 (f x))⁻¹ (apD f p3)).
 Proof.
   destruct r1, r2. destruct p1. reflexivity.
 Defined.
 
 Definition ap_transport_Vp_idmap {A B} (p q : A = B) (r : q = p) (z : A)
-: ap (transport idmap q^) (ap (fun s => transport idmap s z) r)
+: ap (transport idmap q⁻¹) (ap (fun s => transport idmap s z) r)
   @ ap (fun s => transport idmap s (p # z)) (inverse2 r)
   @ transport_Vp idmap p z
   = transport_Vp idmap q z.
@@ -1304,8 +1355,8 @@ Proof.
 Defined.
 
 Definition ap_transport_pV_idmap {A B} (p q : A = B) (r : q = p) (z : B)
-: ap (transport idmap q) (ap (fun s => transport idmap s^ z) r)
-  @ ap (fun s => transport idmap s (p^ # z)) r
+: ap (transport idmap q) (ap (fun s => transport idmap s⁻¹ z) r)
+  @ ap (fun s => transport idmap s (p⁻¹ # z)) r
   @ transport_pV idmap p z
   = transport_pV idmap q z.
 Proof.
@@ -1314,11 +1365,18 @@ Defined.
 
 Abbreviation concatR := (fun p q => concat q p).
 
+Create HintDb path_hints.
+#[global] Hint Constants Opaque : path_hints.
+#[global] Hint Projections Opaque : path_hints.
+#[global] Hint Variables Opaque : path_hints.
+
 #[global]
 Hint Resolve
   concat_1p concat_p1 concat_p_pp
   inv_pp inv_V
  : path_hints.
+
+Create Rewrite HintDb paths.
 
 #[global]
 Hint Rewrite
@@ -1361,7 +1419,7 @@ Ltac hott_simpl :=
 
 (** If a space is contractible, then any two points in it are connected by a path in a canonical way. *)
 Definition path_contr `{Contr A} (x y : A) : x = y
-  := (contr x)^ @ (contr y).
+  := (contr x)⁻¹ @ (contr y).
 
 (** Similarly, any two parallel paths in a contractible space are homotopic, which is just the principle UIP. *)
 Definition path2_contr `{Contr A} {x y : A} (p q : x = y) : p = q.
@@ -1375,8 +1433,8 @@ Defined.
 (** Because [Contr] is a notation, and [Contr_internal] is the record, we need to iota expand to fool Rocq's typeclass machinery into accepting supposedly "mismatched" contexts. *)
 
 Global Instance contr_paths_contr `{Contr A} (x y : A) : Contr (x = y) | 10000 := let c := {|
-  center := (contr x)^ @ contr y;
-  contr := path2_contr ((contr x)^ @ contr y)
+  center := (contr x)⁻¹ @ contr y;
+  contr := path2_contr ((contr x)⁻¹ @ contr y)
 |} in c.
 
 (** Also, the total space of any based path space is contractible.  We define the [contr] fields as separate definitions, so that we can give them [simpl nomatch] annotations. *)
@@ -1412,14 +1470,14 @@ Arguments path_basedpaths' {X x y} p : simpl nomatch.
 
 Definition ap_pr1_path_contr_basedpaths {X : Type}
            {x y z : X} (p : x = y) (q : x = z)
-: ap pr1 (path_contr ((y;p):{y':X & x = y'}) (z;q)) = p^ @ q.
+: ap pr1 (path_contr ((y;p):{y':X & x = y'}) (z;q)) = p⁻¹ @ q.
 Proof.
   destruct p,q; reflexivity.
 Defined.
 
 Definition ap_pr1_path_contr_basedpaths' {X : Type}
            {x y z : X} (p : y = x) (q : z = x)
-: ap pr1 (path_contr ((y;p):{y':X & y' = x}) (z;q)) = p @ q^.
+: ap pr1 (path_contr ((y;p):{y':X & y' = x}) (z;q)) = p @ q⁻¹.
 Proof.
   destruct p,q; reflexivity.
 Defined.
@@ -1433,14 +1491,14 @@ Defined.
 
 Definition ap_pr1_path_basedpaths' {X : Type}
            {x y : X} (p : y = x)
-: ap pr1 (path_basedpaths' p) = p^.
+: ap pr1 (path_basedpaths' p) = p⁻¹.
 Proof.
   destruct p; reflexivity.
 Defined.
 
 (** If the domain is contractible, the function is propositionally constant. *)
 Definition contr_dom_equiv {A B} (f : A -> B) `{Contr A} : forall x y : A, f x = f y
-  := fun x y => ap f ((contr x)^ @ contr y).
+  := fun x y => ap f ((contr x)⁻¹ @ contr y).
 
 
 (* Equivalences.v *)
@@ -1465,13 +1523,13 @@ Global Instance isequiv_compose `{IsEquiv A B f} `{IsEquiv B C g}
     (fun a => ap (f^-1) (eissect g (f a)) @ eissect f a)
     (fun a =>
       (whiskerL _ (eisadj g (f a))) @
-      (ap_pp g _ _)^ @
+      (ap_pp g _ _)⁻¹ @
       ap02 g
-      ( (concat_A1p (eisretr f) (eissect g (f a)))^ @
+      ( (concat_A1p (eisretr f) (eissect g (f a)))⁻¹ @
         (ap_compose f^-1 f _ @@ eisadj f a) @
-        (ap_pp f _ _)^
+        (ap_pp f _ _)⁻¹
       ) @
-      (ap_compose f g _)^
+      (ap_compose f g _)⁻¹
     ).
 
 (* An alias of [isequiv_compose], with some arguments explicit; often convenient when type class search fails. *)
@@ -1505,8 +1563,8 @@ Section IsEquivHomotopic.
   Context `{IsEquiv A B f}.
   Hypothesis h : f == g.
 
-  Let sect := (fun b:B => (h (f^-1 b))^ @ eisretr f b).
-  Let retr := (fun a:A => (ap f^-1 (h a))^ @ eissect f a).
+  Let sect := (fun b:B => (h (f^-1 b))⁻¹ @ eisretr f b).
+  Let retr := (fun a:A => (ap f^-1 (h a))⁻¹ @ eissect f a).
 
   (* We prove the triangle identity with rewrite tactics.  Since we lose control over the proof term that way, we make the result opaque with "Qed". *)
   Let adj (a : A) : sect (g a) = ap g (retr a).
@@ -1540,14 +1598,14 @@ Section EquivInverse.
     rewrite <- (concat_1p (eissect _ _)).
     rewrite <- (concat_Vp (ap f^-1 (eisretr f (f (f^-1 b))))).
     rewrite (whiskerR (inverse2 (ap02 f^-1 (eisadj f (f^-1 b)))) _).
-    refine (whiskerL _ (concat_1p (eissect _ _))^ @ _).
+    refine (whiskerL _ (concat_1p (eissect _ _))⁻¹ @ _).
     rewrite <- (concat_Vp (eissect f (f^-1 (f (f^-1 b))))).
     rewrite <- (whiskerL _ (concat_1p (eissect f (f^-1 (f (f^-1 b)))))).
     rewrite <- (concat_pV (ap f^-1 (eisretr f (f (f^-1 b))))).
     apply moveL_M1.
     repeat rewrite concat_p_pp.
     (* Now we apply lots of naturality and cancel things. *)
-    rewrite <- (concat_pp_A1 (fun a => (eissect f a)^) _ _).
+    rewrite <- (concat_pp_A1 (fun a => (eissect f a)⁻¹) _ _).
     rewrite (ap_compose' f f^-1).
     rewrite <- (ap_p_pp _ _ (ap f (ap f^-1 (eisretr f (f (f^-1 b))))) _).
     rewrite <- (ap_compose f^-1 f).
@@ -1555,7 +1613,7 @@ Section EquivInverse.
     rewrite ap_pp, concat_p_pp.
     rewrite (concat_pp_V _ (ap f^-1 (eisretr f (f (f^-1 b))))).
     repeat rewrite <- ap_V; rewrite <- ap_pp.
-    rewrite <- (concat_pA1 (fun y => (eissect f y)^) _).
+    rewrite <- (concat_pA1 (fun y => (eissect f y)⁻¹) _).
     rewrite ap_compose', <- (ap_compose f^-1 f).
     rewrite <- ap_p_pp.
     rewrite (concat_A1p (eisretr f) _).
@@ -1636,7 +1694,7 @@ Section EquivTransport.
   Context {A : Type} (P : A -> Type) (x y : A) (p : x = y).
 
   Global Instance isequiv_transport : IsEquiv (transport P p) | 0
-    := BuildIsEquiv (P x) (P y) (transport P p) (transport P p^)
+    := BuildIsEquiv (P x) (P y) (transport P p) (transport P p⁻¹)
     (transport_pV P p) (transport_Vp P p) (transport_pVp P p).
 
   Definition equiv_transport : P x <~> P y
@@ -1657,17 +1715,17 @@ Section Adjointify.
 
   (* This is the modified [eissect]. *)
   Let issect' := fun x =>
-    ap g (ap f (issect x)^)  @  ap g (isretr (f x))  @  issect x.
+    ap g (ap f (issect x)⁻¹)  @  ap g (isretr (f x))  @  issect x.
 
   Let is_adjoint' (a : A) : isretr (f a) = ap f (issect' a).
   Proof.
     unfold issect'.
     apply moveR_M1.
     repeat rewrite ap_pp, concat_p_pp; rewrite <- ap_compose.
-    rewrite (concat_pA1 (fun b => (isretr b)^) (ap f (issect a)^)).
+    rewrite (concat_pA1 (fun b => (isretr b)⁻¹) (ap f (issect a)⁻¹)).
     repeat rewrite concat_pp_p; rewrite ap_V; apply moveL_Vp; rewrite concat_p1.
     rewrite concat_p_pp, <- ap_compose.
-    rewrite (concat_pA1 (fun b => (isretr b)^) (isretr (f a))).
+    rewrite (concat_pA1 (fun b => (isretr b)⁻¹) (isretr (f a))).
     rewrite concat_pV, concat_1p; reflexivity.
   Qed.
 
@@ -1699,7 +1757,7 @@ Definition moveR_equiv_M `{IsEquiv A B f} (x : A) (y : B) (p : x = f^-1 y)
 
 Definition moveL_equiv_M `{IsEquiv A B f} (x : A) (y : B) (p : f^-1 y = x)
   : (y = f x)
-  := (eisretr f y)^ @ ap f p.
+  := (eisretr f y)⁻¹ @ ap f p.
 
 Definition moveR_equiv_V `{IsEquiv A B f} (x : B) (y : A) (p : x = f y)
   : (f^-1 x = y)
@@ -1707,7 +1765,7 @@ Definition moveR_equiv_V `{IsEquiv A B f} (x : B) (y : A) (p : x = f y)
 
 Definition moveL_equiv_V `{IsEquiv A B f} (x : B) (y : A) (p : f y = x)
   : (y = f^-1 x)
-  := (eissect f y)^ @ ap (f^-1) p.
+  := (eissect f y)⁻¹ @ ap (f^-1) p.
 
 (** Equivalence preserves contractibility (which of course is trivial under univalence). *)
 Lemma contr_equiv A {B} (f : A -> B) `{IsEquiv A B f} `{Contr A}
@@ -1816,18 +1874,18 @@ Definition isequiv_isequiv_postcompose {A B : Type} (f : A -> B)
 Global Instance isequiv_ap `{IsEquiv A B f} (x y : A)
   : IsEquiv (@ap A B f x y) | 1000
   := isequiv_adjointify (ap f)
-  (fun q => (eissect f x)^  @  ap f^-1 q  @  eissect f y)
+  (fun q => (eissect f x)⁻¹  @  ap f^-1 q  @  eissect f y)
   (fun q =>
     ap_pp f _ _
     @ whiskerR (ap_pp f _ _) _
-    @ ((ap_V f _ @ inverse2 (eisadj f _)^)
-      @@ (ap_compose f^-1 f _)^
-      @@ (eisadj f _)^)
+    @ ((ap_V f _ @ inverse2 (eisadj f _)⁻¹)
+      @@ (ap_compose f^-1 f _)⁻¹
+      @@ (eisadj f _)⁻¹)
     @ concat_pA1_p (eisretr f) _ _
     @ whiskerR (concat_Vp _) _
     @ concat_1p _)
   (fun p =>
-    whiskerR (whiskerL _ (ap_compose f f^-1 _)^) _
+    whiskerR (whiskerL _ (ap_compose f f^-1 _)⁻¹) _
     @ concat_pA1_p (eissect f) _ _
     @ whiskerR (concat_Vp _) _
     @ concat_1p _).
@@ -1883,7 +1941,7 @@ Ltac ev_equiv :=
 (* Types/Paths.v *)
 
 Definition transport_paths_l {A : Type} {x1 x2 y : A} (p : x1 = x2) (q : x1 = y)
-  : transport (fun x => x = y) p q = p^ @ q.
+  : transport (fun x => x = y) p q = p⁻¹ @ q.
 Proof.
   destruct p, q; reflexivity.
 Defined.
@@ -1895,15 +1953,15 @@ Proof.
 Defined.
 
 Definition transport_paths_lr {A : Type} {x1 x2 : A} (p : x1 = x2) (q : x1 = x1)
-  : transport (fun x => x = x) p q = p^ @ q @ p.
+  : transport (fun x => x = x) p q = p⁻¹ @ q @ p.
 Proof.
   destruct p; simpl.
-  exact ((concat_1p q)^ @ (concat_p1 (1 @ q))^).
+  exact ((concat_1p q)⁻¹ @ (concat_p1 (1 @ q))⁻¹).
 Defined.
 
 Definition transport_paths_Fl {A B : Type} {f : A -> B} {x1 x2 : A} {y : B}
   (p : x1 = x2) (q : f x1 = y)
-  : transport (fun x => f x = y) p q = (ap f p)^ @ q.
+  : transport (fun x => f x = y) p q = (ap f p)⁻¹ @ q.
 Proof.
   destruct p, q; reflexivity.
 Defined.
@@ -1917,53 +1975,53 @@ Defined.
 
 Definition transport_paths_FlFr {A B : Type} {f g : A -> B} {x1 x2 : A}
   (p : x1 = x2) (q : f x1 = g x1)
-  : transport (fun x => f x = g x) p q = (ap f p)^ @ q @ (ap g p).
+  : transport (fun x => f x = g x) p q = (ap f p)⁻¹ @ q @ (ap g p).
 Proof.
   destruct p; simpl.
-  exact ((concat_1p q)^ @ (concat_p1 (1 @ q))^).
+  exact ((concat_1p q)⁻¹ @ (concat_p1 (1 @ q))⁻¹).
 Defined.
 
 Definition transport_paths_FlFr_D {A : Type} {B : A -> Type}
   {f g : forall a, B a} {x1 x2 : A} (p : x1 = x2) (q : f x1 = g x1)
 : transport (fun x => f x = g x) p q
-  = (apD f p)^ @ ap (transport B p) q @ (apD g p).
+  = (apD f p)⁻¹ @ ap (transport B p) q @ (apD g p).
 Proof.
   destruct p; simpl.
-  exact ((ap_idmap _)^ @ (concat_1p _)^ @ (concat_p1 _)^).
+  exact ((ap_idmap _)⁻¹ @ (concat_1p _)⁻¹ @ (concat_p1 _)⁻¹).
 Defined.
 
 Definition transport_paths_FFlr {A B : Type} {f : A -> B} {g : B -> A} {x1 x2 : A}
   (p : x1 = x2) (q : g (f x1) = x1)
-  : transport (fun x => g (f x) = x) p q = (ap g (ap f p))^ @ q @ p.
+  : transport (fun x => g (f x) = x) p q = (ap g (ap f p))⁻¹ @ q @ p.
 Proof.
   destruct p; simpl.
-  exact ((concat_1p q)^ @ (concat_p1 (1 @ q))^).
+  exact ((concat_1p q)⁻¹ @ (concat_p1 (1 @ q))⁻¹).
 Defined.
 
 Definition transport_paths_lFFr {A B : Type} {f : A -> B} {g : B -> A} {x1 x2 : A}
   (p : x1 = x2) (q : x1 = g (f x1))
-  : transport (fun x => x = g (f x)) p q = p^ @ q @ (ap g (ap f p)).
+  : transport (fun x => x = g (f x)) p q = p⁻¹ @ q @ (ap g (ap f p)).
 Proof.
   destruct p; simpl.
-  exact ((concat_1p q)^ @ (concat_p1 (1 @ q))^).
+  exact ((concat_1p q)⁻¹ @ (concat_p1 (1 @ q))⁻¹).
 Defined.
 
 Definition transport_paths2 {A : Type} {x y : A}
            (p : x = y) (q : idpath x = idpath x)
 : transport (fun a => idpath a = idpath a) p q
-  =  (concat_Vp p)^
-    @ whiskerL p^ ((concat_1p p)^ @ whiskerR q p @ concat_1p p)
+  =  (concat_Vp p)⁻¹
+    @ whiskerL p⁻¹ ((concat_1p p)⁻¹ @ whiskerR q p @ concat_1p p)
     @ concat_Vp p.
 Proof.
   destruct p. simpl.
-  refine (_ @ (concat_p1 _)^).
-  refine (_ @ (concat_1p _)^).
+  refine (_ @ (concat_p1 _)⁻¹).
+  refine (_ @ (concat_1p _)⁻¹).
   assert (H : forall (p : x = x) (q : 1 = p),
-                (q @ (concat_p1 p)^) @ (concat_1p (p @ 1))^
+                (q @ (concat_p1 p)⁻¹) @ (concat_1p (p @ 1))⁻¹
                 = whiskerL (idpath x) (idpath 1 @ whiskerR q 1 @ idpath (p @ 1))).
   { intros p' q'. destruct q'. reflexivity. }
-  transitivity (q @ (concat_p1 1)^ @ (concat_1p 1)^).
-  { simpl; exact ((concat_p1 _)^ @ (concat_p1 _)^). }
+  transitivity (q @ (concat_p1 1)⁻¹ @ (concat_1p 1)⁻¹).
+  { simpl; exact ((concat_p1 _)⁻¹ @ (concat_p1 _)⁻¹). }
   refine (H 1 q).
 Defined.
 
@@ -1999,7 +2057,7 @@ Definition equiv_path_inverse {A : Type} (x y : A)
 Global Instance isequiv_concat_l {A : Type} `(p : x = y:>A) (z : A)
   : IsEquiv (@transitivity A _ _ x y z p) | 0.
 Proof.
-  refine (BuildIsEquiv _ _ _ (concat p^)
+  refine (BuildIsEquiv _ _ _ (concat p⁻¹)
                        (concat_p_Vp p) (concat_V_pp p) _).
   intros q; destruct p; destruct q; reflexivity.
 Defined.
@@ -2011,7 +2069,7 @@ Definition equiv_concat_l {A : Type} `(p : x = y) (z : A)
 Global Instance isequiv_concat_r {A : Type} `(p : y = z) (x : A)
   : IsEquiv (fun q:x=y => q @ p) | 0.
 Proof.
-  refine (BuildIsEquiv _ _ (fun q => q @ p) (fun q => q @ p^)
+  refine (BuildIsEquiv _ _ (fun q => q @ p) (fun q => q @ p⁻¹)
            (fun q => concat_pV_p q p) (fun q => concat_pp_V q p) _).
   intros q; destruct p; destruct q; reflexivity.
 Defined.
@@ -2104,7 +2162,7 @@ Defined.
 
 Definition equiv_moveR_Mp
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x)
-: (p = r^ @ q) <~> (r @ p = q)
+: (p = r⁻¹ @ q) <~> (r @ p = q)
 := BuildEquiv _ _ (moveR_Mp p q r) _.
 
 Global Instance isequiv_moveR_pM
@@ -2117,7 +2175,7 @@ Defined.
 
 Definition equiv_moveR_pM
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x)
-: (r = q @ p^) <~> (r @ p = q)
+: (r = q @ p⁻¹) <~> (r @ p = q)
 := BuildEquiv _ _ (moveR_pM p q r) _.
 
 Global Instance isequiv_moveR_Vp
@@ -2130,7 +2188,7 @@ Defined.
 
 Definition equiv_moveR_Vp
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : x = y)
-: (p = r @ q) <~> (r^ @ p = q)
+: (p = r @ q) <~> (r⁻¹ @ p = q)
 := BuildEquiv _ _ (moveR_Vp p q r) _.
 
 Global Instance isequiv_moveR_pV
@@ -2143,7 +2201,7 @@ Defined.
 
 Definition equiv_moveR_pV
   {A : Type} {x y z : A} (p : z = x) (q : y = z) (r : y = x)
-: (r = q @ p) <~> (r @ p^ = q)
+: (r = q @ p) <~> (r @ p⁻¹ = q)
 := BuildEquiv _ _ (moveR_pV p q r) _.
 
 Global Instance isequiv_moveL_Mp
@@ -2156,7 +2214,7 @@ Defined.
 
 Definition equiv_moveL_Mp
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x)
-: (r^ @ q = p) <~> (q = r @ p)
+: (r⁻¹ @ q = p) <~> (q = r @ p)
 := BuildEquiv _ _ (moveL_Mp p q r) _.
 
 Definition isequiv_moveL_pM
@@ -2169,7 +2227,7 @@ Defined.
 
 Definition equiv_moveL_pM
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : y = x) :
-  q @ p^ = r <~> q = r @ p
+  q @ p⁻¹ = r <~> q = r @ p
   := BuildEquiv _ _ _ (isequiv_moveL_pM p q r).
 
 Global Instance isequiv_moveL_Vp
@@ -2182,7 +2240,7 @@ Defined.
 
 Definition equiv_moveL_Vp
   {A : Type} {x y z : A} (p : x = z) (q : y = z) (r : x = y)
-: r @ q = p <~> q = r^ @ p
+: r @ q = p <~> q = r⁻¹ @ p
 := BuildEquiv _ _ (moveL_Vp p q r) _.
 
 Global Instance isequiv_moveL_pV
@@ -2195,7 +2253,7 @@ Defined.
 
 Definition equiv_moveL_pV
   {A : Type} {x y z : A} (p : z = x) (q : y = z) (r : y = x)
-: q @ p = r <~> q = r @ p^
+: q @ p = r <~> q = r @ p⁻¹
 := BuildEquiv _ _ (moveL_pV p q r) _.
 
 Definition isequiv_moveL_1M {A : Type} {x y : A} (p q : x = y)
@@ -2255,7 +2313,7 @@ Proof.
 Defined.
 
 Definition moveL_moveR_transport_p {A : Type} (P : A -> Type) {x y : A}
-           (p : x = y) (u : P x) (v : P y) (q : u = transport P p^ v)
+           (p : x = y) (u : P x) (v : P y) (q : u = transport P p⁻¹ v)
   : moveL_transport_V P p u v (moveR_transport_p P p u v q) = q.
 Proof.
   destruct p; reflexivity.
@@ -2273,12 +2331,12 @@ Defined.
 
 Definition equiv_moveR_transport_p {A : Type} (P : A -> Type) {x y : A}
   (p : x = y) (u : P x) (v : P y)
-: u = transport P p^ v <~> transport P p u = v
+: u = transport P p⁻¹ v <~> transport P p u = v
 := BuildEquiv _ _ (moveR_transport_p P p u v) _.
 
 
 Definition moveR_moveL_transport_p {A : Type} (P : A -> Type) {x y : A}
-           (p : y = x) (u : P x) (v : P y) (q : transport P p^ u = v)
+           (p : y = x) (u : P x) (v : P y) (q : transport P p⁻¹ u = v)
   : moveR_transport_V P p u v (moveL_transport_p P p u v q) = q.
 Proof.
   destruct p; reflexivity.
@@ -2303,7 +2361,7 @@ Defined.
 
 Definition equiv_moveR_transport_V {A : Type} (P : A -> Type) {x y : A}
   (p : y = x) (u : P x) (v : P y)
-: u = transport P p v <~> transport P p^ u = v
+: u = transport P p v <~> transport P p⁻¹ u = v
 := BuildEquiv _ _ (moveR_transport_V P p u v) _.
 
 Global Instance isequiv_moveL_transport_V {A : Type} (P : A -> Type) {x y : A}
@@ -2318,7 +2376,7 @@ Defined.
 
 Definition equiv_moveL_transport_V {A : Type} (P : A -> Type) {x y : A}
   (p : x = y) (u : P x) (v : P y)
-: transport P p u = v <~> u = transport P p^ v
+: transport P p u = v <~> u = transport P p⁻¹ v
 := BuildEquiv _ _ (moveL_transport_V P p u v) _.
 
 Global Instance isequiv_moveL_transport_p {A : Type} (P : A -> Type) {x y : A}
@@ -2333,7 +2391,7 @@ Defined.
 
 Definition equiv_moveL_transport_p {A : Type} (P : A -> Type) {x y : A}
   (p : y = x) (u : P x) (v : P y)
-: transport P p^ u = v <~> u = transport P p v
+: transport P p⁻¹ u = v <~> u = transport P p v
 := BuildEquiv _ _ (moveL_transport_p P p u v) _.
 
 Global Instance isequiv_moveR_equiv_M `{IsEquiv A B f} (x : A) (y : B)
@@ -2362,7 +2420,7 @@ Global Instance isequiv_moveL_equiv_M `{IsEquiv A B f} (x : A) (y : B)
 : IsEquiv (@moveL_equiv_M A B f _ x y).
 Proof.
   unfold moveL_equiv_M.
-  refine (@isequiv_compose _ _ (ap f) _ _ (fun q => (eisretr f y)^ @ q) _).
+  refine (@isequiv_compose _ _ (ap f) _ _ (fun q => (eisretr f y)⁻¹ @ q) _).
 Defined.
 
 Definition equiv_moveL_equiv_M `{IsEquiv A B f} (x : A) (y : B)
@@ -2373,7 +2431,7 @@ Global Instance isequiv_moveL_equiv_V `{IsEquiv A B f} (x : B) (y : A)
 : IsEquiv (@moveL_equiv_V A B f _ x y).
 Proof.
   unfold moveL_equiv_V.
-  refine (@isequiv_compose _ _ (ap f^-1) _ _ (fun q => (eissect f y)^ @ q) _).
+  refine (@isequiv_compose _ _ (ap f^-1) _ _ (fun q => (eissect f y)⁻¹ @ q) _).
 Defined.
 
 Definition equiv_moveL_equiv_V `{IsEquiv A B f} (x : B) (y : A)
@@ -2403,7 +2461,7 @@ Definition dpath_path_r {A : Type} {x y1 y2 : A}
   transport (fun y => x = y) p q = r.
 Proof.
   destruct p; simpl.
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_path_lr {A : Type} {x1 x2 : A}
@@ -2415,7 +2473,7 @@ Proof.
   destruct p; simpl.
   transitivity (q @ 1 = r).
   exact (equiv_concat_r (concat_1p r) (q @ 1)).
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_path_Fl {A B : Type} {f : A -> B} {x1 x2 : A} {y : B}
@@ -2435,7 +2493,7 @@ Definition dpath_path_Fr {A B : Type} {g : A -> B} {x : B} {y1 y2 : A}
   transport (fun y => x = g y) p q = r.
 Proof.
   destruct p; simpl.
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_path_FlFr {A B : Type} {f g : A -> B} {x1 x2 : A}
@@ -2447,7 +2505,7 @@ Proof.
   destruct p; simpl.
   transitivity (q @ 1 = r).
   exact (equiv_concat_r (concat_1p r) (q @ 1)).
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_path_FFlr {A B : Type} {f : A -> B} {g : B -> A}
@@ -2459,7 +2517,7 @@ Proof.
   destruct p; simpl.
   transitivity (q @ 1 = r).
   exact (equiv_concat_r (concat_1p r) (q @ 1)).
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_path_lFFr {A B : Type} {f : A -> B} {g : B -> A}
@@ -2471,14 +2529,14 @@ Proof.
   destruct p; simpl.
   transitivity (q @ 1 = r).
   exact (equiv_concat_r (concat_1p r) (q @ 1)).
-  exact (equiv_concat_l (concat_p1 q)^ r).
+  exact (equiv_concat_l (concat_p1 q)⁻¹ r).
 Defined.
 
 Definition dpath_paths2 {A : Type} {x y : A}
            (p : x = y) (q : idpath x = idpath x)
            (r : idpath y = idpath y)
-: (concat_1p p)^ @ whiskerR q p @ concat_1p p
-  = (concat_p1 p)^ @ whiskerL p r @ concat_p1 p
+: (concat_1p p)⁻¹ @ whiskerR q p @ concat_1p p
+  = (concat_p1 p)⁻¹ @ whiskerL p r @ concat_p1 p
   <~>
   transport (fun a => idpath a = idpath a) p q = r.
 Proof.
@@ -2572,11 +2630,11 @@ Defined.
 
 Definition path_forall_V `{P : A -> Type} (f g : forall x, P x)
            (p : f == g)
-  : path_forall _ _ (fun x => (p x)^) = (path_forall _ _ p)^.
+  : path_forall _ _ (fun x => (p x)⁻¹) = (path_forall _ _ p)⁻¹.
 Proof.
-  transitivity (path_forall _ _ (fun x => (apD10 (path_forall _ _ p) x)^)).
-  eapply ap. symmetry. apply (@ap _ _ (fun h x => (h x)^)). apply eisretr.
- transitivity (path_forall _ _ (apD10 (path_forall _ _ p)^)).
+  transitivity (path_forall _ _ (fun x => (apD10 (path_forall _ _ p) x)⁻¹)).
+  eapply ap. symmetry. apply (@ap _ _ (fun h x => (h x)⁻¹)). apply eisretr.
+ transitivity (path_forall _ _ (apD10 (path_forall _ _ p)⁻¹)).
   apply ap, inverse. apply path_forall; intros x. apply apD10_V.
   apply eissect.
 Defined.
@@ -2591,7 +2649,8 @@ Definition transport_forall
   {x1 x2 : A} (p : x1 = x2) (f : forall y : P x1, C x1 y)
   : (transport (fun x => forall y : P x, C x y) p f)
     == (fun y =>
-       transport (C x2) (transport_pV _ _ _) (transportD _ _ p _ (f (p^ # y)))).
+       transport (C x2) (transport_pV _ _ _) (transportD _ _ p _ (f (p⁻¹ # y)))).
+Proof.
   now destruct p.
 Defined.
 
@@ -2602,6 +2661,7 @@ Definition transport_forall_constant
   {x1 x2 : A} (p : x1 = x2) (f : forall y : B, C x1 y)
   : (transport (fun x => forall y : B, C x y) p f)
     == (fun y => transport (fun x => C x y) p (f y)).
+Proof.
   now destruct p.
 Defined.
 
@@ -2613,7 +2673,7 @@ Definition apD_transport_forall_constant
   = ap (transport (C x2) q) (transport_forall_constant p f y1)
     @ transport_transport C p q (f y1)
     @ ap (transport (fun x : A => C x y2) p) (apD f q)
-    @ (transport_forall_constant p f y2)^.
+    @ (transport_forall_constant p f y2)⁻¹.
 Proof.
   destruct p, q; reflexivity.
 Defined.
@@ -2772,8 +2832,8 @@ Proof.
   - intros k; apply path_forall; intros a.
     refine (_ @ apD k (eissect f a)).
     apply moveR_equiv_V.
-    refine (_ @ (ap_transport (eissect f a) g (k (f^-1 (f a))))^).
-    refine (_ @ (transport_compose Q f (eissect f a) _)^).
+    refine (_ @ (ap_transport (eissect f a) g (k (f^-1 (f a))))⁻¹).
+    refine (_ @ (transport_compose Q f (eissect f a) _)⁻¹).
     refine (ap (fun p => transport Q p _) (eisadj f a)).
 Defined.
 
@@ -2902,6 +2962,7 @@ Arguments eta3_sigma / .
 Definition path_sigma_uncurried {A : Type} (P : A -> Type) (u v : sigT P)
            (pq : {p : u.1 = v.1 & p # u.2 = v.2})
 : u = v.
+Proof.
   destruct u, v, pq; cbn in *.
   now destruct projT7, projT8.
 Defined.
@@ -2914,9 +2975,9 @@ Definition path_sigma {A : Type} (P : A -> Type) (u v : sigT P)
 
 (** A contravariant instance of [path_sigma_uncurried] *)
 Definition path_sigma_uncurried_contra {A : Type} (P : A -> Type) (u v : sigT P)
-           (pq : {p : u.1 = v.1 & u.2 = p^ # v.2})
+           (pq : {p : u.1 = v.1 & u.2 = p⁻¹ # v.2})
 : u = v
-  := (path_sigma_uncurried P v u (pq.1^;pq.2^))^.
+  := (path_sigma_uncurried P v u (pq.1⁻¹;pq.2⁻¹))⁻¹.
 
 (** A variant of [Forall.dpath_forall] from which uses dependent sums to package things. It cannot go into [Forall] because [Sigma] depends on [Forall]. *)
 
@@ -2948,14 +3009,14 @@ Definition pr1_path `{P : A -> Type} {u v : sigT P} (p : u = v)
     ap pr1 p.
 (* match p with idpath => 1 end. *)
 
-Notation "p ..1" := (pr1_path p) (at level 3) : fibration_scope.
+Notation "p ..1" := (pr1_path p) (at level 1) : fibration_scope.
 
 Definition pr2_path `{P : A -> Type} {u v : sigT P} (p : u = v)
 : p..1 # u.2 = v.2
-  := (transport_compose P pr1 p u.2)^
+  := (transport_compose P pr1 p u.2)⁻¹
      @ (@apD {x:A & P x} _ pr2 _ _ p).
 
-Notation "p ..2" := (pr2_path p) (at level 3) : fibration_scope.
+Notation "p ..2" := (pr2_path p) (at level 1) : fibration_scope.
 
 (** Now we show how these things compute. *)
 
@@ -3049,6 +3110,7 @@ Definition equiv_path_sigma `(P : A -> Type) (u v : sigT P)
 (* A contravariant version of [isequiv_path_sigma'] *)
 #[export] Instance isequiv_path_sigma_contra `{P : A -> Type} {u v : sigT P}
   : IsEquiv (path_sigma_uncurried_contra P u v) | 0.
+Proof.
   unshelve eapply (isequiv_adjointify (path_sigma_uncurried_contra P u v)).
   - intros []. exists 1. reflexivity.
   - intro r; destruct r; destruct u as [u1 u2]; reflexivity.
@@ -3060,7 +3122,7 @@ Defined.
 
 (* A contravariant version of [equiv_path_sigma] *)
 Definition equiv_path_sigma_contra {A : Type} `(P : A -> Type) (u v : sigT P)
-  : {p : u.1 = v.1 & u.2 = p^ # v.2} <~> (u = v)
+  : {p : u.1 = v.1 & u.2 = p⁻¹ # v.2} <~> (u = v)
   := BuildEquiv _ _ (path_sigma_uncurried_contra P u v) _.
 
 (** This identification respects path concatenation. *)
@@ -3108,7 +3170,7 @@ Definition pr1_path_pp {A : Type} {P : A -> Type} {u v w : sigT P}
   := ap_pp _ _ _.
 
 Definition pr1_path_V {A : Type} {P : A -> Type} {u v : sigT P} (p : u = v)
-: p^ ..1 = (p ..1)^
+: p⁻¹ ..1 = (p ..1)⁻¹
   := ap_V _ _.
 
 (** Applying [existT] to one argument is the same as [path_sigma] with reflexivity in the first place. *)
@@ -3138,12 +3200,12 @@ Defined.
 (*            {x x' : A} {y : P x} {y' : P x'} (p : x = x') (q : p # y = y') *)
 (*   : ap (fun w => F w.1 w.2) (path_sigma' P p q) *)
 (*     = ap _ (moveL_transport_V _ p _ _ q) *)
-(*          @ (transport_arrow_toconst _ _ _)^ @ ap10 (apD F p) y'. *)
+(*          @ (transport_arrow_toconst _ _ _)⁻¹ @ ap10 (apD F p) y'. *)
 (* Proof. *)
 (*   destruct p, q; reflexivity. *)
 (* Defined. *)
 (* Remark: this is also equal to: *)
-(*     = ap10 (apD F p^)^ y @ transport_arrow_toconst _ _ _ *)
+(*     = ap10 (apD F p⁻¹)⁻¹ y @ transport_arrow_toconst _ _ _ *)
 (*                          @ ap (F x') (transport2 _ (inv_V p) y @ q). *)
 
 
@@ -3163,10 +3225,10 @@ Defined.
 (*            (x1 x2:A) (p:x1=x2) (y1:P x1) (y2:P x2) (q:p # y1 = y2) *)
 (*            (d : forall a, P a -> Q) *)
 (* : ap (sigT_ind (fun _ => Q) d) (path_sigma' P p q) *)
-(*   = (transport_const p _)^ *)
-(*     @ (ap ((transport (fun _ => Q) p) o (d x1)) (transport_Vp _ p y1))^ *)
+(*   = (transport_const p _)⁻¹ *)
+(*     @ (ap ((transport (fun _ => Q) p) o (d x1)) (transport_Vp _ p y1))⁻¹ *)
 
-(*     @ (transport_arrow p _ _)^ *)
+(*     @ (transport_arrow p _ _)⁻¹ *)
 (*     @ ap10 (apD d p) (p # y1) *)
 (*       @ ap (d x2) q. *)
 (* Proof. *)
@@ -3243,8 +3305,8 @@ Definition ap_functor_sigma `{P : A -> Type} `{Q : B -> Type}
 : ap (functor_sigma f g) (path_sigma P u v p q)
   = path_sigma Q (functor_sigma f g u) (functor_sigma f g v)
                (ap f p)
-               ((transport_compose Q f p (g u.1 u.2))^
-                @ (@ap_transport _ P (fun x => Q (f x)) _ _ p g u.2)^
+               ((transport_compose Q f p (g u.1 u.2))⁻¹
+                @ (@ap_transport _ P (fun x => Q (f x)) _ _ p g u.2)⁻¹
                 @ ap (g v.1) q).
 Proof.
   destruct u as [u1 u2]; destruct v as [v1 v2]; simpl in p, q.
@@ -3261,7 +3323,7 @@ Global Instance isequiv_functor_sigma `{P : A -> Type} `{Q : B -> Type}
 Proof.
   refine (isequiv_adjointify (functor_sigma f g)
                              (functor_sigma (f^-1)
-                                            (fun x y => ((g (f^-1 x))^-1 ((eisretr f x)^ # y)))) _ _);
+                                            (fun x y => ((g (f^-1 x))^-1 ((eisretr f x)⁻¹ # y)))) _ _);
   intros [x y].
   - refine (path_sigma' _ (eisretr f x) _); simpl.
     abstract (
@@ -3270,7 +3332,7 @@ Proof.
       ).
   - refine (path_sigma' _ (eissect f x) _); simpl.
     refine ((ap_transport (eissect f x) (fun x' => (g x') ^-1)
-                          (transport Q (eisretr f (f x)) ^ (g x y)))^ @ _).
+                          (transport Q (eisretr f (f x)) ⁻¹ (g x y)))⁻¹ @ _).
     abstract (
         rewrite transport_compose, eisadj, transport_pV;
         apply eissect
@@ -3318,7 +3380,7 @@ Definition equiv_sigma_contr {A : Type} (P : A -> Type)
 Definition equiv_contr_sigma {A : Type} (P : A -> Type) `{Contr A}
 : { x : A & P x } <~> P (center A).
 Proof.
-  refine (equiv_adjointify (fun xp => (contr xp.1)^ # xp.2)
+  refine (equiv_adjointify (fun xp => (contr xp.1)⁻¹ # xp.2)
                            (fun p => (center A ; p)) _ _).
   - intros p; simpl.
     exact (ap (fun q => q # p) (path_contr _ 1)).

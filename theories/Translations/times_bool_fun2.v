@@ -49,6 +49,7 @@ Definition isequiv {A B} (f : A -> B) :=
   exists (g : B -> A) (H1 : forall x, paths (g (f x)) x), (forall y, paths (f (g y)) y).
 
 Definition idequiv A : @isequiv A A (fun x => x).
+Proof.
   unshelve econstructor. exact (fun y => y).
   split; intro; exact 1.
 Defined.
@@ -59,20 +60,21 @@ Definition coe {A B} (p : A = B) : A -> B
   := transport idmap p.
 
 Definition transport_pV {A : Type} (P : A -> Type) {x y : A} (p : x = y)
-  : forall z : P y, p # p^ # z = z
-  := paths_ind x (fun y p => forall z : P y, p # p^ # z = z) (fun z => 1) y p.
+  : forall z : P y, p # p⁻¹ # z = z
+  := paths_ind x (fun y p => forall z : P y, p # p⁻¹ # z = z) (fun z => 1) y p.
 
 Definition transport_Vp {A : Type} (P : A -> Type) {x y : A} (p : x = y)
-  : forall z : P x, p^ # p # z = z
-  := paths_ind x (fun y p => forall z : P x, p^ # p # z = z) (fun z => 1) y p.
+  : forall z : P x, p⁻¹ # p # z = z
+  := paths_ind x (fun y p => forall z : P x, p⁻¹ # p # z = z) (fun z => 1) y p.
 
 Definition id2equiv A B (p : A = B) : equiv A B.
+Proof.
   repeat unshelve econstructor.
   exact (transport idmap p).
-  exact (transport idmap p^).
+  exact (transport idmap p⁻¹).
   all: unfold coe; intro.
-  (* refine (paths_ind A (fun y p => forall z : A, p^ # p # z = z) (fun z => 1) B p _). *)
-  (* refine (paths_ind A (fun y p => forall z : y, p # p^ # z = z) (fun z => 1) B p _). *)
+  (* refine (paths_ind A (fun y p => forall z : A, p⁻¹ # p # z = z) (fun z => 1) B p _). *)
+  (* refine (paths_ind A (fun y p => forall z : y, p # p⁻¹ # z = z) (fun z => 1) B p _). *)
   exact (transport_Vp idmap _ _).
   exact (transport_pV idmap _ _).
 Defined.
@@ -98,6 +100,7 @@ MetaRocq Run (TC <- Translate eqTC2 "contr" ;;
                      tmDefinition "eqTC3" TC).
 
 Goal weakFunextᵗ -> False.
+Proof.
   intro H. tSpecialize H unit. tSpecialize H (pair (fun _ => unit) true).
   simple refine (let H' := π1 H _ in _).
   - tIntro x. lazy. exists tt. tIntro y; now destruct y.
@@ -111,6 +114,7 @@ Defined.
 Definition retract A B := exists (f : A -> B) (g : B -> A), g o f == idmap.
 
 Definition contr_retract {A B} (R : retract A B) (C : contr B) : contr A.
+Proof.
   destruct R as [f [g e]].
   exists (g C.1). intro y.
   refine (ap g _ @ e y).
@@ -122,6 +126,7 @@ Definition postcompose_equiv
 
 Definition UA_postcomposeequiv : UA -> postcompose_equiv.
   (* uses eta *)
+Proof.
 Admitted.
 
 Definition α {A} (P : A -> Type) := fun (g : A -> sigT P) => pr1 o g.
@@ -131,6 +136,7 @@ Definition contr_isequivα := forall A P, (forall x, contr (P x)) -> isequiv (@�
 Definition postcomposeequiv_αequiv
   : postcompose_equiv -> contr_isequivα.
   (* no eta ? *)
+Proof.
   intros H A P C.
   refine (H (sigT P) A (_; _) _).
   unshelve econstructor.
@@ -143,12 +149,14 @@ Defined.
 Definition fib {A B} (f : A -> B) y := exists x, f x = y.
 
 Definition equiv_contrfib {A B} (f : A -> B) (Hf : isequiv f) y : contr (fib f y).
+Proof.
 Admitted.
 
 Definition contr_retractα
   := forall A P, (forall x, contr (P x)) -> retract (forall x : A, P x) (fib (α P) idmap).
 
 Definition contr_retract_α : contr_retractα.
+Proof.
   intros A P H.
   simple refine (_; (_; _)).
   - intro f. exists (fun x => (x; f x)). exact 1.
@@ -171,6 +179,7 @@ Defined.
 (* Defined. *)
 
 Definition UA_postcomposeequiv' : UA -> postcompose_equiv.
+Proof.
   intros ua A B e X. repeat unshelve econstructor.
   - intros f x. exact (e.2.1 (f x)).
   - intro f.
@@ -180,6 +189,7 @@ Admitted.
 
 
 Definition αequiv_weakfunext : contr_isequivα -> weakFunext.
+Proof.
   intros Hα A P H.
   refine (contr_retract _ _).
   2: exact (equiv_contrfib _ (Hα A P H) idmap).

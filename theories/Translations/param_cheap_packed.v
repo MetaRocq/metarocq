@@ -149,6 +149,7 @@ Definition clean_uctx (uctx : ContextSet.t) := (LevelSet.remove Level.lzero (fst
 Definition tsl_mind_body (ΣE : tsl_context) (mp : modpath)
            (kn : kername) (mind : mutual_inductive_body)
   : tsl_result (tsl_table * list mutual_inductive_body).
+Proof.
   refine (
       let Σ := fst (fst ΣE) in
       match push_uctx init_model (clean_uctx (global_ext_uctx (fst ΣE))) with
@@ -245,7 +246,8 @@ Definition to := Type.
 
 MetaRocq Run (Translate emptyTC "nat" >>= tmDebug).
 
-Require Vector.
+#[warning="-warn-library-file-stdlib-vector"]
+From Stdlib Require Vector.
 
 Unset Universe Checking.
 MetaRocq Run (Translate emptyTC "list" >>= tmDebug).

@@ -227,9 +227,11 @@ Definition Funext :=
 MetaRocq Run (Translate TC5 "Funext").
 
 Definition Funext_fullFunext : Funext -> forall A B f g, IsEquiv (@apD10 A B f g).
+Proof.
 Admitted.
 
 Goal Funext -> El Funextᵗ.
+Proof.
   simpl. intro H. assert (H0 := Funext_fullFunext H); clear H.
   rename H0 into H.
   unshelve econstructor.
@@ -248,6 +250,7 @@ Definition FALSE := forall X, X.
 MetaRocq Run (Translate emptyTC "FALSE").
 
 Proposition consistency_preservation : El FALSEᵗ -> FALSE.
+Proof.
   compute.
   intros [f _] X.
   exact (f (X; fun _ => unit)).
@@ -259,6 +262,7 @@ Definition UIP := forall A (x y : A) (p q : paths x y), paths p q.
 MetaRocq Run (Translate TC5 "UIP").
 
 Proposition uip_preservation : UIP -> El UIPᵗ.
+Proof.
   simpl. intro H. unshelve econstructor.
   - intros A x y p q. apply H.
   - cbn. intros A x y p q.  apply H.
