@@ -1159,12 +1159,8 @@ jobs:
         "rocq-dev" --argstr job "stdlib"
 name: Nix CI for bundle rocq-dev
 on:
+  # Edited by hand after genNixActions: see the note in .nix/config.nix.
   pull_request:
-    paths:
-    - .github/workflows/nix-action-rocq-dev.yml
-  pull_request_target:
-    paths-ignore:
-    - .github/workflows/nix-action-rocq-dev.yml
     types:
     - opened
     - synchronize

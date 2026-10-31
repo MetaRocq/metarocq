@@ -48,6 +48,12 @@
     coqPackages.stdlib.override.version = "master";
 
     push-branches = ["main"];
+    ## genNixActions makes the workflow run on pull_request_target, which
+    ## GitHub always takes from the default branch (9.1), not from the PR's
+    ## base branch: PRs to main would then get no Nix CI.  After regenerating
+    ## .github/workflows/nix-action-rocq-dev.yml, replace its pull_request and
+    ## pull_request_target triggers by a plain, unfiltered pull_request one
+    ## (fork PRs then cannot push to the metacoq cache, but are still built).
   };
 
   ## Cachix caches to use in CI
