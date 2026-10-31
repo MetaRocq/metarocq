@@ -10,7 +10,7 @@ let vtopaqueaccessprog f =
 
 }
 
-DECLARE PLUGIN "rocq-metarocq-demo-plugin.plugin"
+DECLARE PLUGIN "rocq-metarocq-test-suite.demo-plugin"
 
 VERNAC COMMAND EXTEND Make_vernac CLASSIFIED AS QUERY STATE CUSTOM
    | [ "Showoff" ] ->

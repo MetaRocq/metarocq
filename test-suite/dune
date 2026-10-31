@@ -1,0 +1,28 @@
+; The test-suite is run by `dune test`. Its plugins are only installed by the
+; rocq-metarocq-test-suite package, as dune requires Rocq plugins to be public.
+
+(rocq.theory
+ (name MetaRocq.TestSuite)
+ (modules
+  :standard
+  \
+  CheckerTest
+  ErasureTests
+  TypeAnnotationTests
+  primitive
+  self_erasure
+  bug_quote_pstring
+  issue1042
+  issue1182
+  unquote_evars)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template
+  MetaRocq.PCUIC MetaRocq.SafeChecker MetaRocq.TemplatePCUIC MetaRocq.Erasure
+  MetaRocq.SafeCheckerPlugin MetaRocq.ErasurePlugin))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias_rec all))
+ (action
+  (progn)))

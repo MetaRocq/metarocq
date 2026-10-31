@@ -1,0 +1,15 @@
+; The template-rocq plugin, quoting and unquoting Rocq terms and running
+; template programs inside Rocq.
+
+(library
+ (name template_rocq)
+ (public_name rocq-metarocq-template.plugin)
+ (synopsis "The MetaRocq template-rocq plugin")
+ (flags
+  (-strict-sequence
+   -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70
+   -w -20-26-32-33-34-39-60))
+ (libraries rocq-runtime.plugins.ltac))
+
+(rocq.pp
+ (modules g_template_rocq))

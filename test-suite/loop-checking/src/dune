@@ -1,0 +1,22 @@
+(rocq.extraction
+ (prelude ExtractLoopChecking)
+ (extracted_modules
+  Common1 Common2 Deciders HornClauses HornSemilatticeEquiv Init0
+  InitialSemilattice Interfaces LoopCheckingPlugin Model Models MRInstances
+  PartialLoopChecking ssrbool uGraph0 UnivLoopChecking)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common
+  MetaRocq.Template MetaRocq.LoopChecking))
+
+(library
+ (name metarocq_loop_checking_plugin)
+ (public_name rocq-metarocq-test-suite.loop-checking)
+ (flags
+  (-strict-sequence
+   -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70
+   -w -8-20-26-32-33-34-39-56-60
+   -open Metarocq_template_plugin))
+ (libraries rocq-runtime.plugins.ltac rocq-metarocq-template.extractable))
+
+(rocq.pp
+ (modules g_metarocq_loop_checking_plugin))

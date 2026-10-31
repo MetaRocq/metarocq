@@ -1,0 +1,16 @@
+; The examples are checked by `dune test`.
+
+(rocq.theory
+ (name MetaRocq.Examples)
+ (modules :standard \ typing_correctness)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template
+  MetaRocq.PCUIC MetaRocq.SafeChecker MetaRocq.TemplatePCUIC MetaRocq.Erasure
+  MetaRocq.SafeCheckerPlugin MetaRocq.ErasurePlugin))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias_rec all))
+ (action
+  (progn)))

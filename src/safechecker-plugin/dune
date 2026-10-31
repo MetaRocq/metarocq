@@ -1,0 +1,32 @@
+; The safechecker plugin. Modules already extracted for the extractable
+; template-rocq plugin are not redeclared here: they are shared through
+; -open Metarocq_template_plugin.
+
+(rocq.extraction
+ (prelude ExtractSafeChecker)
+ (extracted_modules
+  Common1 Deciders Extraction HornClauses HornSemilatticeEquiv Init0
+  InitialSemilattice Interfaces Model Models MRInstances
+  PartialLoopChecking PCUICAst PCUICAstUtils PCUICCases PCUICEquality
+  PCUICEqualityDec PCUICErrors PCUICGlobalEnv PCUICNormal PCUICPosition
+  PCUICPretty PCUICPrimitive PCUICProgram PCUICReflect PCUICSafeChecker
+  PCUICSafeConversion PCUICSafeReduce PCUICTypeChecker PCUICTyping
+  PCUICWfEnv PCUICWfEnvImpl SafeTemplateChecker ssrbool TemplateToPCUIC
+  uGraph0 UnivLoopChecking)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common
+  MetaRocq.Template MetaRocq.PCUIC MetaRocq.SafeChecker MetaRocq.TemplatePCUIC MetaRocq.SafeCheckerPlugin))
+
+(library
+ (name metarocq_safechecker_plugin)
+ (public_name rocq-metarocq-safechecker.plugin)
+ (synopsis "The MetaRocq safechecker plugin")
+ (flags
+  (-strict-sequence
+   -w -a+1..3-4+5..8-9+10..26-27+28..39-40-41-42+43-44-45+46..47-48+49..57-58+59..66-67-68+69-70
+   -w -8-20-26-32-33-34-39-56-60
+   -open Metarocq_template_plugin))
+ (libraries rocq-runtime.plugins.ltac rocq-metarocq-template.extractable))
+
+(rocq.pp
+ (modules g_metarocq_safechecker))

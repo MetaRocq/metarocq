@@ -21,11 +21,16 @@ let
     "common" = [ "utils" ];
     "template-rocq" = [ "common" ];
     "pcuic" = [ "common" ];
-    "safechecker" = [ "pcuic" ];
     "template-pcuic" = [
       "template-rocq"
       "pcuic"
     ];
+    # includes the safechecker plugin
+    "safechecker" = [
+      "pcuic"
+      "template-pcuic"
+    ];
+    # includes the erasure plugin
     "erasure" = [
       "safechecker"
       "template-pcuic"
@@ -35,104 +40,96 @@ let
       "pcuic"
       "template-pcuic"
     ];
-    "safechecker-plugin" = [
-      "template-pcuic"
-      "safechecker"
-    ];
-    "erasure-plugin" = [
-      "template-pcuic"
-      "erasure"
-    ];
     "translations" = [ "template-rocq" ];
     "all" = [
-      "safechecker-plugin"
-      "erasure-plugin"
+      "safechecker"
+      "erasure"
       "translations"
       "quotation"
     ];
   };
 
-  template-rocq = metarocq_ "template-rocq";
+  opamName =
+    package:
+    if package == "all" then
+      "rocq-metarocq"
+    else if package == "template-rocq" then
+      "rocq-metarocq-template"
+    else
+      "rocq-metarocq-${package}";
+
+  corePackages = map opamName (lib.remove "all" (lib.attrNames packages));
+
+  # The plugins are now part of the safechecker and erasure packages; the
+  # attributes are kept for the users of the former plugin packages.
+  aliases = {
+    "safechecker-plugin" = "safechecker";
+    "erasure-plugin" = "erasure";
+  };
 
   metarocq_ =
     package:
     let
       metarocq-deps = lib.optionals (package != "single") (map metarocq_ packages.${package});
-      pkgpath = if package == "single" then "./" else "./${package}";
       pname = if package == "all" then "metarocq" else "metarocq-${package}";
-      pkgallMake = ''
-        mkdir all
-        echo "all:" > all/Makefile
-        echo "install:" >> all/Makefile
-      '';
-      derivation =
-        (mkCoqDerivation (
-          {
-            inherit
-              version
-              pname
-              defaultVersion
-              releaseRev
-              repo
-              owner
-              ;
+      derivation = mkCoqDerivation (
+        {
+          inherit
+            version
+            pname
+            defaultVersion
+            releaseRev
+            repo
+            owner
+            ;
 
-            mlPlugin = true;
-            propagatedBuildInputs = [
-              equations
-              ExtLib
-              stdlib
-              # rocq-core.ocamlPackages.zarith
-              # rocq-core.ocamlPackages.stdlib-shims
-            ] ++ metarocq-deps;
+          # Each package is built from the whole source tree with
+          # `dune build -p rocq-metarocq-<package>`.
+          useDune = true;
+          opam-name = opamName package;
+          mlPlugin = true;
+          propagatedBuildInputs = [
+            equations
+            ExtLib
+            stdlib
+          ] ++ metarocq-deps;
 
-            patchPhase =
-                ''
-                  patchShebangs ./configure.sh
-                  patchShebangs ./template-rocq/update_plugin.sh
-                  patchShebangs ./template-rocq/gen-src/to-lower.sh
-                  patchShebangs ./safechecker-plugin/clean_extraction.sh
-                  patchShebangs ./erasure-plugin/clean_extraction.sh
-                  echo "CAMLFLAGS+=-w -60 # Unused module" >> ./safechecker/Makefile.plugin.local
-                  sed -i -e 's/mv $i $newi;/mv $i tmp; mv tmp $newi;/' ./template-rocq/gen-src/to-lower.sh ./safechecker-plugin/clean_extraction.sh ./erasure-plugin/clean_extraction.sh
-                '';
-
-            configurePhase =
-              lib.optionalString (package == "all") pkgallMake
-              + ''
-                touch ${pkgpath}/metarocq-config
-              ''
-              +
-                lib.optionalString
-                  (lib.elem package [
-                    "erasure"
-                    "template-pcuic"
-                    "quotation"
-                    "safechecker-plugin"
-                    "erasure-plugin"
-                    "translations"
-                  ])
-                  ''
-                    echo  "-I ${template-rocq}/lib/coq/${coq.coq-version}/user-contrib/MetaRocq/Template/" > ${pkgpath}/metarocq-config
-                  ''
-              + lib.optionalString (package == "single") ''
-                ./configure.sh local
-              '';
-
-            preBuild = ''
-              cd ${pkgpath}
-            '';
-
-            meta = {
-              homepage = "https://metarocq.github.io/";
-              license = lib.licenses.mit;
-              maintainers = with lib.maintainers; [ cohencyril ];
-            };
-          }
-          // lib.optionalAttrs (package != "single") {
-            passthru = lib.mapAttrs (package: deps: metarocq_ package) packages;
-          }
-        ));
+          meta = {
+            homepage = "https://metarocq.github.io/";
+            license = lib.licenses.mit;
+            maintainers = with lib.maintainers; [ cohencyril ];
+          };
+        }
+        // lib.optionalAttrs (package == "single") {
+          # Build and install all the packages at once
+          buildPhase = ''
+            runHook preBuild
+            dune build -p ${lib.concatStringsSep "," corePackages} ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${lib.concatStringsSep " " corePackages}
+            mkdir $out/lib/coq/
+            mv $OCAMLFIND_DESTDIR/coq $out/lib/coq/${coq.coq-version}
+            runHook postInstall
+          '';
+        }
+        // lib.optionalAttrs (package == "all") {
+          # The meta-package installs no theory, so there is no coq directory
+          # to move, unlike in the default install phase.
+          installPhase = ''
+            runHook preInstall
+            dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${opamName package}
+            runHook postInstall
+          '';
+        }
+        // lib.optionalAttrs (package != "single") {
+          passthru =
+            lib.mapAttrs (package: deps: metarocq_ package) packages
+            // lib.mapAttrs (alias: package: metarocq_ package) aliases;
+        }
+      );
     in
     derivation;
 in

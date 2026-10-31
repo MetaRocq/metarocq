@@ -1,0 +1,4 @@
+(rocq.theory
+ (name MetaRocq.SafeChecker)
+ (package rocq-metarocq-safechecker)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.PCUIC))

@@ -1,1 +1,0 @@
-COQDOCFLAGS=--interpolate --parse-comments --utf8 $(COQLIBS_NOML)

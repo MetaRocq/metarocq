@@ -1,0 +1,7 @@
+(rocq.theory
+ (name MetaRocq.ErasurePlugin)
+ (package rocq-metarocq-erasure)
+ (plugins rocq-metarocq-erasure.plugin)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template
+  MetaRocq.PCUIC MetaRocq.SafeChecker MetaRocq.TemplatePCUIC MetaRocq.Erasure))

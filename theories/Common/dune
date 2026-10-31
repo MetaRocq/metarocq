@@ -1,0 +1,6 @@
+(rocq.theory
+ (name MetaRocq.Common)
+ (package rocq-metarocq-common)
+ (theories Stdlib Ltac2 Equations ExtLib MetaRocq.Utils))
+
+(include_subdirs qualified)

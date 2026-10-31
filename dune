@@ -1,0 +1,10 @@
+; `dune build` builds the libraries and plugins; the test-suite and the
+; examples are built and checked by `dune test`.
+
+(rule
+ (alias default)
+ (deps
+  (alias_rec theories/all)
+  (alias_rec src/all))
+ (action
+  (progn)))

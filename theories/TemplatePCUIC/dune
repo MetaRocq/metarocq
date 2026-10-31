@@ -1,0 +1,8 @@
+(rocq.theory
+ (name MetaRocq.TemplatePCUIC)
+ (package rocq-metarocq-template-pcuic)
+ (theories
+  Stdlib Ltac2 Equations ExtLib MetaRocq.Utils MetaRocq.Common MetaRocq.Template
+  MetaRocq.PCUIC))
+
+(include_subdirs qualified)

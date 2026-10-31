@@ -1,3 +1,0 @@
-COQDOCFLAGS=--no-index --interpolate --parse-comments --utf8 $(COQLIBS_NOML)
-INSTALLDEFAULTROOT=MetaRocq/SafeChecker
-CAMLFLAGS+=-w -33 # Unused opens
