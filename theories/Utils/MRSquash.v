@@ -1,6 +1,9 @@
 
 Record squash (A : Type) : Prop := sq { _ : A }.
 
+(* Not at level 0: application arguments are parsed at level 0, so the closing
+   [∥] would be read as the start of another squashed argument. *)
+#[warning="-closed-notation-not-level-0"]
 Notation "∥ T ∥" := (squash T) (at level 10).
 Arguments sq {_} _.
 

@@ -30,7 +30,7 @@ Notation " ! " := (@False_rect _ _) : metarocq_scope.
 
 (* Use \sum to input ∑ (it is not a sigma Σ). *)
 Notation "'∑' x .. y , p" := (sigT (fun x => .. (sigT (fun y => p%type)) ..))
-  (at level 200, x binder, right associativity,
+  (at level 10, x binder, p at level 200,
    format "'[' '∑'  '/  ' x  ..  y ,  '/  ' p ']'")
   : type_scope.
 
@@ -143,7 +143,7 @@ Record sigP {A : Prop} {B : A -> Prop} := existP { projP1 : A ; projP2 : B projP
 Arguments sigP {A} B.
 Arguments existP {A} B _ _.
 
-Notation fwd := (ltac:(move=> /(_ _)/Wrap[])) (only parsing).
+Abbreviation fwd := (ltac:(move=> /(_ _)/Wrap[])) (only parsing).
 
 Arguments exist {A P}.
 Definition inspect {A} (x : A) : { y : A | x = y } := exist x eq_refl.
@@ -157,10 +157,12 @@ Qed.
 
 Lemma iff_forall {A} B C (H : forall x : A, B x <-> C x)
   : (forall x, B x) <-> (forall x, C x).
+Proof.
   firstorder.
 Defined.
 
 Lemma iff_ex {A} B C (H : forall x : A, B x <-> C x)
   : (ex B) <-> (ex C).
+Proof.
   firstorder.
 Defined.

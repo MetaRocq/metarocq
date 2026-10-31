@@ -46,6 +46,11 @@ Fixpoint string_of_uint n :=
 Definition string_of_nat n : string :=
   string_of_uint (Nat.to_uint n).
 
+Create HintDb eq_dec.
+#[global] Hint Constants Opaque : eq_dec.
+#[global] Hint Projections Opaque : eq_dec.
+#[global] Hint Variables Opaque : eq_dec.
+
 #[global]
 Hint Resolve String.string_dec : eq_dec.
 

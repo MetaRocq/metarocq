@@ -240,6 +240,7 @@ Module OT_byte <: OrderedType.OrderedType with Definition t := Byte.byte.
     apply ByteCompareSpec.lt_not_eq.
   Qed.
   Definition compare (x y : t) : OrderedType.Compare lt eq x y.
+  Proof.
     refine  (
     match ByteCompare.compare x y as X return ByteCompare.compare x y = X -> OrderedType.Compare lt eq x y  with
     | Eq => fun pf => OrderedType.EQ _

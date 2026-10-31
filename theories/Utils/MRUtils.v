@@ -174,6 +174,7 @@ Ltac generalize_eq x t :=
   set (x := t) in *; cut (x = t); [|reflexivity]; clearbody x.
 
 Lemma if_true_false (b : bool) : (if b then true else false) = b.
+Proof.
   destruct b; reflexivity.
 Qed.
 

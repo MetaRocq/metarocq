@@ -10,7 +10,6 @@ From Corelib Require Import RelationClasses.
 From MetaRocq.Utils Require Export MRUtils monad_utils.
 
 Global Set Asymmetric Patterns.
-#[warning="-unknown-option"] Global Set Asymmetric Patterns No Implicits.
 
 Global Open Scope bs_scope.
 

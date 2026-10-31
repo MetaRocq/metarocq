@@ -330,10 +330,10 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Qed.
 
   #[deprecated(note = "use equal_exprsets instead")]
-  Notation eq_univ_equal := equal_exprsets.
+  Abbreviation eq_univ_equal := equal_exprsets.
 
   #[deprecated(note = "use equal_exprsets instead")]
-  Notation eq_univ' := equal_exprsets.
+  Abbreviation eq_univ' := equal_exprsets.
 
   Lemma equal_elements (u v : t) :
     LevelExprSet.elements u = LevelExprSet.elements v -> u = v.
@@ -345,7 +345,7 @@ Module NonEmptyLevelExprSet (Level : OrderedTypeWithLeibniz) (Q : Quantity)
   Qed.
 
   #[deprecated(note = "use equal_elements instead")]
-  Notation eq_univ_elements := equal_elements.
+  Abbreviation eq_univ_elements := equal_elements.
 
   #[deprecated(note = "use equal_elements instead")]
   Definition eq_univ'' := equal_elements.
