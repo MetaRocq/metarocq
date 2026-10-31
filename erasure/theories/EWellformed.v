@@ -73,8 +73,8 @@ Proof. destruct p as [? []]; auto. Qed.
 Definition all_term_flags :=
   {| has_tBox := true
     ; has_tRel := true
-    ; has_tVar := true
-    ; has_tEvar := true
+    ; has_tVar := false
+    ; has_tEvar := false
     ; has_tLambda := true
     ; has_tLetIn := true
     ; has_tApp := true

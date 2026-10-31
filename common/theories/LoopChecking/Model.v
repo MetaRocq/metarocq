@@ -2081,16 +2081,16 @@ Module Model (LS : LevelSets).
     intros hcl.
     unfold min_premise.
     funelim (to_nonempty_list prems). bang. clear H.
-    match goal with [ H : _ = _ :: _ |- _ ] => rename H into e0 end.
+    match goal with [ h : _ = _ :: _ |- _ ] => rename h into helts end.
     rw_in levels_spec hcl.
     have -> : min_atom_value m e = min_atom_value m' e.
     { destruct e as [k l'].
       rw /min_atom_value. rw -hcl //.
       exists l'.
-      apply LevelExprSet.elements_spec1. rw e0. now left. }
+      apply LevelExprSet.elements_spec1. rw helts. now left. }
     have cl' : forall x, (exists k, InA eq (x, k) l) -> level_value m x = level_value m' x.
-    { intros x [k ina]. apply hcl. exists k. apply LevelExprSet.elements_spec1. rw e0. now right. }
-    clear hcl Heqcall e0.
+    { intros x [k ina]. apply hcl. exists k. apply LevelExprSet.elements_spec1. rw helts. now right. }
+    clear hcl Heqcall helts.
     generalize (min_atom_value m' e).
     induction l; cbn; auto.
     have -> : min_atom_value m a = min_atom_value m' a.

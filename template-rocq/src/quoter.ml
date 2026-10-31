@@ -217,7 +217,7 @@ struct
   let quote_ugraph ?kept (g : UGraph.t) =
     let uctx = ugraph_contextset ?kept g in
     time (Pp.str"Quoting universe context")
-    (fun uctx -> Q.quote_contextset uctx) uctx
+      (fun uctx -> Q.quote_contextset uctx) uctx
 
   let quote_inductive' (ind, i) : Q.quoted_inductive =
     Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical ind), Q.quote_int i)
