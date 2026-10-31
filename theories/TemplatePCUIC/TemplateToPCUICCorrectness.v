@@ -1831,6 +1831,11 @@ Proof.
     simpl. eapply trans_lift_typing_it with t0 => // HT. all: now apply HT.
 Qed.
 
+Create HintDb trans.
+#[global] Hint Constants Opaque : trans.
+#[global] Hint Projections Opaque : trans.
+#[global] Hint Variables Opaque : trans.
+
 #[global]
 Hint Resolve trans_wf_local : trans.
 

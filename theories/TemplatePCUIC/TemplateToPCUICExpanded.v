@@ -15,6 +15,11 @@ Tactic Notation "wf_inv" ident(H) simple_intropattern(p) :=
 (eapply WfAst.wf_inv in H; progress cbn in H; try destruct H as p) ||
 (apply WfAst.wf_mkApps_napp in H; [|easy]; try destruct H as p).
 
+Create HintDb expanded.
+#[global] Hint Constants Opaque : expanded.
+#[global] Hint Projections Opaque : expanded.
+#[global] Hint Variables Opaque : expanded.
+
 Local Hint Constructors expanded : expanded.
 
 Lemma expanded_context_map2_bias_left Σ n bctx ctx :
