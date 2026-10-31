@@ -58,6 +58,8 @@ let
     else
       "rocq-metarocq-${package}";
 
+  corePackages = map opamName (lib.remove "all" (lib.attrNames packages));
+
   # The plugins are now part of the safechecker and erasure packages; the
   # attributes are kept for the users of the former plugin packages.
   aliases = {
@@ -99,11 +101,27 @@ let
           };
         }
         // lib.optionalAttrs (package == "single") {
-          # Build all the packages at once
+          # Build and install all the packages at once
           buildPhase = ''
             runHook preBuild
-            dune build -p ${lib.concatStringsSep "," (map opamName (lib.remove "all" (lib.attrNames packages)))} ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
+            dune build -p ${lib.concatStringsSep "," corePackages} ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
             runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${lib.concatStringsSep " " corePackages}
+            mkdir $out/lib/coq/
+            mv $OCAMLFIND_DESTDIR/coq $out/lib/coq/${coq.coq-version}
+            runHook postInstall
+          '';
+        }
+        // lib.optionalAttrs (package == "all") {
+          # The meta-package installs no theory, so there is no coq directory
+          # to move, unlike in the default install phase.
+          installPhase = ''
+            runHook preInstall
+            dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${opamName package}
+            runHook postInstall
           '';
         }
         // lib.optionalAttrs (package != "single") {
