@@ -1772,6 +1772,7 @@ Section PCUICErase.
     let wfe := build_wf_env_from_env p.1.1 (map_squash (wf_ext_wf p.1) wfΣ) in
     let Xext := abstract_make_wf_env_ext (X_type := optimized_abstract_env_impl) wfe p.1.2 (lift_wfext p.1 wfΣ) in
     forall Σ : global_env_ext, Σ ∼_ext abstract_make_wf_env_ext (X_type := optimized_abstract_env_impl) wfe p.1.2 (fun (Σ0 : global_env) (H : Σ0 ∼ wfe) => ETransform.erase_pcuic_program_obligation_1 guard_impl p wfΣ Σ0 H) -> welltyped Σ [] p.2.
+  Proof.
     intros.
     refine ((let 'sq s as wt' := wt return (wt' = wt -> welltyped Σ [] p.2) in
       let '(T; ty) as s0 := s return (sq s0 = wt -> welltyped Σ [] p.2) in
