@@ -224,9 +224,9 @@ Proof. intros -> -> ->; reflexivity. Qed.
 Local Lemma primitive_array_congr u ty def values ty' def' values' :
   ty = ty' -> def = def' -> values = values' ->
   tPrim (primArray; primArrayModel
-    {| array_level := u; array_type := ty; array_default := def; array_value := values |}) =
+    {| array_universe := u; array_type := ty; array_default := def; array_value := values |}) =
   tPrim (primArray; primArrayModel
-    {| array_level := u; array_type := ty'; array_default := def'; array_value := values' |}).
+    {| array_universe := u; array_type := ty'; array_default := def'; array_value := values' |}).
 Proof. intros -> -> ->; reflexivity. Qed.
 
 Local Ltac solve_array_maps :=
