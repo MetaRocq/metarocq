@@ -3625,15 +3625,6 @@ Section dearg.
     all: try solve [rw wellformed_mkApps; cbn; auto;
       first [apply/andP; split; [first [assumption | repeat (rtoProp; cbn); intuition (eauto 5 using Forall_nil)] | apply forallb_Forall; exact clos_args]
             | apply forallb_Forall; exact clos_args]].
-    - rw wellformed_mkApps; auto.
-      change ((forallb (wellformed (trans_env (dearg_env Σ)) k) (map (dearg_aux []) l) &&
-        forallb (wellformed (trans_env (dearg_env Σ)) k) args) = true).
-      rw forallb_map; apply/andP; split.
-      2: apply forallb_Forall; exact clos_args.
-      apply forallb_All in valid_t; apply forallb_All in clos_t.
-      apply All_forallb.
-      eapply All_impl; [exact (All_mix X (All_mix valid_t clos_t)) |].
-      intros t [IHt [Hv Hc]]. exact (IHt k [] Hv Hc (Forall_nil _)).
     - intros. eapply wellformed_dearg_single; eauto. cbn.
       rw !lookup_env_trans_env in clos_t |- *.
       rw lookup_env_dearg_env. destruct lookup_env => //=. cbn in clos_t.
