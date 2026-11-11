@@ -639,7 +639,7 @@ Corollary R_Acc_aux :
   (* tLambda *)
   Next Obligation.
     left. econstructor.
-    cbn. eapply red1_context. econstructor.
+    cbn. eapply red1_context with (u := subst10 a t). econstructor.
   Qed.
   Next Obligation.
     unfold Pr. cbn.
@@ -1670,7 +1670,8 @@ Corollary R_Acc_aux :
       symmetry in eq1.
       constructor.
       constructor. unfold unfold_fix in eq1.
-      case_eq (nth_error mfix idx); [intros d e | intro e]; rewrite e in eq1; inversion eq1.
+      case_eq (nth_error mfix idx); [intros d e | intro e]; rewrite e in eq1; try discriminate eq1.
+      apply some_inj in eq1; apply pair_equal_spec in eq1 as [Harg Hfn]; subst.
       eapply whne_fixapp.
       + eassumption.
       + now apply nth_error_snoc.

@@ -193,7 +193,7 @@ Proof.
     unfold EGlobalEnv.fix_subst.
     generalize #|mfix|.
     induction n as [|n IH]; [easy|].
-    constructor.
+    cbn. constructor.
     + cbn.
       now rewrite Nat.add_0_r.
     + easy.
@@ -219,7 +219,7 @@ Proof.
     unfold EGlobalEnv.cofix_subst.
     generalize #|mfix|.
     induction n as [|n IH]; [easy|].
-    constructor.
+    cbn. constructor.
     + cbn.
       now rewrite Nat.add_0_r.
     + easy.
@@ -338,7 +338,7 @@ Fixpoint app_All2
          (a1 : All2 T la lb)
          (a2 : All2 T la' lb') : All2 T (la ++ la') (lb ++ lb').
 Proof.
-  destruct a1.
+  destruct a1; cbn.
   - exact a2.
   - refine (All2_cons t _).
     exact (app_All2 _ _ _ _ _ _ _ a1 a2).

@@ -47,7 +47,7 @@ Proof.
   - unfold trans_ctors.
     rewrite map_map_In.
     unshelve erewrite (map_In_ext (fun x _ => (mkConstructor (cstr_name x) (cstr_arity x)))) by (now intros; destruct decompose_arr).
-    induction ind_ctors; [now constructor|].
+    induction ind_ctors; cbn; [now constructor|].
     constructor; [easy|].
     apply IHl.
   - induction P.ind_projs; [now constructor|].

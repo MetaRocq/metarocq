@@ -2063,9 +2063,15 @@ Section SortCompare.
     Global Instance leq_sort_partial_order `{PartialOrder _ eq_universe (leq_universe)}: PartialOrder eq_sort leq_sort.
     Proof.
       assert (subrelation eq_universe (leq_universe)).
-      { intros u u' Hu. specialize (H u u'); cbn in H. apply H in Hu. apply Hu. }
+      { intros u u' Hu.
+        assert (Horder : eq_universe u u' <->
+          leq_universe u u' /\ leq_universe u' u) by exact (H u u').
+        exact (proj1 (proj1 Horder Hu)). }
       assert (subrelation eq_universe (flip (leq_universe))).
-      { intros u u' Hu. specialize (H u u'); cbn in H. apply H in Hu. apply Hu. }
+      { intros u u' Hu.
+        assert (Horder : eq_universe u u' <->
+          leq_universe u u' /\ leq_universe u' u) by exact (H u u').
+        exact (proj2 (proj1 Horder Hu)). }
       intros s s'. split.
       - intro Heq. split.
         + now eapply eq_leq_sort.

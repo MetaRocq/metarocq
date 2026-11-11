@@ -189,7 +189,7 @@ Section All2_fold.
     on_contexts_over P Γ0 Δ Γ'' Δ'' ->
     on_contexts P (Γ0 ,,, Γ'') (Δ ,,, Δ'').
   Proof.
-    intros. induction X0; pcuic; constructor; pcuic.
+    intros. induction X0; cbn in *; pcuic; constructor; pcuic.
   Qed.
 
   Lemma on_contexts_app_inv_left {P Γ Γ' Δ Δ'} :
@@ -1582,10 +1582,10 @@ Section ParallelSubstitution.
     end.
   Proof.
     induction 1 in n, t |- *; simpl; auto; destruct n; simpl; try congruence.
-    - intros [= <-]. exists (vass na T), (vass na' T'), t'. intuition auto.
+    - intro heq; apply some_inj in heq; subst t. exists (vass na T), (vass na' T'), t'. intuition auto.
     - intros.
       specialize (IHX _ _ H). intuition eauto.
-    - intros [= <-]. exists (vdef na t0 T), (vdef na' t' T'), (subst0 s' t'). intuition auto.
+    - intro heq; apply some_inj in heq; subst t. exists (vdef na t0 T), (vdef na' t' T'), (subst0 s' t'). intuition auto.
       simpl. intuition simpl; auto.
     - apply IHX.
   Qed.
@@ -1598,10 +1598,10 @@ Section ParallelSubstitution.
       pred1 Σ Γ Δ t t'.
   Proof.
     induction 1 in n, t |- *; simpl; auto; destruct n; simpl; try congruence.
-    - intros [= <-]. exists t'; intuition auto.
+    - intro heq; apply some_inj in heq; subst t. exists t'; intuition auto.
     - intros.
       specialize (IHX _ _ H). intuition eauto.
-    - intros [= <-]. exists (subst0 s' t'). intuition auto.
+    - intro heq; apply some_inj in heq; subst t. exists (subst0 s' t'). intuition auto.
     - apply IHX.
   Qed.
 

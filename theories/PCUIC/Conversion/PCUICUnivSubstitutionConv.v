@@ -1626,30 +1626,29 @@ Proof.
   - cbn. rw !subst_instance_mkApps. cbn.
     econstructor.
     + unfold unfold_fix in *. destruct (nth_error mfix idx) eqn:E.
-      * inversion H.
+      * apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
         rw nth_error_map E. cbn.
         destruct d. cbn in *. cbn in *; try congruence.
         f_equal. f_equal.
         now rw subst_instance_subst fix_subst_instance_subst.
-      * inversion H.
+      * discriminate H.
     + unfold is_constructor in *.
       destruct (nth_error args narg) eqn:E; inversion H0; clear H0.
       rw nth_error_map E. cbn.
       eapply isConstruct_app_subst_instance.
   - cbn. rw !subst_instance_mkApps.
     unfold unfold_cofix in *. destruct (nth_error mfix idx) eqn:E.
-    + inversion H.
-      econstructor. fold subst_instance_constr.
+    + apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
+      cbn. econstructor.
       unfold unfold_cofix.
       rw nth_error_map E. cbn.
       rw subst_instance_subst.
       now rw cofix_subst_instance_subst.
-    + cbn.
-      inversion H.
+    + discriminate H.
   - cbn. unfold unfold_cofix in *.
-    destruct nth_error eqn:E; inversion H.
+    destruct nth_error eqn:E; try discriminate H; apply some_inj in H; apply pair_equal_spec in H as [Hrarg Hfn]; subst.
     rw !subst_instance_mkApps.
-    econstructor. fold subst_instance.
+    cbn. econstructor.
     unfold unfold_cofix.
     rw nth_error_map. destruct nth_error; cbn.
     1: rw subst_instance_subst cofix_subst_instance_subst.
@@ -2338,7 +2337,7 @@ Section SubstIdentity.
     l = l0 /\ l' = l0'.
   Proof using Type.
     induction l in l', l0, l0' |- *; destruct l0; simpl in * => //; auto.
-    intros [= eq] [= -> eql].
+    intros eq e. apply Nat.succ_inj in eq. apply cons_inj in e as [-> eql].
     now destruct (IHl _ _ _ eq eql).
   Qed.
 

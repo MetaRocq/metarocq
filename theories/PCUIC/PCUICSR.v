@@ -319,7 +319,8 @@ Proof.
     to_extended_list_k_lift_context to_extended_list_k_subst
     PCUICLiftSubst.map_subst_instance_to_extended_list_k //.
   induction hlen; cbn. constructor.
-  rw subst_context_snoc /= expand_lets_ctx_snoc subst_context_snoc.
+  rw subst_context_snoc /= expand_lets_ctx_snoc.
+  cbn. rw subst_context_snoc.
   constructor. now cbn. apply IHhlen.
 Qed.
 
@@ -2491,7 +2492,7 @@ Proof.
           apply wf_subslet_ctx in projsubs.
           apply projsubs.
       ** elim: p.(proj_arg). simpl. constructor.
-        intros n Hn. constructor; auto.
+        intros n Hn. cbn. constructor; auto.
         eapply closed_red1_red.
         split. fvs. cbn. rw on_free_vars_mkApps.
         apply/andP; split; fvs.
@@ -2719,7 +2720,7 @@ Proof.
     rw subst_app_decomp.
     rw (subslet_length iparsubst0); len.
     assert (wf_local Σ (Γ ,,, subst_instance u (ind_params mdecl))).
-    { eapply weaken_wf_local; eauto. eapply on_minductive_wf_params => //. pcuic.
+    { eapply weaken_wf_local; eauto. eapply on_minductive_wf_params => //.
       apply declc. }
     eapply (substitution_ws_cumul_pb (Γ'' := [])); eauto. eapply iparsubst0.
     simpl.
@@ -2861,7 +2862,7 @@ Proof.
         move=> [dname dty dbod] /= h. rw /test_def /=;
         move/andP=> [hty _]. split; try reflexivity.
         eapply ws_cumul_pb_refl => //.
-      * move/andP: H2 => [/andP [Hty _] _].
+      * cbn in H2. move/andP: H2 => [/andP [Hty _] _].
         split; try reflexivity. apply ws_cumul_pb_refl => //.
       * eapply IHX4. simpl in H2; now move/andP: H2 => [].
       * cbn. intros ???? []; constructor; eauto; now apply ws_cumul_pb_forget_conv. }
@@ -2971,7 +2972,7 @@ Proof.
         move=> [dname dty dbod] /= h. rw /test_def /=;
         move/andP=> [hty _]. split; try reflexivity.
         eapply ws_cumul_pb_refl => //.
-      * move/andP: H2 => [/andP [Hty _] _].
+      * cbn in H2. move/andP: H2 => [/andP [Hty _] _].
         split; try reflexivity. apply ws_cumul_pb_refl => //.
       * eapply IHX4. simpl in H2; now move/andP: H2 => [].
       * cbn. intros ???? []; constructor; eauto; now apply ws_cumul_pb_forget_conv. }
