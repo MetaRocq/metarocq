@@ -310,7 +310,8 @@ Section OnConstructor.
     clear Hlen'.
     rw [_ ,,, _]app_context_assoc in Hinst.
     now exists inst.
-    apply lift_typing_weaken_ctx with (Γ := []); tas.
+    apply lift_typing_weaken_ctx with (Γ := [])
+      (Δ := arities_context (ind_bodies mdecl) ,,, (cstr_args cdecl ++ ind_params mdecl)); tas.
     eapply isTypeRel_isType.
     apply oib.(onArity).
   Qed.
@@ -1107,7 +1108,7 @@ Proof.
   * cbn. rw subst_context_snoc.
     eapply substitution in t0; tea.
     specialize (IHsubs _ subl).
-    epose proof (cons_let_def _ _ _ _ _ _ _ IHsubs).
+    epose proof (cons_let_def _ _ _ _ na _ _ IHsubs).
     rw !distr_subst in t0.
     specialize (X t0).
     rw -(subslet_length subs).
@@ -1699,7 +1700,7 @@ Qed.
 Lemma assumption_context_map f Γ :
   assumption_context Γ -> assumption_context (map_context f Γ).
 Proof.
-  induction 1; constructor; auto.
+  induction 1; cbn; constructor; auto.
 Qed.
 
 Lemma assumption_context_subst_instance u Γ :
@@ -3037,13 +3038,13 @@ Proof.
   induction (cstr_args cdecl) as [|[? [] ?] ?].
   - simpl. constructor.
   - simpl. apply IHc. now simpl in H.
-  - simpl. rw smash_context_acc /=. simpl.
+  - cbn. rw smash_context_acc /=. cbn.
     rw /subst_decl {2}/map_decl /=.
     rw /expand_lets_ctx {1}/map_decl /= /expand_lets_k_ctx.
     rw !lift_context_snoc /= subst_context_snoc /=; len.
-    rw !subst_context_snoc.
+    cbn. rw !subst_context_snoc.
     rw lift_context_snoc.
-    constructor. apply IHc. simpl in H. lia.
+    cbn. constructor. apply IHc. simpl in H. lia.
 Qed.
 
 Lemma projs_inst_0 ind n k : projs_inst ind n k (tRel 0) = projs ind n k.

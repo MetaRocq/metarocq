@@ -220,6 +220,7 @@ Proof.
           eapply abstract_make_wf_env_ext_correct in H; tea.
           eapply abstract_make_wf_env_ext_correct in h2; tea. congruence. } }
         rewrite <- H0.
+        cbn [map].
         eapply extends_cons.
         unfold trans_env in IHdecls.
         eapply (IHdecls _ _ _ _ prf''); eauto. cbn [negb].

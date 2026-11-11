@@ -99,7 +99,7 @@ Proof.
   simpl. rw /arities_context rev_map_spec /=.
   rw map_app /= rev_app_distr /=.
   rw /= length_app /= Nat.add_1_r.
-  constructor.
+  cbn. constructor.
   - rw -rev_map_spec. apply IHl; try lia.
     eapply Alli_app in X; intuition auto.
   - eapply Alli_app in X as [oind Hx].
@@ -496,7 +496,7 @@ Section WfEnv.
     - induction Δ' in Δ, s, sub |- *; simpl; first by rw skipn_0.
       depelim sub; rw skipn_S; auto.
     - induction Δ' in Δ, s, sub |- *; simpl; first by constructor.
-      destruct s; depelim sub.
+      destruct s; depelim sub; cbn.
       * rw subst_context_snoc. constructor; eauto.
         rw skipn_S Nat.add_0_r /=.
         assert(#|Δ'| = #|firstn #|Δ'| s|).
@@ -510,7 +510,7 @@ Section WfEnv.
         rw skipn_S Nat.add_0_r /=.
         rw /subst_decl /map_decl /=.
         specialize (IHΔ' _ _ sub).
-        epose proof (cons_let_def _ _ _ _ _ (subst (skipn #|Δ'| s0) #|Δ'| t0)
+        epose proof (cons_let_def _ _ _ _ na (subst (skipn #|Δ'| s0) #|Δ'| t0)
         (subst (skipn #|Δ'| s0) #|Δ'| T) IHΔ').
         assert(#|Δ'| = #|firstn #|Δ'| s0|).
         { pose proof (subslet_length sub).
@@ -548,7 +548,7 @@ Section WfEnv.
     simpl. rw /arities_context rev_map_spec /=.
     rw map_app /= rev_app_distr /=.
     rw {1}/map_decl /= length_app /= Nat.add_1_r.
-    constructor.
+    cbn. constructor.
     - rw -rev_map_spec. apply IHl; try lia.
       eapply Alli_app in X; intuition auto.
     - eapply Alli_app in X as [oind Hx].

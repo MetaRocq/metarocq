@@ -164,6 +164,7 @@ Section BDToPCUICTyping.
     intros wfΔ args ctxi ; inversion ctxi.
     - subst d.
       subst.
+      cbn in wfΔ.
       assert (isTypeRel Σ Γ t na.(binder_relevance)).
       {
         eapply All_local_rel_app_inv in wfΔ as [wfd _].
@@ -186,6 +187,7 @@ Section BDToPCUICTyping.
       eassumption.
     - subst d.
       subst.
+      cbn in wfΔ.
       assert (isType Σ Γ t).
       {
         eapply All_local_rel_app_inv in wfΔ as [wfd _].

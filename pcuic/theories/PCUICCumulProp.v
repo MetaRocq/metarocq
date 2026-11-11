@@ -827,7 +827,7 @@ Proof using Type Hcf cf.
   simpl. rw /arities_context rev_map_spec /=.
   rw map_app /= rev_app_distr /=.
   rw /= Nat.add_1_r /=.
-  constructor.
+  cbn. constructor.
   rw -rev_map_spec. apply IHl. lia.
 Qed.
 
@@ -1116,7 +1116,7 @@ Proof using Type Hcf cf.
       len. len in clty.
     * len.
     * len.
-    * induction (ind_bodies mdecl) in |- *; simpl; constructor; auto.
+    * induction (ind_bodies mdecl) in |- *; cbn; constructor; auto.
       constructor. simpl. eapply cmp_instance_opt_variance.
       eapply cmp_True_instance; eauto.
     * simpl.
@@ -1183,10 +1183,10 @@ Proof using Type Hcf cf.
       len. rw on_free_vars_subst_instance. simpl; len.
       rw (declared_minductive_ind_npars a) in H1.
       rw closedn_on_free_vars //. eapply closed_upwards; tea. lia.
-    * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ isdecl wfΣ X1 (validity X1)).
-      now eapply subslet_untyped_subslet.
-    * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ a wfΣ a0 (validity a0)).
-      now eapply subslet_untyped_subslet.
+    * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ isdecl wfΣ X1 (validity X1)) as Hsubs.
+      exact (subslet_untyped_subslet _ _ _ _ Hsubs).
+    * epose proof (projection_subslet Σ _ _ _ _ _ _ _ _ _ a wfΣ a0 (validity a0)) as Hsubs.
+      exact (subslet_untyped_subslet _ _ _ _ Hsubs).
     * constructor => //. symmetry; constructor => //; fvs.
       { now eapply eq_term_eq_term_prop_impl. }
       { now eapply All2_rev. }

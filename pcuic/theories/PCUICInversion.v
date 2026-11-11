@@ -205,7 +205,7 @@ Section Inversion.
   Proof using wfΣ.
     intros Γ u v T h. unshelve invtac h.
     4,5,6,10,11,12: eauto.
-    all: unfold typing_size at 2; fold (typing_size h1); fold (typing_size h2); try fold (typing_size h3); lia.
+    all: simpl; lia.
   Qed.
 
   Lemma inversion_Const :

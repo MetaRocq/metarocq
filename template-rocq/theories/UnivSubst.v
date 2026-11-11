@@ -58,14 +58,26 @@ Proof.
     rewrite ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map,
             ?map_predicate_map_predicate,
             ?map_branch_map_branch; simpl;
+    try solve [lazymatch goal with
+               | |- context [mkApps _ _] =>
+                   rewrite subst_instance_mkApps; f_equal; auto;
+                   rewrite map_map_compose; solve_all
+               end];
+    try solve [lazymatch goal with
+               | |- tFix _ ?idx = tFix _ ?idx =>
+                   apply (f_equal (fun m => tFix m idx))
+               | |- tCoFix _ ?idx = tCoFix _ ?idx =>
+                   apply (f_equal (fun m => tCoFix m idx))
+               end;
+               apply All_map_eq; unfold tFixProp in *;
+               eapply All_impl; [eassumption |];
+               intros d [IHty IHbody]; apply map_def_eq_spec; auto];
     try solve [f_equal; eauto; solve_all; eauto].
 
   - elim (Nat.leb k n). rewrite nth_error_map.
     destruct (nth_error N (n - k)). simpl.
     apply subst_instance_lift. reflexivity. reflexivity.
 
-  - rewrite subst_instance_mkApps. f_equal; auto.
-    rewrite map_map_compose. solve_all.
 Qed.
 
 Lemma map_subst_instance_to_extended_list_k u ctx k :

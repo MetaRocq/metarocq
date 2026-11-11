@@ -1053,7 +1053,7 @@ Next Obligation.
   rewrite <- (subst_rel0_lift_id 0 (mkNormalArity ar_ctx univ)).
   eapply validity in typ as typ_valid;auto.
   destruct typ_valid as (_ & u & Hty & _).
-  eapply type_App.
+  eapply type_App with (A := lift0 1 A) (B := lift 1 1 (mkNormalArity ar_ctx univ)).
   + eapply validity in typ as (_ & ? & typ & _);auto.
     eapply (PCUICWeakeningTyp.weakening _ _ [_] _ _ _ wflext Hty).
   + eapply (PCUICWeakeningTyp.weakening _ _ [_] _ _ _ wflext typ).
@@ -1212,39 +1212,39 @@ Definition ind_aname (oib : PCUICEnvironment.one_inductive_body) :=
   {| binder_name := nNamed (PCUICEnvironment.ind_name oib);
      binder_relevance := rel_of_Type |}.
 
+Fixpoint arities_contexts_acc (mind : kername)
+         (oibs : list PCUICEnvironment.one_inductive_body) (i : nat)
+         (Γ : context) (erΓ : Vector.t tRel_kind #|Γ|) {struct oibs}
+         : ∑Γ, Vector.t tRel_kind #|Γ| :=
+  match oibs with
+  | [] => (Γ; erΓ)
+  | oib :: oibs =>
+    arities_contexts_acc mind oibs (S i)
+      (Γ,, vass (ind_aname oib) (PCUICEnvironment.ind_type oib))
+      (RelInductive {| inductive_mind := mind; inductive_ind := i |} :: erΓ)%vector
+  end.
+
 Definition arities_contexts
          (mind : kername)
          (oibs : list PCUICEnvironment.one_inductive_body) : ∑Γ, Vector.t tRel_kind #|Γ| :=
-  (fix f (oibs : list PCUICEnvironment.one_inductive_body)
-       (i : nat)
-       (Γ : context) (erΓ : Vector.t tRel_kind #|Γ|) :=
-    match oibs with
-    | [] => (Γ; erΓ)
-    | oib :: oibs =>
-      f oibs
-        (S i)
-        (Γ,, vass (ind_aname oib) (PCUICEnvironment.ind_type oib))
-        (RelInductive {| inductive_mind := mind;
-                         inductive_ind := i |} :: erΓ)%vector
-    end) oibs 0 [] []%vector.
+  arities_contexts_acc mind oibs 0 [] []%vector.
+
+Lemma arities_contexts_acc_app mind oibs n Γ erΓ :
+  (arities_contexts_acc mind oibs n Γ erΓ).π1 =
+  (arities_contexts_acc mind oibs 0 [] []%vector).π1 ++ Γ.
+Proof.
+  induction oibs as [|oib oibs IH] in n, Γ, erΓ |- *; [easy|].
+  cbn. rewrite IH; symmetry; rewrite IH.
+  now rewrite <- List.app_assoc.
+Qed.
 
 Lemma arities_contexts_cons_1 mind oib oibs :
   (arities_contexts mind (oib :: oibs)).π1 =
   (arities_contexts mind oibs).π1 ++ [vass (ind_aname oib) (PCUICEnvironment.ind_type oib)].
 Proof.
-  unfold arities_contexts.
-  match goal with
-  | |- (?f' _ _ _ _).π1 = _ => set (f := f')
-  end.
-  assert (H : forall oibs n Γ erΓ, (f oibs n Γ erΓ).π1 = (f oibs 0 [] []%vector).π1 ++ Γ).
-  { clear.
-    intros oibs.
-    induction oibs as [|oib oibs IH]; [easy|].
-    intros n Γ erΓ.
-    cbn.
-    rewrite IH; symmetry; rewrite IH.
-    now rewrite <- List.app_assoc. }
-  now rewrite H.
+  exact (arities_contexts_acc_app mind oibs 1
+    [vass (ind_aname oib) (PCUICEnvironment.ind_type oib)]
+    [RelInductive {| inductive_mind := mind; inductive_ind := 0 |}]%vector).
 Qed.
 
 Lemma arities_contexts_1 mind oibs :
@@ -1296,6 +1296,13 @@ Proof.
 Qed.
 
 Import ExAst.
+Fixpoint decomp_ind_ctor_names (ty : P.term) : list name :=
+  match ty with
+  | P.tProd na A B => binder_name na :: decomp_ind_ctor_names B
+  | P.tLetIn na a A b => decomp_ind_ctor_names b
+  | _ => []
+  end.
+
 Definition erase_ind_body
         (mind : kername)
         (mib : PCUICEnvironment.mutual_inductive_body)
@@ -1316,13 +1323,7 @@ Proof.
   let erase_ind_ctor (p : PCUICEnvironment.constructor_body) (is_in : In p (PCUICEnvironment.ind_ctors oib)) :=
       let bt := erase_ind_ctor (proj1_sig ctx).π1 (proj1_sig ctx).π2 p.(PCUICEnvironment.cstr_type) _ 0 ind_params in
       let '(ctor_args, _) := decompose_arr bt in
-      let fix decomp_names ty :=
-          match ty with
-          | P.tProd na A B => binder_name na :: decomp_names B
-          | P.tLetIn na a A b => decomp_names b
-          | _ => []
-          end in
-      (p.(PCUICEnvironment.cstr_name), combine (decomp_names p.(PCUICEnvironment.cstr_type)) ctor_args, p.(PCUICEnvironment.cstr_arity)) in
+      (p.(PCUICEnvironment.cstr_name), combine (decomp_ind_ctor_names p.(PCUICEnvironment.cstr_type)) ctor_args, p.(PCUICEnvironment.cstr_arity)) in
 
   let ctors := map_In (PCUICEnvironment.ind_ctors oib) erase_ind_ctor in
 

@@ -722,18 +722,22 @@ Section reorder_proofs.
     wellformed Σ k t -> wellformed (reorder_env m Σ) k (optimize t).
   Proof using Type wfm wca.
     intros wfΣ.
-    induction t in k |- * using EInduction.term_forall_list_ind; simpl; auto;
-    intros; try easy;
-    rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
-    unfold wf_fix_gen, test_def in *;
-    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; bool; solve_all]; try easy.
+    induction t in k |- * using EInduction.term_forall_list_ind; simpl; auto.
+    all: intros; try easy.
+    all: rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map.
+    all: unfold wf_fix_gen, test_def in *.
+    all: simpl closed in *.
+    all: try solve [lazymatch goal with
+      | |- context [reorder_branches _ _ _] => fail
+      | _ => idtac
+      end; simpl subst; simpl closed; f_equal; auto; bool; solve_all]; try easy.
     - bool. rw -lookup_constant_reorder. destruct lookup_constant => //=; bool.
       now destruct (cst_body c) => //=.
     - rw wca in H *. move/andP: H => [] /andP[] -> iss isnil /=.
       rw -lookup_constructor_reorder.
       destruct lookup_constructor eqn:hl => //=.
       destruct args => //.
-    - rtoProp; intuition auto; solve_all.
+    - rtoProp; intuition auto.
       * rw /reorder_branches.
         destruct lookup_inductive_assoc as [[na tags]|] eqn:hl => //=.
         have lenreo := wf_ind_mapping_wf_brs H0 hl.
@@ -745,7 +749,7 @@ Section reorder_proofs.
         move: H0. rw /wf_brs. destruct p as [[mind ind] i].
         rw lookup_inductive_reorder. destruct lookup_inductive as [[mib oib]|]=> //=.
         rw /reorder_one_ind hl /=. move/eqb_eq => hl'. now apply Nat.eqb_eq.
-      * rw /reorder_branches.
+      * apply All_forallb. rw /reorder_branches.
         destruct lookup_inductive_assoc as [[nas tags]|].
         eapply All_reorder_list.
         all:solve_all.
@@ -802,18 +806,22 @@ Section reorder_proofs.
     optimize (ECSubst.csubst a k b) = ECSubst.csubst (optimize a) k (optimize b).
   Proof using Type wfm wca.
     intros wfΣ.
-    induction b in k |- * using EInduction.term_forall_list_ind; simpl; auto;
-    intros wft; try easy;
-    rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map;
-    unfold wf_fix, test_def in *;
-    simpl closed in *; try solve [simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
+    induction b in k |- * using EInduction.term_forall_list_ind; simpl; auto.
+    all: intros wft; try easy.
+    all: rewrite -> ?map_map_compose, ?compose_on_snd, ?compose_map_def, ?length_map.
+    all: unfold wf_fix, test_def in *.
+    all: simpl closed in *.
+    all: try solve [lazymatch goal with
+      | |- context [reorder_branches _ _ _] => fail
+      | _ => idtac
+      end; simpl subst; simpl closed; f_equal; auto; rtoProp; solve_all]; try easy.
     - destruct (k ?= n0)%nat; auto.
     - f_equal. rtoProp. rw wca in H0. now destruct args; inv H0.
     - move/andP: wft => [] hasc /andP[] /andP[] hi hb hl. rw IHb. f_equal. unfold on_snd; solve_all.
-      repeat toAll. f_equal. solve_all.
+      repeat toAll. f_equal.
       rw -!reorder_branches_map map_map_compose. cbn. f_equal.
       unfold on_snd; cbn.
-      solve_all. f_equal. unfold optimize in *.
+      solve_all. f_equal.
       rw a0 //. red; rw -b0. lia_f_equal.
     - move/andP: wft => [] /andP[] hasf hp /andP[] hb hwfm.
       f_equal. solve_all.
@@ -880,7 +888,8 @@ Section reorder_proofs.
     rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] /andP[] hasfix hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
-    intros [= <- <-] => /=. f_equal.
+    intros Heq. apply some_inj in Heq.
+    apply pair_equal_spec in Heq as [<- <-]. cbn. f_equal.
     rw optimize_substl //. eapply wellformed_fix_subst => //.
     rw fix_subst_length.
     eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.
@@ -898,7 +907,8 @@ Section reorder_proofs.
     rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] hasfix /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
-    intros [= <- <-] => /=. f_equal.
+    intros Heq. apply some_inj in Heq.
+    apply pair_equal_spec in Heq as [<- <-]. cbn. f_equal.
     rw optimize_substl //. eapply wellformed_cofix_subst => //.
     rw cofix_subst_length.
     eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.
@@ -1323,7 +1333,8 @@ Proof.
     subst a0 a'; cbn in *. depelim H0; cbn in *. intuition auto; solve_all.
     primProp; depelim H0; intuition eauto.
   - move=> /andP[] haslazy wf. econstructor; eauto. eapply IHev2.
-    eapply eval_wellformed in ev1; tea. move/andP: ev1 => []; tea => //.
+    eapply eval_wellformed in ev1; tea.
+    cbn in ev1. apply andb_and in ev1 as [_ Hwf]. exact Hwf.
   - destruct t => //.
     all:constructor; eauto.
     cbn [atom reorder] in i |- *.
@@ -1387,7 +1398,7 @@ Lemma optimize_expanded {Σ m} t :
 Proof.
   intros wfm.
   induction 1 using expanded_ind.
-  all:try solve[constructor; eauto; solve_all].
+  all:try solve[cbn; constructor; eauto; solve_all].
   all:rw ?optimize_mkApps.
   - eapply expanded_mkApps_expanded => //. solve_all.
   - cbn. econstructor; eauto.
@@ -1433,7 +1444,7 @@ Lemma optimize_expanded_fix {Σ Γ m} t :
 Proof.
   intros wfm.
   induction 1 using expanded_ind.
-  all:try solve[constructor; eauto; solve_all].
+  all:try solve[cbn; constructor; eauto; solve_all].
   all:rw ?optimize_mkApps.
   - cbn. eapply expanded_tRel_app; tea. len. solve_all.
   - cbn. econstructor; eauto.

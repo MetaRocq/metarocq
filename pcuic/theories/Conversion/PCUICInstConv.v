@@ -216,7 +216,7 @@ Proof.
   induction n in l, l' |- *.
   - destruct l => //.
   - destruct l as [|l a] using rev_case => // /=.
-    rw length_app /= Nat.add_1_r => [=].
+    rw length_app /= Nat.add_1_r. intro hlen; apply Nat.succ_inj in hlen.
     intros; subst n.
     simpl. rw map_app.
     f_equal; auto.
@@ -696,7 +696,7 @@ Lemma closed_ctx_args n bctx ctx :
   closedn_ctx n (map2 set_binder_name bctx ctx).
 Proof.
   induction ctx in bctx |- *; destruct bctx; simpl; auto.
-  move=> [=] hlen.
+  intro hlen; apply Nat.succ_inj in hlen.
   move/andP=> [cla clctx].
   rw IHctx // /=.
   rw map2_length //.
@@ -710,7 +710,7 @@ Lemma inst_context_set_binder_name f ctx ctx' :
 Proof.
   induction ctx in ctx' |- *; destruct ctx'; simpl; auto.
   rw !inst_context_snoc /= /snoc.
-  intros [=]. f_equal; auto.
+  intro H0; apply Nat.succ_inj in H0. f_equal; auto.
   rw /set_binder_name /map_decl /=; f_equal.
   - rw map2_length // H0 //.
   - rw map2_length // H0 //.
@@ -1091,7 +1091,7 @@ Proof.
   case_eq (nth_error mfix idx).
   2: intro neq ; rw neq in h ; discriminate.
   intros d e. rw e in h.
-  inversion h. clear h.
+  cbn in h. apply some_inj in h; apply pair_equal_spec in h as [harg hfn]; subst narg fn.
   simpl.
   f_equal. f_equal.
   rw inst_subst0. rw fix_subst_length.
@@ -1115,7 +1115,7 @@ Proof.
   case_eq (nth_error mfix idx).
   2: intro neq ; rw neq in h ; discriminate.
   intros d e. rw e in h.
-  inversion h.
+  cbn in h. apply some_inj in h; apply pair_equal_spec in h as [harg hfn]; subst narg fn.
   simpl. f_equal. f_equal.
   rw inst_subst0. rw cofix_subst_length.
   rw up_Upn.
@@ -1507,10 +1507,10 @@ Proof.
     now rw Upn_0.
   - rw inst_context_snoc.
     eapply usubst_ext.
-    2:now rw Upn_S. simpl.
+    2:now cbn [List.length]; rw Upn_S. simpl.
     apply usubst_Up'. intuition.
   - rw inst_context_snoc. eapply usubst_ext.
-    2:now rw Upn_S. simpl.
+    2:now cbn [List.length]; rw Upn_S. simpl.
     apply usubst_Up. intuition.
 Defined.
 
@@ -1526,7 +1526,7 @@ Proof.
   - rw inst_context_snoc. rw inst_context_snoc in hΔ'.
     rw on_free_vars_ctx_snoc in hΔ'. toProp hΔ'.
     eapply closed_subst_ext.
-    2:now rw Upn_S. simpl.
+    2:now cbn [List.length]; rw Upn_S. simpl.
     apply closed_subst_Up'.
     + intuition.
     + solve_all. unfold on_free_vars_decl, test_decl in H0. toProp H0.
@@ -1538,7 +1538,7 @@ Proof.
   - rw inst_context_snoc. rw inst_context_snoc in hΔ'.
     rw on_free_vars_ctx_snoc in hΔ'. toProp hΔ'.
     eapply closed_subst_ext.
-    2:now rw Upn_S. simpl.
+    2:now cbn [List.length]; rw Upn_S. simpl.
     apply closed_subst_Up.
     + intuition.
     + solve_all. unfold on_free_vars_decl, test_decl in H0. toProp H0.

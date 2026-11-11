@@ -443,7 +443,7 @@ Section CheckerFlags.
     wf_universes Σ (subst_instance u t).
   Proof using Type.
     intros wfΣ onudecl cu wft.
-    induction t using term_forall_list_ind; simpl in *; auto; try to_prop;
+    induction t using term_forall_list_ind; cbn -[Universe.make'] in *; auto; try to_prop;
       try apply /andP; intuition eauto 4.
 
     all:cbn -[Universe.of_level] in * ; to_wfu; autorewrite with map; repeat (f_equal; solve_all).
@@ -465,8 +465,7 @@ Section CheckerFlags.
       now move/All_forallb/wf_instanceP: H.
 
     - now len.
-    - rw /test_branch. rtoProp.
-      move/andP: a => [] tctx wfu.
+    - cbv [test_branch map_branch map_branch_k bcontext bbody] in *. rtoProp.
       split; auto. simpl.
       solve_all. now len.
     - to_wfu.
@@ -1052,7 +1051,7 @@ Section CheckerFlags.
 
     - cbn in *; to_wfu ; eauto with pcuic.
     - rw wf_universes_subst. constructor. to_wfu; auto. constructor.
-      now move/andP: H1 => [].
+      cbn in H1. now move/andP: H1 => [].
 
     - apply/andP; split.
       { rw wf_universeb_instance_forall.

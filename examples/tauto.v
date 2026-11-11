@@ -141,31 +141,33 @@ Definition decomp_step s : subgoal :=
 
 Inductive result := Valid | CounterModel | Abort.
 
+Fixpoint tauto_and (proc : seq -> result) (ls : list seq) : result :=
+  match ls with
+  | nil => Valid
+  | s1 :: ls =>
+    match proc s1 with
+    | Valid => tauto_and proc ls
+    | s => s
+    end
+  end.
+
+Fixpoint tauto_or (proc : seq -> result) (lls : list (list seq)) : result :=
+  match lls with
+  | ls :: lls =>
+    match tauto_and proc ls with
+    | Valid => Valid
+    | CounterModel => tauto_or proc lls
+    | Abort => Abort
+    end
+  | nil => CounterModel
+  end.
+
 Fixpoint tauto_proc n s {struct n} :=
   if is_leaf s then Valid else
     match n with
     | 0 => Abort
-    | S n =>
-      let fix tauto_and ls :=
-          match ls with
-          | nil => Valid
-          | s1::ls => match tauto_proc n s1 with
-                      | Valid => tauto_and ls
-                      | s => s
-                      end
-          end in
-      let fix tauto_or lls :=
-          match lls with
-          | ls::lls =>
-            match tauto_and ls with
-            | Valid => Valid
-            | CounterModel => tauto_or lls
-            | Abort => Abort
-            end
-         | nil => CounterModel
-         end in
-      tauto_or (decomp_step s)
-end.
+    | S n => tauto_or (tauto_proc n) (decomp_step s)
+    end.
 
 Definition tauto_s f := tauto_proc (size f) (mkS nil f).
 
@@ -392,83 +394,42 @@ Proof.
   red; eauto.
 Qed.
 
+Lemma tauto_and_sound proc ls :
+  (forall s, proc s = Valid -> valid s) ->
+  tauto_and proc ls = Valid -> forall s, In s ls -> valid s.
+Proof.
+  intros sound. induction ls as [|s1 ls IH]; cbn.
+  - intros _ s [].
+  - destruct (proc s1) eqn:E; try discriminate.
+    intros H s [<- | Hin].
+    + now apply sound.
+    + now apply IH.
+Qed.
+
+Lemma tauto_or_sound proc sg :
+  (forall s, proc s = Valid -> valid s) ->
+  tauto_or proc sg = Valid -> valid_subgoal sg.
+Proof.
+  intros sound. induction sg as [|ls sg IH]; cbn.
+  - discriminate.
+  - destruct (tauto_and proc ls) eqn:E.
+    + intros _. exists ls.
+      * now left.
+      * eapply tauto_and_sound; eauto.
+    + intros H. destruct (IH H) as [sl Hin Hvalid].
+      exists sl; [now right | exact Hvalid].
+    + discriminate.
+Qed.
+
 Lemma tauto_sound n s :
   tauto_proc n s = Valid -> valid s.
 Proof.
-revert s; induction n; simpl; intros.
- generalize (is_leaf_sound s).
- destruct (is_leaf s); auto.
- discriminate.
-
- generalize (is_leaf_sound s).
- destruct (is_leaf s); auto.
- intros _.
- revert H.
- generalize (step_sound s).
- induction (decomp_step s); simpl; intros.
-  discriminate.
-
-  assert ((fix tauto_and (ls : list seq) : result :=
-            match ls with
-            | nil => Valid
-            | s1 :: ls0 =>
-                match tauto_proc n s1 with
-                | Valid => tauto_and ls0
-                | CounterModel => CounterModel
-                | Abort => Abort
-                end
-            end) a = Valid \/
-           (fix tauto_or (lls : list (list seq)) : result :=
-              match lls with
-              | nil => CounterModel
-              | ls :: lls0 =>
-                  match
-                    (fix tauto_and (ls0 : list seq) : result :=
-                       match ls0 with
-                       | nil => Valid
-                       | s1 :: ls1 =>
-                           match tauto_proc n s1 with
-                           | Valid => tauto_and ls1
-                           | CounterModel => CounterModel
-                           | Abort => Abort
-                           end
-                       end) ls
-                  with
-                  | Valid => Valid
-                  | CounterModel => tauto_or lls0
-                  | Abort => Abort
-                  end
-              end) s0 = Valid).
-    destruct ((fix tauto_and (ls : list seq) : result :=
-            match ls with
-            | nil => Valid
-            | s1 :: ls0 =>
-                match tauto_proc n s1 with
-                | Valid => tauto_and ls0
-                | CounterModel => CounterModel
-                | Abort => Abort
-                end
-          end) a); auto.
-  clear H0.
-  destruct H1.
-   apply H; exists a; simpl; auto.
-   clear H.
-   induction a; simpl; intros.
-    contradiction.
-
-    generalize (IHn a).
-    destruct (tauto_proc n a); intros.
-     destruct H; auto.
-     subst s1; auto.
-
-     discriminate.
-     discriminate.
-
-     apply IHs0; trivial.
-     intros.
-     apply H.
-     destruct H1.
-     exists x; simpl; auto.
+  revert s; induction n as [|n IH]; intros s; cbn [tauto_proc];
+    destruct (is_leaf s) eqn:Hleaf.
+  - intros _. now apply is_leaf_sound.
+  - discriminate.
+  - intros _. now apply is_leaf_sound.
+  - intros H. apply step_sound. eapply tauto_or_sound; eauto.
 Qed.
 
 

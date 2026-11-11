@@ -78,7 +78,9 @@ Lemma expanded_extended_subst {Σ Γ Δ} :
 Proof.
   intros [a]; induction a. cbn. constructor.
   cbn. destruct d as [na [b|] ty]; cbn in *. constructor; auto.
-  { cbn. eapply (expanded_subst _ _ 0 _ []) => //. cbn. rw -/(repeat _ _).
+  { cbn. match goal with
+    | |- expanded _ ?ctx _ => eapply (expanded_subst _ _ 0 _ [] ctx)
+    end => //. cbn. rw -/(repeat _ _).
     specialize (IHa n). solve_all.
     len. rw repeat_app Nat.add_comm.
     eapply expanded_lift. 1-2:now len; rw !repeat_length.

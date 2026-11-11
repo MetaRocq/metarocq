@@ -255,7 +255,8 @@ Section optimize.
     rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] /andP[] haslam hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
-    intros [= <- <-] => /=. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [? ?]; subst n f. cbn. f_equal.
     rw optimize_substl //. eapply wellformed_fix_subst => //.
     rw fix_subst_length.
     eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.
@@ -273,7 +274,8 @@ Section optimize.
     rw nth_error_map.
     cbn in hfix. move/andP: hfix => [] hasco /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
-    intros [= <- <-] => /=. f_equal.
+    intro Hunfold. apply some_inj in Hunfold.
+    apply pair_equal_spec in Hunfold as [? ?]; subst n f. cbn. f_equal.
     rw optimize_substl //. eapply wellformed_cofix_subst => //.
     rw cofix_subst_length.
     eapply nth_error_forallb in hfix; tea. now rw Nat.add_0_r in hfix.

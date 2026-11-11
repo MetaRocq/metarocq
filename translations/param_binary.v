@@ -251,7 +251,7 @@ Module FreeTheorems.
 
   Definition map_rel_map A B (f : A -> B) :
     forall (l : list A), map_rel f l (map f l).
-  induction l; constructor; compute; auto.
+  induction l; cbn; constructor; compute; auto.
   Defined.
 
   Lemma rel_map_map A B (f : A -> B) :
