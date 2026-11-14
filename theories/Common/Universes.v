@@ -2543,6 +2543,7 @@ Notation "x @@[ u ]" := (subst_level_instance u x) (at level 1,
   format "x @@[ u ]").
 
 Class UnivSubst A := subst_instance : Instance.t -> A -> A.
+#[global] Instance subst_instance_params : Morphisms.Params (@subst_instance) 2 := {}.
 
 Notation "x @[ u ]" := (subst_instance u x) (at level 1,
   format "x @[ u ]").

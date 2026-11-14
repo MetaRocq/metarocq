@@ -23,6 +23,7 @@ Definition map_def {term : Set} (f : term -> term) (d : def term) :=
 
 Definition test_def {term : Set} (f : term -> bool) (d : def term) :=
   f d.(dbody).
+#[global] Instance test_def_params : Morphisms.Params (@test_def) 1 := {}.
 
 Definition mfixpoint (term : Set) := list (def term).
 

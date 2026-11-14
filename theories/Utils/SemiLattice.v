@@ -38,6 +38,8 @@ Module Semilattice.
   Notation "x ≡ y" := (eq x y) (at level 70) : sl_scope.
 
   Definition le {A incr} `{SL : Semilattice A incr} (x y : A) := join x y ≡ y.
+  #[export] Instance join_params : Params (@join) 4 := {}.
+  #[export] Instance le_params : Params (@le) 4 := {}.
 
   Infix "≤" := le (at level 50) : sl_scope.
   Infix "∨" := join (at level 30) : sl_scope.

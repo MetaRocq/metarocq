@@ -218,6 +218,8 @@ Module EnvMap.
   Qed.
   End Poly.
   Arguments t : clear implicits.
+  #[global] Instance add_params : Morphisms.Params (@add) 1 := {}.
+  #[global] Instance remove_params : Morphisms.Params (@remove) 1 := {}.
 End EnvMap.
 
 (*

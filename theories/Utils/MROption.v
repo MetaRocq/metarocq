@@ -46,6 +46,7 @@ Definition R_opt {A} (R : relation A) : relation (option A) :=
     | None, None => True
     | _, _ => False
   end.
+#[global] Instance R_opt_params : Params (@R_opt) 1 := {}.
 
 Instance R_opt_refl {A R} : @Reflexive A R -> Reflexive (R_opt R).
 Proof.

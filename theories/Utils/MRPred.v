@@ -3,6 +3,7 @@ From MetaRocq.Utils Require Import MRPrelude MRReflect MRList MRRelations MRProd
 From Equations Require Import Equations.
 
 Definition predA {A} (p q : pred A) : pred A := (fun i => p i ==> q i).
+#[global] Instance predA_params : Params (@predA) 1 := {}.
 
 (*
 Definition orP (p q : nat -> bool) (n : nat) : bool :=

@@ -651,6 +651,7 @@ Definition on_free_vars_ctx_k P n ctx :=
 
 Definition predA {A} (p q : pred A) : simpl_pred A :=
   [pred i | p i ==> q i].
+#[global] Instance predA_params : Params (@predA) 1 := {}.
 
 Definition eq_simpl_pred {A} (x y : simpl_pred A) :=
   `≐1` x y.
