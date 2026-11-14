@@ -599,6 +599,7 @@ Module Model (LS : LevelSets).
   Inductive lift_option_rel {A} (R : relation A) : relation (option A) :=
   | lift_none : lift_option_rel R None None
   | lift_some x y : R x y -> lift_option_rel R (Some x) (Some y).
+  #[export] Instance lift_option_rel_params : Params (@lift_option_rel) 1 := {}.
   Derive Signature for lift_option_rel.
   Instance update_value_proper : Proper (LevelMap.Equal ==> eq ==> lift_option_rel LevelMap.Equal) update_value.
   Proof.

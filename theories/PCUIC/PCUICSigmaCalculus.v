@@ -823,6 +823,7 @@ Definition subst_consn {A} (l : list A) (σ : nat -> A) :=
     | None => σ (i - List.length l)
     | Some t => t
     end.
+#[global] Instance subst_consn_params : Params (@subst_consn) 1 := {}.
 
 Notation " t ⋅n s " := (subst_consn t s) (at level 40) : sigma_scope.
 
@@ -870,6 +871,7 @@ Definition subst_cons_gen {A} (t : A) (f : nat -> A) :=
     | 0 => t
     | S n => f n
     end.
+#[global] Instance subst_cons_gen_params : Params (@subst_cons_gen) 1 := {}.
 
 #[global]
 Instance subst_cons_gen_proper {A} : Proper (Logic.eq ==> `≐1` ==> `≐1`) (@subst_cons_gen A).

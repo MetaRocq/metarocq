@@ -41,6 +41,7 @@ Class abstract_env_struct {cf:checker_flags} (abstract_env_impl abstract_env_ext
   abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * UnivConstraintSet.t -> bool ;
 
 }.
+#[global] Instance abstract_env_level_mem_params : Morphisms.Params (@abstract_env_level_mem) 4 := {}.
 
 Definition abstract_env_fixguard  {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
 (X:abstract_env_ext_impl) := abstract_env_guard X Fix.
@@ -71,6 +72,7 @@ Definition abstract_env_ext_wf_sortb {cf:checker_flags} {abstract_env_impl abstr
 Definition abstract_env_level_mem' {cf:checker_flags} {abstract_env_impl abstract_env_ext_impl : Type} `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl}
 (X:abstract_env_ext_impl) : LevelSet.t -> Level.t -> bool :=
     fun levels l => LevelSet.mem l levels || abstract_env_level_mem X l.
+#[global] Instance abstract_env_level_mem'_params : Morphisms.Params (@abstract_env_level_mem') 4 := {}.
 
 Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_impl: Type)
   `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl} : Prop := {

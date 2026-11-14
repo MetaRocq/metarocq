@@ -16,6 +16,7 @@ Derive NoConfusion EqDec for relevance.
 
 (** Binders annotated with relevance *)
 Record binder_annot (A : Type) := mkBindAnn { binder_name : A; binder_relevance : relevance }.
+#[global] Instance binder_relevance_params : CMorphisms.Params (@binder_relevance) 2 := {}.
 (* Scheme All for binder_annot. *)
 
 Arguments mkBindAnn {_}.
@@ -131,6 +132,7 @@ Definition print_def {A} (f : A -> string) (g : A -> string) (def : def A) :=
 
 Definition map_def {A B} (tyf bodyf : A -> B) (d : def A) :=
   {| dname := d.(dname); dtype := tyf d.(dtype); dbody := bodyf d.(dbody); rarg := d.(rarg) |}.
+#[global] Instance map_def_params : Params (@map_def) 2 := {}.
 
 Lemma map_dtype {A B} (f : A -> B) (g : A -> B) (d : def A) :
   f (dtype d) = dtype (map_def f g d).
@@ -148,6 +150,7 @@ Definition mfixpoint term := list (def term).
 
 Definition test_def {A} (tyf bodyf : A -> bool) (d : def A) :=
   tyf d.(dtype) && bodyf d.(dbody).
+#[global] Instance test_def_params : Params (@test_def) 1 := {}.
 
 Definition tFixProp {A} (P P' : A -> Type) (m : mfixpoint A) :=
   All (fun x : def A => P x.(dtype) * P' x.(dbody))%type m.
@@ -248,6 +251,7 @@ Section Contexts.
   }.
   Derive NoConfusion for context_decl.
 End Contexts.
+#[global] Instance mkdecl_params : Params (@mkdecl) 1 := {}.
 (* Scheme All for context_decl. *)
 
 Arguments context_decl : clear implicits.
@@ -323,6 +327,7 @@ Proof. now unfold map_context; rw length_map. Qed.
 
 Definition test_decl {term} (f : term -> bool) (d : context_decl term) : bool :=
   option_default f d.(decl_body) true && f d.(decl_type).
+#[global] Instance test_decl_params : Params (@test_decl) 1 := {}.
 
 #[global] Instance test_decl_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq) (@test_decl term).
 Proof.
@@ -331,10 +336,12 @@ Proof.
 Qed.
 
 Definition snoc {A} (Γ : list A) (d : A) := d :: Γ.
+#[global] Instance snoc_params : Params (@snoc) 1 := {}.
 
 Notation " Γ ,, d " := (snoc Γ d) (at level 20, d at next level).
 
 Definition app_context {A} (Γ Γ': list A) := Γ' ++ Γ.
+#[global] Instance app_context_params : Params (@app_context) 1 := {}.
 
 Notation "Γ ,,, Γ'" := (app_context Γ Γ') (at level 25, Γ' at next level, left associativity).
 
@@ -424,6 +431,7 @@ Section ContextTestK.
     | [] => true
     end.
 End ContextTestK.
+#[global] Instance test_context_k_params : Params (@test_context_k) 1 := {}.
 
 #[global] Instance test_context_k_proper {term} : Proper (`≐1` ==> Logic.eq ==> Logic.eq ==> Logic.eq) (@test_context_k term).
 Proof.
