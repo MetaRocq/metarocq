@@ -358,7 +358,6 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
   let (kind, universes) = next_action env evm pgm in
   match kind with
     TmReturn h ->
-    let (evm, _) = Typing.type_of env evm (EConstr.of_constr h) in
     k ~st env evm h
   | TmBind (a,f) ->
     run_template_program_rec opaque_access ~poly ~intactic:intactic
