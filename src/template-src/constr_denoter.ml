@@ -169,10 +169,14 @@ struct
       (* TODO handle univs created in workers *)
       let l = Univ.Level.make (Univ.UGlobal.make dp "" num) in
       try
-        let evm = Evd.add_forgotten_univ evm l in
+        let _ = Evd.add_forgotten_univ evm l in
         if !strict_unquote_universe_mode then
           CErrors.user_err (str ("Level "^s^" is not a declared level and you are in Strict Unquote Universe Mode."))
-        else (evm, l)
+        else
+          let dp = Names.DirPath.make (Names.DirPath.repr dp @ Names.DirPath.repr (Global.current_dirpath ())) in
+          let l = Univ.Level.make (Univ.UGlobal.make dp "" num) in
+          let evm = try Evd.add_forgotten_univ evm l with UGraph.AlreadyDeclared -> evm in
+          (evm, l)
       with
       | UGraph.AlreadyDeclared -> evm, l
     else

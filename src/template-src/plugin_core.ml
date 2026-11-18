@@ -105,7 +105,9 @@ let tmAxiom (nm : ident) ?(poly=PolyFlags.default) (typ : term) : kername tm =
         ~kind:(Decls.IsDefinition Decls.Definition)
         param
     in
-    success ~st (Global.env ()) evm (Names.Constant.canonical n)
+    let env = Global.env () in
+    let evm = Evd.from_env env in
+    success ~st env evm (Names.Constant.canonical n)
 
 (* this generates a lemma leaving a hole *)
 let tmLemma (nm : ident) ?(poly=PolyFlags.default) (ty : term) : kername tm =
