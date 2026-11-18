@@ -423,6 +423,7 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
       let param = Declare.ParameterEntry entry in
       let n = Declare.declare_constant ~name ~kind:Decls.(IsDefinition Definition) param in
       let env = Global.env () in
+      let evm = Evd.from_env env in
       k ~st env evm (Constr.mkConstU (n, UVars.Instance.empty))
   | TmAxiomTerm (name,typ) ->
     if intactic
