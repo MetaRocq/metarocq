@@ -156,7 +156,8 @@ let to_constr (t : Ast0.term) : Constr.t =
   snd (to_constr_ev env evm t)
 
 let tmOfConstr (t : Constr.t) : Ast0.term tm =
-  Plugin_core.with_env_evm (fun env evm -> tmReturn (quote_term env evm t))
+  tmBind (tmGlobalizeUnifLevels t) (fun t ->
+      Plugin_core.with_env_evm (fun env evm -> tmReturn (quote_term env evm t)))
 
 let tmOfMib (ti : Names.MutInd.t) (t : Plugin_core.mutual_inductive_body) : Ast0.Env.mutual_inductive_body tm =
   Plugin_core.with_env_evm (fun env _ -> tmReturn (of_mib env ti t))

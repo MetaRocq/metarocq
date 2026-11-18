@@ -72,10 +72,11 @@ let time_opt config str fn arg =
 let check ~opaque_access config env evm c =
   debug (fun () -> str"Quoting");
   let time str f arg = time_opt config str f arg in
+  let evm, c = globalize_unif_levels evm (EConstr.to_constr evm c) in
   let term =
     time (str"Quoting")
       (Ast_quoter.quote_term_rec
-         ~bypass:config.bypass_qeds ~opaque_access env evm) (EConstr.to_constr evm c) in
+         ~bypass:config.bypass_qeds ~opaque_access env evm) c in
   let erasure_config = make_erasure_config config in
   let mapping = [] in
   let erase =
@@ -133,8 +134,8 @@ VERNAC COMMAND EXTEND MetaRocqErase CLASSIFIED AS QUERY
 | ![ opaque_access ] [ "MetaRocq" "Erase" erase_args_list(l) constr(c) ] -> {
     let env = Global.env () in
     let evm = Evd.from_env env in
-    let (c, _) = Constrintern.interp_constr env evm c in
-    interp_erase l env evm c
+    let (c, ustate) = Constrintern.interp_constr env evm c in
+    interp_erase l env (Evd.from_ustate ustate) c
   }
 | [ "MetaRocq" "Erase" "-help" ] -> {
     Feedback.msg_notice (str help_msg)

@@ -84,6 +84,11 @@ let tmEval (rd : reduction_strategy) (t : term) : term tm =
     let evd,t' = reduce env evd rd t in
     k ~st env evd t'
 
+let tmGlobalizeUnifLevels (t : term) : term tm =
+  fun ~st env evd k _fail ->
+    let evd, t = Tm_util.globalize_unif_levels evd t in
+    k ~st env evd t
+
 let tmDefinition (nm : ident) ?(poly=PolyFlags.default) ?opaque:(opaque=false) (typ : term option) (body : term) : kername tm =
   fun ~st env evm success _fail ->
     let cinfo = Declare.CInfo.make ~name:nm ~typ:(Option.map EConstr.of_constr typ) () in
@@ -290,7 +295,7 @@ let tmInductive (infer_univs : bool) (mie : mutual_inductive_entry) : unit tm =
         mie
       else mie
     in
-    let names = (UState.Monomorphic_entry Univ.ContextSet.empty, UnivNames.empty_binders) in
+    let names = (UState.Monomorphic_entry (Univ.ContextSet.empty, Univ.Level.Map.empty), UnivNames.empty_binders) in
     ignore (DeclareInd.declare_mutual_inductive_with_eliminations mie names []) ;
     success ~st (Global.env ()) evd ()
 

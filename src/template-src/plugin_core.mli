@@ -47,6 +47,10 @@ val tmFailString : string -> 'a tm
 val reduce : Environ.env -> Evd.evar_map -> reduction_strategy -> term -> Evd.evar_map * term
 val tmEval : reduction_strategy -> term -> term tm
 
+val tmGlobalizeUnifLevels : term -> term tm
+(** Replace the unification levels of the term by global levels, before quoting it
+    (see [Tm_util.globalize_unif_levels]). *)
+
 val tmDefinition : ident -> ?poly:PolyFlags.t -> ?opaque:bool -> term option -> term -> kername tm
 val tmAxiom : ident -> ?poly:PolyFlags.t -> term -> kername tm
 val tmLemma : ident -> ?poly:PolyFlags.t -> term -> kername tm

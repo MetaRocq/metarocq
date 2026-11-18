@@ -195,7 +195,7 @@ type universe_context_type =
   | Polymorphic_uctx of AbstractContext.t
 
 let _to_entry_inductive_universes = function
-  | Monomorphic_uctx ctx -> UState.Monomorphic_entry ctx
+  | Monomorphic_uctx ctx -> UState.Monomorphic_entry (ctx, Univ.Level.Map.empty)
   | Polymorphic_uctx ctx -> UState.Polymorphic_entry (AbstractContext.repr ctx)
 
 let _denote_universes_decl env evm trm (* of type universes_decl *) : _ * universe_context_type =
@@ -216,7 +216,7 @@ let denote_universes_entry env evm trm (* of type universes_entry *) : _ * UStat
   match args with
   | [] ->
     if constr_equall h cMonomorphic_entry then
-      evm, UState.Monomorphic_entry Univ.ContextSet.empty
+      evm, UState.Monomorphic_entry (Univ.ContextSet.empty, Univ.Level.Map.empty)
     else bad_term_verb trm "denote_universes_entry"
   | ctx :: [] -> if constr_equall h cPolymorphic_entry then
                    let evm, ctx = denote_ucontext env evm ctx in
@@ -291,7 +291,7 @@ let unquote_mutual_inductive_entry env evm trm (* of type mutual_inductive_entry
               mind_entry_private = priv }
        in
        let ctx, mind = match univs with
-         | UState.Monomorphic_entry ctx ->
+         | UState.Monomorphic_entry (ctx, _) ->
            if template then
              let mk_anon_names u =
                let qs, us = UVars.Instance.to_array u in
@@ -326,7 +326,7 @@ let declare_inductive (env: Environ.env) (evm: Evd.evar_map) (infer_univs : bool
       Evd.merge_universe_context_set Evd.UnivRigid evm ctx, mind
     else evm, mind
   in
-  let names = (UState.Monomorphic_entry Univ.ContextSet.empty, UnivNames.empty_binders) in
+  let names = (UState.Monomorphic_entry (Univ.ContextSet.empty, Univ.Level.Map.empty), UnivNames.empty_binders) in
   let primitive_expected =
     match mind.mind_entry_record with
     | Some (Some _) -> true
@@ -369,7 +369,7 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
       let name = unquote_ident (reduce_all env evm name) in
       let kind = Decls.IsAssumption Decls.Definitional in
       (* FIXME: better handling of evm *)
-      let empty_mono_univ_entry = UState.Monomorphic_entry Univ.ContextSet.empty, UnivNames.empty_binders in
+      let empty_mono_univ_entry = UState.Monomorphic_entry (Univ.ContextSet.empty, Univ.Level.Map.empty), UnivNames.empty_binders in
       Declare.declare_variable ~typing_flags:None ~name ~kind (SectionLocalAssum { typ; impl=Glob_term.Explicit; univs=empty_mono_univ_entry });
       let env = Global.env () in
       k ~st env evm (Lazy.force unit_tt)
@@ -455,10 +455,12 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
 
   | TmQuote trm ->
     (* user should do the reduction (using tmEval) if they want *)
+    let evm, trm = globalize_unif_levels evm trm in
     let qt = quote_term env evm trm
     in k ~st env evm qt
   | TmQuoteRecTransp  (bypass, trm) ->
     let bypass = unquote_bool (reduce_all env evm bypass) in
+    let evm, trm = globalize_unif_levels evm trm in
     let qt = quote_term_rec ~bypass ~opaque_access ~with_universes:true env evm trm in
     k ~st env evm qt
   | TmQuoteInd (name, strict) ->
@@ -543,7 +545,9 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
     let red = unquote_reduction_strategy env evm (reduce_all env evm s) in
     let evm,trm = denote_term env evm (reduce_all env evm trm) in
     Plugin_core.run ~st (Plugin_core.tmEval red trm) env evm
-      (fun ~st env evm trm -> k ~st env evm (quote_term env evm trm))
+      (fun ~st env evm trm ->
+         let evm, trm = globalize_unif_levels evm trm in
+         k ~st env evm (quote_term env evm trm))
   | TmMkInductive (b, mind) ->
     if intactic
     then not_in_tactic "tmMkInductive"
@@ -621,6 +625,7 @@ let rec run_template_program_rec opaque_access ~poly ?(intactic=false) (k : Cons
       (fun ~st env evm -> function
            None -> k ~st env evm (constr_mkAppl (cNone, [| tTerm|]))
          | Some trm ->
+           let evm, trm = globalize_unif_levels evm trm in
            let qtrm = quote_term env evm trm in
            k ~st env evm (constr_mkApp (cSome, [| Lazy.force tTerm; qtrm |])))
   | TmPrintTerm trm ->
