@@ -1,0 +1,6 @@
+# Python bytecode cache from the generator scripts
+__pycache__/
+*.pyc
+
+# Intermediate coqdep file the generator writes alongside the HTML
+metarocq_dependency_graph.d
