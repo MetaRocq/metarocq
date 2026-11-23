@@ -1529,7 +1529,8 @@ Proof.
   intros wfΣ wfs leqs.
   induction Δ as [|[na [b|] ty] Δ]; simpl; auto;
   intros []; split; auto.
-  destruct l as (_ & ss & Hs & <- & Her).
+  destruct l as (_ & ss & Hs & e & Her).
+  cbn in e; subst ss.
   split; cbn; eexists; split; [|split; eauto using leq_relevance].
   eapply type_Cumul; eauto.
   econstructor; pcuic.
