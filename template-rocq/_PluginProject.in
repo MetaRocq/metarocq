@@ -114,6 +114,8 @@ gen-src/intDef.ml
 gen-src/intDef.mli
 gen-src/kernames.ml
 gen-src/kernames.mli
+gen-src/levels.ml
+gen-src/levels.mli
 gen-src/liftSubst.ml
 gen-src/liftSubst.mli
 gen-src/list0.ml
@@ -234,6 +236,8 @@ gen-src/signature.ml
 gen-src/signature.mli
 gen-src/sint63Axioms.ml
 gen-src/sint63Axioms.mli
+gen-src/sorts0.ml
+gen-src/sorts0.mli
 gen-src/specFloat.ml
 gen-src/specFloat.mli
 gen-src/specif.ml

@@ -691,10 +691,15 @@ Module UnivLvl.
         rewrite LevelExprSet.singleton_spec; intuition.
         exfalso. apply LevelExprSetFact.is_empty_2 in hem; eapply hem; eauto.
       + specialize (IH hem). specialize (ha x _ IH).
-        have e : LevelExprSet.Equal (add x {| t_set := s; t_ne := hem |}) ({| t_set := s'; t_ne := hne |}).
+        (* [assert] rather than ssreflect's [have]: the latter inserts the
+           opaque sort-polymorphic [ssr_have_upoly], which breaks extraction
+           on Rocq <= 9.2 (rocq-prover/rocq#22342). *)
+        assert (e : LevelExprSet.Equal
+          (add x {| t_set := s; t_ne := hem |})
+          ({| t_set := s'; t_ne := hne |})).
         2: by apply equal_exprsets in e; now rewrite -e.
         intros x'; specialize (hadd x'). rewrite LevelExprSet.add_spec; cbn; intuition.
-  Qed.
+  Defined.
 End UnivLvl.
 
 Ltac u :=

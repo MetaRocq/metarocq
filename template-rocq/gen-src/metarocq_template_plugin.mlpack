@@ -104,6 +104,8 @@ Config0
 Kernames
 Primitive
 BasicAst
+Levels
+Sorts0
 Universes0
 Environment
 EnvironmentTyping
