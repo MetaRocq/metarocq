@@ -235,7 +235,6 @@ Hint Rewrite @forall_val_rel_eq : rw_hints.
 Definition exp_rel {wfl : WcbvFlags} Σ := exp_rel' Σ (val_rel Σ).
 
 
-(* 
   
 Section LogRelProps.
 
@@ -475,6 +474,7 @@ Section LogRelProps.
 
 
 
+  (* Unfinished work: reflexivity of [val_rel], kept commented out.
   Lemma val_rel_refl (k : nat) PG v:
     val_rel Σ PG k v v.
   Proof.
@@ -496,11 +496,13 @@ Section LogRelProps.
       repeat econstructor; simple; try easy.
       admit.
   Abort. 
+  *)
 
   Variable Post : PostT.
   Variable PostG : PostGT.
   Variable Hprops : Post_properties Post Post PostG.
 
+  (* Unfinished work: fundamental lemma of the relation, kept commented out.
   Lemma exp_rel_refl k e Γ Γ' : 
     Forall2 (val_rel Σ PostG k) Γ Γ' ->
     exp_rel Σ Post PostG k (e, Γ) (e, Γ').
@@ -576,7 +578,7 @@ Section LogRelProps.
       + constructor.
       + admit.
       + repeat intro.
-  Admitted.
+  Abort.
+  *)
 
 End LogRelProps.
- *)
