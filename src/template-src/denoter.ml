@@ -99,8 +99,7 @@ struct
       | ARocq_tConst (s,u) ->
         let s = D.unquote_kn s in
         let evm, u = D.unquote_universe_instance evm u in
-        (* XXX use the Environ API when available *)
-        let cst = Global.constant_of_delta_kn s in
+        let cst = Global.constant_of_kn s in
         evm, Constr.mkConstU (cst, u)
       | ARocq_tConstruct (i,idx,u) ->
         let ind = D.unquote_inductive i in
