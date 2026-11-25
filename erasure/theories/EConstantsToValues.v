@@ -154,6 +154,14 @@ Proof.
 Qed.
 Hint Rewrite lookup_inductive_consts_to_values : consts_to_values_rw_hints.
 
+Lemma is_coind_consts_to_values ctx kn :
+  is_coind (consts_to_values_env ctx) kn = is_coind ctx kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind, lookup_minductive; simple.
+  destruct (lookup_env ctx kn) as [[? | ?]|]; reflexivity.
+Qed.
+Hint Rewrite is_coind_consts_to_values : consts_to_values_rw_hints.
+
 
 Lemma lookup_constructor_consts_to_values ctx i n :
   lookup_constructor (consts_to_values_env ctx) i n = lookup_constructor ctx i n.

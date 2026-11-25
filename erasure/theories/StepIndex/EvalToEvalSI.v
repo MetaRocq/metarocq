@@ -511,7 +511,7 @@ Proof.
       now destruct has_cstr_params. }
     rewrite ->?hCstrBlocks in *. simple.
     destruct (nth_error brs' cidx) as [br'|] eqn:heqbr; simple; last easy.
-    injection H1 as ?; subst br.
+    injection H2 as ?; subst br.
     unfold iota_red in *. simple.
     unshelve epose proof s0 (List.rev cargs' ++ Γ) _ br'.2 _ _
       as (n3 & v'3 & heq3 & heval3); simple; subst; try easy.
@@ -523,7 +523,7 @@ Proof.
         now eapply wellformed_closed, wellformed_val_wellformed.
       - intros x hIn.
         now eapply wellformed_closed, wellformed_val_wellformed. }
-    { rewrite H3. now eapply wf_u, nth_error_In. }
+    { rewrite H4. now eapply wf_u, nth_error_In. }
     exists (n1 + n2 + n3 + 1), v'3; split; first reflexivity.
     eapply eval_cofix_case; simple; try easy.
   - rewrite H in h_prop_case. discriminate.
@@ -546,7 +546,7 @@ Proof.
     simple.
     destruct (nth_error cargs' (proj_npars p + proj_arg p)) as [v0|] eqn:heqa;
       last easy.
-    injection H3 as ?; subst.
+    injection H4 as ?; subst.
     unshelve epose proof s0 Γ _ (term_of_val v0) _ _
       as (n3 & v'3 & heq3 & heval3); simple; subst; try easy.
     { assert (closed (term_of_val v0)) as closed_v0.

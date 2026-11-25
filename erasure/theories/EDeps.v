@@ -690,7 +690,7 @@ Proof.
   - apply inversion_Proj in wt as (?&?&?&?&?&?&?&?&?&?); eauto.
     destruct (proj2 Σer _ _ _ (proj1 (proj1 d))) as (? & ? & ? & ?).
     destruct d as [[[declm decli] declc] [declp hp]].
-    set (H1' := H1). destruct H1'.
+    set (H1' := H1). destruct H1' as [H2 [H3 _]].
     eapply Forall2_All2 in H2. eapply All2_nth_error_Some in H2 as [bod' [hnth' ebod']]; eauto.
     set (H1' := ebod'). destruct H1' as [Hctors [Hprojs _]].
     eapply Forall2_All2 in Hctors. eapply All2_nth_error_Some in Hctors as [ctor' [hnth'' [Hctor' Hctor'']]]; eauto.

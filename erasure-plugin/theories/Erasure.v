@@ -134,7 +134,8 @@ Program Definition optional_unsafe_transforms econf :=
     rebuild_wf_env_transform (efl := efl) false false ▷
     (* Coinductives & cofixpoints are translated to inductive types and thunked fixpoints *)
     coinductive_to_inductive_transformation efl
-      (has_app := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl) (has_cstrblocks := eq_refl)
+      (has_app := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl)
+      (has_cstrblocks := eq_refl) (has_lazy := eq_refl) (has_fix := eq_refl)
       ▷
     (* (Co)Inductive types with one constructor with one index are unboxed. While this pass is verified, it relies on the absence of cofixpoints guaranteed by the previous, unverified, transformation *)
     ETransform.optional_self_transform (passes.(unboxing))

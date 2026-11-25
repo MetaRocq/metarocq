@@ -284,7 +284,8 @@ Definition erases_mutual_inductive_body (mib : mutual_inductive_body) (mib' : E.
   let bds := mib.(ind_bodies) in
   let arities := arities_context bds in
   Forall2 erases_one_inductive_body bds (mib'.(E.ind_bodies)) /\
-  mib.(ind_npars) = mib'.(E.ind_npars).
+  mib.(ind_npars) = mib'.(E.ind_npars) /\
+  mib.(ind_finite) = mib'.(E.ind_finite).
 
 Inductive erases_global_decls (univs : ContextSet.t) retro : global_declarations -> E.global_declarations -> Prop :=
 | erases_global_nil : erases_global_decls univs retro [] []

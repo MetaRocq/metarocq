@@ -451,6 +451,14 @@ Section reorder_proofs.
     case: eqb_spec => [->|hneq] //=.
   Qed.
 
+  Lemma is_coind_reorder kn :
+    is_coind (reorder_env m Σ) kn = is_coind Σ kn.
+  Proof.
+    rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+    rewrite lookup_env_reorder.
+    destruct lookup_env as [[]|] => //=.
+  Qed.
+
   Lemma lookup_constant_reorder c : option_map (reorder_constant_decl m) (lookup_constant Σ c) = lookup_constant (reorder_env m Σ) c.
   Proof.
     rewrite /lookup_constant lookup_env_reorder.
@@ -1244,6 +1252,7 @@ Proof.
     rewrite !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
+    now rewrite is_coind_reorder.
     exact IHev2.
     exact IHev3.
 
@@ -1261,6 +1270,7 @@ Proof.
     rewrite optimize_mkApps /= in IHev1.
     eapply eval_cofix_proj. eauto.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
+    now rewrite is_coind_reorder.
     rewrite optimize_mkApps in IHev2. exact IHev2.
     exact IHev3.
 

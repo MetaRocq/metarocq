@@ -973,6 +973,15 @@ Proof.
 Qed.
 Hint Rewrite inline_constr_isprop_pars_decl : inlining_rw_hints.
 
+Lemma inline_is_coind
+  (efl : EEnvFlags) inlining ctx kn :
+  is_coind (inline_env inlining ctx).1 kn = is_coind ctx kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind.
+  now simple.
+Qed.
+Hint Rewrite inline_is_coind : inlining_rw_hints.
+
 
 Lemma inline_iota
   (efl : EEnvFlags)

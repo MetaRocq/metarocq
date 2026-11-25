@@ -628,6 +628,14 @@ Proof.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
+Lemma is_coind_transform_blocks (Σ : GlobalContextMap.t) kn :
+  is_coind (transform_blocks_env Σ) kn = is_coind Σ kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+  rewrite lookup_env_transform_blocks.
+  destruct lookup_env as [ [] | ]; cbn; congruence.
+Qed.
+
 Lemma lookup_constructor_transform_blocks Σ ind c :
   lookup_constructor (transform_blocks_env Σ) ind c =
   lookup_constructor Σ ind c.
@@ -1019,13 +1027,14 @@ Proof.
     rewrite transform_blocks_mkApps //=.
     simp transform_blocks. rewrite -!transform_blocks_equation_1.
     cbn [plus].
-    intros.
+    intros H hco. intros.
     destruct H3 as [ev wf eta etad].
     destruct H6.
     move: eta; rewrite wellformed_mkApps //.
     move => /andP[] wfcof wfargs.
     destruct H8 as [ev' wf' _ _ _].
     eapply eval_cofix_case; tea.
+    2:now rewrite is_coind_transform_blocks.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     rewrite isEtaExp_mkApps_napp //= in i. move/andP: i => [] etacof etaargs. now simp_eta in etacof.
@@ -1038,6 +1047,7 @@ Proof.
     move: i10 => /=; simp_eta. rewrite isEtaExp_mkApps_napp //=. move=> /andP[] etacof etaargs.
     simp transform_blocks in e. rewrite -!transform_blocks_equation_1 in e.
     eapply eval_cofix_proj; tea.
+    2:now rewrite is_coind_transform_blocks.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     now simp_eta in etacof.

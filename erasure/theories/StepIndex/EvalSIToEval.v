@@ -20,6 +20,7 @@ Definition forces {wfl : WcbvFlags} Σ (v : value) ind c (cargs : list value)
   : Type :=
   (∀ discr pars cdecl brs br res,
     EWcbvEval.eval Σ discr (term_of_val v) ->
+    is_coind Σ (inductive_mind ind) ->
     constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
     nth_error brs c = Some br ->
     #|cargs| = pars + cdecl.(cstr_nargs) ->
@@ -28,6 +29,7 @@ Definition forces {wfl : WcbvFlags} Σ (v : value) ind c (cargs : list value)
     EWcbvEval.eval Σ (tCase (ind, pars) discr brs) res) ×
   (∀ discr p cdecl a res,
     EWcbvEval.eval Σ discr (term_of_val v) ->
+    is_coind Σ (inductive_mind ind) ->
     ind = proj_ind p ->
     c = 0 ->
     constructor_isprop_pars_decl Σ (proj_ind p) 0 =
@@ -43,10 +45,10 @@ Lemma forces_construct {wfl : WcbvFlags} Σ ind c cargs :
   forces Σ (vConstruct ind c cargs) ind c cargs.
 Proof.
   intros hblock. split.
-  - intros discr pars cdecl brs br res ev isp hnth len len' evi.
+  - intros discr pars cdecl brs br res ev hco isp hnth len len' evi.
     eapply EWcbvEval.eval_iota_block; tea.
     now rewrite length_map.
-  - intros discr p cdecl a res ev -> -> isp len hnth eva.
+  - intros discr p cdecl a res ev hco -> -> isp len hnth eva.
     eapply EWcbvEval.eval_proj_block; tea.
     now rewrite length_map.
 Qed.
@@ -80,18 +82,20 @@ Proof.
     as hbody.
   rewrite hbody in evbody.
   split.
-  - intros discr pars cdecl brs br res ev isp hnth len len' evi.
+  - intros discr pars cdecl brs br res ev hco isp hnth len len' evi.
     eapply EWcbvEval.eval_cofix_case with (bv := term_of_val v).
     + now simple.
     + unfold EGlobalEnv.cunfold_cofix; simple.
       reflexivity.
+    + exact hco.
     + now simple.
     + eapply hcase; tea.
-  - intros discr p cdecl a res ev -> -> isp len hnth eva.
+  - intros discr p cdecl a res ev hco -> -> isp len hnth eva.
     eapply EWcbvEval.eval_cofix_proj with (bv := term_of_val v).
     + now simple.
     + unfold EGlobalEnv.cunfold_cofix; simple.
       reflexivity.
+    + exact hco.
     + now simple.
     + eapply hproj; tea; reflexivity.
 Qed.

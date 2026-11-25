@@ -303,8 +303,8 @@ Fixpoint deriv_length {Σ t v} (ev : Σ e⊢ t ⇓ v) : nat :=
   | eval_construct _ _ _ _ _ _ _ _ _ _ _ ev1 _ ev2 =>
       S (deriv_length ev1 + deriv_length ev2)
   | eval_beta _ _ _ _ _ _ ev1 ev2 ev3
-  | eval_cofix_case _ _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
-  | eval_cofix_proj _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
+  | eval_cofix_case _ _ _ _ _ _ _ _ _ _ ev1 _ _ ev2 ev3
+  | eval_cofix_proj _ _ _ _ _ _ _ _ _ ev1 _ _ ev2 ev3
   | eval_fix' _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
   | eval_fix _ _ _ _ _ _ _ _ _ ev1 ev2 _ ev3 =>
       S (deriv_length ev1 + deriv_length ev2 + deriv_length ev3)

@@ -448,6 +448,14 @@ Proof.
   destruct g; simpl; auto. do 2 destruct nth_error => //.
 Qed.
 
+Lemma is_coind_strip (Σ : GlobalContextMap.t) kn :
+  is_coind (strip_env Σ) kn = is_coind Σ kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+  rewrite lookup_env_strip.
+  destruct lookup_env as [[decl|]|] => //=.
+Qed.
+
 Lemma lookup_inductive_pars_strip {efl : EEnvFlags} {Σ : GlobalContextMap.t} ind :
   wf_glob Σ ->
   forall pars, lookup_inductive_pars Σ ind = Some pars ->
@@ -1016,6 +1024,7 @@ Proof.
       move/wellformed_closed: i9; rewrite closedn_mkApps => /andP[] //. }
     { move: i11. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
       now simp isEtaExp. }
+    now rewrite is_coind_strip.
 
   - destruct p as [[ind pars] arg].
     simp_strip.
@@ -1029,6 +1038,7 @@ Proof.
       move/wellformed_closed: i8; rewrite closedn_mkApps => /andP[] //. }
     { move: i10. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
       now simp isEtaExp. }
+    now rewrite is_coind_strip.
 
   - rewrite strip_tApp //.
     rewrite strip_tApp //.

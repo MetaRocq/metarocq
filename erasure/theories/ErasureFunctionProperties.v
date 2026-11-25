@@ -291,7 +291,7 @@ Proof.
     econstructor; tea. all:eauto.
     split => //. 2:split; eauto.
     split; eauto. split; eauto.
-    rewrite -H4. symmetry; apply d.
+    destruct H4 as [H4 _]. rewrite -H4. symmetry; apply d.
 
   - constructor.
     apply inversion_Fix in wt as (?&?&?&?&?&?&?); eauto.

@@ -124,6 +124,7 @@ Section Wcbv.
       n1 n2 n3 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       force (vCoFixClos mfix idx env args) ind c cargs n2 ->
+      is_coind Σ (inductive_mind ind) ->
       constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) ->
       nth_error brs c = Some br ->
       #|cargs| = cdecl.(cstr_nargs) ->
@@ -134,6 +135,7 @@ Section Wcbv.
   | eval_cofix_proj Γ discr mfix idx env args p cdecl cargs a n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       force (vCoFixClos mfix idx env args) (proj_ind p) 0 cargs n2 ->
+      is_coind Σ (inductive_mind (proj_ind p)) ->
       constructor_isprop_pars_decl Σ (proj_ind p) 0 =
         Some (false, proj_npars p, cdecl) ->
       #|cargs| = proj_npars p + cstr_nargs cdecl ->
@@ -254,25 +256,25 @@ Section Wcbv.
       ∀ {Γ discr mfix idx env args ind c cargs cdecl brs br res n1 n2 n3}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { e2 : force (vCoFixClos mfix idx env args) ind c cargs n2 }
-        { e3 e4 e5 e6 }
+        { hco e3 e4 e5 e6 }
         { e7 : eval (List.rev cargs ++ Γ) br.2 res n3 },
         P _ _ _ _ e1 ->
         Pf _ _ _ _ _ e2 ->
         P _ _ _ _ e7 ->
         P Γ _ _ _
           (eval_cofix_case Γ discr mfix idx env args ind c cargs cdecl
-            brs br res n1 n2 n3 e1 e2 e3 e4 e5 e6 e7).
+            brs br res n1 n2 n3 e1 e2 hco e3 e4 e5 e6 e7).
     Variable f_cofix_proj :
       ∀ {Γ discr mfix idx env args p cdecl cargs a n1 n2}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { e2 : force (vCoFixClos mfix idx env args) (proj_ind p) 0 cargs
             n2 }
-        { e3 e4 e5 },
+        { hco e3 e4 e5 },
         P _ _ _ _ e1 ->
         Pf _ _ _ _ _ e2 ->
         P Γ _ _ _
           (eval_cofix_proj Γ discr mfix idx env args p cdecl cargs a
-            n1 n2 e1 e2 e3 e4 e5).
+            n1 n2 e1 e2 hco e3 e4 e5).
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -342,10 +344,10 @@ Section Wcbv.
             e2 =>
             f_cofix_app (eval_rect e1) (eval_rect e2)
         | @eval_cofix_case _ discr mfix idx env args ind c cargs cdecl
-            brs br res n1 n2 n3 e1 e2 e3 e4 e5 e6 e7 =>
+            brs br res n1 n2 n3 e1 e2 hco e3 e4 e5 e6 e7 =>
               f_cofix_case (eval_rect e1) (force_rect e2) (eval_rect e7)
         | @eval_cofix_proj _ discr mfix idx env args p cdecl cargs a
-            n1 n2 e1 e2 e3 e4 e5 =>
+            n1 n2 e1 e2 hco e3 e4 e5 =>
               f_cofix_proj (eval_rect e1) (force_rect e2)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_block Γ0 ind c mdecl idecl cdecl args args' cs e0 l a =>

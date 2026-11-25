@@ -523,3 +523,15 @@ Section onPrims.
 
 End onPrims.
 
+(** Lifting a relation on terms to primitive values: the same primitive,
+    with related arguments. *)
+Variant prim_rel {term term' : Set} (R : term -> term' -> Type) :
+  prim_val term -> prim_val term' -> Type :=
+| prim_rel_int i : prim_rel R (prim_int i) (prim_int i)
+| prim_rel_float f : prim_rel R (prim_float f) (prim_float f)
+| prim_rel_string s : prim_rel R (prim_string s) (prim_string s)
+| prim_rel_array a a' :
+  All2 R (array_value a) (array_value a') ->
+  R (array_default a) (array_default a') ->
+  prim_rel R (prim_array a) (prim_array a').
+Derive Signature for prim_rel.

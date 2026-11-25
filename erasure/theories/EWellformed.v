@@ -506,6 +506,16 @@ Proof.
   now rewrite (extends_lookup wf ex lookup).
 Qed.
 
+Lemma extends_is_coind {efl} {Σ Σ'} :
+  wf_glob Σ' -> extends Σ Σ' ->
+  forall kn, is_coind Σ kn -> is_coind Σ' kn.
+Proof.
+  intros wf ex kn.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+  destruct lookup_env eqn:lookup => //.
+  now rewrite (extends_lookup wf ex lookup).
+Qed.
+
 Lemma extends_wellformed {efl} {Σ Σ'} :
   wf_glob Σ' -> extends Σ Σ' ->
   forall t n, wellformed Σ n t -> wellformed Σ' n t.

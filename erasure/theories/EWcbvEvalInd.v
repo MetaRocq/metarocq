@@ -121,6 +121,7 @@ Section eval_mkApps_rect.
          (narg : nat) discr (fn : term) (brs : list (list BasicAst.name × term))
          (bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn)
+          -> is_coind Σ (inductive_mind ip.1)
           -> eval Σ discr (mkApps (tCoFix mfix idx) args)
           -> P discr (mkApps (tCoFix mfix idx) args)
           → eval Σ (mkApps fn args) bv
@@ -133,6 +134,7 @@ Section eval_mkApps_rect.
          (narg : nat) discr (fn : term)
          (bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn)
+          -> is_coind Σ (inductive_mind (proj_ind p))
           -> eval Σ discr (mkApps (tCoFix mfix idx) args)
           -> P discr (mkApps (tCoFix mfix idx) args)
           → eval Σ (mkApps fn args) bv

@@ -250,6 +250,7 @@ Lemma eval_preserve_mkApps_ind :
                    (bv : term)
                    (res : term),
                    cunfold_cofix mfix idx = Some (narg, fn)
+                   -> is_coind Σ (inductive_mind ip.1)
                    -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
                    → eval Σ (mkApps fn args) bv
@@ -266,6 +267,7 @@ Lemma eval_preserve_mkApps_ind :
                      (res : term),
                      has_tProj ->
                      cunfold_cofix mfix idx = Some (narg, fn)
+                     -> is_coind Σ (inductive_mind (proj_ind p))
                      -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
                      → eval Σ (mkApps fn args) bv

@@ -1014,77 +1014,77 @@ Qed.
 
 From MetaRocq.Erasure Require ECoInductiveToInductive.
 
-
+(** The flags after the translation of cofixpoints: no [tCoFix] left. *)
 Definition efl_coind_to_ind (efl : EEnvFlags) :=
-  {| has_axioms := has_axioms;
-    has_cstr_params := has_cstr_params;
-    term_switches := {|
-       has_tBox := has_tBox ;
-        has_tRel := has_tRel ;
-        has_tVar := has_tVar ;
-        has_tEvar := has_tEvar ;
-        has_tLambda := has_tLambda ;
-        has_tLetIn := has_tLetIn ;
-        has_tApp := has_tApp ;
-        has_tConst := has_tConst ;
-        has_tConstruct := has_tConstruct ;
-        has_tCase := has_tCase ;
-        has_tProj := has_tProj ;
-        has_tFix := has_tFix ;
-        has_tCoFix := false ;
-        has_tPrim := has_tPrim ;
-        has_tLazy_Force := has_tLazy_Force ;
-      |};
-    cstr_as_blocks := cstr_as_blocks;
-    |}.
+  ECoInductiveToInductive.switch_off_cofix efl.
 
+(** Coinductive values are observed up to the relation
+    [ECoInductiveToInductive.crel]: a cofixpoint or an evaluated coinductive
+    constructor is related to the thunk computed by the translation.
+    First-order values of inductive types are related to themselves only
+    ([ECoInductiveToInductive.crel_firstorder_ind_value]). *)
 Program Definition coinductive_to_inductive_transformation (efl : EEnvFlags)
   {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
-  {has_cstrblocks : cstr_as_blocks = true} :
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram_env block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
   {| name := "transforming co-inductive to lazy inductive types";
     transform p _ := ECoInductiveToInductive.trans_program p ;
     pre p := wf_eprogram_env efl p ;
     post p := wf_eprogram (efl_coind_to_ind efl) p ;
-    obseq p hp p' v v' := v' = ECoInductiveToInductive.trans p.1 v |}.
+    obseq p hp p' v v' :=
+      ∥ ECoInductiveToInductive.crel (wfl := block_wcbv_flags)
+        (GlobalContextMap.global_decls p.1) p'.1 v v' ∥ |}.
 
 Next Obligation.
-  move=> efl hasapp hasrel haspars hascstrs [Σ t] [wftp wft].
-  cbn in *. eapply ECoInductiveToInductive.trans_program_wf; eauto. split => //.
-  - apply ECoInductiveToInductive.trust_cofix.
-  - apply ECoInductiveToInductive.trust_cofix.
+  move=> efl hasapp hasrel haspars hascstrs haslazy hasfix [Σ t] [wftp wft].
+  cbn in *. eapply ECoInductiveToInductive.trans_program_wf; eauto.
+  split => //.
 Qed.
 Next Obligation.
-  red. move=> efl hasapp hasrel haspars hascstrs [Σ t] /= v [wfe1 wfe2] [ev].
-  eexists. split; [ | eauto].
-  econstructor.
-  cbn -[transform_blocks].
-  eapply ECoInductiveToInductive.trans_correct; cbn; eauto.
-  eapply wellformed_closed_env, wfe1.
-  Unshelve. all:eauto.
+  red. move=> efl hasapp hasrel haspars hascstrs haslazy hasfix [Σ t] /= v
+    [wfe1 wfe2] [ev].
+  destruct (ECoInductiveToInductive.trans_correct (wfl := block_wcbv_flags)
+    Σ eq_refl hascstrs eq_refl eq_refl hasapp wfe1 t v wfe2 ev)
+    as [v' [ev' hv]].
+  exists v'. split; now constructor.
 Qed.
 
 #[global]
 Instance coinductive_to_inductive_transformation_ext (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
-  TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
+  TransformExt.t (coinductive_to_inductive_transformation efl
+    (has_app := has_app) (has_rel := has_rel)
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks)
+    (has_lazy := has_lazy) (has_fix := has_fix))
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
-  eapply ECoInductiveToInductive.trust_cofix.
+  eapply ECoInductiveToInductive.trans_env_extends => //.
+  apply pr. apply pr'.
 Qed.
 
 #[global]
 Instance coinductive_to_inductive_transformation_ext' (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
-  TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox}
+  {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
+  TransformExt.t (coinductive_to_inductive_transformation efl
+    (has_app := has_app) (has_rel := has_rel)
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks)
+    (has_lazy := has_lazy) (has_fix := has_fix))
     extends_eprogram_env extends_eprogram.
 Proof.
-  red. intros p p' pr pr' ext. rewrite /transform /=.
-  eapply ECoInductiveToInductive.trust_cofix.
+  red. intros p p' pr pr' [ext eq]. rewrite /transform /=. split.
+  - eapply ECoInductiveToInductive.trans_env_extends => //.
+    apply pr. apply pr'.
+  - unfold ECoInductiveToInductive.trans_program => /=. rewrite -eq.
+    eapply ECoInductiveToInductive.wellformed_trans_extends; eauto.
+    apply pr. apply pr'.
 Qed.
 
 From MetaRocq.Erasure Require Import EReorderCstrs.

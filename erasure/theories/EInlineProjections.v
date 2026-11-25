@@ -435,6 +435,15 @@ Proof.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
 
+Lemma is_coind_optimize {efl : EEnvFlags} {Σ : GlobalContextMap.t} kn :
+  wf_glob Σ ->
+  is_coind Σ kn = is_coind (optimize_env Σ) kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive => wf.
+  rewrite (lookup_env_optimize kn wf).
+  destruct lookup_env as [[decl|]|] => //.
+Qed.
+
 Lemma is_propositional_cstr_optimize {efl : EEnvFlags} {Σ : GlobalContextMap.t} ind c :
   wf_glob Σ ->
   constructor_isprop_pars_decl Σ ind c = constructor_isprop_pars_decl (optimize_env Σ) ind c.
@@ -621,6 +630,7 @@ Proof.
     rewrite !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
     eapply optimize_cunfold_cofix; tea.
+    now rewrite -is_coind_optimize.
     exact IHev2. exact IHev3.
 
   - move/andP => [] /andP[] hasp hl hd.
@@ -638,6 +648,7 @@ Proof.
     rewrite optimize_mkApps in IHev2.
     eapply eval_cofix_case. eauto.
     eapply optimize_cunfold_cofix; tea.
+    now rewrite -is_coind_optimize.
     exact IHev2. exact IHev3.
 
   - move/andP => [] /andP[] _ clf cla.

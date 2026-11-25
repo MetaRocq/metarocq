@@ -78,6 +78,13 @@ Section Lookups.
     mdecl <- lookup_minductive kn ;;
     ret mdecl.(ind_finite).
 
+  (** Is [kn] a block of coinductive types? *)
+  Definition is_coind kn : bool :=
+    match lookup_inductive_kind kn with
+    | Some CoFinite => true
+    | _ => false
+    end.
+
   Definition lookup_constructor kn c : option (mutual_inductive_body * one_inductive_body * constructor_body) :=
     '(mdecl, idecl) <- lookup_inductive kn ;;
     cdecl <- nth_error idecl.(ind_ctors) c ;;

@@ -4120,6 +4120,16 @@ Proof.
   now inversion Hc.
 Qed.
 
+Lemma is_coind_trans_env_dearg_env (Σ : global_env) kn :
+  is_coind (trans_env (dearg_env Σ)) kn = is_coind (trans_env Σ) kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind, lookup_minductive; cbn.
+  rewrite !lookup_env_trans_env, lookup_env_dearg_env; cbn.
+  destruct lookup_env; cbn; auto.
+  destruct g; cbn; auto.
+  unfold dearg_mib. now destruct get_mib_masks.
+Qed.
+
 Lemma inductive_isprop_and_pars_trans_env_dearg_env :
   forall (Σ : global_env) (ind : inductive) (pars : nat),
     inductive_isprop_and_pars (trans_env Σ) ind = Some (true, pars) ->
@@ -4817,11 +4827,12 @@ Proof.
       facts.
       eapply (eval_cofix_case _ _ _ _ (map dearg args) _ narg (dearg fn) _
                 (dearg bv));
-        [|eapply dearg_cunfold_cofix;eauto| |].
+        [|eapply dearg_cunfold_cofix;eauto| | |].
       * change (tCoFix (map (map_def dearg) mfix) idx) with
           (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by auto.
         eapply IH with (ev := ev1);eauto with dearg;lia.
+      * now rewrite is_coind_trans_env_dearg_env.
       * rewrite <- dearg_expanded, <- dearg_mkApps by auto.
         eapply IH with (ev := ev2);eauto with dearg;lia.
       * clear IHev1 IHev2 IHev3.
@@ -4860,11 +4871,12 @@ Proof.
       unshelve eapply (eval_cofix_proj _ _
                          ((map (map_def (dearg_aux [])) mfix)) idx
                          (map dearg args) _ narg (dearg fn) (dearg bv)
-                         _ _ _).
+                         _ _ _ _).
       * change (tCoFix (map _ _) _) with (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by easy.
         eapply IH with (ev := ev1);now eauto with dearg.
       * now eapply dearg_cunfold_cofix.
+      * now rewrite is_coind_trans_env_dearg_env.
       * rewrite <- dearg_expanded, <- dearg_mkApps by easy.
         eapply IH with (ev := ev2);eauto with dearg;lia.
       * change (tProj _ _) with
@@ -5063,6 +5075,16 @@ Proof.
   now destruct nth_error;cbn in *;try congruence.
 Qed.
 
+Lemma is_coind_trans_env_debox_types (Σ : global_env) kn :
+  is_coind (trans_env (debox_env_types Σ)) kn = is_coind (trans_env Σ) kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind, lookup_minductive; cbn.
+  rewrite !lookup_env_trans_env, lookup_env_debox_env_types.
+  destruct lookup_env; cbn; auto.
+  destruct g; cbn; auto.
+  now destruct o as [[]|].
+Qed.
+
 Lemma lookup_constructor_debox_types :
       forall (Σ : global_env) (ind : inductive) (c : nat) m o i n l
              (e : lookup_constructor_full Σ ind c = Some (m, o, (i,n,l))),
@@ -5094,6 +5116,10 @@ Proof.
     now apply constructor_isprop_pars_decl_trans_env_debox_types.
   - eapply eval_iota_sing; eauto.
     now apply inductive_isprop_and_pars_trans_env_debox_types.
+  - eapply eval_cofix_case; eauto.
+    now rewrite is_coind_trans_env_debox_types.
+  - eapply eval_cofix_proj; eauto.
+    now rewrite is_coind_trans_env_debox_types.
   - eapply eval_delta; eauto.
     unfold declared_constant in *.
     rewrite !lookup_env_trans_env, lookup_env_debox_env_types in *.

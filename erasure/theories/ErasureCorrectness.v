@@ -945,8 +945,15 @@ Proof.
       { econstructor; eauto. }
       { econstructor; eauto. eapply declared_inductive_from_gen; eauto. }
       exists v'. split => //. split.
-      refine (EWcbvEval.eval_cofix_case _ _ _ _ _ _ _ _ _ cv' _
-        evd _ evc ev).
+      (* Pattern-matching on a coinductive type is not typable in PCUIC:
+         the unfolding rule only fires in ill-typed terms. *)
+      assert (hco : EGlobalEnv.is_coind Σ' (inductive_mind ip)).
+      { exfalso. eapply typing_cofix_coind in hcofty.
+        move: hcofty not_cofinite. rewrite /check_recursivity_kind.
+        destruct decli as [declm _]. red in declm. rewrite declm.
+        destruct (ind_finite mdecl) => //. }
+      refine (EWcbvEval.eval_cofix_case _ (ci_ind ip, ci_npar ip)
+        _ _ _ _ _ _ _ cv' _ evd _ hco evc ev).
       rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
       f_equal.
       rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //.
@@ -1063,8 +1070,17 @@ Proof.
       { econstructor; eauto. }
       { econstructor; [exact H2|..]; eauto. }
       exists v'. split => //. split.
+      (* The cofixpoint has a coinductive type, and erasure preserves the
+         kind of inductive blocks. *)
+      assert (hco : EGlobalEnv.is_coind Σ' (inductive_mind (proj_ind p))).
+      { eapply typing_cofix_coind in hcofty.
+        eapply erases_is_coind; [exact (proj1 (proj1 H3))|exact H4|].
+        move: hcofty. rewrite /check_recursivity_kind.
+        unshelve eapply declared_projection_to_gen in H2; eauto.
+        destruct H2 as [[[declm _] _] _]. red in declm. rewrite declm.
+        destruct (ind_finite mdecl) => //. }
       refine (EWcbvEval.eval_cofix_proj _ _ _ _ _ _ _ _ cv' _
-        evd _ evc ev).
+        evd _ hco evc ev).
       rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
       f_equal.
       rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //.
@@ -1117,7 +1133,7 @@ Proof.
         rewrite H14 in H11. noconf H11.
         destruct cdecl' as [cname cargs]; cbn. cbn in *.
         destruct H15 as [<- _].
-        destruct H10 as [_ <-].
+        destruct H10 as [_ [<- _]].
         move: l. rewrite /cstr_arity.
         clear -d wfΣ.
         eapply declared_constructor_from_gen in d.
@@ -1460,7 +1476,7 @@ Proof.
           unshelve eapply declared_constructor_to_gen in H, H4; eauto.
           destruct (PCUICGlobalEnv.declared_constructor_inj H H4) as [? []]. subst idecl0 mind cdecl0.
           rewrite (declared_constructor_arity H_) in H0.
-          destruct H7. rewrite -H10.
+          destruct H7 as [H7 [H10 _]]. rewrite -H10.
           destruct H8 as [? _].
           eapply Forall2_nth_error_left in H8. 2:apply H.
           destruct H8 as [[i' n'] [hnth heq]].

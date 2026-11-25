@@ -505,6 +505,16 @@ Proof.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
 
+Lemma is_coind_remove_match_on_box {efl : EEnvFlags}
+  {Σ : GlobalContextMap.t} kn :
+  wf_glob Σ ->
+  is_coind Σ kn = is_coind (remove_match_on_box_env Σ) kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive => wf.
+  rewrite (lookup_env_remove_match_on_box kn wf).
+  destruct lookup_env as [[decl|]|] => //.
+Qed.
+
 Lemma closed_iota_red pars c args brs br :
   forallb (closedn 0) args ->
   nth_error brs c = Some br ->
@@ -648,7 +658,8 @@ Proof.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp => //.
     destruct brs as [|[a b] []]; simpl in *; auto.
     all: eapply EWcbvEval.eval_cofix_case;
-      [exact IHev1| |exact IHev2|exact IHev3];
+      [exact IHev1| |now rewrite -is_coind_remove_match_on_box|
+       exact IHev2|exact IHev3];
       apply remove_match_on_box_cunfold_cofix; tea;
       eapply closed_cofix_subst; tea.
 
@@ -664,7 +675,8 @@ Proof.
     rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev3 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp; auto.
     all: eapply EWcbvEval.eval_cofix_proj;
-      [exact IHev1| |exact IHev2|exact IHev3];
+      [exact IHev1| |now rewrite -is_coind_remove_match_on_box|
+       exact IHev2|exact IHev3];
       apply remove_match_on_box_cunfold_cofix; tea;
       eapply closed_cofix_subst; tea.
 

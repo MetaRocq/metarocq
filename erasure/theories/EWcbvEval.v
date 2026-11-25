@@ -201,6 +201,7 @@ Section Wcbv.
   | eval_cofix_case ip mfix idx args discr narg fn brs bv res :
       eval discr (mkApps (tCoFix mfix idx) args) ->
       cunfold_cofix mfix idx = Some (narg, fn) ->
+      is_coind Σ (inductive_mind ip.1) ->
       eval (mkApps fn args) bv ->
       eval (tCase ip bv brs) res ->
       eval (tCase ip discr brs) res
@@ -211,6 +212,7 @@ Section Wcbv.
   | eval_cofix_proj p mfix idx args discr narg fn bv res :
       eval discr (mkApps (tCoFix mfix idx) args) ->
       cunfold_cofix mfix idx = Some (narg, fn) ->
+      is_coind Σ (inductive_mind (proj_ind p)) ->
       eval (mkApps fn args) bv ->
       eval (tProj p bv) res ->
       eval (tProj p discr) res
@@ -541,13 +543,14 @@ Section eval_rect.
                        (e : eval Σ discr (mkApps (tCoFix mfix idx) args)),
                        P discr (mkApps (tCoFix mfix idx) args) e
                        → ∀ (e0 : cunfold_cofix mfix idx = Some (narg, fn))
+                           (i : is_coind Σ (inductive_mind ip.1))
                            (e1 : eval Σ (mkApps fn args) bv),
                            P (mkApps fn args) bv e1
                            → ∀ (e2 : eval Σ (tCase ip bv brs) res),
                            P (tCase ip bv brs) res e2
                            → P (tCase ip discr brs) res
                                (eval_cofix_case Σ ip mfix idx args discr narg
-                                  fn brs bv res e e0 e1 e2))
+                                  fn brs bv res e e0 i e1 e2))
                     → (∀ (p : projection) (mfix : mfixpoint term)
                          (idx : nat) (args : list term)
                          (discr : term) (narg : nat)
@@ -555,13 +558,14 @@ Section eval_rect.
                          (e : eval Σ discr (mkApps (tCoFix mfix idx) args)),
                          P discr (mkApps (tCoFix mfix idx) args) e
                          → ∀ (e0 : cunfold_cofix mfix idx = Some (narg, fn))
+                             (i : is_coind Σ (inductive_mind (proj_ind p)))
                              (e1 : eval Σ (mkApps fn args) bv),
                              P (mkApps fn args) bv e1
                              → ∀ (e2 : eval Σ (tProj p bv) res),
                              P (tProj p bv) res e2
                              → P (tProj p discr) res
                                  (eval_cofix_proj Σ p mfix idx args discr
-                                    narg fn bv res e e0 e1 e2))
+                                    narg fn bv res e e0 i e1 e2))
                       → (∀ (f : term) (mfix : mfixpoint term)
                            (idx : nat) (argsv : list term)
                            (a av : term) (narg : nat)
@@ -1257,6 +1261,7 @@ Section Wcbv.
       assert (fn0 = fn) as -> by congruence.
       noconf IHev1'.
       assert (e0 = e) as -> by now apply uip.
+      assert (i0 = i) as -> by now apply uip.
       cbn in *; subst.
       specialize (IHev2 _ ev'2); noconf IHev2.
       now specialize (IHev3 _ ev'3); noconf IHev3.
@@ -1269,6 +1274,7 @@ Section Wcbv.
       assert (fn0 = fn) as -> by congruence.
       noconf IHev1'.
       assert (e0 = e) as -> by now apply uip.
+      assert (i0 = i) as -> by now apply uip.
       cbn in *; subst.
       specialize (IHev2 _ ev'2); noconf IHev2.
       now specialize (IHev3 _ ev'3); noconf IHev3.
@@ -1511,7 +1517,9 @@ Section WcbvEnv.
   Proof.
     intros wf ex t v ev.
     induction ev; try solve [econstructor;
-      eauto using (extends_lookup_constructor wf ex), (extends_constructor_isprop_pars_decl wf ex), (extends_is_propositional wf ex)].
+      eauto using (extends_lookup_constructor wf ex),
+      (extends_constructor_isprop_pars_decl wf ex),
+      (extends_is_propositional wf ex), (extends_is_coind wf ex)].
     - econstructor; eauto.
       red in isdecl |- *. eauto using extends_lookup.
     - econstructor; tea.

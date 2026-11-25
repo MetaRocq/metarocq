@@ -311,6 +311,7 @@ Lemma eval_preserve_mkApps_ind :
                    (res : term),
                    eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
+                   -> is_coind Σ (inductive_mind cind)
                    → forceP Σ P (mkApps (tCoFix mfix idx) args)
                        (tConstruct cind cidx cargs)
                    → constructor_isprop_pars_decl Σ cind cidx =
@@ -332,6 +333,7 @@ Lemma eval_preserve_mkApps_ind :
                    with_prop_case
                    → eval Σ discr (mkApps (tCoFix mfix idx) args)
                    → P discr (mkApps (tCoFix mfix idx) args)
+                   → is_coind Σ (inductive_mind ind)
                    → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
                    → inductive_isprop_and_pars Σ ind = Some (true, pars)
                    → brs = [(n, f3)]
@@ -346,6 +348,7 @@ Lemma eval_preserve_mkApps_ind :
                      has_tProj ->
                      eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
+                     -> is_coind Σ (inductive_mind (proj_ind p))
                      → forceP Σ P (mkApps (tCoFix mfix idx) args)
                          (tConstruct p.(proj_ind) 0 cargs)
                      → constructor_isprop_pars_decl Σ p.(proj_ind) 0 =
@@ -363,6 +366,7 @@ Lemma eval_preserve_mkApps_ind :
                      with_prop_case
                      → eval Σ discr (mkApps (tCoFix mfix idx) args)
                      → P discr (mkApps (tCoFix mfix idx) args)
+                     → is_coind Σ (inductive_mind (proj_ind p))
                      → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
                      → inductive_isprop_and_pars Σ p.(proj_ind) =
                          Some (true, p.(proj_npars))
