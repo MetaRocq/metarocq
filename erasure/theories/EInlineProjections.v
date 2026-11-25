@@ -610,26 +610,33 @@ Proof.
   - move/andP => [] hasc /andP[] /andP[] hl cd clbrs. specialize (IHev1 cd).
     eapply eval_wellformed in ev1; tea => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfcof wfargs.
-    forward IHev2.
-    rewrite hasc hl wellformed_mkApps // /= wfargs clbrs !andb_true_r.
-    eapply wellformed_cunfold_cofix; tea => //.
+    have wffn : wellformed Σ 0 (mkApps fn args).
+    { rewrite wellformed_mkApps // wfargs andb_true_r.
+      eapply wellformed_cunfold_cofix; tea => //. }
+    specialize (IHev2 wffn).
+    eapply eval_wellformed in ev2; tea => //.
+    forward IHev3. { now rewrite hasc hl ev2 clbrs. }
     rewrite !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
     eapply optimize_cunfold_cofix; tea.
-    exact IHev2.
+    exact IHev2. exact IHev3.
 
   - move/andP => [] /andP[] hasp hl hd.
-    rewrite GlobalContextMap.lookup_projection_spec in IHev2 |- *.
+    rewrite GlobalContextMap.lookup_projection_spec in IHev3 |- *.
     destruct lookup_projection as [[[[mdecl idecl] cdecl] pdecl]|] eqn:hl' => //.
     eapply eval_wellformed in ev1 => //.
     move/(wf_mkApps (has_app := has_app)): ev1 => [] wfcof wfargs.
-    forward IHev2.
-    { rewrite /= wellformed_mkApps // wfargs hasp //= andb_true_r.
-      eapply wellformed_cunfold_cofix; tea. }
+    have wffn : wellformed Σ 0 (mkApps fn args).
+    { rewrite wellformed_mkApps // wfargs andb_true_r.
+      eapply wellformed_cunfold_cofix; tea => //. }
+    specialize (IHev2 wffn).
+    eapply eval_wellformed in ev2; tea => //.
+    forward IHev3. { now rewrite hasp hl ev2. }
     rewrite optimize_mkApps /= in IHev1.
+    rewrite optimize_mkApps in IHev2.
     eapply eval_cofix_case. eauto.
     eapply optimize_cunfold_cofix; tea.
-    rewrite optimize_mkApps in IHev2 => //.
+    exact IHev2. exact IHev3.
 
   - rewrite /declared_constant in isdecl.
     move: (lookup_env_optimize c wfΣ).

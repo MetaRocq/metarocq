@@ -119,21 +119,26 @@ Section eval_mkApps_rect.
     → (∀ (ip : Kernames.inductive × nat) (mfix : mfixpoint term)
          (idx : nat) (args : list term)
          (narg : nat) discr (fn : term) (brs : list (list BasicAst.name × term))
-         (res : term),
+         (bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn)
           -> eval Σ discr (mkApps (tCoFix mfix idx) args)
           -> P discr (mkApps (tCoFix mfix idx) args)
-          → eval Σ (tCase ip (mkApps fn args) brs) res
-          → P (tCase ip (mkApps fn args) brs) res
+          → eval Σ (mkApps fn args) bv
+          → P (mkApps fn args) bv
+          → eval Σ (tCase ip bv brs) res
+          → P (tCase ip bv brs) res
           → P (tCase ip discr brs) res)
     → (∀ (p : Kernames.projection) (mfix : mfixpoint term)
          (idx : nat) (args : list term)
-         (narg : nat) discr (fn res : term),
+         (narg : nat) discr (fn : term)
+         (bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn)
           -> eval Σ discr (mkApps (tCoFix mfix idx) args)
           -> P discr (mkApps (tCoFix mfix idx) args)
-          → eval Σ (tProj p (mkApps fn args)) res
-          → P (tProj p (mkApps fn args)) res
+          → eval Σ (mkApps fn args) bv
+          → P (mkApps fn args) bv
+          → eval Σ (tProj p bv) res
+          → P (tProj p bv) res
           → P (tProj p discr) res)
     → (∀ (c : Kernames.kername) (decl : constant_body) (body : term),
           declared_constant Σ c decl

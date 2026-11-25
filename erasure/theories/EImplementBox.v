@@ -647,11 +647,11 @@ Proof.
     eapply wellformed_closed in i4.
     now cbn in i4. eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
-    cbn in i2. rtoProp. congruence.
+    rewrite wellformed_mkApps in i4. eauto.
+    cbn in i4. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    rewrite wellformed_mkApps in i2. eauto.
-    cbn in i2. rtoProp. congruence.
+    rewrite wellformed_mkApps in i4. eauto.
+    cbn in i4. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     econstructor.

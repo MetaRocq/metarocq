@@ -195,17 +195,24 @@ Section Wcbv.
     eval (tApp f a) res
 
   (** CoFix-case unfolding *)
-  | eval_cofix_case ip mfix idx args discr narg fn brs res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      on which the match is then performed. If this value is again a
+      cofixpoint the same rule applies to it, iteratively. *)
+  | eval_cofix_case ip mfix idx args discr narg fn brs bv res :
       eval discr (mkApps (tCoFix mfix idx) args) ->
       cunfold_cofix mfix idx = Some (narg, fn) ->
-      eval (tCase ip (mkApps fn args) brs) res ->
+      eval (mkApps fn args) bv ->
+      eval (tCase ip bv brs) res ->
       eval (tCase ip discr brs) res
 
   (** CoFix-proj unfolding *)
-  | eval_cofix_proj p mfix idx args discr narg fn res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      which is then projected. *)
+  | eval_cofix_proj p mfix idx args discr narg fn bv res :
       eval discr (mkApps (tCoFix mfix idx) args) ->
       cunfold_cofix mfix idx = Some (narg, fn) ->
-      eval (tProj p (mkApps fn args)) res ->
+      eval (mkApps fn args) bv ->
+      eval (tProj p bv) res ->
       eval (tProj p discr) res
 
   (** Constant unfolding *)
@@ -341,6 +348,7 @@ Section Wcbv.
 
 
 End Wcbv.
+
 
 (** Characterisation of an environment where all definition bodies satisfy some predicate *)
 Definition decl_pred (pred : term -> Type) (d : global_decl) :=
@@ -519,28 +527,31 @@ Section eval_rect.
                        (idx : nat) (args : list term)
                        (discr : term) (narg : nat)
                        (fn : term) (brs : list (list name × term))
-                       (res : term) (e : eval Σ discr
-                                           (mkApps (tCoFix mfix idx) args)),
+                       (bv res : term)
+                       (e : eval Σ discr (mkApps (tCoFix mfix idx) args)),
                        P discr (mkApps (tCoFix mfix idx) args) e
                        → ∀ (e0 : cunfold_cofix mfix idx = Some (narg, fn))
-                           (e1 : eval Σ (tCase ip (mkApps fn args) brs) res),
-                           P (tCase ip (mkApps fn args) brs) res e1
+                           (e1 : eval Σ (mkApps fn args) bv),
+                           P (mkApps fn args) bv e1
+                           → ∀ (e2 : eval Σ (tCase ip bv brs) res),
+                           P (tCase ip bv brs) res e2
                            → P (tCase ip discr brs) res
                                (eval_cofix_case Σ ip mfix idx args discr narg
-                                  fn brs res e e0 e1))
+                                  fn brs bv res e e0 e1 e2))
                     → (∀ (p : projection) (mfix : mfixpoint term)
                          (idx : nat) (args : list term)
                          (discr : term) (narg : nat)
-                         (fn res : term) (e : eval Σ discr
-                                                (mkApps
-                                                 (tCoFix mfix idx) args)),
+                         (fn bv res : term)
+                         (e : eval Σ discr (mkApps (tCoFix mfix idx) args)),
                          P discr (mkApps (tCoFix mfix idx) args) e
                          → ∀ (e0 : cunfold_cofix mfix idx = Some (narg, fn))
-                             (e1 : eval Σ (tProj p (mkApps fn args)) res),
-                             P (tProj p (mkApps fn args)) res e1
+                             (e1 : eval Σ (mkApps fn args) bv),
+                             P (mkApps fn args) bv e1
+                             → ∀ (e2 : eval Σ (tProj p bv) res),
+                             P (tProj p bv) res e2
                              → P (tProj p discr) res
                                  (eval_cofix_proj Σ p mfix idx args discr
-                                    narg fn res e e0 e1))
+                                    narg fn bv res e e0 e1 e2))
                       → (∀ (c : kername) (decl : constant_body)
                            (body : term) (isdecl :
                                           declared_constant Σ c decl)
@@ -1278,7 +1289,8 @@ Section Wcbv.
       noconf IHev1'.
       assert (e0 = e) as -> by now apply uip.
       cbn in *; subst.
-      now specialize (IHev2 _ ev'2); noconf IHev2.
+      specialize (IHev2 _ ev'2); noconf IHev2.
+      now specialize (IHev3 _ ev'3); noconf IHev3.
     - depelim ev'; try go.
       move: (IHev1 _ ev'1).
       eapply DepElim.simplification_sigma1 => heq IHev1'.
@@ -1289,7 +1301,8 @@ Section Wcbv.
       noconf IHev1'.
       assert (e0 = e) as -> by now apply uip.
       cbn in *; subst.
-      now specialize (IHev2 _ ev'2); noconf IHev2.
+      specialize (IHev2 _ ev'2); noconf IHev2.
+      now specialize (IHev3 _ ev'3); noconf IHev3.
     - depelim ev'; try go.
       unfold EGlobalEnv.declared_constant in *.
       assert (decl0 = decl) as -> by congruence.
@@ -1688,12 +1701,12 @@ Proof.
     solve_all.
   - eapply IHev3. rtoProp. split; eauto.
     eapply closed_cunfold_fix; tea. eauto.
-  - eapply IHev2. rewrite closedn_mkApps.
+  - eapply IHev3. rewrite Hc' andb_true_r. eapply IHev2. rewrite closedn_mkApps.
     rewrite closedn_mkApps in IHev1.
     specialize (IHev1 Hc). move/andP: IHev1 => [Hfix Hargs].
     repeat (apply/andP; split; auto).
     eapply closed_cunfold_cofix; tea.
-  - specialize (IHev1 Hc). eapply IHev2. rewrite closedn_mkApps in IHev1 *.
+  - specialize (IHev1 Hc). eapply IHev3. eapply IHev2. rewrite closedn_mkApps in IHev1 *.
      move/andP: IHev1 => [Hfix Hargs].
     rewrite closedn_mkApps Hargs.
     rewrite andb_true_r.
@@ -1766,14 +1779,16 @@ Proof.
     eapply wellformed_cunfold_fix; tea => //.
   - eapply IHev3 => //. rtoProp; intuition auto.
     eapply wellformed_cunfold_fix => //; tea. cbn. rewrite H H1 H2 //.
-  - eapply IHev2. rewrite wellformed_mkApps //.
+  - eapply IHev3. rewrite Hc H H0 /= andb_true_r.
+    eapply IHev2. rewrite wellformed_mkApps //.
     rewrite wellformed_mkApps // in H2.
     move/andP: H2 => [Hfix Hargs].
     repeat (apply/andP; split; auto).
     eapply wellformed_cunfold_cofix => //; tea.
-  - eapply IHev2. rewrite wellformed_mkApps // in H *.
+  - eapply IHev3. rewrite Hc Hc' /=.
+    eapply IHev2. rewrite wellformed_mkApps // in H *.
     move/andP: H => [Hfix Hargs].
-    rewrite wellformed_mkApps // Hargs andb_true_r Hc Hc' /=.
+    rewrite wellformed_mkApps // Hargs andb_true_r.
     eapply wellformed_cunfold_cofix; tea => //.
   - apply IHev.
     move/(lookup_env_wellformed clΣ): isdecl.

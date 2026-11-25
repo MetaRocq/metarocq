@@ -1055,8 +1055,14 @@ Section classification.
       { eapply red1_red. eapply red_cofix_case.
         rewrite -closed_unfold_cofix_cunfold_eq in e; eauto. }
       redt _; eauto.
-      eapply IHHe2.
-      eapply subject_reduction. 3: eapply X1. eauto.
+      assert (Hbody : Σ ;;; [] |- tCase ip p (mkApps fn args) brs : ty).
+      { eapply subject_reduction. 3: eapply X1. eauto.
+        eapply subject_reduction. 3: eapply red_case_c; eauto. all:eauto. }
+      apply inversion_Case in Hbody as Hbody'; auto; destruct_sigma Hbody'.
+      destruct c.
+      specialize (IHHe2 _ scrut_ty0).
+      etransitivity. eapply red_case_c. eapply IHHe2.
+      eapply IHHe3.
       eapply subject_reduction. 3: eapply red_case_c; eauto. all:eauto.
     - epose proof (subject_reduction Σ [] _ _ _ wfΣ Ht).
       apply inversion_Proj in Ht; auto; destruct_sigma Ht.
@@ -1069,8 +1075,13 @@ Section classification.
       { eapply red1_red. eapply red_cofix_proj.
         rewrite -closed_unfold_cofix_cunfold_eq in e; eauto. }
         redt _; eauto.
-      eapply IHHe2.
-      eapply subject_reduction. 3: eapply X1. eauto.
+      assert (Hbody : Σ ;;; [] |- tProj p (mkApps fn args) : ty).
+      { eapply subject_reduction. 3: eapply X1. eauto.
+        eapply subject_reduction. 3: eapply red_proj_c; eauto. all:eauto. }
+      apply inversion_Proj in Hbody as Hbody'; auto; destruct_sigma Hbody'.
+      specialize (IHHe2 _ t0).
+      etransitivity. eapply red_proj_c. eapply IHHe2.
+      eapply IHHe3.
       eapply subject_reduction. 3: eapply red_proj_c; eauto. all:eauto.
 
     - eapply inversion_App in Ht as (? & ? & ? & Hf & Ha & Ht); auto.

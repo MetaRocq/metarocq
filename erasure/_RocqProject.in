@@ -74,4 +74,3 @@ theories/StepIndex/Primitives.v
 theories/StepIndex/EvalStepIndex.v
 theories/StepIndex/EvalToEvalSI.v
 theories/StepIndex/EvalSIToEval.v
-theories/StepIndex/LogicalRelation.v

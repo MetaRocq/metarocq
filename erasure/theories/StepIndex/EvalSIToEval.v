@@ -13,19 +13,111 @@ From Stdlib Require Import ssreflect ssrbool.
 Set Default Proof Using "Type*".
 
 
+(** [EWcbvEval] counterpart of [force Σ v ind c cargs]: a case analysis or
+    a projection on a term evaluating to [term_of_val v] behaves as on the
+    constructor block [tConstruct ind c (map term_of_val cargs)]. *)
+Definition forces {wfl : WcbvFlags} Σ (v : value) ind c (cargs : list value)
+  : Type :=
+  (∀ discr pars cdecl brs br res,
+    EWcbvEval.eval Σ discr (term_of_val v) ->
+    constructor_isprop_pars_decl Σ ind c = Some (false, pars, cdecl) ->
+    nth_error brs c = Some br ->
+    #|cargs| = pars + cdecl.(cstr_nargs) ->
+    #|skipn pars (map term_of_val cargs)| = #|br.1| ->
+    EWcbvEval.eval Σ (iota_red pars (map term_of_val cargs) br) res ->
+    EWcbvEval.eval Σ (tCase (ind, pars) discr brs) res) ×
+  (∀ discr p cdecl a res,
+    EWcbvEval.eval Σ discr (term_of_val v) ->
+    ind = proj_ind p ->
+    c = 0 ->
+    constructor_isprop_pars_decl Σ (proj_ind p) 0 =
+      Some (false, proj_npars p, cdecl) ->
+    #|cargs| = proj_npars p + cstr_nargs cdecl ->
+    nth_error (map term_of_val cargs) (proj_npars p + proj_arg p) = Some a ->
+    EWcbvEval.eval Σ a res ->
+    EWcbvEval.eval Σ (tProj p discr) res).
+
+
+Lemma forces_construct {wfl : WcbvFlags} Σ ind c cargs :
+  with_constructor_as_block ->
+  forces Σ (vConstruct ind c cargs) ind c cargs.
+Proof.
+  intros hblock. split.
+  - intros discr pars cdecl brs br res ev isp hnth len len' evi.
+    eapply EWcbvEval.eval_iota_block; tea.
+    now rewrite length_map.
+  - intros discr p cdecl a res ev -> -> isp len hnth eva.
+    eapply EWcbvEval.eval_proj_block; tea.
+    now rewrite length_map.
+Qed.
+
+
+(** One unfolding step: this is where the rules [EWcbvEval.eval_cofix_case]
+    and [EWcbvEval.eval_cofix_proj] are used. *)
+Lemma forces_cofix {efl : EEnvFlags} {wfl : WcbvFlags} Σ mfix idx env args fn
+  v ind c cargs :
+  cstr_as_blocks ->
+  with_constructor_as_block ->
+  has_tApp ->
+  wellformed_val Σ (vCoFixClos mfix idx env args) ->
+  wellformed_val Σ v ->
+  cunfold_cofix mfix idx = Some fn ->
+  EWcbvEval.eval Σ
+    (substlg
+      (map term_of_val (List.rev args ++ cofix_env mfix env ++ env)) 0
+      (mkApps (lift0 #|args| fn) (map tRel (List.rev (seq 0 #|args|)))))
+    (term_of_val v) ->
+  forces Σ v ind c cargs ->
+  forces Σ (vCoFixClos mfix idx env args) ind c cargs.
+Proof.
+  intros hCstrBlcs hCstrBlcs' h_app hwf hwfv heq1 evbody [hcase hproj].
+  pose proof (value_term_of_val _ _ hCstrBlcs' h_app hwfv) as val_v.
+  apply value_final in val_v.
+  unfold cunfold_cofix in heq1.
+  destruct (nth_error mfix idx) as [d|] eqn:heq; last easy.
+  cbn in heq1. injection heq1 as <-.
+  pose proof (substlg_cofix_clos_body _ _ _ _ _ _ hCstrBlcs h_app hwf heq)
+    as hbody.
+  rewrite hbody in evbody.
+  split.
+  - intros discr pars cdecl brs br res ev isp hnth len len' evi.
+    eapply EWcbvEval.eval_cofix_case with (bv := term_of_val v).
+    + now simple.
+    + unfold EGlobalEnv.cunfold_cofix; simple.
+      reflexivity.
+    + now simple.
+    + eapply hcase; tea.
+  - intros discr p cdecl a res ev -> -> isp len hnth eva.
+    eapply EWcbvEval.eval_cofix_proj with (bv := term_of_val v).
+    + now simple.
+    + unfold EGlobalEnv.cunfold_cofix; simple.
+      reflexivity.
+    + now simple.
+    + eapply hproj; tea; reflexivity.
+Qed.
+
+
+(** The main statement, together with its companion for [force] (see
+    [force_SI_forces] below). *)
 Lemma eval_SI_eval {efl : EEnvFlags} {wfl : WcbvFlags} Σ Γ e v n :
   cstr_as_blocks ->
   with_constructor_as_block ->
   ~~ with_guarded_fix ->
   has_tApp ->
+  has_tRel ->
   wf_glob Σ ->
   forallb (wellformed_val Σ) Γ ->
   wellformed Σ #|Γ| e ->
   eval Σ Γ e v n ->
   EWcbvEval.eval Σ (substlg (map term_of_val Γ) 0 e) (term_of_val v).
 Proof.
-  intros hCstrBlcs hCstrBlcs' h_unguarded h_app wf_Σ wf_env wf_e heval.
-  induction heval; simple; try now econstructor.
+  intros hCstrBlcs hCstrBlcs' h_unguarded h_app h_rel wf_Σ wf_env wf_e
+    heval.
+  revert wf_env wf_e.
+  induction heval using eval_rect with
+    (Pf := fun v ind c cargs _ _ =>
+      wellformed_val Σ v -> forces Σ v ind c cargs);
+    [intros wf_env wf_e; simple; try now econstructor.. | |].
   - econstructor.
     + now apply IHheval1; simple.
     + now apply IHheval2; simple.
@@ -150,122 +242,38 @@ Proof.
       unfold isPrimApp, isConstructApp, isLazyApp.
       now rewrite head_tApp head_mkApps.
     + now apply IHheval2; simple.
-  - unfold cunfold_cofix in heq1.
-    destruct (nth_error mfix idx) eqn:heq; last easy; simple.
-    eapply EWcbvEval.eval_cofix_case.
-    + apply IHheval1; now simple.
-    + unfold EGlobalEnv.cunfold_cofix; simple.
-      reflexivity.
-    + apply eval_SI_wellformed_val in heval1 as hwf; simple; last easy.
-      unfold wf_fix, test_def in hwf; simple.
-      unshelve epose proof IHheval2 _ _; simple; try easy.
-      { repeat split; simple; try easy.
-        rewrite wellformed_mkApps; simple; split; last first.
-        { now intros; apply wellformed_val_wellformed. }
-        apply wellformed_substl; simple.
-        - rewrite cofix_env_map map_map_compose.
-          intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff| (? & ? & hIn)%in_map_iff]%in_app_iff; subst;
-            apply wellformed_val_wellformed; try easy.
-          simple; unfold wf_fix, test_def; simple; repeat split; try easy.
-          now apply Nat.ltb_lt.
-        - injection heq1 as ?; subst.
-          apply nth_error_In in heq.
-          now eapply wellformed_up. }
-      lazymatch goal with
-      | h: EWcbvEval.eval _ ?e1 (term_of_val _)
-        |- EWcbvEval.eval _ ?e2 _ =>
-          assert (e1 = e2) as <-; last easy
-      end.
-      do 2 f_equal; last first.
-      { rewrite map_map_compose.
-        apply All_map_eq. simple.
-        intros arg hIn.
-        assert (closed (term_of_val arg)) as h_closed.
-        { now eapply wellformed_closed, wellformed_val_wellformed.  }
-        now eapply substlg_closed. }
-      injection heq1 as ?; subst.
-      rewrite cofix_subst_map cofix_env_map. simple.
-      assert (#|mfix| = #|map (tCoFix (map (map_def (substlg (map term_of_val env) #|mfix|)) mfix)) (List.rev (seq 0 #|mfix|))| + 0) as h by now simple.
-      rewrite {4}h.
+  - assert (wellformed_val Σ (vCoFixClos mfix idx env args)) as hwf.
+    { now eapply eval_SI_wellformed_val; simple; try eassumption. }
+    assert (wellformed_val Σ (vConstruct ind c cargs)) as hwfc.
+    { eapply force_SI_wellformed_val; last exact e2; easy. }
+    destruct (IHheval2 hwf) as [hcase _].
+    assert (forallb (wellformed_val Σ) (List.rev cargs)).
+    { simple. intros x hIn%in_rev. now apply hwfc. }
+    assert (forallb (closedn 0) (map term_of_val (List.rev cargs))).
+    { simple. intros x hIn.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    assert (forallb (closedn 0) (map term_of_val Γ)).
+    { simple. intros x hIn.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    eapply hcase; simple; try easy.
+    + now apply IHheval1; simple.
+    + unfold iota_red; simple.
+      replace #|br.1| with (#|map term_of_val (List.rev cargs)| + 0)
+        by now simple.
       rewrite substlg_app; simple.
-      { intros ? ?%in_rev%in_seq.
-        simple. intros ? ?.
-        unfold test_def.
-        apply closed_substlg; simple; last now eapply wellformed_closed.
-        intros ? (? & ? & ?)%in_map_iff ?; subst.
-        now eapply wellformed_closed, wellformed_val_wellformed. }
-      { intros. now eapply wellformed_closed, wellformed_val_wellformed. }
-      erewrite substlg_closed; last reflexivity; last first.
-      { apply closed_substlg; simple; last first.
-        { eapply wellformed_closed. now apply nth_error_In in heq. }
-        intros x [(? & ? & (? & ? & hIn%in_rev%in_seq)%in_map_iff)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff k;
-          subst; eapply wellformed_closed, wellformed_val_wellformed; try easy.
-        simple; unfold wf_fix; simple; repeat split; try easy.
-        now apply Nat.ltb_lt. } 
-      do 2 f_equal.
-      rewrite map_map_compose.
-      apply map_ext.
-      intros; simple.
-      reflexivity.
-
-  - unfold cunfold_cofix in heq1.
-    destruct (nth_error mfix idx) eqn:heq; last easy; simple.
-    eapply EWcbvEval.eval_cofix_proj.
-    + apply IHheval1; now simple.
-    + unfold EGlobalEnv.cunfold_cofix; simple.
-      reflexivity.
-    + apply eval_SI_wellformed_val in heval1 as hwf; simple; last easy.
-      unfold wf_fix, test_def in hwf; simple.
-      unshelve epose proof IHheval2 _ _; simple; try easy.
-      { repeat split; simple; try easy.
-        rewrite wellformed_mkApps; simple; split; last first.
-        { now intros; apply wellformed_val_wellformed. }
-        apply wellformed_substl; simple.
-        - rewrite cofix_env_map map_map_compose.
-          intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff| (? & ? & hIn)%in_map_iff]%in_app_iff; subst;
-            apply wellformed_val_wellformed; try easy.
-          simple; unfold wf_fix, test_def; simple; repeat split; try easy.
-          now apply Nat.ltb_lt.
-        - injection heq1 as ?; subst.
-          apply nth_error_In in heq.
-          now eapply wellformed_up. }
-      lazymatch goal with
-      | h: EWcbvEval.eval _ ?e1 (term_of_val _)
-        |- EWcbvEval.eval _ ?e2 _ =>
-          assert (e1 = e2) as <-; last easy
-      end.
-      do 2 f_equal; last first.
-      { rewrite map_map_compose.
-        apply All_map_eq. simple.
-        intros arg hIn.
-        assert (closed (term_of_val arg)) as h_closed.
-        { now eapply wellformed_closed, wellformed_val_wellformed.  }
-        now eapply substlg_closed. }
-      injection heq1 as ?; subst.
-      rewrite cofix_subst_map. simple.
-      assert (#|mfix| = #|map (tCoFix (map (map_def (substlg (map term_of_val env) #|mfix|)) mfix)) (List.rev (seq 0 #|mfix|))| + 0) as h by now simple.
-      rewrite {3}h.
-      rewrite substlg_app; simple.
-      { intros ? ?%in_rev%in_seq.
-        simple. intros ? ?.
-        unfold test_def.
-        apply closed_substlg; simple; last now eapply wellformed_closed.
-        intros ? (? & ? & ?)%in_map_iff ?; subst.
-        now eapply wellformed_closed, wellformed_val_wellformed. }
-      { intros. now eapply wellformed_closed, wellformed_val_wellformed. }
-      erewrite substlg_closed; last reflexivity; last first.
-      { apply closed_substlg; simple; last first.
-        { eapply wellformed_closed. now apply nth_error_In in heq. }
-        rewrite cofix_env_map map_map_compose.
-        intros ? [(? & ? & hIn%in_rev%in_seq)%in_map_iff | (? & ? & hIn)%in_map_iff]%in_app_iff ?; subst;
-          eapply wellformed_closed, wellformed_val_wellformed; try easy.
-        simple; unfold wf_fix; simple; repeat split; try easy.
-        now apply Nat.ltb_lt. } 
-      do 2 f_equal.
-      rewrite cofix_env_map map_map_compose.
-      apply map_ext.
-      intros; simple.
-      reflexivity.
+      apply IHheval3; simple; try easy.
+      * now intros x [?|?]%in_app_or.
+      * rewrite e6. now eapply wf_e, nth_error_In.
+  - assert (wellformed_val Σ (vCoFixClos mfix idx env args)) as hwf.
+    { now eapply eval_SI_wellformed_val; simple; try eassumption. }
+    assert (wellformed_val Σ (vConstruct (proj_ind p) 0 cargs)) as hwfc.
+    { eapply force_SI_wellformed_val; last exact e2; easy. }
+    destruct (IHheval0 hwf) as [_ hproj].
+    eapply hproj; try eassumption; try reflexivity.
+    + simple. now apply IHheval; simple.
+    + now simple.
+    + apply value_final, value_term_of_val; try easy.
+      simple. now eapply hwfc, nth_error_In.
   - econstructor; try easy.
     apply IHheval; try easy.
     pose proof lookup_env_wellformed wf_Σ isdecl.
@@ -297,4 +305,38 @@ Proof.
     + assert (wellformed_val Σ (vLazy t' Γ')).
       { now eapply eval_SI_wellformed_val; simple. }
       apply IHheval2; now simple.
+  - intros hwf. now apply forces_construct.
+  - intros hwf.
+    pose proof (wf_cofix_clos_env _ _ _ _ _ hwf) as wf_cenv.
+    pose proof (wf_cofix_clos_body _ _ _ _ _ _ h_app h_rel hwf heq1)
+      as wf_body.
+    assert (wellformed_val Σ v) as hwfv.
+    { eapply eval_SI_wellformed_val; last exact heval; easy. }
+    eapply forces_cofix; tea; auto.
+Qed.
+
+
+(** Companion of [eval_SI_eval] for the forcing judgment. *)
+Lemma force_SI_forces {efl : EEnvFlags} {wfl : WcbvFlags} Σ v ind c cargs n :
+  cstr_as_blocks ->
+  with_constructor_as_block ->
+  ~~ with_guarded_fix ->
+  has_tApp ->
+  has_tRel ->
+  wf_glob Σ ->
+  wellformed_val Σ v ->
+  force Σ v ind c cargs n ->
+  forces Σ v ind c cargs.
+Proof.
+  intros hCstrBlcs hCstrBlcs' h_unguarded h_app h_rel wf_Σ hwf hforce.
+  revert hwf.
+  induction hforce using force_rect with (P := fun _ _ _ _ _ => True);
+    try exact I; intros hwf; first now apply forces_construct.
+  pose proof (wf_cofix_clos_env _ _ _ _ _ hwf) as wf_cenv.
+  pose proof (wf_cofix_clos_body _ _ _ _ _ _ h_app h_rel hwf heq1)
+    as wf_body.
+  assert (wellformed_val Σ v) as hwfv.
+  { eapply eval_SI_wellformed_val; last eassumption; easy. }
+  eapply forces_cofix; tea; auto.
+  eapply eval_SI_eval; tea.
 Qed.

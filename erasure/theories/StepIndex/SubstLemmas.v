@@ -428,3 +428,46 @@ Proof.
   rewrite csubst_closed //.
   now eapply closed_upwards.
 Qed.
+
+(** Substituting [Δ ++ Γ] in a term lifted over [Δ] only substitutes [Γ]. *)
+Lemma substlg_lift0 Δ Γ t :
+  forallb (closedn 0) Δ ->
+  substlg (Δ ++ Γ) 0 (lift0 #|Δ| t) = substlg Γ 0 t.
+Proof.
+  induction Δ as [|a Δ IH]; cbn.
+  - now rewrite lift0_id.
+  - move/andP => [cla clΔ].
+    rewrite closed_subst //.
+    rewrite (simpl_subst [a] t #|Δ| 0); first lia.
+    now apply IH.
+Qed.
+
+
+Lemma substlg_rels_gen (Δ0 Δ Γ : list term) :
+  forallb (closedn 0) Δ ->
+  map (fun k => substlg (Δ0 ++ Δ ++ Γ) 0 (tRel k)) (seq #|Δ0| #|Δ|) = Δ.
+Proof.
+  induction Δ as [|a Δ IH] in Δ0 |- *; cbn; first easy.
+  move/andP => [cla clΔ].
+  f_equal.
+  - apply substlg_tRel => //.
+    now rewrite nth_error_app2 // Nat.sub_diag.
+  - specialize (IH (Δ0 ++ [a]) clΔ).
+    rewrite -app_assoc length_app /= Nat.add_1_r in IH.
+    exact IH.
+Qed.
+
+
+(** Substituting the reversed list [Δ] for the variables
+    [#|Δ| - 1, ..., 0] gives back [Δ]. *)
+Lemma substlg_rels (Δ Γ : list term) :
+  forallb (closedn 0) Δ ->
+  map (substlg (List.rev Δ ++ Γ) 0) (map tRel (List.rev (seq 0 #|Δ|))) = Δ.
+Proof.
+  intros clΔ.
+  rewrite map_map_compose map_rev.
+  rewrite -(List.rev_involutive Δ) List.length_rev.
+  rewrite List.rev_involutive. f_equal.
+  apply (substlg_rels_gen [] (List.rev Δ) Γ).
+  now rewrite forallb_rev.
+Qed.

@@ -1989,17 +1989,19 @@ Proof.
     apply (is_expanded_aux_upwards 0); [|lia].
     eapply is_expanded_cunfold_fix; [eassumption|].
     now apply forallb_Forall.
-  - apply IHev2.
+  - apply IHev3.
     destruct exp_t as [H1 H2].
     specialize (IHev1 0 H1).
     apply is_expanded_aux_mkApps_inv in IHev1.
     propify;split; [|easy].
+    apply IHev2.
     apply is_expanded_aux_mkApps.
     + apply (is_expanded_aux_upwards 0); [|lia].
       eapply is_expanded_cunfold_cofix; [eassumption|].
       now apply forallb_Forall.
     + easy.
-  - apply IHev2; clear IHev2.
+  - apply IHev3; clear IHev3.
+    apply IHev2; clear IHev2.
     specialize (IHev1 _ exp_t).
     apply is_expanded_aux_mkApps_inv in IHev1 as (exp_hd & exp_args).
     apply is_expanded_aux_mkApps.
@@ -2797,6 +2799,7 @@ Proof with auto with dearg.
     apply closed_mkApps_inv in Hcofix as (? & ?).
     assert (closed fn) by (now eapply closed_cunfold_cofix).
     assert (closed (mkApps fn args)) by (now apply closed_mkApps).
+    eapply eval_closed in ev2 as ?...
     intuition auto.
     invert_facts.
     assert (valid_cases (mkApps fn args)) by
@@ -2808,6 +2811,7 @@ Proof with auto with dearg.
     apply closed_mkApps_inv in Hcofix as (? & ?).
     assert (closed fn) by (now eapply closed_cunfold_cofix).
     assert (closed (mkApps fn args)) by (now apply closed_mkApps).
+    eapply eval_closed in ev2 as ?...
     intuition auto.
     invert_facts.
     assert (valid_cases (mkApps fn args)) by
@@ -4799,33 +4803,31 @@ Proof.
       facts.
       invert_facts.
       cbn in *; propify.
-      eapply (eval_cofix_case _ _ _ _ (map dearg args) _ narg (dearg fn)); [|eapply dearg_cunfold_cofix;eauto|].
-      * assert (closed fn) by now eapply closed_cunfold_cofix.
-        assert (valid_cases fn) by now eapply valid_cases_cunfold_cofix.
-        assert (is_expanded fn).
-        { eapply is_expanded_cunfold_cofix; [eassumption|].
-          now apply forallb_Forall. }
-        change (tCoFix (map (map_def dearg) mfix) idx) with
+      assert (closed fn) by now eapply closed_cunfold_cofix.
+      assert (valid_cases fn) by now eapply valid_cases_cunfold_cofix.
+      assert (is_expanded fn).
+      { eapply is_expanded_cunfold_cofix; [eassumption|].
+        now apply forallb_Forall. }
+      assert (closed (mkApps fn args)) by (apply closed_mkApps;eauto).
+      assert (valid_cases (mkApps fn args)) by
+        now (eapply valid_cases_mkApps;eauto).
+      assert (is_expanded (mkApps fn args)) by
+        (apply is_expanded_aux_mkApps;cbn;eauto with dearg;
+         eapply is_expanded_aux_upwards;eauto;lia).
+      facts.
+      eapply (eval_cofix_case _ _ _ _ (map dearg args) _ narg (dearg fn) _
+                (dearg bv));
+        [|eapply dearg_cunfold_cofix;eauto| |].
+      * change (tCoFix (map (map_def dearg) mfix) idx) with
           (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by auto.
         eapply IH with (ev := ev1);eauto with dearg;lia.
-      * clear IHev1 IHev2.
-        assert (is_expanded fn).
-        { eapply is_expanded_cunfold_cofix; [eassumption|].
-          now apply forallb_Forall. }
-        set (dearg (tCase (ind, npars) (mkApps fn args) brs)) as b.
-        cbn in b. unfold dearg_case in b.
-        rewrite <- dearg_expanded, <- dearg_mkApps by eauto.
-        change (tCase _ (dearg (mkApps fn args)) _)
-          with (dearg (tCase (ind, npars) (mkApps fn args) brs)).
-        assert (closed (mkApps fn args)) by
-          (apply closed_mkApps;[eapply closed_cunfold_cofix;eauto|eauto]).
-        assert (valid_cases (mkApps fn args)) by
-          now (eapply valid_cases_mkApps;[eapply valid_cases_cunfold_cofix;eauto|eauto]).
-        assert (is_expanded (mkApps fn args)) by
-        (apply is_expanded_aux_mkApps;cbn;eauto with dearg;
-         eapply is_expanded_aux_upwards;eauto;lia).
-        eapply IH with (ev := ev2);cbn;propify;intuition;eauto with dearg.
+      * rewrite <- dearg_expanded, <- dearg_mkApps by auto.
+        eapply IH with (ev := ev2);eauto with dearg;lia.
+      * clear IHev1 IHev2 IHev3.
+        change (tCase _ (dearg bv) _)
+          with (dearg (tCase (ind, npars) bv brs)).
+        eapply IH with (ev := ev3);cbn;propify;intuition;eauto with dearg.
   - facts.
     apply closed_mkApps_inv in clos_t as (clos_hd & clos_args).
     apply valid_cases_mkApps_inv in valid_t as (valid_hd & valid_args).
@@ -4843,25 +4845,31 @@ Proof.
       destruct valid_hd.
       facts.
       invert_facts.
-      unshelve eapply (eval_cofix_proj _ _ ((map (map_def (dearg_aux [])) mfix)) idx (map dearg args) _ narg (dearg fn) _ _).
+      assert (closed fn) by now eapply closed_cunfold_cofix.
+      assert (valid_cases fn) by now eapply valid_cases_cunfold_cofix.
+      assert (is_expanded fn).
+      { eapply is_expanded_cunfold_cofix; [eassumption|].
+        now apply forallb_Forall. }
+      assert (closed (mkApps fn args)) by (apply closed_mkApps;eauto).
+      assert (valid_cases (mkApps fn args)) by
+        now (eapply valid_cases_mkApps;eauto).
+      assert (is_expanded (mkApps fn args)) by
+        (apply is_expanded_aux_mkApps;cbn;eauto with dearg;
+         eapply is_expanded_aux_upwards;eauto; lia).
+      facts.
+      unshelve eapply (eval_cofix_proj _ _
+                         ((map (map_def (dearg_aux [])) mfix)) idx
+                         (map dearg args) _ narg (dearg fn) (dearg bv)
+                         _ _ _).
       * change (tCoFix (map _ _) _) with (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by easy.
         eapply IH with (ev := ev1);now eauto with dearg.
       * now eapply dearg_cunfold_cofix.
-      * assert (is_expanded fn).
-        { eapply is_expanded_cunfold_cofix; [eassumption|].
-          now apply forallb_Forall. }
-        rewrite <- dearg_expanded, <- dearg_mkApps by easy.
-        change (tProj _ _) with (dearg (tProj {| proj_ind := ind; proj_npars := c; proj_arg := npars |} (mkApps fn args))).
-        assert (closed (mkApps fn args)) by
-          (apply closed_mkApps;[eapply closed_cunfold_cofix;eauto|eauto]).
-        assert (valid_cases (mkApps fn args)) by
-          now (eapply valid_cases_mkApps;[eapply valid_cases_cunfold_cofix;eauto|eauto]).
-        assert (is_expanded (mkApps fn args)) by
-        (apply is_expanded_aux_mkApps;cbn;eauto with dearg;
-         eapply is_expanded_aux_upwards;eauto; lia).
-
-        apply IH with (ev := ev2);cbn;propify;now eauto with dearg.
+      * rewrite <- dearg_expanded, <- dearg_mkApps by easy.
+        eapply IH with (ev := ev2);eauto with dearg;lia.
+      * change (tProj _ _) with
+          (dearg (tProj (mkProjection ind c npars) bv)).
+        apply IH with (ev := ev3);cbn;propify;now eauto with dearg.
     + (* Regular projection *)
       clear IHev1 IHev2.
       propify.

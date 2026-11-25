@@ -634,41 +634,40 @@ Proof.
     eapply closed_cunfold_fix; tea.
 
   - move/andP => [] cd clbrs. specialize (IHev1 cd).
-    rewrite closedn_mkApps in IHev2.
     move: (eval_closed _ clΣ _ _ cd ev1).
     rewrite closedn_mkApps.
     move/andP => [] clfix clargs.
-    forward IHev2.
-    { rewrite clargs clbrs !andb_true_r.
+    have clfn : closed (mkApps fn args).
+    { rewrite closedn_mkApps clargs andb_true_r.
       eapply closed_cunfold_cofix; tea. }
-    rewrite -> remove_match_on_box_mkApps in IHev1, IHev2. simpl. unfold isprop_ind in *.
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
+    specialize (IHev2 clfn).
+    forward IHev3.
+    { rewrite clbrs andb_true_r. eapply eval_closed; tea. }
+    rewrite -> remove_match_on_box_mkApps in IHev1, IHev2.
+    unfold isprop_ind in *.
+    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev3 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp => //.
     destruct brs as [|[a b] []]; simpl in *; auto.
-    simpl in IHev1.
-    eapply EWcbvEval.eval_cofix_case. tea.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
-    apply IHev2.
-    eapply EWcbvEval.eval_cofix_case; tea.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
-    simpl in *.
-    eapply EWcbvEval.eval_cofix_case; tea.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
-    eapply EWcbvEval.eval_cofix_case; tea.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
+    all: eapply EWcbvEval.eval_cofix_case;
+      [exact IHev1| |exact IHev2|exact IHev3];
+      apply remove_match_on_box_cunfold_cofix; tea;
+      eapply closed_cofix_subst; tea.
 
   - intros cd. specialize (IHev1 cd).
     move: (eval_closed _ clΣ _ _ cd ev1).
-    rewrite closedn_mkApps; move/andP => [] clfix clargs. forward IHev2.
-    { rewrite closedn_mkApps clargs andb_true_r. eapply closed_cunfold_cofix; tea. }
-    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev2 |- *.
+    rewrite closedn_mkApps; move/andP => [] clfix clargs.
+    have clfn : closed (mkApps fn args).
+    { rewrite closedn_mkApps clargs andb_true_r.
+      eapply closed_cunfold_cofix; tea. }
+    specialize (IHev2 clfn).
+    forward IHev3 by (eapply eval_closed; tea).
+    rewrite -> remove_match_on_box_mkApps in IHev1, IHev2.
+    rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev3 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp; auto.
-    rewrite -> remove_match_on_box_mkApps in IHev1, IHev2. simpl in *.
-    econstructor; eauto.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
-    rewrite -> remove_match_on_box_mkApps in IHev1, IHev2. simpl in *.
-    econstructor; eauto.
-    apply remove_match_on_box_cunfold_cofix; tea. eapply closed_cofix_subst; tea.
+    all: eapply EWcbvEval.eval_cofix_proj;
+      [exact IHev1| |exact IHev2|exact IHev3];
+      apply remove_match_on_box_cunfold_cofix; tea;
+      eapply closed_cofix_subst; tea.
 
   - rewrite /declared_constant in isdecl.
     move: (lookup_env_remove_match_on_box c wfΣ).

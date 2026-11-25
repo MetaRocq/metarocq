@@ -5335,16 +5335,21 @@ Proof.
 
     rewrite -closed_unfold_cofix_cunfold_eq in e => //.
     forward IHev1. eauto.
-    forward IHev2.
-    { cbn. rewrite clp clbrs closedn_mkApps /=.
+    have clbody : closed (mkApps fn args).
+    { rewrite closedn_mkApps /=.
       rewrite (closed_unfold_cofix mfix idx narg fn) // clargs //. }
-    cbn in IHev2. rewrite trans_mkApps /= in IHev1.
+    forward IHev2 by exact clbody.
+    eapply eval_closed in clbody as clcstr; eauto.
+    forward IHev3.
+    { cbn. rewrite clp clbrs clcstr //. }
+    cbn in IHev3. rewrite trans_mkApps /= in IHev1.
+    rewrite trans_mkApps /= in IHev2.
     eapply (trans_unfold_cofix xpred0) in e; tea.
     2:now eapply (@closedn_on_free_vars xpred0 0).
     eapply eval_cofix_case. 2:eauto.
     rewrite -closed_unfold_cofix_cunfold_eq; tea.
     now eapply closedn_trans in clfix.
-    rewrite trans_mkApps in IHev2 => //.
+    exact IHev2. exact IHev3.
 
   - move=> /=.
     intros cldiscr. clear wfΣ'.
@@ -5353,16 +5358,20 @@ Proof.
     rewrite closedn_mkApps => /andP[] clfix clargs.
     rewrite -closed_unfold_cofix_cunfold_eq in e => //.
     forward IHev1. eauto.
-    forward IHev2.
-    { cbn. rewrite closedn_mkApps /=.
+    have clbody : closed (mkApps fn args).
+    { rewrite closedn_mkApps /=.
       rewrite (closed_unfold_cofix mfix idx narg fn) // clargs //. }
-    cbn in IHev2. rewrite trans_mkApps /= in IHev1.
+    forward IHev2 by exact clbody.
+    eapply eval_closed in clbody as clcstr; eauto.
+    forward IHev3 by exact clcstr.
+    cbn in IHev3. rewrite trans_mkApps /= in IHev1.
+    rewrite trans_mkApps /= in IHev2.
     eapply (trans_unfold_cofix xpred0) in e; tea.
     2:now eapply (@closedn_on_free_vars xpred0 0).
     eapply eval_cofix_proj. 2: eauto.
     rewrite -closed_unfold_cofix_cunfold_eq; tea.
     now eapply closedn_trans in clfix.
-    rewrite trans_mkApps in IHev2 => //.
+    exact IHev2. exact IHev3.
 
   - move=> /= /andP[] clf cla.
     rewrite trans_mkApps map_app.

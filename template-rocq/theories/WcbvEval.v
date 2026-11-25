@@ -242,17 +242,24 @@ Section Wcbv.
 
 
   (** CoFix-case unfolding *)
-  | eval_cofix_case ip mfix idx p discr args narg fn brs res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      on which the match is then performed. If this value is again a
+      cofixpoint the same rule applies to it, iteratively. *)
+  | eval_cofix_case ip mfix idx p discr args narg fn brs bv res :
       cunfold_cofix mfix idx = Some (narg, fn) ->
       eval discr (mkApps (tCoFix mfix idx) args) ->
-      eval (tCase ip p (mkApps fn args) brs) res ->
+      eval (mkApps fn args) bv ->
+      eval (tCase ip p bv brs) res ->
       eval (tCase ip p discr brs) res
 
   (** CoFix-proj unfolding *)
-  | eval_cofix_proj p mfix idx discr args narg fn res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      which is then projected. *)
+  | eval_cofix_proj p mfix idx discr args narg fn bv res :
       cunfold_cofix mfix idx = Some (narg, fn) ->
       eval discr (mkApps (tCoFix mfix idx) args) ->
-      eval (tProj p (mkApps fn args)) res ->
+      eval (mkApps fn args) bv ->
+      eval (tProj p bv) res ->
       eval (tProj p discr) res
 
   (** Constructor congruence: we do not allow over-applications *)
@@ -351,18 +358,26 @@ Section Wcbv.
           P (mkApps f args) (mkApps (tFix mfix idx) (fixargsv ++ argsv))) ->
       (forall (ip : case_info) (mfix : mfixpoint term) (idx : nat)
         (p : predicate term) discr (args : list term)
-        (narg : nat) (fn : term) (brs : list (branch term)) (res : term),
+        (narg : nat) (fn : term) (brs : list (branch term))
+        (bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn) ->
           eval discr (mkApps (tCoFix mfix idx) args) ->
           P discr (mkApps (tCoFix mfix idx) args) ->
-          eval (tCase ip p (mkApps fn args) brs) res ->
-          P (tCase ip p (mkApps fn args) brs) res -> P (tCase ip p discr brs) res) ->
-      (forall (p : projection) (mfix : mfixpoint term) (idx : nat) discr (args : list term) (narg : nat) (fn res : term),
+          eval (mkApps fn args) bv ->
+          P (mkApps fn args) bv ->
+          eval (tCase ip p bv brs) res ->
+          P (tCase ip p bv brs) res ->
+          P (tCase ip p discr brs) res) ->
+      (forall (p : projection) (mfix : mfixpoint term) (idx : nat) discr
+        (args : list term) (narg : nat) (fn bv res : term),
           cunfold_cofix mfix idx = Some (narg, fn) ->
           eval discr (mkApps (tCoFix mfix idx) args) ->
           P discr (mkApps (tCoFix mfix idx) args) ->
-          eval (tProj p (mkApps fn args)) res ->
-          P (tProj p (mkApps fn args)) res -> P (tProj p discr) res) ->
+          eval (mkApps fn args) bv ->
+          P (mkApps fn args) bv ->
+          eval (tProj p bv) res ->
+          P (tProj p bv) res ->
+          P (tProj p discr) res) ->
 
       (forall ind c u mdecl idecl cdecl f args args',
           declared_constructor Σ (ind, c) mdecl idecl cdecl ->

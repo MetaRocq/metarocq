@@ -932,8 +932,15 @@ Proof.
       eapply eval_closed. eauto.
       2: eauto. eapply @PCUICClosedTyp.subject_closed with (Γ := []); eauto. eapply cinv. eauto.
     }
-    edestruct IHeval2 as (c & u & args0 & IH); eauto using subject_reduction.
-    exists c, u, args0. etransitivity; eauto.
+    pose proof (subject_reduction _ _ _ _ _ wf wt Hred1) as wt1.
+    eapply inversion_Case in wt1 as wt1'; eauto.
+    destruct wt1' as (? & ? & ? & ? & cinv' & ?).
+    assert (Hred2 : PCUICReduction.red Σ [] (tCase ip p (mkApps fn args) brs)
+      (tCase ip p bv brs)).
+    { eapply PCUICReduction.red_case_c. eapply wcbveval_red. 2: eauto.
+      eapply cinv'. }
+    edestruct IHeval3 as (c & u & args0 & IH); eauto using subject_reduction.
+    exists c, u, args0. etransitivity; eauto. etransitivity; eauto.
 Qed.
 
 Lemma Subsingleton_cofix v ci p brs T (Σ : global_env_ext) :

@@ -1358,16 +1358,17 @@ Proof.
       simp_eta in IHs. specialize (IHs etaf). easy.
   - move=> /andP[] hdiscr hbrs. specialize (IHeval1 hdiscr).
     move: IHeval1. rewrite isEtaExp_mkApps // /= => /andP[] hcof hargs.
-    eapply IHeval2. simp_eta. rtoProp; intuition auto.
+    eapply IHeval3. simp_eta. rtoProp; intuition auto.
+    eapply IHeval2.
     apply isEtaExp_mkApps_intro; solve_all.
     eapply (isEtaExp_cunfold_cofix _ mfix idx); tea.
-    simp_eta in hcof. solve_all. now rewrite app_nil_r in H2.
+    simp_eta in hcof. solve_all. now rewrite app_nil_r in H3.
   - move=> hdiscr. specialize (IHeval1 hdiscr).
     move: IHeval1. rewrite isEtaExp_mkApps // /= => /andP[] hcof hargs.
-    eapply IHeval2. simp_eta.
+    eapply IHeval3. simp_eta. eapply IHeval2.
     apply isEtaExp_mkApps_intro; solve_all.
     eapply (isEtaExp_cunfold_cofix _ mfix idx); tea.
-    simp_eta in hcof. solve_all. now rewrite app_nil_r in H2.
+    simp_eta in hcof. solve_all. now rewrite app_nil_r in H3.
   - move=> _. eapply IHeval. eapply isEtaExp_lookup in H; tea.
     now move: H; rewrite /isEtaExp_decl /= /isEtaExp_constant_decl H0 /=.
   - intros hd.
@@ -1848,7 +1849,14 @@ Proof.
   - simp_eta => /andP[] etad etabrs.
     forward IHeval1 by tas.
     forward IHeval2.
+    { eapply eval_etaexp in H0; tea.
+      move: H0; rewrite isEtaExp_mkApps // /= => /andP[] etafix etaargs.
+      eapply isEtaExp_mkApps_intro.
+      eapply isEtaExp_cunfold_cofix; tea. simp_eta in etafix.
+      now rewrite app_nil_r in etafix. solve_all. }
+    forward IHeval3.
     { simp_eta. rewrite etabrs andb_true_r.
+      eapply eval_etaexp in H1; tea.
       eapply eval_etaexp in H0; tea.
       move: H0; rewrite isEtaExp_mkApps // /= => /andP[] etafix etaargs.
       eapply isEtaExp_mkApps_intro.
@@ -1857,7 +1865,14 @@ Proof.
     econstructor; eauto.
   - simp_eta => etad.
     forward IHeval1 by tas.
-    forward IHeval2. { simp_eta.
+    forward IHeval2. {
+      eapply eval_etaexp in H0; tea.
+      move: H0; rewrite isEtaExp_mkApps // /= => /andP[] etafix etaargs.
+      eapply isEtaExp_mkApps_intro.
+      eapply isEtaExp_cunfold_cofix; tea. simp_eta in etafix.
+      now rewrite app_nil_r in etafix. solve_all. }
+    forward IHeval3. { simp_eta.
+      eapply eval_etaexp in H1; tea.
       eapply eval_etaexp in H0; tea.
       move: H0; rewrite isEtaExp_mkApps // /= => /andP[] etafix etaargs.
       eapply isEtaExp_mkApps_intro.

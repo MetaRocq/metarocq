@@ -695,7 +695,7 @@ Proof.
   - clear -e2. now rewrite nth_error_nil in e2.
   - clear -e2. now rewrite nth_error_nil in e2.
   - discriminate.
-  - eapply IHHe2.
+  - eapply IHHe3.
   - cbn in i. discriminate.
 Qed.
 
