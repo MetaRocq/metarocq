@@ -60,6 +60,8 @@ Section elim.
   Qed.
 End elim.
 
+Derive Signature for firstorder_evalue.
+
 Inductive firstorder_evalue_block Σ : EAst.term -> Prop :=
   | is_fo_block i n args :
     EGlobalEnv.lookup_constructor_pars_args Σ i n = Some (0, #|args|) ->

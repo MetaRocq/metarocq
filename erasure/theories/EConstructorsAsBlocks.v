@@ -1169,3 +1169,73 @@ Proof.
     rewrite (lookup_constructor_pars_args_spec wfΣ hl) andb_true_r in H1.
     apply Nat.leb_le in H1; cbn; unfold cstr_arity. lia.
 Qed.
+
+(** ** First-order values
+
+  On first-order values, the transformation turns applied constructors into
+  blocks. *)
+
+From MetaRocq.Erasure Require Import EFirstorder.
+
+Fixpoint compile_evalue_box (t : EAst.term) (acc : list EAst.term) :=
+  match t with
+  | EAst.tApp f a => compile_evalue_box f (compile_evalue_box a [] :: acc)
+  | EAst.tConstruct i n _ => EAst.tConstruct i n acc
+  | _ => EAst.tVar "error"
+  end.
+
+Lemma compile_evalue_box_mkApps {i n ui args acc} :
+  compile_evalue_box (EAst.mkApps (EAst.tConstruct i n ui) args) acc =
+  EAst.tConstruct i n (List.map (flip compile_evalue_box []) args ++ acc).
+Proof.
+  revert acc; induction args using rev_ind.
+  - now intros acc.
+  - intros acc. rewrite EAstUtils.mkApps_app /=. cbn.
+    now rewrite IHargs // map_app /= -app_assoc /=.
+Qed.
+
+Lemma lookup_constructor_pars_args_nopars {efl : EEnvFlags} Σ ind c
+  npars nargs :
+  wf_glob Σ ->
+  has_cstr_params = false ->
+  EGlobalEnv.lookup_constructor_pars_args Σ ind c = Some (npars, nargs) ->
+  npars = 0.
+Proof.
+  intros wf h.
+  rewrite /EGlobalEnv.lookup_constructor_pars_args.
+  destruct EGlobalEnv.lookup_constructor eqn:e => //=.
+  destruct p as [[m i] cb]. intros [= <- <-].
+  now eapply wellformed_lookup_constructor_pars in e.
+Qed.
+
+Lemma compile_evalue_box_firstorder {efl : EEnvFlags}
+  {Σ : EEnvMap.GlobalContextMap.t} v :
+  has_cstr_params = false ->
+  EWellformed.wf_glob Σ ->
+  firstorder_evalue Σ v ->
+  firstorder_evalue_block Σ (flip compile_evalue_box [] v).
+Proof.
+  intros hpars wf.
+  move: v; apply: firstorder_evalue_elim.
+  intros.
+  rewrite /flip (compile_evalue_box_mkApps) // ?app_nil_r.
+  pose proof (H' := H).
+  eapply lookup_constructor_pars_args_nopars in H; tea. subst npars.
+  rewrite skipn_0 in H1.
+  constructor.
+  - rewrite length_map. cbn in H2. congruence.
+  - ELiftSubst.solve_all.
+Qed.
+
+Lemma firstorder_evalue_block_transform (Σ : EEnvMap.GlobalContextMap.t) t :
+  firstorder_evalue_block Σ t <->
+  firstorder_evalue_block (transform_blocks_env Σ) t.
+Proof.
+  split.
+  - apply firstorder_evalue_block_elim; intros.
+    constructor; eauto. unfold EGlobalEnv.lookup_constructor_pars_args.
+    rewrite lookup_constructor_transform_blocks; eauto.
+  - apply firstorder_evalue_block_elim; intros.
+    constructor; eauto. unfold EGlobalEnv.lookup_constructor_pars_args in H.
+    rewrite lookup_constructor_transform_blocks in H; eauto.
+Qed.

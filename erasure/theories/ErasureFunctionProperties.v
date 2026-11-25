@@ -13,6 +13,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive
 
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICSafeReduce PCUICSafeRetyping PCUICRetypingEnvIrrelevance.
 From MetaRocq.Erasure Require Import EPrimitive EAstUtils ELiftSubst EArities Extract Prelim EDeps ErasureProperties ErasureCorrectness ErasureFunction.
+From MetaRocq.Erasure Require Export EFirstorder.
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
@@ -2078,48 +2079,6 @@ Qed.
   | is_fix mfix idx : is_abstraction (EAst.tFix mfix idx). *)
 
 
-Inductive firstorder_evalue Σ : EAst.term -> Prop :=
-  | is_fo i n args npars nargs :
-  EGlobalEnv.lookup_constructor_pars_args Σ i n = Some (npars, nargs) ->
-  Forall (firstorder_evalue Σ) (skipn npars args) ->
-  #|args| = npars + nargs ->
-  firstorder_evalue Σ (EAst.mkApps (EAst.tConstruct i n []) args).
-
-Lemma list_size_skipn {A} (l : list A) size n :
-  list_size size (skipn n l) <= list_size size l.
-Proof.
-  induction n in l |- *.
-  - rewrite skipn_0 //.
-  - destruct l. rewrite skipn_nil. now cbn.
-    rewrite skipn_S. cbn. specialize (IHn l); lia.
-Qed.
-
-Section elim.
-  Context (Σ : E.global_context).
-  Context (P : EAst.term -> Prop).
-  Context (ih : (forall i n args npars nargs,
-    EGlobalEnv.lookup_constructor_pars_args Σ i n = Some (npars, nargs) ->
-    Forall (firstorder_evalue Σ) (skipn npars args) ->
-    Forall P (skipn npars args) ->
-    #|args| = npars + nargs ->
-    P (EAst.mkApps (EAst.tConstruct i n []) args))).
-
-  Equations? firstorder_evalue_elim (t : EAst.term) (fo : firstorder_evalue Σ t) : P t by wf t (MR lt EInduction.size) :=
-  { | _, is_fo i n args npars nargs hl hf hargs => _ }.
-  Proof.
-    eapply ih; tea.
-    eapply In_Forall. intros x hin.
-    eapply PCUICWfUniverses.Forall_In in hf; tea.
-    apply firstorder_evalue_elim => //. red.
-    rewrite EInduction.size_mkApps.
-    eapply (In_size id EInduction.size) in hin.
-    unfold id in *. pose proof (list_size_skipn args EInduction.size npars).
-    change (fun x => EInduction.size x) with EInduction.size in hin. clear -hin H.
-    eapply Nat.lt_le_trans; tea. cbn. lia.
-  Qed.
-End elim.
-
-
 Lemma welltyped_mkApps_inv {cf} {Σ : global_env_ext} Γ f args :  ∥ wf Σ ∥ ->
   welltyped Σ Γ (mkApps f args) -> welltyped Σ Γ f /\ Forall (welltyped Σ Γ) args.
 Proof.
@@ -2185,20 +2144,6 @@ Proof.
     now sq.
     Unshelve. all: try exact False.
   - eapply PCUICWcbvEval.eval_to_value; eauto.
-Qed.
-
-Lemma firstorder_evalue_extends Σ Σ' t :
-  extends Σ Σ' ->
-  firstorder_evalue Σ t ->
-  firstorder_evalue Σ' t.
-Proof.
-  intros ext; move: t.
-  apply: firstorder_evalue_elim => i n args npars nargs hl hf hargs ih.
-  econstructor; tea.
-  red in ext.
-  move: hl; rewrite /lookup_constructor_pars_args /lookup_constructor /lookup_inductive /lookup_minductive.
-  move: (ext (inductive_mind i)).
-  now case: lookup_env => // a; move/(_ _ eq_refl) ->.
 Qed.
 
 Lemma In_map_All {A B C : Type} {Q : C -> Type} {P : C -> A -> Prop}

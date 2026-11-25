@@ -1480,3 +1480,35 @@ Proof.
   now eapply isEtaExp_env_expanded_global_env.
   now eapply expanded_isEtaExp, strip_expanded, isEtaExp_expanded.
 Qed.
+
+(** ** First-order values
+
+  The translation of first-order values to constructor blocks without
+  parameters. *)
+
+Fixpoint compile_evalue_box_strip (Σ : GlobalContextMap.t) (t : EAst.term)
+  (acc : list EAst.term) :=
+  match t with
+  | EAst.tApp f a =>
+    compile_evalue_box_strip Σ f (compile_evalue_box_strip Σ a [] :: acc)
+  | EAst.tConstruct i n _ =>
+    match GlobalContextMap.lookup_inductive_pars Σ
+      (Kernames.inductive_mind i) with
+    | Some npars => EAst.tConstruct i n (skipn npars acc)
+    | None => EAst.tVar "error"
+    end
+  | _ => EAst.tVar "error"
+  end.
+
+Lemma compile_evalue_box_strip_mkApps {Σ i n ui args acc npars} :
+  GlobalContextMap.lookup_inductive_pars Σ (Kernames.inductive_mind i) =
+    Some npars ->
+  compile_evalue_box_strip Σ (EAst.mkApps (EAst.tConstruct i n ui) args) acc =
+  EAst.tConstruct i n (skipn npars
+    (List.map (flip (compile_evalue_box_strip Σ) []) args ++ acc)).
+Proof.
+  revert acc; induction args using rev_ind.
+  - intros acc. cbn. intros ->. auto.
+  - intros acc hl. rewrite EAstUtils.mkApps_app /=. cbn.
+    now rewrite IHargs // map_app /= -app_assoc /=.
+Qed.
