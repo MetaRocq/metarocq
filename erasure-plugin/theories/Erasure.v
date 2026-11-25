@@ -455,7 +455,8 @@ Next Obligation.
   |- context [@erase_global ?X_type ?X ?decls ?SN ?eq] =>
   have erg := @erases_global_erase_global X_type X _ _ SN eq
   end.
-  cbn in erg. specialize (erg _ eq_refl).
+  have hcl := expanded_global_env_cofix_lambdas _ (proj1 (proj1 (proj2 p))).
+  cbn in erg. specialize (erg _ hcl eq_refl).
   cbn in p. destruct p as [[wt] ?].
   set (eg := erase_global _ _ _) in erg |- *. clearbody eg.
   have := erases_wf_inductives_mapping (Σ' := eg) (fst wt) erg i.

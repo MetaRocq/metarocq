@@ -640,6 +640,13 @@ Qed.
 Lemma isLambda_transform_blocks Σ c : isLambda c -> isLambda (transform_blocks Σ c).
 Proof. destruct c => //. Qed.
 
+Lemma isLambdas_transform_blocks Σ n c :
+  isLambdas n c -> isLambdas n (transform_blocks Σ c).
+Proof.
+  induction n in c |- * => //; destruct c => //.
+  simp transform_blocks. rewrite -transform_blocks_equation_1. exact: IHn.
+Qed.
+
 Lemma transform_wellformed {efl : EEnvFlags} {Σ : GlobalContextMap.t} n t :
   has_cstr_params = false ->
   cstr_as_blocks = false ->
@@ -675,6 +682,7 @@ Proof.
   - unfold wf_fix in *. rtoProp. solve_all.
     len. solve_all. len. destruct x.
     cbn -[transform_blocks isEtaExp] in *. rtoProp. eauto.
+  - solve_all. now eapply isLambdas_transform_blocks.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
     solve_all.
   - solve_all_k 7.

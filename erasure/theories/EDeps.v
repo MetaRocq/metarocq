@@ -725,7 +725,7 @@ Proof.
     depelim typ.
     depelim er.
     depelim all_deps.
-    destruct p as (?&?&?).
+    destruct a0 as [? ? ? ? ?].
     apply unlift_TermTyp in o.
     now constructor; eauto.
   - eapply inversion_Prim in wt as [prim_ty [decl []]]; eauto.

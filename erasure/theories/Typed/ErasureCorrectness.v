@@ -109,16 +109,23 @@ Context {normalising_in:
 Lemma erase_global_decls_deps_recursive_correct_gen decls univs retro wfΣ include ignore_deps :
   let Σ := mk_global_env univs decls retro in
   (forall k, ignore_deps k = false) ->
+  cofix_lambdas_decls decls ->
   forall include', KernameSet.Subset include' include ->
   (forall k, KernameSet.In k include' -> P.lookup_env Σ k <> None) ->
   includes_deps Σ (trans_env (erase_global_decls_deps_recursive (X_type := X_type) (X := X) decls univs retro wfΣ include ignore_deps)) include'.
 Proof.
   cbn.
-  intros no_ignores include' sub all_in.
-  induction decls as [|(kn, decl) Σ0 IH] in X_type, X, univs, decls, retro, wfΣ, all_in, include, include', sub |- *.
+  intros no_ignores hcl include' sub all_in.
+  induction decls as [|(kn, decl) Σ0 IH]
+    in X_type, X, univs, decls, retro, wfΣ, all_in, include, include', sub,
+       hcl |- *.
   { intros kn isin. cbn.
     now apply all_in in isin. }
   simpl in *.
+  unfold cofix_lambdas_decls in hcl. cbn in hcl.
+  apply andb_and in hcl as [hcld hcl].
+  specialize (fun X_type X univs retro wfΣ include include' =>
+    IH X_type X univs retro wfΣ include hcl include').
   match goal with
   | |- context[erase_global_decl _ ?wfΣarg _ ?wfdeclarg] =>
       set (wfΣext := wfΣarg) in *;
@@ -296,6 +303,7 @@ Qed.
 Lemma erase_global_decls_deps_recursive_correct decls univs retro wfΣ include ignore_deps :
   let Σ := mk_global_env univs decls retro in
   (forall k, ignore_deps k = false) ->
+  cofix_lambdas_decls decls ->
   (forall k, KernameSet.In k include -> P.lookup_env Σ k <> None) ->
   includes_deps Σ (trans_env (erase_global_decls_deps_recursive (X_type := X_type) (X := X) decls univs retro wfΣ include ignore_deps)) include.
 Proof.

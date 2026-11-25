@@ -134,6 +134,13 @@ Qed.
 
 Implicit Types (cf : checker_flags).
 
+Lemma trans_isLambdas Σ n t :
+  EtaExpand.isLambdas n t -> isLambdas n (trans Σ t).
+Proof.
+  induction n in t |- *; cbn; auto.
+  destruct t; cbn; auto; discriminate.
+Qed.
+
 Lemma expanded_weakening {cf} {Σ Σ' Γ t} :
   wf Σ' -> extends Σ Σ' -> expanded Σ Γ t -> expanded Σ' Γ t.
 Proof.
@@ -143,6 +150,7 @@ Proof.
   - econstructor; eauto. solve_all. sq. eapply All_fold_impl; tea; cbn.
     intros ? ? []; constructor; auto. now rewrite <- repeat_app.
   - eapply expanded_tFix; tea; eauto. solve_all.
+  - eapply expanded_tCoFix. solve_all.
   - eapply expanded_tConstruct_app; tea.
     eapply weakening_env_declared_constructor; tea.
 Qed.
@@ -233,6 +241,7 @@ Proof with eauto using expanded.
     + now rewrite nth_error_map H5.
     + now simpl_list.
   - wf_inv wf ?. econstructor. solve_all.
+    now eapply trans_isLambdas.
   - wf_inv wf [[[]]]. eapply forall_decls_declared_constructor in H; eauto. 2: now eapply template_to_pcuic_env.
     eapply expanded_tConstruct_app. eauto. cbn. unfold trans_local. now rewrite length_map context_assumptions_map. solve_all.
   - repeat constructor.

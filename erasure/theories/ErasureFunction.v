@@ -12,6 +12,7 @@ From MetaRocq.PCUIC Require Import PCUICAst PCUICAstUtils PCUICPrimitive
 
 From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICSafeReduce PCUICSafeRetyping PCUICRetypingEnvIrrelevance.
 From MetaRocq.Erasure Require Import EPrimitive EAstUtils ELiftSubst EArities Extract Prelim EDeps ErasureProperties ErasureCorrectness.
+From MetaRocq.PCUIC Require PCUICEtaExpand.
 
 Local Open Scope string_scope.
 Set Asymmetric Patterns.
@@ -972,6 +973,117 @@ Proof.
   intros. now rewrite (abstract_env_ext_irr _ H wfΣ).
 Qed.
 
+(** Cofixpoint bodies must start with [rarg] lambdas (see [erases_tCoFix]).
+  Typing does not ensure it: it is provided by eta-expansion, which we record
+  as a syntactic predicate on the subterms traversed by erasure. *)
+Fixpoint cofix_lambdas (t : term) : bool :=
+  match t with
+  | tEvar _ l => forallb cofix_lambdas l
+  | tLambda _ _ b => cofix_lambdas b
+  | tLetIn _ b _ b' => cofix_lambdas b && cofix_lambdas b'
+  | tApp f a => cofix_lambdas f && cofix_lambdas a
+  | tCase _ _ c brs =>
+    cofix_lambdas c && forallb (fun br => cofix_lambdas (bbody br)) brs
+  | tProj _ c => cofix_lambdas c
+  | tFix mfix _ => forallb (fun d => cofix_lambdas (dbody d)) mfix
+  | tCoFix mfix _ =>
+    forallb (fun d => isLambdas (rarg d) (dbody d) && cofix_lambdas (dbody d))
+      mfix
+  | tPrim p => PCUICPrimitive.test_prim cofix_lambdas p
+  | _ => true
+  end.
+
+Lemma cofix_lambdas_mkApps f args :
+  cofix_lambdas (mkApps f args) = cofix_lambdas f && forallb cofix_lambdas args.
+Proof.
+  induction args in f |- *; cbn; rewrite ?andb_true_r //.
+  now rewrite IHargs /= andb_assoc.
+Qed.
+
+Lemma expanded_cofix_lambdas Σ Γ t :
+  PCUICEtaExpand.expanded Σ Γ t -> cofix_lambdas t.
+Proof.
+  induction 1 using PCUICEtaExpand.expanded_ind; cbn => //.
+  all:rewrite ?cofix_lambdas_mkApps /=; rtoProp; intuition auto; solve_all.
+  depelim H0; cbn => //. rtoProp; intuition auto. solve_all.
+Qed.
+
+Definition cofix_lambdas_constant_body (cb : constant_body) : bool :=
+  option_default cofix_lambdas cb.(cst_body) true.
+
+Definition cofix_lambdas_decl (d : global_decl) : bool :=
+  match d with
+  | ConstantDecl cb => cofix_lambdas_constant_body cb
+  | InductiveDecl _ => true
+  end.
+
+Definition cofix_lambdas_decls (decls : global_declarations) : bool :=
+  forallb (fun d => cofix_lambdas_decl d.2) decls.
+
+Definition cofix_lambdas_env (Σ : global_env) : bool :=
+  cofix_lambdas_decls Σ.(declarations).
+
+Lemma expanded_cofix_lambdas_decl Σ d :
+  PCUICEtaExpand.expanded_decl Σ d -> cofix_lambdas_decl d.
+Proof.
+  destruct d as [[ty [b|] ?]|] => // [[hb]]. cbn in hb.
+  now eapply expanded_cofix_lambdas.
+Qed.
+
+Lemma expanded_global_declarations_cofix_lambdas univs retro decls :
+  PCUICEtaExpand.expanded_global_declarations univs retro decls ->
+  cofix_lambdas_decls decls.
+Proof.
+  induction 1; cbn => //.
+  apply/andP; split => //. now eapply expanded_cofix_lambdas_decl.
+Qed.
+
+Lemma expanded_global_env_cofix_lambdas Σ :
+  PCUICEtaExpand.expanded_global_env Σ -> cofix_lambdas_env Σ.
+Proof. apply expanded_global_declarations_cofix_lambdas. Qed.
+
+Lemma cofix_lambdas_decls_lookup decls kn d :
+  cofix_lambdas_decls decls ->
+  lookup_global decls kn = Some d -> cofix_lambdas_decl d.
+Proof.
+  induction decls as [|[kn' d'] decls] => //=.
+  move/andP => [hd hdecls].
+  destruct (eqb_spec kn kn'); [now intros [= <-]|]. now apply IHdecls.
+Qed.
+
+(** The erasure of a term starting with [n] lambdas might stop at a box before
+  the [n]-th one, if a suffix of the lambda prefix is erasable (this happens
+  for the erasable members of a non-erasable mutual block). We ensure that all
+  cofixpoint members start with [rarg] lambdas, even dummy ones. *)
+Fixpoint erase_lambdas (n : nat) (t : term) (t' : E.term) : E.term :=
+  match n, t with
+  | S n, tLambda na _ b =>
+    match t' with
+    | E.tLambda na' b' => E.tLambda na' (erase_lambdas n b b')
+    | _ => E.tLambda (binder_name na) (erase_lambdas n b E.tBox)
+    end
+  | _, _ => t'
+  end.
+
+Lemma erases_erase_lambdas (Σ : global_env_ext) Γ n t t' :
+  wf_ext Σ ->
+  isLambdas n t ->
+  Σ;;; Γ |- t ⇝ℇ t' ->
+  E.isLambdas n (erase_lambdas n t t') /\
+  Σ;;; Γ |- t ⇝ℇ erase_lambdas n t t'.
+Proof.
+  intros wfΣ.
+  induction n in Γ, t, t' |- *; cbn => //.
+  destruct t => //. intros hl er.
+  depelim er.
+  - destruct (IHn _ _ _ hl er). split => //. now constructor.
+  - destruct (IHn (vass na t1 :: Γ) t2 E.tBox hl).
+    { pose proof X as [T [HT _]].
+      eapply Is_type_lambda in X; tea. 2:pcuic.
+      destruct X. now constructor. }
+    split => //. now constructor.
+Qed.
+
 Section Erase.
   Context (X_type : abstract_env_impl (cf := extraction_checker_flags)).
   Context (X : X_type.π2.π1).
@@ -1085,6 +1197,9 @@ Section Erase.
     { erase_cofix Γ [] _ := [];
       erase_cofix Γ (d :: mfix) Hmfix :=
         let dbody' := erase Γ d.(dbody) _ in
+        (* We ensure that all cofixpoint members start with [rarg] lambdas,
+           even dummy ones if (a suffix of) the definition is erased. *)
+        let dbody' := erase_lambdas d.(rarg) d.(dbody) dbody' in
         let d' := {| E.dname := d.(dname).(binder_name); E.rarg := d.(rarg); E.dbody := dbody' |} in
         d' :: erase_cofix Γ mfix _ }
     .
@@ -1140,7 +1255,7 @@ Section Erase.
     - sq. now depelim Hmfix.
     - clear dbody'0. specialize_Σ H. sq. now depelim Hmfix.
     - sq. now depelim Hmfix.
-    - sq. now depelim Hmfix.
+    - clear dbody'0. specialize_Σ H. sq. now depelim Hmfix.
   Qed.
 
 End Erase.
@@ -1236,28 +1351,47 @@ Defined.
 
 Lemma erases_erase {X_type X} {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ} {Γ t}
 (wt : forall Σ : global_env_ext, abstract_env_ext_rel X Σ -> welltyped Σ Γ t) :
-forall Σ : global_env_ext, abstract_env_ext_rel X Σ -> erases Σ Γ t (erase X_type X Γ t wt).
+forall Σ : global_env_ext, abstract_env_ext_rel X Σ ->
+cofix_lambdas t -> erases Σ Γ t (erase X_type X Γ t wt).
 Proof.
-  intros. revert Γ t wt.
+  intros Σ H. revert Γ t wt.
   apply (erase_elim X_type X
-    (fun Γ t wt e => Σ;;; Γ |- t ⇝ℇ e)
-    (fun Γ l awt e => All2 (erases Σ Γ) l e)
+    (fun Γ t wt e => cofix_lambdas t -> Σ;;; Γ |- t ⇝ℇ e)
+    (fun Γ l awt e => forallb cofix_lambdas l -> All2 (erases Σ Γ) l e)
     (fun Γ p l awt e =>
+      forallb (fun br => cofix_lambdas (bbody br)) l ->
       All2 (fun (x : branch term) (x' : list name × E.term) =>
                        (Σ;;; Γ,,, inst_case_branch_context p x |-
                         bbody x ⇝ℇ x'.2) *
                        (erase_context (bcontext x) = x'.1)) l e)
-    (fun Γ l awt e => All2
+    (fun Γ l awt e =>
+     forallb (fun d => cofix_lambdas (dbody d)) l ->
+     All2
     (fun (d : def term) (d' : E.def E.term) =>
      [× binder_name (dname d) = E.dname d',
         rarg d = E.rarg d',
         isLambda (dbody d), E.isLambda (E.dbody d') &
         Σ;;; Γ |- dbody d ⇝ℇ E.dbody d']) l e)
-    (fun Γ l awt e => All2
+    (fun Γ l awt e =>
+      forallb (fun d => isLambdas (rarg d) (dbody d) &&
+        cofix_lambdas (dbody d)) l ->
+      All2
       (fun (d : def term) (d' : E.def E.term) =>
-        (binder_name (dname d) = E.dname d') *
-        (rarg d = E.rarg d'
-         × Σ;;; Γ |- dbody d ⇝ℇ E.dbody d')) l e)) ; intros.
+       [× binder_name (dname d) = E.dname d',
+          rarg d = E.rarg d',
+          isLambdas (rarg d) (dbody d),
+          E.isLambdas (E.rarg d') (E.dbody d') &
+          Σ;;; Γ |- dbody d ⇝ℇ E.dbody d']) l e)) ; intros.
+    all:match goal with [ H : is_true _ |- _ ] => rename H into hcl end;
+      cbn in hcl;
+      repeat match goal with
+      | [ H : is_true (_ && _) |- _ ] =>
+        let h := fresh "hcl" in let h' := fresh "hcl" in
+        move/andP: H => [h h']
+      end;
+      repeat match goal with
+      | [ H : is_true ?b -> _, H' : is_true ?b |- _ ] => specialize (H H')
+      end.
     all:try discriminate.
     all:try bang.
     all:try match goal with
@@ -1306,6 +1440,9 @@ Proof.
     destruct H2.
     eapply Is_type_lambda in X2; tea. 2:pcuic. destruct X2.
     now constructor.
+  - cbn. pose proof (abstract_env_ext_wf _ H) as [wf].
+    destruct (erases_erase_lambdas Σ Γ (rarg d) _ _ wf hcl H0).
+    split => //.
 Qed.
 
 Transparent wf_reduction.
@@ -1892,11 +2029,12 @@ Qed.
 (* TODO: Figure out if this (and [erases]) should use [strictly_extends_decls] or [extends] -Jason Gross *)
 Lemma erase_constant_body_correct X_type X {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ} cb
   (onc : forall Σ : global_env_ext, abstract_env_ext_rel X Σ -> ∥ on_constant_decl (lift_typing typing) Σ cb ∥) :
+  cofix_lambdas_constant_body cb ->
   forall Σ Σ', abstract_env_ext_rel X Σ ->
   wf Σ -> wf Σ' -> strictly_extends_decls Σ Σ' ->
   erases_constant_body (Σ', Σ.2) cb (fst (erase_constant_body X_type X cb onc)).
 Proof.
-  red. destruct cb as [name [bod|] univs]; simpl; eauto. intros.
+  red. destruct cb as [name [bod|] univs]; simpl; eauto. intros hcl. intros.
   set (ecbo := erase_constant_body_obligation_1 X_type X _ _ _ _). clearbody ecbo.
   cbn in *. specialize_Σ H. sq. apply unlift_TermTyp in onc.
   eapply (erases_weakening_env (Σ := Σ) (Σ' := (Σ', univs))); simpl; eauto.
@@ -1906,12 +2044,14 @@ Qed.
 Lemma erase_constant_body_correct' {X_type X} {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ} {cb}
   {onc : forall Σ : global_env_ext, abstract_env_ext_rel X Σ -> ∥ on_constant_decl (lift_typing typing) Σ cb ∥}
   {body} :
+  cofix_lambdas_constant_body cb ->
   EAst.cst_body (fst (erase_constant_body X_type X cb onc)) = Some body ->
   forall Σ : global_env_ext, abstract_env_ext_rel X Σ ->
   ∥ ∑ t T, (Σ ;;; [] |- t : T) * (Σ ;;; [] |- t ⇝ℇ body) *
     (term_global_deps body = snd (erase_constant_body X_type X cb onc)) ∥.
 Proof.
-  intros. destruct cb as [name [bod|] univs]; simpl; [| now simpl in H].
+  intros hcl. intros.
+  destruct cb as [name [bod|] univs]; simpl; [| now simpl in H].
   simpl in H. noconf H.
   set (obl :=(erase_constant_body_obligation_1 X_type X
   {|

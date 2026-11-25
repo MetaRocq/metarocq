@@ -3589,6 +3589,12 @@ Section dearg.
       + intros hnth. eapply IHl; eauto.
   Qed.
 
+  Lemma isLambdas_dearg m t : isLambdas m t -> isLambdas m (dearg_aux [] t).
+  Proof.
+    induction m in t |- *; cbn; auto.
+    destruct t => //=. apply IHm.
+  Qed.
+
   Lemma wellformed_dearg_aux (efl := all_env_flags) k args t :
     valid_cases t ->
     wellformed (trans_env Σ) k t ->
@@ -3716,7 +3722,8 @@ Section dearg.
       rewrite length_map.
       rtoProp; intuition eauto. unfold test_def in *; solve_all.
     - rewrite wellformed_mkApps; cbn; rtoProp; intuition eauto; solve_all.
-      revert clos_t. unfold wf_fix.
+      now apply isLambdas_dearg.
+      revert H0. unfold wf_fix.
       rewrite length_map.
       rtoProp; intuition eauto. unfold test_def in *; solve_all.
     - rewrite wellformed_mkApps; cbn; rtoProp; intuition solve_all. solve_all_k 7.

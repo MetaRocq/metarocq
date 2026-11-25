@@ -736,6 +736,9 @@ From MetaRocq.Erasure Require Import EEtaExpanded.
 
 Lemma isLambda_remove_match_on_box Σ t : isLambda t -> isLambda (remove_match_on_box Σ t).
 Proof. destruct t => //. Qed.
+Lemma isLambdas_remove_match_on_box Σ n t :
+  isLambdas n t -> isLambdas n (remove_match_on_box Σ t).
+Proof. induction n in t |- *; destruct t => //=. apply IHn. Qed.
 Lemma isBox_remove_match_on_box Σ t : isBox t -> isBox (remove_match_on_box Σ t).
 Proof. destruct t => //. Qed.
 
@@ -825,6 +828,7 @@ Proof.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
     clear -a0. move: a0. destruct (dbody x), has_tLazy_Force => //.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
+    now apply isLambdas_remove_match_on_box.
   - cbn. rtoProp; intuition auto; solve_all_k 6.
 Qed.
 

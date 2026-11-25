@@ -96,7 +96,10 @@ Inductive expanded (Γ : list nat) : term -> Prop :=
   nth_error mfix idx = Some d ->
   #|args| > d.(rarg) ->
   expanded Γ (mkApps (tFix mfix idx) args)
-| expanded_tCoFix (mfix : mfixpoint term) (idx : nat) :   Forall (fun d => expanded (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix -> expanded Γ (tCoFix mfix idx)
+| expanded_tCoFix (mfix : mfixpoint term) (idx : nat) :
+  Forall (fun d => isLambdas d.(rarg) d.(dbody) /\
+    expanded (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix ->
+  expanded Γ (tCoFix mfix idx)
 | expanded_tConstruct_app ind c u mind idecl cdecl args :
     declared_constructor Σ (ind, c) mind idecl cdecl ->
     #|args| >= (ind_npars mind + context_assumptions (cstr_args cdecl)) ->
@@ -165,7 +168,8 @@ Lemma expanded_ind :
   nth_error mfix idx = Some d ->
   #|args| > rarg d -> P Γ (mkApps (tFix mfix idx) args)) ->
   (forall (Γ : list nat) (mfix : mfixpoint term) (idx : nat),
-  Forall (fun d : def term => expanded Σ (repeat 0 #|mfix| ++ Γ) (dbody d))
+  Forall (fun d : def term => isLambdas d.(rarg) d.(dbody) /\
+    expanded Σ (repeat 0 #|mfix| ++ Γ) (dbody d))
     mfix ->  Forall (fun d : def term => P (repeat 0 #|mfix| ++ Γ) (dbody d))
     mfix  -> P Γ (tCoFix mfix idx)) ->
   (forall (Γ : list nat) (ind : inductive) (c : nat)
@@ -198,7 +202,8 @@ Proof.
     generalize mfix at 1 3. intros mfix0 H. induction H; econstructor; cbn in *; intuition eauto; split.
   - eapply HCoFix; eauto.
     revert H. clear - f.
-    generalize mfix at 1 3. intros mfix0 H.  induction H; econstructor; cbn in *; eauto; split.
+    generalize mfix at 1 3. intros mfix0 H.
+    induction H; econstructor; cbn in *; intuition eauto.
   - eapply HConstruct; eauto.
     clear - H1 f. induction H1; econstructor; eauto.
   - eapply HPrim; eauto. now eapply (map_onPrim _ _ (f Γ)).
@@ -310,7 +315,7 @@ Proof.
     + rewrite nth_error_map /= H4 //.
     + len.
   - cbn. constructor.
-    solve_all.
+    solve_all. now eapply isLambdas_lift.
     specialize (a (repeat 0 #|mfix| ++ Γ') n' (#|mfix| + k) Hn).
     forward a. { len. }
     forward a. { rewrite app_assoc //. }
@@ -378,7 +383,7 @@ Proof.
     + rewrite nth_error_map /= H5 //.
     + len.
   - cbn. constructor.
-    solve_all.
+    solve_all. now eapply isLambdas_subst.
     specialize (a0 (repeat 0 #|mfix| ++ Γ') (#|mfix| + k)).
     forward a0 by len.
     forward a0. { rewrite app_assoc //. }
@@ -438,6 +443,8 @@ Lemma subst_instance_isFix t u : isFix t@[u] = isFix t.
 Proof. destruct t => //. Qed.
 Lemma subst_instance_isLambda t u : isLambda t@[u] = isLambda t.
 Proof. destruct t => //. Qed.
+Lemma subst_instance_isLambdas n t u : isLambdas n t@[u] = isLambdas n t.
+Proof. induction n in t |- * => //. destruct t => //=. Qed.
 
 Lemma expanded_subst_instance Σ Γ t u : expanded Σ Γ t -> expanded Σ Γ t@[u].
 Proof.
@@ -455,7 +462,7 @@ Proof.
     solve_all. now destruct args => //.
     rewrite nth_error_map H4 //.
     now len.
-  - econstructor; eauto. solve_all.
+  - econstructor; eauto. solve_all. rewrite subst_instance_isLambdas //.
   - eapply expanded_tConstruct_app; tea. now len. solve_all.
   - constructor. depelim H0; constructor; cbn; eauto; solve_all.
 Qed.
@@ -562,7 +569,8 @@ Qed.
 
 Lemma expanded_tCoFix_inv Σ Γ mfix idx :
  expanded Σ Γ (tCoFix mfix idx) ->
- Forall (fun d : def term => expanded Σ (repeat 0 #|mfix| ++ Γ) (dbody d)) mfix.
+ Forall (fun d : def term => isLambdas d.(rarg) d.(dbody) /\
+   expanded Σ (repeat 0 #|mfix| ++ Γ) (dbody d)) mfix.
 Proof.
   intros exp; depind exp; solve_discr => //; eauto.
 Qed.
@@ -959,6 +967,13 @@ Module Red1Apps.
     depelim red; solve_discr; eauto. depelim o.
   Qed.
 
+  Lemma isLambdas_red1 Σ Γ n b b' :
+    red1 Σ Γ b b' -> isLambdas n b -> isLambdas n b'.
+  Proof.
+    induction n in Γ, b, b' |- * => //.
+    destruct b => //= red. depelim red; solve_discr; eauto. depelim o.
+  Qed.
+
 End Red1Apps.
 
 Lemma red1_red1apps Σ Γ t v :
@@ -979,6 +994,10 @@ Proof.
     rewrite -{1}(firstn_skipn x args) -hm2. eapply Red1Apps.app_red_r => //.
     eapply OnOne2_app. now constructor.
 Qed.
+
+Lemma isLambdas_red1 Σ Γ n t u :
+  red1 Σ Γ t u -> isLambdas n t -> isLambdas n u.
+Proof. move/red1_red1apps. apply Red1Apps.isLambdas_red1. Qed.
 
 Lemma head_nApp f :
   ~~ isApp f -> head f = f.
@@ -1111,7 +1130,7 @@ Proof.
     + rewrite nth_error_map /= H4 //.
     + len.
   - cbn. constructor.
-    solve_all.
+    solve_all. now eapply isLambdas_subst.
     specialize (a0 (repeat 0 #|mfix| ++ Γ') (#|mfix| + k)%nat).
     forward a0 by len.
     forward a0. { rewrite app_assoc //. }
@@ -1150,13 +1169,14 @@ Qed.
 
 Lemma expanded_unfold_cofix Σ Γ' mfix idx narg fn :
   unfold_cofix mfix idx = Some (narg, fn) ->
-  All (fun d0 : def term => expanded Σ (repeat 0 #|mfix| ++ Γ') (dbody d0)) mfix ->
+  All (fun d0 : def term => isLambdas (rarg d0) (dbody d0) /\
+    expanded Σ (repeat 0 #|mfix| ++ Γ') (dbody d0)) mfix ->
   expanded Σ Γ' fn.
 Proof.
   unfold unfold_cofix.
   destruct nth_error eqn:e => //.
   intros [= <- <-] hf.
-  pose proof (nth_error_all e hf) as hf'.
+  pose proof (nth_error_all e hf) as [hl hf'].
   eapply (expanded_subst _ _ _ _ []) => //; tea.
   rewrite /cofix_subst.
   generalize #|mfix|.
@@ -1175,6 +1195,7 @@ Proof.
   - econstructor; eauto. solve_all. sq. eapply All_fold_impl; tea. cbn.
     intros. now rewrite repeat_app in H6.
   - eapply expanded_tFix; eauto. solve_all.
+  - eapply expanded_tCoFix; eauto. solve_all.
   - eapply expanded_tConstruct_app; eauto.
     eapply PCUICWeakeningEnv.weakening_env_declared_constructor; tea.
 Qed.
@@ -1411,21 +1432,28 @@ Proof.
   - depelim exp; solve_discr. now cbn in H.
   - depelim exp; solve_discr. now cbn in H.
   - eapply expanded_tCoFix_inv in exp. econstructor.
-    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
-    destruct X0. noconf e. now rewrite -H1.
+    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea.
+    intros x y [hl he] [? e]. noconf e.
+    split; [move: hl|move: he]; congruence.
   - eapply expanded_tCoFix_inv in exp. econstructor.
-    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea; intuition eauto.
-    destruct X0. destruct p. noconf e. eapply e0 => //.
+    rewrite -(OnOne2_length X). solve_all; eapply OnOne2_impl_All_r; tea.
+    intros x y [hl he] [[r IH] e]. noconf e. split.
+    { replace (rarg y) with (rarg x) by congruence.
+      eapply Red1Apps.isLambdas_red1; tea. }
+    eapply IH => //.
     intros n b.
     destruct nth_error eqn:e' => //.
-    cbn. intros [=]. destruct c as [? [] ?]. cbn in *. noconf H4.
-    eapply nth_error_app_inv in e' as [[]|[]].
-    { pose proof (PCUICParallelReductionConfluence.fix_context_assumption_context mfix0).
-      eapply PCUICParallelReductionConfluence.nth_error_assumption_context in H5; tea. cbn in H5. congruence. }
-    len in H3. len in H4.
+    cbn. intros [= hb]. destruct c as [? [] ?]; cbn in *; noconf hb.
+    eapply nth_error_app_inv in e' as [[hn hnth]|[hn hnth]].
+    { pose proof
+        (PCUICParallelReductionConfluence.fix_context_assumption_context
+          mfix0) as ha.
+      eapply PCUICParallelReductionConfluence.nth_error_assumption_context
+        in ha; tea. cbn in ha. congruence. }
+    len in hn. len in hnth.
     rewrite skipn_app skipn_all2; len.
-    replace (S n - #|mfix0|) with (S (n - #|mfix0|)) by lia. eapply wfΓ. rewrite H4 /= //.
-    noconf H4.
+    replace (S n - #|mfix0|) with (S (n - #|mfix0|)) by lia.
+    eapply wfΓ. rewrite hnth /= //.
   - constructor. eapply expanded_tPrim_inv in exp.
     depelim exp; eauto. constructor; cbn; eauto.
     eapply OnOne2_impl_All_r; tea; cbn; intuition eauto.

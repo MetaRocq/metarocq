@@ -140,7 +140,9 @@ Section wf.
       List.forallb (fun d => isLambda d.(dbody) ||
         (has_tLazy_Force && isLazy d.(dbody))) mfix &&
       wf_fix_gen wellformed k mfix idx
-    | tCoFix mfix idx => has_tCoFix && wf_fix_gen wellformed k mfix idx
+    | tCoFix mfix idx => has_tCoFix &&
+      List.forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix &&
+      wf_fix_gen wellformed k mfix idx
     | tBox => has_tBox
     | tConst kn => has_tConst &&
       match lookup_constant Σ kn with
@@ -264,6 +266,7 @@ Section EEnvFlags.
     - destruct cstr_as_blocks; eauto. destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all.
       destruct args; firstorder.
     - solve_all. destruct (dbody x), has_tLazy_Force => //.
+    - solve_all. now eapply isLambdas_lift.
   Qed.
 
   Lemma wellformed_subst_eq {s k k' t} :
@@ -305,8 +308,9 @@ Section EEnvFlags.
     - destruct (dbody x), has_tLazy_Force => //.
     - specialize (a (#|m| + k')).
       len. now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
+    - now eapply isLambdas_subst.
     - specialize (a (#|m| + k')); len.
-      now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b |- *.
+      now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
   Qed.
 
   Lemma wellformed_subst s k t :
@@ -358,14 +362,16 @@ Section EEnvFlags.
   Qed.
 
   Lemma wellformed_cofix_subst mfix {hasco : has_tCoFix}:
+    forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix ->
     forallb (EAst.test_def (wellformed (#|mfix| + 0))) mfix ->
     forallb (wellformed 0) (cofix_subst mfix).
   Proof using Type.
-    intros hm. unfold cofix_subst.
+    intros hl hm. unfold cofix_subst.
     generalize (Nat.le_refl #|mfix|).
     move: {1 3}#|mfix| => n.
     induction n => //.
     intros hn. cbn. rewrite hasco /=. rewrite /wf_fix_gen hm /= andb_true_r.
+    rewrite hl /=.
     apply/andP; split. apply Nat.ltb_lt. lia. apply IHn. lia.
   Qed.
 
@@ -393,7 +399,7 @@ Section EEnvFlags.
     move=> cl.
     rewrite /cunfold_cofix.
     destruct nth_error eqn:heq => //.
-    cbn in cl. move/andP: cl => [hastf /andP[] _ cl].
+    cbn in cl. move/andP: cl => [/andP[] hastf hl /andP[] _ cl].
     have := (nth_error_forallb heq cl) => cld.
     move=> [=] _ <-.
     eapply wellformed_substl => //. now eapply wellformed_cofix_subst.

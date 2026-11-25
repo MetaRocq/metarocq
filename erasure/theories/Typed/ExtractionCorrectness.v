@@ -299,6 +299,7 @@ Lemma wf_erase_global_decl :
       PCUICAst.PCUICLookup.universes_decl_of_decl g)
     w k g wt) in
     (forall kn, ignored kn = false) ->
+    cofix_lambdas_decls decls -> cofix_lambdas_decl g ->
     Σex = @Erasure.erase_global_decls_deps_recursive X_type X decls univs retros prf'
       (KernameSet.union (Erasure.decl_deps eg) seeds) ignored ->
     EWellformed.wf_glob (trans_env Σex) ->
@@ -306,7 +307,8 @@ Lemma wf_erase_global_decl :
       (trans_env Σex)
       (trans_global_decl eg) = true.
 Proof.
-  intros H X_type X k g decls univs retros prf w wt Σex prf' seeds ignored eg hign eqex wf_global.
+  intros H X_type X k g decls univs retros prf w wt Σex prf' seeds ignored eg
+    hign hcld hclg eqex wf_global.
   revert eqex. subst eg.
   unfold Erasure.erase_global_decl.
   destruct g.
@@ -320,8 +322,9 @@ Proof.
       destruct EAst.cst_body eqn:heq => //.
       set (deps := KernameSet.union _ _).
       unshelve eapply (erase_constant_body_correct'' (X_type := X_type) (decls := decls) seeds) in heq as [[t0 [T [[] ?]]]].
-      shelve. 4:exact w. intros. eapply Erasure.fake_normalization; tea.
+      shelve. 6:exact w. intros. eapply Erasure.fake_normalization; tea.
       { intros. now rewrite (prf' _ H0). }
+      2:exact hcld. 2:exact hclg.
       intros ->. cbn.
       eapply EWellformed.extends_wellformed; tea.
       set (prf'' := fun _ => _). clearbody prf''. cbn in prf''.
@@ -352,13 +355,17 @@ Lemma expanded_erase (cf := config.extraction_checker_flags)
   {X_type X} univs wfΣ t wtp ignored :
   (forall kn, ignored kn = false) ->
   forall Σ prf', abstract_env_rel X Σ -> PCUICEtaExpand.expanded Σ [] t ->
+  PCUICEtaExpand.expanded_global_env Σ ->
   let X' :=  abstract_make_wf_env_ext X univs wfΣ in
   forall normalization_in' : forall Σ, wf_ext Σ -> Σ ∼_ext X' -> PCUICSN.NormalizationIn Σ,
   let et := (@erase X_type X' normalization_in' [] t wtp) in
   let deps := EAstUtils.term_global_deps et in
   expanded (trans_env (@Erasure.erase_global_decls_deps_recursive X_type X Σ.(PEnv.declarations) Σ.(PEnv.universes) Σ.(PEnv.retroknowledge) prf' deps ignored)) [] et.
 Proof.
-  intros hign Σ heq wf hexp X' normalization_in'.
+  intros hign Σ heq wf hexp hexpΣ X' normalization_in'.
+  pose proof (expanded_cofix_lambdas _ _ _ hexp) as hclt.
+  pose proof (expanded_global_env_cofix_lambdas _ hexpΣ) as hcld.
+  unfold cofix_lambdas_env in hcld.
   pose proof (abstract_env_wf _ wf) as [wf'].
   pose proof (abstract_env_ext_exists X') as [[? wfmake]].
   pose proof (abstract_env_ext_wf _ wfmake) as [].
@@ -387,10 +394,14 @@ Lemma expanded_erase_global_decl :
     Σex = @Erasure.erase_global_decls_deps_recursive X_type X env.(PEnv.declarations) env.(PEnv.universes) env.(PEnv.retroknowledge) prf'
       (KernameSet.union (Erasure.decl_deps eg) seeds) ignored ->
     expanded_global_env (trans_env Σex) ->
+    PCUICEtaExpand.expanded_global_env env ->
     PCUICEtaExpand.expanded_decl env g ->
     expanded_decl (trans_env Σex) (trans_global_decl eg).
 Proof.
-  intros H X_type X k g [univs decls retros] prf w wt Σex prf' seeds ignored eg hign eqex wf_global; cbn in *.
+  intros H X_type X k g [univs decls retros] prf w wt Σex prf' seeds ignored eg
+    hign eqex wf_global hexpΣ.
+  pose proof (expanded_global_env_cofix_lambdas _ hexpΣ) as hcld.
+  unfold cofix_lambdas_env in hcld; cbn in *.
   revert eqex. subst eg.
   set (Σ := {| PEnv.universes := _ |}) in *.
   pose proof (abstract_env_exists X) as [[Σ' hΣ]].
@@ -409,8 +420,9 @@ Proof.
       destruct c as [ty [b|] cunivs rel]. 2:cbn in heq => //.
       intros eq []. cbn in expanded_body. move: eq.
       unshelve eapply (erase_constant_body_correct'' (X_type := X_type) (decls := decls) seeds) in heq as [[t0' [T [[] ?]]]].
-      shelve. 4:exact w. intros. eapply Erasure.fake_normalization; tea.
+      shelve. 6:exact w. intros. eapply Erasure.fake_normalization; tea.
       { intros. now rewrite (prf' _ H0). }
+      2:exact hcld. 2:{ now eapply expanded_cofix_lambdas. }
       intros ->. cbn. destruct p as [[eq ?] ?]. cbn in eq. noconf eq.
       eapply expanded_erases; tea. apply wfΣ. cbn. clear i. cbn.
       eapply (erase_global_erases_deps (Σ := (Σ, cunivs))); eauto. cbn.
@@ -440,13 +452,16 @@ Ltac invert_wf :=
 Lemma wf_erase_global_decls_recursive (H := EWellformed.all_env_flags) :
   forall X_type X decls univs retros w seeds (ignored : kername -> bool),
     (forall k, ignored k = false) ->
+    cofix_lambdas_decls decls ->
     let Σex := @Erasure.erase_global_decls_deps_recursive X_type X decls univs retros w seeds ignored in
     EWellformed.wf_glob (trans_env Σex).
 Proof.
-  intros X_type X decls univs retros w seeds ignored hign ?.
+  intros X_type X decls univs retros w seeds ignored hign hcl ?.
   subst Σex.
   revert seeds.
-  induction decls in X_type, X, w |- *;intros seeds;auto;try constructor.
+  induction decls in X_type, X, w, hcl |- *;intros seeds;auto;try constructor.
+  move/andP: hcl => [hcld hcl].
+  specialize (fun X_type X w => IHdecls X_type X w hcl).
   simpl.
   destruct a;simpl.
   destruct (KernameSet.mem _ _);cbn.
@@ -533,6 +548,7 @@ Theorem extract_correct
         (Σ : P.global_env_ext) (wfΣ : ∥wf_ext Σ∥)
         kn ui ind c ui' ignored exΣ :
   axiom_free Σ ->
+  PCUICEtaExpand.expanded_global_env Σ.1 ->
   welltyped Σ [] (P.tConst kn ui) ->
   Σ p⊢ P.tConst kn ui ⇓ P.tConstruct ind c ui' ->
   (isErasable Σ [] (P.tConstruct ind c ui') -> False) ->
@@ -542,7 +558,9 @@ Theorem extract_correct
     Σ (wf_squash wfΣ) (KernameSet.singleton kn) ignored = Ok exΣ ->
   ∥trans_env exΣ e⊢ E.tConst kn ⇓ E.tConstruct ind c []∥.
 Proof.
-  intros ax [T wt] ev not_erasable no_ignores ex.
+  intros ax hexpΣ [T wt] ev not_erasable no_ignores ex.
+  pose proof (expanded_global_env_cofix_lambdas _ hexpΣ) as hcl.
+  unfold cofix_lambdas_env in hcl.
   cbn -[dearg_transform] in *.
   destruct dearg_transform eqn:dt; cbn -[dearg_transform] in *; [|congruence].
   injection ex as ->.
@@ -646,6 +664,8 @@ Theorem extract_correct_gen
         do_trim_const_masks do_trim_ctor_masks
         :
   axiom_free Σ ->
+  PCUICEtaExpand.expanded_global_env Σ.1 ->
+  PCUICEtaExpand.expanded Σ [] t ->
   forall wt : welltyped Σ [] t,
   Σ p⊢ t ⇓ v ->
   (isErasable Σ [] t -> False) ->
@@ -663,7 +683,11 @@ Theorem extract_correct_gen
   exists v', Σ;;; [] |- v ⇝ℇ v' /\
   ∥ EWcbvEval.eval (wfl := opt_wcbv_flags) (trans_env (dearg_env masks erΣ)) (dearg_term masks t'') (dearg_term masks (EOptimizePropDiscr.remove_match_on_box gerΣ v')) ∥.
 Proof.
-  intros ax [T wt] ev not_erasable no_ignores t' deps er ger er' hmas t'' vcs isexp.
+  intros ax hexpΣ hexpt [T wt] ev not_erasable no_ignores t' deps er ger er'
+    hmas t'' vcs isexp.
+  pose proof (expanded_global_env_cofix_lambdas _ hexpΣ) as hcl.
+  pose proof (expanded_cofix_lambdas _ _ _ hexpt) as hclt.
+  unfold cofix_lambdas_env in hcl.
   cbn -[dearg_transform] in *.
   destruct wfΣ.
   unfold erase_term, make_env in t'.
@@ -671,7 +695,7 @@ Proof.
   pose proof (abstract_env_ext_exists e) as [[Σe he]].
   match goal with
   [H := context [ @erase ?X_type ?X ?nin ?Γ t ?wt ] |- _ ] =>
-   pose proof (@erases_erase X_type X nin Γ t wt _ he)
+   pose proof (@erases_erase X_type X nin Γ t wt _ he hclt)
   end.
   cbn in he. subst Σe. destruct Σ as [Σ univs]; cbn [fst snd] in *.
   assert (wv : welltyped (Σ, univs) [] v).
@@ -692,6 +716,7 @@ Proof.
       unshelve eapply (erase_wellformed_weaken (declarations Σ) _ _ _ (Γ:=[])).
       2:{ cbn; congruence. } 2:exact deps. intros.
       now eapply Erasure.fake_normalization.
+      exact hcl. exact hclt.
     + subst t'' t'.
       rewrite trans_env_remove_match_on_box_env.
       unshelve eapply (EOptimizePropDiscr.remove_match_on_box_correct (fl := default_wcbv_flags)) => //=.
@@ -701,6 +726,7 @@ Proof.
       eapply wellformed_closed.
       unshelve eapply (erase_wellformed_weaken (declarations Σ) _ _ _ (Γ := [])).
       2:{ cbn; congruence. } 2:exact deps. intros. eapply Erasure.fake_normalization; eauto.
+      exact hcl. exact hclt.
   * eapply erase_global_erases_deps; tea.
     subst er. unfold erase_env.
     set (obl := fun (Σ' : global_env) => _).

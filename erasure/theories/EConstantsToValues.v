@@ -110,6 +110,13 @@ Proof.
 Qed.
 Hint Rewrite @isLambda_consts_to_values : consts_to_values_rw_hints.
 
+Lemma isLambdas_consts_to_values n t :
+  isLambdas n (consts_to_values t) = isLambdas n t.
+Proof.
+  induction n in t |- *; destruct t; cbn; auto.
+Qed.
+Hint Rewrite @isLambdas_consts_to_values : consts_to_values_rw_hints.
+
 Lemma isLazy_consts_to_values (d : def term) :
   EAstUtils.isLazy (consts_to_values (dbody d)) = EAstUtils.isLazy (dbody d).
 Proof.

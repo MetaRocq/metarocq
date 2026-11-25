@@ -262,8 +262,18 @@ Qed.
 From MetaRocq.Erasure Require Import Erasure Extract ErasureFunction.
 From MetaRocq.PCUIC Require Import PCUICTyping.
 
+Lemma firstorder_value_cofix_lambdas {cf : checker_flags} Σ Γ v :
+  PCUICFirstorder.firstorder_value Σ Γ v -> cofix_lambdas v.
+Proof.
+  revert v.
+  apply: (PCUICFirstorder.firstorder_value_inds Σ Γ
+    (fun v => cofix_lambdas v)) => i n ui u args pandi _ _ IH _.
+  rewrite cofix_lambdas_mkApps /=. now apply forallb_Forall.
+Qed.
+
 Lemma extends_erase_pcuic_program (efl := EWcbvEval.default_wcbv_flags) {guard : abstract_guard_impl} (Σ : global_env_ext_map) t v nin nin' nin0 nin0'
   wf wf' ty ty' i u args :
+  cofix_lambdas_env Σ -> cofix_lambdas t ->
   PCUICWcbvEval.eval Σ t v ->
   axiom_free Σ ->
   Σ ;;; [] |- t : PCUICAst.mkApps (PCUICAst.tInd i u) args ->
@@ -272,7 +282,8 @@ Lemma extends_erase_pcuic_program (efl := EWcbvEval.default_wcbv_flags) {guard :
   let pv := @erase_pcuic_program guard (Σ, v) nin nin' wf ty in
   EGlobalEnv.extends pv.1 pt.1 /\ ∥ eval pt.1 pt.2 pv.2 ∥ /\ firstorder_evalue pt.1 pv.2.
 Proof.
-  intros ev axf ht fo.
+  intros hcld hclt ev axf ht fo.
+  unfold cofix_lambdas_env in hcld.
   cbn -[erase_pcuic_program].
   unfold erase_pcuic_program.
   set (prf0 := (fun (Σ0 : PCUICAst.PCUICEnvironment.global_env) => _)).
@@ -303,7 +314,8 @@ Proof.
   { cbn. now intros ? ? -> ->. }
   clearbody prf0 prf1 prf2 prf3 prf4 prf5 prf6 prf7.
   epose proof (erase_correct_strong optimized_abstract_env_impl (v:=v) env ext prf2
-    (PCUICAst.PCUICEnvironment.declarations Σ) norm' prf prf6 X eq_refl axf ht fo).
+    (PCUICAst.PCUICEnvironment.declarations Σ) norm' prf hcld hclt prf6 X
+    eq_refl axf ht fo).
   pose proof wf as [].
   forward H by unshelve (eapply PCUICClassification.wcbveval_red; tea).
   forward H. {
@@ -315,6 +327,7 @@ Proof.
   destruct H as [wt' [[] hfo]].
   split => //.
   eapply (erase_global_deps_eval optimized_abstract_env_impl env env' ext).
+  exact hcld.
   unshelve erewrite (ErasureFunction.erase_irrel_global_env (X_type:=optimized_abstract_env_impl) (t:=v)); tea.
   red. intros. split; reflexivity.
   split => //.
@@ -470,7 +483,10 @@ Section PCUICProof.
     rewrite eq.
     set (eg := erase_global_deps _ _ _ _ _ _).
     intros obl.
-    epose proof (@erase_correct_strong optimized_abstract_env_impl g Σ.2 prf0 t v i u args _ _ hprefix prf1 prf2 Σ eq_refl ax ht fo).
+    have hcld := expanded_global_env_cofix_lambdas _ (proj1 (proj1 (proj2 pr))).
+    have hclt := expanded_cofix_lambdas _ _ _ (proj2 (proj1 (proj2 pr))).
+    epose proof (@erase_correct_strong optimized_abstract_env_impl g Σ.2 prf0
+      t v i u args _ _ hprefix prf1 hcld hclt prf2 Σ eq_refl ax ht fo).
     pose proof (proj1 pr) as [[]].
     forward H. eapply PCUICClassification.wcbveval_red; tea.
     assert (PCUICFirstorder.firstorder_value Σ [] v).
@@ -486,7 +502,8 @@ Section PCUICProof.
       clearbody prf0 prf1.
       destruct pr as [].
       destruct s as [[]].
-      epose proof (erases_erase (X_type := optimized_abstract_env_impl) wt' _ eq_refl).
+      epose proof (erases_erase (X_type := optimized_abstract_env_impl) wt' _
+        eq_refl (firstorder_value_cofix_lambdas _ _ _ H0)).
       eapply erases_firstorder' in H; eauto. }
     rewrite H in ev', fo'.
     intros [=]; subst te Σe.
@@ -512,7 +529,8 @@ Proof.
   clearbody prf0 prf1.
   destruct pr as [].
   destruct s as [[]].
-  epose proof (erases_erase (X_type := optimized_abstract_env_impl) prf1 _ eq_refl).
+  epose proof (erases_erase (X_type := optimized_abstract_env_impl) prf1 _
+    eq_refl (firstorder_value_cofix_lambdas _ _ _ fo)).
   eapply erases_firstorder' in H; eauto.
 Qed.
 
@@ -885,7 +903,10 @@ Section ErasureFunction.
     rewrite /erase_global_fast. erewrite eq. clear eq nin.
     set (eg := erase_global_deps _ _ _ _ _ _).
 
-    unshelve epose proof (erase_correct optimized_abstract_env_impl Σ' Σ.2 _ f v _ _ deps _ eqdecls _ eq_refl _ eq_refl _ Σ eq_refl); eauto.
+    have hcld := expanded_global_env_cofix_lambdas _ expΣ.
+    have hclt := expanded_cofix_lambdas _ _ _ expt.
+    unshelve epose proof (erase_correct optimized_abstract_env_impl Σ' Σ.2 _
+      f v _ _ deps _ eqdecls hcld hclt _ eq_refl _ eq_refl _ Σ eq_refl); eauto.
     { eapply Kernames.KernameSet.subset_spec. rewrite /deps -/env'. cbn [fst snd]. apply Kernames.KernameSetProp.subset_refl. }
     { cbn => ? -> //. }
     destruct H as [v'' [ervv'' [ev]]].
@@ -1843,6 +1864,7 @@ Section PCUICErase.
   Lemma fst_erase_pcuic_program' {no : PCUICSN.normalizing_flags} {guard_impl : abstract_guard_impl} (p : pcuic_program) (nin : wf_ext p.1 -> PCUICSN.NormalizationIn p.1)
     (nin' : wf_ext p.1 -> PCUICWeakeningEnvSN.normalizationInAdjustUniversesIn p.1)
     (wfΣ : ∥ wf_ext p.1 ∥) (wt : ∥ ∑ T : term, p.1;;; [] |- p.2 : T ∥) :
+    expanded_global_env p.1 ->
     expanded p.1 [] p.2 ->
     let wfe := build_wf_env_from_env p.1.1 (map_squash (wf_ext_wf p.1) wfΣ) in
     let Xext := abstract_make_wf_env_ext (X_type := optimized_abstract_env_impl (guard := guard_impl)) wfe p.1.2 (lift_wfext p.1 wfΣ) in
@@ -1890,6 +1912,10 @@ Section PCUICErase.
       eapply PCUICInversion.inversion_App in tyapp as [na [A [B [hp [hu hcum]]]]]. now eexists.
       cbn. apply w.
       destruct H; split => //. cbn. cbn in H1. now eapply expanded_tApp_arg in H1. }
+    have etaΣ : PCUICEtaExpand.expanded_global_env Σ.
+    { exact (proj1 (proj1 (proj2 pre))). }
+    have hcld : cofix_lambdas_decls (declarations Σ).
+    { exact (expanded_global_env_cofix_lambdas _ etaΣ). }
     unfold transform, erase_transform. cbn -[erase_program].
     unfold erase_program.
     set (prf := map_squash _ _); clearbody prf.
@@ -1918,10 +1944,11 @@ Section PCUICErase.
     - cbn [fst snd]. eapply EEtaExpandedFix.expanded_isEtaExp.
       match goal with
       [ |- context [ @erase_pcuic_program ?guard ?p ?nin ?nin' ?prf ?prf' ] ] =>
-        epose proof (fst_erase_pcuic_program' p nin nin' prf prf' etat)
+        epose proof (fst_erase_pcuic_program' p nin nin' prf prf' etaΣ etat)
       end.
       eapply H.
-    - clear -er heq. apply (f_equal fst) in heq. cbn [fst] in heq. rewrite -heq. clear -er.
+    - clear -er heq hcld. apply (f_equal fst) in heq. cbn [fst] in heq.
+      rewrite -heq. clear -er hcld.
       match goal with
       [ |- context [ @erase_pcuic_program ?guard ?p ?nin ?nin' ?prf ?prf' ] ] =>
         set (ninprf := nin); clearbody ninprf;
@@ -1940,14 +1967,14 @@ Section PCUICErase.
       rewrite !erase_global_deps_erase_global.
       (* assert (wfg : wf_glob (erase_global (build_wf_env_from_env Σ.1 (map_squash (wf_ext_wf Σ) prf))). *)
       erewrite -> @filter_deps_filter.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       erewrite -> @filter_deps_filter.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       assert (prf = prf1) by apply proof_irrelevance.
       assert (hpref = hpref') by apply proof_irrelevance. subst prf1 hpref'.
       assert (ning = ning') by apply proof_irrelevance. subst ning'.
       eapply extends_filter_impl.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       intros x. unfold flip.
       clear -er.
       set (env := abstract_make_wf_env_ext _ _ _).
@@ -1968,7 +1995,9 @@ Section PCUICErase.
       set (er1 := @erase _ _ _ _ _ _).
       assert (er0 = er1). { unfold er0, er1. eapply ErasureFunction.erase_irrel_global_env. intro. cbn. intros -> ? ->; cbn; intuition eauto. }
       now rewrite -H.
-    - clear -prf0 er heq etat. apply (f_equal fst) in heq. cbn [fst] in heq. rewrite -heq. clear -er etat prf0.
+    - clear -prf0 er heq etat hcld. apply (f_equal fst) in heq.
+      cbn [fst] in heq.
+      rewrite -heq. clear -er etat prf0 hcld.
       match goal with
       [ |- context [ @erase_pcuic_program ?guard ?p ?nin ?nin' ?prf ?prf' ] ] =>
         set (ninprf := nin); clearbody ninprf;
@@ -1987,14 +2016,14 @@ Section PCUICErase.
       rewrite !erase_global_deps_erase_global.
       (* assert (wfg : wf_glob (erase_global (build_wf_env_from_env Σ.1 (map_squash (wf_ext_wf Σ) prf))). *)
       erewrite -> @filter_deps_filter.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       erewrite -> @filter_deps_filter.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       assert (prf3 = prf1) by apply proof_irrelevance.
       assert (hpref = hpref') by apply proof_irrelevance. subst prf1 hpref'.
       assert (ning = ning') by apply proof_irrelevance. subst ning'.
       eapply extends_filter_impl.
-      2:{ eapply erase_global_wf_glob. }
+      2:{ eapply erase_global_wf_glob. exact hcld. }
       intros x. unfold flip.
       clear -er prf0.
       set (env := abstract_make_wf_env_ext _ _ _).
@@ -2515,7 +2544,13 @@ Section pipeline_theorem.
   cbn [transform erase_transform] in *.
   set (erase_program _ _). set (erase_program _ _).
   eapply verified_lambdabox_pipeline_extends.
-  eapply extends_erase_pcuic_program; eauto.
+  have [hexpΣ hexpt] :=
+    PCUICExpandLetsCorrectness.expanded_expand_lets_program
+      (cf := extraction_checker_flags) (Σ, t) (HΣ, (_; typing'))
+      (conj expΣ expt).
+  eapply extends_erase_pcuic_program;
+    [exact (expanded_global_env_cofix_lambdas _ hexpΣ)
+    |exact (expanded_cofix_lambdas _ _ _ hexpt)|..]; eauto.
     unshelve eapply (PCUICExpandLetsCorrectness.trans_wcbveval (cf := extraction_checker_flags) (Σ := (Σ.1, Σ.2))).
     { now eapply PCUICExpandLetsCorrectness.trans_wf. }
     { clear -HΣ typing'. now eapply PCUICClosedTyp.subject_closed in typing'. }
@@ -2732,7 +2767,13 @@ Section pipeline_theorem.
     Unshelve. all:eauto.
     2:{ eapply PCUICExpandLetsCorrectness.trans_wf, HΣ. }
     clear obs b0 ev e w.
-    eapply extends_erase_pcuic_program. cbn.
+    have [hexpΣ hexpt] :=
+      PCUICExpandLetsCorrectness.expanded_expand_lets_program
+        (cf := extraction_checker_flags) (Σ, t) (HΣ, (_; typing''))
+        (conj expΣ expt).
+    eapply extends_erase_pcuic_program;
+      [exact (expanded_global_env_cofix_lambdas _ hexpΣ)
+      |exact (expanded_cofix_lambdas _ _ _ hexpt)|..]. cbn.
     unshelve eapply (PCUICExpandLetsCorrectness.trans_wcbveval (cf := extraction_checker_flags) (Σ := (Σ.1, Σ.2))).
     { now eapply PCUICExpandLetsCorrectness.trans_wf. }
     { clear -HΣ typing''. now eapply PCUICClosedTyp.subject_closed in typing''. }

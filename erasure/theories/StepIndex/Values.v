@@ -160,6 +160,8 @@ Fixpoint wellformed_val {efl : EEnvFlags} Σ v : bool :=
       wf_fix_gen (wellformed Σ) #|Γ| mfix n
   | vCoFixClos mfix n Γ args => 
       has_tCoFix && 
+      (* every body starts with [rarg] lambdas *)
+      forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix &&
       forallb (wellformed_val Σ) Γ && 
       forallb (wellformed_val Σ) args &&
       wf_fix_gen (wellformed Σ) #|Γ| mfix n &&

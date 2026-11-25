@@ -292,6 +292,12 @@ Proof.
   now induction f.
 Qed.
 
+Lemma unbox_isLambdas Σ n f :
+  isLambdas n f -> isLambdas n (unbox Σ f).
+Proof.
+  induction n in f |- *; destruct f => //=. now simp unbox.
+Qed.
+
 Lemma fresh_global_map_on_snd ctx f kn :
   fresh_global kn (map (on_snd f) ctx) <->
   fresh_global kn ctx.
@@ -354,6 +360,7 @@ Proof.
   - move: (proj2 (proj1 H0) _ H1) => /orP[hl|/andP[-> hl]].
     + apply/orP; left. now apply unbox_isLambda.
     + destruct (dbody x) => //; simp unbox; now rewrite ?orb_true_r.
+  - apply unbox_isLambdas. now apply (proj2 (proj1 H0)).
 Qed.
 
 Lemma wf_glob_map_unbox 

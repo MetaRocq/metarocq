@@ -1110,6 +1110,12 @@ Definition switch_env_flags_to_named (efl : EEnvFlags) :=
     term_switches := switch_term_flags_to_named efl.(term_switches);
     cstr_as_blocks := efl.(cstr_as_blocks) |}.
 
+Lemma isLambdas_annotate n s t :
+  isLambdas n t -> isLambdas n (annotate s t).
+Proof.
+  induction n in s, t |- *; destruct t => //=. eauto.
+Qed.
+
 Lemma wellformed_annotate' efl Σ Γ Γ' s :
   incl Γ' Γ ->
   @wellformed efl Σ #|Γ| s ->
@@ -1175,7 +1181,13 @@ Proof.
       induction m in Γ, n, n0, l, H2 |- *.
       + econstructor.
       + invs H2. cbn. destruct a; cbn. destruct dname; cbn; econstructor; eauto.
-  - solve_all. unfold wf_fix in *. rtoProp. split.
+  - clear -H1. move: H1.
+    generalize (List.rev (gen_many_fresh Γ (map dname m)) ++ Γ).
+    generalize (gen_many_fresh Γ (map dname m)).
+    induction m as [|d m IHm] => l l' //=.
+    destruct l as [|na l] => //= /andP[] hd hm.
+    rewrite (IHm _ _ hm) andb_true_r. now eapply isLambdas_annotate.
+  - clear H1. solve_all. unfold wf_fix in *. rtoProp. split.
     rewrite map2_length gen_many_fresh_length length_map.
     { eapply Nat.ltb_lt in H0. eapply Nat.ltb_lt. lia. }
     solve_all. clear H0. unfold test_def in *. cbn in *.

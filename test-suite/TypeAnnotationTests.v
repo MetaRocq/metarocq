@@ -105,8 +105,11 @@ Proof.
            | _ => does_not_happen
            end in _).
   set (args := if opt then opt_args else no_opt_args).
+  destruct (ErasureFunction.cofix_lambdas_env
+    (PCUICProgram.trans_env_env (TemplateToPCUIC.trans_global_env p.1)))
+    eqn:hcl; [|exact does_not_happen].
   unshelve epose proof (annot_extract_template_env args p.1 (KernameSet.singleton entry)
-                                                   (fun k => existsb (eq_kername k) ignore) _).
+                                                   (fun k => existsb (eq_kername k) ignore) _ hcl).
   { destruct opt; cbn.
     - constructor; [|constructor].
       apply annot_dearg_transform.

@@ -133,6 +133,8 @@ Section optimize.
 
   Lemma isLambda_optimize t : isLambda t -> isLambda (optimize t).
   Proof. destruct t => //. Qed.
+  Lemma isLambdas_optimize n t : isLambdas n t -> isLambdas n (optimize t).
+  Proof. induction n in t |- *; destruct t => //=. apply IHn. Qed.
   Lemma isBox_optimize t : isBox t -> isBox (optimize t).
   Proof. destruct t => //. Qed.
 
@@ -164,7 +166,7 @@ Section optimize.
       lia.
     - len. rtoProp; solve_all. solve_all.
       destruct (dbody x), has_tLazy_Force => //. solve_all.
-    - len. rtoProp; repeat solve_all.
+    - len. rtoProp; repeat solve_all. now apply isLambdas_optimize.
     - rewrite test_prim_map. rtoProp; intuition eauto; solve_all.
   Qed.
 
@@ -270,7 +272,7 @@ Section optimize.
     intros wfΣ hfix.
     unfold cunfold_cofix.
     rewrite nth_error_map.
-    cbn in hfix. move/andP: hfix => [] hasco /andP[] hidx hfix.
+    cbn in hfix. move/andP: hfix => [] /andP[] hasco hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
     rewrite optimize_substl //. eapply wellformed_cofix_subst => //.
@@ -804,6 +806,7 @@ Proof.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
     destruct (dbody x), has_tLazy_Force => //.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
+    now apply isLambdas_optimize.
   - cbn. rtoProp; intuition eauto; solve_all_k 6.
 Qed.
 

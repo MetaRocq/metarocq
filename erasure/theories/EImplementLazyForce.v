@@ -431,6 +431,13 @@ Lemma isLambda_implement_lazy_force c :
   isLambda c || isLazy c -> isLambda (implement_lazy_force c).
 Proof. destruct c => //; now simp implement_lazy_force. Qed.
 
+Lemma isLambdas_implement_lazy_force n c :
+  isLambdas n c -> isLambdas n (implement_lazy_force c).
+Proof.
+  induction n in c |- * => //; destruct c => //.
+  simp implement_lazy_force. exact: IHn.
+Qed.
+
 Definition disable_thunk_term_flags (et : ETermFlags) :=
   {| has_tBox := has_tBox
     ; has_tRel := true
@@ -478,6 +485,7 @@ Proof.
     rewrite isLambda_implement_lazy_force //.
     move: a0; case: (isLambda _) => //=. now move/andP => [].
   - unfold wf_fix in *. rtoProp. solve_all. len. solve_all.
+  - split; eauto. solve_all. now eapply isLambdas_implement_lazy_force.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
     solve_all.
   - solve_all_k 6.

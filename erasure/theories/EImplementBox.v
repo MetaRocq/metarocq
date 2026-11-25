@@ -414,6 +414,13 @@ Qed.
 Lemma isLambda_implement_box c : isLambda c -> isLambda (implement_box c).
 Proof. destruct c => //. Qed.
 
+Lemma isLambdas_implement_box n c :
+  isLambdas n c -> isLambdas n (implement_box c).
+Proof.
+  induction n in c |- * => //; destruct c => //.
+  simp implement_box. exact: IHn.
+Qed.
+
 Definition disable_box_term_flags (et : ETermFlags) :=
   {| has_tBox := false
     ; has_tRel := true
@@ -462,6 +469,7 @@ Proof.
   - unfold wf_fix in *. rtoProp. solve_all. solve_all.
     move: a0; destruct (dbody x) => //=; now simp implement_box.
   - unfold wf_fix in *. rtoProp. solve_all. len. solve_all.
+  - split; eauto. solve_all. now eapply isLambdas_implement_box.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
     solve_all.
   - solve_all_k 6.

@@ -306,8 +306,10 @@ Proof.
     eapply All2_map.
     eapply All2_impl. eapply All2_All_mix_left.
     eapply X3. eassumption. simpl.
-    intros [] []. simpl. intros [IH [<- [<- IH']]].
+    intros [] []. simpl. intros [IH [<- <- hl hl' IH']].
     repeat split. unfold app_context in *.
+    now eapply isLambdas_lift.
+    now eapply ELiftSubst.isLambdas_lift.
     specialize (IH Γ (types ++ Γ') Γ'').
     subst types. rewrite length_app fix_context_length in IH.
     forward IH.
@@ -578,8 +580,10 @@ Proof.
       eapply All2_map.
       eapply All2_impl_In.
       eassumption.
-      intros. destruct H4 as (? & ? & ?).
+      intros. destruct H4 as [? ? ? ? ?].
       repeat split; eauto.
+      cbn. now eapply isLambdas_subst.
+      now eapply ELiftSubst.isLambdas_subst.
       eapply In_nth_error in H2 as [].
       eapply nth_error_all in X3 as IH; eauto.
       eapply nth_error_all in X2 as Ht; eauto. apply unlift_TermTyp in Ht.

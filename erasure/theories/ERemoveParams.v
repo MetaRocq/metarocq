@@ -721,6 +721,12 @@ Proof.
   all:rewrite !(negbTE (isLambda_mkApps_Construct _ _ _ _)) //.
 Qed.
 
+Lemma strip_isLambdas Σ n f :
+  EAst.isLambdas n f -> EAst.isLambdas n (strip Σ f).
+Proof.
+  induction n in f |- *; destruct f => //. simp_strip. apply IHn.
+Qed.
+
 Lemma strip_isBox Σ f :
   isBox f = isBox (strip Σ f).
 Proof.
@@ -1143,6 +1149,8 @@ Proof.
     all: eapply H; auto.
   - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto. toAll; solve_all.
     now rewrite -strip_isLambda -strip_isLazy. toAll; solve_all.
+  - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto.
+    all:toAll; solve_all. now apply strip_isLambdas.
   - primProp. rtoProp; intuition eauto; solve_all_k 6.
   - move:H1; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
     all:toAll; solve_all.

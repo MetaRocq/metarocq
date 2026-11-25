@@ -65,7 +65,7 @@ Proof.
     rewrite mkApps_app EAstUtils.mkApps_app !length_app /=.
     split => //. lia.
   - intros _. exists mfix, n, [], mfix', []. split => //.
-    sq. solve_all.
+    sq. solve_all. now destruct H.
 Qed.
 
 Lemma erases_correct (wfl := default_wcbv_flags) Σ t t' v Σ' :
@@ -902,7 +902,7 @@ Proof.
       { eapply (erases_closed Σ [] (tCoFix mfix idx)); [exact clfix|].
         econstructor; tea. }
       eapply All2_nth_error_Some in X0 as X'; tea.
-      destruct X' as [t' [nth' [bn [rar eb]]]].
+      destruct X' as [t' [nth' [bn rar _ _ eb]]].
       assert (hebody : Σ;;; [] |- mkApps fn args ⇝ℇ
         E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
           (E.dbody t')) L').
@@ -1021,7 +1021,7 @@ Proof.
       { eapply (erases_closed Σ [] (tCoFix mfix idx)); [exact clcofix|].
         econstructor; tea. }
       eapply All2_nth_error_Some in X as X'; tea.
-      destruct X' as [t' [nth' [bn [rar eb]]]].
+      destruct X' as [t' [nth' [bn rar _ _ eb]]].
       assert (hebody : Σ;;; [] |- mkApps fn args ⇝ℇ
         E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
           (E.dbody t')) L').
@@ -1442,7 +1442,8 @@ Proof.
         ++ now rewrite -(Forall2_length H8) -e1.
       + constructor => //; solve_all.
   - intros Γ0 v etaΣ hv. depelim hv. depelim etaΣ.
-    constructor => //. rewrite -(All2_length X). solve_all. constructor.
+    constructor => //. rewrite -(All2_length X). solve_all.
+    eapply b1 => //. apply b0. constructor.
   - intros Γ0 v etaΣ.
     move=> /erases_mkApps_inv; intros [(?&?&?&?&_&?&?&?)|(?&?&?&?&?)]; subst.
     * eapply erases_deps_mkApps_inv in etaΣ as [].

@@ -626,6 +626,12 @@ Proof.
   destruct t; cbnr.
 Qed.
 
+Lemma trans_isLambdas n t :
+  T.isLambdas n (trans t) = S.isLambdas n t.
+Proof.
+  induction n in t |- * => //. destruct t => //=.
+Qed.
+
 Lemma trans_unfold_fix p mfix idx narg fn :
   on_free_vars p (tFix mfix idx) ->
   unfold_fix mfix idx = Some (narg, fn) ->
@@ -5447,7 +5453,7 @@ Proof.
     rewrite rev_map_spec. rewrite rev_map_spec in b.
     rewrite map_map_compose. cbn. exact b. solve_all.
     destruct args => //. now rewrite nth_error_map H4. len. now cbn.
-  - solve_all.
+  - solve_all. rewrite trans_isLambdas //.
   - rewrite trans_mkApps; eapply expanded_tConstruct_app.
     unshelve eapply (trans_declared_constructor (empty_ext Σ)) in H.
     4:eauto. len.

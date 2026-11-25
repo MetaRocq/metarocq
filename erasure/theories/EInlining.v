@@ -203,6 +203,13 @@ Proof.
   now destruct t.
 Qed.
 
+Lemma isLambdas_inline n t inlining :
+  isLambdas n t ->
+  isLambdas n (inline inlining t).
+Proof.
+  induction n in t |- *; destruct t; cbn; auto.
+Qed.
+
 Lemma isLazy_inline t inlining :
   EAstUtils.isLazy t ->
   EAstUtils.isLazy (inline inlining t).
@@ -672,8 +679,10 @@ Proof.
     + intros. apply X; try easy.
       wf_mon_inlining.
   - repeat split; try easy.
-    intros. apply X; try easy.
-    wf_mon_inlining.
+    + intros. destruct H0 as [[_ hl] _].
+      now apply isLambdas_inline, hl.
+    + intros. apply X; try easy.
+      wf_mon_inlining.
   - intros.
     unfold map_prim, test_prim, test_array_model in *.
     simple.

@@ -137,6 +137,26 @@ Proof.
     eauto using firstn_skipn. }
 Qed.
 
+(* Freshness of the erased environment does not depend on its
+   well-formedness. *)
+Lemma erase_global_deps_fresh_globals X_type deps X decls normalization_in heq :
+  EnvMap.EnvMap.fresh_globals decls ->
+  EnvMap.EnvMap.fresh_globals
+    (@erase_global_deps X_type deps X decls normalization_in heq).1.
+Proof.
+  revert deps X normalization_in heq.
+  induction decls; [cbn; auto|].
+  - intros. constructor.
+  - destruct a as [kn' d]. intros deps X nin heq H. depelim H.
+    destruct d as []; simpl; destruct Kernames.KernameSet.mem.
+    + cbn. constructor; [eapply IHdecls => //|].
+      eapply erase_global_deps_fresh => //.
+    + eapply IHdecls => //.
+    + cbn. constructor; [eapply IHdecls => //|].
+      eapply erase_global_deps_fresh => //.
+    + eapply IHdecls => //.
+Qed.
+
 Local Obligation Tactic := program_simpl.
 
 Program Definition erase_pcuic_program {guard : abstract_guard_impl} (p : pcuic_program)
@@ -154,9 +174,13 @@ Program Definition erase_pcuic_program {guard : abstract_guard_impl} (p : pcuic_
 
 Next Obligation. unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto. Defined.
 Next Obligation.
-  eapply wf_glob_fresh.
-  eapply ErasureFunctionProperties.erase_global_fast_wf_glob.
-  unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
+  unfold erase_global_fast. erewrite erase_global_deps_fast_spec.
+  eapply erase_global_deps_fresh_globals.
+  Unshelve.
+  - destruct wfΣ as [w]. eapply wf_fresh_globals, w.
+  - unshelve edestruct erase_pcuic_program_normalization_helper;
+      cbn in *; eauto.
+  - cbn. now intros ? ->.
 Defined.
 
 Local Obligation Tactic := idtac.
@@ -179,7 +203,7 @@ Proof.
   unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
   apply: (ErasureFunctionProperties.expanded_erase_fast (X_type:=optimized_abstract_env_impl)).
   unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
-  reflexivity. exact etat.
+  reflexivity. exact etaenv. exact etat.
 Qed.
 
 Lemma expanded_eprogram_env_expanded_eprogram_cstrs p :
@@ -217,6 +241,8 @@ Next Obligation.
     set (egf := erase_global_fast _ _ _ _ _) in e.
     set (ef := erase _ _ _ _ _) in e.
     cbn -[egf ef] in e. injection e. intros <- <-.
+    have hcld := expanded_global_env_cofix_lambdas _ (proj1 etap).
+    have hclt := expanded_cofix_lambdas _ _ _ (proj2 etap).
     split.
     eapply erase_global_fast_wf_glob; eauto;
       try match goal with H : _ |- _ => eapply H end.
@@ -241,7 +267,9 @@ Next Obligation.
   assert (ev' :forall Σ0 : PCUICAst.PCUICEnvironment.global_env, Σ0 = Σ' -> PCUICWcbvEval.eval Σ0 t v).
   { intros; now subst. }
   eapply (erase_correct optimized_abstract_env_impl Σ' Σ.2 _ _ _ _ _ (EAstUtils.term_global_deps _)) in ev'.
-  4:{ erewrite <- erase_global_deps_fast_spec. reflexivity. }
+  6:{ erewrite <- erase_global_deps_fast_spec. reflexivity. }
+  2:{ exact (expanded_global_env_cofix_lambdas _ (proj1 T)). }
+  2:{ exact (expanded_cofix_lambdas _ _ _ (proj2 T)). }
   all:trea.
   2:eapply Kernames.KernameSet.subset_spec; reflexivity.
   destruct ev' as [v' [he [hev]]]. exists v'; split => //.
@@ -314,6 +342,9 @@ Program Definition typed_erase_transform (guard := fake_guard_impl_instance) :
 Next Obligation.
   cbn -[erase_program].
   intros p (wtp&etap&?&?).
+  have hcld := expanded_global_env_cofix_lambdas _ (proj1 etap).
+  have hclt := expanded_cofix_lambdas _ _ _ (proj2 etap).
+  unfold cofix_lambdas_env in hcld.
   destruct erase_program_typed eqn:e.
   split.
   - unfold erase_program_typed, erase_pcuic_program in e.
@@ -345,7 +376,7 @@ Next Obligation.
     intros [= <- <-]. unfold trans_ex_prog; cbn -[trans_env].
     red. split; cbn -[trans_env].
     eapply expanded_erase_global_decls_recursive; eauto. eapply etap.
-    eapply expanded_erase => //; eauto. eapply etap.
+    eapply expanded_erase => //; eauto. eapply etap. eapply etap.
 Qed.
 
 Next Obligation.
@@ -353,6 +384,9 @@ Next Obligation.
   set (cf := extraction_checker_flags).
   cbn. red.
   move=> p v [[wf [T [HT1 HT2]]]]. unfold eval_pcuic_program, eval_typed_eprogram.
+  have hcld := expanded_global_env_cofix_lambdas _ (proj1 T).
+  have hclt := expanded_cofix_lambdas _ _ _ (proj2 T).
+  unfold cofix_lambdas_env in hcld.
   unfold erase_program_typed.
   set (er := erase_global_decls_deps_recursive _ _ _ _ _ _).
   set (et := erase_term _ _ _).
@@ -366,7 +400,7 @@ Next Obligation.
   pose proof (abstract_env_ext_exists e) as [[Σe he]].
   match goal with
   [H := context [ @erase ?X_type ?X ?nin ?Γ t ?wt ] |- _ ] =>
-   pose proof (@erases_erase X_type X nin Γ t wt _ he)
+   pose proof (@erases_erase X_type X nin Γ t wt _ he hclt)
   end.
   cbn in he. subst Σe. destruct Σ as [Σ univs]; cbn [fst snd] in *.
   assert (wv : welltyped (Σ, univs) [] v).

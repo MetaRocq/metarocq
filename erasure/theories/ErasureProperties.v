@@ -21,6 +21,7 @@ From MetaRocq.PCUIC Require Import PCUICTyping PCUICGlobalEnv PCUICAst
   PCUICContexts PCUICEquality PCUICSpine
   PCUICInductives.
 From MetaRocq.PCUIC Require Import PCUICTactics.
+From MetaRocq.PCUIC Require PCUICEtaExpand.
 
 From Equations.Prop Require Import DepElim.
 
@@ -367,8 +368,9 @@ Proof.
   cbn. econstructor; eauto.
   eapply All2_map_left.
   eapply All2_impl. eapply All2_All_mix_left. eapply X3. eassumption.
-  intros d d' [IH (? & ? & ?)]; cbn in *.
-  repeat split; eauto.
+  intros d d' [IH []]; cbn in *.
+  split; eauto.
+  now rewrite PCUICEtaExpand.subst_instance_isLambdas.
   eapply IH in e1.
   rewrite subst_instance_app in e1; eauto. subst types. 2:eauto.
   eapply erases_ctx_ext. eassumption. unfold app_context.
@@ -450,7 +452,7 @@ Proof.
     rewrite <-H. rewrite fix_context_length in b0.
     eapply b0. eauto. now rewrite length_app fix_context_length.
   - epose proof (All2_length X0).
-    solve_all. destruct y ;  simpl in *; subst.
+    solve_all. destruct b. destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
     rewrite <-H. rewrite fix_context_length in b0.
     eapply b0. eauto. now rewrite length_app fix_context_length.
@@ -682,10 +684,14 @@ Proof.
     unfold EWellformed.wf_fix_gen.
     rewrite -H0. move/andP: wfa => [] ->.
     move/forallb_All. cbn. intros wfa.
-    solve_all. destruct y ;  simpl in *; subst.
+    apply/andP; split; cbn; solve_all.
+    { now destruct b as [_ _ _ il _]. }
+    destruct b as [_ _ _ _ er].
+    destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
-    rewrite fix_context_length in b.
-    eapply b. now move: b0 => /andP[]. eauto. now rewrite length_app fix_context_length. tea.
+    rewrite fix_context_length in b1.
+    eapply b1. now move: b0 => /andP[]. eauto.
+    now rewrite length_app fix_context_length. tea.
   - depelim H. solve_all. primProp.
     depelim X0; depelim X1; repeat constructor; cbn; intuition eauto. solve_all.
 Qed.

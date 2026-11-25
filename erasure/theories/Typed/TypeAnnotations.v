@@ -368,7 +368,7 @@ Proof.
     intros Γ1 a.
     induction a; [now constructor|].
     constructor; [|now eauto].
-    destruct r as (? & ? & ? & ?).
+    destruct r as (? & [? ? ? ? ?]).
     apply unlift_TermTyp in l0.
     split; [|now auto].
     econstructor; eauto.
@@ -379,11 +379,13 @@ Qed.
 Next Obligation. apply Erasure.fake_normalization; eauto. Defined.
 
 Definition annotate_types_erase_constant_decl X_type X cst wt eq :
+  ErasureFunction.cofix_lambdas_constant_body cst ->
   match erase_constant_decl_impl X_type X Σ eq cst wt with
   | inl cst => constant_body_annots box_type cst
   | _ => unit
   end.
 Proof.
+  intros hcl.
   unfold erase_constant_decl_impl,erase_constant_decl,erase_constant_decl_clause_1.
   destruct flag_of_type.
   cbn in *.
@@ -393,7 +395,8 @@ Proof.
   - destruct cst; cbn.
     destruct cst_body0; [|exact tt].
     cbn.
-    apply (annotate_types [] []%vector t); [|apply ErasureFunction.erases_erase].
+    apply (annotate_types [] []%vector t);
+      [|apply ErasureFunction.erases_erase; [|exact hcl]].
     cbn in *.
     destruct wt. apply unlift_TermTyp in X0.
     econstructor; eauto.
@@ -402,14 +405,16 @@ Defined.
 
 (* Context (nin : forall Σ : global_env_ext, wf_ext Σ -> Σ ∼_ext X -> PCUICSN.NormalizationIn Σ). *)
 Definition annotate_types_erase_global_decl X_type X eq kn decl wt :
+  ErasureFunction.cofix_lambdas_decl decl ->
   global_decl_annots box_type (@erase_global_decl X_type X Σ eq kn decl wt).
 Proof.
+  intros hcl.
   unfold erase_global_decl.
   destruct decl; [|exact tt].
   cbn.
   pose proof (annotate_types_erase_constant_decl X_type X c wt).
   unfold erase_constant_decl_impl in *. cbn in X0.
-  specialize (X0 eq).
+  specialize (X0 eq hcl).
   cbn. destruct erase_constant_decl; [|exact tt].
   cbn. exact X0.
 Defined.
@@ -417,17 +422,23 @@ Defined.
 End fix_env.
 
 Definition annotate_types_erase_global_decls_deps_recursive X_type X Σ universes retros wfΣ include ignore_deps :
+  ErasureFunction.cofix_lambdas_decls Σ ->
   env_annots box_type (@erase_global_decls_deps_recursive X_type X Σ universes retros wfΣ include ignore_deps).
 Proof.
+  intros hcl.
   revert include.
-  induction Σ in X, X_type, wfΣ |- *; intros include; [exact tt|].
+  induction Σ in X, X_type, wfΣ, hcl |- *; intros include; [exact tt|].
+  unfold ErasureFunction.cofix_lambdas_decls in hcl. cbn in hcl.
+  apply andb_and in hcl. destruct hcl as [hcld hcl].
+  specialize (fun X_type X wfΣ => IHΣ X_type X wfΣ hcl).
   cbn in *.
   destruct a.
   destruct KernameSet.mem.
   - cbn.
     match goal with
     | |- context[ @erase_global_decl ?X_type ?X ?a ?b ?c ?d ?e] =>
-      unshelve epose proof (annotate_types_erase_global_decl a _ X_type X b c d e)
+      unshelve epose proof
+        (annotate_types_erase_global_decl a _ X_type X b c d e hcld)
     end.
     { eapply abstract_eq_wf in wfΣ as [equiv [wf]].
       eapply (sq_wf_pop_decl _ _ _ _ (sq wf)); cbn; trea. }
@@ -801,42 +812,51 @@ Defined.
 
 Definition annot_extract_pcuic_env params Σ wfΣ include ignore :
   All (annot_transform_type box_type) (extract_transforms params) ->
+  ErasureFunction.cofix_lambdas_env Σ ->
   match extract_pcuic_env params Σ wfΣ include ignore with
   | Ok Σ => env_annots box_type Σ
   | _ => unit
   end.
 Proof.
-  intros all.
+  intros all hcl.
   unfold extract_pcuic_env.
   destruct optimize_prop_discr.
   + apply annot_compose_transforms; [|exact all].
     apply AnnotOptimizePropDiscr.annot_remove_match_on_box_env.
     apply annotate_types_erase_global_decls_deps_recursive.
+    exact hcl.
   + apply annotate_types_erase_global_decls_deps_recursive.
+    exact hcl.
 Defined.
 
 Definition annot_extract_template_env params Σ include ignore :
   All (annot_transform_type box_type) (extract_transforms (pcuic_args params)) ->
+  ErasureFunction.cofix_lambdas_env
+    (PCUICProgram.trans_env_env (TemplateToPCUIC.trans_global_env Σ)) ->
   match extract_template_env params Σ include ignore with
   | Ok Σ => env_annots box_type Σ
   | _ => unit
   end.
 Proof.
-  intros all.
+  intros all hcl.
   unfold extract_template_env,extract_template_env_general, check_wf_and_extract.
   cbn.
   destruct check_wf_env_func; [|exact tt]. cbn.
   apply annot_extract_pcuic_env.
   exact all.
+  exact hcl.
 Defined.
 
 Definition annot_extract_template_env_within_coq Σ include ignore :
+  ErasureFunction.cofix_lambdas_env
+    (PCUICProgram.trans_env_env (TemplateToPCUIC.trans_global_env Σ)) ->
   match extract_template_env_within_coq Σ include ignore with
   | Ok Σ => env_annots box_type Σ
   | _ => unit
   end.
 Proof.
-  apply annot_extract_template_env.
+  intros hcl.
+  apply annot_extract_template_env; [|exact hcl].
   cbn.
   constructor; [|constructor].
   apply annot_dearg_transform.
@@ -847,7 +867,10 @@ Definition annot_extract_template_env_within_coq_sig
            (include : KernameSet.t)
            (ignore : kername -> bool) : option (∑ Σ, env_annots box_type Σ).
 Proof.
-  pose proof (annot_extract_template_env_within_coq Σ include ignore).
+  destruct (ErasureFunction.cofix_lambdas_env
+    (PCUICProgram.trans_env_env (TemplateToPCUIC.trans_global_env Σ)))
+    eqn:hcl; [|exact None].
+  pose proof (annot_extract_template_env_within_coq Σ include ignore hcl).
   destruct extract_template_env_within_coq; [|exact None].
   exact (Some (t; X)).
 Defined.

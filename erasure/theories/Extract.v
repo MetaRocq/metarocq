@@ -129,10 +129,12 @@ Inductive erases (Σ : global_env_ext) (Γ : context) : term -> E.term -> Prop :
   | erases_tCoFix : forall (mfix : mfixpoint term) (n : nat) (mfix' : list (E.def E.term)),
                     All2
                       (fun (d : def term) (d' : E.def E.term) =>
-                      d.(dname).(binder_name) = E.dname d'
-                       × rarg d = E.rarg d'
-                         × Σ;;; Γ ,,, fix_context mfix |-
-                           dbody d ⇝ℇ E.dbody d') mfix mfix' ->
+                      [× d.(dname).(binder_name) = E.dname d',
+                       rarg d = E.rarg d',
+                       isLambdas (rarg d) (dbody d),
+                       E.isLambdas (E.rarg d') (E.dbody d') &
+                       Σ;;; Γ ,,, fix_context mfix |-
+                           dbody d ⇝ℇ E.dbody d']) mfix mfix' ->
                     Σ;;; Γ |- tCoFix mfix n ⇝ℇ E.tCoFix mfix' n
   | erases_tPrim : forall p p',
     erase_prim_val (erases Σ Γ) p p' ->
@@ -198,9 +200,12 @@ Lemma erases_forall_list_ind
       (Hcofix : forall Γ mfix n mfix',
           All2
             (fun d d' =>
-               (dname d).(binder_name) = E.dname d' ×
-               rarg d = E.rarg d' ×
-               Σ;;; app_context Γ (fix_context mfix) |- dbody d ⇝ℇ E.dbody d')
+               [× (dname d).(binder_name) = E.dname d',
+                rarg d = E.rarg d',
+                isLambdas (rarg d) (dbody d),
+                E.isLambdas (E.rarg d') (E.dbody d') &
+                Σ;;; app_context Γ (fix_context mfix) |-
+                  dbody d ⇝ℇ E.dbody d'])
             mfix mfix' ->
           Forall2 (fun d d' =>
                      P (app_context Γ (fix_context mfix))
@@ -250,7 +255,7 @@ Proof.
     revert mfix mfix'.
     fix f' 3.
     intros mfix mfix' []; [now constructor|].
-    constructor; [now apply f|now apply f'].
+    destruct a. constructor; [now apply f|now apply f'].
   - eapply Hprim; tea.
     induction H. constructor.
     induction X; constructor.

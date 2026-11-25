@@ -140,6 +140,8 @@ Proof.
   - unfold map_def, wf_fix, test_def in *; simple.
     pose proof wellformed_up h_wf_t. 
     repeat split; try easy.
+    { intros x hIn. destruct h_wf_u as [[_ hb] _].
+      now eapply isLambdas_csubst, hb. }
     intros x hIn.
     now eapply X; simple.
   - inversion X as [| | | ? [? ?]]; subst;

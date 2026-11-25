@@ -439,6 +439,9 @@ Section reorder_proofs.
 
   Lemma isLambda_optimize t : isLambda t -> isLambda (optimize t).
   Proof. destruct t => //. Qed.
+  Lemma isLambdas_optimize n t :
+    isLambdas n t -> isLambdas n (optimize t).
+  Proof. induction n in t |- *; destruct t => //=. apply IHn. Qed.
   Lemma isBox_optimize t : isBox t -> isBox (optimize t).
   Proof. destruct t => //. Qed.
 
@@ -755,6 +758,8 @@ Section reorder_proofs.
     - rtoProp; intuition auto; solve_all.
       destruct (dbody x) => //.
     - rtoProp; intuition auto; solve_all.
+      now apply isLambdas_optimize.
+    - rtoProp; intuition auto; solve_all.
       depelim H1; constructor; eauto. intuition auto.
       cbn; solve_all.
   Qed.
@@ -896,7 +901,8 @@ Section reorder_proofs.
     intros wfΣ hfix.
     unfold cunfold_cofix.
     rewrite nth_error_map.
-    cbn in hfix. move/andP: hfix => [] hasfix /andP[] hidx hfix.
+    cbn in hfix.
+    move/andP: hfix => [] /andP[] hasfix hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
     rewrite optimize_substl //. eapply wellformed_cofix_subst => //.
