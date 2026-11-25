@@ -136,7 +136,10 @@ Section wf.
       let brs' := List.forallb (fun br => wellformed (#|br.1| + k) br.2) brs in
       wf_brs ind.1 #|brs| && wellformed k c && brs'
     | tProj p c => has_tProj && isSome (lookup_projection Σ p) && wellformed k c
-    | tFix mfix idx => has_tFix && List.forallb (isLambda ∘ dbody) mfix && wf_fix_gen wellformed k mfix idx
+    | tFix mfix idx => has_tFix &&
+      List.forallb (fun d => isLambda d.(dbody) ||
+        (has_tLazy_Force && isLazy d.(dbody))) mfix &&
+      wf_fix_gen wellformed k mfix idx
     | tCoFix mfix idx => has_tCoFix && wf_fix_gen wellformed k mfix idx
     | tBox => has_tBox
     | tConst kn => has_tConst &&
@@ -260,6 +263,7 @@ Section EEnvFlags.
       apply Nat.ltb_lt in H1. lia.
     - destruct cstr_as_blocks; eauto. destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all.
       destruct args; firstorder.
+    - solve_all. destruct (dbody x), has_tLazy_Force => //.
   Qed.
 
   Lemma wellformed_subst_eq {s k k' t} :
@@ -298,7 +302,7 @@ Section EEnvFlags.
       rewrite Nat.add_assoc (Nat.add_comm k) in a.
       rewrite !Nat.add_assoc. eapply a => //.
       now rewrite !Nat.add_assoc in b.
-    - destruct (dbody x) => //.
+    - destruct (dbody x), has_tLazy_Force => //.
     - specialize (a (#|m| + k')).
       len. now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
     - specialize (a (#|m| + k')); len.
@@ -339,7 +343,8 @@ Section EEnvFlags.
   Qed.
 
   Lemma wellformed_fix_subst mfix {hast : has_tFix}:
-    forallb (isLambda ∘ dbody) mfix ->
+    forallb (fun d => isLambda d.(dbody) ||
+      (has_tLazy_Force && isLazy d.(dbody))) mfix ->
     forallb (EAst.test_def (wellformed (#|mfix| + 0))) mfix ->
     forallb (wellformed 0) (fix_subst mfix).
   Proof using Type.

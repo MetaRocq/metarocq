@@ -234,14 +234,12 @@ Proof.
       erewrite map_ext; first eassumption.
       intros; now simple.
   - rewrite mkApps_app.
-    eapply eval_app_cong.
+    rewrite -(cofix_arity_map (substlg (map term_of_val env) #|mfix|)) in e3.
+    eapply eval_cofix_value.
     + now apply IHheval1; simple.
-    + destruct with_guarded_fix; first easy.
-      destruct args using list_rect_rev; simple.
-      rewrite mkApps_app; simple.
-      unfold isPrimApp, isConstructApp, isLazyApp.
-      now rewrite head_tApp head_mkApps.
     + now apply IHheval2; simple.
+    + exact e3.
+    + now simple.
   - assert (wellformed_val Σ (vCoFixClos mfix idx env args)) as hwf.
     { now eapply eval_SI_wellformed_val; simple; try eassumption. }
     assert (wellformed_val Σ (vConstruct ind c cargs)) as hwfc.
@@ -305,6 +303,17 @@ Proof.
     + assert (wellformed_val Σ (vLazy t' Γ')).
       { now eapply eval_SI_wellformed_val; simple. }
       apply IHheval2; now simple.
+  - assert (wellformed_val Σ (vRecClos mfix idx Γ')) as hwf.
+    { now eapply eval_SI_wellformed_val; simple; try eassumption. }
+    pose proof (wf_fix_clos_env _ _ _ _ hwf) as wf_fenv.
+    pose proof (wf_fix_clos_lazy_body _ _ _ _ _ _ hwf e1 e2) as wf_body.
+    pose proof (substlg_fix_clos_body _ _ _ _ b hCstrBlcs h_app hwf)
+      as hbody.
+    eapply EWcbvEval.eval_force_fix.
+    + apply IHheval1; now simple.
+    + unfold EGlobalEnv.cunfold_fix. simple. rewrite e2. simple.
+      reflexivity.
+    + simple. rewrite -hbody. apply IHheval2; now simple.
   - intros hwf. now apply forces_construct.
   - intros hwf.
     pose proof (wf_cofix_clos_env _ _ _ _ _ hwf) as wf_cenv.

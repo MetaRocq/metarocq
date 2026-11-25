@@ -249,6 +249,44 @@ Definition cunfold_cofix (mfix : mfixpoint term) (idx : nat) :=
   | None => None
   end.
 
+(** The arity of the [idx]-th cofixpoint of a mutual block, recorded in
+    its [rarg] field. *)
+Definition cofix_arity (mfix : mfixpoint term) (idx : nat) : option nat :=
+  option_map rarg (nth_error mfix idx).
+
+Lemma cofix_arity_map (f : term -> term) mfix idx :
+  cofix_arity (map (map_def f) mfix) idx = cofix_arity mfix idx.
+Proof.
+  unfold cofix_arity. rewrite nth_error_map.
+  now destruct (nth_error mfix idx).
+Qed.
+
+Lemma cofix_arity_cunfold mfix idx narg :
+  cofix_arity mfix idx = Some narg ->
+  ∑ fn, cunfold_cofix mfix idx = Some (narg, fn).
+Proof.
+  unfold cofix_arity, cunfold_cofix.
+  destruct (nth_error mfix idx); cbn; [|discriminate].
+  intros [= <-]. now eexists.
+Qed.
+
+Lemma cunfold_cofix_arity mfix idx narg fn :
+  cunfold_cofix mfix idx = Some (narg, fn) ->
+  cofix_arity mfix idx = Some narg.
+Proof.
+  unfold cofix_arity, cunfold_cofix.
+  destruct (nth_error mfix idx); cbn; [|discriminate].
+  now intros [= <- _].
+Qed.
+
+Lemma cofix_arity_Some mfix idx :
+  idx < #|mfix| -> ∑ narg, cofix_arity mfix idx = Some narg.
+Proof.
+  intros hlt. unfold cofix_arity.
+  destruct (nth_error mfix idx) eqn:hnth; [now eexists|].
+  apply nth_error_None in hnth. lia.
+Qed.
+
 Definition is_constructor_app_or_box t :=
   match t with
   | tBox => true

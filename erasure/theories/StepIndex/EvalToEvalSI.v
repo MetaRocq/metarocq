@@ -434,7 +434,9 @@ Proof.
     injection H1 as ?; subst.
     simple. assert (isLambda (dbody d')).
     { apply eval_SI_wellformed_val in h_eval1; simple; try easy.
-      now eapply h_eval1, nth_error_In. }
+      destruct h_eval1 as [[_ hb] _].
+      pose proof (hb _ (nth_error_In _ _ heq)) as hbd.
+      destruct (dbody d'); rewrite ?andb_false_r in hbd; simple; easy. }
     destruct d' as [? [] ?]; simple; try easy. (* TODO: use lemmas instead of destruct *)
     injection H2 as ? ?; subst.
     unshelve epose proof s1 (v'2 :: (map (λ x : nat, vRecClos mfix' x env) (List.rev (seq 0 #|mfix'|))) ++ env) _ t _ _ as (n3 & v'3 & heq3 & h_eval3); simple; try easy; subst.
@@ -561,6 +563,50 @@ Proof.
       assumption. }
     eapply eval_cofix_proj; simple; try easy.
   - rewrite H0 in h_prop_case. discriminate.
+  - unshelve epose proof tApp_substlg_eq _ _ _ _ _ heq as [[n heq'] | (u1 & u2 & heq')]; subst.
+    + destruct (nth_error Γ n) as [v' |] eqn:heq'; last first.
+      { now rewrite substlg_tRel_None in heq; simple; try discriminate. }
+      erewrite substlg_tRel in heq; simple; try easy; 
+        last now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In.
+      pose proof term_of_val_eq_App _ _ _ (eq_sym heq) as (mfix' & idx' & Γ' & args' & ?); subst.
+      simple.
+      induction args' as [|arg' args' _] using list_rect_rev; first discriminate.
+      rewrite map_app mkApps_app in heq; simple.
+      injection heq as ? ?; subst.
+      exists 0, (vCoFixClos mfix' idx' Γ' (args' ++ [arg'])); split; last now constructor.
+      simple. rewrite mkApps_app; simple. 
+      f_equal; last first.
+      { eapply eval_value, H0.
+        apply value_term_of_val; try easy.
+        apply nth_error_In, wf_Γ in heq'.
+        simple.
+        apply heq', in_app_iff.
+        solve[repeat constructor]. }
+      eapply eval_value, H.
+      lazymatch goal with
+      | h: nth_error _ _ = Some (vCoFixClos ?mfix' ?idx' ?Γ' (?args' ++ _))
+        |- EWcbvEval.value Σ ?v =>
+          replace v with (term_of_val (vCoFixClos mfix' idx' Γ' args'))
+      end; last now simple.
+      apply value_term_of_val; try easy.
+      apply nth_error_In, wf_Γ in heq'.
+      simple; repeat split; try easy.
+      * intros.
+        now apply heq', in_app_iff.
+      * destruct (cofix_arity mfix' idx') as [narg'|]; last easy.
+        destruct heq' as [_ heq']. apply Nat.leb_le in heq'.
+        apply Nat.leb_le. lia.
+    + simple. injection heq as ? ?; subst.
+      unshelve epose proof s _ _ _ eq_refl _ as (n1 & v'1 & heq1 & heval1); simple; try easy.
+      pose proof term_of_val_eq_cofix _ _ _ _ heq1 as (mfix' & env & args' & ?); subst.
+      simple.
+      apply mkApps_eq_inj in heq1 as [[= ?] ?]; subst; simple; try easy.
+      unshelve epose proof s0 _ _ _ eq_refl _ as (n2 & v'2 & heq2 & heval2); subst; simple; try easy.
+      eexists.
+      exists (vCoFixClos mfix' idx env (args' ++ [v'2])); split.
+      { simple. now rewrite mkApps_app. }
+      rewrite cofix_arity_map in H1.
+      eapply eval_cofix_app; tea.
   - apply tConst_substlg_eq in heq; subst.
     pose proof s [] eq_refl body eq_refl i as (n & v' & ? & h_eval'); subst.
     exists (n + 1), v'; split; first easy.
@@ -588,56 +634,6 @@ Proof.
       assumption. }
     now econstructor.
   - rewrite H0 in h_prop_case. discriminate.
-  - assert (∑ mfix idx args, f' = mkApps (tCoFix mfix idx) args) as (mfix & idx & args & heq').
-    { assert (EWcbvEval.value Σ f') as val_f' by now eapply eval_to_value.
-      inversion val_f'; subst; simple; try easy.
-      - inversion X; subst; last now simple.
-        destruct f'; simple; try easy.
-        do 2 eexists. now exists [].
-      - inversion H1; simple; try easy; last now destruct with_guarded_fix.
-        subst. eauto. }
-    subst.
-    clear H h_prop_case h_unguarded h_pars.
-    unshelve epose proof tApp_substlg_eq _ _ _ _ _ heq as [[n heq'] | (u1 & u2 & heq')]; subst.
-    + destruct (nth_error Γ n) as [v' |] eqn:heq'; last first.
-      { now rewrite substlg_tRel_None in heq; simple; try discriminate. }
-      erewrite substlg_tRel in heq; simple; try easy; 
-        last now eapply wellformed_closed, wellformed_val_wellformed, wf_Γ, nth_error_In.
-      pose proof term_of_val_eq_App _ _ _ (eq_sym heq) as (mfix' & idx' & Γ' & args' & ?); subst.
-      simple.
-      induction args' as [|arg' args' _] using list_rect_rev; first discriminate.
-      rewrite map_app mkApps_app in heq; simple.
-      injection heq as ? ?; subst.
-      exists 0, (vCoFixClos mfix' idx' Γ' (args' ++ [arg'])); split; last now constructor.
-      simple. rewrite mkApps_app; simple. 
-      f_equal; last first.
-      { eapply eval_value, H0.
-        apply value_term_of_val; try easy.
-        apply nth_error_In, wf_Γ in heq'.
-        simple.
-        apply heq', in_app_iff.
-        solve[repeat constructor]. }
-      eapply eval_value, ev.
-      lazymatch goal with
-      | h: nth_error _ _ = Some (vCoFixClos ?mfix' ?idx' ?Γ' (?args' ++ _))
-        |- EWcbvEval.value Σ ?v =>
-          replace v with (term_of_val (vCoFixClos mfix' idx' Γ' args'))
-      end; last now simple.
-      apply value_term_of_val; try easy.
-      apply nth_error_In, wf_Γ in heq'.
-      simple; repeat split; try easy.
-      intros.
-      now apply heq', in_app_iff.
-    + simple. injection heq as ? ?; subst.
-      unshelve epose proof s _ _ _ eq_refl _ as (n1 & v'1 & heq1 & heval1); simple; try easy.
-      pose proof term_of_val_eq_cofix _ _ _ _ heq1 as (mfix' & env & args' & ?); subst.
-      simple.
-      apply mkApps_eq_inj in heq1 as [[= ?] ?]; subst; simple; try easy.
-      unshelve epose proof s0 _ _ _ eq_refl _ as (n2 & v'2 & heq2 & heval2); subst; simple; try easy.
-      eexists.
-      exists (vCoFixClos mfix' idx env (args' ++ [v'2])); split.
-      { simple. now rewrite mkApps_app. }
-      now apply eval_cofix_app.
   - pose proof tConstruct_substlg_eq _ _ _ _ _ _ heq as [(n & ?) | (args'' & ?)]; subst; simple.
     + destruct (nth_error Γ n) as [?|] eqn:heq'; simple; last first.
       { erewrite substlg_tRel_None in heq; simple; easy. }
@@ -694,5 +690,33 @@ Proof.
     apply eval_SI_wellformed_val in h_eval1 as h; simple; try easy.
     unshelve epose proof s0 env _ _ eq_refl _ as (n2 & v'2 & heq2 & h_eval2); simple; try easy; subst.
     exists (n1 + n2 + 1), v'2; split; now econstructor.
+  - pose proof tForce_substlg_eq _ _ _ _ heq as (u' & heq'); subst; simple.
+    injection heq as ?; subst.
+    unshelve epose proof s Γ _ _ eq_refl _ as (n1 & v'1 & heq1 & h_eval1);
+      simple; try easy.
+    epose proof term_of_val_eq_fix _ _ _ heq1 as (mfix' & env & ?).
+    subst v'1.
+    assert (wellformed_val Σ (vRecClos mfix' idx env)) as hwf.
+    { eapply eval_SI_wellformed_val; last exact h_eval1; simple; easy. }
+    pose proof (wf_fix_clos_env _ _ _ _ hwf) as wf_fenv.
+    pose proof
+      (fun t => substlg_fix_clos_body _ _ _ _ t hCstrBlocks hApp hwf)
+      as hbody.
+    pose proof (fun d b hn hd => wf_fix_clos_lazy_body _ _ _ _ d b hwf hn hd)
+      as wf_body.
+    simple. injection heq1 as ?; subst mfix.
+    unfold EGlobalEnv.cunfold_fix in H0. rewrite nth_error_map in H0.
+    destruct (nth_error mfix' idx) as [d|] eqn:hnth; last discriminate.
+    cbn in H0. injection H0 as _ hb.
+    destruct hwf as [[_ hbs] _].
+    pose proof (hbs _ (nth_error_In _ _ hnth)) as hbd.
+    assert (∑ b0, dbody d = tLazy b0) as [b0 hd].
+    { destruct (dbody d); rewrite ?andb_false_r in hbd; simple; easy. }
+    rewrite hd in hb. simple. injection hb as <-.
+    specialize (wf_body _ _ eq_refl hd).
+    unshelve epose proof s0 (fix_env mfix' env ++ env) _ b0 _ _
+      as (n2 & v'2 & heq2 & h_eval2); simple; try easy; subst.
+    exists (n1 + n2 + 1), v'2; split; first reflexivity.
+    eapply eval_force_fix; tea.
   - now apply eval_eval_SI_atom.
 Qed.

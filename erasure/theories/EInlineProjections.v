@@ -163,7 +163,7 @@ Section optimize.
       rewrite IHt //=; len. rewrite ncstrs. apply Nat.ltb_lt.
       lia.
     - len. rtoProp; solve_all. solve_all.
-      now eapply isLambda_optimize. solve_all.
+      destruct (dbody x), has_tLazy_Force => //. solve_all.
     - len. rtoProp; repeat solve_all.
     - rewrite test_prim_map. rtoProp; intuition eauto; solve_all.
   Qed.
@@ -638,6 +638,14 @@ Proof.
     eapply optimize_cunfold_cofix; tea.
     exact IHev2. exact IHev3.
 
+  - move/andP => [] /andP[] _ clf cla.
+    eapply eval_wellformed in ev1 as wfv => //.
+    move/(wf_mkApps (has_app := has_app)): wfv => [] wfcof wfargs.
+    rewrite optimize_mkApps in IHev1 |- *.
+    simpl in *. eapply eval_cofix_value. auto. auto.
+    rewrite cofix_arity_map; tea.
+    now rewrite length_map.
+
   - rewrite /declared_constant in isdecl.
     move: (lookup_env_optimize c wfΣ).
     rewrite isdecl /= //.
@@ -704,27 +712,6 @@ Proof.
 
   - congruence.
 
-  - move/andP => [] /andP[] _ clf cla.
-    specialize (IHev1 clf). specialize (IHev2 cla).
-    eapply eval_app_cong; eauto.
-    eapply eval_to_value in ev1.
-    destruct ev1; simpl in *; eauto.
-    * depelim a0.
-      + destruct t => //; rewrite optimize_mkApps /=.
-      + now rewrite /= !orb_false_r orb_true_r in i.
-    * destruct with_guarded_fix.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps
-          !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
-        rtoProp; intuition auto;  destruct v => /= //.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        destruct v => /= //.
   - intros; rtoProp; intuition eauto.
     depelim X; repeat constructor.
     eapply All2_over_undep in a.
@@ -734,6 +721,13 @@ Proof.
   - move=> /andP[] haslf wf; econstructor; eauto. eapply IHev2.
     eapply eval_wellformed in ev1; tea => //.
     now move/andP: ev1.
+  - move=> /andP[] haslf wf.
+    eapply eval_wellformed in ev1 as wffix; tea => //.
+    have wfb : wellformed Σ 0 (tLazy b).
+    { eapply wellformed_cunfold_fix; tea. }
+    eapply optimize_cunfold_fix in e; tea.
+    eapply eval_force_fix; [eauto|exact e|].
+    eapply IHev2. now move/andP: wfb.
   - destruct t => //.
     all:constructor; eauto.
     cbn [atom optimize] in i |- *.
@@ -807,7 +801,8 @@ Proof.
     have [-> hargs'] := wellformed_projection_args wfΣ hl'.
     rtoProp; intuition auto.
     apply Nat.ltb_lt. len.
-  - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all. now eapply isLambda_optimize.
+  - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
+    destruct (dbody x), has_tLazy_Force => //.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
   - cbn. rtoProp; intuition eauto; solve_all_k 6.
 Qed.

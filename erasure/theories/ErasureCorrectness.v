@@ -48,6 +48,26 @@ Proof.
   eapply IHerases1.
 Qed.
 
+(** An erased term which is a cofixpoint application comes from a cofixpoint
+  application with the same number of arguments and the same arities. *)
+Lemma erases_isCoFixApp Σ Γ t t' :
+  Σ ;;; Γ |- t ⇝ℇ t' -> EAstUtils.isCoFixApp t' ->
+  exists mfix idx args mfix' args',
+    [/\ t = mkApps (tCoFix mfix idx) args,
+      t' = EAst.mkApps (E.tCoFix mfix' idx) args', #|args| = #|args'| &
+      ∥ All2 (fun d d' => rarg d = E.rarg d') mfix mfix' ∥].
+Proof.
+  induction 1; rewrite ?EAstUtils.isCoFixApp_tApp //=.
+  - intros h.
+    destruct (IHerases1 h) as (mfix & idx & args & mfix' & args' & hcof).
+    destruct hcof as [-> -> hl [hm]].
+    eexists mfix, idx, (args ++ [_]), mfix', (args' ++ [_]).
+    rewrite mkApps_app EAstUtils.mkApps_app !length_app /=.
+    split => //. lia.
+  - intros _. exists mfix, n, [], mfix', []. split => //.
+    sq. solve_all.
+Qed.
+
 Lemma erases_correct (wfl := default_wcbv_flags) Σ t t' v Σ' :
   wf_ext Σ ->
   welltyped Σ [] t ->
@@ -1129,10 +1149,44 @@ Proof.
         eapply wcbveval_red; eauto.
         eapply inversion_App in Hty as [na [A [B [Hf [Ha _]]]]]; eauto.
         eapply wcbveval_red; eauto.
-      * exists (E.tApp x2 x3).
-        split; [econstructor; eauto|].
-        constructor; eapply EWcbvEval.eval_app_cong; eauto.
-        eapply ssrbool.negbT.
+      * destruct (EAstUtils.isCoFixApp x2) eqn:Ecof.
+        { (* A cofixpoint application: typing bounds its arguments *)
+          eapply erases_isCoFixApp in Ecof as
+            (mfix & idx & args & mfix' & args' & hcof); tea.
+          destruct hcof as [-> -> hl [hm]].
+          exists (E.tApp (EAst.mkApps (E.tCoFix mfix' idx) args') x3).
+          split; [econstructor; eauto|].
+          assert (Hcof :
+            Σ ;;; [] |- mkApps (tCoFix mfix idx) (args ++ [a']) : T).
+          { rewrite mkApps_app. eapply subject_reduction. eauto.
+            exact Hty. eapply PCUICReduction.red_app.
+            eapply wcbveval_red; eauto.
+            eapply inversion_App in Hty as [na [A [B [Hf [Ha _]]]]]; eauto.
+            eapply wcbveval_red; eauto. }
+          destruct (nth_error mfix idx) as [d|] eqn:hnth.
+          2:{ eapply inversion_mkApps in Hcof as (? & hcof & _).
+              eapply inversion_CoFix in hcof as (? & ? & ? & _); eauto.
+              congruence. }
+          have hb := typing_cofix_args_bound (wfΣ := wfΣ.1) Hcof hnth.
+          destruct (All2_nth_error_Some _ _ hm hnth) as (d' & hnth' & hr).
+          constructor. eapply EWcbvEval.eval_cofix_value; tea.
+          - rewrite /EGlobalEnv.cofix_arity hnth' //.
+          - rewrite length_app /= in hb. lia. }
+        (* Otherwise the erased head is not a value: contradiction *)
+        exfalso.
+        assert (nh : EAst.isLambda x2 || EAstUtils.isFixApp x2 ||
+          EAstUtils.isBox x2 || EAstUtils.isConstructApp x2 ||
+          EAstUtils.isPrimApp x2 || EAstUtils.isLazyApp x2 ||
+          EAstUtils.isCoFixApp x2 = false).
+        2:{ have vx2 := EWcbvEval.eval_to_value _ _ H2.
+            clear -nh vx2. move: nh.
+            destruct vx2 as [t [t' at'|p pv]| |f args' vh nn av].
+            - destruct t' => //=; rewrite ?orb_true_r //.
+            - rewrite /= ?orb_true_r //.
+            - rewrite /= ?orb_true_r //.
+            - rewrite EAstUtils.isFixApp_mkApps EAstUtils.isCoFixApp_mkApps
+                EAstUtils.isConstructApp_mkApps.
+              destruct vh => //=; rewrite ?orb_true_r //. }
         repeat eapply orb_false_intro.
         -- destruct x2; try reflexivity.
           invs H1. invs i.
@@ -1156,6 +1210,7 @@ Proof.
            rtoProp; intuition auto.
            apply/negbTE. apply PCUICNormal.negb_is_true => isl.
            eapply erases_lazy in H1; tea.
+        -- exact Ecof.
     + exists EAst.tBox. split. 2: now constructor; econstructor.
       econstructor.
       eapply inversion_App in Hty as [na [A [B [Hf [Ha _]]]]]; auto.

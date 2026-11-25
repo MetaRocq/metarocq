@@ -343,6 +343,8 @@ Proof.
     apply erases_deps_mkApps; [|easy].
     now eapply erases_deps_cunfold_cofix.
   - depelim er.
+    now constructor.
+  - depelim er.
     now apply IHev, H2.
   - depelim er.
     intuition auto.
@@ -354,9 +356,9 @@ Proof.
   - depelim er.
     now constructor.
   - congruence.
-  - depelim er. now constructor.
   - depelim er; depelim X; constructor; eauto.
     eapply All2_over_undep in a0. solve_all.
+  - easy.
   - easy.
   - easy.
 Qed.

@@ -660,6 +660,9 @@ Proof.
     rewrite fold_left_eq global_deps_union !KernameSet.union_spec in H.
     rewrite fold_left_eq !global_deps_union !KernameSet.union_spec. intuition eauto.
     rewrite global_deps_union !KernameSet.union_spec in H0. intuition auto; try knset.
+  - intros kn hin. eapply IHeval1. cbn. eapply IHeval2 in hin.
+    eapply term_global_deps_cunfold_fix in e. cbn in e.
+    now setoid_rewrite e in hin.
 Qed.
 
 Lemma in_global_deps_fresh {efl : EWellformed.EEnvFlags} kn Σ deps :

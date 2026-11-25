@@ -670,12 +670,14 @@ Proof.
     unfold EWellformed.wf_fix_gen.
     rewrite -H0. move/andP: wfa => [] ->.
     move/forallb_All. cbn. intros wfa.
-    solve_all. destruct b.
+    solve_all.
+    { destruct b as [_ _ _ il _]. now rewrite il. }
+    destruct b as [_ _ _ _ er].
     destruct y ;  simpl in *; subst.
     unfold EAst.test_def; simpl; eauto.
     rewrite fix_context_length in b1.
     move/andP: b0 => //; eauto. move=> [] wft /andP[] isl wf; eauto.
-    eapply b1; tea. eapply b. now rewrite length_app fix_context_length.
+    eapply b1; tea. now rewrite length_app fix_context_length.
   - epose proof (All2_length X0).
     unfold EWellformed.wf_fix_gen.
     rewrite -H0. move/andP: wfa => [] ->.

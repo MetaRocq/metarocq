@@ -140,6 +140,17 @@ Section eval_mkApps_rect.
           → eval Σ (tProj p bv) res
           → P (tProj p bv) res
           → P (tProj p discr) res)
+    → (∀ (f : term) (mfix : mfixpoint term)
+         (idx : nat) (argsv : list term)
+         (a av : term) (narg : nat),
+        forall ev : eval Σ f (mkApps (tCoFix mfix idx) argsv),
+          P f (mkApps (tCoFix mfix idx) argsv)
+          → IH _ _ ev
+          → eval Σ a av
+          → P a av
+          → cofix_arity mfix idx = Some narg
+          → #|argsv| < narg
+          → P (tApp f a) (tApp (mkApps (tCoFix mfix idx) argsv) av))
     → (∀ (c : Kernames.kername) (decl : constant_body) (body : term),
           declared_constant Σ c decl
           → ∀ res : term,
@@ -232,22 +243,7 @@ Section eval_mkApps_rect.
                    (l : #|args| = cstr_arity mdecl cdecl)
                    (e1 : All2 (eval Σ) args args'),
                    All2 P args args'
-            → P (tConstruct ind c args) (tConstruct ind c args'))
-
-      → (∀ (f15 f' a a' : term) (e : eval Σ f15 f'),
-      P f15 f' -> IH _ _ e
-      → ∀ (i : ~~
-               (isLambda f'
-                ||
-                (if with_guarded_fix
-                 then isFixApp f'
-                 else isFix f') ||
-                isBox f' ||
-                isConstructApp f' || isPrimApp f' || isLazyApp f'))
-          (e0 : eval Σ a a'),
-          P a a'
-          → P (tApp f15 a)
-              (tApp f' a')) ->
+            → P (tConstruct ind c args) (tConstruct ind c args')) ->
 
    (forall p p' (ev : eval_primitive (eval Σ) p p'),
       eval_primitive_ind _ (fun x y _ => P x y) _ _ ev ->
@@ -255,11 +251,16 @@ Section eval_mkApps_rect.
 
    (forall t t' v (ev1 : eval Σ t (tLazy t')) (ev2 : eval Σ t' v),
       P t (tLazy t') -> P t' v ->
+      P (tForce t) v) ->
+
+   (forall t mfix idx narg b v (ev1 : eval Σ t (tFix mfix idx))
+      (e : cunfold_fix mfix idx = Some (narg, tLazy b)) (ev2 : eval Σ b v),
+      P t (tFix mfix idx) -> P b v ->
       P (tForce t) v)
     → (∀ t : term, atom Σ t → P t t)
     → ∀ t t0 : term, eval Σ t t0 → P t t0.
 Proof using Type.
-  intros ??????????????????????? H.
+  intros ???????????????????????? H.
   pose proof (p := @Fix_F { t : _ & { t0 : _ & eval Σ t t0 }}).
   specialize (p (MR lt (fun x => eval_depth x.π2.π2))).
   set(foo := existT _ t (existT _ t0 H) :  { t : _ & { t0 : _ & eval Σ t t0 }}).
@@ -287,7 +288,7 @@ Proof using Type.
   | [ H : _ |- _ ] =>
     unshelve eapply H; try match goal with |- eval _ _ _ => tea end; tea; unfold IH; intros; unshelve eapply IH'; tea; cbn; try lia
   end].
-  - eapply X15; tea; auto.
+  - eapply X16; tea; auto.
     clear -a IH'. induction a; constructor; eauto.
     eapply (IH' _ _ r). cbn. lia. apply IHa.
     intros. eapply (IH' _ _ H). cbn. lia.

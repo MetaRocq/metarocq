@@ -788,6 +788,25 @@ Proof.
   all:rewrite !isLazyApp_mkApps //.
 Qed.
 
+Lemma isLazy_mkApps_nonnil f l : l <> [] -> isLazy (mkApps f l) = false.
+Proof.
+  destruct l using rev_case => // _. now rewrite mkApps_app.
+Qed.
+
+Lemma isLazy_mkApps_Construct ind c block_args l :
+  isLazy (mkApps (tConstruct ind c block_args) l) = false.
+Proof.
+  destruct l using rev_case => //. now rewrite mkApps_app.
+Qed.
+
+Lemma strip_isLazy Σ f :
+  isLazy f = isLazy (strip Σ f).
+Proof.
+  funelim (strip Σ f); cbn -[strip]; (try simp_strip) => //.
+  rewrite !isLazy_mkApps_nonnil //; try apply map_nil => //.
+  all:rewrite !isLazy_mkApps_Construct //.
+Qed.
+
 Lemma lookup_inductive_pars_is_prop_and_pars {Σ ind b pars} :
   inductive_isprop_and_pars Σ ind = Some (b, pars) ->
   lookup_inductive_pars Σ (inductive_mind ind) = Some pars.
@@ -1005,6 +1024,15 @@ Proof.
     { move: i10. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
       now simp isEtaExp. }
 
+  - rewrite strip_tApp //.
+    rewrite strip_tApp //.
+    rewrite strip_mkApps //. simpl.
+    simp_strip. set (mfix' := map _ _). simpl.
+    rewrite strip_mkApps // /= in e0. simp_strip in e0.
+    eapply eval_cofix_value; tea.
+    rewrite (cofix_arity_map (strip Σ)); tea.
+    now rewrite length_map.
+
   - econstructor. red in H |- *.
     rewrite lookup_env_strip H //.
     now rewrite /strip_constant_decl H0.
@@ -1020,12 +1048,6 @@ Proof.
 
   - simp_strip. eapply eval_proj_prop => //.
     move: (is_propositional_strip Σ p.(proj_ind)); now rewrite H3.
-
-  - rewrite !strip_tApp //.
-    eapply eval_app_cong; tea.
-    move: H1. eapply contraNN.
-    rewrite -strip_isLambda -strip_isConstructApp -strip_isFixApp -strip_isBox -strip_isPrimApp
-      -strip_isLazyApp // -strip_isFix //.
 
   - rewrite !strip_mkApps // /=.
     rewrite (lookup_constructor_lookup_inductive_pars H).
@@ -1044,6 +1066,14 @@ Proof.
     now destruct a0.
 
   - simp_strip. simp_strip in e0. econstructor; tea.
+
+  - simp_strip. simp_strip in e0.
+    eapply eval_force_fix; tea.
+    move: (@strip_cunfold_fix Σ mfix idx narg (tLazy b)).
+    simp_strip. apply; tea.
+    { change (wellformed Σ 0 (tFix mfix idx) = true) in i4.
+      move/wellformed_closed: i4; eapply closed_fix_subst => //. }
+    { simp isEtaExp in i6. }
 
   - destruct t => //.
     all:constructor; eauto. simp strip.
@@ -1112,7 +1142,7 @@ Proof.
     destruct nth_error => //.
     all: eapply H; auto.
   - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto. toAll; solve_all.
-    now rewrite -strip_isLambda. toAll; solve_all.
+    now rewrite -strip_isLambda -strip_isLazy. toAll; solve_all.
   - primProp. rtoProp; intuition eauto; solve_all_k 6.
   - move:H1; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
     all:toAll; solve_all.

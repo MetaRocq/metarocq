@@ -1372,7 +1372,10 @@ Proof.
     depelim hd.
     * now cbn in e.
     * constructor 3. rewrite length_map; simp implement_box.
-      constructor. now eapply map_nil.
+      { eapply value_head_cofix; [|exact l].
+        move: e; rewrite /cofix_arity nth_error_map.
+        destruct nth_error => //=. }
+      now eapply map_nil.
       now eapply All_map.
     * now cbn in y.
 Qed.
@@ -1466,7 +1469,10 @@ Proof.
     depelim hd.
     * now cbn in e.
     * constructor 3. rewrite length_map; simp implement_lazy_force.
-      constructor. now eapply map_nil.
+      { eapply value_head_cofix; [|exact l].
+        move: e; rewrite /cofix_arity nth_error_map.
+        destruct nth_error => //=. }
+      now eapply map_nil.
       now eapply All_map.
     * now cbn in y.
 Qed.

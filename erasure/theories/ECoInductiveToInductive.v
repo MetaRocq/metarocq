@@ -275,8 +275,7 @@ Proof.
   - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
   - rewrite is_box_tApp. move/IHev1 => ?. subst => //.
   - rewrite is_box_tApp. move/IHev1 => ?. subst. solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. cbn in i.
-    destruct EWcbvEval.with_guarded_fix => //.
+  - rewrite is_box_tApp. move/IHev1 => ?. subst. solve_discr.
   - destruct t => //.
 Qed.
 
@@ -677,6 +676,7 @@ Proof.
     len. apply trust_cofix*)
 
 
+  - apply trust_cofix.
   - apply trust_cofix.
   - apply trust_cofix.
   - apply trust_cofix.

@@ -203,6 +203,13 @@ Proof.
   now destruct t.
 Qed.
 
+Lemma isLazy_inline t inlining :
+  EAstUtils.isLazy t ->
+  EAstUtils.isLazy (inline inlining t).
+Proof.
+  now destruct t.
+Qed.
+
 Lemma is_nil_map {A B : Type} (f : A -> B) l :
   is_nil (map f l) = is_nil l.
 Proof.
@@ -658,7 +665,10 @@ Proof.
     intros. apply X; try easy.
     wf_mon_inlining.
   - repeat split; try easy.
-    + intros. now apply isLambda_inline.
+    + intros. destruct H0 as [[_ hl] _].
+      move: (hl _ H1) => /orP[hl'|/andP[-> hl']].
+      * now rewrite isLambda_inline.
+      * now rewrite isLazy_inline // orb_true_r.
     + intros. apply X; try easy.
       wf_mon_inlining.
   - repeat split; try easy.
@@ -1071,39 +1081,6 @@ Hint Rewrite inline_isLambda : inlining_rw_hints.
 
 
 
-Lemma inline_isFix (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isFix (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isFix v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      (negb_involutive_reverse (EAstUtils.isFix _))
-      EAstUtils.nisFix_mkApps //
-      (negb_involutive_reverse (EAstUtils.isFix _))
-      EAstUtils.nisFix_mkApps //
-    .
-Qed.
-
-Lemma inline_isFixApp (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isFixApp (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isFixApp v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      !EAstUtils.isFixApp_mkApps
-      /EAstUtils.isFixApp
-      !EAstUtils.head_tApp.
-    inversion H; reflexivity.
-Qed.
-
 Lemma inline_isFixApp_imp inlining ctx t :
   EAstUtils.isFixApp t ->
   EAstUtils.isFixApp (inline (inline_env inlining ctx).2 t).
@@ -1123,73 +1100,8 @@ Qed.
 
 
 
-Lemma inline_isBox (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isBox (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isBox v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      (negb_involutive_reverse (EAstUtils.isBox _))
-      isBox_mkApps //
-      (negb_involutive_reverse (EAstUtils.isBox _))
-      isBox_mkApps //
-    .
-Qed.
 
 
-Lemma inline_isConstructApp (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isConstructApp (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isConstructApp v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      !EAstUtils.isConstructApp_mkApps
-      /EAstUtils.isConstructApp
-      !EAstUtils.head_tApp.
-    inversion H; reflexivity.
-Qed.
-
-
-Lemma inline_isPrimApp (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isPrimApp (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isPrimApp v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      !EAstUtils.isPrimApp_mkApps
-      /EAstUtils.isPrimApp
-      !EAstUtils.head_tApp.
-    inversion H; reflexivity.
-Qed.
-
-
-Lemma inline_isLazyApp (wfl : WcbvFlags) inlining ctx v :
-  value ctx v ->
-  EAstUtils.isLazyApp (inline (inline_env inlining ctx).2 v) =
-  EAstUtils.isLazyApp v.
-Proof.
-  move: v.
-  apply value_values_ind; try easy.
-  - intros [] atom_v; easy.
-  - intros f [|? ?] ? ? ? ?; simple; try easy.
-    rewrite
-      !EAstUtils.isLazyApp_mkApps
-      /EAstUtils.isLazyApp
-      !EAstUtils.head_tApp.
-    inversion H; reflexivity.
-Qed.
 
 
 
@@ -1321,6 +1233,9 @@ Proof.
     simple.
     eapply eval_cofix_proj; subst Σ'; simple; try easy.
     erewrite inline_cunfold_cofix; now simple.
+  - destruct_IHs; simple.
+    eapply eval_cofix_value; subst Σ'; simple; try easy.
+    now rewrite cofix_arity_map.
   - destruct_IHs.
     { rewrite /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
@@ -1363,19 +1278,6 @@ Proof.
     apply All2_over_undep in iha.
     unshelve eapply (All2_apply_dep_arrow _ iha).
     now simple.
-  - destruct_IHs; simple.
-    apply eval_app_cong; try easy.
-    apply eval_to_value in eval_e1.
-    unfold inls.
-    now rewrite
-      inline_isLambda //
-      inline_isFixApp //
-      inline_isFix //
-      inline_isBox //
-      inline_isConstructApp //
-      inline_isPrimApp //
-      inline_isLazyApp
-    .
   - inversion X; subst; try solve[repeat constructor]; simple.
     rewrite /test_prim /= /test_array_model /= in wf_e.
     simple.
@@ -1389,6 +1291,14 @@ Proof.
     now simple.
   - destruct_IHs; simple.
     eapply eval_force; subst Σ'; now simple.
+  - destruct_IHs.
+    { simple. destruct wf_e as [hl wft].
+      eapply eval_wellformed in eval_e1; [|easy..].
+      move: (wellformed_cunfold_fix _ _ _ _ eval_e1 e).
+      now move=> /= /andP[]. }
+    simple.
+    eapply eval_force_fix; subst Σ'; simple; try easy.
+    erewrite inline_cunfold_fix; now simple.
   - destruct_IHs; simple.
     eapply eval_atom; subst Σ'; simple.
     now apply inline_atom.

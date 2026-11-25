@@ -1462,6 +1462,9 @@ Proof.
     * move/andP: H7; PCUICAstUtils.solve_all.
   - cbn -[lookup_projection] in *. apply/andP; split; eauto.
     now rewrite (declared_projection_lookup H0).
+  - cbn in *; unfold wf_fix in *; rtoProp; intuition eauto;
+      PCUICAstUtils.solve_all.
+    apply/orP; now left.
   - cbn in H, H0 |- *. rtoProp; intuition eauto. solve_all_k 7.
 Qed.
 

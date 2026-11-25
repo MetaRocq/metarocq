@@ -283,6 +283,20 @@ Lemma eval_preserve_mkApps_ind :
                        → P (tProj p bv) res
                          → P'
                              (tProj p discr) res)
+                → (∀ (f : term) (mfix : mfixpoint term)
+                     (idx : nat) (argsv : list term)
+                     (a av : term) (narg : nat),
+                     eval Σ f (mkApps (tCoFix mfix idx) argsv)
+                     → P f (mkApps (tCoFix mfix idx) argsv)
+                       → eval Σ a av
+                         → P a av
+                           → cofix_arity mfix idx = Some narg
+                             → #|argsv| < narg
+                             -> isEtaExp Σ
+                                  (tApp (mkApps (tCoFix mfix idx) argsv) av)
+                               → P' (tApp f a)
+                                   (tApp
+                                      (mkApps (tCoFix mfix idx) argsv) av))
                   → (∀ (c : kername) (decl : constant_body)
                        (body : term),
                        declared_constant Σ c decl
@@ -308,15 +322,6 @@ Lemma eval_preserve_mkApps_ind :
                              → P discr tBox
                                → inductive_isprop_and_pars Σ p.(proj_ind) = Some (true, p.(proj_npars))
                                  → P' (tProj p discr) tBox) →
-  (∀ (f11 f' : term) a a',
-     forall (ev : eval Σ f11 f'),
-     P f11 f' ->
-     (forall t u (ev' : eval Σ t u), eval_depth ev' <= eval_depth ev -> Q 0 t -> isEtaExp Σ t -> P t u) →
-     ~~ (isLambda f' || (if with_guarded_fix then isFixApp f' else isFix f') || isBox f' || isConstructApp f' ||
-      isPrimApp f' || isLazyApp f') →
-     eval Σ a a' → P a a' →
-     isEtaExp Σ (tApp f' a') ->
-     P' (tApp f11 a) (tApp f' a')) →
   (∀ ind i mdecl idecl cdecl args args',
     lookup_constructor Σ ind i = Some (mdecl, idecl, cdecl) ->
     #|args| = cstr_arity mdecl cdecl ->
@@ -336,6 +341,13 @@ Lemma eval_preserve_mkApps_ind :
     P t' v ->
     P' (tForce t) v) ->
 
+  (forall t mfix idx narg b v, eval Σ t (tFix mfix idx) ->
+    cunfold_fix mfix idx = Some (narg, tLazy b) ->
+    eval Σ b v ->
+    P t (tFix mfix idx) ->
+    P b v ->
+    P' (tForce t) v) ->
+
   (∀ t : term, atom Σ t → Q 0 t -> isEtaExp Σ t -> P' t t) ->
   ∀ (t t0 : term), Q 0 t -> isEtaExp Σ t -> eval Σ t t0 → P' t t0.
 Proof.
@@ -343,10 +355,10 @@ Proof.
   assert (qfixs: Qfixs Q) by tc.
   assert (qcofixs: Qcofixs Q) by tc.
   intros.
-  enough (P' t t0 × isEtaExp Σ t0). apply X18.
+  enough (P' t t0 × isEtaExp Σ t0). apply X19.
   pose proof (p := @Fix_F { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   specialize (p (MR lt (fun x => eval_depth x.π2.π2.π2))).
-  set(foo := existT _ t (existT _ t0 (existT _ X17 H0)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
+  set(foo := existT _ t (existT _ t0 (existT _ X18 H0)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   move: H.
   change t with (projT1 foo).
   change t0 with (projT1 (projT2 foo)).
@@ -358,9 +370,9 @@ Proof.
   forward p.
   2:{ apply p. apply measure_wf, lt_wf. }
   clear p.
-  rename X17 into qt. rename X13 into Xcappexp.
+  rename X18 into qt. rename X13 into Xcappexp.
   rename X14 into Qprim. rename X15 into Qforce.
-  rename X16 into Qatom.
+  rename X16 into Qforcefix. rename X17 into Qatom.
   clear t t0 qt H0.
   intros (t & t0 & qt & ev).
   intros IH.
@@ -591,6 +603,23 @@ Proof.
     { now simp_eta. }
     split. eapply X8; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta qa.
+  - move/isEtaExp_tApp.
+    destruct decompose_app as [hd args] eqn:da.
+    destruct (construct_viewc hd) eqn:cv.
+    * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs.
+      destruct block_args; inv bargs.
+      clear IH; rewrite ha in ev1. exfalso.
+      eapply eval_mkApps_Construct_inv in ev1 as [ex []]. solve_discr. auto.
+    * move=> /and4P [] etat0 etaargs etaa etat.
+      assert (isEtaExp Σ (tApp (mkApps (tCoFix mfix idx) argsv) av)).
+      { rewrite -[tApp _ _](mkApps_app _ _ [av]).
+        rewrite isEtaExp_mkApps_napp // /=.
+        assert (isEtaExp Σ (mkApps (tCoFix mfix idx) argsv)) by iheta q.
+        assert (isEtaExp Σ av) by iheta q0.
+        rewrite isEtaExp_mkApps_napp // /= in H.
+        move/andP: H => [] -> /=.
+        rewrite forallb_app /= H0 => -> /= //. }
+      split => //. eapply X9; tea; (apply and_assum; [ih|hp' P'Q]).
   - move => _.
     assert (Q 0 body).
     { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }
@@ -598,7 +627,7 @@ Proof.
     { eapply isEtaExp_lookup in etaΣ as etad; tea.
       unfold isEtaExp_decl, isEtaExp_constant_decl in etad.
       now rewrite e /= in etad. }
-    split. eapply X9; tea; (apply and_assum; [ih|hp' P'Q]).
+    split. eapply X10; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta X13.
   - simp_eta => etadiscr.
     assert (Q 0 a).
@@ -612,11 +641,11 @@ Proof.
       rewrite isEtaExp_mkApps_napp // /=.
       move=> /andP[] /andP[] etaapp etaargs.
       eapply nth_error_forallb in etaargs; tea. eauto. }
-    split. eapply X10; tea; (apply and_assum; [ih|hp' P'Q]).
+    split. eapply X11; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta X13.
   - congruence.
   - simp_eta => etadiscr.
-    split. unshelve eapply X11; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
+    split. unshelve eapply X12; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
     now idtac.
   - move/isEtaExp_tApp.
     rename args into cargs.
@@ -689,25 +718,6 @@ Proof.
       rewrite /lookup_constructor_pars_args e0 /=.
       move => /andP[] /Nat.leb_le. clear IH. move: l; rewrite /cstr_arity. lia.
   - congruence.
-  - move/isEtaExp_tApp.
-    destruct decompose_app as [hd args] eqn:da.
-    destruct (construct_viewc hd) eqn:cv.
-    * move=> [] argsn [] ha [] ht /andP[] /andP[] etaind etaargs bargs. destruct block_args; inv bargs.
-      assert (eval_depth ev1 = eval_depth ev1) by reflexivity.
-      set (ev1' := ev1). change ev1 with ev1' in H at 1. clearbody ev1'. move: H.
-      subst f. exfalso.
-      eapply eval_mkApps_Construct_inv in ev1' as [? [hf' hargs']]. subst f'.
-      clear IH; move: i; rewrite !negb_or isConstructApp_mkApps /= !andb_false_r //.  auto.
-    * move=> /and4P [] etat0 etaargs etaa etat.
-      split. eapply (X12 _ _ _ _ ev1); tea.
-      1,3:(apply and_assum; [ih|hp' P'Q]).
-      intros. apply and_assum; [ih|hp' P'Q].
-      pose proof (decompose_app_inv da). clear cv.
-      eapply (isEtaExp_mkApps_intro _ _ [a']) => //.
-      iheta q.
-      eapply All_tip.1. iheta q0.
-      eapply (isEtaExp_mkApps_intro _ _ [a']) => //. iheta q.
-      eapply All_tip.1. iheta q0.
   - intros ise. simp_eta in ise.
     depelim e.
     * split; simp_eta. unshelve eapply Qprim. constructor. constructor.
@@ -752,6 +762,26 @@ Proof.
       eapply and_assum. eapply (IH _ _ q0 ev2); tea. now cbn; lia.
       now simp_eta in i1.
     + eapply (IH _ _ q0 ev2) => //. now cbn; lia.
+  - simp_eta => ise.
+    eapply Qpres in qt. depelim qt => //.
+    assert (qfix : Q 0 (tFix mfix idx)).
+    { eapply P'Q; tea. eapply (IH _ _ q ev1); tea. now cbn; lia. }
+    assert (etafix : isEtaExp Σ (tFix mfix idx)).
+    { eapply (IH _ _ q ev1); tea. now cbn; lia. }
+    assert (qb : Q 0 b).
+    { assert (ql : Q 0 (tLazy b)) by (eapply (qfixs mfix idx); tea).
+      eapply qpres in ql. now depelim ql. }
+    assert (etab : isEtaExp Σ b).
+    { assert (etal : isEtaExp Σ (tLazy b)).
+      { eapply isEtaExp_cunfold_fix. now simp_eta in etafix. exact e. }
+      now simp_eta in etal. }
+    split.
+    + eapply (Qforcefix _ _ _ _ _ _ ev1 e ev2).
+      eapply and_assum. eapply (IH _ _ q ev1); tea. now cbn; lia.
+      intros []. split => //.
+      eapply and_assum. eapply (IH _ _ qb ev2); tea. now cbn; lia.
+      intros []. split => //. split => //. eapply P'Q; tea.
+    + eapply (IH _ _ qb ev2) => //. now cbn; lia.
   - intros ise. split => //. eapply Qatom; tea.
 Qed.
 

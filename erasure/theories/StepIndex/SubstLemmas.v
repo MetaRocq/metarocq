@@ -133,7 +133,8 @@ Proof.
   - unfold map_def, test_def, wf_fix in *; simple.
     pose proof wellformed_up h_wf_t. 
     repeat split; try easy.
-    { intros x hIn. now apply isLambda_csubst. }
+    { intros x hIn. destruct h_wf_u as [[_ hb] _]. specialize (hb x hIn).
+      destruct (dbody x), has_tLazy_Force; cbn in *; easy. }
     intros x hIn.
     now eapply X; simple.
   - unfold map_def, wf_fix, test_def in *; simple.

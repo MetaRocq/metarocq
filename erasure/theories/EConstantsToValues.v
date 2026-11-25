@@ -110,6 +110,13 @@ Proof.
 Qed.
 Hint Rewrite @isLambda_consts_to_values : consts_to_values_rw_hints.
 
+Lemma isLazy_consts_to_values (d : def term) :
+  EAstUtils.isLazy (consts_to_values (dbody d)) = EAstUtils.isLazy (dbody d).
+Proof.
+  by destruct d as [? [] ?].
+Qed.
+Hint Rewrite @isLazy_consts_to_values : consts_to_values_rw_hints.
+
 Lemma lookup_env_consts_to_values ctx name :
   lookup_env (consts_to_values_env ctx) name = option_map (consts_to_values_global_decl) (lookup_env ctx name).
 Proof.
@@ -310,6 +317,7 @@ Proof.
   now destruct (nth_error mfix idx); unfold on_snd; simple.
 Qed.
 Hint Rewrite consts_to_values_cunfold_cofix : consts_to_values_rw_hints.
+Hint Rewrite cofix_arity_map : consts_to_values_rw_hints.
 
 
 Lemma consts_to_values_ind_isprop_and_pars ctx ind :
@@ -597,6 +605,10 @@ Proof.
     apply All2_over_undep in X0.
     unshelve eapply (All2_apply_dep_arrow _ X0).
     now simple.
+  - move: wf_e => /andP[] hl wft.
+    eapply eval_wellformed in eval_e1; tea.
+    move: (wellformed_cunfold_fix _ _ _ _ eval_e1 e).
+    now move=> /= /andP[].
 Qed.
 
 

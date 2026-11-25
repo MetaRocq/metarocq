@@ -1258,6 +1258,12 @@ Proof.
     rewrite optimize_mkApps in IHev2. exact IHev2.
     exact IHev3.
 
+  - move/andP => [] /andP[] hasapp clf cla.
+    rewrite optimize_mkApps in IHev1 |- *.
+    simpl in *. eapply eval_cofix_value. auto. auto.
+    rewrite cofix_arity_map; tea.
+    now rewrite length_map.
+
   - rewrite /declared_constant in isdecl.
     rewrite /lookup_constant. rewrite isdecl /= => _.
     destruct decl; cbn in e; subst cst_body.
@@ -1304,27 +1310,6 @@ Proof.
 
   - congruence.
 
-  - move/andP => [] /andP[] hasapp clf cla.
-    specialize (IHev1 clf). specialize (IHev2 cla).
-    eapply eval_app_cong; eauto.
-    eapply eval_to_value in ev1.
-    destruct ev1; simpl in *; eauto.
-    * depelim a0.
-      + destruct t => //; rewrite optimize_mkApps /=.
-      + now rewrite /= !orb_false_r orb_true_r in i.
-    * destruct with_guarded_fix.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps
-          !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
-        rtoProp; intuition auto;  destruct v => /= //.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        destruct v => /= //.
   - intros; rtoProp; intuition eauto.
     depelim X; repeat constructor.
     eapply All2_over_undep in a.
@@ -1333,6 +1318,12 @@ Proof.
     primProp; depelim H0; intuition eauto.
   - move=> /andP[] haslazy wf. econstructor; eauto. eapply IHev2.
     eapply eval_wellformed in ev1; tea. move/andP: ev1 => []; tea => //.
+  - move=> /andP[] haslazy wf.
+    eapply eval_wellformed in ev1; tea => //.
+    have wfb := wellformed_cunfold_fix _ _ _ _ ev1 e.
+    move/andP: wfb => [] _ wfb.
+    eapply eval_force_fix; eauto.
+    unshelve (eapply (optimize_cunfold_fix _ _ wfm) in e; tea); tea.
   - destruct t => //.
     all:constructor; eauto.
     cbn [atom reorder] in i |- *.
