@@ -1087,6 +1087,50 @@ Proof.
     apply pr. apply pr'.
 Qed.
 
+From MetaRocq.Erasure Require EPushForce.
+
+(** Pushing forces inside terms, cancelling them against thunks. Values are
+    observed up to [EPushForce.frel], which only differs from equality under
+    a force: first-order values are observed unchanged
+    ([EPushForce.frel_firstorder_evalue_block]). *)
+Program Definition push_force_transformation (efl : EEnvFlags)
+  (wfl : WcbvFlags) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_eprogram wfl) :=
+  {| name := "pushing forces inside terms";
+    transform p _ := EPushForce.force_opt_program p ;
+    pre p := wf_eprogram efl p ;
+    post p := wf_eprogram efl p ;
+    obseq p hp p' v v' := ∥ EPushForce.frel v v' ∥ |}.
+
+Next Obligation.
+  move=> efl wfl p wf. now apply EPushForce.force_opt_program_wf.
+Qed.
+Next Obligation.
+  red. move=> efl wfl [Σ t] /= v wf [ev].
+  destruct (EPushForce.force_opt_correct Σ t v ev) as [v' [ev' hv]].
+  exists v'. split; now constructor.
+Qed.
+
+#[global]
+Instance push_force_transformation_ext (efl : EEnvFlags) (wfl : WcbvFlags) :
+  TransformExt.t (push_force_transformation efl wfl)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Proof.
+  red. intros p p' pr pr' ext. rewrite /transform /=.
+  now apply EPushForce.force_opt_env_extends.
+Qed.
+
+#[global]
+Instance push_force_transformation_ext' (efl : EEnvFlags) (wfl : WcbvFlags) :
+  TransformExt.t (push_force_transformation efl wfl)
+    extends_eprogram extends_eprogram.
+Proof.
+  red. intros p p' pr pr' [ext eq]. rewrite /transform /=. split.
+  - now apply EPushForce.force_opt_env_extends.
+  - cbn. now rewrite eq.
+Qed.
+
 From MetaRocq.Erasure Require Import EReorderCstrs.
 
 Definition eval_eprogram_mapping (wfl : WcbvFlags) (p : inductives_mapping * eprogram) t :=

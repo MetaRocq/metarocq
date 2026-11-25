@@ -80,6 +80,7 @@ EOptimizePropDiscr
 EInlineProjections
 EConstructorsAsBlocks
 ECoInductiveToInductive
+EPushForce
 EReorderCstrs
 ERemapInductives
 EUnboxing

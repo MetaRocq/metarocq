@@ -1786,12 +1786,50 @@ Proof.
   - intros [Σ t] pr; cbn. now apply isFunction_trans.
 Qed.
 
+Lemma force_opt_mkApps f l :
+  EPushForce.force_opt (EAst.mkApps f l) =
+  EAst.mkApps (EPushForce.force_opt f) (List.map EPushForce.force_opt l).
+Proof.
+  induction l using rev_ind; simpl; auto.
+  now rewrite mkApps_app /= IHl map_app /= mkApps_app /=.
+Qed.
+
+Lemma isFunction_force_opt t :
+  isFunction t -> isFunction (EPushForce.force_opt t).
+Proof.
+  have napp := decompose_app_notApp _ _ _ (decompose_app_head_spine t).
+  rewrite -(mkApps_head_spine t). move: napp.
+  generalize (head t) (spine t) => f l napp.
+  rewrite force_opt_mkApps.
+  rewrite /isFunction /isFixApp !head_mkApps.
+  rewrite !OptimizeCorrectness.isLambda_mkApps.
+  destruct f => //=; rewrite ?length_map //.
+Qed.
+
+#[global] Instance push_force_transformation_pres_app
+  {efl : EEnvFlags} {wfl : WcbvFlags} :
+  ETransformPresAppLam.t (push_force_transformation efl wfl)
+    (fun _ => True) (fun _ => True).
+Proof.
+  split => //.
+  - now intros [] [] pr pr'; cbn; intros <-.
+  - intros Σ t u pr _.
+    unshelve eexists.
+    { destruct pr as [? ?]; split; cbn in * => //.
+      now move/andP: H0 => [] /andP[]. }
+    unshelve eexists.
+    { destruct pr as [? ?]; split; cbn in * => //.
+      now move/andP: H0 => [] /andP[]. }
+    cbn. reflexivity.
+  - intros [Σ t] pr; cbn. now apply isFunction_force_opt.
+Qed.
+
 #[local] Instance lambdabox_pres_app econf :
   ETransformPresAppLam.t (verified_lambdabox_pipeline econf)
     is_eta_fix_app_map (fun _ => True).
 Proof.
   unfold verified_lambdabox_pipeline.
-  do 2 (unshelve eapply ETransformPresAppLam.compose; [shelve| |tc]).
+  do 3 (unshelve eapply ETransformPresAppLam.compose; [shelve| |tc]).
   tc.
 Qed.
 
@@ -1928,15 +1966,19 @@ Proof.
   depelim vh => //. now rewrite /isFunction head_mkApps /= orb_true_r.
 Qed.
 
-(** The translation of cofixpoints relates function values to function
-    values: an unsaturated applied cofixpoint evaluates to a lambda. *)
-Lemma crel_value_isFunction Σ Σ' w v' :
-  ECoInductiveToInductive.crel (wfl := final_wcbv_flags) Σ Σ' w v' ->
-  value (wfl := final_wcbv_flags) Σ' v' ->
-  isFunctionS w -> isFunction v'.
+(** The translation of cofixpoints followed by the pushing of forces
+    relates function values to function values: an unsaturated applied
+    cofixpoint evaluates to a lambda. *)
+Lemma crel_frel_value_isFunction Σ Σ' Σ'' w x v' :
+  ECoInductiveToInductive.crel (wfl := final_wcbv_flags) Σ Σ' w x ->
+  value (wfl := final_wcbv_flags) Σ'' v' ->
+  isFunctionS w -> EPushForce.frel x v' -> isFunction v'.
 Proof.
   intros h hv. depelim h => //.
-  - intros _. now apply (value_app_isFunction Σ').
+  - intros _ hfr. now depelim hfr.
+  - intros _ hfr. depelim hfr. now apply (value_app_isFunction Σ'').
+  - intros _ hfr. now depelim hfr.
+  - intros _ hfr. now depelim hfr.
   - destruct c as [mfix mfix0 idx d0 args args' -> -> hall hnth hne hle
       _ _ _ _ hargs].
     rewrite /isFunctionS /cofix_unsaturated decompose_app_mkApps //=.
@@ -1953,7 +1995,8 @@ Proof.
       ltac:(lia).
     rewrite -hl.
     destruct (EAst.rarg d0 - #|args|) eqn:hd; [lia|].
-    cbn. now destruct ECoInductiveToInductive.beta_apps.
+    cbn. destruct ECoInductiveToInductive.beta_apps => //= _ hfr.
+    now depelim hfr.
 Qed.
 
 (** The observation of a function value by the whole pipeline is a
@@ -1970,13 +2013,13 @@ Proof.
   destruct Σt as [Σ t], Σ'v as [Σ' v]. cbn [fst snd] in *.
   move: obs. unfold verified_lambdabox_pipeline.
   cbn [obseq compose rebuild_wf_env_transform
-    coinductive_to_inductive_transformation].
+    coinductive_to_inductive_transformation push_force_transformation].
   unfold run, time.
   intros obs. decompose [ex and prod] obs. clear obs. subst.
-  destruct b as [b].
+  destruct b as [b], b0 as [b0].
   eapply (obseq_lambdabox_blocks (Σ, t) (Σ', v) econf pr pr') in a => //.
-  subst x.
-  eapply crel_value_isFunction; [exact b|exact hv|].
+  subst x0.
+  eapply crel_frel_value_isFunction; [exact b0|exact hv| |exact b].
   now apply (lambdabox_blocks_isFunctionS econf (Σ', v) pr').
 Qed.
 
@@ -2771,8 +2814,41 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma lambdabox_blocks_firstorder_block (Σer : EEnvMap.GlobalContextMap.t)
+  econf p pre :
+  firstorder_evalue Σer p ->
+  firstorder_evalue_block
+    (transform (verified_lambdabox_blocks_pipeline econf) (Σer, p) pre).1
+    (EConstructorsAsBlocks.compile_evalue_box (ERemoveParams.strip Σer p) []).
+Proof.
+  intros fo.
+  rewrite -(transform_lambda_box_blocks_firstorder _ econf p pre) //.
+  destruct (lambdabox_blocks_pres_fo econf) as [fn [tr hfn]].
+  rewrite (ETransformPresFO.transform_fo _ _ _ _ (t:=tr) (Σer, p) pre fo).
+  eapply (ETransformPresFO.preserves_fo _ _ _ _ (t:=tr)).
+Qed.
+
+(** Forces are not pushed inside first-order values: they have none. *)
+Lemma force_opt_firstorder_evalue_block Σ v :
+  firstorder_evalue_block Σ v -> EPushForce.force_opt v = v.
+Proof.
+  intros fo. eapply EPushForce.frel_firstorder_evalue_block; tea.
+  apply EPushForce.frel_force_opt.
+Qed.
+
+Lemma firstorder_evalue_block_force_opt_env Σ v :
+  firstorder_evalue_block Σ v ->
+  firstorder_evalue_block (EPushForce.force_opt_env Σ) v.
+Proof.
+  revert v. apply: firstorder_evalue_block_elim.
+  intros i n args hl hargs IH. constructor => //.
+  move: hl. rewrite /EGlobalEnv.lookup_constructor_pars_args.
+  now rewrite EPushForce.lookup_constructor_force_opt.
+Qed.
+
 (** First-order values of inductive types are computed by the whole
-    pipeline as by the pipeline without the translation of cofixpoints. *)
+    pipeline as by the pipeline without the translation of cofixpoints
+    and the pushing of forces. *)
 Lemma transform_lambda_box_firstorder (Σer : EEnvMap.GlobalContextMap.t)
   econf p pre :
   firstorder_evalue Σer p ->
@@ -2782,21 +2858,27 @@ Lemma transform_lambda_box_firstorder (Σer : EEnvMap.GlobalContextMap.t)
   EConstructorsAsBlocks.compile_evalue_box (ERemoveParams.strip Σer p) [].
 Proof.
   intros fo foi. unfold verified_lambdabox_pipeline.
-  rewrite -transform_compose_assoc.
-  repeat (destruct_compose; intro).
+  (* Reassociate exactly twice and split the three last passes: the blocks
+     pipeline must stay folded, unfolding it makes the goal huge. *)
+  do 2 rewrite -transform_compose_assoc.
+  do 3 (destruct_compose; intro).
   cbn [transform coinductive_to_inductive_transformation
-    rebuild_wf_env_transform].
+    rebuild_wf_env_transform push_force_transformation].
+  unfold EPushForce.force_opt_program.
   unfold ECoInductiveToInductive.trans_program, rebuild_wf_env.
   cbn [fst snd].
   match goal with
   | |- context [EEnvMap.GlobalContextMap.make _ ?pf] => generalize pf
   end.
-  intros wfg.
-  rewrite transform_lambda_box_blocks_firstorder //.
-  apply trans_firstorder_ind_value.
-  eapply firstorder_ind_value_is_coind; tea.
-  intros kn. cbn.
-  now rewrite verified_lambdabox_blocks_pipeline_is_coind.
+  intros wfg. clear H H0 H1.
+  rewrite (transform_lambda_box_blocks_firstorder Σer econf p pre fo).
+  rewrite trans_firstorder_ind_value.
+  { eapply firstorder_ind_value_is_coind; tea.
+    intros kn.
+    exact (verified_lambdabox_blocks_pipeline_is_coind econf (Σer, p)
+      pre kn). }
+  eapply force_opt_firstorder_evalue_block.
+  exact (lambdabox_blocks_firstorder_block _ econf p pre fo).
 Qed.
 
 Lemma transform_lambda_box_firstorder_block
@@ -2809,22 +2891,22 @@ Lemma transform_lambda_box_firstorder_block
 Proof.
   destruct p as [Σer p]. cbn [fst snd].
   intros fo foi. rewrite transform_lambda_box_firstorder //.
-  unfold verified_lambdabox_pipeline. rewrite -transform_compose_assoc.
-  repeat (destruct_compose; intro).
+  unfold verified_lambdabox_pipeline.
+  do 2 rewrite -transform_compose_assoc.
+  do 3 (destruct_compose; intro).
   cbn [transform coinductive_to_inductive_transformation
-    rebuild_wf_env_transform].
+    rebuild_wf_env_transform push_force_transformation].
+  unfold EPushForce.force_opt_program.
   unfold ECoInductiveToInductive.trans_program, rebuild_wf_env.
   cbn [fst snd].
+  apply firstorder_evalue_block_force_opt_env.
   eapply (firstorder_evalue_block_trans_env
     (efl := EConstructorsAsBlocks.switch_cstr_as_blocks
       (EInlineProjections.disable_projections_env_flag
         (ERemoveParams.switch_no_params all_env_flags)))).
   { apply H0. }
   cbn [EEnvMap.GlobalContextMap.global_decls EEnvMap.GlobalContextMap.make].
-  rewrite -(transform_lambda_box_blocks_firstorder _ econf p pre) //.
-  destruct (lambdabox_blocks_pres_fo econf) as [fn [tr hfn]].
-  rewrite (ETransformPresFO.transform_fo _ _ _ _ (t:=tr) (Σer, p) pre fo).
-  eapply (ETransformPresFO.preserves_fo _ _ _ _ (t:=tr)).
+  exact (lambdabox_blocks_firstorder_block _ econf p pre fo).
 Qed.
 
 (** The observation of a first-order value of inductive types by the whole
@@ -2846,14 +2928,16 @@ Proof.
   rewrite transform_lambda_box_firstorder //.
   move: obs. unfold verified_lambdabox_pipeline.
   cbn [obseq compose rebuild_wf_env_transform
-    coinductive_to_inductive_transformation].
+    coinductive_to_inductive_transformation push_force_transformation].
   unfold run, time.
   intros obs. decompose [ex and prod] obs. clear obs. subst.
-  destruct b as [b].
+  destruct b as [b], b0 as [b0].
   eapply (obseq_lambdabox_blocks (Σ, t) (Σ', v) econf pr pr') in a => //.
-  rewrite transform_lambda_box_blocks_firstorder // in a. subst x.
+  rewrite transform_lambda_box_blocks_firstorder // in a. subst x0.
   symmetry.
-  eapply ECoInductiveToInductive.crel_firstorder_ind_value; [|exact b].
+  eapply ECoInductiveToInductive.crel_firstorder_ind_value in b0; last first.
+  2:{ subst x. eapply EPushForce.frel_firstorder_evalue_block; [|exact b].
+      exact (lambdabox_blocks_firstorder_block _ econf v pr' fo). }
   eapply firstorder_ind_value_is_coind; tea.
   intros kn. destruct_compose. intros pre2.
   cbn [transform rebuild_wf_env_transform]. unfold rebuild_wf_env.
@@ -2945,6 +3029,8 @@ Section pipeline_cond.
   set (transform (rebuild_wf_env_transform true false) _ _) as t6.
   set (transform constructors_as_blocks_transformation _ _) as t7.
   unfold transform at 1. cbn -[transform].
+  rewrite EPushForce.lookup_env_force_opt.
+  unfold transform at 1. cbn -[transform].
   rewrite (ECoInductiveToInductive.lookup_env_trans
     (efl := EConstructorsAsBlocks.switch_cstr_as_blocks
       (EInlineProjections.disable_projections_env_flag efl))).
@@ -2981,21 +3067,22 @@ Section pipeline_cond.
   unfold transform at 1. cbn -[transform].
   rewrite erase_global_deps_fast_spec.
   2: { cbn. intros ? He. rewrite He. eauto. }
-  intro.
+  intro hdecl.
   set (EAstUtils.term_global_deps _).
   set (build_wf_env_from_env _ _).
-  set (EGlobalEnv.lookup_env _ _).
+  set (o := EGlobalEnv.lookup_env _ _).
   case_eq o. 2: { intros ?. inversion 1. }
-  intros decl' Heq.
+  intros decl' Heq hd.
   unshelve epose proof
     (Hlookup := lookup_env_in_erase_global_deps optimized_abstract_env_impl w t0
-    _ kn _ Hyp0 decl' _ Heq).
-  { epose proof (wf_fresh_globals _ HΣ). clear - H11.
-    revert H11. cbn. set (Σ.1). induction 1; econstructor; eauto.
+    _ kn _ hdecl decl' _ Heq).
+  { epose proof (hfr := wf_fresh_globals _ HΣ). clear - hfr.
+    revert hfr. cbn. set (Σ.1). induction 1; econstructor; eauto.
     cbn. clear -H. induction H; econstructor; eauto. }
-  destruct Hlookup as [decl'' [? ?]]. exists decl''; split ; eauto.
-  cbn in H13. inversion H13.
-  set (b := Erasure.inlining econf) in H15 |- *. clearbody b.
+  destruct Hlookup as [decl'' [? hdecl']]. exists decl''; split ; eauto.
+  cbn in hd. injection hd as hd'. subst decl.
+  set (b := Erasure.inlining econf). clearbody b.
+  clear -hdecl'.
   now destruct b, decl' , decl''.
   Qed.
 

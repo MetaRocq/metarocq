@@ -234,7 +234,9 @@ Program Definition verified_lambdabox_pipeline {guard : abstract_guard_impl}
      thunked fixpoints *)
   coinductive_to_inductive_transformation efl'
     (has_app := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl)
-    (has_cstrblocks := eq_refl) (has_lazy := eq_refl) (has_fix := eq_refl).
+    (has_cstrblocks := eq_refl) (has_lazy := eq_refl) (has_fix := eq_refl) ▷
+  (* Forces are pushed inside the terms they apply to *)
+  push_force_transformation (efl_coind_to_ind efl') final_wcbv_flags.
 Next Obligation.
   destruct econf as [? ? ? [] ?]; cbn in H; split => //.
 Qed.
@@ -585,10 +587,12 @@ Instance verified_lambdabox_pipeline_extends {guard : abstract_guard_impl} (efl 
       extends (EEnvMap.GlobalContextMap.global_decls p.1) (EEnvMap.GlobalContextMap.global_decls p'.1)) (fun p p' => extends p.1 p'.1).
 Proof.
   unfold verified_lambdabox_pipeline.
-  eapply TransformExt.compose; [eapply TransformExt.compose|].
+  eapply TransformExt.compose;
+    [eapply TransformExt.compose; [eapply TransformExt.compose|]|].
   - apply verified_lambdabox_blocks_pipeline_extends.
   - apply rebuild_wf_env_extends.
   - apply coinductive_to_inductive_transformation_ext.
+  - apply push_force_transformation_ext.
 Qed.
 
 Instance verified_lambdabox_pipeline_mapping_extends {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
@@ -612,10 +616,12 @@ Instance verified_lambdabox_pipeline_extends' {guard : abstract_guard_impl} (efl
   TransformExt.t (verified_lambdabox_pipeline econf) extends_eprogram_env extends_eprogram.
 Proof.
   unfold verified_lambdabox_pipeline.
-  eapply TransformExt.compose; [eapply TransformExt.compose|].
+  eapply TransformExt.compose;
+    [eapply TransformExt.compose; [eapply TransformExt.compose|]|].
   - apply verified_lambdabox_blocks_pipeline_extends'.
   - apply rebuild_wf_env_extends'.
   - eapply @coinductive_to_inductive_transformation_ext'. reflexivity.
+  - apply push_force_transformation_ext'.
 Qed.
 
 Instance verified_lambdabox_pipeline_mapping_extends' {guard : abstract_guard_impl} (efl := EWellformed.all_env_flags) econf :
@@ -844,7 +850,14 @@ Program Definition verified_lambdabox_typed_pipeline (efl := EWellformed.all_env
       (EInlineProjections.disable_projections_env_flag
         (ERemoveParams.switch_no_params efl)))
     (has_app := eq_refl) (has_rel := eq_refl) (has_pars := eq_refl)
-    (has_cstrblocks := eq_refl) (has_lazy := eq_refl) (has_fix := eq_refl).
+    (has_cstrblocks := eq_refl) (has_lazy := eq_refl) (has_fix := eq_refl) ▷
+  (* Forces are pushed inside the terms they apply to *)
+  push_force_transformation
+    (efl_coind_to_ind
+      (EConstructorsAsBlocks.switch_cstr_as_blocks
+        (EInlineProjections.disable_projections_env_flag
+          (ERemoveParams.switch_no_params efl))))
+    final_wcbv_flags.
  (* At the end of erasure we get a well-formed program (well-scoped globally and localy), without
     parameters in inductive declarations. The constructor applications are also transformed to a first-order
     "block"  application, of the right length, and the evaluation relation does not need to consider guarded

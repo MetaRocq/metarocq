@@ -1,15 +1,15 @@
 (** * Cofixpoints as lazy fixpoints
 
-  This file runs the verified erasure pipeline, which translates
-  cofixpoints to lazy fixpoints ([ECoInductiveToInductive]), and then the
-  force-pushing optimization ([EPushForce]), on a few cofixpoints, and
-  prints the program after each of the two phases. *)
+  This file runs the verified erasure pipeline on a few cofixpoints and
+  prints the resulting programs. The pipeline translates cofixpoints to
+  lazy fixpoints ([ECoInductiveToInductive]) and then pushes the forces
+  introduced by the translation inside terms ([EPushForce]). *)
 
 From Stdlib Require Import Streams Bool Nat.
 From MetaRocq.Template Require Import TemplateMonad Loader.
 From MetaRocq.Utils Require Import utils bytestring.
 From MetaRocq.Common Require Import config.
-From MetaRocq.Erasure Require Import EProgram EPretty EPushForce.
+From MetaRocq.Erasure Require Import EProgram EPretty.
 From MetaRocq.ErasurePlugin Require Import Erasure.
 Import MonadNotation.
 
@@ -33,11 +33,7 @@ Definition test {A} (a : A) : TemplateMonad unit :=
   aq <- tmQuoteRec a ;;
   p <- tmEval lazy (erase_program aq) ;;
   s <- tmEval lazy (EPretty.print_program p) ;;
-  tmMsg "== Cofixpoints translated to lazy fixpoints ==" ;;
-  tmMsg s ;;
-  s' <- tmEval lazy (EPretty.print_program (force_opt_program p)) ;;
-  tmMsg "== Forces pushed ==" ;;
-  tmMsg s'.
+  tmMsg s.
 
 (** A nullary cofixpoint: a recursive lazy value. Its body is directly a
     constructor, so the force of the translation cancels. *)
