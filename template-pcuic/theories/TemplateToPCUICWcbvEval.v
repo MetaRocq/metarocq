@@ -541,16 +541,18 @@ Proof.
     eapply All2_All_right; tea; cbv beta; intuition auto.
 
   - wf_inv wf [mdecl' [idecl' []]].
-    eapply IHev2.
+    eapply IHev3.
     econstructor; tea.
+    eapply IHev2.
     eapply IHev1 in w0.
     wf_inv w0 [hfix hargs].
     eapply WfAst.wf_mkApps => //.
     eapply wf_cunfold_cofix; tea. now depelim hfix.
 
   - wf_inv wf wf'.
-    eapply IHev2.
+    eapply IHev3.
     econstructor; tea.
+    eapply IHev2.
     eapply IHev1 in wf.
     wf_inv wf [hfix hargs].
     eapply WfAst.wf_mkApps => //.
@@ -737,14 +739,16 @@ Proof.
       by (eapply eval_wf; eauto).
     eapply WfAst.wf_mkApps_napp in w1 as []; [|easy].
     wf_inv w1 x.
+    assert (wb : WfAst.wf Σ (Ast.mkApps fn args)).
+    { eapply WfAst.wf_mkApps; tea. eapply wf_cunfold_cofix; tea. }
+    assert (wc : WfAst.wf Σ bv) by (eapply eval_wf; eauto).
     eapply eval_cofix_case.
     eapply trans_cunfold_cofix; tea.
     rewrite trans_mkApps in IHev1.  eapply IHev1. eauto.
-    rewrite /= trans_lookup_inductive (declared_inductive_lookup _ decli') trans_mkApps in IHev2.
-    apply IHev2.
+    rewrite trans_mkApps /= in IHev2. eapply IHev2; tea.
+    rewrite /= trans_lookup_inductive (declared_inductive_lookup _ decli') in IHev3.
+    apply IHev3.
     econstructor; tea.
-    eapply WfAst.wf_mkApps; tea.
-    eapply wf_cunfold_cofix; tea.
 
   - wf_inv wf [?].
     forward IHev1. eauto.
@@ -752,13 +756,15 @@ Proof.
       by (eapply eval_wf; eauto).
     wf_inv w1 [hfix ha].
     depelim hfix.
+    assert (wb : WfAst.wf Σ (Ast.mkApps fn args)).
+    { eapply WfAst.wf_mkApps => //. eapply wf_cunfold_cofix; tea. }
+    assert (wc : WfAst.wf Σ bv) by (eapply eval_wf; eauto).
     eapply eval_cofix_proj.
     eapply trans_cunfold_cofix; tea.
     rewrite trans_mkApps in IHev1.  eapply IHev1.
-    cbn in IHev2. rewrite trans_mkApps in IHev2.  eapply IHev2.
-    econstructor.
-    eapply WfAst.wf_mkApps => //.
-    eapply wf_cunfold_cofix; tea.
+    rewrite trans_mkApps /= in IHev2. eapply IHev2; tea.
+    cbn in IHev3. eapply IHev3.
+    econstructor. exact wc.
   - wf_inv wf [wff wfa].
     rewrite !trans_mkApps.
     eapply forall_decls_declared_constructor in H; tea.

@@ -247,24 +247,31 @@ Lemma eval_preserve_mkApps_ind :
                    (narg : nat) discr (fn : term) (brs :
                                                  list
                                                  (list name × term))
+                   (bv : term)
                    (res : term),
                    cunfold_cofix mfix idx = Some (narg, fn)
                    -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
-                   → eval Σ (tCase ip (mkApps fn args) brs) res
-                     → P (tCase ip (mkApps fn args) brs) res
+                   → eval Σ (mkApps fn args) bv
+                   → P (mkApps fn args) bv
+                   → eval Σ (tCase ip bv brs) res
+                     → P (tCase ip bv brs) res
                        → P'
                            (tCase ip discr brs)
                            res)
                 → (∀ (p : projection) (mfix : mfixpoint term)
                      (idx : nat) (args : list term)
-                     (narg : nat) discr (fn res : term),
+                     (narg : nat) discr (fn : term)
+                     (bv : term)
+                     (res : term),
                      has_tProj ->
                      cunfold_cofix mfix idx = Some (narg, fn)
                      -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
-                     → eval Σ (tProj p (mkApps fn args)) res
-                       → P (tProj p (mkApps fn args)) res
+                     → eval Σ (mkApps fn args) bv
+                     → P (mkApps fn args) bv
+                     → eval Σ (tProj p bv) res
+                       → P (tProj p bv) res
                          → P'
                              (tProj p discr) res)
                   → (∀ (c : kername) (decl : constant_body)
@@ -418,21 +425,28 @@ Proof.
       eapply qfixs in ev1'. cbn in IH. eapply ev1' in e.
       unshelve eapply (qapp _ _ _ [av]); tea; split => //. now eapply All_tip.1. }
     eapply X6; tea. 1-3:(apply and_assum; [ih|hp' P'Q]).
-  - assert (qa : Q 0 (tCase ip (mkApps fn args) brs)).
-    { eapply qcase; tea => //.
-      pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
+  - assert (qfn : Q 0 (mkApps fn args)).
+    { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qapp in ev1' as [hfix qargs] => //.
       eapply qapp => //. split => //.
       eapply (qcofixs mfix idx) in hfix; tea.
       clear ev1'; ih. }
+    assert (qc : Q 0 bv).
+    { eapply P'Q; tea. ih. }
+    assert (qa : Q 0 (tCase ip bv brs)).
+    { eapply qcase; tea => //. }
     eapply X7; tea; (apply and_assum; [ih|hp' P'Q]).
   - cbn in IH.
-    assert (qa : Q 0 (tProj p (mkApps fn args))).
+    assert (qfn : Q 0 (mkApps fn args)).
     { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qapp in ev1' as [hfix ?] => //.
-      eapply qproj; tea => //. eapply qapp => //. split => //.
+      eapply qapp => //. split => //.
       eapply (qcofixs mfix idx) in hfix; tea.
       clear ev1'; ih. }
+    assert (qc : Q 0 bv).
+    { eapply P'Q; tea. ih. }
+    assert (qa : Q 0 (tProj p bv)).
+    { eapply qproj; tea => //. }
     eapply X8; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 body).
     { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }

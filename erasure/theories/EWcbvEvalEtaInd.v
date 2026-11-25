@@ -251,6 +251,7 @@ Lemma eval_preserve_mkApps_ind :
                    (narg : nat) discr (fn : term) (brs :
                                                  list
                                                  (list name × term))
+                   (bv : term)
                    (res : term),
                    cunfold_cofix mfix idx = Some (narg, fn)
                    -> isEtaExp Σ fn
@@ -258,22 +259,28 @@ Lemma eval_preserve_mkApps_ind :
                    -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
                    -> forallb (isEtaExp Σ ∘ snd) brs
-                   → eval Σ (tCase ip (mkApps fn args) brs) res
-                     → P (tCase ip (mkApps fn args) brs) res
+                   → eval Σ (mkApps fn args) bv
+                   → P (mkApps fn args) bv
+                   → eval Σ (tCase ip bv brs) res
+                     → P (tCase ip bv brs) res
                        → P'
                            (tCase ip discr brs)
                            res)
                 → (∀ (p : projection) (mfix : mfixpoint term)
                      (idx : nat) (args : list term)
-                     (narg : nat) discr (fn res : term),
+                     (narg : nat) discr (fn : term)
+                     (bv : term)
+                     (res : term),
                      has_tProj ->
                      cunfold_cofix mfix idx = Some (narg, fn)
                      -> isEtaExp Σ fn
                      -> forallb (isEtaExp Σ) args
                      -> eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
-                     → eval Σ (tProj p (mkApps fn args)) res
-                       → P (tProj p (mkApps fn args)) res
+                     → eval Σ (mkApps fn args) bv
+                     → P (mkApps fn args) bv
+                     → eval Σ (tProj p bv) res
+                       → P (tProj p bv) res
                          → P'
                              (tProj p discr) res)
                   → (∀ (c : kername) (decl : constant_body)
@@ -530,9 +537,8 @@ Proof.
       now eapply forallb_All in etaargs.
       iheta qa.
   - simp_eta. move=> /andP[etad etabrs].
-    assert (qa : Q 0 (tCase ip (mkApps fn args) brs)).
-    { eapply qcase; tea => //.
-      pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
+    assert (qfn : Q 0 (mkApps fn args)).
+    { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qapp in ev1' as [hfix qargs] => //.
       eapply qapp => //. split => //.
       eapply (qcofixs mfix idx) in hfix; tea.
@@ -544,18 +550,25 @@ Proof.
       apply/andP; split => //.
       eapply isEtaExp_cunfold_cofix. now simp_eta in hfix. exact e. }
     move/andP: etafn => [] etaf etaargs.
-    assert (etac : isEtaExp Σ (tCase ip (mkApps fn args) brs)).
-    { simp_eta. rewrite etabrs andb_true_r.
-      eapply isEtaExp_mkApps_intro => //.
+    assert (etafna : isEtaExp Σ (mkApps fn args)).
+    { eapply isEtaExp_mkApps_intro => //.
       now eapply forallb_All in etaargs. }
+    assert (qc : Q 0 bv).
+    { eapply P'Q; tea. ih. }
+    assert (etacs : isEtaExp Σ bv).
+    { iheta qfn. }
+    assert (qa : Q 0 (tCase ip bv brs)).
+    { eapply qcase; tea => //. }
+    assert (etac : isEtaExp Σ (tCase ip bv brs)).
+    { simp_eta. now rewrite etabrs andb_true_r. }
     split. eapply X7; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta qa.
   - simp_eta. move=> etad.
     cbn in IH.
-    assert (qa : Q 0 (tProj p (mkApps fn args))).
+    assert (qfn : Q 0 (mkApps fn args)).
     { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qapp in ev1' as [hfix ?] => //.
-      eapply qproj; tea => //. eapply qapp => //. split => //.
+      eapply qapp => //. split => //.
       eapply (qcofixs mfix idx) in hfix; tea.
       clear ev1'; ih. }
     assert (etafn : isEtaExp Σ fn && forallb (isEtaExp Σ) args).
@@ -565,10 +578,17 @@ Proof.
       apply/andP; split => //.
       eapply isEtaExp_cunfold_cofix. now simp_eta in hfix. exact e. }
     move/andP: etafn => [] etaf etaargs.
-    assert (etaa : isEtaExp Σ (tProj p (mkApps fn args))).
-    { simp_eta.
-      eapply isEtaExp_mkApps_intro => //.
+    assert (etafna : isEtaExp Σ (mkApps fn args)).
+    { eapply isEtaExp_mkApps_intro => //.
       now eapply forallb_All in etaargs. }
+    assert (qc : Q 0 bv).
+    { eapply P'Q; tea. ih. }
+    assert (etacs : isEtaExp Σ bv).
+    { iheta qfn. }
+    assert (qa : Q 0 (tProj p bv)).
+    { eapply qproj; tea => //. }
+    assert (etaa : isEtaExp Σ (tProj p bv)).
+    { now simp_eta. }
     split. eapply X8; tea; (apply and_assum; [ih|hp' P'Q]).
     iheta qa.
   - move => _.

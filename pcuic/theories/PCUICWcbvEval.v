@@ -286,17 +286,24 @@ Section Wcbv.
       eval (tApp f a) (tApp (mkApps (tFix mfix idx) argsv) av)
 
   (** CoFix-case unfolding *)
-  | eval_cofix_case ip mfix idx p discr args narg fn brs res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      on which the match is then performed. If this value is again a
+      cofixpoint the same rule applies to it, iteratively. *)
+  | eval_cofix_case ip mfix idx p discr args narg fn brs bv res :
       cunfold_cofix mfix idx = Some (narg, fn) ->
       eval discr (mkApps (tCoFix mfix idx) args) ->
-      eval (tCase ip p (mkApps fn args) brs) res ->
+      eval (mkApps fn args) bv ->
+      eval (tCase ip p bv brs) res ->
       eval (tCase ip p discr brs) res
 
   (** CoFix-proj unfolding *)
-  | eval_cofix_proj p mfix idx discr args narg fn res :
+  (** The cofixpoint is forced: its unfolded body is evaluated to a value,
+      which is then projected. *)
+  | eval_cofix_proj p mfix idx discr args narg fn bv res :
       cunfold_cofix mfix idx = Some (narg, fn) ->
       eval discr (mkApps (tCoFix mfix idx) args) ->
-      eval (tProj p (mkApps fn args)) res ->
+      eval (mkApps fn args) bv ->
+      eval (tProj p bv) res ->
       eval (tProj p discr) res
 
   (** Constructor congruence: we do not allow over-applications *)
@@ -406,22 +413,29 @@ Section Wcbv.
   (forall (ip : case_info) (mfix : mfixpoint term) (idx : nat)
      (p : predicate term) (discr : term) (args : list term)
      (narg : nat) (fn : term) (brs : list (branch term))
-     (res : term) (e : cunfold_cofix mfix idx = Some (narg, fn))
+     (bv res : term) (e : cunfold_cofix mfix idx = Some (narg, fn))
      (e0 : eval discr (mkApps (tCoFix mfix idx) args)),
    P discr (mkApps (tCoFix mfix idx) args) e0 ->
-   forall e1 : eval (tCase ip p (mkApps fn args) brs) res,
-   P (tCase ip p (mkApps fn args) brs) res e1 ->
+   forall e1 : eval (mkApps fn args) bv,
+   P (mkApps fn args) bv e1 ->
+   forall e2 : eval (tCase ip p bv brs) res,
+   P (tCase ip p bv brs) res e2 ->
    P (tCase ip p discr brs) res
-     (eval_cofix_case ip mfix idx p discr args narg fn brs res e e0 e1)) ->
+     (eval_cofix_case ip mfix idx p discr args narg fn brs bv res
+        e e0 e1 e2)) ->
   (forall (p : projection) (mfix : mfixpoint term) (idx : nat)
      (discr : term) (args : list term) (narg : nat)
-     (fn res : term) (e : cunfold_cofix mfix idx = Some (narg, fn))
+     (fn bv res : term)
+     (e : cunfold_cofix mfix idx = Some (narg, fn))
      (e0 : eval discr (mkApps (tCoFix mfix idx) args)),
    P discr (mkApps (tCoFix mfix idx) args) e0 ->
-   forall e1 : eval (tProj p (mkApps fn args)) res,
-   P (tProj p (mkApps fn args)) res e1 ->
+   forall e1 : eval (mkApps fn args) bv,
+   P (mkApps fn args) bv e1 ->
+   forall e2 : eval (tProj p bv) res,
+   P (tProj p bv) res e2 ->
    P (tProj p discr) res
-     (eval_cofix_proj p mfix idx discr args narg fn res e e0 e1)) ->
+     (eval_cofix_proj p mfix idx discr args narg fn bv res
+        e e0 e1 e2)) ->
   (forall (ind : inductive) (c : nat) (u : Instance.t)
      (mdecl : mutual_inductive_body) (idecl : one_inductive_body)
      (cdecl : constructor_body) (f8 : term) (args : list term)
@@ -977,10 +991,15 @@ Section Wcbv.
     - apply andb_true_iff.
       split; [|easy].
       solve_all.
-    - eapply IHev2. solve_all. rewrite !closedn_mkApps in H0 |- *. solve_all.
+    - eapply IHev3. rewrite Hc Hc'' andb_true_r /=.
+      eapply IHev2. specialize (IHev1 Hc').
+      rewrite !closedn_mkApps in IHev1 |- *.
+      move/andP: IHev1 => [clcofix ->]. rewrite andb_true_r.
       rewrite -closed_unfold_cofix_cunfold_eq in e => //.
       eapply closed_unfold_cofix in e; eauto.
-    - eapply IHev2. solve_all. rewrite !closedn_mkApps in H0 |- *. solve_all.
+    - eapply IHev3. eapply IHev2. specialize (IHev1 Hc).
+      rewrite !closedn_mkApps in IHev1 |- *.
+      move/andP: IHev1 => [clcofix ->]. rewrite andb_true_r.
       rewrite -closed_unfold_cofix_cunfold_eq in e => //.
       eapply closed_unfold_cofix in e; eauto.
     - rewrite closedn_mkApps /=. specialize (IHev1 Hc). specialize (IHev2 Hc').
@@ -1171,6 +1190,7 @@ Section Wcbv.
       assert (narg0 = narg) as -> by congruence.
       assert (fn0 = fn) as -> by congruence.
       specialize (IHev2 _ ev'2); noconf IHev2.
+      specialize (IHev3 _ ev'3); noconf IHev3.
       now assert (e0 = e) as -> by now apply uip.
     - depelim ev'; try go.
       specialize (IHev1 _ ev'1).
@@ -1179,6 +1199,7 @@ Section Wcbv.
       assert (narg0 = narg) as -> by congruence.
       assert (fn0 = fn) as -> by congruence.
       specialize (IHev2 _ ev'2); noconf IHev2.
+      specialize (IHev3 _ ev'3); noconf IHev3.
       now assert (e0 = e) as -> by now apply uip.
     - depelim ev'; try go.
       * specialize (IHev1 _ ev'1); noconf IHev1.
@@ -1429,10 +1450,26 @@ Proof.
     + rewrite <- closed_unfold_fix_cunfold_eq, e. reflexivity.
       cbn in Hty. rewrite closedn_mkApps in Hty. solve_all.
       Unshelve. all: now econstructor.
-  - destruct p as [[] ?]. eapply eval_cofix_proj; tea.
-    eapply value_final, value_app. now constructor. auto.
-  - eapply eval_cofix_case; tea.
-    eapply value_final, value_app. now constructor. auto.
+  - assert (ev : eval Σ (mkApps (tCoFix mfix idx) args)
+      (mkApps (tCoFix mfix idx) args)).
+    { eapply value_final, value_app. now constructor. auto. }
+    depelim Heval.
+    + eapply eval_cofix_proj; tea. eapply eval_proj; tea.
+      eapply value_final, eval_to_value; tea.
+    + eapply eval_cofix_proj; [exact e|exact ev|exact Heval1|].
+      eapply eval_cofix_proj; [exact e0| |exact Heval2|exact Heval3].
+      eapply value_final, eval_to_value; exact Heval1.
+    + cbn in i. congruence.
+  - assert (ev : eval Σ (mkApps (tCoFix mfix idx) args)
+      (mkApps (tCoFix mfix idx) args)).
+    { eapply value_final, value_app. now constructor. auto. }
+    depelim Heval.
+    + eapply eval_cofix_case; tea. eapply eval_iota; tea.
+      eapply value_final, eval_to_value; tea.
+    + eapply eval_cofix_case; [exact e|exact ev|exact Heval1|].
+      eapply eval_cofix_case; [exact e0| |exact Heval2|exact Heval3].
+      eapply value_final, eval_to_value; exact Heval1.
+    + cbn in i. congruence.
   - cbn in Hty. rtoProp; intuition auto.
     depelim Heval; eapply eval_prim.
     depelim e.

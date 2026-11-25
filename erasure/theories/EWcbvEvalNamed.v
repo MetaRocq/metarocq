@@ -2061,7 +2061,7 @@ Proof.
 
       *)
   - invs Hrep.
-    + invs H3.
+    + match goal with [H : ⊩ _ ~ tCase _ _ _ |- _ ] => invs H end.
     + cbn in *. rtoProp.
       edestruct s0 as (v1 & Hv1 & Hv2); eauto.
       invs Hv1; destruct args using rev_ind; cbn in *; try congruence.

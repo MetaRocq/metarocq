@@ -181,6 +181,19 @@ Proof.
   - invs i.
 Qed.
 
+(** Iterated forcing of a term down to a value [fv]: as long as the term
+    is a cofixpoint application, it is unfolded and its body evaluated,
+    [P] holding of each of these evaluations. *)
+Inductive forceP {wfl : WcbvFlags} (Σ : global_declarations)
+  (P : term -> term -> Type) : term -> term -> Type :=
+| forceP_done fv : forceP Σ P fv fv
+| forceP_cofix mfix idx args narg fn bv fv :
+    cunfold_cofix mfix idx = Some (narg, fn) ->
+    eval Σ (mkApps fn args) bv ->
+    P (mkApps fn args) bv ->
+    forceP Σ P bv fv ->
+    forceP Σ P (mkApps (tCoFix mfix idx) args) fv.
+
 Lemma eval_preserve_mkApps_ind :
 ∀ (wfl : WcbvFlags), with_constructor_as_block = true -> forall  {efl : EEnvFlags} (Σ : global_declarations)
   (P' : term → term → Type)
@@ -277,31 +290,70 @@ Lemma eval_preserve_mkApps_ind :
               → P (substl (av :: fix_subst mfix) fn) res
               → P' (tApp f5 a) res) →
 
-              (∀ (ip : inductive × nat) (mfix : mfixpoint term)
+              (∀ (mfix : mfixpoint term)
                    (idx : nat) (args : list term)
-                   (narg : nat) discr (fn : term) (brs :
-                                                 list
-                                                 (list name × term))
+                   discr (brs : list (list name × term))
+                   (cind : inductive) (cidx : nat) (cargs : list term)
+                   (pars : nat) cdecl (br : list name × term)
                    (res : term),
-                   cunfold_cofix mfix idx = Some (narg, fn)
-                   -> eval Σ discr (mkApps (tCoFix mfix idx) args)
+                   eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
-                   → eval Σ (tCase ip (mkApps fn args) brs) res
-                     → P (tCase ip (mkApps fn args) brs) res
+                   → forceP Σ P (mkApps (tCoFix mfix idx) args)
+                       (tConstruct cind cidx cargs)
+                   → constructor_isprop_pars_decl Σ cind cidx =
+                       Some (false, pars, cdecl)
+                   → nth_error brs cidx = Some br
+                   → #|cargs| = pars + cdecl.(cstr_nargs)
+                   → #|skipn pars cargs| = #|br.1|
+                   -> Q #|br.1| br.2
+                   → eval Σ (iota_red pars cargs br) res
+                   → P (iota_red pars cargs br) res
                        → P'
-                           (tCase ip discr brs)
+                           (tCase (cind, pars) discr brs)
                            res)
+              → (∀ (mfix : mfixpoint term)
+                   (idx : nat) (args : list term)
+                   (ind : inductive) (pars : nat) (discr : term)
+                   (brs : list (list name × term))
+                   (n : list name) (f3 res : term),
+                   with_prop_case
+                   → eval Σ discr (mkApps (tCoFix mfix idx) args)
+                   → P discr (mkApps (tCoFix mfix idx) args)
+                   → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
+                   → inductive_isprop_and_pars Σ ind = Some (true, pars)
+                   → brs = [(n, f3)]
+                   -> Q #|n| f3
+                   → eval Σ (ECSubst.substl (repeat tBox #|n|) f3) res
+                   → P (ECSubst.substl (repeat tBox #|n|) f3) res
+                   → P' (tCase (ind, pars) discr brs) res)
                 → (∀ (p : projection) (mfix : mfixpoint term)
                      (idx : nat) (args : list term)
-                     (narg : nat) discr (fn res : term),
+                     discr cdecl (cargs : list term) a
+                     (res : term),
                      has_tProj ->
-                     cunfold_cofix mfix idx = Some (narg, fn)
-                     -> eval Σ discr (mkApps (tCoFix mfix idx) args)
+                     eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
-                     → eval Σ (tProj p (mkApps fn args)) res
-                       → P (tProj p (mkApps fn args)) res
+                     → forceP Σ P (mkApps (tCoFix mfix idx) args)
+                         (tConstruct p.(proj_ind) 0 cargs)
+                     → constructor_isprop_pars_decl Σ p.(proj_ind) 0 =
+                         Some (false, p.(proj_npars), cdecl)
+                     → #|cargs| = p.(proj_npars) + cdecl.(cstr_nargs)
+                     -> nth_error cargs (p.(proj_npars) + p.(proj_arg)) =
+                         Some a
+                     -> eval Σ a res
+                     → P a res
                          → P'
                              (tProj p discr) res)
+                → (∀ (p : projection) (mfix : mfixpoint term)
+                     (idx : nat) (args : list term) (discr : term),
+                     has_tProj ->
+                     with_prop_case
+                     → eval Σ discr (mkApps (tCoFix mfix idx) args)
+                     → P discr (mkApps (tCoFix mfix idx) args)
+                     → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
+                     → inductive_isprop_and_pars Σ p.(proj_ind) =
+                         Some (true, p.(proj_npars))
+                     → P' (tProj p discr) tBox)
                   → (∀ (c : kername) (decl : constant_body)
                        (body : term),
                        declared_constant Σ c decl
@@ -361,7 +413,7 @@ Proof.
   intros.
   pose proof (p := @Fix_F { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   specialize (p (MR lt (fun x => eval_depth x.π2.π2.π2))).
-  set(foo := existT _ t (existT _ t0 (existT _ X18 H)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
+  set(foo := existT _ t (existT _ t0 (existT _ X20 H)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   change t with (projT1 foo).
   change t0 with (projT1 (projT2 foo)).
   revert foo.
@@ -371,8 +423,8 @@ Proof.
   forward p.
   2:{ apply p. apply measure_wf, lt_wf. }
   clear p.
-  rename X18 into qt. rename X14 into Xcappexp.
-  rename X15 into Qprim, X16 into Qforce, X17 into Qatom.
+  rename X20 into qt. rename X16 into Xcappexp.
+  rename X17 into Qprim, X18 into Qforce, X19 into Qatom.
   clear t t0 qt H.
   intros (t & t0 & qt & ev).
   intros IH.
@@ -394,6 +446,109 @@ Proof.
     end.
   Ltac myt hyp anda P'Q := eapply hyp; tea; (apply and_assum; [ih|hp' P'Q]).
 
+  assert (force_case : forall n ip bv brs res
+    (ev' : eval Σ (tCase ip bv brs) res),
+    eval_depth ev' <= n ->
+    eval Σ bv bv -> Q 0 bv ->
+    (forall t t0, Q 0 t -> forall H : eval Σ t t0,
+      eval_depth H < eval_depth ev' -> P' t t0) ->
+    (∑ cind cidx cargs pars cdecl br,
+      [× ip = (cind, pars),
+         forceP Σ P bv (tConstruct cind cidx cargs),
+         Q 0 (tConstruct cind cidx cargs),
+         constructor_isprop_pars_decl Σ cind cidx =
+           Some (false, pars, cdecl),
+         nth_error brs cidx = Some br,
+         #|cargs| = (pars + cdecl.(cstr_nargs))%nat,
+         #|skipn pars cargs| = #|br.1| &
+         ∑ ev'' : eval Σ (iota_red pars cargs br) res,
+           eval_depth ev'' < eval_depth ev']) +
+    (∑ ind pars na f,
+      [× with_prop_case, ip = (ind, pars), forceP Σ P bv tBox, Q 0 tBox,
+         inductive_isprop_and_pars Σ ind = Some (true, pars),
+         brs = [(na, f)] &
+         ∑ ev'' : eval Σ (substl (repeat tBox #|na|) f) res,
+           eval_depth ev'' < eval_depth ev'])).
+  { clear -hcon P'Q qcofixs Qpres hasapp and_assum.
+    intros n; induction n as [|n IHn]; intros ip bv brs res ev';
+      depelim ev'; cbn; intros hle vbv qbv IHP; try lia.
+    - congruence.
+    - pose proof (eval_deterministic vbv ev'1) as eqv. subst bv.
+      left. exists ind, c, args, pars, cdecl, br. split => //.
+      + constructor.
+      + exists ev'2. lia.
+    - pose proof (eval_deterministic vbv ev'1) as eqv. subst bv.
+      right. exists ind, pars, n0, f. split => //.
+      + constructor.
+      + exists ev'2. lia.
+    - pose proof (eval_deterministic vbv ev'1) as eqv. subst bv.
+      assert (qfn : Q 0 (mkApps fn args)).
+      { eapply qapp in qbv as [hfix qargs] => //.
+        eapply qapp => //. split => //.
+        eapply (qcofixs mfix idx) in hfix; tea. }
+      assert (pbody : P (mkApps fn args) bv0).
+      { apply and_assum; [|hp' P'Q].
+        eapply (IHP _ _ qfn ev'2). lia. }
+      assert (qbv0 : Q 0 bv0) by apply pbody.
+      assert (vbv0 : eval Σ bv0 bv0).
+      { eapply value_final, eval_to_value; tea. }
+      destruct (IHn ip bv0 brs res ev'3 ltac:(lia) vbv0 qbv0) as
+        [(cind & cidx & cargs & pars & cdecl & br & [])|
+         (ind & pars & na & f & [])].
+      + intros t t0 q H hlt. eapply (IHP _ _ q H). lia.
+      + left. exists cind, cidx, cargs, pars, cdecl, br. split => //.
+        * econstructor; tea.
+        * destruct s as [ev'' hlt]. exists ev''. lia.
+      + right. exists ind, pars, na, f. split => //.
+        * econstructor; tea.
+        * destruct s as [ev'' hlt]. exists ev''. lia.
+    - cbn in i. congruence. }
+  assert (force_proj : forall n p bv res
+    (ev' : eval Σ (tProj p bv) res),
+    eval_depth ev' <= n ->
+    eval Σ bv bv -> Q 0 bv ->
+    (forall t t0, Q 0 t -> forall H : eval Σ t t0,
+      eval_depth H < eval_depth ev' -> P' t t0) ->
+    (∑ cdecl cargs a,
+      [× forceP Σ P bv (tConstruct p.(proj_ind) 0 cargs),
+         Q 0 (tConstruct p.(proj_ind) 0 cargs),
+         constructor_isprop_pars_decl Σ p.(proj_ind) 0 =
+           Some (false, p.(proj_npars), cdecl),
+         #|cargs| = (p.(proj_npars) + cdecl.(cstr_nargs))%nat,
+         nth_error cargs (p.(proj_npars) + p.(proj_arg)) = Some a &
+         ∑ ev'' : eval Σ a res, eval_depth ev'' < eval_depth ev']) +
+    [× with_prop_case, forceP Σ P bv tBox,
+       inductive_isprop_and_pars Σ p.(proj_ind) =
+         Some (true, p.(proj_npars)) & res = tBox]).
+  { clear -hcon P'Q qcofixs Qpres hasapp and_assum.
+    intros n; induction n as [|n IHn]; intros p bv res ev';
+      depelim ev'; cbn; intros hle vbv qbv IHP; try lia.
+    - pose proof (eval_deterministic vbv ev'1) as eqv. subst bv.
+      assert (qfn : Q 0 (mkApps fn args)).
+      { eapply qapp in qbv as [hfix qargs] => //.
+        eapply qapp => //. split => //.
+        eapply (qcofixs mfix idx) in hfix; tea. }
+      assert (pbody : P (mkApps fn args) bv0).
+      { apply and_assum; [|hp' P'Q].
+        eapply (IHP _ _ qfn ev'2). lia. }
+      assert (qbv0 : Q 0 bv0) by apply pbody.
+      assert (vbv0 : eval Σ bv0 bv0).
+      { eapply value_final, eval_to_value; tea. }
+      destruct (IHn p bv0 res ev'3 ltac:(lia) vbv0 qbv0) as
+        [(cdecl & cargs & a & [])|[]].
+      + intros t t0 q H hlt. eapply (IHP _ _ q H). lia.
+      + left. exists cdecl, cargs, a. split => //.
+        * econstructor; tea.
+        * destruct s as [ev'' hlt]. exists ev''. lia.
+      + right. split => //. econstructor; tea.
+    - congruence.
+    - pose proof (eval_deterministic vbv ev'1) as eqv. subst bv.
+      left. exists cdecl, args, a. split => //.
+      + constructor.
+      + exists ev'2. lia.
+    - pose proof (eval_deterministic vbv ev') as eqv. subst bv.
+      right. split => //. constructor.
+    - cbn in i. congruence. }
   destruct ev.
   1-19:eapply qpres in qt as qt'; depelim qt' => //.
   all:try now (cbn in *; congruence).
@@ -420,8 +575,8 @@ Proof.
       eapply (qsubst _ (List.rev (skipn pars args))) in a.
       2:{ eapply All_rev, All_skipn.
         assert (Q 0 (tConstruct ind c args)).
-        eapply P'Q; tea; ih. eapply qpres in X14.
-        depelim X14 => //. }
+        eapply P'Q; tea; ih. eapply qpres in X16.
+        depelim X16 => //. }
       exact a. }
     eapply nth_error_all in a; tea; cbn. rewrite Nat.add_0_r in a.
     eapply X2; tea; (apply and_assum; [ih|hp' P'Q]).
@@ -518,32 +673,83 @@ Proof.
 
     apply and_assum; [ | hp' P'Q].
     unshelve eapply IH. eassumption. eassumption. cbn -[Nat.max]. lia.
-  - assert (qa : Q 0 (tCase ip (mkApps fn args) brs)).
-    { eapply qcase; tea => //.
-      pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
+  - cbn in IH.
+    assert (pdiscr : P discr (mkApps (tCoFix mfix idx) args)).
+    { apply and_assum; [ih|hp' P'Q]. }
+    assert (qfn : Q 0 (mkApps fn args)).
+    { destruct pdiscr as [_ _ ev1'].
       eapply qapp in ev1' as [hfix qargs] => //.
       eapply qapp => //. split => //.
-      eapply (qcofixs mfix idx) in hfix; tea.
-      clear ev1'; ih. }
-    eapply X8; tea; (apply and_assum; [ih|hp' P'Q]).
+      eapply (qcofixs mfix idx) in hfix; tea. }
+    assert (pbody : P (mkApps fn args) bv).
+    { apply and_assum; [ih|hp' P'Q]. }
+    assert (qbv : Q 0 bv) by apply pbody.
+    assert (vbv : eval Σ bv bv).
+    { eapply value_final, eval_to_value; tea. }
+    destruct (force_case _ ip bv brs res ev3 (Nat.le_refl _) vbv qbv) as
+      [(cind & cidx & cargs & pars & cdecl & br & [-> hf qc e1 e2 e3 e4 s])|
+       (ind & pars & na & f & [wp -> hf qb e1 -> s])].
+    + intros t t0 q' H hlt. eapply (IH _ _ q' H). lia.
+    + destruct s as [ev'' hlt].
+      assert (Q 0 (iota_red pars cargs br)).
+      { unfold iota_red.
+        eapply nth_error_all in a; tea. cbn in a.
+        rewrite -e4 in a.
+        rewrite -(List.length_rev (skipn pars cargs)) in a.
+        rewrite Nat.add_0_r in a.
+        eapply (qsubst _ (List.rev (skipn pars cargs))) in a.
+        2:{ eapply All_rev, All_skipn.
+          eapply qpres in qc. depelim qc => //. }
+        exact a. }
+      eapply nth_error_all in a; tea; cbn. rewrite Nat.add_0_r in a.
+      eapply X8; tea.
+      * econstructor; tea.
+      * apply and_assum; [|hp' P'Q]. eapply (IH _ _ X16 ev''). lia.
+    + destruct s as [ev'' hlt].
+      assert (Q 0 (substl (repeat tBox #|na|) f)).
+      { eapply All_tip in a. cbn in a.
+        rewrite -(repeat_length tBox #|na|) Nat.add_0_r in a.
+        eapply (qsubst _ (repeat tBox #|na|)) in a => //.
+        now eapply All_repeat. }
+      depelim a. rewrite Nat.add_0_r in q0.
+      eapply X9; tea.
+      * econstructor; tea.
+      * reflexivity.
+      * apply and_assum; [|hp' P'Q]. eapply (IH _ _ X16 ev''). lia.
   - cbn in IH.
-    assert (qa : Q 0 (tProj p (mkApps fn args))).
-    { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
-      eapply qapp in ev1' as [hfix ?] => //.
-      eapply qproj; tea => //. eapply qapp => //. split => //.
-      eapply (qcofixs mfix idx) in hfix; tea.
-      clear ev1'; ih. }
-    eapply X9; tea; (apply and_assum; [ih|hp' P'Q]).
+    assert (pdiscr : P discr (mkApps (tCoFix mfix idx) args)).
+    { apply and_assum; [ih|hp' P'Q]. }
+    assert (qfn : Q 0 (mkApps fn args)).
+    { destruct pdiscr as [_ _ ev1'].
+      eapply qapp in ev1' as [hfix qargs] => //.
+      eapply qapp => //. split => //.
+      eapply (qcofixs mfix idx) in hfix; tea. }
+    assert (pbody : P (mkApps fn args) bv).
+    { apply and_assum; [ih|hp' P'Q]. }
+    assert (qbv : Q 0 bv) by apply pbody.
+    assert (vbv : eval Σ bv bv).
+    { eapply value_final, eval_to_value; tea. }
+    destruct (force_proj _ p bv res ev3 (Nat.le_refl _) vbv qbv) as
+      [(cdecl & cargs & a & [hf qc e1 e2 e3 s])|[wp hf e1 ->]].
+    + intros t t0 q' H hlt. eapply (IH _ _ q' H). lia.
+    + destruct s as [ev'' hlt].
+      assert (Q 0 a).
+      { eapply qpres in qc; depelim qc => //.
+        eapply nth_error_all in a0; tea. }
+      eapply X10; tea.
+      * econstructor; tea.
+      * apply and_assum; [|hp' P'Q]. eapply (IH _ _ X16 ev''). lia.
+    + eapply X11; tea. econstructor; tea.
   - assert (Q 0 body).
     { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }
-    eapply X10; tea; (apply and_assum; [ih|hp' P'Q]).
+    eapply X12; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 a).
     { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qpres in ev1'; depelim ev1' => //.
       { eapply nth_error_all in a0; tea. }
       clear ev1'; ih. }
-    eapply X11; tea; (apply and_assum; [ih|hp' P'Q]).
-  - unshelve eapply X12; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
+    eapply X13; tea; (apply and_assum; [ih|hp' P'Q]).
+  - unshelve eapply X14; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
   - rename args into cargs.
     eapply Xcappexp; tea. eauto.
     cbn in IH.
@@ -552,7 +758,7 @@ Proof.
     apply and_assum; [ih|hp' P'Q].
     eapply IHa. cbn. intros. eapply (IH _ _ q H). cbn. lia.
     now depelim a0.
-  - eapply (X13 _ _ _ _ ev1); tea.
+  - eapply (X15 _ _ _ _ ev1); tea.
     1,3:(apply and_assum; [ih|hp' P'Q]).
     intros. apply and_assum; [ih|hp' P'Q].
   - unshelve eapply Qprim; tea. depelim e.
@@ -575,7 +781,7 @@ Proof.
   - eapply qpres in qt; depelim qt => //.
     assert (Q 0 (tLazy v)).
     { eapply P'Q; tea. eapply (IH _ _ q ev1); tea. now cbn; lia. }
-    eapply qpres in X14. depelim X14 => //.
+    eapply qpres in X16. depelim X16 => //.
     eapply Qforce; tea.
     + eapply and_assum. eapply (IH _ _ q ev1); eauto; cbn; lia.
       intros hp'. split => //. eapply P'Q; tea.

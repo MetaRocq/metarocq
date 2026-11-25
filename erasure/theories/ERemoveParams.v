@@ -980,29 +980,30 @@ Proof.
     rewrite strip_tApp // in e.
 
   - simp_strip.
-    rewrite strip_mkApps // /= in e0.
+    rewrite strip_mkApps // /= in e1.
     simp_strip in e.
-    simp_strip in e0.
+    simp_strip in e1.
+    rewrite strip_mkApps_etaexp // in e0.
     set (brs' := map _ _) in *; simpl.
     eapply eval_cofix_case; tea.
     eapply strip_cunfold_cofix; tea => //.
     { eapply closed_cofix_subst; tea.
-      move/wellformed_closed: i5; rewrite closedn_mkApps => /andP[] //. }
-    { move: i7. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
-    rewrite strip_mkApps_etaexp // in e.
+      move/wellformed_closed: i9; rewrite closedn_mkApps => /andP[] //. }
+    { move: i11. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
+      now simp isEtaExp. }
 
   - destruct p as [[ind pars] arg].
     simp_strip.
     simp_strip in e.
-    rewrite strip_mkApps // /= in e0.
-    simp_strip in e0.
-    rewrite strip_mkApps_etaexp // in e.
-    simp_strip in e0.
+    rewrite strip_mkApps // /= in e1.
+    simp_strip in e1.
+    rewrite strip_mkApps_etaexp // in e0.
     eapply eval_cofix_proj; tea.
     eapply strip_cunfold_cofix; tea.
     { eapply closed_cofix_subst; tea.
-      move/wellformed_closed: i4; rewrite closedn_mkApps => /andP[] //. }
-    { move: i6. rewrite isEtaExp_mkApps_napp // /= => /andP[] //. now simp isEtaExp. }
+      move/wellformed_closed: i8; rewrite closedn_mkApps => /andP[] //. }
+    { move: i10. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
+      now simp isEtaExp. }
 
   - econstructor. red in H |- *.
     rewrite lookup_env_strip H //.

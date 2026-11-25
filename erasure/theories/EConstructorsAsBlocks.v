@@ -1085,24 +1085,24 @@ Proof.
     destruct H6.
     move: eta; rewrite wellformed_mkApps //.
     move => /andP[] wfcof wfargs.
+    destruct H8 as [ev' wf' _ _ _].
     eapply eval_cofix_case; tea.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     rewrite isEtaExp_mkApps_napp //= in i. move/andP: i => [] etacof etaargs. now simp_eta in etacof.
     now rewrite transform_blocks_mkApps_eta_fn in e.
   - intros; repeat match goal with [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
-    rewrite transform_blocks_mkApps //= in e0.
-    simp transform_blocks in e0. rewrite -!transform_blocks_equation_1 in e0. simpl in e0.
+    rewrite transform_blocks_mkApps //= in e1.
+    simp transform_blocks in e1. rewrite -!transform_blocks_equation_1 in e1. simpl in e1.
     simp transform_blocks. rewrite -!transform_blocks_equation_1.
-    move: i; rewrite /= wellformed_mkApps //. move/and3P => [] hasp wffn wfargs.
-    move: i4; rewrite /= wellformed_mkApps //. move/andP => [] wfcof _.
-    move: i6 => /=; simp_eta. rewrite isEtaExp_mkApps_napp //=. move=> /andP[] etacof etaargs.
-    econstructor; tea.
+    move: i8; rewrite /= wellformed_mkApps //. move/andP => [] wfcof _.
+    move: i10 => /=; simp_eta. rewrite isEtaExp_mkApps_napp //=. move=> /andP[] etacof etaargs.
+    simp transform_blocks in e. rewrite -!transform_blocks_equation_1 in e.
+    eapply eval_cofix_proj; tea.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     now simp_eta in etacof.
-    simp transform_blocks in e. rewrite -!transform_blocks_equation_1 in e.
-    now rewrite transform_blocks_mkApps_eta_fn in e.
+    now rewrite transform_blocks_mkApps_eta_fn in e0.
   - intros; repeat match goal with [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
     econstructor.
     eapply transform_blocks_declared_constant; eauto.

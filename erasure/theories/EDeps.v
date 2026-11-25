@@ -328,16 +328,18 @@ Proof.
     specialize (IHev1 er).
     apply erases_deps_mkApps_inv in IHev1 as (? & ?).
     depelim H5.
-    apply IHev2.
+    apply IHev3.
     econstructor; [easy|easy|easy|easy| |easy|easy ].
+    apply IHev2.
     apply erases_deps_mkApps; [|easy].
     now eapply erases_deps_cunfold_cofix; eauto.
   - depelim er.
     specialize (IHev1 er).
     apply erases_deps_mkApps_inv in IHev1 as (? & ?).
     depelim H3.
-    apply IHev2.
+    apply IHev3.
     econstructor; eauto.
+    apply IHev2.
     apply erases_deps_mkApps; [|easy].
     now eapply erases_deps_cunfold_cofix.
   - depelim er.

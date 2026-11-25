@@ -594,28 +594,34 @@ Proof.
     left. eapply IHeval1. cbn.
     eapply term_global_deps_cunfold_fix in e0.
     now setoid_rewrite e0 in H2.
-  - intros kn hin. eapply IHeval2 in hin.
+  - intros kn hin. eapply IHeval3 in hin.
     cbn in hin. destruct ip.
     rewrite global_deps_union KernameSet.union_spec in hin.
     rewrite global_deps_union KernameSet.union_spec. intuition auto. right.
-    rewrite fold_left_eq. rewrite fold_left_eq in H1.
-    rewrite global_deps_union KernameSet.union_spec in H1.
-    rewrite global_deps_union KernameSet.union_spec. intuition auto.
-    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec in H2.
+    rewrite fold_left_eq. rewrite fold_left_eq in H2.
+    rewrite global_deps_union KernameSet.union_spec in H2.
+    rewrite global_deps_union KernameSet.union_spec.
+    destruct H2 as [H2|H2]; [now left|].
+    eapply IHeval2 in H2.
+    rewrite term_global_deps_mkApps global_deps_union
+      KernameSet.union_spec in H2.
     right. eapply IHeval1.
-    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec. intuition auto.
+    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec.
+    destruct H2 as [H2|H2]; [|now right].
     left. cbn.
     eapply term_global_deps_cunfold_cofix in e0.
-    now setoid_rewrite e0 in H1.
-  - intros kn hin. eapply IHeval2 in hin.
-    cbn in hin. rewrite global_deps_union KernameSet.union_spec in hin.
-    rewrite KernameSet.union_spec. intuition auto. right.
-    eapply IHeval1. cbn.
-    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec in H1.
-    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec.
-    intuition auto. left.
-    eapply term_global_deps_cunfold_cofix in e0.
     now setoid_rewrite e0 in H2.
+  - intros kn hin. eapply IHeval3 in hin.
+    cbn in hin. rewrite global_deps_union KernameSet.union_spec in hin.
+    rewrite KernameSet.union_spec.
+    destruct hin as [hin|hin]; [now left|]. right.
+    eapply IHeval1. cbn. eapply IHeval2 in hin.
+    rewrite term_global_deps_mkApps global_deps_union
+      KernameSet.union_spec in hin.
+    rewrite term_global_deps_mkApps global_deps_union KernameSet.union_spec.
+    destruct hin as [hin|hin]; [|now right]. left.
+    eapply term_global_deps_cunfold_cofix in e0.
+    now setoid_rewrite e0 in hin.
   - cbn.
     epose proof (global_deps_kn Σ c decl wf isdecl).
     unfold constant_decls_deps in H0. destruct decl => //.

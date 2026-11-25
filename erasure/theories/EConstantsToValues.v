@@ -561,6 +561,17 @@ Proof.
   induction eval_e; simpl in *; subst.
   all: destruct_IHs.
   all: try crush.
+  - move: wf_e => /and3P[] -> /andP[] -> wfd -> /=.
+    rewrite andb_true_r.
+    eapply eval_wellformed; [easy|easy| |exact eval_e2].
+    eapply eval_wellformed in eval_e1; tea.
+    move: eval_e1; rewrite !wellformed_mkApps // => /andP[] wfc ->.
+    rewrite andb_true_r. eapply wellformed_cunfold_cofix; tea.
+  - move: wf_e => /andP[] -> wfd /=.
+    eapply eval_wellformed; [easy|easy| |exact eval_e2].
+    eapply eval_wellformed in eval_e1; tea.
+    move: eval_e1; rewrite !wellformed_mkApps // => /andP[] wfc ->.
+    rewrite andb_true_r. eapply wellformed_cunfold_cofix; tea.
   - pose proof consts_to_values_declared_constant _ _ _ isdecl.
     repeat (econstructor; simple; try easy).
   - simple.

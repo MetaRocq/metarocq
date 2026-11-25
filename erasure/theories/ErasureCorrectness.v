@@ -825,116 +825,114 @@ Proof.
         move: e. rewrite closed_unfold_cofix_cunfold_eq; eauto. }
     assert (htcasefn : Σ ;;; [] |- tCase ip p (mkApps fn args) brs : T).
     { eapply subject_reduction; eauto. }
+    assert (hcofty : Σ ;;; [] |- mkApps (tCoFix mfix idx) args :
+      mkApps (tInd ip (puinst p)) (pparams p ++ args')).
+    { eapply subject_reduction_eval; tea. }
+    assert (hunf : unfold_cofix mfix idx = Some (narg, fn)).
+    { move: e. rewrite -closed_unfold_cofix_cunfold_eq //. }
+    assert (hbodyty := unfold_cofix_type _ _ _ _ _ _ _ wfΣ.1 hcofty hunf).
+    assert (hcstrty : Σ ;;; [] |- bv :
+      mkApps (tInd ip (puinst p)) (pparams p ++ args')).
+    { eapply subject_reduction_eval; tea. }
+    assert (htcstr : Σ ;;; [] |-
+      tCase ip p bv brs : T).
+    { eapply subject_reduction; [eauto|exact htcasefn|].
+      eapply PCUICReduction.red_case_c. eapply wcbveval_red; tea. }
     assert (hredcasediscrcof :
       PCUICReduction.red Σ [] (tCase ip p discr brs) res).
-    { etransitivity. eapply PCUICReduction.red_case_c; tea.
-      eapply wcbveval_red in H. tea. eauto.
-      etransitivity; tea. eapply wcbveval_red; tea. }
-    assert (htunfcof : Σ ;;; [] |- tCase ip p (mkApps fn args) brs : T).
-    { eapply subject_reduction; eauto. }
+    { eapply wcbveval_red; tea. eapply eval_cofix_case; tea. }
     specialize (IHeval1 _ t0').
-    specialize (IHeval2 _ htunfcof).
+    specialize (IHeval2 _ hbodyty).
+    specialize (IHeval3 _ htcstr).
     eapply inversion_CoFix in t; destruct_sigma t; auto.
     pose proof (wfΣ' := wfΣ.1).
     eapply PCUICSpine.typing_spine_strengthen in t0; eauto.
     2:{ now eapply nth_error_all, isTypeRel_isType in a; tea. }
     invs He.
-    * edestruct IHeval1 as (? & ? & ?); eauto. now depelim Hed.
-      depelim Hed. rename H5 into Hlen.
-      rename H6 into H5. rename H7 into H6. rename H8 into H7.
-      rename H9 into H8. rename H10 into H9.
-      unshelve eapply declared_inductive_to_gen in H1, decli; eauto.
-      destruct (declared_inductive_inj H1 decli). subst mdecl0 idecl0.
-      rename H0 into decli'. rename H1 into decli''. rename H2 into er. rename H3 into H0.
-      eapply erases_mkApps_inv in H8; eauto.
-      destruct H8 as [He|He]; destruct_sigma He.
-      -- destruct He as (? & ? & ? & ? & ? & ? & ? & ?). subst.
-        destruct H9.
-        edestruct IHeval2 as (? & ? & [?]).
-        { destruct H2 as [i1]. constructor; eauto.
-          rewrite mkApps_app.
-          eapply erases_mkApps. instantiate(1:=EAst.tBox).
-          constructor.
-          eapply isErasable_Proof.
-          eapply tCoFix_no_Type in i1; auto.
-          pose proof i1 as X0'. destruct X0' as [tyapp [u [Htyapp Hu]]].
-          eapply Is_proof_ty; eauto.
-          eapply unfold_cofix_type; eauto.
-          move: e. rewrite -closed_unfold_cofix_cunfold_eq // /unfold_cofix e0.
-          intros e; eapply e. eauto. }
-        { destruct (declared_inductive_inj decli'' decli); subst.
-          econstructor; eauto.
-          eapply declared_inductive_from_gen; eauto.  }
-        destruct H2.
-        eapply tCoFix_no_Type in X0; auto.
-        move: (eval_to_mkApps_tBox_inv _ _ H1). intros ->. depelim H8.
-        rewrite -> app_nil_r in *.
-        exists x0; split; [|constructor]; auto.
-        eapply eval_case_eval_inv_discr; tea.
-      -- destruct H9.
-        destruct He as [f' [L' [-> [hcof hl']]]].
-        have clfix' : ELiftSubst.closed f'.
-        { now eapply erases_closed in hcof; tea. }
-        depelim hcof.
-        { eapply All2_nth_error_Some in X0 as X'; tea.
-          destruct X' as [t' [nth' [bn [rar eb]]]].
-          specialize (IHeval2 (E.tCase (ip, ci_npar ip)
-            (E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix') (E.dbody t')) L') brs')).
-          forward IHeval2.
-          econstructor; eauto.
-          eapply erases_mkApps.
-          move: e0 e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
-          subst fn narg.
-          eapply All_nth_error in a0 as a'; tea. apply unlift_TermTyp in a'.
-          eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
-          { rewrite app_context_nil_l. eapply subslet_cofix_subst; eauto.
-            econstructor; eauto. }
-          {eapply All2_from_nth_error.
-            erewrite cofix_subst_length, EGlobalEnv.cofix_subst_length, All2_length; eauto.
-            intros.
-            rewrite cofix_subst_nth in H3. now rewrite cofix_subst_length in H2.
-            rewrite ecofix_subst_nth in H8. rewrite cofix_subst_length in H2.
-            erewrite <- All2_length; eauto.
-            invs H3; invs H8.
-            erewrite All2_length; eauto. }
-          destruct IHeval2 as [v' [Hv' [ev]]].
-          { econstructor; eauto.
-            apply declared_inductive_from_gen; eauto.
-            eapply erases_deps_eval in Hed. 2:tea.
-            apply erases_deps_mkApps_inv in Hed as (edcofix & edargs).
-            depelim edcofix.
-            apply erases_deps_mkApps; [|now eauto].
-            apply erases_deps_subst.
-            - now apply Forall_All, Forall_erases_deps_cofix_subst; eauto.
-            - now eapply nth_error_forall in H2; eauto. }
-          exists v'. split => //. split.
-          eapply EWcbvEval.eval_cofix_case; tea.
-          rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
-          f_equal.
-          rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //. }
-        { eapply eval_to_mkApps_tBox_inv in H1 as H'; subst L'; cbn in *. depelim hl'.
-          edestruct IHeval1 as (? & ? & [?]); tea.
-          pose proof (EWcbvEval.eval_deterministic H1 H3). subst x0.
-          eapply erases_deps_eval in Hed; tea.
-          specialize (IHeval2 (E.tCase (ip, ci_npar ip) E.tBox brs')).
-          forward IHeval2.
-          econstructor; eauto. cbn.
-          move: e0 e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
-          subst fn narg.
-          constructor.
-          eapply isErasable_unfold_cofix; tea.
-          destruct IHeval2 as [v' [Hv' [ev]]].
-          { econstructor; eauto.
-            apply declared_inductive_from_gen; eauto. }
-          exists v'. split => //. split.
-          eapply eval_case_eval_inv_discr; tea. }
+    * edestruct IHeval1 as (dv' & Hdv' & [evd]); eauto. now depelim Hed.
+      depelim Hed. clear IHeval1.
+      unshelve eapply declared_inductive_to_gen in H2, decli; eauto.
+      destruct (declared_inductive_inj H2 decli). subst mdecl0 idecl0.
+      eapply erases_mkApps_inv in Hdv'; eauto.
+      (* If the cofixpoint value is erased to a box, so is the constructor
+         its unfolding evaluates to. *)
+      assert (Hbox : isErasable Σ [] (mkApps (tCoFix mfix idx) args) ->
+        Σ' ⊢ c' ⇓ E.tBox ->
+        exists v', Σ;;; [] |- res ⇝ℇ v' /\
+          ∥ Σ' ⊢ E.tCase (ip, ci_npar ip) c' brs' ⇓ v' ∥).
+      { intros iser evbox.
+        destruct (IHeval3 (E.tCase (ip, ci_npar ip) E.tBox brs'))
+          as (v' & Hv' & [ev]).
+        { econstructor; eauto. constructor. eapply isErasable_Proof.
+          eapply tCoFix_no_Type in iser; auto. eapply Is_proof_ty; eauto. }
+        { econstructor; eauto. eapply declared_inductive_from_gen; eauto. }
+        exists v'; split; [|constructor]; auto.
+        eapply eval_case_eval_inv_discr; tea. }
+      destruct Hdv' as [(L1 & L2 & L2' & -> & [iser] & _ & hl2 & ->)|
+        (f' & L' & -> & hcof & hl')].
+      { move: (eval_to_mkApps_tBox_inv _ _ evd). intros ->. depelim hl2.
+        rewrite -> app_nil_r in *. eapply Hbox; eauto. }
+      depelim hcof.
+      2:{ move: (eval_to_mkApps_tBox_inv _ _ evd). intros ->. depelim hl'.
+        eapply Hbox; eauto. }
+      clear Hbox.
+      (* The cofixpoint is erased structurally: its unfolding is related to
+         the unfolding of the erased cofixpoint. *)
+      have clfix' : ELiftSubst.closed (E.tCoFix mfix' idx).
+      { eapply (erases_closed Σ [] (tCoFix mfix idx)); [exact clfix|].
+        econstructor; tea. }
+      eapply All2_nth_error_Some in X0 as X'; tea.
+      destruct X' as [t' [nth' [bn [rar eb]]]].
+      assert (hebody : Σ;;; [] |- mkApps fn args ⇝ℇ
+        E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
+          (E.dbody t')) L').
+      { eapply erases_mkApps; [|exact hl'].
+        move: e0 e. rewrite -closed_unfold_cofix_cunfold_eq //.
+        unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
+        subst fn narg.
+        eapply All_nth_error in a0 as a'; tea. apply unlift_TermTyp in a'.
+        eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
+        { rewrite app_context_nil_l. eapply subslet_cofix_subst; eauto.
+          econstructor; eauto. }
+        { eapply All2_from_nth_error.
+          erewrite cofix_subst_length, EGlobalEnv.cofix_subst_length,
+            All2_length; eauto.
+          intros n0 x1 x2 hlt hn1 hn2.
+          rewrite cofix_subst_nth in hn1.
+          now rewrite cofix_subst_length in hlt.
+          rewrite ecofix_subst_nth in hn2.
+          rewrite cofix_subst_length in hlt.
+          erewrite <- All2_length; eauto.
+          invs hn1; invs hn2.
+          erewrite All2_length; eauto. } }
+      assert (hdbody : erases_deps Σ Σ'
+        (E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
+          (E.dbody t')) L')).
+      { eapply erases_deps_eval in Hed. 2:tea.
+        apply erases_deps_mkApps_inv in Hed as (edcofix & edargs).
+        depelim edcofix.
+        apply erases_deps_mkApps; [|now eauto].
+        apply erases_deps_subst.
+        - now apply Forall_All, Forall_erases_deps_cofix_subst; eauto.
+        - match goal with
+          | [ H : Forall _ mfix' |- _ ] =>
+            now eapply nth_error_forall in H; eauto
+          end. }
+      destruct (IHeval2 _ hebody hdbody) as (cv' & Hcv' & [evc]).
+      assert (hdcv : erases_deps Σ Σ' cv') by (eapply erases_deps_eval; tea).
+      destruct (IHeval3 (E.tCase (ip, ci_npar ip) cv' brs'))
+        as (v' & Hv' & [ev]).
+      { econstructor; eauto. }
+      { econstructor; eauto. eapply declared_inductive_from_gen; eauto. }
+      exists v'. split => //. split.
+      refine (EWcbvEval.eval_cofix_case _ _ _ _ _ _ _ _ _ cv' _
+        evd _ evc ev).
+      rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
+      f_equal.
+      rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //.
 
     * depelim Hed.
       exists E.tBox. split; repeat constructor; auto.
-      assert (PCUICReduction.red Σ [] (tCase ip p discr brs) res).
-      eapply wcbveval_red in Heval; tea.
       now eapply isErasable_red.
 
   - assert (Hty' := Hty).
@@ -945,6 +943,7 @@ Proof.
     { eapply eval_closed; tea; eauto. }
     move: clcof; rewrite closedn_mkApps => /andP[] clcofix clargs.
     eapply subject_reduction_eval in t as t0''; tea.
+    pose proof t0'' as hcofty.
     eapply inversion_mkApps in t0'' as (? & ? & ?).
     eapply type_tCoFix_inv in t0 as t1'; eauto.
     destruct_sigma t1'; auto.
@@ -958,109 +957,100 @@ Proof.
         eapply wcbveval_red; tea.
         constructor. eapply PCUICReduction.red_cofix_proj. eauto.
         rewrite closed_unfold_cofix_cunfold_eq; eauto. }
-    specialize (IHeval2 _ Hty').
+    assert (hunf : unfold_cofix mfix idx = Some (narg, fn)).
+    { move: e. rewrite -closed_unfold_cofix_cunfold_eq //. }
+    assert (hbodyty := unfold_cofix_type _ _ _ _ _ _ _ wfΣ.1 hcofty hunf).
+    pose proof (subject_reduction_eval hbodyty H0) as hcstrty.
+    assert (htcstr : Σ ;;; [] |-
+      tProj p bv : T).
+    { eapply subject_reduction; [eauto|exact Hty'|].
+      eapply PCUICReduction.red_proj_c. eapply wcbveval_red; tea. }
+    assert (hredproj : PCUICReduction.red Σ [] (tProj p discr) res).
+    { eapply wcbveval_red; tea. eapply eval_cofix_proj; tea. }
     specialize (IHeval1 _ t).
+    specialize (IHeval2 _ hbodyty).
+    specialize (IHeval3 _ htcstr).
     pose proof (wfΣ' := wfΣ.1).
     invs He.
-    * depelim Hed.
-      unshelve eapply declared_projection_to_gen in d, H1; eauto.
-      destruct (declared_projection_inj d H1) as [? [? []]]. subst x0 x1 x2 pdecl.
-      rename H1 into decli. rename H2 into decli'.
-      rename H3 into erm. rename H4 into erb.
-      destruct (IHeval1 _ H6 Hed) as [dv' [? []]].
-      eapply erases_mkApps_inv in H1 as []; eauto.
-      { destruct H1 as (? & ? & ? & ? & ? & ? & ? & ?). subst.
-        destruct H3.
-        eapply eval_to_mkApps_tBox_inv in H2 as H'. subst. depelim H7.
-        edestruct IHeval2 as (? & ? & [?]).
-        { constructor; eauto.
-          instantiate(1:=EAst.tBox).
-          constructor.
-          eapply isErasable_Proof.
-          eapply tCoFix_no_Type in X; auto.
-          pose proof X as X0'. destruct X0' as [tyapp [u [Htyapp Hu]]].
-          eapply Is_proof_ty; eauto.
-          move: e. rewrite -closed_unfold_cofix_cunfold_eq // /unfold_cofix e2.
-          intros [= <- <-].
-          eapply unfold_cofix_type; eauto.
-          2:{ unfold unfold_cofix; erewrite e2. reflexivity. }
-          now rewrite app_nil_r. }
-        { eapply erases_deps_eval in Hed. 2:tea.
-          apply erases_deps_mkApps_inv in Hed as (_ & edargs).
-          econstructor; eauto.
-          apply declared_projection_from_gen; eauto.
-          constructor. }
-        exists x1; split; [|constructor]; auto.
+    * edestruct IHeval1 as (dv' & Hdv' & [evd]); eauto. now depelim Hed.
+      depelim Hed. clear IHeval1.
+      eapply erases_mkApps_inv in Hdv'; eauto.
+      (* If the cofixpoint value is erased to a box, so is the constructor
+         its unfolding evaluates to. *)
+      assert (Hbox : isErasable Σ [] (mkApps (tCoFix mfix idx) args) ->
+        Σ' ⊢ c' ⇓ E.tBox ->
+        exists v', Σ;;; [] |- res ⇝ℇ v' /\ ∥ Σ' ⊢ E.tProj p c' ⇓ v' ∥).
+      { intros iser evbox.
+        destruct (IHeval3 (E.tProj p E.tBox)) as (v' & Hv' & [ev]).
+        { econstructor; eauto. constructor. eapply isErasable_Proof.
+          eapply tCoFix_no_Type in iser; auto. eapply Is_proof_ty; eauto. }
+        { econstructor; [exact H2|..]; eauto. }
+        exists v'; split; [|constructor]; auto.
         eapply eval_proj_eval_inv_discr; tea. }
-      { destruct H1 as [f' [L' [-> [hcof hl']]]].
-        have clfix' : ELiftSubst.closed f'.
-        { now eapply erases_closed in hcof; tea. }
-        depelim hcof.
-        { eapply All2_nth_error_Some in X as X'; tea.
-          destruct X' as [t' [nth' [bn [rar eb]]]].
-          specialize (IHeval2 (E.tProj p
-            (E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix') (E.dbody t')) L'))).
-          forward IHeval2.
-          econstructor; eauto.
-          eapply erases_mkApps.
-          move: hnth e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth'; rewrite hnth'. intros [=].
-          subst fn narg. rewrite hnth' in e2. noconf e2.
-          eapply All_nth_error in a0 as a'; tea. eapply unlift_TermTyp in a'.
-          eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
-          { rewrite app_context_nil_l. eapply subslet_cofix_subst; eauto.
-            econstructor; eauto. }
-          {eapply All2_from_nth_error.
-            erewrite cofix_subst_length, EGlobalEnv.cofix_subst_length, All2_length; eauto.
-            intros.
-            rewrite cofix_subst_nth in H3. now rewrite cofix_subst_length in H1.
-            rewrite ecofix_subst_nth in H4. rewrite cofix_subst_length in H1.
-            erewrite <- All2_length; eauto.
-            invs H3; invs H4.
-            erewrite All2_length; eauto. }
-          destruct IHeval2 as [v' [Hv' [ev]]].
-          { econstructor; eauto.
-            eapply declared_projection_from_gen; eauto.
-            eapply erases_deps_eval in Hed. 2:tea.
-            apply erases_deps_mkApps_inv in Hed as (edcofix & edargs).
-            depelim edcofix.
-            apply erases_deps_mkApps; [|now eauto].
-            apply erases_deps_subst.
-            - now apply Forall_All, Forall_erases_deps_cofix_subst; eauto.
-            - now eapply nth_error_forall in H1; eauto. }
-          exists v'. split => //. split.
-          eapply EWcbvEval.eval_cofix_proj; tea.
-          rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
-          f_equal.
-          rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //. }
-        { eapply eval_to_mkApps_tBox_inv in H2 as H'; subst L'; cbn in *. depelim hl'.
-          edestruct IHeval1 as (? & ? & [?]); tea.
-          pose proof (EWcbvEval.eval_deterministic H3 H2). subst x0.
-          eapply erases_deps_eval in Hed; tea.
-          specialize (IHeval2 (E.tProj p E.tBox)).
-          forward IHeval2.
-          econstructor; eauto. cbn.
-          move: hnth e. rewrite -closed_unfold_cofix_cunfold_eq //.
-          unfold unfold_cofix. intros hnth; rewrite hnth. intros [=].
-          subst fn narg.
-          constructor.
-          eapply isErasable_unfold_cofix; tea.
-          destruct IHeval2 as [v' [Hv' [ev]]].
-          { econstructor; eauto.
-            eapply declared_projection_from_gen; eauto. }
-          exists v'. split => //. split.
-          eapply eval_proj_eval_inv_discr; tea. }
-      }
+      destruct Hdv' as [(L1 & L2 & L2' & -> & [iser] & _ & hl2 & ->)|
+        (f' & L' & -> & hcof & hl')].
+      { move: (eval_to_mkApps_tBox_inv _ _ evd). intros ->. depelim hl2.
+        rewrite -> app_nil_r in *. eapply Hbox; eauto. }
+      depelim hcof.
+      2:{ move: (eval_to_mkApps_tBox_inv _ _ evd). intros ->. depelim hl'.
+        eapply Hbox; eauto. }
+      clear Hbox.
+      (* The cofixpoint is erased structurally: its unfolding is related to
+         the unfolding of the erased cofixpoint. *)
+      have clfix' : ELiftSubst.closed (E.tCoFix mfix' idx).
+      { eapply (erases_closed Σ [] (tCoFix mfix idx)); [exact clcofix|].
+        econstructor; tea. }
+      eapply All2_nth_error_Some in X as X'; tea.
+      destruct X' as [t' [nth' [bn [rar eb]]]].
+      assert (hebody : Σ;;; [] |- mkApps fn args ⇝ℇ
+        E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
+          (E.dbody t')) L').
+      { eapply erases_mkApps; [|exact hl'].
+        move: hnth e. rewrite -closed_unfold_cofix_cunfold_eq //.
+        unfold unfold_cofix. intros hnth'; rewrite hnth'. intros [=].
+        subst fn narg. rewrite hnth' in e2. noconf e2.
+        eapply All_nth_error in a0 as a'; tea. eapply unlift_TermTyp in a'.
+        eapply erases_subst0. eauto. 2:eauto. pcuic. all:tea.
+        { rewrite app_context_nil_l. eapply subslet_cofix_subst; eauto.
+          econstructor; eauto. }
+        { eapply All2_from_nth_error.
+          erewrite cofix_subst_length, EGlobalEnv.cofix_subst_length,
+            All2_length; eauto.
+          intros n0 x5 x6 hlt hn1 hn2.
+          rewrite cofix_subst_nth in hn1.
+          now rewrite cofix_subst_length in hlt.
+          rewrite ecofix_subst_nth in hn2.
+          rewrite cofix_subst_length in hlt.
+          erewrite <- All2_length; eauto.
+          invs hn1; invs hn2.
+          erewrite All2_length; eauto. } }
+      assert (hdbody : erases_deps Σ Σ'
+        (E.mkApps (ELiftSubst.subst0 (EGlobalEnv.cofix_subst mfix')
+          (E.dbody t')) L')).
+      { eapply erases_deps_eval in Hed. 2:tea.
+        apply erases_deps_mkApps_inv in Hed as (edcofix & edargs).
+        depelim edcofix.
+        apply erases_deps_mkApps; [|now eauto].
+        apply erases_deps_subst.
+        - now apply Forall_All, Forall_erases_deps_cofix_subst; eauto.
+        - match goal with
+          | [ H : Forall _ mfix' |- _ ] =>
+            now eapply nth_error_forall in H; eauto
+          end. }
+      destruct (IHeval2 _ hebody hdbody) as (cv' & Hcv' & [evc]).
+      assert (hdcv : erases_deps Σ Σ' cv') by (eapply erases_deps_eval; tea).
+      destruct (IHeval3 (E.tProj p cv')) as (v' & Hv' & [ev]).
+      { econstructor; eauto. }
+      { econstructor; [exact H2|..]; eauto. }
+      exists v'. split => //. split.
+      refine (EWcbvEval.eval_cofix_proj _ _ _ _ _ _ _ _ cv' _
+        evd _ evc ev).
+      rewrite /EGlobalEnv.cunfold_cofix nth' //. f_equal.
+      f_equal.
+      rewrite -(EWcbvEval.closed_cofix_substl_subst_eq (idx:=idx)) //.
 
     * depelim Hed.
       exists E.tBox. split; repeat constructor; auto.
-      assert (PCUICReduction.red Σ [] (tProj p discr) res).
-      eapply wcbveval_red in H0; tea.
-      etransitivity; tea.
-      etransitivity. eapply PCUICReduction.red_proj_c.
-      eapply wcbveval_red; tea.
-      constructor. eapply PCUICReduction.red_cofix_proj.
-      move: e. rewrite closed_unfold_cofix_cunfold_eq //. intros e; exact e.
       now eapply isErasable_red.
 
     * eauto.

@@ -1303,10 +1303,22 @@ Proof.
   - destruct_IHs; simple.
     eapply eval_fix'; subst Σ'; simple; try easy.
     erewrite inline_cunfold_fix; now simple.
-  - destruct_IHs; simple.
+  - destruct_IHs.
+    { simple; repeat split; try easy.
+      eapply eval_wellformed; [easy|easy| |exact eval_e2].
+      eapply eval_wellformed in eval_e1; [|easy..].
+      move: eval_e1; rewrite !wellformed_mkApps // => /andP[] wfc ->.
+      rewrite andb_true_r. eapply wellformed_cunfold_cofix; tea. }
+    simple.
     eapply eval_cofix_case; subst Σ'; simple; try easy.
     erewrite inline_cunfold_cofix; now simple.
-  - destruct_IHs; simple.
+  - destruct_IHs.
+    { simple; repeat split; try easy.
+      eapply eval_wellformed; [easy|easy| |exact eval_e2].
+      eapply eval_wellformed in eval_e1; [|easy..].
+      move: eval_e1; rewrite !wellformed_mkApps // => /andP[] wfc ->.
+      rewrite andb_true_r. eapply wellformed_cunfold_cofix; tea. }
+    simple.
     eapply eval_cofix_proj; subst Σ'; simple; try easy.
     erewrite inline_cunfold_cofix; now simple.
   - destruct_IHs.
