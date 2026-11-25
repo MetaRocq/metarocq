@@ -40,6 +40,8 @@ theories/EConstructorsAsBlocks.v
 theories/EWcbvEvalCstrsAsBlocksInd.v
 theories/EWcbvEvalCstrsAsBlocksFixLambdaInd.v
 theories/ECoInductiveToInductive.v
+theories/EFirstorder.v
+theories/EPushForce.v
 theories/EUnboxing.v
 theories/EReorderCstrs.v
 theories/ERemapInductives.v
