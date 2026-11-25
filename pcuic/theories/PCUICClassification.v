@@ -522,7 +522,7 @@ Qed.
     destruct (decompose_app concl) as [hd tl] eqn:da.
     destruct (destInd hd) as [[mind i]|] eqn:di => //.
     destruct mind => //. destruct hd => //.
-    noconf di. noconf cfix.
+    noconf di. move: cfix; case: Nat.eqb_spec => // _ cfix. noconf cfix.
     eapply decompose_app_inv in da.
     eexists _, _, _; intuition eauto.
     destruct (Nat.ltb #|args| (context_assumptions Γ')) eqn:lt; [
@@ -674,6 +674,32 @@ Section classification.
       rewrite expand_lets_mkApps subst_mkApps /= in ccum'.
       eapply invert_cumul_ind_ind in ccum' as ((? & r) & ?).
       len in r. eapply ReflectEq.eqb_eq in i0. now subst ind'.
+  Qed.
+
+  (** A well-typed cofixpoint is applied to at most [rarg] arguments,
+    [rarg] being its arity by [wf_cofixpoint]. *)
+  Lemma typing_cofix_args_bound {Γ mfix idx args T d} :
+    Σ ;;; Γ |- mkApps (tCoFix mfix idx) args : T ->
+    nth_error mfix idx = Some d ->
+    #|args| <= rarg d.
+  Proof.
+    intros tyarg hnth.
+    eapply inversion_mkApps in tyarg as [A [Hcof sp]]; auto.
+    eapply inversion_CoFix in Hcof
+      as (d' & _ & hnth' & a & _ & wfcofix & cum); auto.
+    rewrite hnth' in hnth. noconf hnth.
+    eapply nth_error_all in a; eauto.
+    simpl in a.
+    apply isTypeRel_isType in a.
+    eapply typing_spine_strengthen in sp; eauto.
+    destruct (wf_cofixpoint_rarg wfcofix hnth')
+      as (ctx & ind & u & indargs & da & ->).
+    eapply wf_cofixpoint_spine in sp as (Γ' & concl & da' & s); eauto.
+    rewrite da in da'. noconf da'.
+    move: s => [ind' [u' [indargs' [_ hlen]]]].
+    move: hlen. elim: Nat.ltb_spec => Hargs hlen.
+    - lia.
+    - destruct hlen; lia.
   Qed.
 
   Lemma check_recursivity_kind_inj {mind rk rk'} :

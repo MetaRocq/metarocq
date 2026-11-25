@@ -196,6 +196,7 @@ Proof.
     destruct (decompose_app concl) eqn:dapp.
     destruct (destInd t) as [[ind' u]|] eqn:dind.
     destruct ind' as [mind ind'].
+    destruct (Nat.eqb _ _) => //.
     move=> [=] Hmind. subst mind.
     exists ctx, ind', u, l0.
     simpl in Hdecomp. rewrite Hdecomp.
@@ -220,7 +221,8 @@ Proof.
     apply decompose_prod_assum_it_mkProd_or_LetIn in Hdecomp.
     destruct (decompose_app concl) eqn:dapp.
     destruct (destInd t) as [[ind' u]|] eqn:dind.
-    destruct ind' as [mind ind']. noconf hcof.
+    destruct ind' as [mind ind'].
+    revert hcof; destruct (Nat.eqb _ _) => // hcof. noconf hcof.
     exists ctx, ind', u, l.
     simpl in Hdecomp. rewrite Hdecomp.
     f_equal.
@@ -575,6 +577,46 @@ Proof.
         apply isTypeRel_isType in Hty.
         eapply type_ws_cumul_pb; eauto. now eapply ws_cumul_pb_eq_le.
       * pcuic.
+Qed.
+
+(** The [rarg] field of a well-formed cofixpoint is its arity: the number of
+  assumptions of its type, whose conclusion is an applied (co)inductive. *)
+Lemma wf_cofixpoint_rarg {Σ : global_env} {mfix idx d} :
+  wf_cofixpoint Σ mfix ->
+  nth_error mfix idx = Some d ->
+  ∑ ctx ind u args,
+    decompose_prod_assum [] (dtype d) = (ctx, mkApps (tInd ind u) args) ×
+    rarg d = context_assumptions ctx.
+Proof.
+  unfold wf_cofixpoint, wf_cofixpoint_gen.
+  destruct (map_option_out (map check_one_cofix mfix)) as [l|] eqn:E => //.
+  move=> _ nthe.
+  apply map_option_Some in E.
+  eapply All2_map_left' in E.
+  eapply All2_nth_error_Some in E; eauto.
+  destruct E as [kn [_ Hcheck]].
+  move: Hcheck. rewrite /check_one_cofix.
+  destruct d as [dna dty dbod rarg] => /=.
+  destruct (decompose_prod_assum [] dty) as [ctx concl].
+  destruct (decompose_app concl) as [hd tl] eqn:da.
+  destruct (destInd hd) as [[[mind i] u]|] eqn:di => //=.
+  destruct hd => //. noconf di.
+  case: Nat.eqb_spec => // -> _.
+  eapply decompose_app_inv in da. subst concl.
+  now eexists _, _, _, _.
+Qed.
+
+Lemma type_tCoFix_rarg {cf:checker_flags} {Σ : global_env_ext} {wfΣ : wf Σ}
+  {Γ mfix idx d T} :
+  Σ ;;; Γ |- tCoFix mfix idx : T ->
+  nth_error mfix idx = Some d ->
+  ∑ ctx ind u args,
+    decompose_prod_assum [] (dtype d) = (ctx, mkApps (tInd ind u) args) ×
+    rarg d = context_assumptions ctx.
+Proof.
+  intros H nthe.
+  apply inversion_CoFix in H as (decl & _ & _ & _ & _ & Hwf & _); tas.
+  now eapply wf_cofixpoint_rarg.
 Qed.
 
 Lemma wf_cofixpoint_typing_spine {cf:checker_flags} (Σ : global_env_ext) Γ ind u mfix idx d args args' :

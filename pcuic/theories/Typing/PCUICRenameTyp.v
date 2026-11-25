@@ -717,7 +717,8 @@ Proof.
   destruct decompose_app eqn:da.
   destruct t0 => /= //.
   eapply decompose_app_inv in da. rewrite da /=.
-  rewrite rename_mkApps. simpl. rewrite decompose_app_mkApps //.
+  rewrite rename_mkApps. simpl. rewrite decompose_app_mkApps //=.
+  rewrite /rename_context context_assumptions_fold //.
 Qed.
 
 Lemma rename_wf_fixpoint Σ f mfix :

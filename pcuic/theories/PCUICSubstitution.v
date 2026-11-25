@@ -1031,7 +1031,8 @@ Proof.
   subst t.
   rewrite subst_mkApps /= in dect.
   rewrite decompose_prod_assum_mkApps in dect. noconf dect.
-  rewrite decompose_app_mkApps //.
+  rewrite decompose_app_mkApps //=.
+  now rewrite ?app_context_nil_l context_assumptions_subst_context.
 Qed.
 
 Lemma subs_nth_error {cf:checker_flags} Σ Γ s Δ decl n t :

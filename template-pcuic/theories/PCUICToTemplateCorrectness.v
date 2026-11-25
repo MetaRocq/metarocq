@@ -1782,7 +1782,7 @@ Proof.
   destruct decompose_prod_assum as [ctx p] => -> /=.
   move: (trans_decompose_app p).
   destruct decompose_app => /= ->.
-  now rewrite -trans_destInd.
+  now rewrite -trans_destInd (context_assumptions_map ctx).
 Qed.
 
 Lemma map_option_out_check_one_cofix mfix :

@@ -84,7 +84,8 @@ Proof.
   destruct decompose_prod_assum.
   rewrite nl_decompose_app.
   destruct decompose_app => //.
-  destruct t0 => //.
+  destruct t0 => //=.
+  now rewrite nl_context_assumptions.
 Qed.
 
 Lemma nl_wf_cofixpoint Σ mfix :

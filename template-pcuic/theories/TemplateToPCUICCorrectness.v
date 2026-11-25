@@ -1973,6 +1973,7 @@ Proof.
   { eapply decompose_prod_assum_it_mkProd_or_LetIn in dp.
     simpl in dp; subst ty.
     now eapply wf_it_mkProd_or_LetIn in wfty as [_ wfp]. }
+  rewrite /= /trans_local context_assumptions_map //.
 Qed.
 
 Lemma map_option_out_check_one_cofix {Σ mfix} :

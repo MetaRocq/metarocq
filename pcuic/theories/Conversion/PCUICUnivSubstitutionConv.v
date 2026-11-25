@@ -1852,6 +1852,9 @@ Proof.
   rewrite <- subst_instance_decompose_app, Happ. simpl.
   rewrite destInd_subst_instance.
   destruct destInd as [[i u']|]; simpl; auto.
+  destruct i.
+  rewrite app_context_nil_l.
+  now rewrite context_assumptions_subst_instance.
 Qed.
 
 Lemma All_local_env_over_subst_instance {cf : checker_flags} Σ Γ (wfΓ : wf_local Σ Γ) :
