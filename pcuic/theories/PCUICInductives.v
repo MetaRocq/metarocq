@@ -2064,9 +2064,13 @@ Proof.
   eapply red1_red; tea. all:auto.
 Qed.
 
-Lemma red_it_mkProd_or_LetIn_mkApps_Ind {cf} {Σ} {wfΣ : wf Σ} {Γ ctx ind u args v} :
+(** Reduction of an arity ending in an inductive type preserves its shape and
+  its number of assumptions (let-ins might be reduced away). *)
+Lemma red_it_mkProd_or_LetIn_mkApps_Ind_assumptions {cf} {Σ} {wfΣ : wf Σ}
+  {Γ ctx ind u args v} :
   Σ ;;; Γ ⊢ it_mkProd_or_LetIn ctx (mkApps (tInd ind u) args) ⇝ v ->
-  ∑ ctx' args', v = it_mkProd_or_LetIn ctx' (mkApps (tInd ind u) args').
+  ∑ ctx' args', v = it_mkProd_or_LetIn ctx' (mkApps (tInd ind u) args') ×
+    context_assumptions ctx' = context_assumptions ctx.
 Proof.
   rename Γ into Δ.
   revert Δ v args.
@@ -2078,17 +2082,30 @@ Proof.
     simpl in *.
     eapply invert_red_letin in r as [[d' [ty' [b' [-> redb redty redbody]]]]|]; auto.
     * specialize (X Γ ltac:(lia) _ _ _ redbody).
-      destruct X as [ctx' [args' ->]].
+      destruct X as [ctx' [args' [-> eqctx]]].
       exists (ctx' ++ [vdef na d' ty']).
-      exists args'. now rewrite it_mkProd_or_LetIn_app /=.
+      exists args'. rewrite it_mkProd_or_LetIn_app /=. split => //.
+      rewrite !context_assumptions_app /=. lia.
     * rewrite /subst1 subst_it_mkProd_or_LetIn subst_mkApps /= in c.
       specialize (X (subst_context [b] 0 Γ) ltac:(autorewrite with len; lia) _ _ _ c).
-      apply X.
+      destruct X as [ctx' [args' [-> eqctx]]].
+      exists ctx', args'. split => //.
+      rewrite context_assumptions_subst_context in eqctx.
+      rewrite context_assumptions_app /=. lia.
     * simpl in r.
       eapply invert_red_prod in r as [A' [B' [-> redty redB']]]; auto.
-      specialize (X Γ ltac:(lia) _ _ _ redB') as [ctx' [args' ->]].
+      specialize (X Γ ltac:(lia) _ _ _ redB') as [ctx' [args' [-> eqctx]]].
       exists (ctx' ++ [vass na A']), args'.
-      rewrite it_mkProd_or_LetIn_app /= //.
+      rewrite it_mkProd_or_LetIn_app /=. split => //.
+      rewrite !context_assumptions_app /=. lia.
+Qed.
+
+Lemma red_it_mkProd_or_LetIn_mkApps_Ind {cf} {Σ} {wfΣ : wf Σ} {Γ ctx ind u args v} :
+  Σ ;;; Γ ⊢ it_mkProd_or_LetIn ctx (mkApps (tInd ind u) args) ⇝ v ->
+  ∑ ctx' args', v = it_mkProd_or_LetIn ctx' (mkApps (tInd ind u) args').
+Proof.
+  move/red_it_mkProd_or_LetIn_mkApps_Ind_assumptions => [ctx' [args' [-> _]]].
+  now exists ctx', args'.
 Qed.
 
 Lemma wf_local_expand_lets {cf} {Σ} {wfΣ : wf Σ} {Γ Δ Γ'} :

@@ -200,5 +200,12 @@ Qed.
 
 Lemma isLambda_csubst a k t : isLambda t -> isLambda (csubst a k t).
 Proof. destruct t => //. Qed.
+
+Lemma isLambdas_csubst n a k t : isLambdas n t -> isLambdas n (csubst a k t).
+Proof.
+  induction n in k, t |- *; cbn; auto.
+  destruct t; cbn; auto; discriminate.
+Qed.
+
 Lemma isBox_csubst a k t : isBox t -> isBox (csubst a k t).
 Proof. destruct t => //. Qed.

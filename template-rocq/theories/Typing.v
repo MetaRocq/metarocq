@@ -747,7 +747,9 @@ Definition check_one_cofix d :=
   let '(ctx, ty) := decompose_prod_assum [] ty in
   let (hd, args) := decompose_app ty in
   match destInd hd with
-  | Some (mkInd ind _, u) => Some ind
+  | Some (mkInd ind _, u) =>
+    (* The [rarg] field of a cofixpoint records its arity *)
+    if Nat.eqb arg (context_assumptions ctx) then Some ind else None
   | None => None (* Not recursive on an inductive type *)
   end.
 

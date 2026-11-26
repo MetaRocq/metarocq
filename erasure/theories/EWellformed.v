@@ -136,8 +136,13 @@ Section wf.
       let brs' := List.forallb (fun br => wellformed (#|br.1| + k) br.2) brs in
       wf_brs ind.1 #|brs| && wellformed k c && brs'
     | tProj p c => has_tProj && isSome (lookup_projection Σ p) && wellformed k c
-    | tFix mfix idx => has_tFix && List.forallb (isLambda ∘ dbody) mfix && wf_fix_gen wellformed k mfix idx
-    | tCoFix mfix idx => has_tCoFix && wf_fix_gen wellformed k mfix idx
+    | tFix mfix idx => has_tFix &&
+      List.forallb (fun d => isLambda d.(dbody) ||
+        (has_tLazy_Force && isLazy d.(dbody))) mfix &&
+      wf_fix_gen wellformed k mfix idx
+    | tCoFix mfix idx => has_tCoFix &&
+      List.forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix &&
+      wf_fix_gen wellformed k mfix idx
     | tBox => has_tBox
     | tConst kn => has_tConst &&
       match lookup_constant Σ kn with
@@ -260,6 +265,8 @@ Section EEnvFlags.
       apply Nat.ltb_lt in H1. lia.
     - destruct cstr_as_blocks; eauto. destruct lookup_constructor_pars_args as [ [] | ]; rtoProp; repeat solve_all.
       destruct args; firstorder.
+    - solve_all. destruct (dbody x), has_tLazy_Force => //.
+    - solve_all. now eapply isLambdas_lift.
   Qed.
 
   Lemma wellformed_subst_eq {s k k' t} :
@@ -298,11 +305,12 @@ Section EEnvFlags.
       rewrite Nat.add_assoc (Nat.add_comm k) in a.
       rewrite !Nat.add_assoc. eapply a => //.
       now rewrite !Nat.add_assoc in b.
-    - destruct (dbody x) => //.
+    - destruct (dbody x), has_tLazy_Force => //.
     - specialize (a (#|m| + k')).
       len. now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
+    - now eapply isLambdas_subst.
     - specialize (a (#|m| + k')); len.
-      now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b |- *.
+      now rewrite !Nat.add_assoc !(Nat.add_comm k) in a, b0 |- *.
   Qed.
 
   Lemma wellformed_subst s k t :
@@ -339,7 +347,8 @@ Section EEnvFlags.
   Qed.
 
   Lemma wellformed_fix_subst mfix {hast : has_tFix}:
-    forallb (isLambda ∘ dbody) mfix ->
+    forallb (fun d => isLambda d.(dbody) ||
+      (has_tLazy_Force && isLazy d.(dbody))) mfix ->
     forallb (EAst.test_def (wellformed (#|mfix| + 0))) mfix ->
     forallb (wellformed 0) (fix_subst mfix).
   Proof using Type.
@@ -353,14 +362,16 @@ Section EEnvFlags.
   Qed.
 
   Lemma wellformed_cofix_subst mfix {hasco : has_tCoFix}:
+    forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix ->
     forallb (EAst.test_def (wellformed (#|mfix| + 0))) mfix ->
     forallb (wellformed 0) (cofix_subst mfix).
   Proof using Type.
-    intros hm. unfold cofix_subst.
+    intros hl hm. unfold cofix_subst.
     generalize (Nat.le_refl #|mfix|).
     move: {1 3}#|mfix| => n.
     induction n => //.
     intros hn. cbn. rewrite hasco /=. rewrite /wf_fix_gen hm /= andb_true_r.
+    rewrite hl /=.
     apply/andP; split. apply Nat.ltb_lt. lia. apply IHn. lia.
   Qed.
 
@@ -388,7 +399,7 @@ Section EEnvFlags.
     move=> cl.
     rewrite /cunfold_cofix.
     destruct nth_error eqn:heq => //.
-    cbn in cl. move/andP: cl => [hastf /andP[] _ cl].
+    cbn in cl. move/andP: cl => [/andP[] hastf hl /andP[] _ cl].
     have := (nth_error_forallb heq cl) => cld.
     move=> [=] _ <-.
     eapply wellformed_substl => //. now eapply wellformed_cofix_subst.
@@ -491,6 +502,16 @@ Lemma extends_is_propositional {efl} {Σ Σ'} :
 Proof.
   intros wf ex ind b.
   rewrite /inductive_isprop_and_pars /lookup_inductive /lookup_minductive.
+  destruct lookup_env eqn:lookup => //.
+  now rewrite (extends_lookup wf ex lookup).
+Qed.
+
+Lemma extends_is_coind {efl} {Σ Σ'} :
+  wf_glob Σ' -> extends Σ Σ' ->
+  forall kn, is_coind Σ kn -> is_coind Σ' kn.
+Proof.
+  intros wf ex kn.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
   destruct lookup_env eqn:lookup => //.
   now rewrite (extends_lookup wf ex lookup).
 Qed.

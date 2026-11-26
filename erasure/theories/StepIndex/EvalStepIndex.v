@@ -34,7 +34,8 @@ Section Wcbv.
     - eval_proj_prop : can be skipped
     - eval_construct : OK, might be removed, TODO: remove
     - eval_construct_block : OK 
-    - eval_app_cong : OK by eval_cofix_app
+    - eval_cofix_value : OK by eval_cofix_app
+    - eval_force_fix : OK
     - eval_prim : OK 
     - eval_atom : OK I think *)
 
@@ -101,8 +102,12 @@ Section Wcbv.
   | eval_cofix Γ mfix idx :
       eval Γ (tCoFix mfix idx) (vCoFixClos mfix idx Γ []) 0
 
-  | eval_cofix_app Γ arg arg' a mfix idx env args n1 n2 :
+  (** A cofixpoint closure accumulates arguments, up to its arity [rarg]
+      (as in [EWcbvEval.eval_cofix_value]) *)
+  | eval_cofix_app Γ arg arg' a mfix idx env args narg n1 n2 :
       eval Γ a (vCoFixClos mfix idx env args) n1 ->
+      cofix_arity mfix idx = Some narg ->
+      #|args| < narg ->
       eval Γ arg arg' n2 ->
       eval Γ (tApp a arg) (vCoFixClos mfix idx env (args ++ [arg'])) (n1 + n2 + 1)
   
@@ -119,6 +124,7 @@ Section Wcbv.
       n1 n2 n3 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       force (vCoFixClos mfix idx env args) ind c cargs n2 ->
+      is_coind Σ (inductive_mind ind) ->
       constructor_isprop_pars_decl Σ ind c = Some (false, 0, cdecl) ->
       nth_error brs c = Some br ->
       #|cargs| = cdecl.(cstr_nargs) ->
@@ -129,6 +135,7 @@ Section Wcbv.
   | eval_cofix_proj Γ discr mfix idx env args p cdecl cargs a n1 n2 :
       eval Γ discr (vCoFixClos mfix idx env args) n1 ->
       force (vCoFixClos mfix idx env args) (proj_ind p) 0 cargs n2 ->
+      is_coind Σ (inductive_mind (proj_ind p)) ->
       constructor_isprop_pars_decl Σ (proj_ind p) 0 =
         Some (false, proj_npars p, cdecl) ->
       #|cargs| = proj_npars p + cstr_nargs cdecl ->
@@ -160,6 +167,15 @@ Section Wcbv.
       eval Γ t (vLazy t' Γ') c1 ->
       eval Γ' t' v c2 ->
       eval Γ (tForce t) v (c1 + c2 + 1)
+
+  (** Forcing a recursive lazy value: a fixpoint closure whose body is a
+      [tLazy] (as in [EWcbvEval.eval_force_fix]) *)
+  | eval_force_fix Γ t mfix idx Γ' d b v n1 n2 :
+      eval Γ t (vRecClos mfix idx Γ') n1 ->
+      nth_error mfix idx = Some d ->
+      dbody d = tLazy b ->
+      eval (fix_env mfix Γ' ++ Γ') b v n2 ->
+      eval Γ (tForce t) v (n1 + n2 + 1)
 
   (** Forcing of a value down to a constructor value [vConstruct ind c
       cargs]: a cofixpoint closure is unfolded, its body being evaluated in
@@ -227,35 +243,38 @@ Section Wcbv.
       ∀ {Γ mfix idx},
       P _ _ _ _ (eval_cofix Γ mfix idx).
     Variable f_cofix_app : 
-      ∀ {Γ arg arg' a mfix idx env args n1 n2}
+      ∀ {Γ arg arg' a mfix idx env args narg n1 n2}
         { e1 : eval Γ a (vCoFixClos mfix idx env args) n1 }
+        { e3 e4 }
         { e2 : eval Γ arg arg' n2 },
         P _ _ _ _ e1 ->
         P _ _ _ _ e2 ->
-        P Γ _ _ _ (eval_cofix_app Γ arg arg' a mfix idx env args n1 n2 e1 e2). 
+        P Γ _ _ _
+          (eval_cofix_app Γ arg arg' a mfix idx env args narg n1 n2 e1 e3 e4
+            e2).
     Variable f_cofix_case :
       ∀ {Γ discr mfix idx env args ind c cargs cdecl brs br res n1 n2 n3}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { e2 : force (vCoFixClos mfix idx env args) ind c cargs n2 }
-        { e3 e4 e5 e6 }
+        { hco e3 e4 e5 e6 }
         { e7 : eval (List.rev cargs ++ Γ) br.2 res n3 },
         P _ _ _ _ e1 ->
         Pf _ _ _ _ _ e2 ->
         P _ _ _ _ e7 ->
         P Γ _ _ _
           (eval_cofix_case Γ discr mfix idx env args ind c cargs cdecl
-            brs br res n1 n2 n3 e1 e2 e3 e4 e5 e6 e7).
+            brs br res n1 n2 n3 e1 e2 hco e3 e4 e5 e6 e7).
     Variable f_cofix_proj :
       ∀ {Γ discr mfix idx env args p cdecl cargs a n1 n2}
         { e1 : eval Γ discr (vCoFixClos mfix idx env args) n1}
         { e2 : force (vCoFixClos mfix idx env args) (proj_ind p) 0 cargs
             n2 }
-        { e3 e4 e5 },
+        { hco e3 e4 e5 },
         P _ _ _ _ e1 ->
         Pf _ _ _ _ _ e2 ->
         P Γ _ _ _
           (eval_cofix_proj Γ discr mfix idx env args p cdecl cargs a
-            n1 n2 e1 e2 e3 e4 e5).
+            n1 n2 e1 e2 hco e3 e4 e5).
     Variable f_delta :
       ∀ {Γ c decl body res isdecl cost e e0},
       P [] body res cost e0 ->
@@ -282,6 +301,15 @@ Section Wcbv.
       P _ _ _ c1 ev0 -> 
       P _ _ _ c2 ev1 ->
       P _ _ _ (c1 + c2 + 1) (eval_force _ _ _ _ _ c1 c2 ev0 ev1).
+    Variable f_force_fix :
+      ∀ {Γ t mfix idx Γ' d b v n1 n2}
+        {ev0 : eval Γ t (vRecClos mfix idx Γ') n1}
+        {e1 e2}
+        {ev1 : eval (fix_env mfix Γ' ++ Γ') b v n2},
+      P _ _ _ n1 ev0 ->
+      P _ _ _ n2 ev1 ->
+      P _ _ _ (n1 + n2 + 1)
+        (eval_force_fix Γ t mfix idx Γ' d b v n1 n2 ev0 e1 e2 ev1).
 
     Variable f_force_construct :
       ∀ {ind c cargs}, Pf _ _ _ _ _ (force_construct ind c cargs).
@@ -312,13 +340,14 @@ Section Wcbv.
             f_fix_unfold (eval_rect e0) (eval_rect e2) (eval_rect e3)
         | @eval_fix _ mfix idx => f_fix
         | @eval_cofix _ mfix idx => f_cofix
-        | @eval_cofix_app _ arg arg' a mfix idx env args n1 n2 e1 e2 =>
+        | @eval_cofix_app _ arg arg' a mfix idx env args narg n1 n2 e1 e3 e4
+            e2 =>
             f_cofix_app (eval_rect e1) (eval_rect e2)
         | @eval_cofix_case _ discr mfix idx env args ind c cargs cdecl
-            brs br res n1 n2 n3 e1 e2 e3 e4 e5 e6 e7 =>
+            brs br res n1 n2 n3 e1 e2 hco e3 e4 e5 e6 e7 =>
               f_cofix_case (eval_rect e1) (force_rect e2) (eval_rect e7)
         | @eval_cofix_proj _ discr mfix idx env args p cdecl cargs a
-            n1 n2 e1 e2 e3 e4 e5 =>
+            n1 n2 e1 e2 hco e3 e4 e5 =>
               f_cofix_proj (eval_rect e1) (force_rect e2)
         | @eval_delta _ c decl body isdecl res cost e0 e1 => f_delta (eval_rect e1)
         | @eval_construct_block Γ0 ind c mdecl idecl cdecl args args' cs e0 l a =>
@@ -326,6 +355,8 @@ Section Wcbv.
         | @eval_prim Γ0 p p' c ev => f_prim ev (map_eval_primitive_step_index (@eval_rect Γ0) ev)
         | @eval_lazy _ t => f_lazy
         | @eval_force _ Γ' t t' v c1 c2 ev ev' => f_force (eval_rect ev) (eval_rect ev')
+        | @eval_force_fix _ t mfix idx Γ' d b v n1 n2 ev e1 e2 ev' =>
+            f_force_fix (eval_rect ev) (eval_rect ev')
         end
     with force_rect {v ind c cargs n} v_force
       : Pf v ind c cargs n v_force :=
@@ -355,12 +386,16 @@ Lemma wf_cofix_clos_env {efl : EEnvFlags} Σ mfix idx env args :
   forallb (wellformed_val Σ) (List.rev args ++ cofix_env mfix env ++ env).
 Proof.
   intros h. simple. unfold wf_fix in h; simple.
-  destruct h as [[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]].
+  destruct h as [[[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]] harity].
   rewrite cofix_env_map.
   intros x [hIn%in_rev | [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]
     %in_app_iff]%in_app_iff; subst; simple; try easy.
   unfold wf_fix; simple. repeat split; try easy.
-  now apply Nat.ltb_lt.
+  - now apply Nat.ltb_lt.
+  - match goal with
+    | |- context [cofix_arity mfix ?k] =>
+        destruct (cofix_arity_Some mfix k) as [narg ->]; [lia|reflexivity]
+    end.
 Qed.
 
 
@@ -391,7 +426,7 @@ Proof.
   apply/andP; split; last (apply wellformed_rels => //; lia).
   rewrite Nat.add_comm. apply wellformed_lift.
   simple. unfold wf_fix in h; simple.
-  destruct h as [[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]].
+  destruct h as [[[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]] harity].
   unfold test_def in wf_mfix.
   unfold cunfold_cofix in heq1.
   destruct (nth_error mfix idx) as [r |] eqn:heq; last easy.
@@ -429,9 +464,66 @@ Proof.
   rewrite -(length_map term_of_val args) -List.length_rev.
   rewrite substlg_lift0; first now rewrite forallb_rev.
   simple. unfold wf_fix in h; simple.
-  destruct h as [[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]].
+  destruct h as [[[[? wf_env] wf_args] [idx_lt_mfix wf_mfix]] harity].
   unfold test_def in wf_mfix.
   rewrite cofix_env_map cofix_subst_map map_map_compose.
+  rewrite -substlg_app; simple.
+  + intros x ?%in_rev%in_seq.
+    apply closed_substlg; simple.
+    { intros ? (? & ? & ?)%in_map_iff ?; subst.
+      now eapply wellformed_closed, wellformed_val_wellformed. }
+    unfold test_def.
+    intros ? ?.
+    now eapply wellformed_closed.
+  + intros. now eapply wellformed_closed, wellformed_val_wellformed.
+  + f_equal. apply map_ext. intros. now simple.
+Qed.
+
+
+Lemma wf_fix_clos_env {efl : EEnvFlags} Σ mfix idx env :
+  wellformed_val Σ (vRecClos mfix idx env) ->
+  forallb (wellformed_val Σ) (fix_env mfix env ++ env).
+Proof.
+  intros h. simple. unfold wf_fix in h; simple.
+  destruct h as [[[? wf_env] hbodies] [idx_lt_mfix wf_mfix]].
+  rewrite fix_env_map.
+  intros x [(? & ? & hIn%in_rev%in_seq)%in_map_iff | hIn]%in_app_iff;
+    subst; simple; try easy.
+  unfold wf_fix; simple. repeat split; try easy.
+  now apply Nat.ltb_lt.
+Qed.
+
+
+Lemma wf_fix_clos_lazy_body {efl : EEnvFlags} Σ mfix idx env d b :
+  wellformed_val Σ (vRecClos mfix idx env) ->
+  nth_error mfix idx = Some d ->
+  dbody d = tLazy b ->
+  wellformed Σ #|fix_env mfix env ++ env| b.
+Proof.
+  intros h hnth hb. rewrite length_app size_fix_env.
+  apply nth_error_In in hnth.
+  simple. unfold wf_fix, test_def in h; simple.
+  destruct h as [[[? wf_env] hbodies] [idx_lt_mfix wf_mfix]].
+  apply wf_mfix in hnth. rewrite hb in hnth. now simple.
+Qed.
+
+
+(** Substituting the environment of a fixpoint closure is the unfolding of
+    the fixpoint of [EWcbvEval]. *)
+Lemma substlg_fix_clos_body {efl : EEnvFlags} Σ mfix idx env t :
+  cstr_as_blocks ->
+  has_tApp ->
+  wellformed_val Σ (vRecClos mfix idx env) ->
+  substlg (map term_of_val (fix_env mfix env ++ env)) 0 t =
+  substl
+    (fix_subst (map (map_def (substlg (map term_of_val env) #|mfix|)) mfix))
+    (substlg (map term_of_val env) #|mfix| t).
+Proof.
+  intros cstr_blocks htApp h.
+  simple. unfold wf_fix in h; simple.
+  destruct h as [[[? wf_env] hbodies] [idx_lt_mfix wf_mfix]].
+  unfold test_def in wf_mfix.
+  rewrite fix_env_map fix_subst_map map_map_compose.
   rewrite -substlg_app; simple.
   + intros x ?%in_rev%in_seq.
     apply closed_substlg; simple.
@@ -490,11 +582,15 @@ Proof.
     repeat split; try easy.
     now apply Nat.ltb_lt.
   - easy.
-  - easy.
+  - repeat split; try easy.
+    destruct wf_e as [_ wf_e]. unfold wf_fix in wf_e; simple.
+    destruct (cofix_arity_Some mfix idx) as [narg ->]; last reflexivity.
+    now apply Nat.ltb_lt.
   - unshelve epose proof IHh_eval1 _ _; try easy.
     unshelve epose proof IHh_eval2 _ _; try easy.
     repeat split; try easy.
-    now intros x [hIn | [-> | []]]%in_app_iff.
+    + now intros x [hIn | [-> | []]]%in_app_iff.
+    + apply Nat.leb_le. lia.
   - assert (wellformed_val Σ (vCoFixClos mfix idx env args)) as h.
     { simple. now apply IHh_eval1. }
     assert (wellformed_val Σ (vConstruct ind c cargs)) as h'.
@@ -539,6 +635,11 @@ Proof.
     + now apply IHev0.
   - easy.
   - easy.
+  - assert (wellformed_val Σ (vRecClos mfix idx Γ')) as h.
+    { simple. now apply IHh_eval1. }
+    pose proof (wf_fix_clos_env _ _ _ _ h) as wf_env.
+    pose proof (wf_fix_clos_lazy_body _ _ _ _ _ _ h e1 e2) as wf_body.
+    apply IHh_eval2; now simple.
   - easy.
   - intros h.
     pose proof (wf_cofix_clos_env _ _ _ _ _ h) as wf_env.
@@ -626,22 +727,28 @@ Proof.
 Qed.
 
 
-Lemma eval_cofix_mkApps Σ Γ a mfix idx env n args args' ns :
+Lemma eval_cofix_mkApps Σ Γ a mfix idx env n args args' ns narg :
   eval Σ Γ a (vCoFixClos mfix idx env []) n ->
+  cofix_arity mfix idx = Some narg ->
+  #|args'| <= narg ->
   All3 (eval Σ Γ) args args' ns ->
   eval Σ Γ (mkApps a args) (vCoFixClos mfix idx env args') (n + list_sum ns + #|ns|).
 Proof.
-  intros eval_a eval_args.
+  intros eval_a harity hle eval_args.
   induction args
   as [|arg args IH]
   using list_rect_rev
-  in args', ns, eval_args |- *.
+  in args', ns, hle, eval_args |- *.
   { simple. inversion eval_args; simple. }
   apply All3_snoc_inv_first in eval_args 
     as (args'' & arg' & ns' & n' & ? & ? & hAll' & eval_arg); subst.
+  assert (#|args''| < narg) as hlt.
+  { rewrite length_app /= in hle. lia. }
+  assert (#|args''| <= narg) as hle' by lia.
   rewrite list_sum_app.
   simple.
-  epose proof eval_cofix_app _ _ _ _ _ _ _ _ _ _ _ (IH _ _ hAll') eval_arg.
+  epose proof eval_cofix_app _ _ _ _ _ _ _ _ _ _ _ _
+    (IH args'' ns' hle' hAll') harity hlt eval_arg.
   rewrite mkApps_app /=.
   now match goal with 
   | h: eval _ _ _ _ ?n1 
@@ -704,15 +811,25 @@ Proof.
     rewrite csubst_closed; now simple.
   - assert (All (wellformed_val Σ) args) as X' by now simple.
     pose args' := extract_vs X0 X'.
-    assert (map term_of_val args = map term_of_val args').
+    assert (map term_of_val args = map term_of_val args') as hmap.
     { clear. subst args'; unfold extract_vs. 
       funelim (extract X0 X'); simple; try easy.
       destruct a as [? ?]. rewrite Heq in Hind.
       now f_equal. }
+    assert (∑ narg, cofix_arity b idx = Some narg × #|args'| <= narg)
+      as (narg & harity & hle).
+    { assert (#|args'| = #|args|) as ->.
+      { now rewrite -(length_map term_of_val args') -hmap length_map. }
+      cbn in h_wf. destruct (cofix_arity b idx) as [narg|]; last first.
+      { now rewrite andb_false_r in h_wf. }
+      exists narg; split; first reflexivity.
+      now move/andP: h_wf => [_ /Nat.leb_le]. }
     exists (list_sum (extract_ns X0 X') + #|extract_ns X0 X'|).
     simple.
     eexists (vCoFixClos (map (map_def (substlg (map term_of_val env) #|b|)) b) idx Γ args'); simple; split; last first.
-    + rewrite -(Nat.add_0_l (list_sum _)). eapply eval_cofix_mkApps; first constructor.
+    + rewrite -(Nat.add_0_l (list_sum _)).
+      eapply eval_cofix_mkApps with (narg := narg);
+        [constructor | now rewrite cofix_arity_map | exact hle | ].
       unfold args', extract_vs, extract_ns.
       clear. funelim (extract X0 X'); simple; constructor; try easy.
       * apply a. 
@@ -910,6 +1027,17 @@ Proof.
     destruct X0.
     edestruct IHv; try easy.
     edestruct a1; easy.
+  - inversion eval2; subst.
+    + edestruct IHeval1_1; first eassumption. discriminate.
+    + edestruct IHeval1_1; first eassumption.
+      injections.
+      match goal with
+      | H1 : dbody ?d = tLazy _, H2 : dbody ?d = tLazy _ |- _ =>
+          rewrite H1 in H2; injection H2 as ?
+      end.
+      subst.
+      edestruct IHeval1_2; first eassumption.
+      easy.
   - intros ind' c' cargs' n' hf. inversion hf; subst. easy.
   - intros ind' c' cargs' n' hf. inversion hf; subst.
     injections.

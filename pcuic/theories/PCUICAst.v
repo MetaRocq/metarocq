@@ -239,6 +239,22 @@ Definition isLambda t :=
 Lemma isLambda_inv t : isLambda t -> exists na ty bod, t = tLambda na ty bod.
 Proof. destruct t => //; eauto. Qed.
 
+(** [isLambdas n t]: [t] starts with (at least) [n] lambda abstractions. *)
+Fixpoint isLambdas (n : nat) (t : term) : bool :=
+  match n with
+  | 0 => true
+  | S n => match t with tLambda _ _ b => isLambdas n b | _ => false end
+  end.
+
+Lemma isLambdas_isLambda n t : isLambdas (S n) t -> isLambda t.
+Proof. destruct t => //. Qed.
+
+Lemma isLambdas_le m n t : m <= n -> isLambdas n t -> isLambdas m t.
+Proof.
+  induction m in n, t |- * => //.
+  destruct n => /=; [lia|]. destruct t => //= hle. apply IHm. lia.
+Qed.
+
 (** Basic operations on the AST: lifting, substitution and tests for variable occurrences. *)
 
 Fixpoint lift n k t : term :=

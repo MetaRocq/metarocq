@@ -439,6 +439,9 @@ Section reorder_proofs.
 
   Lemma isLambda_optimize t : isLambda t -> isLambda (optimize t).
   Proof. destruct t => //. Qed.
+  Lemma isLambdas_optimize n t :
+    isLambdas n t -> isLambdas n (optimize t).
+  Proof. induction n in t |- *; destruct t => //=. apply IHn. Qed.
   Lemma isBox_optimize t : isBox t -> isBox (optimize t).
   Proof. destruct t => //. Qed.
 
@@ -446,6 +449,14 @@ Section reorder_proofs.
   Proof.
     clear wfm. induction Σ; cbn; auto.
     case: eqb_spec => [->|hneq] //=.
+  Qed.
+
+  Lemma is_coind_reorder kn :
+    is_coind (reorder_env m Σ) kn = is_coind Σ kn.
+  Proof.
+    rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+    rewrite lookup_env_reorder.
+    destruct lookup_env as [[]|] => //=.
   Qed.
 
   Lemma lookup_constant_reorder c : option_map (reorder_constant_decl m) (lookup_constant Σ c) = lookup_constant (reorder_env m Σ) c.
@@ -755,6 +766,8 @@ Section reorder_proofs.
     - rtoProp; intuition auto; solve_all.
       destruct (dbody x) => //.
     - rtoProp; intuition auto; solve_all.
+      now apply isLambdas_optimize.
+    - rtoProp; intuition auto; solve_all.
       depelim H1; constructor; eauto. intuition auto.
       cbn; solve_all.
   Qed.
@@ -896,7 +909,8 @@ Section reorder_proofs.
     intros wfΣ hfix.
     unfold cunfold_cofix.
     rewrite nth_error_map.
-    cbn in hfix. move/andP: hfix => [] hasfix /andP[] hidx hfix.
+    cbn in hfix.
+    move/andP: hfix => [] /andP[] hasfix hlam /andP[] hidx hfix.
     destruct nth_error eqn:hnth => //.
     intros [= <- <-] => /=. f_equal.
     rewrite optimize_substl //. eapply wellformed_cofix_subst => //.
@@ -1238,6 +1252,7 @@ Proof.
     rewrite !optimize_mkApps /= in IHev1, IHev2.
     eapply eval_cofix_case. tea.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
+    now rewrite is_coind_reorder.
     exact IHev2.
     exact IHev3.
 
@@ -1255,8 +1270,15 @@ Proof.
     rewrite optimize_mkApps /= in IHev1.
     eapply eval_cofix_proj. eauto.
     unshelve (eapply optimize_cunfold_cofix; tea); tea.
+    now rewrite is_coind_reorder.
     rewrite optimize_mkApps in IHev2. exact IHev2.
     exact IHev3.
+
+  - move/andP => [] /andP[] hasapp clf cla.
+    rewrite optimize_mkApps in IHev1 |- *.
+    simpl in *. eapply eval_cofix_value. auto. auto.
+    rewrite cofix_arity_map; tea.
+    now rewrite length_map.
 
   - rewrite /declared_constant in isdecl.
     rewrite /lookup_constant. rewrite isdecl /= => _.
@@ -1304,27 +1326,6 @@ Proof.
 
   - congruence.
 
-  - move/andP => [] /andP[] hasapp clf cla.
-    specialize (IHev1 clf). specialize (IHev2 cla).
-    eapply eval_app_cong; eauto.
-    eapply eval_to_value in ev1.
-    destruct ev1; simpl in *; eauto.
-    * depelim a0.
-      + destruct t => //; rewrite optimize_mkApps /=.
-      + now rewrite /= !orb_false_r orb_true_r in i.
-    * destruct with_guarded_fix.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps
-          !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
-        rtoProp; intuition auto;  destruct v => /= //.
-      + move: i.
-        rewrite !negb_or.
-        rewrite optimize_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        destruct v => /= //.
   - intros; rtoProp; intuition eauto.
     depelim X; repeat constructor.
     eapply All2_over_undep in a.
@@ -1333,6 +1334,12 @@ Proof.
     primProp; depelim H0; intuition eauto.
   - move=> /andP[] haslazy wf. econstructor; eauto. eapply IHev2.
     eapply eval_wellformed in ev1; tea. move/andP: ev1 => []; tea => //.
+  - move=> /andP[] haslazy wf.
+    eapply eval_wellformed in ev1; tea => //.
+    have wfb := wellformed_cunfold_fix _ _ _ _ ev1 e.
+    move/andP: wfb => [] _ wfb.
+    eapply eval_force_fix; eauto.
+    unshelve (eapply (optimize_cunfold_fix _ _ wfm) in e; tea); tea.
   - destruct t => //.
     all:constructor; eauto.
     cbn [atom reorder] in i |- *.

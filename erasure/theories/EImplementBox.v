@@ -370,33 +370,6 @@ Proof.
   eauto.
 Qed.
 
-Lemma implement_box_isConstructApp {efl : EEnvFlags} {Σ : global_declarations} t :
-  isConstructApp (implement_box t) = isConstructApp t.
-Proof.
-  induction t; try now cbn; eauto.
-  simp implement_box.
-  rewrite (isConstructApp_mkApps _ [t2]).
-  rewrite (isConstructApp_mkApps _ [_]). eauto.
-Qed.
-
-Lemma implement_box_isPrimApp {efl : EEnvFlags} {Σ : global_declarations} t :
-  isPrimApp (implement_box t) = isPrimApp t.
-Proof.
-  induction t; try now cbn; eauto.
-  simp implement_box.
-  rewrite (isPrimApp_mkApps _ [t2]).
-  rewrite (isPrimApp_mkApps _ [_]). eauto.
-Qed.
-
-Lemma implement_box_isLazyApp {efl : EEnvFlags} {Σ : global_declarations} t :
-  isLazyApp (implement_box t) = isLazyApp t.
-Proof.
-  induction t; try now cbn; eauto.
-  simp implement_box.
-  rewrite (isLazyApp_mkApps _ [t2]).
-  rewrite (isLazyApp_mkApps _ [_]). eauto.
-Qed.
-
 Lemma lookup_env_implement_box {Σ : global_declarations} kn :
   lookup_env (implement_box_env Σ) kn =
   option_map (implement_box_decl) (lookup_env Σ kn).
@@ -440,6 +413,13 @@ Qed.
 
 Lemma isLambda_implement_box c : isLambda c -> isLambda (implement_box c).
 Proof. destruct c => //. Qed.
+
+Lemma isLambdas_implement_box n c :
+  isLambdas n c -> isLambdas n (implement_box c).
+Proof.
+  induction n in c |- * => //; destruct c => //.
+  simp implement_box. exact: IHn.
+Qed.
 
 Definition disable_box_term_flags (et : ETermFlags) :=
   {| has_tBox := false
@@ -486,8 +466,10 @@ Proof.
     replace (#|x.1| + S m) with ((#|x.1| + m) + 1) by lia.
     eapply wellformed_lift. eauto.
   - rewrite lookup_constructor_implement_box. intuition auto.
-  - unfold wf_fix in *. rtoProp. solve_all. solve_all. now eapply isLambda_implement_box.
+  - unfold wf_fix in *. rtoProp. solve_all. solve_all.
+    move: a0; destruct (dbody x) => //=; now simp implement_box.
   - unfold wf_fix in *. rtoProp. solve_all. len. solve_all.
+  - split; eauto. solve_all. now eapply isLambdas_implement_box.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
     solve_all.
   - solve_all_k 6.
@@ -652,6 +634,10 @@ Proof.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     rewrite wellformed_mkApps in i4. eauto.
     cbn in i4. rtoProp. congruence.
+  - intros; repeat match goal with
+      [H : MRProd.and3 _ _ _ |- _] => destruct H end.
+    rewrite wellformed_mkApps in i2. eauto.
+    cbn in i2. rtoProp. congruence.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
     econstructor.
@@ -674,15 +660,6 @@ Proof.
     + rewrite nth_error_map /=. rewrite H7 in H2; rewrite -H2 in H4; rewrite H4; eauto.
   - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
     simp implement_box in *.
-    eapply eval_app_cong; eauto.
-    revert H1.
-    destruct f'; try now cbn; tauto.
-    intros H. cbn in H.
-    rewrite implement_box_isConstructApp; eauto.
-    rewrite implement_box_isPrimApp; eauto.
-    rewrite implement_box_isLazyApp; eauto.
-  - intros; repeat match goal with [H : MRProd.and3 _ _ _ |- _] => destruct H end.
-    simp implement_box in *.
     eapply eval_construct_block; tea. eauto.
     2: len; eassumption.
     rewrite lookup_constructor_implement_box; eauto.
@@ -694,6 +671,13 @@ Proof.
   - intros evt evt' [] [].
     simp implement_box. simp implement_box in e.
     econstructor; eauto.
+  - intros evt cunf evb [] [].
+    simp implement_box. simp implement_box in e.
+    eapply eval_force_fix; [exact e| |exact e0].
+    eapply implement_box_cunfold_fix in cunf.
+    + simp implement_box in cunf. exact cunf.
+    + eapply forallb_All. eapply closed_fix_subst.
+      eapply wellformed_closed in i0. now cbn in i0.
   - intros. destruct t; try solve [constructor; cbn in H, H0 |- *; try congruence].
     cbn -[lookup_constructor] in H |- *. destruct args => //.
 Qed.

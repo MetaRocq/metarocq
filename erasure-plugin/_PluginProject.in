@@ -148,6 +148,8 @@ src/eConstructorsAsBlocks.mli
 src/eConstructorsAsBlocks.ml
 src/eCoInductiveToInductive.mli
 src/eCoInductiveToInductive.ml
+src/ePushForce.mli
+src/ePushForce.ml
 src/eReorderCstrs.mli
 src/eReorderCstrs.ml
 src/eRemapInductives.mli

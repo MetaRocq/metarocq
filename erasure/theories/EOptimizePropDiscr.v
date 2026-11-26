@@ -293,9 +293,8 @@ Proof.
   - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
   - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
   - rewrite is_box_tApp. move/IHev1 => ?. subst => //.
+  - rewrite is_box_tApp. move/IHev1 => ?; solve_discr.
   - rewrite is_box_tApp. move/IHev1 => ?. subst. solve_discr.
-  - rewrite is_box_tApp. move/IHev1 => ?. subst. cbn in i.
-    destruct EWcbvEval.with_guarded_fix => //.
   - destruct t => //.
 Qed.
 
@@ -506,6 +505,16 @@ Proof.
   destruct lookup_env as [[decl|]|] => //.
 Qed.
 
+Lemma is_coind_remove_match_on_box {efl : EEnvFlags}
+  {Σ : GlobalContextMap.t} kn :
+  wf_glob Σ ->
+  is_coind Σ kn = is_coind (remove_match_on_box_env Σ) kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive => wf.
+  rewrite (lookup_env_remove_match_on_box kn wf).
+  destruct lookup_env as [[decl|]|] => //.
+Qed.
+
 Lemma closed_iota_red pars c args brs br :
   forallb (closedn 0) args ->
   nth_error brs c = Some br ->
@@ -649,7 +658,8 @@ Proof.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp => //.
     destruct brs as [|[a b] []]; simpl in *; auto.
     all: eapply EWcbvEval.eval_cofix_case;
-      [exact IHev1| |exact IHev2|exact IHev3];
+      [exact IHev1| |now rewrite -is_coind_remove_match_on_box|
+       exact IHev2|exact IHev3];
       apply remove_match_on_box_cunfold_cofix; tea;
       eapply closed_cofix_subst; tea.
 
@@ -665,9 +675,19 @@ Proof.
     rewrite GlobalContextMap.inductive_isprop_and_pars_spec in IHev3 |- *.
     destruct EGlobalEnv.inductive_isprop_and_pars as [[[] pars]|] eqn:isp; auto.
     all: eapply EWcbvEval.eval_cofix_proj;
-      [exact IHev1| |exact IHev2|exact IHev3];
+      [exact IHev1| |now rewrite -is_coind_remove_match_on_box|
+       exact IHev2|exact IHev3];
       apply remove_match_on_box_cunfold_cofix; tea;
       eapply closed_cofix_subst; tea.
+
+  - move/andP => [] clf cla.
+    eapply eval_closed in ev1 => //.
+    rewrite closedn_mkApps in ev1.
+    move: ev1 => /andP [] clfix clargs.
+    rewrite remove_match_on_box_mkApps in IHev1 |- *.
+    simpl in *. eapply EWcbvEval.eval_cofix_value. auto. auto.
+    rewrite cofix_arity_map; tea.
+    now rewrite length_map.
 
   - rewrite /declared_constant in isdecl.
     move: (lookup_env_remove_match_on_box c wfΣ).
@@ -706,34 +726,19 @@ Proof.
 
   - congruence.
 
-  - move/andP => [] clf cla.
-    specialize (IHev1 clf). specialize (IHev2 cla).
-    eapply EWcbvEval.eval_app_cong; eauto.
-    eapply EWcbvEval.eval_to_value in ev1.
-    destruct ev1; simpl in *; eauto.
-    * depelim a0. destruct t => //; rewrite ?remove_match_on_box_mkApps /=.
-      cbn in i. now rewrite !orb_false_r orb_true_r in i.
-    * destruct with_guarded_fix.
-      + move: i.
-        rewrite !negb_or.
-        rewrite remove_match_on_box_mkApps !isFixApp_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        rewrite !andb_true_r.
-        rtoProp; intuition auto.
-        destruct v => /= //.
-        destruct v => /= //.
-        destruct v => /= //.
-        destruct v => /= //.
-      + move: i.
-        rewrite !negb_or.
-        rewrite remove_match_on_box_mkApps !isConstructApp_mkApps !isPrimApp_mkApps !isLazyApp_mkApps.
-        destruct args using rev_case => // /=. rewrite map_app !mkApps_app /= //.
-        destruct v => /= //.
   - depelim X; repeat constructor.
     eapply All2_over_undep in a. eapply All2_All2_Set. eapply All2_Set_All2 in ev. subst a0 a'; cbn in *.
     rewrite /test_array_model /= in H. rtoProp; intuition auto; solve_all. eapply e.
     cbn in H. rewrite /test_array_model /= in H. now move/andP: H => [].
   - intros. econstructor; eauto. eapply IHev2. eapply eval_closed in ev1; tea.
+  - intros cl. specialize (IHev1 cl).
+    eapply eval_closed in ev1; tea. simpl in ev1.
+    have clb : closed (tLazy b) by (eapply closed_cunfold_fix; tea).
+    eapply eval_force_fix; [exact IHev1| |exact (IHev2 clb)].
+    change (tLazy (remove_match_on_box Σ b)) with
+      (remove_match_on_box Σ (tLazy b)).
+    apply remove_match_on_box_cunfold_fix; tea.
+    eapply closed_fix_subst; tea.
   - destruct t => //.
     all:constructor; eauto. cbn [atom remove_match_on_box] in i |- *.
     rewrite -lookup_constructor_remove_match_on_box //. destruct args => //.
@@ -743,6 +748,9 @@ From MetaRocq.Erasure Require Import EEtaExpanded.
 
 Lemma isLambda_remove_match_on_box Σ t : isLambda t -> isLambda (remove_match_on_box Σ t).
 Proof. destruct t => //. Qed.
+Lemma isLambdas_remove_match_on_box Σ n t :
+  isLambdas n t -> isLambdas n (remove_match_on_box Σ t).
+Proof. induction n in t |- *; destruct t => //=. apply IHn. Qed.
 Lemma isBox_remove_match_on_box Σ t : isBox t -> isBox (remove_match_on_box Σ t).
 Proof. destruct t => //. Qed.
 
@@ -829,8 +837,10 @@ Proof.
   - cbn -[GlobalContextMap.inductive_isprop_and_pars lookup_inductive]. move/andP => [] /andP[]hasc hs ht.
     destruct GlobalContextMap.inductive_isprop_and_pars as [[[|] _]|] => /= //.
     all:rewrite hasc hs /=; eauto.
-  - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all. now eapply isLambda_remove_match_on_box.
   - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
+    clear -a0. move: a0. destruct (dbody x), has_tLazy_Force => //.
+  - cbn. unfold wf_fix; rtoProp; intuition auto; solve_all.
+    now apply isLambdas_remove_match_on_box.
   - cbn. rtoProp; intuition auto; solve_all_k 6.
 Qed.
 

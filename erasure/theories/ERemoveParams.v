@@ -448,6 +448,14 @@ Proof.
   destruct g; simpl; auto. do 2 destruct nth_error => //.
 Qed.
 
+Lemma is_coind_strip (Σ : GlobalContextMap.t) kn :
+  is_coind (strip_env Σ) kn = is_coind Σ kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+  rewrite lookup_env_strip.
+  destruct lookup_env as [[decl|]|] => //=.
+Qed.
+
 Lemma lookup_inductive_pars_strip {efl : EEnvFlags} {Σ : GlobalContextMap.t} ind :
   wf_glob Σ ->
   forall pars, lookup_inductive_pars Σ ind = Some pars ->
@@ -721,6 +729,12 @@ Proof.
   all:rewrite !(negbTE (isLambda_mkApps_Construct _ _ _ _)) //.
 Qed.
 
+Lemma strip_isLambdas Σ n f :
+  EAst.isLambdas n f -> EAst.isLambdas n (strip Σ f).
+Proof.
+  induction n in f |- *; destruct f => //. simp_strip. apply IHn.
+Qed.
+
 Lemma strip_isBox Σ f :
   isBox f = isBox (strip Σ f).
 Proof.
@@ -786,6 +800,25 @@ Proof.
   funelim (strip Σ f); cbn -[strip] => //.
   all:rewrite map_InP_spec.
   all:rewrite !isLazyApp_mkApps //.
+Qed.
+
+Lemma isLazy_mkApps_nonnil f l : l <> [] -> isLazy (mkApps f l) = false.
+Proof.
+  destruct l using rev_case => // _. now rewrite mkApps_app.
+Qed.
+
+Lemma isLazy_mkApps_Construct ind c block_args l :
+  isLazy (mkApps (tConstruct ind c block_args) l) = false.
+Proof.
+  destruct l using rev_case => //. now rewrite mkApps_app.
+Qed.
+
+Lemma strip_isLazy Σ f :
+  isLazy f = isLazy (strip Σ f).
+Proof.
+  funelim (strip Σ f); cbn -[strip]; (try simp_strip) => //.
+  rewrite !isLazy_mkApps_nonnil //; try apply map_nil => //.
+  all:rewrite !isLazy_mkApps_Construct //.
 Qed.
 
 Lemma lookup_inductive_pars_is_prop_and_pars {Σ ind b pars} :
@@ -991,6 +1024,7 @@ Proof.
       move/wellformed_closed: i9; rewrite closedn_mkApps => /andP[] //. }
     { move: i11. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
       now simp isEtaExp. }
+    now rewrite is_coind_strip.
 
   - destruct p as [[ind pars] arg].
     simp_strip.
@@ -1004,6 +1038,16 @@ Proof.
       move/wellformed_closed: i8; rewrite closedn_mkApps => /andP[] //. }
     { move: i10. rewrite isEtaExp_mkApps_napp // /= => /andP[] //.
       now simp isEtaExp. }
+    now rewrite is_coind_strip.
+
+  - rewrite strip_tApp //.
+    rewrite strip_tApp //.
+    rewrite strip_mkApps //. simpl.
+    simp_strip. set (mfix' := map _ _). simpl.
+    rewrite strip_mkApps // /= in e0. simp_strip in e0.
+    eapply eval_cofix_value; tea.
+    rewrite (cofix_arity_map (strip Σ)); tea.
+    now rewrite length_map.
 
   - econstructor. red in H |- *.
     rewrite lookup_env_strip H //.
@@ -1020,12 +1064,6 @@ Proof.
 
   - simp_strip. eapply eval_proj_prop => //.
     move: (is_propositional_strip Σ p.(proj_ind)); now rewrite H3.
-
-  - rewrite !strip_tApp //.
-    eapply eval_app_cong; tea.
-    move: H1. eapply contraNN.
-    rewrite -strip_isLambda -strip_isConstructApp -strip_isFixApp -strip_isBox -strip_isPrimApp
-      -strip_isLazyApp // -strip_isFix //.
 
   - rewrite !strip_mkApps // /=.
     rewrite (lookup_constructor_lookup_inductive_pars H).
@@ -1044,6 +1082,14 @@ Proof.
     now destruct a0.
 
   - simp_strip. simp_strip in e0. econstructor; tea.
+
+  - simp_strip. simp_strip in e0.
+    eapply eval_force_fix; tea.
+    move: (@strip_cunfold_fix Σ mfix idx narg (tLazy b)).
+    simp_strip. apply; tea.
+    { change (wellformed Σ 0 (tFix mfix idx) = true) in i4.
+      move/wellformed_closed: i4; eapply closed_fix_subst => //. }
+    { simp isEtaExp in i6. }
 
   - destruct t => //.
     all:constructor; eauto. simp strip.
@@ -1112,7 +1158,9 @@ Proof.
     destruct nth_error => //.
     all: eapply H; auto.
   - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto. toAll; solve_all.
-    now rewrite -strip_isLambda. toAll; solve_all.
+    now rewrite -strip_isLambda -strip_isLazy. toAll; solve_all.
+  - unfold wf_fix_gen in *. rewrite length_map. rtoProp; intuition auto.
+    all:toAll; solve_all. now apply strip_isLambdas.
   - primProp. rtoProp; intuition eauto; solve_all_k 6.
   - move:H1; rewrite !wellformed_mkApps //. rtoProp; intuition auto.
     all:toAll; solve_all.
@@ -1431,4 +1479,36 @@ Proof.
   eapply expanded_global_env_isEtaExp_env, strip_env_expanded => //.
   now eapply isEtaExp_env_expanded_global_env.
   now eapply expanded_isEtaExp, strip_expanded, isEtaExp_expanded.
+Qed.
+
+(** ** First-order values
+
+  The translation of first-order values to constructor blocks without
+  parameters. *)
+
+Fixpoint compile_evalue_box_strip (Σ : GlobalContextMap.t) (t : EAst.term)
+  (acc : list EAst.term) :=
+  match t with
+  | EAst.tApp f a =>
+    compile_evalue_box_strip Σ f (compile_evalue_box_strip Σ a [] :: acc)
+  | EAst.tConstruct i n _ =>
+    match GlobalContextMap.lookup_inductive_pars Σ
+      (Kernames.inductive_mind i) with
+    | Some npars => EAst.tConstruct i n (skipn npars acc)
+    | None => EAst.tVar "error"
+    end
+  | _ => EAst.tVar "error"
+  end.
+
+Lemma compile_evalue_box_strip_mkApps {Σ i n ui args acc npars} :
+  GlobalContextMap.lookup_inductive_pars Σ (Kernames.inductive_mind i) =
+    Some npars ->
+  compile_evalue_box_strip Σ (EAst.mkApps (EAst.tConstruct i n ui) args) acc =
+  EAst.tConstruct i n (skipn npars
+    (List.map (flip (compile_evalue_box_strip Σ) []) args ++ acc)).
+Proof.
+  revert acc; induction args using rev_ind.
+  - intros acc. cbn. intros ->. auto.
+  - intros acc hl. rewrite EAstUtils.mkApps_app /=. cbn.
+    now rewrite IHargs // map_app /= -app_assoc /=.
 Qed.

@@ -82,9 +82,9 @@ Proof.
   - rewrite (eval_deterministic ev_hd ev_app1) in *.
     now eapply eval_fix'.
   - rewrite (eval_deterministic ev_hd ev_app1) in *.
-    now eapply eval_construct.
+    now eapply eval_cofix_value.
   - rewrite (eval_deterministic ev_hd ev_app1) in *.
-    now eapply eval_app_cong.
+    now eapply eval_construct.
   - easy.
 Qed.
 
@@ -123,7 +123,8 @@ Proof.
     inversion ev1.
   - apply eval_tLambda_inv in ev1.
     solve_discr.
-  - now apply eval_tLambda_inv in ev1 as ->.
+  - apply eval_tLambda_inv in ev1.
+    solve_discr.
   - easy.
 Qed.
 
@@ -295,13 +296,15 @@ Fixpoint deriv_length {Σ t v} (ev : Σ e⊢ t ⇓ v) : nat :=
   | eval_iota _ _ _ _ _ _ _ _ _ _ ev1 _ _ _ _ ev2
   | eval_iota_sing _ _ _ _ _ _ _ _ ev1 _ _ ev2
   | eval_fix_value _ _ _ _ _ _ _ _ _ ev1 ev2 _ _
+  | eval_cofix_value _ _ _ _ _ _ _ ev1 ev2 _ _
+  | eval_force_fix _ _ _ _ _ _ ev1 _ ev2
   | eval_proj _ _ _ _ _ _ _ ev1 _ _ _ ev2
   | eval_proj_block _ _ _ _ _ _ _ ev1 _ _ _ ev2
-  | eval_construct _ _ _ _ _ _ _ _ _ _ _ ev1 _ ev2
-  | eval_app_cong _ _ _ _ ev1 _ ev2 => S (deriv_length ev1 + deriv_length ev2)
+  | eval_construct _ _ _ _ _ _ _ _ _ _ _ ev1 _ ev2 =>
+      S (deriv_length ev1 + deriv_length ev2)
   | eval_beta _ _ _ _ _ _ ev1 ev2 ev3
-  | eval_cofix_case _ _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
-  | eval_cofix_proj _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
+  | eval_cofix_case _ _ _ _ _ _ _ _ _ _ ev1 _ _ ev2 ev3
+  | eval_cofix_proj _ _ _ _ _ _ _ _ _ ev1 _ _ ev2 ev3
   | eval_fix' _ _ _ _ _ _ _ _ _ ev1 _ ev2 ev3
   | eval_fix _ _ _ _ _ _ _ _ _ ev1 ev2 _ ev3 =>
       S (deriv_length ev1 + deriv_length ev2 + deriv_length ev3)
@@ -453,10 +456,10 @@ Proof.
     unshelve eexists _; [now eapply eval_fix'|].
     cbn; lia.
   - pose proof (eval_unique_sig ev_hd ev_app1) as H; noconf H.
-    unshelve eexists _; [now eapply eval_construct|].
+    unshelve eexists _; [now eapply eval_cofix_value|].
     cbn; lia.
   - pose proof (eval_unique_sig ev_hd ev_app1) as H; noconf H.
-    unshelve eexists _; [now eapply eval_app_cong|].
+    unshelve eexists _; [now eapply eval_construct|].
     cbn; lia.
   - easy.
 Qed.

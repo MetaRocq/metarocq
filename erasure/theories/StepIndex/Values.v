@@ -154,13 +154,22 @@ Fixpoint wellformed_val {efl : EEnvFlags} Σ v : bool :=
   | vRecClos mfix n Γ => 
       has_tFix && 
       forallb (wellformed_val Σ) Γ && 
-      forallb (isLambda ∘ dbody) mfix &&
+      forallb
+        (fun d => isLambda d.(dbody) || (has_tLazy_Force && isLazy d.(dbody)))
+        mfix &&
       wf_fix_gen (wellformed Σ) #|Γ| mfix n
   | vCoFixClos mfix n Γ args => 
       has_tCoFix && 
+      (* every body starts with [rarg] lambdas *)
+      forallb (fun d => isLambdas d.(rarg) d.(dbody)) mfix &&
       forallb (wellformed_val Σ) Γ && 
       forallb (wellformed_val Σ) args &&
-      wf_fix_gen (wellformed Σ) #|Γ| mfix n
+      wf_fix_gen (wellformed Σ) #|Γ| mfix n &&
+      (* the closure holds at most as many arguments as its arity *)
+      match cofix_arity mfix n with
+      | Some narg => #|args| <=? narg
+      | None => false
+      end
   | vPrim p => has_prim p && test_prim (wellformed_val Σ) p
   | vLazy t Γ => has_tLazy_Force && forallb (wellformed_val Σ) Γ && wellformed Σ #|Γ| t
   end.
@@ -194,7 +203,12 @@ Proof.
     + destruct args; simple; last easy.
       do 3 constructor.
     + apply value_app_nonnil.
-      * simple. constructor.
+      * simple. destruct hwf as [_ harity].
+        destruct (cofix_arity b idx) as [narg|] eqn:harg; last easy.
+        rewrite -(cofix_arity_map (substlg (map term_of_val env) #|b|))
+          in harg.
+        eapply value_head_cofix; first exact harg.
+        now apply Nat.leb_le.
       * now destruct args.
       * apply All_map. eapply All_impl_All; last apply X0.
         now simple.

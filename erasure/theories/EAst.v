@@ -68,6 +68,28 @@ Definition isLambda t :=
   | _ => false
   end.
 
+(** [isLambdas n t]: [t] starts with (at least) [n] lambdas. *)
+Fixpoint isLambdas (n : nat) (t : term) : bool :=
+  match n with
+  | 0 => true
+  | S n =>
+    match t with
+    | tLambda _ b => isLambdas n b
+    | _ => false
+    end
+  end.
+
+Lemma isLambdas_S_isLambda n t : isLambdas (S n) t -> isLambda t.
+Proof. now destruct t. Qed.
+
+Lemma isLambdas_le m n t : m <= n -> isLambdas n t -> isLambdas m t.
+Proof.
+  induction m in n, t |- *; cbn; auto.
+  destruct n; [intros H; exfalso; inversion H|].
+  intros hle. destruct t; cbn; auto.
+  apply IHm. now apply le_S_n.
+Qed.
+
 (** ** Entries
 
   The kernel accepts these inputs and typechecks them to produce

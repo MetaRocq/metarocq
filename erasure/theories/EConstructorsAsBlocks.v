@@ -598,77 +598,7 @@ Proof.
     * destruct p as (? & ? & ?). exists (x0 ++ [a']). split => //.
       rewrite mkApps_app /= //. split => //. eapply All2_app; eauto.
       split => //. eapply All2_length in a. len. rewrite e1 in hlook; invs hlook. lia.
-    * destruct p as (? & ? & ?). subst f'.
-      cbn in i.
-      rewrite isConstructApp_mkApps in i. cbn in i.
-      rewrite orb_true_r in i. cbn in i. congruence.
     * now cbn in i.
-Qed.
-
-Lemma transform_blocks_isConstructApp {efl : EEnvFlags} {Σ : GlobalContextMap.t} t :
-  has_cstr_params = false ->
-  wf_glob Σ -> wellformed Σ 0 t ->
-  isConstructApp (transform_blocks Σ t) = isConstructApp t.
-Proof.
-  intros haspars Hwf Hwf'.
-  induction t; try now cbn; eauto.
-  eapply transform_blocks_tApp; eauto.
-  destruct decompose_app.
-  destruct construct_viewc.
-  - rewrite GlobalContextMap.lookup_constructor_pars_args_spec.
-    destruct lookup_constructor_pars_args as [ [[]] | ]; eauto.
-    cbn. destruct chop. intros (? & ? & ?). subst.
-    rewrite -[tApp _ _](mkApps_app _ _ [t2]).
-    rewrite !isConstructApp_mkApps. cbn. reflexivity.
-  - change (tApp t1 t2) with (mkApps t1 [t2]).
-    change (tApp (transform_blocks Σ t1) (transform_blocks Σ t2)) with
-    (mkApps (transform_blocks Σ t1) [transform_blocks Σ t2]).
-    rewrite !isConstructApp_mkApps.
-    eapply IHt1. cbn in Hwf'. rtoProp. intuition.
-Qed.
-
-Lemma transform_blocks_isPrimApp {efl : EEnvFlags} {Σ : GlobalContextMap.t} t :
-  has_cstr_params = false ->
-  wf_glob Σ -> wellformed Σ 0 t ->
-  isPrimApp (transform_blocks Σ t) = isPrimApp t.
-Proof.
-  intros haspars Hwf Hwf'.
-  induction t; try now cbn; eauto.
-  eapply transform_blocks_tApp; eauto.
-  destruct decompose_app.
-  destruct construct_viewc.
-  - rewrite GlobalContextMap.lookup_constructor_pars_args_spec.
-    destruct lookup_constructor_pars_args as [ [[]] | ]; eauto.
-    cbn. destruct chop. intros (? & ? & ?). subst.
-    rewrite -[tApp _ _](mkApps_app _ _ [t2]).
-    rewrite !isPrimApp_mkApps. cbn. reflexivity.
-  - change (tApp t1 t2) with (mkApps t1 [t2]).
-    change (tApp (transform_blocks Σ t1) (transform_blocks Σ t2)) with
-    (mkApps (transform_blocks Σ t1) [transform_blocks Σ t2]).
-    rewrite !isPrimApp_mkApps.
-    eapply IHt1. cbn in Hwf'. rtoProp. intuition.
-Qed.
-
-Lemma transform_blocks_isLazyApp {efl : EEnvFlags} {Σ : GlobalContextMap.t} t :
-  has_cstr_params = false ->
-  wf_glob Σ -> wellformed Σ 0 t ->
-  isLazyApp (transform_blocks Σ t) = isLazyApp t.
-Proof.
-  intros haspars Hwf Hwf'.
-  induction t; try now cbn; eauto.
-  eapply transform_blocks_tApp; eauto.
-  destruct decompose_app.
-  destruct construct_viewc.
-  - rewrite GlobalContextMap.lookup_constructor_pars_args_spec.
-    destruct lookup_constructor_pars_args as [ [[]] | ]; eauto.
-    cbn. destruct chop. intros (? & ? & ?). subst.
-    rewrite -[tApp _ _](mkApps_app _ _ [t2]).
-    rewrite !isLazyApp_mkApps. cbn. reflexivity.
-  - change (tApp t1 t2) with (mkApps t1 [t2]).
-    change (tApp (transform_blocks Σ t1) (transform_blocks Σ t2)) with
-    (mkApps (transform_blocks Σ t1) [transform_blocks Σ t2]).
-    rewrite !isLazyApp_mkApps.
-    eapply IHt1. cbn in Hwf'. rtoProp. intuition.
 Qed.
 
 Lemma lookup_env_transform_blocks {Σ : GlobalContextMap.t} kn :
@@ -698,6 +628,14 @@ Proof.
   destruct lookup_env as [ [] | ]; cbn; congruence.
 Qed.
 
+Lemma is_coind_transform_blocks (Σ : GlobalContextMap.t) kn :
+  is_coind (transform_blocks_env Σ) kn = is_coind Σ kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive.
+  rewrite lookup_env_transform_blocks.
+  destruct lookup_env as [ [] | ]; cbn; congruence.
+Qed.
+
 Lemma lookup_constructor_transform_blocks Σ ind c :
   lookup_constructor (transform_blocks_env Σ) ind c =
   lookup_constructor Σ ind c.
@@ -709,6 +647,13 @@ Qed.
 
 Lemma isLambda_transform_blocks Σ c : isLambda c -> isLambda (transform_blocks Σ c).
 Proof. destruct c => //. Qed.
+
+Lemma isLambdas_transform_blocks Σ n c :
+  isLambdas n c -> isLambdas n (transform_blocks Σ c).
+Proof.
+  induction n in c |- * => //; destruct c => //.
+  simp transform_blocks. rewrite -transform_blocks_equation_1. exact: IHn.
+Qed.
 
 Lemma transform_wellformed {efl : EEnvFlags} {Σ : GlobalContextMap.t} n t :
   has_cstr_params = false ->
@@ -740,10 +685,12 @@ Proof.
     eapply Nat.leb_le in H3. intuition auto. apply/eqb_spec. lia.
   - len. move: H2. rewrite /wf_brs. now rewrite lookup_inductive_transform_blocks.
   - now rewrite lookup_constructor_transform_blocks.
-  - unfold wf_fix in *. rtoProp. solve_all. solve_all. now eapply isLambda_transform_blocks.
+  - unfold wf_fix in *. rtoProp. solve_all. solve_all.
+    move/andP: b => [] isl _. now rewrite isLambda_transform_blocks.
   - unfold wf_fix in *. rtoProp. solve_all.
     len. solve_all. len. destruct x.
     cbn -[transform_blocks isEtaExp] in *. rtoProp. eauto.
+  - solve_all. now eapply isLambdas_transform_blocks.
   - unfold wf_fix in *. len. solve_all. rtoProp; intuition auto.
     solve_all.
   - solve_all_k 7.
@@ -1080,13 +1027,14 @@ Proof.
     rewrite transform_blocks_mkApps //=.
     simp transform_blocks. rewrite -!transform_blocks_equation_1.
     cbn [plus].
-    intros.
+    intros H hco. intros.
     destruct H3 as [ev wf eta etad].
     destruct H6.
     move: eta; rewrite wellformed_mkApps //.
     move => /andP[] wfcof wfargs.
     destruct H8 as [ev' wf' _ _ _].
     eapply eval_cofix_case; tea.
+    2:now rewrite is_coind_transform_blocks.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     rewrite isEtaExp_mkApps_napp //= in i. move/andP: i => [] etacof etaargs. now simp_eta in etacof.
@@ -1099,10 +1047,37 @@ Proof.
     move: i10 => /=; simp_eta. rewrite isEtaExp_mkApps_napp //=. move=> /andP[] etacof etaargs.
     simp transform_blocks in e. rewrite -!transform_blocks_equation_1 in e.
     eapply eval_cofix_proj; tea.
+    2:now rewrite is_coind_transform_blocks.
     erewrite transform_blocks_cunfold_cofix; trea.
     eapply closed_cofix_subst. now eapply wellformed_closed in wfcof.
     now simp_eta in etacof.
     now rewrite transform_blocks_mkApps_eta_fn in e0.
+  - intros; repeat match goal with
+      [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
+    rewrite -[tApp (mkApps _ _) _](mkApps_app _ _ [av]).
+    rewrite (transform_blocks_mkApps _ (tCoFix mfix idx)) // /= map_app.
+    rewrite mkApps_app /=.
+    rewrite transform_blocks_mkApps //= in e0.
+    simp transform_blocks in e0 |- *.
+    rewrite -!transform_blocks_equation_1 in e0 |- *.
+    move: i4; rewrite wellformed_mkApps // => /andP[] wfcof _.
+    move: i6; rewrite isEtaExp_mkApps_napp //= => /andP[] etacof _.
+    eapply transform_blocks_tApp; eauto. { cbn. rtoProp; eauto. }
+    destruct decompose_app as [fn' args] eqn:heq.
+    destruct construct_viewc eqn:heqv.
+    + rewrite GlobalContextMap.lookup_constructor_pars_args_spec;
+        destruct lookup_constructor_pars_args as [[[] args']|] => // /=.
+      destruct chop eqn:eqch.
+      intros [Hl [ha ht]]. rewrite ha in H.
+      rewrite ha in i3. rewrite wellformed_mkApps in i3; eauto. rtoProp.
+      cbn [wellformed] in H0. rtoProp.
+      destruct lookup_constructor as [ [[]] | ] eqn:hel; cbn in H7;
+        try congruence.
+      eapply eval_mkApps_Construct_inv in H as (args'' & Ha1 & ?); eauto.
+      solve_discr.
+    + eapply eval_cofix_value; tea.
+      * now rewrite cofix_arity_map.
+      * now len.
   - intros; repeat match goal with [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
     econstructor.
     eapply transform_blocks_declared_constant; eauto.
@@ -1127,49 +1102,6 @@ Proof.
       rewrite hc //= H1 H6. reflexivity.
     + len.
     + rewrite nth_error_map /=. rewrite H6 in H2; rewrite -H2 in H4; rewrite H4; eauto.
-  - intros; repeat match goal with [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
-    eapply transform_blocks_tApp; eauto. cbn; rtoProp; eauto.
-    destruct decompose_app as [f args] eqn:heq.
-    destruct construct_viewc eqn:heqv.
-    + rewrite GlobalContextMap.lookup_constructor_pars_args_spec;
-        destruct lookup_constructor_pars_args as [[npars args']|] eqn:hl => // /=.
-      destruct npars; eauto.
-      destruct chop eqn:eqch.
-      intros [Hl [ha ht]]. pose proof ev as Hev. rewrite ha in Hev.
-      destruct with_constructor_as_block eqn:E.
-      * eapply eval_mkApps_Construct_block_inv in Hev as (args'' & Ha1 & Ha2 & Ha3); eauto. subst.
-        destruct args as [ | []]; cbn in *; congruence.
-      * rewrite ha in i3. rewrite wellformed_mkApps in i3; eauto. rtoProp. cbn [wellformed] in H.
-        rtoProp. destruct lookup_constructor as [ [[]] | ] eqn:hel; cbn in H6; try congruence.
-        eapply eval_mkApps_Construct_inv in Hev as (args'' & Ha1 & Ha2 & -> & ?); eauto. subst.
-        rewrite isConstructApp_mkApps in H1. rewrite orb_true_r in H1 => //.
-    + eapply transform_blocks_tApp; eauto. cbn; rtoProp; eauto.
-      destruct (decompose_app (tApp f' a')). destruct (construct_viewc t0).
-      * rewrite GlobalContextMap.lookup_constructor_pars_args_spec;
-          destruct lookup_constructor_pars_args as [ [[]] | ] eqn:hpa; eauto.
-        cbn [plus]. destruct chop eqn:heqch.
-        intros [hl [ht ha]]. rewrite ht in H1. rewrite isConstructApp_mkApps
-          isPrimApp_mkApps isLazyApp_mkApps orb_true_r in H1 => //.
-      * eapply eval_app_cong; eauto.
-        revert H1.
-        destruct f'; try now cbn; tauto.
-        intros H. cbn in H.
-        rewrite transform_blocks_isConstructApp; eauto.
-        rewrite transform_blocks_isPrimApp; eauto.
-        rewrite transform_blocks_isLazyApp; eauto.
-        rewrite !negb_or in H. move/andP: H => [] /andP [] ncstr nprim nlazy.
-        destruct (isConstructApp (tApp f'1 f'2)) eqn:heq'.
-        -- cbn in ncstr. congruence.
-        -- eapply transform_blocks_tApp; eauto. clear -nprim nlazy.
-          move/negbTE: nlazy ->. move/negbTE: nprim -> => /=.
-           destruct decompose_app.
-           destruct construct_viewc; try now cbn; eauto.
-           rewrite GlobalContextMap.lookup_constructor_pars_args_spec;
-           destruct lookup_constructor_pars_args as [[[]] | ]; eauto.
-           cbn. destruct chop. cbn. intros.
-           rewrite !orb_false_r.
-           destruct l1 using rev_case; cbn; eauto.
-           rewrite mkApps_app; cbn; eauto.
   - intros; repeat match goal with [H : MRProd.and5 _ _ _ _ _ |- _] => destruct H end.
     simp transform_blocks. rewrite -!transform_blocks_equation_1.
     rewrite !transform_blocks_mkApps => //.
@@ -1217,6 +1149,16 @@ Proof.
     simp transform_blocks; rewrite -!transform_blocks_equation_1.
     econstructor; eauto.
     now simp transform_blocks in evt; rewrite -!transform_blocks_equation_1 in evt.
+  - intros evt hc evb [evt' wft wff etat etaf] [evb' wfb wfv etab etav].
+    simp transform_blocks; rewrite -!transform_blocks_equation_1.
+    simp transform_blocks in evt'.
+    rewrite -!transform_blocks_equation_1 in evt'.
+    eapply eval_force_fix; tea.
+    cbn in wff. unfold wf_fix in wff. rtoProp.
+    erewrite transform_blocks_cunfold_fix; tea.
+    + now simp transform_blocks.
+    + eapply closed_fix_subst. solve_all. destruct x; cbn in *. eauto.
+    + now simp_eta in etaf.
   - intros. destruct t; try solve [constructor; cbn in H, H0 |- *; try congruence].
     cbn -[lookup_constructor] in H |- *. destruct args => //.
     destruct lookup_constructor eqn:hl => //.
@@ -1226,4 +1168,74 @@ Proof.
     simp_eta in H1. cbn in H1. unfold isEtaExp_app in H1.
     rewrite (lookup_constructor_pars_args_spec wfΣ hl) andb_true_r in H1.
     apply Nat.leb_le in H1; cbn; unfold cstr_arity. lia.
+Qed.
+
+(** ** First-order values
+
+  On first-order values, the transformation turns applied constructors into
+  blocks. *)
+
+From MetaRocq.Erasure Require Import EFirstorder.
+
+Fixpoint compile_evalue_box (t : EAst.term) (acc : list EAst.term) :=
+  match t with
+  | EAst.tApp f a => compile_evalue_box f (compile_evalue_box a [] :: acc)
+  | EAst.tConstruct i n _ => EAst.tConstruct i n acc
+  | _ => EAst.tVar "error"
+  end.
+
+Lemma compile_evalue_box_mkApps {i n ui args acc} :
+  compile_evalue_box (EAst.mkApps (EAst.tConstruct i n ui) args) acc =
+  EAst.tConstruct i n (List.map (flip compile_evalue_box []) args ++ acc).
+Proof.
+  revert acc; induction args using rev_ind.
+  - now intros acc.
+  - intros acc. rewrite EAstUtils.mkApps_app /=. cbn.
+    now rewrite IHargs // map_app /= -app_assoc /=.
+Qed.
+
+Lemma lookup_constructor_pars_args_nopars {efl : EEnvFlags} Σ ind c
+  npars nargs :
+  wf_glob Σ ->
+  has_cstr_params = false ->
+  EGlobalEnv.lookup_constructor_pars_args Σ ind c = Some (npars, nargs) ->
+  npars = 0.
+Proof.
+  intros wf h.
+  rewrite /EGlobalEnv.lookup_constructor_pars_args.
+  destruct EGlobalEnv.lookup_constructor eqn:e => //=.
+  destruct p as [[m i] cb]. intros [= <- <-].
+  now eapply wellformed_lookup_constructor_pars in e.
+Qed.
+
+Lemma compile_evalue_box_firstorder {efl : EEnvFlags}
+  {Σ : EEnvMap.GlobalContextMap.t} v :
+  has_cstr_params = false ->
+  EWellformed.wf_glob Σ ->
+  firstorder_evalue Σ v ->
+  firstorder_evalue_block Σ (flip compile_evalue_box [] v).
+Proof.
+  intros hpars wf.
+  move: v; apply: firstorder_evalue_elim.
+  intros.
+  rewrite /flip (compile_evalue_box_mkApps) // ?app_nil_r.
+  pose proof (H' := H).
+  eapply lookup_constructor_pars_args_nopars in H; tea. subst npars.
+  rewrite skipn_0 in H1.
+  constructor.
+  - rewrite length_map. cbn in H2. congruence.
+  - ELiftSubst.solve_all.
+Qed.
+
+Lemma firstorder_evalue_block_transform (Σ : EEnvMap.GlobalContextMap.t) t :
+  firstorder_evalue_block Σ t <->
+  firstorder_evalue_block (transform_blocks_env Σ) t.
+Proof.
+  split.
+  - apply firstorder_evalue_block_elim; intros.
+    constructor; eauto. unfold EGlobalEnv.lookup_constructor_pars_args.
+    rewrite lookup_constructor_transform_blocks; eauto.
+  - apply firstorder_evalue_block_elim; intros.
+    constructor; eauto. unfold EGlobalEnv.lookup_constructor_pars_args in H.
+    rewrite lookup_constructor_transform_blocks in H; eauto.
 Qed.

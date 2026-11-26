@@ -176,6 +176,10 @@ Lemma isLambda_lift n k (bod : term) :
   isLambda bod = true -> isLambda (lift n k bod) = true.
 Proof. now destruct bod. Qed.
 
+Lemma isLambdas_lift m n k (t : term) :
+  isLambdas m t -> isLambdas m (lift n k t).
+Proof. induction m in k, t |- * => //. destruct t => //=. apply IHm. Qed.
+
 #[global]
 Hint Resolve lift_isApp map_nil isLambda_lift : all.
 
@@ -400,6 +404,10 @@ Lemma isLambda_subst (s : list term) k (bod : term) :
 Proof.
   intros. destruct bod; try discriminate. reflexivity.
 Qed.
+
+Lemma isLambdas_subst m (s : list term) k (t : term) :
+  isLambdas m t -> isLambdas m (subst s k t).
+Proof. induction m in k, t |- * => //. destruct t => //=. apply IHm. Qed.
 
 Lemma map_vass_map_def g l n k :
   mapi (fun i d => vass (dname d) (lift0 i (dtype d)))

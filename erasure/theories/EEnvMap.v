@@ -149,6 +149,17 @@ Module GlobalContextMap.
     now rewrite lookup_minductive_spec.
   Qed.
 
+  Definition is_coind Σ kn : bool :=
+    match lookup_inductive_kind Σ kn with
+    | Some CoFinite => true
+    | _ => false
+    end.
+
+  Lemma is_coind_spec Σ kn : is_coind Σ kn = EGlobalEnv.is_coind Σ kn.
+  Proof.
+    rewrite /is_coind /EGlobalEnv.is_coind lookup_inductive_kind_spec //.
+  Qed.
+
   Definition inductive_isprop_and_pars Σ (ind : inductive) :=
     '(mdecl, idecl) <- lookup_inductive Σ ind ;;
     ret (ind_propositional idecl, ind_npars mdecl).

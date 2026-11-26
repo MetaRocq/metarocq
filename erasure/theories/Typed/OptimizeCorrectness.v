@@ -2009,6 +2009,7 @@ Proof.
       eapply is_expanded_cunfold_cofix; [eassumption|].
       now apply forallb_Forall.
     + easy.
+  - easy.
   - apply IHev.
     apply (is_expanded_aux_upwards 0); [|easy].
     now eapply is_expanded_constant.
@@ -2021,12 +2022,17 @@ Proof.
     cbn in *.
     now apply (is_expanded_aux_upwards 0).
   - easy.
-  - easy.
   - depelim X; auto.
     eapply All2_over_undep in a. eapply All2_Set_All2 in ev. solve_all. subst a0 a'; cbn in *.
     depelim exp_t; constructor; cbn in *; intuition eauto. solve_all.
   - eapply IHev1 in exp_t. eapply IHev2 in exp_t.
     eapply is_expanded_aux_upwards; tea. lia.
+  - eapply IHev1 in exp_t.
+    apply (is_expanded_aux_upwards 0); [|lia].
+    apply IHev2.
+    change (is_expanded (tLazy b)).
+    eapply is_expanded_cunfold_fix; [eassumption|].
+    now apply forallb_Forall.
 Qed.
 
 Lemma valid_case_masks_lift ind c brs n k :
@@ -2817,6 +2823,7 @@ Proof with auto with dearg.
     assert (valid_cases (mkApps fn args)) by
       (apply valid_cases_mkApps;auto; eapply valid_cases_cunfold_cofix;eauto).
     easy.
+  - easy.
   - apply IHev.
     + now eapply closed_constant.
     + now eapply valid_cases_constant.
@@ -2831,11 +2838,17 @@ Proof with auto with dearg.
       (eapply @nth_error_forall with (x := a);eauto).
     easy.
   - easy.
-  - easy.
   - depelim X; auto.
     eapply All2_over_undep in a. eapply All2_Set_All2 in ev. subst a0 a'; cbn -[test_prim] in *.
     solve_all. depelim H0; constructor; cbn; intuition eauto. solve_all.
   - eapply IHev2. eapply eval_closed in ev1; tea. eapply IHev1; eauto.
+  - eapply eval_closed in ev1 as clos_fix; tea.
+    specialize (IHev1 clos_t valid_t).
+    apply IHev2.
+    + change (closed (tLazy b)).
+      eapply closed_cunfold_fix; eassumption.
+    + change (valid_cases (tLazy b)).
+      eapply valid_cases_cunfold_fix; eassumption.
 Qed.
 
 Lemma declared_constant_dearg Σ k cst :
@@ -3405,6 +3418,20 @@ Section dearg.
         eapply valid_cases_cunfold_fix in e0 as vc_fn;auto.
         eapply is_expanded_cunfold_fix in e0 as ?;auto with dearg.
     - facts.
+      rewrite dearg_expanded by assumption.
+      cbn.
+      rewrite dearg_mkApps.
+      cbn.
+      apply (eval_cofix_value _ _ _ _ _ _ _ narg).
+      + unshelve epose proof (IH _ _ _ _ _ ev1 _) as ev; trivial.
+        1: lia.
+        rewrite dearg_mkApps in ev.
+        apply ev.
+      + now unshelve eapply (IH _ _ _ _ _ ev2).
+      + now rewrite cofix_arity_map.
+      + rewrite length_map.
+        lia.
+    - facts.
       apply lookup_ctor_trans_env in e0 as e0'.
       destruct e0' as (mib & oib & ctor & Hlook & Hmib & Hoib & Hctor).
       rewrite dearg_expanded by assumption.
@@ -3454,37 +3481,6 @@ Section dearg.
         assert (count_zeros bm <= #|bm|) by apply count_zeros_le.
         assert (count_zeros bm + count_ones bm = #|bm| ) by apply count_ones_zeros.
         lia.
-      + now unshelve eapply (IH _ _ _ _ _ ev2 _).
-    - facts.
-      rewrite dearg_expanded by trivial.
-      cbn.
-      apply eval_app_cong.
-      + now unshelve eapply (IH _ _ _ _ _ ev1 _).
-      + destruct (dearg_elim f'); cbn.
-        * invert_facts.
-          cbn in *; propify.
-          rewrite dearg_single_masked by (now rewrite length_map).
-          rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps;cbn in *.
-          rewrite isPrimApp_mkApps, isLazyApp_mkApps in *.
-          destruct with_guarded_fix;cbn;intuition auto.
-          now rewrite EOptimizePropDiscr.isFix_mkApps;cbn.
-        * rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps in *;cbn in *.
-          propify.
-          destruct with_guarded_fix;cbn in *; intuition.
-        * unfold dearg_case.
-          destruct with_guarded_fix;cbn.
-          now rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps, isPrimApp_mkApps, isLazyApp_mkApps;cbn.
-          now rewrite isLambda_mkApps, isBox_mkApps, isConstructApp_mkApps, EOptimizePropDiscr.isFix_mkApps, isPrimApp_mkApps, isLazyApp_mkApps;cbn.
-        * unfold dearg_proj.
-          unfold dearg_case.
-          destruct with_guarded_fix;cbn.
-          ** now rewrite isLambda_mkApps, isFixApp_mkApps, isBox_mkApps, isConstructApp_mkApps, isPrimApp_mkApps, isLazyApp_mkApps;cbn.
-          ** now rewrite isLambda_mkApps, isBox_mkApps, isConstructApp_mkApps, EOptimizePropDiscr.isFix_mkApps, isPrimApp_mkApps, isLazyApp_mkApps;cbn.
-        * rewrite !isLambda_mkApps, !isFixApp_mkApps, !EOptimizePropDiscr.isFix_mkApps, !isBox_mkApps, isConstructApp_mkApps, isPrimApp_mkApps, isLazyApp_mkApps in *
-            by now destruct hd.
-          rewrite length_map.
-          destruct with_guarded_fix;cbn;auto;
-            destruct args;cbn;auto;destruct hd;try congruence;cbn;auto.
       + now unshelve eapply (IH _ _ _ _ _ ev2 _).
   Qed.
 
@@ -3591,6 +3587,12 @@ Section dearg.
       destruct n => //=.
       + intros [= <-] => //.
       + intros hnth. eapply IHl; eauto.
+  Qed.
+
+  Lemma isLambdas_dearg m t : isLambdas m t -> isLambdas m (dearg_aux [] t).
+  Proof.
+    induction m in t |- *; cbn; auto.
+    destruct t => //=. apply IHm.
   Qed.
 
   Lemma wellformed_dearg_aux (efl := all_env_flags) k args t :
@@ -3720,7 +3722,8 @@ Section dearg.
       rewrite length_map.
       rtoProp; intuition eauto. unfold test_def in *; solve_all.
     - rewrite wellformed_mkApps; cbn; rtoProp; intuition eauto; solve_all.
-      revert clos_t. unfold wf_fix.
+      now apply isLambdas_dearg.
+      revert H0. unfold wf_fix.
       rewrite length_map.
       rtoProp; intuition eauto. unfold test_def in *; solve_all.
     - rewrite wellformed_mkApps; cbn; rtoProp; intuition solve_all. solve_all_k 7.
@@ -4117,6 +4120,16 @@ Proof.
   now inversion Hc.
 Qed.
 
+Lemma is_coind_trans_env_dearg_env (Σ : global_env) kn :
+  is_coind (trans_env (dearg_env Σ)) kn = is_coind (trans_env Σ) kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind, lookup_minductive; cbn.
+  rewrite !lookup_env_trans_env, lookup_env_dearg_env; cbn.
+  destruct lookup_env; cbn; auto.
+  destruct g; cbn; auto.
+  unfold dearg_mib. now destruct get_mib_masks.
+Qed.
+
 Lemma inductive_isprop_and_pars_trans_env_dearg_env :
   forall (Σ : global_env) (ind : inductive) (pars : nat),
     inductive_isprop_and_pars (trans_env Σ) ind = Some (true, pars) ->
@@ -4165,9 +4178,6 @@ Proof.
          rewrite e in e1. inversion e1;subst. lia.
       ** now rewrite mkApps_app.
       ** eapply All2_app; eauto.
-    * subst f'.
-      rewrite isConstructApp_mkApps in *;cbn in i.
-      now propify.
     * now cbn in i.
 Qed.
 
@@ -4817,11 +4827,12 @@ Proof.
       facts.
       eapply (eval_cofix_case _ _ _ _ (map dearg args) _ narg (dearg fn) _
                 (dearg bv));
-        [|eapply dearg_cunfold_cofix;eauto| |].
+        [|eapply dearg_cunfold_cofix;eauto| | |].
       * change (tCoFix (map (map_def dearg) mfix) idx) with
           (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by auto.
         eapply IH with (ev := ev1);eauto with dearg;lia.
+      * now rewrite is_coind_trans_env_dearg_env.
       * rewrite <- dearg_expanded, <- dearg_mkApps by auto.
         eapply IH with (ev := ev2);eauto with dearg;lia.
       * clear IHev1 IHev2 IHev3.
@@ -4860,11 +4871,12 @@ Proof.
       unshelve eapply (eval_cofix_proj _ _
                          ((map (map_def (dearg_aux [])) mfix)) idx
                          (map dearg args) _ narg (dearg fn) (dearg bv)
-                         _ _ _).
+                         _ _ _ _).
       * change (tCoFix (map _ _) _) with (dearg (tCoFix mfix idx)).
         rewrite <- dearg_expanded, <- dearg_mkApps by easy.
         eapply IH with (ev := ev1);now eauto with dearg.
       * now eapply dearg_cunfold_cofix.
+      * now rewrite is_coind_trans_env_dearg_env.
       * rewrite <- dearg_expanded, <- dearg_mkApps by easy.
         eapply IH with (ev := ev2);eauto with dearg;lia.
       * change (tProj _ _) with
@@ -4998,6 +5010,20 @@ Proof.
     + facts. econstructor. specialize (IH _ _ clos_t valid_t exp_t ev1).
       cbn in IH. apply IH. lia.
       now forward (IH v _ H2 H4 H6 ev2).
+    + facts.
+      assert (closed (tLazy b)) by
+        (eapply closed_cunfold_fix; eassumption).
+      assert (valid_cases (tLazy b)) by
+        (eapply valid_cases_cunfold_fix; eassumption).
+      assert (is_expanded (tLazy b)).
+      { eapply is_expanded_cunfold_fix; [eassumption|].
+        now apply forallb_Forall. }
+      eapply (eval_force_fix _ _ (map (map_def dearg) mfix) idx narg
+                (dearg b)).
+      * unshelve eapply (IH _ _ _ _ _ ev1 _); auto. lia.
+      * change (tLazy (dearg b)) with (dearg (tLazy b)).
+        now apply dearg_cunfold_fix.
+      * unshelve eapply (IH _ _ _ _ _ ev2 _); auto. lia.
     + destruct t; cbn in *; try destruct y; try congruence; now constructor.
 Qed.
 End dearg_correct.
@@ -5049,6 +5075,16 @@ Proof.
   now destruct nth_error;cbn in *;try congruence.
 Qed.
 
+Lemma is_coind_trans_env_debox_types (Σ : global_env) kn :
+  is_coind (trans_env (debox_env_types Σ)) kn = is_coind (trans_env Σ) kn.
+Proof.
+  unfold is_coind, lookup_inductive_kind, lookup_minductive; cbn.
+  rewrite !lookup_env_trans_env, lookup_env_debox_env_types.
+  destruct lookup_env; cbn; auto.
+  destruct g; cbn; auto.
+  now destruct o as [[]|].
+Qed.
+
 Lemma lookup_constructor_debox_types :
       forall (Σ : global_env) (ind : inductive) (c : nat) m o i n l
              (e : lookup_constructor_full Σ ind c = Some (m, o, (i,n,l))),
@@ -5080,6 +5116,10 @@ Proof.
     now apply constructor_isprop_pars_decl_trans_env_debox_types.
   - eapply eval_iota_sing; eauto.
     now apply inductive_isprop_and_pars_trans_env_debox_types.
+  - eapply eval_cofix_case; eauto.
+    now rewrite is_coind_trans_env_debox_types.
+  - eapply eval_cofix_proj; eauto.
+    now rewrite is_coind_trans_env_debox_types.
   - eapply eval_delta; eauto.
     unfold declared_constant in *.
     rewrite !lookup_env_trans_env, lookup_env_debox_env_types in *.

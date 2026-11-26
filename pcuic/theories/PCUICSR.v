@@ -132,10 +132,12 @@ Proof.
     destruct (decompose_app t) as [f l] eqn:decomp.
     destruct f; try discriminate. simpl.
     apply decompose_app_inv in decomp. subst t.
-    eapply red_it_mkProd_or_LetIn_mkApps_Ind in redty as [ctx' [args' ->]]; auto.
+    eapply red_it_mkProd_or_LetIn_mkApps_Ind_assumptions in redty
+      as [ctx' [args' [-> eqctx]]]; auto.
     erewrite decompose_prod_assum_it_mkProd => //.
     2:{ now rewrite is_ind_app_head_mkApps. }
-    rewrite decompose_app_mkApps => //.
+    rewrite decompose_app_mkApps => //=.
+    now rewrite ?app_nil_r eqctx.
   - simpl map.
     simpl map_option_out.
     destruct check_one_cofix => //.

@@ -876,7 +876,7 @@ Lemma isPropositional_propositional Σ {wfΣ: wf Σ} (Σ' : E.global_context) in
   erases_one_inductive_body idecl idecl' ->
   EGlobalEnv.inductive_isprop_and_pars Σ' ind = Some (isPropositional Σ ind, mdecl.(ind_npars)).
 Proof.
-  intros decli decli' [_ indp] [].
+  intros decli decli' [_ [indp _]] [].
   unfold isPropositional, EGlobalEnv.inductive_isprop_and_pars.
   unfold lookup_inductive.
   unshelve epose proof (decli_ := declared_inductive_to_gen decli); eauto.
@@ -886,6 +886,19 @@ Proof.
   destruct H0 as [_ [_ [_ isP]]]. unfold isPropositionalArity in isP.
   destruct destArity as [[ctx s]|] eqn:da => //.
   rewrite isP; congruence. congruence.
+Qed.
+
+(** Erasure preserves the kind of (co)inductive blocks. *)
+Lemma erases_is_coind (Σ' : E.global_context) ind mdecl mdecl' idecl' :
+  EGlobalEnv.declared_inductive Σ' ind mdecl' idecl' ->
+  erases_mutual_inductive_body mdecl mdecl' ->
+  ind_finite mdecl = CoFinite ->
+  EGlobalEnv.is_coind Σ' (inductive_mind ind).
+Proof.
+  intros [declm _] [_ [_ hfin]] hco.
+  rewrite /EGlobalEnv.is_coind /EGlobalEnv.lookup_inductive_kind.
+  rewrite (EGlobalEnv.declared_minductive_lookup declm) /=.
+  now rewrite -hfin hco.
 Qed.
 
 Lemma isPropositional_propositional_cstr Σ (Σ' : E.global_context) ind c mdecl idecl cdecl mdecl' idecl' :

@@ -137,6 +137,26 @@ Proof.
     eauto using firstn_skipn. }
 Qed.
 
+(* Freshness of the erased environment does not depend on its
+   well-formedness. *)
+Lemma erase_global_deps_fresh_globals X_type deps X decls normalization_in heq :
+  EnvMap.EnvMap.fresh_globals decls ->
+  EnvMap.EnvMap.fresh_globals
+    (@erase_global_deps X_type deps X decls normalization_in heq).1.
+Proof.
+  revert deps X normalization_in heq.
+  induction decls; [cbn; auto|].
+  - intros. constructor.
+  - destruct a as [kn' d]. intros deps X nin heq H. depelim H.
+    destruct d as []; simpl; destruct Kernames.KernameSet.mem.
+    + cbn. constructor; [eapply IHdecls => //|].
+      eapply erase_global_deps_fresh => //.
+    + eapply IHdecls => //.
+    + cbn. constructor; [eapply IHdecls => //|].
+      eapply erase_global_deps_fresh => //.
+    + eapply IHdecls => //.
+Qed.
+
 Local Obligation Tactic := program_simpl.
 
 Program Definition erase_pcuic_program {guard : abstract_guard_impl} (p : pcuic_program)
@@ -154,9 +174,13 @@ Program Definition erase_pcuic_program {guard : abstract_guard_impl} (p : pcuic_
 
 Next Obligation. unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto. Defined.
 Next Obligation.
-  eapply wf_glob_fresh.
-  eapply ErasureFunctionProperties.erase_global_fast_wf_glob.
-  unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
+  unfold erase_global_fast. erewrite erase_global_deps_fast_spec.
+  eapply erase_global_deps_fresh_globals.
+  Unshelve.
+  - destruct wfΣ as [w]. eapply wf_fresh_globals, w.
+  - unshelve edestruct erase_pcuic_program_normalization_helper;
+      cbn in *; eauto.
+  - cbn. now intros ? ->.
 Defined.
 
 Local Obligation Tactic := idtac.
@@ -179,7 +203,7 @@ Proof.
   unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
   apply: (ErasureFunctionProperties.expanded_erase_fast (X_type:=optimized_abstract_env_impl)).
   unshelve edestruct erase_pcuic_program_normalization_helper; cbn in *; eauto.
-  reflexivity. exact etat.
+  reflexivity. exact etaenv. exact etat.
 Qed.
 
 Lemma expanded_eprogram_env_expanded_eprogram_cstrs p :
@@ -217,6 +241,8 @@ Next Obligation.
     set (egf := erase_global_fast _ _ _ _ _) in e.
     set (ef := erase _ _ _ _ _) in e.
     cbn -[egf ef] in e. injection e. intros <- <-.
+    have hcld := expanded_global_env_cofix_lambdas _ (proj1 etap).
+    have hclt := expanded_cofix_lambdas _ _ _ (proj2 etap).
     split.
     eapply erase_global_fast_wf_glob; eauto;
       try match goal with H : _ |- _ => eapply H end.
@@ -241,7 +267,9 @@ Next Obligation.
   assert (ev' :forall Σ0 : PCUICAst.PCUICEnvironment.global_env, Σ0 = Σ' -> PCUICWcbvEval.eval Σ0 t v).
   { intros; now subst. }
   eapply (erase_correct optimized_abstract_env_impl Σ' Σ.2 _ _ _ _ _ (EAstUtils.term_global_deps _)) in ev'.
-  4:{ erewrite <- erase_global_deps_fast_spec. reflexivity. }
+  6:{ erewrite <- erase_global_deps_fast_spec. reflexivity. }
+  2:{ exact (expanded_global_env_cofix_lambdas _ (proj1 T)). }
+  2:{ exact (expanded_cofix_lambdas _ _ _ (proj2 T)). }
   all:trea.
   2:eapply Kernames.KernameSet.subset_spec; reflexivity.
   destruct ev' as [v' [he [hev]]]. exists v'; split => //.
@@ -314,6 +342,9 @@ Program Definition typed_erase_transform (guard := fake_guard_impl_instance) :
 Next Obligation.
   cbn -[erase_program].
   intros p (wtp&etap&?&?).
+  have hcld := expanded_global_env_cofix_lambdas _ (proj1 etap).
+  have hclt := expanded_cofix_lambdas _ _ _ (proj2 etap).
+  unfold cofix_lambdas_env in hcld.
   destruct erase_program_typed eqn:e.
   split.
   - unfold erase_program_typed, erase_pcuic_program in e.
@@ -345,7 +376,7 @@ Next Obligation.
     intros [= <- <-]. unfold trans_ex_prog; cbn -[trans_env].
     red. split; cbn -[trans_env].
     eapply expanded_erase_global_decls_recursive; eauto. eapply etap.
-    eapply expanded_erase => //; eauto. eapply etap.
+    eapply expanded_erase => //; eauto. eapply etap. eapply etap.
 Qed.
 
 Next Obligation.
@@ -353,6 +384,9 @@ Next Obligation.
   set (cf := extraction_checker_flags).
   cbn. red.
   move=> p v [[wf [T [HT1 HT2]]]]. unfold eval_pcuic_program, eval_typed_eprogram.
+  have hcld := expanded_global_env_cofix_lambdas _ (proj1 T).
+  have hclt := expanded_cofix_lambdas _ _ _ (proj2 T).
+  unfold cofix_lambdas_env in hcld.
   unfold erase_program_typed.
   set (er := erase_global_decls_deps_recursive _ _ _ _ _ _).
   set (et := erase_term _ _ _).
@@ -366,7 +400,7 @@ Next Obligation.
   pose proof (abstract_env_ext_exists e) as [[Σe he]].
   match goal with
   [H := context [ @erase ?X_type ?X ?nin ?Γ t ?wt ] |- _ ] =>
-   pose proof (@erases_erase X_type X nin Γ t wt _ he)
+   pose proof (@erases_erase X_type X nin Γ t wt _ he hclt)
   end.
   cbn in he. subst Σe. destruct Σ as [Σ univs]; cbn [fst snd] in *.
   assert (wv : welltyped (Σ, univs) [] v).
@@ -980,77 +1014,121 @@ Qed.
 
 From MetaRocq.Erasure Require ECoInductiveToInductive.
 
-
+(** The flags after the translation of cofixpoints: no [tCoFix] left. *)
 Definition efl_coind_to_ind (efl : EEnvFlags) :=
-  {| has_axioms := has_axioms;
-    has_cstr_params := has_cstr_params;
-    term_switches := {|
-       has_tBox := has_tBox ;
-        has_tRel := has_tRel ;
-        has_tVar := has_tVar ;
-        has_tEvar := has_tEvar ;
-        has_tLambda := has_tLambda ;
-        has_tLetIn := has_tLetIn ;
-        has_tApp := has_tApp ;
-        has_tConst := has_tConst ;
-        has_tConstruct := has_tConstruct ;
-        has_tCase := has_tCase ;
-        has_tProj := has_tProj ;
-        has_tFix := has_tFix ;
-        has_tCoFix := false ;
-        has_tPrim := has_tPrim ;
-        has_tLazy_Force := has_tLazy_Force ;
-      |};
-    cstr_as_blocks := cstr_as_blocks;
-    |}.
+  ECoInductiveToInductive.switch_off_cofix efl.
 
+(** Coinductive values are observed up to the relation
+    [ECoInductiveToInductive.crel]: a cofixpoint or an evaluated coinductive
+    constructor is related to the thunk computed by the translation.
+    First-order values of inductive types are related to themselves only
+    ([ECoInductiveToInductive.crel_firstorder_ind_value]). *)
 Program Definition coinductive_to_inductive_transformation (efl : EEnvFlags)
   {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
-  {has_cstrblocks : cstr_as_blocks = true} :
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram_env block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
   {| name := "transforming co-inductive to lazy inductive types";
     transform p _ := ECoInductiveToInductive.trans_program p ;
     pre p := wf_eprogram_env efl p ;
     post p := wf_eprogram (efl_coind_to_ind efl) p ;
-    obseq p hp p' v v' := v' = ECoInductiveToInductive.trans p.1 v |}.
+    obseq p hp p' v v' :=
+      ∥ ECoInductiveToInductive.crel (wfl := block_wcbv_flags)
+        (GlobalContextMap.global_decls p.1) p'.1 v v' ∥ |}.
 
 Next Obligation.
-  move=> efl hasapp hasrel haspars hascstrs [Σ t] [wftp wft].
-  cbn in *. eapply ECoInductiveToInductive.trans_program_wf; eauto. split => //.
-  - apply ECoInductiveToInductive.trust_cofix.
-  - apply ECoInductiveToInductive.trust_cofix.
+  move=> efl hasapp hasrel haspars hascstrs haslazy hasfix [Σ t] [wftp wft].
+  cbn in *. eapply ECoInductiveToInductive.trans_program_wf; eauto.
+  split => //.
 Qed.
 Next Obligation.
-  red. move=> efl hasapp hasrel haspars hascstrs [Σ t] /= v [wfe1 wfe2] [ev].
-  eexists. split; [ | eauto].
-  econstructor.
-  cbn -[transform_blocks].
-  eapply ECoInductiveToInductive.trans_correct; cbn; eauto.
-  eapply wellformed_closed_env, wfe1.
-  Unshelve. all:eauto.
+  red. move=> efl hasapp hasrel haspars hascstrs haslazy hasfix [Σ t] /= v
+    [wfe1 wfe2] [ev].
+  destruct (ECoInductiveToInductive.trans_correct (wfl := block_wcbv_flags)
+    Σ eq_refl hascstrs eq_refl eq_refl hasapp wfe1 t v wfe2 ev)
+    as [v' [ev' hv]].
+  exists v'. split; now constructor.
 Qed.
 
 #[global]
 Instance coinductive_to_inductive_transformation_ext (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
-  TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
+  TransformExt.t (coinductive_to_inductive_transformation efl
+    (has_app := has_app) (has_rel := has_rel)
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks)
+    (has_lazy := has_lazy) (has_fix := has_fix))
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
-  eapply ECoInductiveToInductive.trust_cofix.
+  eapply ECoInductiveToInductive.trans_env_extends => //.
+  apply pr. apply pr'.
 Qed.
 
 #[global]
 Instance coinductive_to_inductive_transformation_ext' (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = true} :
-  TransformExt.t (coinductive_to_inductive_transformation efl (has_app := has_app) (has_rel := has_rel)
-    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox}
+  {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = true}
+  {has_lazy : has_tLazy_Force} {has_fix : has_tFix} :
+  TransformExt.t (coinductive_to_inductive_transformation efl
+    (has_app := has_app) (has_rel := has_rel)
+    (has_pars := has_pars) (has_cstrblocks := has_cstrblocks)
+    (has_lazy := has_lazy) (has_fix := has_fix))
     extends_eprogram_env extends_eprogram.
 Proof.
+  red. intros p p' pr pr' [ext eq]. rewrite /transform /=. split.
+  - eapply ECoInductiveToInductive.trans_env_extends => //.
+    apply pr. apply pr'.
+  - unfold ECoInductiveToInductive.trans_program => /=. rewrite -eq.
+    eapply ECoInductiveToInductive.wellformed_trans_extends; eauto.
+    apply pr. apply pr'.
+Qed.
+
+From MetaRocq.Erasure Require EPushForce.
+
+(** Pushing forces inside terms, cancelling them against thunks. Values are
+    observed up to [EPushForce.frel], which only differs from equality under
+    a force: first-order values are observed unchanged
+    ([EPushForce.frel_firstorder_evalue_block]). *)
+Program Definition push_force_transformation (efl : EEnvFlags)
+  (wfl : WcbvFlags) :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram wfl) (eval_eprogram wfl) :=
+  {| name := "pushing forces inside terms";
+    transform p _ := EPushForce.force_opt_program p ;
+    pre p := wf_eprogram efl p ;
+    post p := wf_eprogram efl p ;
+    obseq p hp p' v v' := ∥ EPushForce.frel v v' ∥ |}.
+
+Next Obligation.
+  move=> efl wfl p wf. now apply EPushForce.force_opt_program_wf.
+Qed.
+Next Obligation.
+  red. move=> efl wfl [Σ t] /= v wf [ev].
+  destruct (EPushForce.force_opt_correct Σ t v ev) as [v' [ev' hv]].
+  exists v'. split; now constructor.
+Qed.
+
+#[global]
+Instance push_force_transformation_ext (efl : EEnvFlags) (wfl : WcbvFlags) :
+  TransformExt.t (push_force_transformation efl wfl)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
-  eapply ECoInductiveToInductive.trust_cofix.
+  now apply EPushForce.force_opt_env_extends.
+Qed.
+
+#[global]
+Instance push_force_transformation_ext' (efl : EEnvFlags) (wfl : WcbvFlags) :
+  TransformExt.t (push_force_transformation efl wfl)
+    extends_eprogram extends_eprogram.
+Proof.
+  red. intros p p' pr pr' [ext eq]. rewrite /transform /=. split.
+  - now apply EPushForce.force_opt_env_extends.
+  - cbn. now rewrite eq.
 Qed.
 
 From MetaRocq.Erasure Require Import EReorderCstrs.
@@ -1372,7 +1450,10 @@ Proof.
     depelim hd.
     * now cbn in e.
     * constructor 3. rewrite length_map; simp implement_box.
-      constructor. now eapply map_nil.
+      { eapply value_head_cofix; [|exact l].
+        move: e; rewrite /cofix_arity nth_error_map.
+        destruct nth_error => //=. }
+      now eapply map_nil.
       now eapply All_map.
     * now cbn in y.
 Qed.
@@ -1466,7 +1547,10 @@ Proof.
     depelim hd.
     * now cbn in e.
     * constructor 3. rewrite length_map; simp implement_lazy_force.
-      constructor. now eapply map_nil.
+      { eapply value_head_cofix; [|exact l].
+        move: e; rewrite /cofix_arity nth_error_map.
+        destruct nth_error => //=. }
+      now eapply map_nil.
       now eapply All_map.
     * now cbn in y.
 Qed.

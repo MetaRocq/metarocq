@@ -1008,7 +1008,8 @@ Proof.
   destruct t1 => /= //.
   eapply decompose_app_inv in da. subst t.
   simp sigma in dp. rewrite decompose_prod_assum_mkApps /= in dp.
-  noconf dp. rewrite decompose_app_mkApps // in da'. noconf da' => //.
+  noconf dp. rewrite decompose_app_mkApps // in da'. noconf da' => /=.
+  rewrite /inst_context context_assumptions_fold //.
 Qed.
 
 Lemma inst_wf_fixpoint Σ f mfix :

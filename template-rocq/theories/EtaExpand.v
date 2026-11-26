@@ -29,6 +29,13 @@ Open Scope bs.
 Import Template.Ast.
 Import ListNotations.
 
+(** [isLambdas n t]: [t] syntactically starts with [n] lambdas. *)
+Fixpoint isLambdas (n : nat) (t : term) : bool :=
+  match n with
+  | 0 => true
+  | S n => match t with tLambda _ _ b => isLambdas n b | _ => false end
+  end.
+
 Section Eta.
    Context (Σ : GlobalEnvMap.t).
 
@@ -59,6 +66,37 @@ Section Eta.
     let remaining := firstn needed (skipn #|args| (rev (smash_context [] (decompose_prod_assum [] ty).1))) in
     let remaining_subst := rev (subst_context (rev args) 0 (rev remaining)) in
     fold_right (fun d b => Ast.tLambda d.(decl_name) d.(decl_type) b) (mkApps (lift0 needed t) (prev_args ++ eta_args)) remaining_subst.
+
+  (** Sibling of [eta_single] for a term [t] living under the binders [vars]
+      (in order of introduction) of a term of type [ty]: eta-expands [t]
+      to [fun ys => (lift0 needed t) ys] for the [count - #|vars|] binders
+      of [ty] which follow the [#|vars|] first ones, without applying [t]
+      to [vars], which only instantiate the types of the new binders. *)
+  Definition eta_lambdas (t : Ast.term) (vars : list Ast.term)
+    (ty : Ast.term) (count : nat) : term :=
+    let needed := count - #|vars| in
+    let eta_args := rev_map tRel (seq 0 needed) in
+    let remaining :=
+      firstn needed (skipn #|vars|
+        (rev (smash_context [] (decompose_prod_assum [] ty).1))) in
+    let remaining_subst := rev (subst_context (rev vars) 0 (rev remaining)) in
+    fold_right (fun d b => Ast.tLambda d.(decl_name) d.(decl_type) b)
+      (mkApps (lift0 needed t) eta_args) remaining_subst.
+
+  (** Makes the body [t] of a cofixpoint of type [ty] start with (at least)
+      [m + n] lambdas, where [t] is already under [m] leading lambdas of the
+      body and [ty] is the cofixpoint's type, in the context of the body:
+      the leading lambdas of [t] are kept and only the missing ones are
+      introduced, by eta-expansion of the term below them. *)
+  Fixpoint eta_cofix_body (n m : nat) (ty : Ast.term) (t : Ast.term) : term :=
+    match n with
+    | 0 => t
+    | S n' =>
+      match t with
+      | tLambda na A b => tLambda na A (eta_cofix_body n' (S m) ty b)
+      | _ => eta_lambdas t (rev_map tRel (seq 0 m)) (lift0 m ty) (m + n)
+      end
+    end.
 
   Definition eta_constructor (ind : inductive) c u args :=
       match GlobalEnvMap.lookup_constructor Σ ind c with
@@ -127,7 +165,15 @@ Section Eta.
                       | Some d => eta_fixpoint def' i d []
                       | None => tVar ("Error: lookup of a fixpoint failed ")
                       end
-    | tCoFix def i => tCoFix (map (map_def id (eta_expand (repeat None (#|def|) ++ Γ))) def) i
+    | tCoFix def i =>
+      let def' :=
+        map (fun d =>
+          {| dname := dname d ; dtype := dtype d ;
+             dbody := eta_cofix_body d.(rarg) 0 (lift0 #|def| (dtype d))
+               (eta_expand (repeat None (#|def|) ++ Γ) d.(dbody)) ;
+             rarg := rarg d |})
+          def
+      in tCoFix def' i
     (* NOTE: we know that constructors and constants are not applied at this point,
        since applications are captured by the previous cases *)
     | tConstruct ind c u =>
@@ -285,7 +331,8 @@ Inductive expanded (Γ : list nat): term -> Prop :=
   #|args| > d.(rarg) ->
   expanded Γ (tApp (tFix mfix idx) args)
 | expanded_tCoFix (mfix : mfixpoint term) (idx : nat) :
-  Forall (fun d => expanded (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix ->
+  Forall (fun d => isLambdas d.(rarg) d.(dbody) /\
+          expanded (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix ->
   expanded Γ (tCoFix mfix idx)
 | expanded_tConstruct_app ind c u mind idecl cdecl args :
     declared_constructor Σ (ind, c) mind idecl cdecl ->
@@ -351,7 +398,8 @@ forall (Σ : global_env) (P : list nat -> term -> Prop),
   #|args| > d.(rarg) ->
   P Γ (tApp (tFix mfix idx) args)) ->
 (forall Γ (mfix : mfixpoint term) (idx : nat),
-  Forall (fun d => expanded Σ (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix ->
+  Forall (fun d => isLambdas d.(rarg) d.(dbody) /\
+          expanded Σ (repeat 0 #|mfix| ++ Γ) d.(dbody)) mfix ->
   Forall (fun d => P (repeat 0 #|mfix| ++ Γ)%list d.(dbody)) mfix ->
   P Γ (tCoFix mfix idx)) ->
 (forall Γ (ind : inductive) (c : nat) (u : Instance.t)
@@ -389,7 +437,8 @@ Proof.
     generalize mfix at 1 3. intros mfix0 H.  induction H; econstructor; cbn in *; intuition eauto; split.
   - eapply HCoFix; eauto.
     revert all. clear - f.
-    generalize mfix at 1 3. intros mfix0 H.  induction H; econstructor; cbn in *; eauto; split.
+    generalize mfix at 1 3. intros mfix0 H.
+    induction H; econstructor; cbn in *; intuition eauto; split.
   - eapply HConstruct_app; eauto.
     clear - all f. induction all; econstructor; eauto.
   - eapply Harr; eauto. clear -all f. induction all; constructor; auto.
@@ -592,6 +641,34 @@ Proof.
   destruct t; auto.
 Qed.
 
+Lemma isLambdas_lift n k m t : isLambdas m t -> isLambdas m (lift n k t).
+Proof.
+  induction m in k, t |- *; cbn; auto.
+  destruct t; cbn; auto.
+Qed.
+
+Lemma isLambdas_unlift n k m t : isLambdas m (lift n k t) -> isLambdas m t.
+Proof.
+  induction m in k, t |- *; cbn; auto.
+  destruct t; cbn; eauto.
+Qed.
+
+Lemma isLambdas_isLambda n t : isLambdas (S n) t -> isLambda t.
+Proof. destruct t; auto. Qed.
+
+Lemma isLambdas_le m n t : m <= n -> isLambdas n t -> isLambdas m t.
+Proof.
+  induction m in n, t |- *; cbn; auto.
+  destruct n; [lia|]. destruct t; cbn; auto.
+  intros. eapply IHm; tea. lia.
+Qed.
+
+Lemma isLambdas_fold_lambda (l : context) t :
+  isLambdas #|l|
+    (fold_right (fun d (b : term) => tLambda d.(decl_name) d.(decl_type) b)
+       t l).
+Proof. induction l; cbn; auto. Qed.
+
 Lemma expanded_unlift {Σ : global_env} Γ' Γ'' Γ t Γgoal :
   expanded Σ (Γ' ++ Γ'' ++ Γ) (lift #|Γ''| #|Γ'| t) ->
   (Γ' ++ Γ)%list = Γgoal ->
@@ -634,7 +711,8 @@ Proof.
     + eauto.
     + revert H6. len. lia.
      Unshelve. revert H6. len. cbn in *. rewrite <- context_assumptions_lift in H. lia.
-  - econstructor. solve_all. rewrite app_assoc.
+  - econstructor. solve_all. now eapply isLambdas_unlift in H.
+    rewrite app_assoc.
     eapply b. autorewrite with len list. reflexivity. now len.
   - destruct t; invs H4.
     eapply expanded_tConstruct_app; eauto. revert H0.
@@ -680,9 +758,9 @@ Proof.
     + len. lia.
     Unshelve. cbn.
     rewrite <- !context_assumptions_lift. lia.
-  - econstructor. solve_all.
+  - econstructor. solve_all. now eapply isLambdas_lift.
     unshelve epose proof (a (_ ++ _)%list _ _ _). 5: now rewrite <- app_assoc.
-    shelve. autorewrite with len list in H |- *. eapply H.
+    shelve. autorewrite with len list in H1 |- *. eapply H1.
   - eapply expanded_tConstruct_app; eauto.
     now len. solve_all.
   - constructor; eauto. eapply Forall_map. solve_all.
@@ -924,6 +1002,79 @@ Qed.
 Lemma isLambda_eta_expand Σ Γ t :
   isLambda t -> isLambda (eta_expand Σ Γ t).
 Proof. destruct t; auto. Qed.
+
+(** The [rarg] of a well-formed cofixpoint is its arity. *)
+Lemma wf_cofixpoint_rarg_eq (Σ0 : global_env) mfix decl :
+  wf_cofixpoint Σ0 mfix -> In decl mfix ->
+  decl.(rarg) = context_assumptions (decompose_prod_assum [] decl.(dtype)).1.
+Proof.
+  unfold wf_cofixpoint. intros H2 H.
+  destruct map_option_out eqn:E; try congruence.
+  clear H2.
+  induction mfix in l, E, H |- *.
+  - inversion H.
+  - cbn in E. destruct (check_one_cofix a) eqn:Ea; try congruence.
+    destruct H as [-> | H].
+    + unfold check_one_cofix in Ea. destruct decl; cbn.
+      destruct (decompose_prod_assum) eqn:Eprod. destruct decompose_app.
+      destruct destInd as [[[] ?]|]; try congruence.
+      cbn. destruct (Nat.eqb_spec rarg (context_assumptions c)); congruence.
+    + destruct map_option_out eqn:?; try congruence. eapply IHmfix; eauto.
+Qed.
+
+Lemma typing_wf_cofixpoint {cf : config.checker_flags} Σ0 Γ0 mfix idx t_ty :
+  Σ0;;; Γ0 |- tCoFix mfix idx : t_ty -> wf_cofixpoint Σ0 mfix.
+Proof.
+  intros H.
+  depind H; eauto.
+Qed.
+
+Lemma eta_lambdas_length n m ty :
+  m + n <= context_assumptions (decompose_prod_assum [] ty).1 ->
+  #|rev (subst_context (rev (rev_map tRel (seq 0 m))) 0
+      (rev (firstn (m + n - #|rev_map tRel (seq 0 m)|)
+        (skipn #|rev_map tRel (seq 0 m)|
+          (rev (smash_context []
+            (decompose_prod_assum [] (lift0 m ty)).1))))))| = n.
+Proof.
+  intros Hle. rewrite !rev_map_spec. len.
+  rewrite length_firstn, List.length_skipn. len.
+  rewrite <- context_assumptions_lift, length_seq. lia.
+Qed.
+
+Lemma isLambdas_eta_cofix_body n m ty t :
+  m + n <= context_assumptions (decompose_prod_assum [] ty).1 ->
+  isLambdas n (eta_cofix_body n m ty t).
+Proof.
+  induction n in m, t |- *; cbn; auto. intros Hle.
+  assert (isLambdas (S n)
+    (eta_lambdas t (rev_map tRel (seq 0 m)) (lift0 m ty) (m + S n))).
+  { unfold eta_lambdas.
+    rewrite <- (eta_lambdas_length (S n) m ty Hle) at 1.
+    eapply isLambdas_fold_lambda. }
+  destruct t; auto. cbn. eapply IHn. lia.
+Qed.
+
+Lemma expanded_eta_cofix_body Σ Γ n m ty t :
+  m + n <= context_assumptions (decompose_prod_assum [] ty).1 ->
+  expanded Σ Γ t -> expanded Σ Γ (eta_cofix_body n m ty t).
+Proof.
+  induction n in Γ, m, t |- *; cbn; auto. intros Hle Hexp.
+  assert (expanded Σ Γ
+    (eta_lambdas t (rev_map tRel (seq 0 m)) (lift0 m ty) (m + S n))).
+  { unfold eta_lambdas. eapply expanded_fold_lambda.
+    rewrite (eta_lambdas_length (S n) m ty Hle).
+    assert (m + S n - #|rev_map tRel (seq 0 m)| = S n) as ->.
+    { rewrite rev_map_spec. len. rewrite length_seq. lia. }
+    eapply expanded_mkApps.
+    - eapply @expanded_lift' with (Γ' := []). 1,2,4: reflexivity.
+      now len. exact Hexp.
+    - rewrite rev_map_spec. eapply Forall_rev, Forall_forall.
+      intros ? (? & <- & [_ ?] % in_seq) % in_map_iff. econstructor.
+      rewrite nth_error_app1. 2: now rewrite repeat_length.
+      now eapply nth_error_repeat. }
+  destruct t; auto. invs Hexp. econstructor. eapply IHn; auto. lia.
+Qed.
 
 (* Lemma context_assumptions_decompose t :
 context_assumptions (decompose_prod_assum [] t).1 <=
@@ -1240,9 +1391,21 @@ Proof.
       len; lia.
       rewrite repeat_length. len; lia.
     + cbn - [rev_map seq]. rewrite rev_map_spec. cbn. rewrite Nat.sub_0_r. cbn. destruct List.rev; cbn; congruence.
-  - cbn. econstructor; eauto. eapply All_Forall, All_map, All_impl with (1 := X2). cbn. intros ? e0.
+  - cbn. econstructor; eauto.
+     assert (Hr : All (fun d => rarg d =
+       context_assumptions (decompose_prod_assum [] (dtype d)).1) mfix).
+     { eapply Forall_All, Forall_forall. intros.
+       now eapply wf_cofixpoint_rarg_eq. }
+     eapply All_Forall, All_map, All_impl with (1 := All_mix Hr X2). cbn.
+     intros ? [hr e0].
      specialize (e0 (repeat None #|mfix| ++ Γ'))%list.
-     rewrite map_app map_repeat in e0. len. eapply e0; auto.
+     rewrite map_app map_repeat in e0. len.
+     assert (Hle : 0 + rarg x <= context_assumptions
+       (decompose_prod_assum [] (lift0 #|mfix| (dtype x))).1).
+     { rewrite <- context_assumptions_lift. cbn. lia. }
+     split; [now eapply isLambdas_eta_cofix_body|].
+     eapply expanded_eta_cofix_body; auto. clear Hle.
+     eapply e0; auto.
      eapply Forall2_app; eauto. unfold types.
      assert (#|Typing.fix_context mfix| = #|mfix|). { unfold Typing.fix_context. now len. }
      revert H4. generalize (Typing.fix_context mfix). clear.
@@ -1363,6 +1526,7 @@ Proof.
   - eapply hrepr in H as [mdecl' [idecl' [cdecl' [hdecl hpars hass]]]].
     eapply expanded_tConstruct; tea. lia.
   - eapply expanded_tFix; tea. solve_all.
+  - eapply expanded_tCoFix. solve_all.
   - eapply hrepr in H as [mdecl' [idecl' [cdecl' [hdecl hpars hass]]]].
     eapply expanded_tConstruct_app; tea. cbn. lia.
 Qed.

@@ -177,8 +177,21 @@ Proof.
   - depelim ev1;
     eapply (f_equal head) in H; rewrite head_mkApps in H; cbn in H;
     congruence.
-  - depelim ev1. cbn in *. eauto.
+  - depelim ev1;
+    eapply (f_equal head) in H; rewrite head_mkApps in H; cbn in H;
+    congruence.
   - invs i.
+Qed.
+
+Lemma eval_tApp_substl_tLazy {wfl : WcbvFlags} Σ l t a v :
+  eval Σ (tApp (substl l (tLazy t)) a) v -> False.
+Proof.
+  assert (∑ t', substl l (tLazy t) = tLazy t') as [t' ->].
+  { unfold substl. induction l in t |- *; cbn; eauto. }
+  intros ev. depelim ev.
+  all:try solve [match goal with H : eval _ (tLazy _) _ |- _ =>
+    depelim H end; solve_discr].
+  - easy.
 Qed.
 
 (** Iterated forcing of a term down to a value [fv]: as long as the term
@@ -298,6 +311,7 @@ Lemma eval_preserve_mkApps_ind :
                    (res : term),
                    eval Σ discr (mkApps (tCoFix mfix idx) args)
                    -> P discr (mkApps (tCoFix mfix idx) args)
+                   -> is_coind Σ (inductive_mind cind)
                    → forceP Σ P (mkApps (tCoFix mfix idx) args)
                        (tConstruct cind cidx cargs)
                    → constructor_isprop_pars_decl Σ cind cidx =
@@ -319,6 +333,7 @@ Lemma eval_preserve_mkApps_ind :
                    with_prop_case
                    → eval Σ discr (mkApps (tCoFix mfix idx) args)
                    → P discr (mkApps (tCoFix mfix idx) args)
+                   → is_coind Σ (inductive_mind ind)
                    → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
                    → inductive_isprop_and_pars Σ ind = Some (true, pars)
                    → brs = [(n, f3)]
@@ -333,6 +348,7 @@ Lemma eval_preserve_mkApps_ind :
                      has_tProj ->
                      eval Σ discr (mkApps (tCoFix mfix idx) args)
                      -> P discr (mkApps (tCoFix mfix idx) args)
+                     -> is_coind Σ (inductive_mind (proj_ind p))
                      → forceP Σ P (mkApps (tCoFix mfix idx) args)
                          (tConstruct p.(proj_ind) 0 cargs)
                      → constructor_isprop_pars_decl Σ p.(proj_ind) 0 =
@@ -350,10 +366,23 @@ Lemma eval_preserve_mkApps_ind :
                      with_prop_case
                      → eval Σ discr (mkApps (tCoFix mfix idx) args)
                      → P discr (mkApps (tCoFix mfix idx) args)
+                     → is_coind Σ (inductive_mind (proj_ind p))
                      → forceP Σ P (mkApps (tCoFix mfix idx) args) tBox
                      → inductive_isprop_and_pars Σ p.(proj_ind) =
                          Some (true, p.(proj_npars))
                      → P' (tProj p discr) tBox)
+                → (∀ (f : term) (mfix : mfixpoint term)
+                     (idx : nat) (argsv : list term)
+                     (a av : term) (narg : nat),
+                     eval Σ f (mkApps (tCoFix mfix idx) argsv)
+                     → P f (mkApps (tCoFix mfix idx) argsv)
+                       → eval Σ a av
+                         → P a av
+                           → cofix_arity mfix idx = Some narg
+                             → #|argsv| < narg
+                               → P' (tApp f a)
+                                   (tApp
+                                      (mkApps (tCoFix mfix idx) argsv) av))
                   → (∀ (c : kername) (decl : constant_body)
                        (body : term),
                        declared_constant Σ c decl
@@ -378,14 +407,6 @@ Lemma eval_preserve_mkApps_ind :
                              → P discr tBox
                                → inductive_isprop_and_pars Σ p.(proj_ind) = Some (true, p.(proj_npars))
                                  → P' (tProj p discr) tBox) →
-  (∀ (f11 f' : term) a a',
-     forall (ev : eval Σ f11 f'),
-     P f11 f' ->
-     (forall t u (ev' : eval Σ t u), eval_depth ev' <= eval_depth ev -> Q 0 t -> P t u) →
-     ~~ (isLambda f' || (if with_guarded_fix then isFixApp f' else isFix f') || isBox f'
-      || isConstructApp f' || isPrimApp f' || isLazyApp f') →
-     eval Σ a a' → P a a' →
-     P' (tApp f11 a) (tApp f' a')) →
   (∀ ind i mdecl idecl cdecl args args',
     lookup_constructor Σ ind i = Some (mdecl, idecl, cdecl) ->
     #|args| = cstr_arity mdecl cdecl ->
@@ -403,6 +424,13 @@ Lemma eval_preserve_mkApps_ind :
     P t' v ->
     P' (tForce t) v) ->
 
+  (forall t mfix idx narg b v, eval Σ t (tFix mfix idx) ->
+    cunfold_fix mfix idx = Some (narg, tLazy b) ->
+    eval Σ b v ->
+    P t (tFix mfix idx) ->
+    P b v ->
+    P' (tForce t) v) ->
+
   (∀ t : term, atom Σ t → Q 0 t -> P' t t) ->
   ∀ (t t0 : term), Q 0 t -> eval Σ t t0 → P' t t0.
 Proof.
@@ -413,7 +441,7 @@ Proof.
   intros.
   pose proof (p := @Fix_F { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   specialize (p (MR lt (fun x => eval_depth x.π2.π2.π2))).
-  set(foo := existT _ t (existT _ t0 (existT _ X20 H)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
+  set(foo := existT _ t (existT _ t0 (existT _ X21 H)) :  { t : _ & { t0 : _ & { qt : Q 0 t & eval Σ t t0 }}}).
   change t with (projT1 foo).
   change t0 with (projT1 (projT2 foo)).
   revert foo.
@@ -423,8 +451,9 @@ Proof.
   forward p.
   2:{ apply p. apply measure_wf, lt_wf. }
   clear p.
-  rename X20 into qt. rename X16 into Xcappexp.
-  rename X17 into Qprim, X18 into Qforce, X19 into Qatom.
+  rename X21 into qt. rename X16 into Xcappexp.
+  rename X17 into Qprim, X18 into Qforce, X19 into Qforcefix.
+  rename X20 into Qatom.
   clear t t0 qt H.
   intros (t & t0 & qt & ev).
   intros IH.
@@ -635,7 +664,11 @@ Proof.
 
     eapply All_nth_error in H2 as Hnth. 2: exact E.
     destruct Hnth as [H1 Hnth].
-    destruct d; cbn in *; destruct dbody; invs H1.
+    destruct d; cbn in *.
+    assert (isl : isLambda dbody).
+    { move/orP: H1 => [] // /andP[] _ isl. destruct dbody => //.
+      exfalso. clear -ev3. now eapply eval_tApp_substl_tLazy in ev3. }
+    clear H1. destruct dbody; invs isl.
 
     unshelve epose proof (eval_beta_inv _ _ _ _ _ ev3).
     { rewrite substl_subst.
@@ -740,16 +773,17 @@ Proof.
       * econstructor; tea.
       * apply and_assum; [|hp' P'Q]. eapply (IH _ _ X16 ev''). lia.
     + eapply X11; tea. econstructor; tea.
+  - eapply X12; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 body).
     { cbn in IH; eapply (qconst (Q:=Q)) in isdecl. now rewrite e in isdecl. }
-    eapply X12; tea; (apply and_assum; [ih|hp' P'Q]).
+    eapply X13; tea; (apply and_assum; [ih|hp' P'Q]).
   - assert (Q 0 a).
     { pose proof (ev1' := ev1). eapply P'Q in ev1' => //.
       eapply qpres in ev1'; depelim ev1' => //.
       { eapply nth_error_all in a0; tea. }
       clear ev1'; ih. }
-    eapply X13; tea; (apply and_assum; [ih|hp' P'Q]).
-  - unshelve eapply X14; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
+    eapply X14; tea; (apply and_assum; [ih|hp' P'Q]).
+  - unshelve eapply X15; tea; try (intros; apply and_assum; [ih|hp' P'Q]).
   - rename args into cargs.
     eapply Xcappexp; tea. eauto.
     cbn in IH.
@@ -758,9 +792,6 @@ Proof.
     apply and_assum; [ih|hp' P'Q].
     eapply IHa. cbn. intros. eapply (IH _ _ q H). cbn. lia.
     now depelim a0.
-  - eapply (X15 _ _ _ _ ev1); tea.
-    1,3:(apply and_assum; [ih|hp' P'Q]).
-    intros. apply and_assum; [ih|hp' P'Q].
   - unshelve eapply Qprim; tea. depelim e.
     * constructor.
     * constructor.
@@ -786,6 +817,17 @@ Proof.
     + eapply and_assum. eapply (IH _ _ q ev1); eauto; cbn; lia.
       intros hp'. split => //. eapply P'Q; tea.
     + eapply and_assum. eapply (IH _ _ q0 ev2); eauto; cbn; lia.
+      intros hp'. split => //. eapply P'Q; tea.
+  - eapply qpres in qt; depelim qt => //.
+    assert (qfix : Q 0 (tFix mfix idx)).
+    { eapply P'Q; tea. eapply (IH _ _ q ev1); tea. now cbn; lia. }
+    assert (qb : Q 0 b).
+    { assert (ql : Q 0 (tLazy b)) by (eapply (qfixs mfix idx); tea).
+      eapply qpres in ql. now depelim ql. }
+    eapply (Qforcefix _ _ _ _ _ _ ev1 e ev2).
+    + eapply and_assum. eapply (IH _ _ q ev1); eauto; cbn; lia.
+      intros hp'. split => //.
+    + eapply and_assum. eapply (IH _ _ qb ev2); eauto; cbn; lia.
       intros hp'. split => //. eapply P'Q; tea.
   - eapply Qatom; tea.
 Qed.

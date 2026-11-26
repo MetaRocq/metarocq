@@ -146,7 +146,9 @@ Section Alpha.
     simpl in r. destruct r as [[eqty eqb] <-].
     pose proof (decompose_prod_assum_upto_names' [] [] ty ty' ltac:(constructor) eqty).
     do 2 destruct decompose_prod_assum.
-    destruct X as [_ eqt].
+    destruct X as [eqctx eqt].
+    apply PCUICConfluence.eq_context_gen_context_assumptions in eqctx.
+    rewrite eqctx.
     destruct (decompose_app) eqn:eqdec.
     destruct (decompose_app_upto eqt eqdec) as (hd' & tl' & eq & eqhd & napp & eqtl).
     rewrite eq. rewrite decompose_app_mkApps; auto.

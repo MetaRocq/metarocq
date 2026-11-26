@@ -573,6 +573,20 @@ Proof.
   intros. destruct bod; try discriminate. reflexivity.
 Qed.
 
+Lemma isLambdas_lift m n k (t : term) :
+  isLambdas m t -> isLambdas m (lift n k t).
+Proof.
+  induction m in k, t |- *; cbn; auto.
+  destruct t; cbn; auto.
+Qed.
+
+Lemma isLambdas_subst m (s : list term) k (t : term) :
+  isLambdas m t -> isLambdas m (subst s k t).
+Proof.
+  induction m in k, t |- *; cbn; auto.
+  destruct t; cbn; auto; discriminate.
+Qed.
+
 
 Lemma closedn_lift n k k' t : closedn k t -> closedn (k + n) (lift n k' t).
 Proof.

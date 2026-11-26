@@ -292,6 +292,12 @@ Proof.
   now induction f.
 Qed.
 
+Lemma unbox_isLambdas Σ n f :
+  isLambdas n f -> isLambdas n (unbox Σ f).
+Proof.
+  induction n in f |- *; destruct f => //=. now simp unbox.
+Qed.
+
 Lemma fresh_global_map_on_snd ctx f kn :
   fresh_global kn (map (on_snd f) ctx) <->
   fresh_global kn ctx.
@@ -351,7 +357,10 @@ Proof.
     destruct (ind_ctors ind_body) as [|cstr cstrs] eqn:heq'; simple.
     { repeat split; try easy. }
     destruct (unboxable ind_body cstr) eqn:heq''; now simple.
-  - now apply unbox_isLambda.
+  - move: (proj2 (proj1 H0) _ H1) => /orP[hl|/andP[-> hl]].
+    + apply/orP; left. now apply unbox_isLambda.
+    + destruct (dbody x) => //; simp unbox; now rewrite ?orb_true_r.
+  - apply unbox_isLambdas. now apply (proj2 (proj1 H0)).
 Qed.
 
 Lemma wf_glob_map_unbox 
@@ -525,44 +534,6 @@ Proof.
 Qed.
 Hint Rewrite unbox_mkApps : unboxing_rw_hints.
 
-Lemma tCase_not_val (efl : EEnvFlags) (wfl : WcbvFlags)
-  ctx indn t brs :
-  value ctx (tCase indn t brs) -> False.
-Proof.
-  repeat (
-    easy ||
-    rewrite ->mkApps_app in * ||
-    match goal with 
-    | |- _ -> _ => intros ?
-    | h : value _ _ |- _ => inversion h; clear h; subst
-    | h : atomic _ _ |- _ => inversion h; clear h; subst
-    | h : value_head _ _ _ |- _ => inversion h; clear h; subst
-    | h : ?args ≠ [] |- _ =>
-        induction args as [|? ? _] using rev_ind; 
-        first easy; clear h
-    end
-  ).
-Qed.
-
-Lemma tProj_not_val (efl : EEnvFlags) (wfl : WcbvFlags)
-  ctx p t :
-  value ctx (tProj p t) -> False.
-Proof.
-  repeat (
-    easy ||
-    rewrite ->mkApps_app in * ||
-    match goal with 
-    | |- _ -> _ => intros ?
-    | h : value _ _ |- _ => inversion h; clear h; subst
-    | h : atomic _ _ |- _ => inversion h; clear h; subst
-    | h : value_head _ _ _ |- _ => inversion h; clear h; subst
-    | h : ?args ≠ [] |- _ =>
-        induction args as [|? ? _] using rev_ind; 
-        first easy; clear h
-    end
-  ).
-Qed.
-
 #[local] Ltac destruct_IHs :=
     repeat match goal with 
     | IH : _ ->
@@ -639,76 +610,6 @@ Proof.
   rewrite /is_true orb_false_r -no_cstr_params in h.
   now destruct has_cstr_params.
 Qed.
-
-Lemma value_value_head {efl : EEnvFlags} {wfl : WcbvFlags} ctx t :
-  value ctx t -> value ctx (head t).
-Proof.
-  unfold head, decompose_app.
-  generalize (@nil term).
-  induction t; simple; try easy.
-  inversion 1; subst; first now inversion X0.
-  inversion H0; subst.
-  - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
-    do 2 constructor.
-    simple; split.
-    + now rewrite H2.
-    + now rewrite H3.
-  - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
-    do 3 constructor.
-  - apply mkApps_eq in H as (? & ? & ?); last easy; subst.
-    rewrite decompose_app_rec_mkApps; simple.
-    do 3 constructor.
-Qed.
-
-Lemma value_tApp_first_value {efl : EEnvFlags} {wfl : WcbvFlags} ctx t1 t2 :
-  value ctx (tApp t1 t2) ->
-  value ctx t1.
-Proof.
-  intros h.
-  set P := fun t =>
-    match t with
-    | tApp t1 t2 => value ctx t1
-    | _ => forall A, A -> A
-    end.
-  change (P (tApp t1 t2)).
-  move: h.
-  eapply value_values_ind; simple; try easy.
-  - intros t h.
-    now destruct t.
-  - intros f args value_head_f args_nnil args_vals IH.
-    induction args as [|? [|? ?] _] using rev_ind;
-    simple; first easy.
-    + inversion value_head_f; subst; simple; try easy.
-      * now do 2 constructor; simple; rewrite H H0.
-      * now do 3 constructor.
-      * now do 3 constructor.
-    + rewrite mkApps_app; simple.
-      change (mkApps (tApp f t) l) with (mkApps f (t :: l)).
-      apply value_app_nonnil; simple; try easy.
-      * inversion value_head_f; try solve[constructor].
-        { rewrite length_app in H1.
-          now econstructor. }
-        { econstructor; first eassumption.
-          destruct with_guarded_fix; last easy.
-          now rewrite length_app in H0. }
-      * change (t :: l ++ [x])
-        with ((t :: l) ++ [x])
-        in args_vals.
-        now apply All_app in args_vals as [? _].
-Qed.
-
-Ltac find_value_contra := solve[
-  exfalso;
-  try match goal with
-  | h : value _ ?t, h' : head ?t = _
-    |- _ =>
-      apply value_value_head in h;
-      rewrite h' in h
-  end;
-  eauto using tCase_not_val, tProj_not_val
-].
 
 Theorem unbox_pres :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) (p : eprogram_env)
@@ -857,6 +758,11 @@ Proof.
     apply eval_wellformed in eval_e1; try easy.
     rewrite wellformed_mkApps in eval_e1; simple.
     now apply (no_fixpoint_negb has_tCoFix).
+  - exfalso.
+    clear IHeval_e1 IHeval_e2.
+    apply eval_wellformed in eval_e1; try easy.
+    rewrite wellformed_mkApps in eval_e1; simple.
+    now apply (no_fixpoint_negb has_tCoFix).
   - destruct_IHs.
     { rewrite /lookup_constant isdecl /= in wf_e.
       apply lookup_env_wellformed in isdecl; last assumption.
@@ -980,23 +886,6 @@ Proof.
     + simple. intros ? [<- | []].
       now destruct cstr_as_blocks; simple.
     + now inversion X.
-  - destruct_IHs.
-    apply eval_to_value in eval_e1.
-    apply eval_app_cong; try easy.
-    simple. clear H0 H1.
-    unfold isFixApp, isConstructApp, isPrimApp, isLazyApp in *.
-    repeat split;
-    repeat match goal with
-    | |- context[with_guarded_fix] => destruct with_guarded_fix
-    | |- context[head (unbox ctx ?f)] => 
-        destruct (head f) eqn:heq; simple; try easy; try find_value_contra; solve[
-          move:heq; clear;
-          induction f'; simple; try easy;
-          now rewrite !head_tApp
-        ]
-    | |- context[unbox ctx ?f] =>
-        destruct f'; simple; try easy; find_value_contra
-    end.
   - inversion X; subst; try solve[repeat constructor]; simple.
     rewrite /test_prim /= /test_array_model /= in wf_e.
     simple.
@@ -1009,6 +898,12 @@ Proof.
     unshelve eapply (All2_apply_dep_arrow _ X0).
     now simple.
   - destruct_IHs. crush eval_force.
+  - assert (wfb : wellformed ctx 0 (tLazy b)).
+    { eapply wellformed_cunfold_fix; last eassumption.
+      apply eval_wellformed in eval_e1; easy. }
+    destruct_IHs.
+    eapply eval_force_fix; first eassumption; last eassumption.
+    now simple.
   - apply eval_atom.
     destruct t; simple; try easy.
     destruct args; simple; try easy.
