@@ -4,7 +4,7 @@ From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import config Kernames BasicAst.
 From MetaRocq.Erasure Require Import EPrimitive EAst EAstUtils EExtends
     ELiftSubst ECSubst EGlobalEnv EInduction EWellformed EWcbvEval
-    EEnvMap EProgram.
+    EEnvMap EProgram EFirstorder.
 
 Import MRList (map_InP, map_InP_elim, map_InP_spec).
 
@@ -1340,35 +1340,16 @@ End TransRel.
 (** ** First-order values
 
   Values built only from constructors of inductive (not coinductive) types
-  are related to themselves only: the translation preserves the
-  observation of such values. *)
+  ([EFirstorder.firstorder_ind_value]) are related to themselves only: the
+  translation preserves the observation of such values. *)
 
 Section FirstOrder.
   Context {wfl : WcbvFlags} (Σ Σ' : global_declarations).
 
-  Unset Elimination Schemes.
-  Inductive firstorder_ind_value : term -> Type :=
-  | firstorder_ind_value_block ind c args :
-    EGlobalEnv.is_coind Σ (inductive_mind ind) = false ->
-    All firstorder_ind_value args ->
-    firstorder_ind_value (tConstruct ind c args).
-  Set Elimination Schemes.
-
-  Lemma firstorder_ind_value_rect (P : term -> Type) :
-    (forall ind c args,
-      EGlobalEnv.is_coind Σ (inductive_mind ind) = false ->
-      All firstorder_ind_value args -> All P args ->
-      P (tConstruct ind c args)) ->
-    forall v, firstorder_ind_value v -> P v.
-  Proof using Type.
-    intros H. fix aux 2. intros v [ind c args hco hargs]. apply H => //.
-    clear -aux hargs. induction hargs; constructor; auto.
-  Qed.
-
   Notation "t ≈ t'" := (crel Σ Σ' t t') (at level 70) : coind_scope.
 
   Lemma crel_firstorder_ind_value v :
-    firstorder_ind_value v -> forall v', v ≈ v' -> v' = v.
+    firstorder_ind_value Σ v -> forall v', v ≈ v' -> v' = v.
   Proof using Type.
     revert v. apply: firstorder_ind_value_rect.
     intros ind c args hco hargs IH v' h. depelim h.

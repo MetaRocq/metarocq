@@ -268,7 +268,7 @@ Open Scope etransform_scope.
 
   First-order values are built from constructors of inductive types which
   are not coinductive. This is stated with
-  [ECoInductiveToInductive.firstorder_ind_value], on blocks; before the
+  [EFirstorder.firstorder_ind_value], on blocks; before the
   constructors-as-blocks pass, on the block representation of the value. *)
 
 Definition extends_map
@@ -280,27 +280,17 @@ Definition extends_env (p p' : Transform.program E.global_context EAst.term) :=
 Definition fo_evalue
   (p : Transform.program E.global_context EAst.term) : Prop :=
   firstorder_evalue p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1
+  ∥ EFirstorder.firstorder_ind_value p.1
       (EConstructorsAsBlocks.compile_evalue_box p.2 []) ∥.
 Definition fo_evalue_map
   (p : Transform.program GlobalContextMap.t EAst.term) : Prop :=
   firstorder_evalue p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1
+  ∥ EFirstorder.firstorder_ind_value p.1
       (EConstructorsAsBlocks.compile_evalue_box p.2 []) ∥.
 Definition fo_evalue_block
   (p : Transform.program E.global_context EAst.term) : Prop :=
   firstorder_evalue_block p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1 p.2 ∥.
-
-Lemma firstorder_ind_value_is_coind Σ Σ' v :
-  (forall kn, EGlobalEnv.is_coind Σ' kn = EGlobalEnv.is_coind Σ kn) ->
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ v ∥ ->
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v ∥.
-Proof.
-  intros hco [h]. sq. revert v h.
-  apply: ECoInductiveToInductive.firstorder_ind_value_rect.
-  intros ind c args hc hargs IH. constructor => //. now rewrite hco.
-Qed.
+  ∥ EFirstorder.firstorder_ind_value p.1 p.2 ∥.
 
 Definition is_eta_app
   (p : Transform.program E.global_context EAst.term) : Prop :=
