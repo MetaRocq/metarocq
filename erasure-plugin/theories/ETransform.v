@@ -355,6 +355,35 @@ Proof.
 Qed.
 
 
+(** The same for [isFunction], for transformations that do not unfold
+    cofixpoints. *)
+Lemma isFunction_hom (f : EAst.term -> EAst.term) :
+  (forall hd args, ~~ EAst.isApp hd ->
+    EAst.isLambda hd || EAstUtils.isFix hd || EAstUtils.isCoFix hd ->
+    f (EAst.mkApps hd args) = EAst.mkApps (f hd) (List.map f args)) ->
+  (forall na b, EAst.isLambda (f (EAst.tLambda na b))) ->
+  (forall mfix idx, EAstUtils.isFix (f (EAst.tFix mfix idx))) ->
+  (forall mfix idx, EAstUtils.isCoFix (f (EAst.tCoFix mfix idx))) ->
+  forall t, isFunction t -> isFunction (f t).
+Proof.
+  intros hmk hlam hfix hcofix t.
+  have napp := EAstUtils.decompose_app_notApp _ _ _
+    (EAstUtils.decompose_app_head_spine t).
+  rewrite -(EAstUtils.mkApps_head_spine t). move: napp.
+  generalize (EAstUtils.head t) (EAstUtils.spine t) => hd l napp.
+  rewrite /isFunction /EAstUtils.isFixApp !EAstUtils.head_mkApps
+    !isLambda_mkApps_eq.
+  destruct hd => //=; rewrite ?andb_false_r //.
+  - destruct l => //= _.
+    have := hlam na hd. now destruct (f (EAst.tLambda na hd)).
+  - intros _. rewrite hmk // EAstUtils.head_mkApps.
+    have := hfix mfix idx. destruct (f (EAst.tFix mfix idx)) => // _.
+    now rewrite /= orb_true_r.
+  - intros _. rewrite hmk // EAstUtils.head_mkApps.
+    have := hcofix mfix idx. destruct (f (EAst.tCoFix mfix idx)) => // _.
+    now rewrite /= !orb_true_r.
+Qed.
+
 Definition build_wf_env_from_env {cf : checker_flags} (Σ : global_env_map) (wfΣ : ∥ PCUICTyping.wf Σ ∥) : wf_env :=
   {| wf_env_reference := {| reference_impl_env := Σ.(trans_env_env); reference_impl_wf := wfΣ |} ;
      wf_env_map := Σ.(trans_env_map);
