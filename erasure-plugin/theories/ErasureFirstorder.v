@@ -26,7 +26,7 @@
     The final theorem is [erasure_pipeline_mapping_firstorder]. Besides the erased value, it
     states that this value is a first-order value of the erased environment
     ([firstorder_evalue_block]) none of whose constructors belongs to a coinductive type
-    ([ECoInductiveToInductive.firstorder_ind_value]).
+    ([EFirstorder.firstorder_ind_value]).
 
     The last section describes the passes that may follow MetaRocq's pipeline on first-order
     values: constant-to-value translation, lazy and box implementation and the translation of
@@ -398,14 +398,14 @@ Section CompileValueBox.
     (forall ind, firstorder_ind Σ (firstorder_env Σ) ind ->
       EGlobalEnv.is_coind Σ' (inductive_mind ind) = false) ->
     pcuic_fo_tree Σ t ->
-    ∥ ECoInductiveToInductive.firstorder_ind_value Σ'
+    ∥ EFirstorder.firstorder_ind_value Σ'
         (compile_value_box (PCUICExpandLets.trans_global_env Σ.1) t []) ∥.
   Proof.
     intros hco. induction 1 using pcuic_fo_tree_ind'.
     rewrite (compile_value_box_mkApps (npars := ind_npars mdecl)).
     { rewrite /pcuic_lookup_inductive_pars PCUICExpandLetsCorrectness.trans_lookup.
       destruct H as [[hm _] _]. red in hm. now rewrite hm. }
-    have [hargs] : ∥ All (ECoInductiveToInductive.firstorder_ind_value Σ')
+    have [hargs] : ∥ All (EFirstorder.firstorder_ind_value Σ')
       (map (flip (compile_value_box (PCUICExpandLets.trans_global_env Σ.1)) []) args) ∥.
     { clear -H3. induction H3 as [|x l [hx] _ [hl]]; cbn; sq; constructor; auto. }
     sq. constructor; [now apply hco|]. rewrite app_nil_r. now apply All_skipn.
@@ -795,7 +795,7 @@ Section pipeline_obseq.
       (transform (verified_erasure_pipeline econf) (Σ, t) pr) v v' ->
     let Σ' := (transform (verified_erasure_pipeline econf) (Σ, t) pr).1 in
     v' = v_t /\ firstorder_evalue_block Σ' v' /\
-    ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
+    ∥ EFirstorder.firstorder_ind_value Σ' v' ∥.
   Proof.
     intros obs Σ'. have -> := verified_erasure_pipeline_obseq_firstorder pr v' obs.
     split => //. split.
@@ -828,7 +828,7 @@ Theorem verified_erasure_pipeline_mapping_firstorder (Σ : global_env_ext_map)
   let Σ' := (transform (verified_erasure_pipeline_mapping econf) ([], (Σ, t)) pr).1 in
   v' = compile_value_box (PCUICExpandLets.trans_global_env Σ) v [] /\
   firstorder_evalue_block Σ' v' /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
+  ∥ EFirstorder.firstorder_ind_value Σ' v' ∥.
 Proof.
   set (pr' := precond Σ t _ HΣ expΣ expt typing Normalisation econf).
   intros obs Σ'.
@@ -897,7 +897,7 @@ Lemma template_firstorder_core econf (p : Ast.Env.program) (Σm : GlobalEnvMap.t
   let Σ' := P'.1 in
   v' = compile_value_box (trans_global_env p.1) (trans (trans_global_env p.1) v) [] /\
   firstorder_evalue_block Σ' v' /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
+  ∥ EFirstorder.firstorder_ind_value Σ' v' ∥.
 Proof.
   intros Σ1 henv -> -> -> [[wfp [T0 hT0]]] [[wfΣ1 [T1 hT1]]] [expΣ1 expt1] hax [hty] hfo [hev]
     [hev1] obs Σ'.
@@ -975,7 +975,7 @@ Theorem erasure_pipeline_mapping_firstorder econf (p : Ast.Env.program) pr i u a
   let Σ' := (run (erasure_pipeline_mapping econf) ([], p) pr).1 in
   v' = compile_value_box (trans_global_env p.1) (trans (trans_global_env p.1) v) [] /\
   firstorder_evalue_block Σ' v' /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
+  ∥ EFirstorder.firstorder_ind_value Σ' v' ∥.
 Proof.
   intros hax hty hfo hev obs Σ'.
   have hpres := preservation pre_erasure_pipeline_mapping ([], p) v pr hev.
@@ -1060,10 +1060,11 @@ Proof.
 Qed.
 
 Lemma coinductive_trans_tree (Σ : EEnvMap.GlobalContextMap.t) t :
-  ECoInductiveToInductive.firstorder_ind_value (EEnvMap.GlobalContextMap.global_decls Σ) t ->
+  EFirstorder.firstorder_ind_value
+    (EEnvMap.GlobalContextMap.global_decls Σ) t ->
   ECoInductiveToInductive.trans Σ t = t.
 Proof.
-  revert t. apply: ECoInductiveToInductive.firstorder_ind_value_rect => ind c args hco _ IH.
+  revert t. apply: EFirstorder.firstorder_ind_value_rect => ind c args hco _ IH.
   cbn. rewrite EEnvMap.GlobalContextMap.is_coind_spec hco map_id_tree //.
   now apply All_Forall.
 Qed.

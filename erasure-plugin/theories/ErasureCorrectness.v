@@ -1669,7 +1669,7 @@ Section FirstorderInd.
     firstorder_value Σ [] v ->
     forall i u args, Σ ;;; [] |- v : mkApps (tInd i u) args ->
     firstorder_ind Σ (firstorder_env Σ) i ->
-    ∥ ECoInductiveToInductive.firstorder_ind_value Σ'
+    ∥ EFirstorder.firstorder_ind_value Σ'
         (compile_value_box Σ v []) ∥.
   Proof.
     intros hco fo. move: v fo.
@@ -1692,7 +1692,7 @@ Section FirstorderInd.
       destruct PCUICEnvironment.lookup_env as [[]|] => //. now eexists. }
     destruct hpars as [npars hpars].
     rewrite (compile_value_box_mkApps hpars) app_nil_r.
-    enough (∥ All (fun a => ECoInductiveToInductive.firstorder_ind_value Σ'
+    enough (∥ All (fun a => EFirstorder.firstorder_ind_value Σ'
       (compile_value_box Σ a [])) args ∥) as [hall].
     { constructor. constructor; eauto.
       eapply All_skipn. eapply All_map. exact hall. }
@@ -1749,7 +1749,7 @@ Qed.
 
 Lemma fo_evalue_strip (Σer : EEnvMap.GlobalContextMap.t) p :
   firstorder_evalue Σer p ->
-  ECoInductiveToInductive.firstorder_ind_value Σer
+  EFirstorder.firstorder_ind_value Σer
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip Σer p) []) ->
   fo_evalue (ERemoveParams.strip_program (Σer, p)).
@@ -1762,7 +1762,7 @@ Qed.
 Lemma transform_lambda_box_firstorder (Σer : EEnvMap.GlobalContextMap.t)
   econf p pre :
   firstorder_evalue Σer p ->
-  ECoInductiveToInductive.firstorder_ind_value Σer
+  EFirstorder.firstorder_ind_value Σer
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip Σer p) []) ->
   (transform (verified_lambdabox_pipeline econf) (Σer, p) pre).2 =
@@ -1791,7 +1791,7 @@ Qed.
 Lemma transform_lambda_box_firstorder_block
   (p : program EEnvMap.GlobalContextMap.t EAst.term) econf pre :
   firstorder_evalue p.1 p.2 ->
-  ECoInductiveToInductive.firstorder_ind_value p.1
+  EFirstorder.firstorder_ind_value p.1
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip p.1 p.2) []) ->
   let tr := transform (verified_lambdabox_pipeline econf) p pre in
@@ -1816,10 +1816,10 @@ Lemma obseq_lambdabox_firstorder (Σt Σ'v : EProgram.eprogram_env) econf
   EGlobalEnv.extends Σ'v.1 Σt.1 ->
   obseq (verified_lambdabox_pipeline econf) Σt pr p' Σ'v.2 v' ->
   firstorder_evalue Σ'v.1 Σ'v.2 ->
-  ECoInductiveToInductive.firstorder_ind_value Σ'v.1
+  EFirstorder.firstorder_ind_value Σ'v.1
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip Σ'v.1 Σ'v.2) []) ->
-  ECoInductiveToInductive.firstorder_ind_value Σt.1
+  EFirstorder.firstorder_ind_value Σt.1
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip Σ'v.1 Σ'v.2) []) ->
   (transform (verified_lambdabox_pipeline econf) Σ'v pr').2 = v'.
@@ -2199,7 +2199,7 @@ Section pipeline_theorem.
       inductive types, which are not coinductive. *)
   Lemma v_t_firstorder_ind Σ' :
     erase_preserves_inductives (PCUICExpandLets.trans_global_env Σ.1) Σ' ->
-    ∥ ECoInductiveToInductive.firstorder_ind_value Σ'
+    ∥ EFirstorder.firstorder_ind_value Σ'
         (compile_value_box (PCUICExpandLets.trans_global_env Σ) v []) ∥.
   Proof.
     intros hpres. generalize fo_v. intros hv.

@@ -117,3 +117,41 @@ Proof.
   move: (ext (inductive_mind i)).
   now case: lookup_env => // a; move/(_ _ eq_refl) ->.
 Qed.
+
+(** ** Values of inductive types
+
+  Values built only from constructors of inductive (not coinductive) types,
+  in the constructors-as-blocks representation. *)
+
+Section FirstorderInd.
+  Context (Σ : global_declarations).
+
+  Unset Elimination Schemes.
+  Inductive firstorder_ind_value : term -> Type :=
+  | firstorder_ind_value_block ind c args :
+    EGlobalEnv.is_coind Σ (inductive_mind ind) = false ->
+    All firstorder_ind_value args ->
+    firstorder_ind_value (tConstruct ind c args).
+  Set Elimination Schemes.
+
+  Lemma firstorder_ind_value_rect (P : term -> Type) :
+    (forall ind c args,
+      EGlobalEnv.is_coind Σ (inductive_mind ind) = false ->
+      All firstorder_ind_value args -> All P args ->
+      P (tConstruct ind c args)) ->
+    forall v, firstorder_ind_value v -> P v.
+  Proof using Type.
+    intros H. fix aux 2. intros v [ind c args hco hargs]. apply H => //.
+    clear -aux hargs. induction hargs; constructor; auto.
+  Qed.
+End FirstorderInd.
+
+(** The predicate only depends on which inductive types are coinductive. *)
+Lemma firstorder_ind_value_is_coind Σ Σ' v :
+  (forall kn, EGlobalEnv.is_coind Σ' kn = EGlobalEnv.is_coind Σ kn) ->
+  ∥ firstorder_ind_value Σ v ∥ -> ∥ firstorder_ind_value Σ' v ∥.
+Proof.
+  intros hco [h]. sq. revert v h.
+  apply: firstorder_ind_value_rect.
+  intros ind c args hc hargs IH. constructor => //. now rewrite hco.
+Qed.

@@ -1,11 +1,12 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import ssreflect.
+From Stdlib Require Import ssreflect ssrbool.
 From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import Transform.
 From MetaRocq.Erasure Require Import EProgram EGlobalEnv EWellformed EWcbvEval
-  EImplementLazyForce.
+  EFirstorder EImplementLazyForce.
 Import Transform.
+From MetaRocq.ErasurePlugin Require Import ETransform.
 
 #[local] Obligation Tactic := idtac.
 
@@ -96,3 +97,142 @@ Next Obligation.
   split.
   eapply implement_lazy_force_eval; eauto.
 Qed.
+
+(** First-order values contain no thunk nor force: they are left unchanged. *)
+Lemma implement_lazy_force_firstorder_evalue_block Σ v :
+  firstorder_evalue_block Σ v -> implement_lazy_force v = v.
+Proof.
+  revert v. apply: firstorder_evalue_block_elim.
+  intros i n args _ _ IH. simp implement_lazy_force. rewrite ?map_InP_spec.
+  f_equal.
+  rewrite -{2}(map_id args). now apply map_ext_Forall.
+Qed.
+
+Lemma is_coind_implement_lazy_force Σ kn :
+  is_coind (implement_lazy_force_env Σ) kn = is_coind Σ kn.
+Proof.
+  rewrite /is_coind /lookup_inductive_kind /lookup_minductive
+    lookup_env_implement_lazy_force.
+  now destruct lookup_env as [[]|].
+Qed.
+
+Lemma firstorder_evalue_block_implement_lazy_force_env Σ v :
+  firstorder_evalue_block Σ v ->
+  firstorder_evalue_block (implement_lazy_force_env Σ) v.
+Proof.
+  revert v. apply: firstorder_evalue_block_elim.
+  intros i n args hl hargs IH. constructor => //.
+  now rewrite (lookup_constructor_pars_args_implement_lazy_force
+    (efl := all_env_flags)).
+Qed.
+
+Lemma fo_evalue_block_implement_lazy_force_env Σ v :
+  fo_evalue_block (Σ, v) -> fo_evalue_block (implement_lazy_force_env Σ, v).
+Proof.
+  intros [fo hco].
+  split; [now apply firstorder_evalue_block_implement_lazy_force_env|].
+  eapply firstorder_ind_value_is_coind; tea.
+  intros kn. apply is_coind_implement_lazy_force.
+Qed.
+
+Lemma isFunction_implement_lazy_force t :
+  isFunction t -> isFunction (implement_lazy_force t).
+Proof.
+  apply isFunction_hom; intros; simp implement_lazy_force => //.
+  apply implement_lazy_force_mkApps.
+Qed.
+
+Lemma isFunctionS_implement_lazy_force t :
+  isFunctionS t -> isFunctionS (implement_lazy_force t).
+Proof.
+  apply isFunctionS_hom; intros; simp implement_lazy_force => //.
+  all: try apply implement_lazy_force_mkApps.
+  all: now rewrite ?map_InP_spec.
+Qed.
+
+Section ImplementLazyForceETransform.
+Local Obligation Tactic := idtac.
+
+(** First-order values are unchanged: the readback is the identity. *)
+Program Definition implement_lazy_force_etransform (efl : EEnvFlags)
+  (has_app : has_tApp) (has_lam : has_tLambda) (has_tbox : has_tBox)
+  (nocofix : has_tCoFix = false) (nopars : has_cstr_params = false)
+  (pres_values : bool) :
+  ETransform.t extends_env extends_env fo_evalue_block fo_evalue_block
+    (fun _ => True) (fun _ => True) :=
+  {| ETransform.tr := implement_lazy_force_transformation efl has_app has_lam
+       has_tbox nocofix nopars pres_values;
+     ETransform.compile_fo p pr fo := implement_lazy_force_program p;
+     ETransform.readback := Some |}.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [] [] pr pr' ext.
+  pose proof pr as [[wf _] _]; pose proof pr' as [[wf' _] _]. cbn in *.
+  now eapply implement_lazy_force_env_extends.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [] [] pr pr' _ eq.
+  cbn in eq |- *.
+  now rewrite eq.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [Σ t] pr [fo hco].
+  rewrite /implement_lazy_force_program /=.
+  rewrite (implement_lazy_force_firstorder_evalue_block Σ t) //.
+  now apply fo_evalue_block_implement_lazy_force_env.
+Qed.
+Next Obligation.
+  now intros.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [Σ t] pr v v' [fo hco] obs.
+  have e : v' = implement_lazy_force v := obs.
+  rewrite e (implement_lazy_force_firstorder_evalue_block Σ v) //.
+  exact (fo_evalue_block_implement_lazy_force_env Σ v (conj fo hco)).
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [Σ t] pr p' v v' [fo _] obs.
+  have e : v' = implement_lazy_force v := obs.
+  now rewrite e (implement_lazy_force_firstorder_evalue_block Σ v).
+Qed.
+Next Obligation.
+  intros. congruence.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [Σ t] pr [fo _].
+  exact (f_equal Some (implement_lazy_force_firstorder_evalue_block Σ t fo)).
+Qed.
+Next Obligation.
+  intros. reflexivity.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [] [] pr pr'.
+  cbn. now intros <-.
+Qed.
+Next Obligation.
+  now intros.
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv Σ t u pr _.
+  unshelve eexists.
+  { destruct pr as [[wfg wf] hv]; split; [split|] => //; cbn in wf.
+    now move/andP: wf => [] /andP[]. }
+  unshelve eexists.
+  { destruct pr as [[wfg wf] hv]; split; [split|] => //; cbn in wf.
+    now move/andP: wf => [] /andP[]. }
+  change (implement_lazy_force_program (Σ, EAst.tApp t u) =
+    (implement_lazy_force_env Σ,
+     EAst.tApp (implement_lazy_force t)
+       (implement_lazy_force u))).
+  rewrite /implement_lazy_force_program. f_equal.
+  exact (implement_lazy_force_mkApps t [u]).
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv p pr.
+  exact (isFunction_implement_lazy_force p.2).
+Qed.
+Next Obligation.
+  intros efl ha hl hb hc hp pv [Σ t] pr p' v v' obs hf.
+  have e : v' = implement_lazy_force v := obs.
+  rewrite e. now apply isFunctionS_implement_lazy_force.
+Qed.
+End ImplementLazyForceETransform.

@@ -268,7 +268,7 @@ Open Scope etransform_scope.
 
   First-order values are built from constructors of inductive types which
   are not coinductive. This is stated with
-  [ECoInductiveToInductive.firstorder_ind_value], on blocks; before the
+  [EFirstorder.firstorder_ind_value], on blocks; before the
   constructors-as-blocks pass, on the block representation of the value. *)
 
 Definition extends_map
@@ -280,27 +280,17 @@ Definition extends_env (p p' : Transform.program E.global_context EAst.term) :=
 Definition fo_evalue
   (p : Transform.program E.global_context EAst.term) : Prop :=
   firstorder_evalue p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1
+  ∥ EFirstorder.firstorder_ind_value p.1
       (EConstructorsAsBlocks.compile_evalue_box p.2 []) ∥.
 Definition fo_evalue_map
   (p : Transform.program GlobalContextMap.t EAst.term) : Prop :=
   firstorder_evalue p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1
+  ∥ EFirstorder.firstorder_ind_value p.1
       (EConstructorsAsBlocks.compile_evalue_box p.2 []) ∥.
 Definition fo_evalue_block
   (p : Transform.program E.global_context EAst.term) : Prop :=
   firstorder_evalue_block p.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1 p.2 ∥.
-
-Lemma firstorder_ind_value_is_coind Σ Σ' v :
-  (forall kn, EGlobalEnv.is_coind Σ' kn = EGlobalEnv.is_coind Σ kn) ->
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ v ∥ ->
-  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v ∥.
-Proof.
-  intros hco [h]. sq. revert v h.
-  apply: ECoInductiveToInductive.firstorder_ind_value_rect.
-  intros ind c args hc hargs IH. constructor => //. now rewrite hco.
-Qed.
+  ∥ EFirstorder.firstorder_ind_value p.1 p.2 ∥.
 
 Definition is_eta_app
   (p : Transform.program E.global_context EAst.term) : Prop :=
@@ -364,6 +354,35 @@ Proof.
     now rewrite length_map orb_true_r.
 Qed.
 
+
+(** The same for [isFunction], for transformations that do not unfold
+    cofixpoints. *)
+Lemma isFunction_hom (f : EAst.term -> EAst.term) :
+  (forall hd args, ~~ EAst.isApp hd ->
+    EAst.isLambda hd || EAstUtils.isFix hd || EAstUtils.isCoFix hd ->
+    f (EAst.mkApps hd args) = EAst.mkApps (f hd) (List.map f args)) ->
+  (forall na b, EAst.isLambda (f (EAst.tLambda na b))) ->
+  (forall mfix idx, EAstUtils.isFix (f (EAst.tFix mfix idx))) ->
+  (forall mfix idx, EAstUtils.isCoFix (f (EAst.tCoFix mfix idx))) ->
+  forall t, isFunction t -> isFunction (f t).
+Proof.
+  intros hmk hlam hfix hcofix t.
+  have napp := EAstUtils.decompose_app_notApp _ _ _
+    (EAstUtils.decompose_app_head_spine t).
+  rewrite -(EAstUtils.mkApps_head_spine t). move: napp.
+  generalize (EAstUtils.head t) (EAstUtils.spine t) => hd l napp.
+  rewrite /isFunction /EAstUtils.isFixApp !EAstUtils.head_mkApps
+    !isLambda_mkApps_eq.
+  destruct hd => //=; rewrite ?andb_false_r //.
+  - destruct l => //= _.
+    have := hlam na hd. now destruct (f (EAst.tLambda na hd)).
+  - intros _. rewrite hmk // EAstUtils.head_mkApps.
+    have := hfix mfix idx. destruct (f (EAst.tFix mfix idx)) => // _.
+    now rewrite /= orb_true_r.
+  - intros _. rewrite hmk // EAstUtils.head_mkApps.
+    have := hcofix mfix idx. destruct (f (EAst.tCoFix mfix idx)) => // _.
+    now rewrite /= !orb_true_r.
+Qed.
 
 Definition build_wf_env_from_env {cf : checker_flags} (Σ : global_env_map) (wfΣ : ∥ PCUICTyping.wf Σ ∥) : wf_env :=
   {| wf_env_reference := {| reference_impl_env := Σ.(trans_env_env); reference_impl_wf := wfΣ |} ;

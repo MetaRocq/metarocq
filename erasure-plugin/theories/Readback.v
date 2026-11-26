@@ -400,7 +400,7 @@ Lemma erases_fo_value_pars (Σ : global_env_ext) (Σer : GlobalContextMap.t)
   [/\ EFirstorder.firstorder_evalue Σer w,
     ERemoveParams.compile_evalue_box_strip Σer w [] =
       compile_value_box Σ v [] &
-    ∥ ECoInductiveToInductive.firstorder_ind_value Σer
+    ∥ EFirstorder.firstorder_ind_value Σer
         (compile_value_box Σ v []) ∥].
 Proof.
   intros wf fo hpres. move: v fo.
@@ -450,7 +450,7 @@ Proof.
   have IH' : Forall2 (fun a w => [/\ EFirstorder.firstorder_evalue Σer w,
       ERemoveParams.compile_evalue_box_strip Σer w [] =
         compile_value_box Σ a [] &
-      ∥ ECoInductiveToInductive.firstorder_ind_value Σer
+      ∥ EFirstorder.firstorder_ind_value Σer
         (compile_value_box Σ a []) ∥])
     (skipn (ind_npars mdecl) args) (skipn (ind_npars mdecl) L').
   { clear -IH hL hwL'. move: IH hwL'. induction hL; constructor.
@@ -464,7 +464,7 @@ Proof.
   - f_equal. clear -IH'.
     induction IH' as [|a w l l' [_ e _] _ IHl]; cbn [map] => //.
     f_equal; [exact e|exact IHl].
-  - enough (∥ All (fun a => ECoInductiveToInductive.firstorder_ind_value Σer
+  - enough (∥ All (fun a => EFirstorder.firstorder_ind_value Σer
       (Basics.flip (compile_value_box Σ) [] a))
       (skipn (ind_npars mdecl) args) ∥) as [hall].
     { constructor. constructor; [|now eapply All_map].
@@ -492,7 +492,7 @@ Qed.
 Lemma obseq_lambdabox_compile econf (p : EProgram.eprogram_env) pr p' w v' :
   obseq (verified_lambdabox_pipeline econf) p pr p' w v' ->
   EFirstorder.firstorder_evalue p.1 w ->
-  ECoInductiveToInductive.firstorder_ind_value p.1
+  EFirstorder.firstorder_ind_value p.1
     (EConstructorsAsBlocks.compile_evalue_box
       (ERemoveParams.strip p.1 w) []) ->
   v' = EConstructorsAsBlocks.compile_evalue_box

@@ -181,7 +181,7 @@ Next Obligation.
 Qed.
 
 #[global]
-Axiom trust_inline_transformation_ext :
+Axiom trust_extract_inductive_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction,
   TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction)
     (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1.1 p'.1.1).
@@ -190,7 +190,7 @@ Definition extends_inductives_extraction_eprogram (p q : inductives_extraction_p
   extends p.1.1 q.1.1 /\ p.2 = q.2.
 
 #[global]
-Axiom trust_inline_transformation_ext' :
+Axiom trust_extract_inductive_transformation_ext' :
   forall (efl : EEnvFlags) (wfl : WcbvFlags) inductive_extraction,
   TransformExt.t (extract_inductive_transformation efl wfl inductive_extraction)
     extends_eprogram_env extends_inductives_extraction_eprogram.

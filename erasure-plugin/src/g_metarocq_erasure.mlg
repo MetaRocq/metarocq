@@ -107,7 +107,8 @@ To show this help message type:\n\
    MetaRocq Erase -help.\n\n\
 Valid options:\n\
 -typed       :  Run the typed erasure pipeline including a dearging phase. By default we run the pipeline without this phase.\n\
--unsafe      :  Run also partially verified passes of the pipeline. This includes the cofix to lazy translation.\n\
+-unsafe      :  Run also passes outside the verified pipeline: the unboxing of singleton constructors (verified),\n\
+                and the extraction of inductive types and beta-reduction, whose correctness is assumed.\n\
 -time        :  Time each compilation phase\n\
 -inlining    :  Enable verified inlining phase\n\
 -bypass-qeds :  Bypass the use of Qed and quote opaque proofs. Beware, this can result in large memory\n\

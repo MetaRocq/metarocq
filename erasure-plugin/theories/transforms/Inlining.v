@@ -126,7 +126,7 @@ Definition extends_inl
 Definition fo_evalue_block_inl
   (p : Transform.program (E.global_context × constants_inlining) EAst.term) :=
   firstorder_evalue_block p.1.1 p.2 /\
-  ∥ ECoInductiveToInductive.firstorder_ind_value p.1.1 p.2 ∥.
+  ∥ EFirstorder.firstorder_ind_value p.1.1 p.2 ∥.
 
 Section InlineETransform.
 Local Obligation Tactic := idtac.
