@@ -94,6 +94,17 @@ Erasure
 ExtractionCorrectness
 
 ETransform
+GuardedToUnguardedFix
+RebuildWfEnv
+RemoveParams
+RemoveMatchOnBox
+InlineProjections
+ConstructorsAsBlocks
+CoInductiveToInductive
+PushForce
+ReorderCstrs
+Unboxing
+Inlining
 Erasure0
 
 G_metarocq_erasure
