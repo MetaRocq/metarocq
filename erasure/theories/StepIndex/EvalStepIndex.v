@@ -39,6 +39,12 @@ Section Wcbv.
     - eval_prim : OK 
     - eval_atom : OK I think *)
 
+  (** Cost model: the index counts the applications that are evaluated
+      ([tApp], whether a beta-reduction, a fixpoint unfolding, a box or a
+      cofixpoint application) and the unfoldings of lazy values and
+      cofixpoints. All other rules add no cost of their own, so that
+      evaluating a value (e.g. a constructor applied to values) costs 0.
+      This matches CertiRocq's [fuel_exp] resource on λ□. *)
   Inductive eval : environment -> term -> value -> nat -> Type :=
   | eval_box Γ :
       eval Γ tBox vBox 0
@@ -67,7 +73,7 @@ Section Wcbv.
   | eval_zeta Γ na b0 b0' b1 res c1 c2 :
       eval Γ b0 b0' c1 ->
       eval (b0' :: Γ) b1 res c2 ->
-      eval Γ (tLetIn na b0 b1) res (c1 + c2 + 1)
+      eval Γ (tLetIn na b0 b1) res (c1 + c2)
 
   (** Case *)
   | eval_iota_block Γ ind cdecl discr c args brs br res c1 c2 : (* Changed pars to not be 0 *)
@@ -77,14 +83,14 @@ Section Wcbv.
       #|args| = cdecl.(cstr_nargs) ->
       #|args| = #|br.1| ->
       eval ((List.rev args) ++ Γ) br.2 res c2 ->
-      eval Γ (tCase (ind, 0) discr brs) res (c1 + c2 + 1)
+      eval Γ (tCase (ind, 0) discr brs) res (c1 + c2)
 
   | eval_proj Γ p cdecl discr args a n :
       eval Γ discr (vConstruct (proj_ind p) 0 args) n ->
       constructor_isprop_pars_decl Σ (proj_ind p) 0 = Some (false, proj_npars p, cdecl) ->
       #|args| = proj_npars p + cstr_nargs cdecl ->
       nth_error args (proj_npars p + proj_arg p) = Some a ->
-      eval Γ (tProj p discr) a (n + 1)
+      eval Γ (tProj p discr) a n
 
 
   (** Fix unfolding, without guard *)
@@ -146,16 +152,16 @@ Section Wcbv.
   | eval_delta Γ c decl body (isdecl : declared_constant Σ c decl) res cost :
       decl.(cst_body) = Some body ->
       eval [] body res cost ->
-      eval Γ (tConst c) res (cost + 1)
-      (* TODO see if +1 needed, I think so *)
-    (* TODO: see interactions with Σ consisting of values *)
+      eval Γ (tConst c) res cost
+      (* No cost of its own: unfolding a constant whose body is a value
+         (see [EConstantsToValues]) is free. *)
 
   (** Constructor congruence: we do not allow over-applications *)
   | eval_construct_block Γ ind c mdecl idecl cdecl args args' cs  :
       lookup_constructor Σ ind c = Some (mdecl, idecl, cdecl) ->
       #|args| = ind_npars mdecl + cstr_nargs cdecl -> (* see if we add `ind_npars mdecl` or ask for no params *)
       All3 (eval Γ) args args' cs ->
-      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs + #|cs| + 1)
+      eval Γ (tConstruct ind c args) (vConstruct ind c args') (list_sum cs)
 
   | eval_prim Γ p p' c :
       eval_primitive_step_index (eval Γ) p p' c ->
@@ -229,7 +235,7 @@ Section Wcbv.
         P Γ (tCase (ind, 0) discr brs) res _ (eval_iota_block Γ ind cdecl discr c args brs br res c1 c2 e e0 e1 e2 e3 e4).
     Variable f_proj : ∀ {Γ p cdecl discr args a n e1 e2 e3 e4},
       P Γ discr (vConstruct (proj_ind p) 0 args) n e1 ->
-      P Γ (tProj p discr) a (n + 1) (eval_proj Γ p cdecl discr args a n e1 e2 e3 e4).
+      P Γ (tProj p discr) a n (eval_proj Γ p cdecl discr args a n e1 e2 e3 e4).
     Variable f_fix_unfold :
       ∀ {Γ f mfix idx a av fn res Γ' c1 c2 c3 e e0 e1 e2},
       P Γ f (vRecClos mfix idx Γ') c1 e ->

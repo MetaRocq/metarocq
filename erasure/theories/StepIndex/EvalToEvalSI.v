@@ -369,7 +369,7 @@ Proof.
     { rewrite substlg_csubst_commute; simple; try easy.
       - now eapply wellformed_closed, wellformed_val_wellformed, eval_SI_wellformed_val; simple.
       - intros. now eapply wellformed_closed, wellformed_val_wellformed. }
-    exists (n1 + n2 + 1), v'2; split; econstructor; easy.
+    exists (n1 + n2), v'2; split; econstructor; easy.
   - unshelve epose proof tCase_substlg_eq _ _ _ _ _ _ heq as (discr' & brs' & heq'); subst; simple; try easy.
     injection heq as ? ?; subst.
     rewrite ->!hCstrBlocks in *.
@@ -408,7 +408,7 @@ Proof.
     assert (pars = 0); last subst.
     { eapply constructor_isprop_pars_decl_params; try easy.
       now destruct has_cstr_params. }
-    exists (n1 + n2 + 1), v'2; do 2 econstructor; try easy; simple.
+    exists (n1 + n2), v'2; do 2 econstructor; try easy; simple.
     destruct br; injection H1 as ?; subst; simple.
   - rewrite H in h_prop_case. discriminate.
   - rewrite H in h_unguarded. discriminate.
@@ -609,7 +609,7 @@ Proof.
       eapply eval_cofix_app; tea.
   - apply tConst_substlg_eq in heq; subst.
     pose proof s [] eq_refl body eq_refl i as (n & v' & ? & h_eval'); subst.
-    exists (n + 1), v'; split; first easy.
+    exists n, v'; split; first easy.
     now eapply eval_delta.
   - pose proof tProj_substlg_eq _ _ _ _ _ heq as (u' & ?); subst; simple.
     injection heq as ?; subst.
@@ -626,7 +626,7 @@ Proof.
       induction Γ in closed_v0 |- *; simple; try easy.
       now rewrite csubst_closed. }
     { now eapply wellformed_up. }
-    exists (n1 + 1), v0; split.
+    exists n1, v0; split.
     { unshelve epose proof eval_SI_val _ Γ v0 _ _ _ as (? & ? & heq''' & heval'); simple; try easy.
       { apply eval_SI_wellformed_val in h_eval1; simple; try easy.
         now apply nth_error_In in heq. }
@@ -673,12 +673,11 @@ Proof.
           now simple. }
         repeat constructor; try assumption.
         now apply ih_t1_t2 with (u := t1); simple. }
-      exists (list_sum (extract_ns IH) + #|extract_ns IH| + 1), (vConstruct ind i (extract_vs IH)).
+      exists (list_sum (extract_ns IH)), (vConstruct ind i (extract_vs IH)).
       split; simple.
       { f_equal. clear.
         unfold extract_vs.
         induction IH as [| ? ? ? ? (n & v & h1 & h2) ? ?]; now simple. }
-      rewrite -Nat.add_1_r.
       econstructor; simple; try easy.
       now apply extract_All3_left.
   - now eapply eval_eval_SI_prim.
