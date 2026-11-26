@@ -566,8 +566,8 @@ Module Universe.
     rw /fold_union.
     have hs := to_nonempty_list_spec (add le u).
     have hs' := to_nonempty_list_spec u.
-    destruct to_nonempty_list.
-    destruct to_nonempty_list.
+    destruct to_nonempty_list as [p ?].
+    destruct to_nonempty_list as [p0 ?].
     rw fold_right_map (fold_right_map _ _ (f p0)).
     apply equal_exprsets. intros le'.
     rw LevelExprSet.union_spec.

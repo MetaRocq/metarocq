@@ -1801,7 +1801,7 @@ Module Abstract.
     - forward IHh. intros l. move/hincl. now rw add_spec.
       depelim H.
       eapply Clauses.add_spec in H. destruct H.
-      * subst cl0. destruct cl; noconf H0. cbn in *.
+      * subst cl0. destruct cl as [? ?p]; noconf H0. cbn in *.
         destruct IHh as [n0 ent].
         exists (Z.max n0 n).
         destruct (Z.max_spec n0 n) as [[hle heq]|[hlt heq]].
@@ -1823,7 +1823,7 @@ Module Abstract.
           move: ent.
           now rw -!union_add_singleton -union_assoc (@union_comm _ prems). }
       * destruct IHh. exists x.
-        destruct cl0 ; noconf H0.
+        destruct cl0 as [? ?p]; noconf H0.
         eapply (clause_cut _ (add_prems n t0) (add_expr n p)).
         apply (incls _ (t0, p)) => //.
         move: H2.

@@ -998,7 +998,7 @@ Module Model (LS : LevelSets).
   Proof.
     unfold min_premise.
     move: (to_nonempty_list_spec s).
-    destruct (to_nonempty_list s). intros heq.
+    destruct (to_nonempty_list s) as [p ?]. intros heq.
     setoid_rewrite In_elements. rw -heq. clear s heq.
     intros <-.
     induction l.
@@ -1073,7 +1073,7 @@ Module Model (LS : LevelSets).
   Proof.
     rw {1}/min_premise.
     have hs' := to_nonempty_list_spec (add le prems).
-    destruct to_nonempty_list.
+    destruct to_nonempty_list as [p ?].
     have eqf : (fold_left (fun (min : option Z) (atom : LevelExpr.t) => option_map2 Z.min (min_atom_value m atom) min) l (min_atom_value m p)) =
       (option_map2 Z.min (min_atom_value m le) (min_premise m prems)).
     2:{ now rw eqf. }
@@ -1215,7 +1215,7 @@ Module Model (LS : LevelSets).
   Proof.
     unfold premise_min.
     move: (to_nonempty_list_spec s).
-    destruct (to_nonempty_list s). intros heq.
+    destruct (to_nonempty_list s) as [p ?]. intros heq.
     setoid_rewrite In_elements. rw -heq. clear s heq.
     intros <-.
     induction l.
@@ -1281,7 +1281,7 @@ Module Model (LS : LevelSets).
   Proof.
     unfold premise_max.
     move: (to_nonempty_list_spec s).
-    destruct (to_nonempty_list s). intros heq.
+    destruct (to_nonempty_list s) as [p ?]. intros heq.
     setoid_rewrite In_elements. rw -heq. clear s heq.
     intros <-.
     induction l.
@@ -1334,7 +1334,7 @@ Module Model (LS : LevelSets).
   Proof.
     unfold max_premise_value.
     move: (to_nonempty_list_spec s).
-    destruct (to_nonempty_list s). intros heq.
+    destruct (to_nonempty_list s) as [p ?]. intros heq.
     setoid_rewrite In_elements. rw -heq. clear s heq.
     induction l in k |- *.
     - cbn.
@@ -1595,7 +1595,7 @@ Module Model (LS : LevelSets).
     exists k', max_premise_value m prem = Some k'.
   Proof.
     unfold min_premise, max_premise_value.
-    destruct to_nonempty_list.
+    destruct to_nonempty_list as [p ?].
     assert (forall l k, fold_left
     (fun (min : option Z) (atom : LevelExpr.t) =>
     option_map2 Z.min (let '(l0, k0) := atom in match level_value m l0 with
