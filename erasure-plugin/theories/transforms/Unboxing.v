@@ -33,7 +33,7 @@ Next Obligation.
 Qed.
 
 #[global]
-Instance trust_unbox_transformation_ext :
+Instance unbox_transformation_ext :
   forall (efl : EEnvFlags) (wfl : WcbvFlags)
    {happ : has_tApp} {hcofix : ~~ has_tCoFix}
    {hprop_case : has_tBox || ~~with_prop_case} {hletin : has_tLetIn}
@@ -49,7 +49,7 @@ Proof.
 Qed.
 
 #[global]
-Instance trust_unbox_transformation_ext' :
+Instance unbox_transformation_ext' :
   forall (efl : EEnvFlags) (wfl : WcbvFlags)
   {happ : has_tApp} {hcofix : ~~ has_tCoFix}
   {hprop_case : has_tBox || ~~with_prop_case} {hletin : has_tLetIn}
