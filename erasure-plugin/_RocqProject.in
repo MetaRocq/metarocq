@@ -1,6 +1,20 @@
 -R theories MetaRocq.ErasurePlugin
 
 theories/ETransform.v
+theories/transforms/GuardedToUnguardedFix.v
+theories/transforms/RebuildWfEnv.v
+theories/transforms/RemoveParams.v
+theories/transforms/RemoveMatchOnBox.v
+theories/transforms/InlineProjections.v
+theories/transforms/ConstructorsAsBlocks.v
+theories/transforms/CoInductiveToInductive.v
+theories/transforms/PushForce.v
+theories/transforms/ReorderCstrs.v
+theories/transforms/Unboxing.v
+theories/transforms/ConstsToValues.v
+theories/transforms/Inlining.v
+theories/transforms/ImplementBox.v
+theories/transforms/ImplementLazyForce.v
 theories/Erasure.v
 theories/ErasureCorrectness.v
 theories/Extraction.v
