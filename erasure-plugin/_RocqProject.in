@@ -17,4 +17,6 @@ theories/transforms/ImplementBox.v
 theories/transforms/ImplementLazyForce.v
 theories/Erasure.v
 theories/ErasureCorrectness.v
+theories/ErasureFirstorder.v
+theories/CheckWellformed.v
 theories/Extraction.v
