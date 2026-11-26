@@ -25,11 +25,12 @@
 
     The final theorem is [erasure_pipeline_mapping_firstorder]. Besides the erased value, it
     states that this value is a first-order value of the erased environment
-    ([firstorder_evalue_block]) none of whose constructors belongs to a coinductive type.
+    ([firstorder_evalue_block]) none of whose constructors belongs to a coinductive type
+    ([ECoInductiveToInductive.firstorder_ind_value]).
 
-    The last section describes the passes that may follow MetaRocq's pipeline on such values,
-    trees of constructors ([constr_tree]): constant-to-value translation, lazy and box
-    implementation and the translation of coinductive types leave them unchanged, while
+    The last section describes the passes that may follow MetaRocq's pipeline on first-order
+    values: constant-to-value translation, lazy and box implementation and the translation of
+    coinductive types leave them unchanged, while
     unboxing unboxes their singleton constructors ([unbox_fo]). *)
 
 From Stdlib Require Import Program ssreflect ssrbool.
@@ -363,24 +364,6 @@ Section ConstructorTyping.
 
 End ConstructorTyping.
 
-(** ** Trees of erased constructors *)
-
-(** A tree of erased constructors, whose inductive types all satisfy [P] *)
-Inductive constructor_tree (P : inductive -> Prop) : EAst.term -> Prop :=
-| constructor_tree_node ind c args :
-  P ind -> Forall (constructor_tree P) args -> constructor_tree P (EAst.tConstruct ind c args).
-
-Lemma constructor_tree_impl (P Q : inductive -> Prop) t :
-  (forall ind, P ind -> Q ind) -> constructor_tree P t -> constructor_tree Q t.
-Proof.
-  intros hPQ. revert t. fix IH 2. intros t [ind c args hP hargs]. constructor; [now apply hPQ|].
-  induction hargs as [|x l hx hl IHl]; [constructor|constructor; [now apply IH|exact IHl]].
-Qed.
-
-(** The inductive is not declared as a coinductive type in the erased environment [Σ] *)
-Definition not_coinductive (Σ : EAst.global_context) (ind : inductive) : Prop :=
-  EGlobalEnv.lookup_inductive_kind Σ (inductive_mind ind) <> Some CoFinite.
-
 Lemma firstorder_evalue_block_extends Σ Σ' t :
   EGlobalEnv.extends Σ Σ' -> firstorder_evalue_block Σ t -> firstorder_evalue_block Σ' t.
 Proof.
@@ -409,17 +392,23 @@ Section CompileValueBox.
     eapply hP; eauto. clear -IH hargs. induction hargs; constructor; auto.
   Qed.
 
-  Lemma compile_value_box_fo_tree (Σ : global_env_ext) t :
+  (** The compiled value is built from constructors of inductive types that are not
+      coinductive in [Σ'] *)
+  Lemma compile_value_box_firstorder_ind_value (Σ : global_env_ext) (Σ' : EAst.global_context) t :
+    (forall ind, firstorder_ind Σ (firstorder_env Σ) ind ->
+      EGlobalEnv.is_coind Σ' (inductive_mind ind) = false) ->
     pcuic_fo_tree Σ t ->
-    constructor_tree (fun ind => firstorder_ind Σ (firstorder_env Σ) ind)
-      (compile_value_box (PCUICExpandLets.trans_global_env Σ.1) t []).
+    ∥ ECoInductiveToInductive.firstorder_ind_value Σ'
+        (compile_value_box (PCUICExpandLets.trans_global_env Σ.1) t []) ∥.
   Proof.
-    induction 1 using pcuic_fo_tree_ind'.
+    intros hco. induction 1 using pcuic_fo_tree_ind'.
     rewrite (compile_value_box_mkApps (npars := ind_npars mdecl)).
     { rewrite /pcuic_lookup_inductive_pars PCUICExpandLetsCorrectness.trans_lookup.
       destruct H as [[hm _] _]. red in hm. now rewrite hm. }
-    constructor => //. rewrite app_nil_r. apply Forall_skipn.
-    clear -H3. induction H3; constructor; auto.
+    have [hargs] : ∥ All (ECoInductiveToInductive.firstorder_ind_value Σ')
+      (map (flip (compile_value_box (PCUICExpandLets.trans_global_env Σ.1)) []) args) ∥.
+    { clear -H3. induction H3 as [|x l [hx] _ [hl]]; cbn; sq; constructor; auto. }
+    sq. constructor; [now apply hco|]. rewrite app_nil_r. now apply All_skipn.
   Qed.
 
 End CompileValueBox.
@@ -691,11 +680,12 @@ Section pipeline_obseq.
 
   Lemma firstorder_ind_not_cofinite pr ind :
     PCUICFirstorder.firstorder_ind Σ (PCUICFirstorder.firstorder_env Σ) ind ->
-    not_coinductive (transform (verified_erasure_pipeline econf) (Σ, t) pr).1 ind.
+    EGlobalEnv.is_coind (transform (verified_erasure_pipeline econf) (Σ, t) pr).1
+      (inductive_mind ind) = false.
   Proof.
     have -> : pr = precond Σ t _ HΣ expΣ expt typing Normalisation econf
       by apply proof_irrelevance.
-    rewrite /not_coinductive /EGlobalEnv.lookup_inductive_kind /EGlobalEnv.lookup_minductive.
+    rewrite /EGlobalEnv.is_coind /EGlobalEnv.lookup_inductive_kind /EGlobalEnv.lookup_minductive.
     destruct EGlobalEnv.lookup_env as [[|m]|] eqn:hl => //=.
     eapply (@verified_erasure_pipeline_lookup_env_in Σ t _ HΣ expΣ expt typing Normalisation
       econf _ _ eq_refl eq_refl) in hl as [decl' [hl' hd]].
@@ -805,7 +795,7 @@ Section pipeline_obseq.
       (transform (verified_erasure_pipeline econf) (Σ, t) pr) v v' ->
     let Σ' := (transform (verified_erasure_pipeline econf) (Σ, t) pr).1 in
     v' = v_t /\ firstorder_evalue_block Σ' v' /\
-    constructor_tree (not_coinductive Σ') v'.
+    ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
   Proof.
     intros obs Σ'. have -> := verified_erasure_pipeline_obseq_firstorder pr v' obs.
     split => //. split.
@@ -817,8 +807,8 @@ Section pipeline_obseq.
         by apply proof_irrelevance.
       exact (@verified_erasure_pipeline_extends Σ HΣ expΣ t expt axfree v i u args Normalisation
         typing fo Heval econf eq_refl eq_refl).
-    - eapply constructor_tree_impl; [|exact (compile_value_box_fo_tree Σ v v_fo_tree)].
-      intros ind. apply firstorder_ind_not_cofinite.
+    - exact (compile_value_box_firstorder_ind_value Σ Σ' v
+        (fun ind => firstorder_ind_not_cofinite pr ind) v_fo_tree).
   Qed.
 
 End pipeline_obseq.
@@ -838,7 +828,7 @@ Theorem verified_erasure_pipeline_mapping_firstorder (Σ : global_env_ext_map)
   let Σ' := (transform (verified_erasure_pipeline_mapping econf) ([], (Σ, t)) pr).1 in
   v' = compile_value_box (PCUICExpandLets.trans_global_env Σ) v [] /\
   firstorder_evalue_block Σ' v' /\
-  constructor_tree (not_coinductive Σ') v'.
+  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
 Proof.
   set (pr' := precond Σ t _ HΣ expΣ expt typing Normalisation econf).
   intros obs Σ'.
@@ -907,7 +897,7 @@ Lemma template_firstorder_core econf (p : Ast.Env.program) (Σm : GlobalEnvMap.t
   let Σ' := P'.1 in
   v' = compile_value_box (trans_global_env p.1) (trans (trans_global_env p.1) v) [] /\
   firstorder_evalue_block Σ' v' /\
-  constructor_tree (not_coinductive Σ') v'.
+  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
 Proof.
   intros Σ1 henv -> -> -> [[wfp [T0 hT0]]] [[wfΣ1 [T1 hT1]]] [expΣ1 expt1] hax [hty] hfo [hev]
     [hev1] obs Σ'.
@@ -985,7 +975,7 @@ Theorem erasure_pipeline_mapping_firstorder econf (p : Ast.Env.program) pr i u a
   let Σ' := (run (erasure_pipeline_mapping econf) ([], p) pr).1 in
   v' = compile_value_box (trans_global_env p.1) (trans (trans_global_env p.1) v) [] /\
   firstorder_evalue_block Σ' v' /\
-  constructor_tree (not_coinductive Σ') v'.
+  ∥ ECoInductiveToInductive.firstorder_ind_value Σ' v' ∥.
 Proof.
   intros hax hty hfo hev obs Σ'.
   have hpres := preservation pre_erasure_pipeline_mapping ([], p) v pr hev.
@@ -1038,10 +1028,6 @@ Fixpoint unbox_fo (Σ : EAst.global_context) (t : EAst.term) : EAst.term :=
   | _ => t
   end.
 
-Inductive constr_tree : EAst.term -> Prop :=
-| constr_tree_node ind c args :
-    Forall constr_tree args -> constr_tree (EAst.tConstruct ind c args).
-
 Lemma unbox_fo_constr Σ ind c args :
   ~~ (is_unboxable_ctor Σ ind c && (#|args| =? 1)%nat) ->
   unbox_fo Σ (EAst.tConstruct ind c args) = EAst.tConstruct ind c (map (unbox_fo Σ) args).
@@ -1049,64 +1035,44 @@ Proof.
   cbn. destruct is_unboxable_ctor => //. now destruct args as [|? []].
 Qed.
 
-Lemma constr_tree_ind' (P : EAst.term -> Prop) :
-  (forall ind c args, Forall constr_tree args -> Forall P args -> P (EAst.tConstruct ind c args)) ->
-  forall t, constr_tree t -> P t.
-Proof.
-  intros hP. fix IH 2. intros t [ind c args hargs]. apply hP => //.
-  refine ((fix aux l (hl : Forall constr_tree l) {struct hl} : Forall P l := _) _ hargs).
-  destruct hl; constructor; auto.
-Qed.
-
 Lemma map_id_tree (f : EAst.term -> EAst.term) l :
   Forall (fun x => f x = x) l -> map f l = l.
 Proof. induction 1; cbn; congruence. Qed.
 
-(** The inductive types of the constructors of a tree *)
-Fixpoint tree_inductives (t : EAst.term) : list inductive :=
-  match t with
-  | EAst.tConstruct ind _ args => ind :: concat (map tree_inductives args)
-  | _ => []
-  end.
-
-Lemma consts_to_values_tree t : constr_tree t -> EConstantsToValues.consts_to_values t = t.
+Lemma consts_to_values_tree Σw t :
+  firstorder_evalue_block Σw t -> EConstantsToValues.consts_to_values t = t.
 Proof.
-  induction 1 using constr_tree_ind'. cbn. f_equal. now apply map_id_tree.
+  induction 1 using firstorder_evalue_block_elim. cbn. f_equal. now apply map_id_tree.
 Qed.
 
-Lemma implement_lazy_force_tree t : constr_tree t -> EImplementLazyForce.implement_lazy_force t = t.
+Lemma implement_lazy_force_tree Σw t :
+  firstorder_evalue_block Σw t -> EImplementLazyForce.implement_lazy_force t = t.
 Proof.
-  induction 1 using constr_tree_ind'. simp implement_lazy_force. rewrite ?map_InP_spec.
+  induction 1 using firstorder_evalue_block_elim. simp implement_lazy_force. rewrite ?map_InP_spec.
   f_equal. now apply map_id_tree.
 Qed.
 
-Lemma implement_box_tree t : constr_tree t -> EImplementBox.implement_box t = t.
+Lemma implement_box_tree Σw t :
+  firstorder_evalue_block Σw t -> EImplementBox.implement_box t = t.
 Proof.
-  induction 1 using constr_tree_ind'. simp implement_box. rewrite ?map_InP_spec.
+  induction 1 using firstorder_evalue_block_elim. simp implement_box. rewrite ?map_InP_spec.
   f_equal. now apply map_id_tree.
 Qed.
 
 Lemma coinductive_trans_tree (Σ : EEnvMap.GlobalContextMap.t) t :
-  constr_tree t ->
-  (forall ind, In ind (tree_inductives t) ->
-    not_coinductive (EEnvMap.GlobalContextMap.global_decls Σ) ind) ->
+  ECoInductiveToInductive.firstorder_ind_value (EEnvMap.GlobalContextMap.global_decls Σ) t ->
   ECoInductiveToInductive.trans Σ t = t.
 Proof.
-  induction 1 using constr_tree_ind'. intros hind. cbn.
-  rewrite EEnvMap.GlobalContextMap.is_coind_spec /EGlobalEnv.is_coind.
-  have hk := hind ind (or_introl eq_refl). rewrite /not_coinductive in hk.
-  have -> : map (ECoInductiveToInductive.trans Σ) args = args.
-  { apply map_id_tree. clear -H0 hind. induction H0 as [|x l hx hl IH]; constructor.
-    - apply hx => i hi. apply hind. right. cbn. apply in_or_app. now left.
-    - apply IH => i hi. apply hind. cbn in hi |- *. destruct hi as [<-|hi]; [now left|].
-      right. apply in_or_app. now right. }
-  destruct EGlobalEnv.lookup_inductive_kind as [[]|] => //.
+  revert t. apply: ECoInductiveToInductive.firstorder_ind_value_rect => ind c args hco _ IH.
+  cbn. rewrite EEnvMap.GlobalContextMap.is_coind_spec hco map_id_tree //.
+  now apply All_Forall.
 Qed.
 
-Lemma unbox_tree (Σ : EEnvMap.GlobalContextMap.t) t :
-  constr_tree t -> EUnboxing.unbox Σ t = unbox_fo (EEnvMap.GlobalContextMap.global_decls Σ) t.
+Lemma unbox_tree (Σ : EEnvMap.GlobalContextMap.t) Σw t :
+  firstorder_evalue_block Σw t ->
+  EUnboxing.unbox Σ t = unbox_fo (EEnvMap.GlobalContextMap.global_decls Σ) t.
 Proof.
-  induction 1 using constr_tree_ind'. simp unbox.
+  induction 1 using firstorder_evalue_block_elim. rename i into ind, n into c. simp unbox.
   have hu : EUnboxing.is_unboxable Σ ind c =
     is_unboxable_ctor (EEnvMap.GlobalContextMap.global_decls Σ) ind c.
   { destruct c; simp is_unboxable => //=. rewrite EEnvMap.GlobalContextMap.lookup_constructor_spec.
@@ -1115,8 +1081,8 @@ Proof.
   all: have e := eq_trans hunb hu; cbn [unbox_fo]; rewrite -e.
   all: have hmap : map (EUnboxing.unbox Σ) args =
     map (unbox_fo (EEnvMap.GlobalContextMap.global_decls Σ)) args
-    by (clear -H0; induction H0; cbn; congruence).
-  - destruct args as [|a [|a' args]]; simp unbox; rewrite ?hmap //. now inversion H0.
+    by (clear -H1; induction H1; cbn; congruence).
+  - destruct args as [|a [|a' args]]; simp unbox; rewrite ?hmap //. now inversion H1.
   - simp unbox. now rewrite hmap.
 Qed.
 
@@ -1138,41 +1104,30 @@ Proof.
   rewrite hf. destruct nth_error => //=. destruct EAst.ind_ctors => //.
 Qed.
 
-Lemma unbox_fo_tree Σ t : constr_tree t -> constr_tree (unbox_fo Σ t).
+Lemma unbox_fo_tree Σw Σ t :
+  firstorder_evalue_block Σw t -> firstorder_evalue_block Σw (unbox_fo Σ t).
 Proof.
-  induction 1 using constr_tree_ind'. cbn.
-  have hmap : Forall constr_tree (map (unbox_fo Σ) args).
-  { clear -H0. induction H0; constructor; auto. }
-  destruct is_unboxable_ctor; [destruct args as [|a [|]]|]; try now constructor.
-  now inversion H0.
+  induction 1 using firstorder_evalue_block_elim. cbn.
+  have hmap : Forall (firstorder_evalue_block Σw) (map (unbox_fo Σ) args).
+  { clear -H1. induction H1; constructor; auto. }
+  have hcstr : firstorder_evalue_block Σw (EAst.tConstruct i n (map (unbox_fo Σ) args))
+    by constructor; rewrite ?length_map.
+  destruct is_unboxable_ctor; [destruct args as [|a [|]]|] => //.
+  now inversion H1.
 Qed.
 
-Lemma unbox_fo_ext Σ Σ' t :
+Lemma unbox_fo_ext Σ Σ' Σw t :
   (forall ind c, is_unboxable_ctor Σ ind c = is_unboxable_ctor Σ' ind c) ->
-  constr_tree t -> unbox_fo Σ t = unbox_fo Σ' t.
+  firstorder_evalue_block Σw t -> unbox_fo Σ t = unbox_fo Σ' t.
 Proof.
-  intros hΣ. induction 1 using constr_tree_ind'. cbn. rewrite hΣ.
+  intros hΣ. induction 1 using firstorder_evalue_block_elim. cbn. rewrite hΣ.
   have -> : map (unbox_fo Σ) args = map (unbox_fo Σ') args.
-  { clear -H0. induction H0; cbn; congruence. }
-  destruct is_unboxable_ctor => //. destruct args as [|a [|]] => //. now inversion H0.
+  { clear -H1. induction H1; cbn; congruence. }
+  destruct is_unboxable_ctor => //. destruct args as [|a [|]] => //. now inversion H1.
 Qed.
 
 Lemma is_unboxable_ctor_consts_to_values Σ ind c :
   is_unboxable_ctor (EConstantsToValues.consts_to_values_env Σ) ind c = is_unboxable_ctor Σ ind c.
 Proof.
   apply (is_unboxable_ctor_map EConstantsToValues.consts_to_values_global_decl). by case.
-Qed.
-
-Lemma constructor_tree_constr_tree (P : inductive -> Prop) t :
-  constructor_tree P t ->
-  constr_tree t /\ forall ind, In ind (tree_inductives t) -> P ind.
-Proof.
-  revert t. fix IH 2. intros t [ind c args hP hargs].
-  have [hargs' hind] : Forall constr_tree args /\
-    forall ind', In ind' (concat (map tree_inductives args)) -> P ind'.
-  { clear -IH hargs. induction hargs as [|x l hx hl [hl' hind]]; cbn.
-    - split; [constructor|done].
-    - destruct (IH x hx) as [hx' hindx].
-      split; [by constructor|]. intros ind' [hin|hin]%in_app_or; eauto. }
-  split; [now constructor|]. intros ind' [<-|hin]; eauto.
 Qed.
