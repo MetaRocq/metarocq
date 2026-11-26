@@ -1,45 +1,19 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import Program ssreflect ssrbool.
+From Stdlib Require Import ssreflect ssrbool.
 From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import Environment Transform config BasicAst uGraph.
-From MetaRocq.Template Require Pretty Typing WcbvEval EtaExpand.
-Set Warnings "-notation-overridden".
-From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram PCUICWeakeningEnvSN.
-Set Warnings "+notation-overridden".
-From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl.
-From MetaRocq.Erasure Require EAstUtils ErasureCorrectness Extract EOptimizePropDiscr
-  ERemoveParams EProgram EConstructorsAsBlocks ECoInductiveToInductive.
-From MetaRocq.Erasure Require Import ErasureFunction ErasureFunctionProperties.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract EProgram
-    EAst Transform ERemoveParams.
-Import EEnvMap EGlobalEnv EWellformed.
+From MetaRocq.Common Require Import Transform.
+From MetaRocq.Erasure Require EAstUtils ELiftSubst ECoInductiveToInductive.
+From MetaRocq.Erasure Require Import Extract EProgram EEnvMap EGlobalEnv
+  EWellformed EWcbvEval EFirstorder.
+Import Transform.
 From MetaRocq.ErasurePlugin Require Import ETransform.
-Import Extract.
-From MetaRocq.Erasure.Typed Require Import Erasure ExAst Optimize ExtractionCorrectness OptimizeCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
-From MetaRocq.PCUIC Require Import PCUICTyping.
-From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl.
-Set Equations Transparent.
-Import EOptimizePropDiscr OptimizePropDiscr EWcbvEval.
-Import EOptimizePropDiscr.
-Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
-Import EOptimizePropDiscr EWcbvEval.
-From MetaRocq.Erasure Require Import EInlineProjections.
-From MetaRocq.Erasure Require Import EConstructorsAsBlocks.
-From MetaRocq.Erasure Require ECoInductiveToInductive.
-From MetaRocq.Erasure Require EPushForce.
-From MetaRocq.Erasure Require Import EReorderCstrs.
-From MetaRocq.Erasure Require Import EUnboxing.
-From MetaRocq.Erasure Require Import EConstantsToValues.
+From MetaRocq.Erasure Require Import EInlining.
 
 #[local] Obligation Tactic := idtac.
 
-From MetaRocq.Erasure Require Import EInlining.
-
-Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags) inlining (hApp : has_tApp) (hBox : has_tBox || ~~ with_prop_case) :
+Program Definition inline_transformation (efl : EEnvFlags) (wfl : WcbvFlags)
+  inlining (hApp : has_tApp) (hBox : has_tBox || ~~ with_prop_case) :
   Transform.t _ _ EAst.term EAst.term _ _
     (eval_eprogram wfl) (eval_inlined_program wfl) :=
   {| name := "inlining ";
@@ -79,7 +53,8 @@ Instance inline_transformation_ext' :
     extends_eprogram extends_inlined_eprogram.
 Proof.
   intros ? ? inlining ? ?.
-  unfold TransformExt.t, transform, inline_transformation, inline_program, extends_inlined_eprogram.
+  unfold TransformExt.t, transform, inline_transformation, inline_program,
+    extends_inlined_eprogram.
   intros [ctx e] [ctx' e'] [? ?] [? ?] [h_extends []].
   pose proof extends_inline_env efl.
   pose proof inline_extends efl inlining.
@@ -88,7 +63,8 @@ Qed.
 
 
 
-Program Definition forget_inlining_info_transformation (efl : EEnvFlags) (wfl : WcbvFlags) :
+Program Definition forget_inlining_info_transformation (efl : EEnvFlags)
+  (wfl : WcbvFlags) :
   Transform.t _ _ EAst.term EAst.term _ _
       (eval_inlined_program wfl) (eval_eprogram wfl) :=
     {| name := "forgetting about inlining info";

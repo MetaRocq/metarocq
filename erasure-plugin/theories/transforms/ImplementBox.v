@@ -1,40 +1,11 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import Program ssreflect ssrbool.
+From Stdlib Require Import ssreflect.
 From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import Environment Transform config BasicAst uGraph.
-From MetaRocq.Template Require Pretty Typing WcbvEval EtaExpand.
-Set Warnings "-notation-overridden".
-From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram PCUICWeakeningEnvSN.
-Set Warnings "+notation-overridden".
-From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl.
-From MetaRocq.Erasure Require EAstUtils ErasureCorrectness Extract EOptimizePropDiscr
-  ERemoveParams EProgram EConstructorsAsBlocks ECoInductiveToInductive.
-From MetaRocq.Erasure Require Import ErasureFunction ErasureFunctionProperties.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract EProgram
-    EAst Transform ERemoveParams.
-Import EEnvMap EGlobalEnv EWellformed.
-From MetaRocq.ErasurePlugin Require Import ETransform.
-Import Extract.
-From MetaRocq.Erasure.Typed Require Import Erasure ExAst Optimize ExtractionCorrectness OptimizeCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
-From MetaRocq.PCUIC Require Import PCUICTyping.
-From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl.
-Set Equations Transparent.
-Import EOptimizePropDiscr OptimizePropDiscr EWcbvEval.
-Import EOptimizePropDiscr.
-Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
-Import EOptimizePropDiscr EWcbvEval.
-From MetaRocq.Erasure Require Import EInlineProjections.
-From MetaRocq.Erasure Require Import EConstructorsAsBlocks.
-From MetaRocq.Erasure Require ECoInductiveToInductive.
-From MetaRocq.Erasure Require EPushForce.
-From MetaRocq.Erasure Require Import EReorderCstrs.
-From MetaRocq.Erasure Require Import EUnboxing.
-From MetaRocq.Erasure Require Import EConstantsToValues.
-From MetaRocq.Erasure Require Import EInlining.
+From MetaRocq.Common Require Import Transform.
+From MetaRocq.Erasure Require Import EProgram EGlobalEnv EWellformed EWcbvEval
+  EImplementBox.
+Import Transform.
 
 #[local] Obligation Tactic := idtac.
 
@@ -42,8 +13,6 @@ Definition conditionally (b : bool) (P : Prop) :=
   if b then P else True.
 
 (* Implementing box *)
-
-From MetaRocq.Erasure Require Import EImplementBox.
 
 (* It preserves values in the environment *)
 Lemma implement_box_value_pres (efl : EEnvFlags) Σ t :
@@ -98,13 +67,17 @@ Proof.
 Qed.
 
 Program Definition implement_box_transformation (efl : EEnvFlags)
-  (has_app : has_tApp) (has_lam : has_tLambda) (has_letin : has_tLetIn) (nocofix : has_tCoFix = false)
+  (has_app : has_tApp) (has_lam : has_tLambda) (has_letin : has_tLetIn)
+  (nocofix : has_tCoFix = false)
   (nopars : has_cstr_params = false) pres_values :
-  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram block_wcbv_flags)
+    (eval_eprogram block_wcbv_flags) :=
   {| name := "implementing box";
     transform p _ := EImplementBox.implement_box_program p ;
-    pre p := wf_eprogram efl p /\ conditionally pres_values (∥ lambda_glob p.1 ∥) ;
-    post p := wf_eprogram (switch_off_box efl) p /\ conditionally pres_values (∥ lambda_glob p.1 ∥);
+    pre p := wf_eprogram efl p /\
+      conditionally pres_values (∥ lambda_glob p.1 ∥) ;
+    post p := wf_eprogram (switch_off_box efl) p /\
+      conditionally pres_values (∥ lambda_glob p.1 ∥);
     obseq p hp p' v v' := v' = implement_box v |}.
 Next Obligation.
   intros. destruct p as [p pres]; cbn in *. split.

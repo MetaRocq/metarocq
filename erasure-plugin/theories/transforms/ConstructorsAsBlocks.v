@@ -1,56 +1,40 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import Program ssreflect ssrbool.
+From Stdlib Require Import Program.Basics ssreflect ssrbool.
 From Equations Require Import Equations.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import Environment Transform config BasicAst uGraph.
-From MetaRocq.Template Require Pretty Typing WcbvEval EtaExpand.
-Set Warnings "-notation-overridden".
-From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram PCUICWeakeningEnvSN.
-Set Warnings "+notation-overridden".
-From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl.
-From MetaRocq.Erasure Require EAstUtils ErasureCorrectness Extract EOptimizePropDiscr
-  ERemoveParams EProgram EConstructorsAsBlocks ECoInductiveToInductive.
-From MetaRocq.Erasure Require Import ErasureFunction ErasureFunctionProperties.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract EProgram
-    EAst Transform ERemoveParams.
-Import EEnvMap EGlobalEnv EWellformed.
+From MetaRocq.Common Require Import Transform.
+From MetaRocq.Erasure Require EAstUtils EInduction ELiftSubst EEtaExpanded.
+From MetaRocq.Erasure Require Import EProgram EEnvMap EGlobalEnv EWellformed
+  EWcbvEval EFirstorder.
+Import Transform.
 From MetaRocq.ErasurePlugin Require Import ETransform.
-Import Extract.
-From MetaRocq.Erasure.Typed Require Import Erasure ExAst Optimize ExtractionCorrectness OptimizeCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
-From MetaRocq.PCUIC Require Import PCUICTyping.
-From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl.
-Set Equations Transparent.
-Import EOptimizePropDiscr OptimizePropDiscr EWcbvEval.
-Import EOptimizePropDiscr.
-Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
-Import EOptimizePropDiscr EWcbvEval.
-From MetaRocq.Erasure Require Import EInlineProjections.
+From MetaRocq.Erasure Require Import EConstructorsAsBlocks.
 
 #[local] Obligation Tactic := idtac.
 
-From MetaRocq.Erasure Require Import EConstructorsAsBlocks.
-
-
 Program Definition constructors_as_blocks_transformation {efl : EEnvFlags}
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = false} :
-  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env target_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
+  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox}
+  {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = false} :
+  Transform.t _ _ EAst.term EAst.term _ _
+    (eval_eprogram_env target_wcbv_flags) (eval_eprogram block_wcbv_flags) :=
   {| name := "transforming to constuctors as blocks";
     transform p _ := EConstructorsAsBlocks.transform_blocks_program p ;
-    pre p := wf_eprogram_env efl p /\ EEtaExpanded.expanded_eprogram_env_cstrs p;
+    pre p := wf_eprogram_env efl p /\
+      EEtaExpanded.expanded_eprogram_env_cstrs p;
     post p := wf_eprogram (switch_cstr_as_blocks efl) p ;
     obseq p hp p' v v' := v' = EConstructorsAsBlocks.transform_blocks p.1 v |}.
 
 Next Obligation.
-  move=> efl hasapp hasrel hasbox haspars hascstrs [Σ t] [] [wftp wft] /andP [etap etat].
+  move=> efl hasapp hasrel hasbox haspars hascstrs [Σ t] [] [wftp wft]
+    /andP [etap etat].
   cbn in *. split.
   - eapply transform_wf_global; eauto.
   - eapply transform_wellformed; eauto.
 Qed.
 Next Obligation.
-  red. move=> efl hasapp hasrel hasbox haspars hascstrs [Σ t] /= v [[wfe1 wfe2] wft] [ev].
+  red. move=> efl hasapp hasrel hasbox haspars hascstrs [Σ t] /= v
+    [[wfe1 wfe2] wft] [ev].
   eexists. split; [ | eauto].
   unfold EEtaExpanded.expanded_eprogram_env_cstrs in *.
   revert wft. move => /andP // [e1 e2].
@@ -61,8 +45,12 @@ Qed.
 
 #[global]
 Instance constructors_as_blocks_extends (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = false} :
-  TransformExt.t (constructors_as_blocks_transformation (has_app := has_app) (has_rel := has_rel) (has_box := has_box) (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox}
+  {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = false} :
+  TransformExt.t (constructors_as_blocks_transformation (has_app := has_app)
+    (has_rel := has_rel) (has_box := has_box) (has_pars := has_pars)
+    (has_cstrblocks := has_cstrblocks))
   (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /=.
@@ -71,8 +59,12 @@ Qed.
 
 #[global]
 Instance constructors_as_blocks_extends' (efl : EEnvFlags)
-  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox} {has_pars : has_cstr_params = false} {has_cstrblocks : cstr_as_blocks = false} :
-  TransformExt.t (constructors_as_blocks_transformation (has_app := has_app) (has_rel := has_rel) (has_box := has_box) (has_pars := has_pars) (has_cstrblocks := has_cstrblocks))
+  {has_app : has_tApp} {has_rel : has_tRel} {has_box : has_tBox}
+  {has_pars : has_cstr_params = false}
+  {has_cstrblocks : cstr_as_blocks = false} :
+  TransformExt.t (constructors_as_blocks_transformation (has_app := has_app)
+    (has_rel := has_rel) (has_box := has_box) (has_pars := has_pars)
+    (has_cstrblocks := has_cstrblocks))
   extends_eprogram_env extends_eprogram.
 Proof.
   red. intros p p' pr pr' [ext eq]. rewrite /transform /=. split.

@@ -1,47 +1,31 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import Program ssreflect ssrbool.
-From Equations Require Import Equations.
+From Stdlib Require Import ssreflect ssrbool.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import Environment Transform config BasicAst uGraph.
-From MetaRocq.Template Require Pretty Typing WcbvEval EtaExpand.
-Set Warnings "-notation-overridden".
-From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram PCUICWeakeningEnvSN.
-Set Warnings "+notation-overridden".
-From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl.
-From MetaRocq.Erasure Require EAstUtils ErasureCorrectness Extract EOptimizePropDiscr
-  ERemoveParams EProgram EConstructorsAsBlocks ECoInductiveToInductive.
-From MetaRocq.Erasure Require Import ErasureFunction ErasureFunctionProperties.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract EProgram
-    EAst Transform ERemoveParams.
-Import EEnvMap EGlobalEnv EWellformed.
+From MetaRocq.Common Require Import Transform.
+From MetaRocq.Erasure Require EAstUtils EInduction ELiftSubst EEtaExpanded
+  EConstructorsAsBlocks.
+From MetaRocq.Erasure Require Import EProgram EEnvMap EGlobalEnv EWellformed
+  EWcbvEval EFirstorder.
+Import Transform.
 From MetaRocq.ErasurePlugin Require Import ETransform.
-Import Extract.
-From MetaRocq.Erasure.Typed Require Import Erasure ExAst Optimize ExtractionCorrectness OptimizeCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
-From MetaRocq.PCUIC Require Import PCUICTyping.
-From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl.
-Set Equations Transparent.
-Import EOptimizePropDiscr OptimizePropDiscr EWcbvEval.
-Import EOptimizePropDiscr.
-Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
-Import EOptimizePropDiscr EWcbvEval.
+From MetaRocq.Erasure Require Import EInlineProjections.
 
 #[local] Obligation Tactic := idtac.
 
-From MetaRocq.Erasure Require Import EInlineProjections.
-
-Program Definition inline_projections_optimization {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+Program Definition inline_projections_optimization {fl : WcbvFlags}
+  {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
   (cstrs : cstr_as_blocks = false)
   (no_pars : has_cstr_params = false)
   {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
-  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env fl) (eval_eprogram fl) :=
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram_env fl)
+    (eval_eprogram fl) :=
   {| name := "primitive projection inlining";
     transform p _ := EInlineProjections.optimize_program p ;
-    pre p := wf_eprogram_env efl p /\ EEtaExpanded.expanded_eprogram_env_cstrs p;
-    post p := wf_eprogram (disable_projections_env_flag efl) p /\ EEtaExpanded.expanded_eprogram_cstrs p;
+    pre p := wf_eprogram_env efl p /\
+      EEtaExpanded.expanded_eprogram_env_cstrs p;
+    post p := wf_eprogram (disable_projections_env_flag efl) p /\
+      EEtaExpanded.expanded_eprogram_cstrs p;
     obseq p hp p' v v' := v' = EInlineProjections.optimize p.1 v |}.
 
 Next Obligation.
@@ -51,33 +35,43 @@ Next Obligation.
   - now eapply optimize_program_expanded.
 Qed.
 Next Obligation.
-  red. move=> fl wcon efl cstrs no_pars hasapp hastrel hastbox [Σ t] /= v [wfe wft] [ev].
+  red. move=> fl wcon efl cstrs no_pars hasapp hastrel hastbox [Σ t] /= v
+    [wfe wft] [ev].
   eapply EInlineProjections.optimize_correct in ev; eauto.
   eexists; split => //. red. sq; auto. cbn. apply wfe.
   cbn. eapply wfe. Unshelve. auto.
 Qed.
 
 #[global]
-Instance inline_projections_optimization_extends {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+Instance inline_projections_optimization_extends {fl : WcbvFlags}
+  {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
   (cstrs : cstr_as_blocks = false)
   (no_pars : has_cstr_params = false)
   {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (inline_projections_optimization (wcon:=wcon) cstrs no_pars (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+  TransformExt.t
+    (inline_projections_optimization (wcon:=wcon) cstrs no_pars
+      (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox))
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. rewrite /transform /= /optimize_program /=.
   eapply optimize_extends_env => //. apply pr. apply pr'.
 Qed.
 
 #[global]
-Instance inline_projections_optimization_extends' {fl : WcbvFlags} {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
+Instance inline_projections_optimization_extends' {fl : WcbvFlags}
+  {wcon : EWcbvEval.with_constructor_as_block = false} {efl : EEnvFlags}
   (cstrs : cstr_as_blocks = false)
   (no_pars : has_cstr_params = false)
   {has_app : has_tApp}
   {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (inline_projections_optimization (wcon:=wcon) cstrs no_pars (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox)) extends_eprogram_env extends_eprogram.
+  TransformExt.t
+    (inline_projections_optimization (wcon:=wcon) cstrs no_pars
+      (has_app := has_app) (hastrel := hastrel) (hastbox := hastbox))
+    extends_eprogram_env extends_eprogram.
 Proof.
-  red. intros p p' pr pr' [ext eq]. rewrite /transform /= /optimize_program /=. split.
+  red. intros p p' pr pr' [ext eq]. rewrite /transform /= /optimize_program /=.
+  split.
   eapply optimize_extends_env => //. apply pr. apply pr'.
   rewrite -eq.
   eapply wellformed_optimize_extends; eauto. apply pr. apply pr'.

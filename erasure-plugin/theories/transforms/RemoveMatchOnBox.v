@@ -1,43 +1,28 @@
 (* Distributed under the terms of the MIT license. *)
-From Stdlib Require Import Program ssreflect ssrbool.
-From Equations Require Import Equations.
+From Stdlib Require Import ssreflect ssrbool.
 From MetaRocq.Utils Require Import utils.
-From MetaRocq.Common Require Import Environment Transform config BasicAst uGraph.
-From MetaRocq.Template Require Pretty Typing WcbvEval EtaExpand.
-Set Warnings "-notation-overridden".
-From MetaRocq.PCUIC Require PCUICAst PCUICAstUtils PCUICProgram PCUICWeakeningEnvSN.
-Set Warnings "+notation-overridden".
-From MetaRocq.SafeChecker Require Import PCUICErrors PCUICWfEnv PCUICWfEnvImpl.
-From MetaRocq.Erasure Require EAstUtils ErasureCorrectness Extract EOptimizePropDiscr
-  ERemoveParams EProgram EConstructorsAsBlocks ECoInductiveToInductive.
-From MetaRocq.Erasure Require Import ErasureFunction ErasureFunctionProperties.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import PCUICAst (term) PCUICProgram PCUICTransform (eval_pcuic_program) Extract EProgram
-    EAst Transform ERemoveParams.
-Import EEnvMap EGlobalEnv EWellformed.
+From MetaRocq.Common Require Import Transform.
+From MetaRocq.Erasure Require EAstUtils EInduction ELiftSubst EEtaExpanded
+  EConstructorsAsBlocks.
+From MetaRocq.Erasure Require Import EProgram EEnvMap EGlobalEnv EWellformed
+  EWcbvEval EFirstorder EOptimizePropDiscr.
+Import Transform.
 From MetaRocq.ErasurePlugin Require Import ETransform.
-Import Extract.
-From MetaRocq.Erasure.Typed Require Import Erasure ExAst Optimize ExtractionCorrectness OptimizeCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
-From MetaRocq.PCUIC Require Import PCUICTyping.
-From MetaRocq.SafeChecker Require Import PCUICWfEnvImpl.
-Set Equations Transparent.
-Import EOptimizePropDiscr OptimizePropDiscr EWcbvEval.
-Import EOptimizePropDiscr.
-Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
 
 #[local] Obligation Tactic := idtac.
 
-Import EOptimizePropDiscr EWcbvEval.
-
-Program Definition remove_match_on_box_trans {fl : WcbvFlags} {wcon : with_constructor_as_block = false} {efl : EEnvFlags} {hastrel : has_tRel} {hastbox : has_tBox} :
-  Transform.t _ _  EAst.term EAst.term _ _ (eval_eprogram_env fl) (eval_eprogram (disable_prop_cases fl)) :=
+Program Definition remove_match_on_box_trans {fl : WcbvFlags}
+  {wcon : with_constructor_as_block = false} {efl : EEnvFlags}
+  {hastrel : has_tRel} {hastbox : has_tBox} :
+  Transform.t _ _  EAst.term EAst.term _ _ (eval_eprogram_env fl)
+    (eval_eprogram (disable_prop_cases fl)) :=
   {| name := "optimize_prop_discr";
     transform p _ := remove_match_on_box_program p ;
-    pre p := wf_eprogram_env efl p /\ EEtaExpanded.expanded_eprogram_env_cstrs p;
+    pre p := wf_eprogram_env efl p /\
+      EEtaExpanded.expanded_eprogram_env_cstrs p;
     post p := wf_eprogram efl p /\ EEtaExpanded.expanded_eprogram_cstrs p;
-    obseq p hp p' v v' := v' = EOptimizePropDiscr.remove_match_on_box p.1 v |}.
+    obseq p hp p' v v' :=
+      v' = EOptimizePropDiscr.remove_match_on_box p.1 v |}.
 
 Next Obligation.
   move=> fl wcon efl hastrel hastbox [Σ t] [wfp etap].
@@ -55,18 +40,30 @@ Next Obligation.
 Qed.
 
 #[global]
-Instance remove_match_on_box_extends  {fl : WcbvFlags} {wcon : with_constructor_as_block = false} {efl : EEnvFlags} {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (remove_match_on_box_trans (wcon:=wcon) (hastrel := hastrel) (hastbox := hastbox)) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Instance remove_match_on_box_extends  {fl : WcbvFlags}
+  {wcon : with_constructor_as_block = false} {efl : EEnvFlags}
+  {hastrel : has_tRel} {hastbox : has_tBox} :
+  TransformExt.t
+    (remove_match_on_box_trans (wcon:=wcon) (hastrel := hastrel)
+      (hastbox := hastbox))
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
   Proof.
-  red. intros p p' pr pr' ext. rewrite /transform /= /remove_match_on_box_program.
+  red. intros p p' pr pr' ext.
+  rewrite /transform /= /remove_match_on_box_program.
   eapply remove_match_on_box_extends_env => //. apply pr. apply pr'.
 Qed.
 
 #[global]
-Instance remove_match_on_box_extends'  {fl : WcbvFlags} {wcon : with_constructor_as_block = false} {efl : EEnvFlags} {hastrel : has_tRel} {hastbox : has_tBox} :
-  TransformExt.t (remove_match_on_box_trans (wcon:=wcon) (hastrel := hastrel) (hastbox := hastbox)) extends_eprogram_env extends_eprogram.
+Instance remove_match_on_box_extends'  {fl : WcbvFlags}
+  {wcon : with_constructor_as_block = false} {efl : EEnvFlags}
+  {hastrel : has_tRel} {hastbox : has_tBox} :
+  TransformExt.t
+    (remove_match_on_box_trans (wcon:=wcon) (hastrel := hastrel)
+      (hastbox := hastbox))
+    extends_eprogram_env extends_eprogram.
 Proof.
-  red. intros p p' pr pr' [ext eq]. rewrite /transform /= /remove_match_on_box_program. split.
+  red. intros p p' pr pr' [ext eq].
+  rewrite /transform /= /remove_match_on_box_program. split.
   eapply remove_match_on_box_extends_env => //. apply pr. apply pr'.
   rewrite -eq.
   eapply wellformed_remove_match_on_box_extends; eauto. apply pr. apply pr'.
@@ -171,7 +168,8 @@ Next Obligation.
   eexists.
   { destruct pr as [[] pr']; move/andP: pr' => [] etactx; split => //.
     split => //. cbn in H0. now move/andP: H0 => [] /andP [].
-    apply/andP. split => //. now apply EEtaExpanded.isEtaExp_tApp_arg in b. }
+    apply/andP. split => //.
+    now apply EEtaExpanded.isEtaExp_tApp_arg in b. }
   now rewrite /EOptimizePropDiscr.remove_match_on_box_program /=.
 Qed.
 Next Obligation.

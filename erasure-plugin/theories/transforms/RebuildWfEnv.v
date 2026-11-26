@@ -2,22 +2,17 @@
 From Stdlib Require Import Program ssreflect ssrbool.
 From MetaRocq.Utils Require Import utils.
 From MetaRocq.Common Require Import Transform.
-Set Warnings "-notation-overridden".
-Set Warnings "+notation-overridden".
-From MetaRocq.Erasure Require ERemoveParams.
-From MetaRocq.TemplatePCUIC Require Import PCUICTransform.
-
-Import EProgram Transform.
-Import EEnvMap EGlobalEnv.
+From MetaRocq.Erasure Require EEtaExpanded EEtaExpandedFix.
+From MetaRocq.Erasure Require Import EProgram EEnvMap EGlobalEnv EWellformed
+  Extract.
+Import Transform.
 From MetaRocq.ErasurePlugin Require Import ETransform.
-From MetaRocq.Erasure.Typed Require Import ExtractionCorrectness.
-From MetaRocq.Erasure Require Import EWellformed.
 Import EWcbvEval (WcbvFlags, with_prop_case, with_guarded_fix).
-
 
 #[local] Obligation Tactic := idtac.
 
-Definition rebuild_wf_env {efl} (p : eprogram) (hwf : wf_eprogram efl p): eprogram_env :=
+Definition rebuild_wf_env {efl} (p : eprogram) (hwf : wf_eprogram efl p):
+  eprogram_env :=
   (GlobalContextMap.make p.1 (wf_glob_fresh p.1 (proj1 hwf)), p.2).
 
 Definition preserves_expansion with_fix p :=
@@ -28,12 +23,16 @@ Definition preserves_expansion_env with_fix p :=
   if with_fix then EEtaExpandedFix.expanded_eprogram_env p
   else EEtaExpanded.expanded_eprogram_env_cstrs p.
 
-Program Definition rebuild_wf_env_transform {fl : EWcbvEval.WcbvFlags} {efl} (with_exp with_fix : bool) :
-  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram fl) (eval_eprogram_env fl) :=
+Program Definition rebuild_wf_env_transform {fl : EWcbvEval.WcbvFlags} {efl}
+  (with_exp with_fix : bool) :
+  Transform.t _ _ EAst.term EAst.term _ _ (eval_eprogram fl)
+    (eval_eprogram_env fl) :=
   {| name := "rebuilding environment lookup table";
-     pre p := wf_eprogram efl p /\ (with_exp -> preserves_expansion with_fix p);
+     pre p := wf_eprogram efl p /\
+       (with_exp -> preserves_expansion with_fix p);
      transform p pre := rebuild_wf_env p (proj1 pre);
-     post p := wf_eprogram_env efl p /\ (with_exp -> preserves_expansion_env with_fix p);
+     post p := wf_eprogram_env efl p /\
+       (with_exp -> preserves_expansion_env with_fix p);
      obseq p hp p' v v' := v = v' |}.
 Next Obligation.
   cbn. unfold preserves_expansion, preserves_expansion_env.
@@ -44,15 +43,19 @@ Next Obligation.
 Qed.
 
 #[global]
-Instance rebuild_wf_env_extends {fl : EWcbvEval.WcbvFlags} {efl : EEnvFlags} with_exp with_fix :
-  TransformExt.t (rebuild_wf_env_transform with_exp with_fix) (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
+Instance rebuild_wf_env_extends {fl : EWcbvEval.WcbvFlags} {efl : EEnvFlags}
+  with_exp with_fix :
+  TransformExt.t (rebuild_wf_env_transform with_exp with_fix)
+    (fun p p' => extends p.1 p'.1) (fun p p' => extends p.1 p'.1).
 Proof.
   red. intros p p' pr pr' ext. red. now rewrite /transform /=.
 Qed.
 
 #[global]
-Instance rebuild_wf_env_extends' {fl : EWcbvEval.WcbvFlags} {efl : EEnvFlags} with_exp with_fix :
-  TransformExt.t (rebuild_wf_env_transform with_exp with_fix) extends_eprogram extends_eprogram_env.
+Instance rebuild_wf_env_extends' {fl : EWcbvEval.WcbvFlags}
+  {efl : EEnvFlags} with_exp with_fix :
+  TransformExt.t (rebuild_wf_env_transform with_exp with_fix)
+    extends_eprogram extends_eprogram_env.
 Proof.
   red. intros p p' pr pr' [? ?]. now rewrite /transform /=.
 Qed.
