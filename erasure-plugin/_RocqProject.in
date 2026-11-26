@@ -18,4 +18,6 @@ theories/transforms/ImplementLazyForce.v
 theories/Erasure.v
 theories/ErasureCorrectness.v
 theories/Readback.v
+theories/ErasureFirstorder.v
+theories/CheckWellformed.v
 theories/Extraction.v
