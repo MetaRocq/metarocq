@@ -172,13 +172,18 @@ Axiom assume_env_wellformed : forall Σ, ∥wf Σ∥.
 (** Extract an environment with some minimal checks. This assumes the environment
     is well-formed (to make it computable from within Rocq) but furthermore checks that the
     erased context is closed, expanded and that the masks are valid before dearging.
-    Suitable for extraction of programs **from within Rocq**. *)
+    Suitable for extraction of programs **from within Rocq**.
+
+    Constructor masks are not trimmed: the mask check requires them to
+    have the arity of their constructor, so a trimmed mask fails it, and
+    constructors are fully applied anyway when the expansion is checked. *)
 Definition extract_within_coq : extract_template_env_params :=
   {| template_transforms := [];
      check_wf_env_func Σ := Ok (assume_env_wellformed Σ);
      pcuic_args :=
        {| optimize_prop_discr := true;
-          extract_transforms := [dearg_transform (fun _ => None) true true true true true] |} |}.
+          extract_transforms :=
+            [dearg_transform (fun _ => None) true false true true true] |} |}.
 
 Definition extract_template_env_within_coq := extract_template_env extract_within_coq.
 

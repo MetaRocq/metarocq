@@ -125,3 +125,21 @@ Example prog2_masks_valid :
   | Err _ => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(** Extraction from within Rocq checks the masks: they must not be
+    trimmed, or constructors keeping their last argument fail the check. *)
+Definition head0 (l : list nat) :=
+  match l with cons x _ => x | nil => 0 end.
+MetaRocq Quote Recursively Definition qhead0 := head0.
+
+Example extract_within_coq_ok :
+  match qhead0.2 with
+  | Ast.tConst kn _ =>
+    match extract_template_env_within_coq qhead0.1
+      (KernameSet.singleton kn) (fun _ => false) with
+    | Ok _ => true
+    | Err _ => false
+    end
+  | _ => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.

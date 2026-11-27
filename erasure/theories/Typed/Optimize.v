@@ -777,7 +777,9 @@ Definition dearg_transform
            (overridden_masks : kername -> option bitmask)
            (** If true, trim ends of constant masks to avoid unnecessary eta expansion. *)
            (do_trim_const_masks : bool)
-           (** If true, trim ends of constructor masks to avoid unnecessary eta expansion. *)
+           (** If true, trim ends of constructor masks to avoid unnecessary eta expansion.
+               Incompatible with [check_valid_masks], which requires
+               constructor masks of the constructor's arity. *)
            (do_trim_ctor_masks : bool)
            (** Check if erased environment is closed *)
            (check_closed : bool)
