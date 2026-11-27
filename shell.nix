@@ -10,10 +10,13 @@
 #  - the VsRocq language server (`vsrocqtop`), built against the same Rocq.
 #    The nixpkgs one is marked broken for Rocq master and the toolbox looks
 #    it up under its former name (vscoq-language-server), so we build it
-#    from the main branch of vsrocq here.
+#    from the main branch of vsrocq here;
+#  - rocq-lsp (`coq-lsp` and its `pet` Petanque server, used e.g. by
+#    rocq-mcp), from its main branch, which follows Rocq master.
 #
 # VS Code can run `vsrocqtop` in this environment through .nix/vsrocqtop,
 # by setting "vsrocq.path": ".nix/vsrocqtop" in .vscode/settings.json.
+# More generally, `.nix/env-exec cmd args` runs any command in it.
 #
 # Only nix-shell uses this file: CI (nix-build) still goes through default.nix.
 args@{ ... }:
@@ -71,15 +74,63 @@ let
       doCheck = false;
       meta = o.meta // { broken = false; };
     });
+
+  # The opam package of rocq-lsp is still named coq-lsp.  The vendored Rocq
+  # is a git submodule, absent from the archive: the installed one is used.
+  rocq-lsp = ocamlPackages.buildDunePackage {
+    pname = "coq-lsp";
+    version = "main";
+    src = builtins.fetchTarball
+      "https://github.com/rocq-community/rocq-lsp/archive/main.tar.gz";
+    nativeBuildInputs = [
+      rocqPackages.rocq-core
+      ocamlPackages.menhir
+      pkgs.makeWrapper
+    ];
+    buildInputs = [ rocqPackages.rocq-core memprof-limits ]
+      ++ (with ocamlPackages; [
+        findlib
+        zarith
+        cmdliner
+        yojson
+        uri
+        dune-build-info
+        tyxml
+        menhirLib
+        logs
+        lwt
+        zipc
+        sexplib
+        ppx_deriving
+        ppx_deriving_yojson
+        ppx_import
+        ppx_sexp_conv
+        ppx_compare
+        ppx_hash
+        ppx_inline_test
+      ]);
+    doCheck = false;
+    # The binaries load their libraries and dependencies with findlib at run
+    # time, as in nixpkgs' coq-lsp.
+    postInstall = ''
+      for bin in $out/bin/*; do
+        wrapProgram "$bin" --prefix OCAMLPATH : "$OCAMLFIND_DESTDIR" \
+          --prefix OCAMLPATH : "$OCAMLPATH"
+      done
+    '';
+  };
 in
 shell.overrideAttrs (o: {
   nativeBuildInputs = (o.nativeBuildInputs or [ ]) ++ [
     vsrocq-language-server
+    rocq-lsp
   ];
   buildInputs = (o.buildInputs or [ ]) ++ [
     rocqPackages.stdlib
     rocqPackages.equations
     rocqPackages.ExtLib
   ];
-  passthru = (o.passthru or { }) // { inherit vsrocq-language-server; };
+  passthru = (o.passthru or { }) // {
+    inherit vsrocq-language-server rocq-lsp;
+  };
 })

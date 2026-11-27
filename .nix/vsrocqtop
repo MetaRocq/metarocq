@@ -1,48 +1,10 @@
 #!/usr/bin/env bash
 # Run vsrocqtop in the environment of the nix-shell of this repository
 # (shell.nix), e.g. from VS Code with "vsrocq.path": ".nix/vsrocqtop".
-#
-# Evaluating the nix-shell at each start of the language server would be slow
-# and, Rocq master and vsrocq main being fetched from their branches, could
-# trigger rebuilds.  So the environment is saved once in .nix/shell-env and
-# reused.  It is recomputed when it is missing, when shell.nix or
-# .nix/config.nix are newer than it, or when its store paths have been
-# garbage collected.
-# Run `.nix/vsrocqtop --update-env` (or delete .nix/shell-env) to recompute it,
-# e.g. to pick up a newer Rocq master.
-#
-# Nothing must be written to stdout but by vsrocqtop: it talks LSP on it.
-set -euo pipefail
-
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-env_file="$root/.nix/shell-env"
-
-update_env() {
-  echo "vsrocqtop wrapper: computing the nix-shell environment" >&2
-  local tmp="$env_file.tmp.$$"
-  (cd "$root" && nix-shell shell.nix --run 'export -p' </dev/null >"$tmp") \
-    1>&2 || { rm -f "$tmp"; exit 1; }
-  # Drop the variables describing the shell itself rather than the env.
-  local skip='PWD|OLDPWD|SHLVL|_|TERM|TERM_PROGRAM|COLORTERM|SHELL'
-  grep -Ev "^declare -x ($skip)=" "$tmp" >"$env_file"
-  rm -f "$tmp"
-}
-
+# See .nix/env-exec; `.nix/vsrocqtop --update-env` recomputes the saved
+# environment.
+here="$(dirname "${BASH_SOURCE[0]}")"
 if [[ "${1-}" == "--update-env" ]]; then
-  update_env
-  exit 0
+  exec "$here/env-exec" --update-env
 fi
-
-if [[ ! -f "$env_file" || "$root/shell.nix" -nt "$env_file" \
-      || "$root/.nix/config.nix" -nt "$env_file" ]]; then
-  update_env
-fi
-
-# shellcheck disable=SC1090
-source "$env_file"
-if ! command -v vsrocqtop >/dev/null || ! command -v rocq >/dev/null; then
-  update_env
-  source "$env_file"
-fi
-
-exec vsrocqtop "$@"
+exec "$here/env-exec" vsrocqtop "$@"

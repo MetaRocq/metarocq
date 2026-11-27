@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Run a command in the environment of the nix-shell of this repository
+# (shell.nix):
+#
+#   .nix/env-exec cmd args...    e.g. .nix/env-exec dune build
+#   .nix/env-exec --update-env   recompute the environment
+#
+# This is meant for tools started by an editor or an agent, which cannot
+# run inside a nix-shell themselves: the VsRocq language server (see
+# .nix/vsrocqtop) or a Rocq MCP server needing `rocq` and `pet`.
+#
+# Evaluating the nix-shell at each start would be slow and, Rocq master and
+# the other development versions being fetched from their branches, could
+# trigger rebuilds.  So the environment is saved once in .nix/shell-env and
+# reused.  It is recomputed when it is missing, when shell.nix or
+# .nix/config.nix are newer than it, or when its store paths have been
+# garbage collected.  Run `.nix/env-exec --update-env` (or delete
+# .nix/shell-env) to recompute it, e.g. to pick up a newer Rocq master.
+#
+# Nothing is written to stdout but by the command, which may talk a protocol
+# on it (LSP, MCP).
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="$root/.nix/shell-env"
+
+update_env() {
+  echo "nix env-exec: computing the nix-shell environment" >&2
+  local tmp="$env_file.tmp.$$"
+  # Leave out any opam switch of the caller: its OCaml libraries and
+  # binaries must not be mixed with the ones of the nix-shell.
+  local path
+  path="$(printf '%s' "$PATH" | tr ':' '\n' \
+    | grep -v -e '/\.opam/' -e '/_opam/' | paste -sd: -)"
+  (cd "$root" && env -u OPAM_SWITCH_PREFIX -u OPAMSWITCH \
+      -u OCAMLPATH -u OCAMLFIND_CONF -u CAML_LD_LIBRARY_PATH \
+      -u OCAML_TOPLEVEL_PATH -u OCAMLTOP_INCLUDE_PATH PATH="$path" \
+      nix-shell shell.nix --run 'export -p' </dev/null >"$tmp") \
+    1>&2 || { rm -f "$tmp"; exit 1; }
+  # Drop the variables describing the shell itself rather than the
+  # environment, and the temporary directory of the nix-shell, which is
+  # removed when it exits.
+  local skip='PWD|OLDPWD|SHLVL|_|TERM|TERM_PROGRAM|COLORTERM|SHELL'
+  skip="$skip|TMP|TEMP|TMPDIR|TEMPDIR|NIX_BUILD_TOP"
+  grep -Ev "^declare -x ($skip)=" "$tmp" >"$env_file"
+  rm -f "$tmp"
+}
+
+if [[ "${1-}" == "--update-env" ]]; then
+  update_env
+  exit 0
+fi
+if [[ $# -eq 0 ]]; then
+  echo "usage: $0 cmd args... | --update-env" >&2
+  exit 2
+fi
+
+if [[ ! -f "$env_file" || "$root/shell.nix" -nt "$env_file" \
+      || "$root/.nix/config.nix" -nt "$env_file" ]]; then
+  update_env
+fi
+
+# The variables of an opam switch of the caller that the environment of the
+# nix-shell does not set.
+unset OPAM_SWITCH_PREFIX OPAMSWITCH OCAMLFIND_CONF \
+  OCAML_TOPLEVEL_PATH OCAMLTOP_INCLUDE_PATH
+# shellcheck disable=SC1090
+source "$env_file"
+if ! command -v rocq >/dev/null; then
+  update_env
+  source "$env_file"
+fi
+
+exec "$@"

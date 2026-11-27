@@ -118,8 +118,10 @@ the sources:
 This builds the `rocq-dev` bundle of `.nix/config.nix` (Rocq `master`,
 Stdlib, Equations and ExtLib, as in the Nix CI) along with the VsRocq
 language server `vsrocqtop` of the `main` branch of
-[VsRocq](https://github.com/rocq-prover/vsrocq), and opens a shell where
-`rocq`, `dune` and `vsrocqtop` are available. The first run builds Rocq
+[VsRocq](https://github.com/rocq-prover/vsrocq) and
+[rocq-lsp](https://github.com/rocq-community/rocq-lsp) (`coq-lsp` and its
+`pet` server) of its `main` branch, and opens a shell where `rocq`, `dune`,
+`vsrocqtop` and `pet` are available. The first run builds Rocq
 `master` and the other dependencies, which takes a while (the `metacoq`
 Cachix cache filled by the Nix CI may provide some of them, see
 `cachix use metacoq`). Then build MetaRocq with `dune build` in that
@@ -128,6 +130,19 @@ shell, as described below.
 The Nix shell and an `opam` switch build different Rocq binaries, but both
 use the `_build` directory: switching from one to the other requires a full
 rebuild of MetaRocq.
+
+Tools started by an editor or an agent cannot run in a `nix-shell`
+themselves: `.nix/env-exec cmd args` runs a command in the environment of
+the Nix shell, e.g. `.nix/env-exec dune build`. It saves this environment
+in `.nix/shell-env` the first time, and reuses it to start quickly. It
+recomputes it when `shell.nix` or `.nix/config.nix` change. To pick up newer
+versions of Rocq `master`, VsRocq `main` or rocq-lsp `main`, run
+`.nix/env-exec --update-env`. The environment leaves out the variables of
+the `opam` switch active when it is computed or used, if any.
+
+For instance, a Rocq [MCP](https://modelcontextprotocol.io) server based on
+`pet` can be started with `.nix/env-exec` as its command, followed by the
+command starting the server.
 
 ### Compiling from sources
 
@@ -177,10 +192,7 @@ path of the VsRocq language server to the `.nix/vsrocqtop` wrapper, e.g. in
         "vsrocq.path": ".nix/vsrocqtop"
     }
 
-and build MetaRocq with `nix-shell --run 'dune build'`. The wrapper runs
-`vsrocqtop` in the environment of the Nix shell. It saves this environment
-in `.nix/shell-env` the first time, and reuses it to start quickly. It
-recomputes it when `shell.nix` or `.nix/config.nix` change. To pick up newer
-versions of Rocq `master` or VsRocq `main`, run
-`.nix/vsrocqtop --update-env`.
+and build MetaRocq with `nix-shell --run 'dune build'` (or
+`.nix/env-exec dune build`). The wrapper runs `vsrocqtop` in the environment
+of the Nix shell, through `.nix/env-exec`.
 
