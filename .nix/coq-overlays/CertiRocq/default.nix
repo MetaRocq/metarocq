@@ -9,17 +9,33 @@
   metarocq-safechecker,
   ExtLib,
   version ? null,
-  # Whether the check phase builds and tests the bootstrapped compiler and checker
-  # (only in the bootstrap bundle of .nix/config.nix)
+  # Whether to build and test the bootstrapped compiler and checker instead of the
+  # packages (only in the bootstrap bundle of .nix/config.nix)
   bootstrap ? false,
 }:
 
 with lib;
 let
   # The theories, the optimized plugin and its runtime, and the vanilla plugin
-  packages = [ "rocq-certirocq" "rocq-certirocq-vanilla" ];
-  # The bootstrapped compiler and checker, which are only built by the tests
-  allPackages = packages ++ [ "rocq-certirocqc" "rocq-certirocqchk" ];
+  packages = concatStringsSep "," [ "rocq-certirocq" "rocq-certirocq-vanilla" ];
+  # With the bootstrapped compiler and checker, which are only built by the tests
+  allPackages = concatStringsSep "," [
+    "rocq-certirocq" "rocq-certirocq-vanilla" "rocq-certirocqc" "rocq-certirocqchk"
+  ];
+  # A dune command, printed in the log, with the progress of the builds, but each
+  # command of the tests and of the bootstrap (to see what a long one is running)
+  dune = display: args: ''
+    ( set -x; dune ${args} --display=${display} ''${enableParallelBuilding:+-j $NIX_BUILD_CORES} )
+  '';
+  # A dune command printing each Rocq file and C compilation as it finishes, with the
+  # output and errors of the commands, but not the OCaml commands
+  dune-rocq = args: ''
+    ( set -x -o pipefail
+      dune ${args} --display=short ''${enableParallelBuilding:+-j $NIX_BUILD_CORES} 2>&1 \
+        | { grep --line-buffered -vE \
+              '^ +(ocamldep|ocamlc|ocamlopt|ocamlmklib|ocamlfind|ocaml-index|ocamllex|menhir|ppx|odoc) ' \
+            || true; } )
+  '';
 in
 (mkRocqDerivation {
   pname = "CertiRocq";
@@ -54,34 +70,36 @@ in
     license = licenses.mit;
   };
 }).overrideAttrs (o: {
+  # With the bootstrap, only the theories of the compiler, without its proofs (the
+  # default bundle builds them), the plugins and the runtime
   buildPhase = ''
     runHook preBuild
-    dune build -p ${concatStringsSep "," packages} ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
+  '' + (if bootstrap then dune-rocq "build -p ${allPackages} @@compiler"
+        else dune-rocq "build -p ${packages}") + ''
     runHook postBuild
   '';
   doCheck = true;
   # For the Wasm tests
   nativeCheckInputs = [ pkgs.nodejs_22 pkgs.python3 ];
+  # The tests under tests/, or with the bootstrap those of the bootstrapped compiler
+  # and checker (the default bundle runs the others), which dune runs with the plugins
+  # of the build directory
   checkPhase = ''
     runHook preCheck
-  '' + optionalString bootstrap ''
-    echo "running bootstrap"
-    dune build -p ${concatStringsSep "," allPackages} @install @runtest ''${enableParallelBuilding:+-j $NIX_BUILD_CORES}
-  '' + ''
-    echo "running tests"
-    # Some test programs recurse deeper than the default stack allows
-    ulimit -Ss "$(ulimit -Hs)"
-    patchShebangs tests
-    installed=$PWD/_build/install/default/lib
-    ROCQPATH=$installed/coq/user-contrib''${ROCQPATH:+:$ROCQPATH} \
-      OCAMLPATH=$installed''${OCAMLPATH:+:$OCAMLPATH} make -C tests
+  '' + (if bootstrap then dune "short" "build -p ${allPackages} @bootstrap/runtest"
+        else dune "short" "build -p ${packages} @runtest") + ''
     runHook postCheck
   '';
+  # The bootstrap bundle only tests: there is nothing to install
   installPhase = ''
     runHook preInstall
-    dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${concatStringsSep " " packages}
+  '' + (if bootstrap then ''
+    mkdir -p $out
+  '' else ''
+    dune install --prefix=$out --libdir $OCAMLFIND_DESTDIR ${replaceStrings [","] [" "] packages}
     mkdir $out/lib/coq/
     mv $OCAMLFIND_DESTDIR/coq $out/lib/coq/${rocq-core.rocq-version}
+  '') + ''
     runHook postInstall
   '';
 })
