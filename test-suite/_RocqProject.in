@@ -53,6 +53,7 @@ tmFreshName.v
 tmInferInstance.v
 tmQuoteModule.v
 tmVariable.v
+typed_dearging.v
 unfold.v
 univ.v
 vs.v
