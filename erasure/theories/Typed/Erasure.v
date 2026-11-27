@@ -578,7 +578,7 @@ Hint Resolve abstract_env_wf : erase.
 Definition isTT Γ T :=
   forall Σ0 (wfΣ : abstract_env_ext_rel X Σ0), ∥isType Σ0 Γ T∥.
 
-Equations(noeqns) flag_of_type (Γ : context) (T : term)
+Equations flag_of_type (Γ : context) (T : term)
          (isT : forall Σ0 (wfΣ : abstract_env_ext_rel X Σ0), ∥isType Σ0 Γ T∥)
   : type_flag rΣ Γ T
   by wf ((Γ;T; (tywt (isT rΣ wfrΣ))) : (∑ Γ t, welltyped rΣ Γ t)) erase_rel :=
@@ -762,7 +762,7 @@ Inductive tRel_kind :=
 Import VectorDef.VectorNotations.
 Open Scope list_scope.
 
-Equations(noeqns) erase_type_aux
+Equations(noind) erase_type_aux
           (Γ : context)
           (erΓ : Vector.t tRel_kind #|Γ|)
           (t : term)
@@ -1268,7 +1268,7 @@ Equations view_prodc (t : term) : view_prod t :=
 
 (** Constructors are treated slightly differently to types as we always
     generate type variables for parameters *)
-Equations? (noeqns) erase_ind_ctor
+Equations? erase_ind_ctor
           (Γ : context)
           (erΓ : Vector.t tRel_kind #|Γ|)
           (t : term)
