@@ -486,7 +486,10 @@ struct
       | Some inst -> Univ.Level.Set.union univs (snd (UVars.Instance.levels inst))
     in
     Array.fold_left (fun univs oib ->
+      (* The arity context does not contain the sort of the inductive, whose levels
+         may occur nowhere else *)
       let univs = Univ.Level.Set.union univs (universes_of_ctx oib.mind_arity_ctxt) in
+      let univs = Univ.Level.Set.union univs (Vars.universes_of_constr oib.mind_user_arity) in
       Array.fold_left (fun univs cty ->
         Univ.Level.Set.union univs (Vars.universes_of_constr cty))
         univs oib.mind_user_lc)

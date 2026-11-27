@@ -47,3 +47,8 @@ MetaRocq RocqCheck isequiv_adjointify.
 
 MetaRocq SafeCheck @IsEquiv.
 MetaRocq RocqCheck IsEquiv.
+
+(* A universe level that occurs only in the sort of an inductive must be quoted *)
+Universe quote_sort_u.
+Inductive quote_sort_K : Type@{quote_sort_u} := quote_sort_ck.
+MetaRocq SafeCheck quote_sort_K.
