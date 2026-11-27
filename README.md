@@ -45,6 +45,8 @@ manipulating Rocq terms and developing certified plugins
 ## Installation instructions
 
 See [INSTALL.md](https://github.com/MetaRocq/metarocq/blob/-/INSTALL.md)
+to install MetaRocq with `opam`, or to set up a development environment
+with `opam` or Nix.
 
 
 

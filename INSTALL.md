@@ -59,7 +59,8 @@ To compile the library, you need:
 - [`Equations 1.3`](http://mattam82.github.io/Rocq-Equations/)
 
 The recommended way to build a development environment for MetaRocq is
-to have a dedicated `opam` switch (see below).
+to have a dedicated `opam` switch (see below). Alternatively, a Nix shell
+provides all of them (see [Using Nix](#using-nix)).
 
 ### Getting the sources
 
@@ -106,6 +107,28 @@ Or use `opam switch link foo` to link an existing opam switch `foo` with
 the sources directory.
 
 
+### Using Nix
+
+Instead of an `opam` switch, you can use the Nix shell of the repository
+(this requires [Nix](https://nixos.org/download/)). In the root directory of
+the sources:
+
+    # nix-shell
+
+This builds the `rocq-dev` bundle of `.nix/config.nix` (Rocq `master`,
+Stdlib, Equations and ExtLib, as in the Nix CI) along with the VsRocq
+language server `vsrocqtop` of the `main` branch of
+[VsRocq](https://github.com/rocq-prover/vsrocq), and opens a shell where
+`rocq`, `dune` and `vsrocqtop` are available. The first run builds Rocq
+`master` and the other dependencies, which takes a while (the `metacoq`
+Cachix cache filled by the Nix CI may provide some of them, see
+`cachix use metacoq`). Then build MetaRocq with `dune build` in that
+shell, as described below.
+
+The Nix shell and an `opam` switch build different Rocq binaries, but both
+use the `_build` directory: switching from one to the other requires a full
+rebuild of MetaRocq.
+
 ### Compiling from sources
 
 MetaRocq is built with [`dune`](https://dune.build) (see `dune-project`):
@@ -145,4 +168,19 @@ There is a workspace file directly available with the project.
 To use it:
 1. Run `opam switch link name_switch`
 2. Open vscode with `code .vscode/metarocq.code-workspace`
+
+To use the Nix shell (see [Using Nix](#using-nix)) from VS Code, set the
+path of the VsRocq language server to the `.nix/vsrocqtop` wrapper, e.g. in
+`.vscode/settings.json`:
+
+    {
+        "vsrocq.path": ".nix/vsrocqtop"
+    }
+
+and build MetaRocq with `nix-shell --run 'dune build'`. The wrapper runs
+`vsrocqtop` in the environment of the Nix shell. It saves this environment
+in `.nix/shell-env` the first time, and reuses it to start quickly. It
+recomputes it when `shell.nix` or `.nix/config.nix` change. To pick up newer
+versions of Rocq `master` or VsRocq `main`, run
+`.nix/vsrocqtop --update-env`.
 
