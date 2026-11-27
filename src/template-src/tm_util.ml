@@ -296,14 +296,19 @@ module RetypeMindEntry =
     let evm, mind = infer_mentry_univs env evm mind in
     let evm = Evd.minimize_universes evm in
     let mind = nf_mentry_univs evm mind in
+    (* The unification levels of [evm] are replaced by fresh global levels *)
+    let globalize ctx mind =
+      let ctx, subst = UnivGen.globalize_context_set ctx in
+      ctx, subst_mentry_univs (Sorts.QVar.Map.empty, subst) mind
+    in
     let ctx, mind =
       match mind.mind_entry_universes with
       | Entries.Monomorphic_ind_entry ->
-        let ctx = Evd.universe_context_set evm in
-        ctx, { mind with mind_entry_universes = Entries.Monomorphic_ind_entry }
+        globalize (Evd.universe_context_set evm)
+          { mind with mind_entry_universes = Entries.Monomorphic_ind_entry }
       | Entries.Template_ind_entry ctx ->
-        let gctx = Evd.universe_context_set evm in
-        gctx, { mind with mind_entry_universes = Entries.Template_ind_entry ctx }
+        globalize (Evd.universe_context_set evm)
+          { mind with mind_entry_universes = Entries.Template_ind_entry ctx }
       | Entries.Polymorphic_ind_entry _ ->
         let auctx, mind = abstract_mentry_univs (Evd.to_universe_context evm) mind in
         Univ.ContextSet.empty, { mind with mind_entry_universes = Entries.Polymorphic_ind_entry auctx }
@@ -386,3 +391,15 @@ type ('term, 'nat, 'ident, 'name, 'quoted_sort, 'cast_kind, 'kername, 'inductive
   | ARocq_tString of 'pstring
   | ARocq_tArray of 'universe * 'term array * 'term * 'term
 
+
+(* Quoted levels are their printed names, which must keep their meaning outside of
+   [evm]: once the quotation is declared, or used to build new level names (e.g. by
+   prefixing them). The unification levels of a term to quote are replaced by global
+   levels, which [evm] defines them to (see [Evd.globalize_levels]). *)
+let globalize_unif_levels evm t =
+  let t = EConstr.to_constr ~abort_on_undefined_evars:false evm (EConstr.of_constr t) in
+  let ls = Univ.Level.Set.filter Univ.Level.is_unif (Vars.universes_of_constr t) in
+  if Univ.Level.Set.is_empty ls then evm, t
+  else
+    let evm, subst = Evd.globalize_levels evm ls in
+    evm, Vars.subst_univs_level_constr (Sorts.QVar.Map.empty, subst) t

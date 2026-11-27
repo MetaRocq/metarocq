@@ -13,14 +13,14 @@
                 Universe.t_set :=
                   {|
                     LevelExprSet.this :=
-                      [(Level.level "Corelib.Init.Datatypes:190", 0)];
+                      [(Level.level "Corelib.Init.Datatypes:80", 0)];
                     LevelExprSet.is_ok :=
                       LevelExprSet.Raw.singleton_ok
-                        (Level.level "Corelib.Init.Datatypes:190", 0)
+                        (Level.level "Corelib.Init.Datatypes:80", 0)
                   |};
                 Universe.t_ne :=
                   Universes.Universe.NES.singleton_obligation_1
-                    (Level.level "Corelib.Init.Datatypes:190", 0)
+                    (Level.level "Corelib.Init.Datatypes:80", 0)
               |})
      |}];
   mind_entry_inds :=

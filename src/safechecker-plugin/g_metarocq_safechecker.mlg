@@ -17,7 +17,8 @@ let pr_string l =
 
 let check ~opaque_access env evm poly (c, ustate) =
   debug (fun () -> str"Quoting");
-  let prog = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:true ~opaque_access ~with_universes:true env evm) (EConstr.to_constr evm c) in
+  let _, c = globalize_unif_levels (Evd.from_ustate ustate) (EConstr.Unsafe.to_constr c) in
+  let prog = time (str"Quoting") (Ast_quoter.quote_term_rec ~bypass:true ~opaque_access ~with_universes:true env evm) c in
   let env, uctx =
     if poly then
       let uctx = Evd.to_universe_context evm in

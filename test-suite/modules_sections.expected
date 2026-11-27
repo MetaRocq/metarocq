@@ -29,7 +29,7 @@ print_term (empty_ext empty_global_env) [] true
 {| my_projT1 := Type; my_projT2 := S.b |}
 (tConst
    (MPfile ["Common"; "TemplateMonad"; "Template"; "MetaRocq"], "my_projT2")
-   [Universe.of_level (Level.level "MetaRocq.TestSuite.modules_sections:300")])
+   [Universe.of_level (Level.level "MetaRocq.TestSuite.modules_sections:4")])
 0
 
 t' : nat

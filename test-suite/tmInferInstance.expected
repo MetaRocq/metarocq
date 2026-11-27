@@ -5,20 +5,20 @@ tmInferInstance@{u1 u2}
        forall A : Type@{u1}, TemplateMonad@{u1 u2} (option_instance@{u1} A)
 (* {} |
      u2 < u1
-     MSetInterface.WOps.t.u0 <= u1
-     Term.term.u0 <= u1
      predicate.u0 <= u1
+     Term.term.u0 <= u1
      binder_annot.u0 <= u1
-     Contexts.u0 <= u1
+     MSetInterface.WOps.t.u0 <= u1
      Environment.program.u0 <= u1
      Sort.t_.u0 <= u1
+     Contexts.u0 <= u1
 Normalized constraints:
  {} |
    u2 < u1
-   MSetInterface.WOps.t.u0 <= u1
-   Term.term.u0 <= u1
    predicate.u0 <= u1
+   Term.term.u0 <= u1
    binder_annot.u0 <= u1
-   Contexts.u0 <= u1
+   MSetInterface.WOps.t.u0 <= u1
    Environment.program.u0 <= u1
-   Sort.t_.u0 <= u1 *)
+   Sort.t_.u0 <= u1
+   Contexts.u0 <= u1 *)
