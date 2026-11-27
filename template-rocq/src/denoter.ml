@@ -64,6 +64,13 @@ struct
     let ctxt = CArray.map2_i (fun i na t -> LocalAssum (na, Vars.lift i t)) lna typarray in
     Array.fold_left (fun e assum -> Environ.push_rel assum e) env ctxt
 
+  (* Template polymorphic inductive types are quoted as universe polymorphic
+     ones, and their occurrences with the universe instance inferred from their
+     arguments: in Rocq, their instance is always empty. *)
+  let unquote_ind_instance env evm ind u =
+    if Environ.template_polymorphic_ind ind env then evm, UVars.Instance.empty
+    else D.unquote_universe_instance evm u
+
   let denote_term (env : Environ.env) (evm : Evd.evar_map) (trm: D.t) : Evd.evar_map * Constr.t =
     let open Context.Rel.Declaration in
     let rec aux env evm (trm: D.t) : _ * Constr.t =
@@ -102,17 +109,17 @@ struct
         evm, Constr.mkConstU (Constant.make1 s, u)
       | ACoq_tConstruct (i,idx,u) ->
         let ind = D.unquote_inductive i in
-        let evm, u = D.unquote_universe_instance evm u in
+        let evm, u = unquote_ind_instance env evm ind u in
         evm, Constr.mkConstructU ((ind, D.unquote_int idx + 1), u)
       | ACoq_tInd (i, u) ->
         let i = D.unquote_inductive i in
-        let evm, u = D.unquote_universe_instance evm u in
+        let evm, u = unquote_ind_instance env evm i u in
         evm, Constr.mkIndU (i, u)
       | ACoq_tCase (ci, p, c, brs) ->
         let ind = D.unquote_inductive ci.aci_ind in
         let relevance = D.unquote_relevance ci.aci_relevance in
         let ci = Inductiveops.make_case_info (Global.env ()) ind Constr.RegularStyle in
-        let evm, puinst = D.unquote_universe_instance evm p.auinst in
+        let evm, puinst = unquote_ind_instance env evm ind p.auinst in
         let evm, pars = map_evm (aux env) evm p.apars in
         let pars = Array.of_list pars in
         let napctx = CArray.map_of_list D.unquote_aname (List.rev p.apcontext) in
