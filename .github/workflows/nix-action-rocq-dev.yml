@@ -40,6 +40,7 @@ jobs:
     - name: CertiRocq jobs approved
       run: echo "Building CertiRocq"
   CertiRocq:
+    if: ${{ !failure() && !cancelled() }}
     needs:
     - rocq-core
     - wasmcert
@@ -1355,6 +1356,7 @@ jobs:
       run: NIXPKGS_ALLOW_UNFREE=1 nix-build --no-out-link --argstr bundle 
         "rocq-dev" --argstr job "stdlib"
   wasmcert:
+    if: ${{ !failure() && !cancelled() }}
     needs:
     - coq
     - ExtLib

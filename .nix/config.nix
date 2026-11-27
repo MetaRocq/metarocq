@@ -82,8 +82,10 @@
     ## reviewers approve it from the workflow run page, skipped when the
     ## erasure pipeline changes) from the previous version of the workflow,
     ## add CertiRocq-approval to the needs of compcert, which wasmcert and
-    ## CertiRocq need, and give compcert `if: ${{ !failure() && !cancelled() }}`
-    ## so that it runs when CertiRocq-approval is skipped.
+    ## CertiRocq need, and give compcert, wasmcert and CertiRocq
+    ## `if: ${{ !failure() && !cancelled() }}` so that they run when
+    ## CertiRocq-approval is skipped (the implicit `success()` of a job fails
+    ## when any job it transitively needs is skipped).
   };
 
   ## Cachix caches to use in CI
