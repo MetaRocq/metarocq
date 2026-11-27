@@ -52,6 +52,8 @@ tmFix.v
 tmFreshName.v
 tmInferInstance.v
 tmQuoteModule.v
+template_poly.v
+template_poly_checker.v
 tmVariable.v
 typed_dearging.v
 unfold.v

@@ -236,6 +236,9 @@ struct
 
   let quote_univ_level u = quote_level u
   (* todo : can be deduced from quote_level, hence shoud be in the Reify module *)
+  let quote_universe_instance us =
+    to_coq_listl tuniverse (List.map quote_universe us)
+
   let quote_univ_instance u =
     let qarr, uarr = UVars.Instance.to_array u in
     let () = if not (CArray.is_empty qarr) then

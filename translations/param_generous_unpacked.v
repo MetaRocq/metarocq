@@ -86,17 +86,17 @@ with tsl_rec1 (E : tsl_table) (t : term) {struct t} : term :=
                   tCast t1 c (mkApps A1 [tCast t0 c A0]) (* apply_subst ? *)
 
   | tConst s univs =>
-    match lookup_tsl_table E (ConstRef s) with
+    match lookup_tsl_table_inst E (ConstRef s) univs with
     | Some t => t
     | None => default_term
     end
   | tInd i univs =>
-    match lookup_tsl_table E (IndRef i) with
+    match lookup_tsl_table_inst E (IndRef i) univs with
     | Some t => t
     | None => default_term
     end
   | tConstruct i n univs =>
-    match lookup_tsl_table E (ConstructRef i n) with
+    match lookup_tsl_table_inst E (ConstructRef i n) univs with
     | Some t => t
     | None => default_term
     end

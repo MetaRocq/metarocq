@@ -67,54 +67,29 @@ let unquote_map_option f trm =
 
 let unquote_option = unquote_map_option (fun x -> x)
 
-let rec unquote_pos trm : int =
-  let (h,args) = app_full trm [] in
-  match args with
-    [x] ->
-    if constr_equall h cposI then
-      (2 * unquote_pos x + 1)
-    else if constr_equall h cposO then
-      (2 * unquote_pos x)
-    else not_supported_verb trm "unquote_pos"
-  | [] ->
-    if constr_equall h cposzero then 1
-    else not_supported_verb trm "unquote_pos"
-  | _ -> bad_term_verb trm "unquote_pos"
-
-let unquote_Z trm : int =
-  let (h,args) = app_full trm [] in
-  match args with
-    [x] ->
-     if constr_equall h cZpos then unquote_pos x
-     else if constr_equall h cZneg then - unquote_pos x
-     else not_supported_verb trm "unquote_pos"
-  | [] ->
-    if constr_equall h cZ0 then 0
-    else not_supported_verb trm "unquote_pos"
-  | _ -> bad_term_verb trm "unquote_pos"
-
 let unquote_constraint_type trm (* of type constraint_type *) : constraint_type =
   let (h,args) = app_full trm [] in
   match args with
-    [x] ->
-    if constr_equall h tunivLe then
-      let n = unquote_Z x in
-      if n = 0 then Univ.Le
-      else Univ.Lt
-    else not_supported_verb trm "unquote_constraint_type"
   | [] ->
-    if constr_equall h tunivEq then Univ.Eq
+    if constr_equall h tunivLe then Univ.Le
+    else if constr_equall h tunivEq then Univ.Eq
     else not_supported_verb trm "unquote_constraint_type"
   | _ -> bad_term_verb trm "unquote_constraint_type"
 
-
+(* MetaRocq constraints relate universes, Rocq ones relate levels: [l1 < l2]
+   is quoted as [l1 + 1 <= l2] (see [Constr_quoter.quote_univ_constraint]). *)
 let unquote_univ_constraint evm c (* of type univ_constraint *) : _ * univ_constraint =
-  let c, l2 = unquote_pair c in
-  let l1, c = unquote_pair c in
-  let evm, l1 = unquote_level evm l1 in
-  let evm, l2 = unquote_level evm l2 in
+  let c, u2 = unquote_pair c in
+  let u1, c = unquote_pair c in
+  let evm, v1 = unquote_universe evm u1 in
+  let evm, v2 = unquote_universe evm u2 in
   let c = unquote_constraint_type c in
-  evm, (l1, c, l2)
+  let level u v = match Universe.level v with
+    | Some l -> l
+    | None -> not_supported_verb u "unquote_univ_constraint" in
+  match c, Universe.repr v1 with
+  | Univ.Le, [(l1, 1)] -> evm, (l1, Univ.Lt, level u2 v2)
+  | _ -> evm, (level u1 v1, c, level u2 v2)
 
 
 (* set given by MSets.MSetWeakList.Make *)

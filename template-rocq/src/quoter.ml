@@ -110,6 +110,9 @@ sig
   val quote_univ_constraint : Univ.univ_constraint -> quoted_univ_constraint
   val quote_univ_level : Univ.Level.t -> quoted_univ_level
   val quote_univ_instance : UVars.Instance.t -> quoted_univ_instance
+  (* An instance of algebraic universes, e.g. inferred for a template
+     polymorphic inductive type. *)
+  val quote_universe_instance : Univ.Universe.t list -> quoted_univ_instance
   val quote_univ_constraints : Univ.Constraints.t -> quoted_univ_constraints
   val quote_univ_context : UVars.UContext.t -> quoted_univ_context
   val quote_univ_contextset : Univ.ContextSet.t -> quoted_univ_contextset
@@ -200,10 +203,76 @@ struct
     | Monomorphic_entry -> Q.mkMonomorphic_entry (Q.quote_univ_contextset Univ.ContextSet.empty)
     | Polymorphic_entry ctx -> Q.mkPolymorphic_entry (Q.quote_univ_context ctx)
 
+  let get_template_instance mind = match mind.Declarations.mind_template with
+  | None -> None
+  | Some templ -> Some templ.template_defaults
+
+  (* Template polymorphic inductive types are quoted as universe polymorphic
+     inductive types over their template universes. Rocq stores their
+     declaration abstracted over these universes already. MetaRocq has no sort
+     qualities: the qualities of the template universes are left out (template
+     parameters in [Prop] are then seen as in [Set]). *)
+  let template_univ_context templ =
+    let names = UVars.AbstractContext.names templ.template_context in
+    let cstrs = UVars.UContext.constraints
+        (UVars.AbstractContext.repr templ.template_context) in
+    UVars.AbstractContext.make { names with UVars.quals = [||] } cstrs
+
+  let template_nunivs templ =
+    snd (UVars.AbstractContext.size templ.template_context)
+
+  let template_default_instance templ =
+    List.map Univ.Universe.make
+      (Array.to_list (snd (UVars.Instance.to_array templ.template_defaults)))
+
+  (* The parameters of a template polymorphic inductive type, abstracted over
+     its template universes: Rocq stores them at the default universes, and
+     the sorts of the template parameters, abstracted, separately (see
+     [Inductive.instantiate_template_universes]). *)
+  let template_params_ctxt templ mib =
+    let open Context.Rel.Declaration in
+    let rec aux accu ctx params =
+      match ctx, params with
+      | [], _ -> accu
+      | (LocalDef _ as d) :: ctx, params -> aux (d :: accu) ctx params
+      | LocalAssum (na, t) :: ctx, Some s :: params ->
+        let decls, _ = Term.destArity t in
+        aux (LocalAssum (na, Term.mkArity (decls, s)) :: accu) ctx params
+      | d :: ctx, _ :: params -> aux (d :: accu) ctx params
+      | d :: ctx, [] -> aux (d :: accu) ctx []
+    in
+    aux [] (List.rev mib.Declarations.mind_params_ctxt)
+      templ.template_param_arguments
+
+  (* The universe instance of an occurrence of the template polymorphic
+     inductive type [mib] (or one of its constructors) applied to [args]: as
+     Rocq does, the universes of the sorts of the arguments for its template
+     parameters, inferred here by retyping, and its default universes for
+     the missing ones. We fall back to the default universes if retyping
+     fails. *)
+  let template_instance env sigma templ mib args =
+    let univ_of_sort = function
+      | Sorts.Prop | Sorts.SProp | Sorts.Set ->
+        Inductive.TemplateUniv Univ.Universe.type0
+      | Sorts.Type u | Sorts.QSort (_, u) -> Inductive.TemplateUniv u
+    in
+    let param_univ arg ~default:_ =
+      let argt = Retyping.get_type_of ~lax:true env sigma (EConstr.of_constr arg) in
+      let _, s = Reductionops.dest_arity env sigma argt in
+      univ_of_sort (EConstr.ESorts.kind sigma s)
+    in
+    try
+      let _, _, (_, usubst) =
+        Inductive.instantiate_template_universes mib (List.map param_univ args) in
+      List.init (template_nunivs templ) (fun i -> Int.Map.find i usubst)
+    with e when CErrors.noncritical e -> template_default_instance templ
+
   let quote_universes_decl decl templ =
-    match decl with
-    | Monomorphic -> Q.mkMonomorphic_ctx ()
-    | Polymorphic ctx -> Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context ctx)
+    match decl, templ with
+    | _, Some templ ->
+      Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context (template_univ_context templ))
+    | Monomorphic, None -> Q.mkMonomorphic_ctx ()
+    | Polymorphic ctx, None -> Q.mkPolymorphic_ctx (Q.quote_abstract_univ_context ctx)
 
   let quote_ugraph ?kept (g : UGraph.t) =
     let uctx = ugraph_contextset ?kept g in
@@ -250,6 +319,25 @@ struct
   let quote_term_remember
       (add_constant : KerName.t -> 'a -> 'a)
       (add_inductive : Names.inductive -> Declarations.mutual_inductive_body -> 'a -> 'a) =
+    (* The universe instance of an inductive type or constructor of [mib]
+       applied to [args]. *)
+    let quote_ind_instance env sigma mib pu args =
+      match mib.Declarations.mind_template with
+      | None -> Q.quote_univ_instance pu
+      | Some templ ->
+        Q.quote_universe_instance (template_instance (snd env) sigma templ mib args)
+    in
+    let quote_ind acc env sigma mind pu args =
+      let mib = Environ.lookup_mind (fst mind) (snd env) in
+      (Q.mkInd (quote_inductive' mind) (quote_ind_instance env sigma mib pu args),
+       add_inductive mind mib acc)
+    in
+    let quote_construct acc env sigma (mind, c) pu args =
+      let mib = Environ.lookup_mind (fst mind) (snd env) in
+      (Q.mkConstruct (quote_inductive' mind, Q.quote_int (c - 1))
+         (quote_ind_instance env sigma mib pu args),
+       add_inductive mind mib acc)
+    in
     let rec quote_term (acc : 'a) env sigma trm =
       let aux acc env trm =
       match Constr.kind trm with
@@ -284,7 +372,13 @@ struct
       	(Q.mkLetIn (Q.quote_aname n) e' t' b', acc)
 
       | Constr.App (f,xs) ->
-        let (f',acc) = quote_term acc env sigma f in
+        let (f',acc) =
+          match Constr.kind f with
+          | Constr.Ind (mind, pu) -> quote_ind acc env sigma mind pu (Array.to_list xs)
+          | Constr.Construct (c, pu) ->
+            quote_construct acc env sigma c pu (Array.to_list xs)
+          | _ -> quote_term acc env sigma f
+        in
         let (xs',acc) = quote_terms quote_term acc env sigma xs in
         (Q.mkApp f' xs', acc)
 
@@ -292,15 +386,9 @@ struct
         let kn = Constant.canonical c in
         (Q.mkConst (Q.quote_kn kn) (Q.quote_univ_instance pu), add_constant kn acc)
 
-      | Constr.Construct ((mind,c),pu) ->
-        let mib = Environ.lookup_mind (fst mind) (snd env) in
-         (Q.mkConstruct (quote_inductive' mind, Q.quote_int (c - 1)) (Q.quote_univ_instance pu),
-          add_inductive mind mib acc)
+      | Constr.Construct (c,pu) -> quote_construct acc env sigma c pu []
 
-      | Constr.Ind (mind,pu) ->
-         (Q.mkInd (quote_inductive' mind) (Q.quote_univ_instance pu),
-          let mib = Environ.lookup_mind (fst mind) (snd env) in
-          add_inductive mind mib acc)
+      | Constr.Ind (mind,pu) -> quote_ind acc env sigma mind pu []
 
       | Constr.Case (ci,u,pars, ((predctx, pred), relevance), iv, discr, brs) ->
         let ind = Q.quote_inductive (Q.quote_kn (Names.MutInd.canonical (fst ci.Constr.ci_ind)),
@@ -308,7 +396,9 @@ struct
         let npar = Q.quote_int ci.Constr.ci_npar in
         let q_relevance = Q.quote_relevance relevance in
         let acc, q_pars = CArray.fold_left_map (fun acc par -> let (qt, acc) = quote_term acc env sigma par in acc, qt) acc pars in
-        let qu = Q.quote_univ_instance u in
+        let qu =
+          let mib = Environ.lookup_mind (fst ci.Constr.ci_ind) (snd env) in
+          quote_ind_instance env sigma mib u (Array.to_list pars) in
         let pctx = CaseCompat.case_predicate_context (snd env) ci u pars predctx in
         let qpctx = quote_name_annots predctx in
         let (qpred,acc) = quote_term acc (push_rel_context pctx env) sigma pred in
@@ -365,9 +455,29 @@ struct
     and quote_minductive_type (acc : 'a) env sigma (t : MutInd.t) mib =
       let uctx = get_abstract_inductive_universes mib.Declarations.mind_universes in
       let inst = UVars.UContext.instance uctx in
+      (* The parameters, the type of an inductive of the block, abstracted over
+         the template universes if template polymorphic, and its sort. *)
+      let params_ctxt = match mib.Declarations.mind_template with
+        | None -> mib.Declarations.mind_params_ctxt
+        | Some templ -> template_params_ctxt templ mib
+      in
+      let nparams_ctxt = List.length params_ctxt in
+      (* Replace the parameters of a context ending with them. *)
+      let with_params ctx = CList.firstn (List.length ctx - nparams_ctxt) ctx @ params_ctxt in
+      let type_of_inductive oib =
+        match mib.Declarations.mind_template with
+        | None -> Inductive.type_of_inductive ((mib,oib),inst)
+        | Some templ ->
+          Term.mkArity (with_params oib.mind_arity_ctxt, templ.template_concl)
+      in
+      let sort_of_inductive oib =
+        match mib.Declarations.mind_template with
+        | None -> inductive_sort oib
+        | Some templ -> templ.template_concl
+      in
       let indtys =
         (CArray.map_to_list (fun oib ->
-           let ty = Inductive.type_of_inductive ((mib,oib),inst) in
+           let ty = type_of_inductive oib in
            (Context.Rel.Declaration.LocalAssum (Context.annotR (Names.Name oib.mind_typename), ty))) mib.mind_packets)
       in
       let envind = push_rel_context (List.rev indtys) env in
@@ -381,21 +491,21 @@ struct
               (Array.to_list oib.mind_nf_lc)
               (Array.to_list oib.mind_consnrealargs)
           in
-          let indty = Inductive.type_of_inductive ((mib,oib),inst) in
+          let indty = type_of_inductive oib in
           let indices, pars =
-            let ctx = oib.mind_arity_ctxt in
-            CList.chop (List.length ctx - List.length mib.mind_params_ctxt) ctx
+            let ctx = with_params oib.mind_arity_ctxt in
+            CList.chop (List.length ctx - nparams_ctxt) ctx
           in
           let indices, acc = quote_rel_context quote_term acc (push_rel_context pars env) sigma indices in
           let indty, acc = quote_term acc env sigma indty in
-          let indsort = Q.quote_sort (inductive_sort oib) in
+          let indsort = Q.quote_sort (sort_of_inductive oib) in
           let (reified_ctors,acc) =
             List.fold_left (fun (ls,acc) (nm,(ctx, ty),ar) ->
-              let ty = Term.it_mkProd_or_LetIn ty ctx in
+              let ty = Term.it_mkProd_or_LetIn ty (with_params ctx) in
               let ty = Inductive.abstract_constructor_type_relatively_to_inductive_types_context ntyps t ty in
               let ctx, concl = Term.decompose_prod_decls ty in
               let argctx, parsctx =
-                CList.chop (List.length ctx - List.length mib.mind_params_ctxt) ctx
+                CList.chop (List.length ctx - nparams_ctxt) ctx
               in
               let envcstr = push_rel_context parsctx envind in
               let qargctx, acc = quote_rel_context quote_term acc envcstr sigma argctx in
@@ -412,7 +522,7 @@ struct
           let projs, acc =
             match mib.Declarations.mind_record with
             | PrimRecord [|id, csts, relevance, ps|] ->  (* TODO handle mutual records *)
-                let ctxwolet = Vars.smash_rel_context mib.mind_params_ctxt in
+                let ctxwolet = Vars.smash_rel_context params_ctxt in
                 let indty = Constr.mkApp (Constr.mkIndU ((t,0),inst),
                                         Context.Rel.instance Constr.mkRel 0 ctxwolet) in
                 let indbinder = Context.Rel.Declaration.LocalAssum (Context.annotR (Names.Name id),indty) in
@@ -436,9 +546,14 @@ struct
         ([],acc) (Array.to_list mib.mind_packets)
       in
       let nparams = Q.quote_int mib.Declarations.mind_nparams in
-      let paramsctx, acc = quote_rel_context quote_term acc env sigma mib.Declarations.mind_params_ctxt in
+      let paramsctx, acc = quote_rel_context quote_term acc env sigma params_ctxt in
       let uctx = quote_universes_decl mib.Declarations.mind_universes mib.Declarations.mind_template in
-      let var = Option.map (CArray.map_to_list Q.quote_variance) mib.Declarations.mind_variance in
+      (* Template universes are irrelevant for conversion. *)
+      let var = match mib.Declarations.mind_template with
+        | Some templ ->
+          Some (List.init (template_nunivs templ)
+                  (fun _ -> Q.quote_variance UVars.Variance.Irrelevant))
+        | None -> Option.map (CArray.map_to_list Q.quote_variance) mib.Declarations.mind_variance in
       let bodies = List.map Q.mk_one_inductive_body (List.rev ls) in
       let finite = Q.quote_mind_finiteness mib.Declarations.mind_finite in
       (* let templatePoly = Q.quote_bool mi.mind_template in *)
@@ -468,16 +583,22 @@ struct
   let universes_of_mib mib =
     let pars = mib.mind_params_ctxt in
     let univs = universes_of_ctx pars in
-      Array.fold_left (fun univs oib ->
-        (* The arity context does not contain the sort of the inductive, whose levels
-           may occur nowhere else *)
-        let univsty = Univ.Level.Set.union (universes_of_ctx oib.mind_arity_ctxt)
-          (Vars.universes_of_constr oib.mind_user_arity) in
-        Array.fold_left (fun univs cty ->
-          let univscty = Vars.universes_of_constr cty in
-          Univ.Level.Set.union univs univscty)
-          univsty oib.mind_user_lc)
-        univs mib.mind_packets
+    (* Occurrences of template polymorphic inductive types may be quoted with
+       their default levels, which appear only as bound variables in [mib]:
+       keep them too. *)
+    let univs = match get_template_instance mib with
+      | None -> univs
+      | Some inst -> Univ.Level.Set.union univs (snd (UVars.Instance.levels inst))
+    in
+    Array.fold_left (fun univs oib ->
+      (* The arity context does not contain the sort of the inductive, whose levels
+         may occur nowhere else *)
+      let univs = Univ.Level.Set.union univs (universes_of_ctx oib.mind_arity_ctxt) in
+      let univs = Univ.Level.Set.union univs (Vars.universes_of_constr oib.mind_user_arity) in
+      Array.fold_left (fun univs cty ->
+        Univ.Level.Set.union univs (Vars.universes_of_constr cty))
+        univs oib.mind_user_lc)
+      univs mib.mind_packets
 
   let quote_term_rec ~bypass ~opaque_access ?(with_universes=true) ?(with_restriction=true) env sigma trm =
     let visited_terms = ref Names.KNset.empty in
