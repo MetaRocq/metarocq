@@ -605,6 +605,19 @@ Definition fold_lefti {A B} (f : nat -> A -> B -> A) :=
     | b :: t => fold_lefti (S n) t (f n a0 b)
     end.
 
+(** Apply [f] to the mask of constructor [c] of [ind] in the analysis
+    state. *)
+Definition refine_ctor_mask (state : analyze_state) (ind : inductive)
+  (c : nat) (f : bitmask -> bitmask) : analyze_state :=
+  match get_mib_masks state.2 (inductive_mind ind) with
+  | Some mm =>
+    let ctor_masks :=
+        update_ind_ctor_mask (inductive_ind ind) c (ctor_masks mm) f in
+    let mm := {| param_mask := param_mask mm; ctor_masks := ctor_masks |} in
+    update_mib_masks state (inductive_mind ind) mm
+  | None => state
+  end.
+
 Section AnalyzeTop.
   Context (analyze : analyze_state -> term -> analyze_state).
   (** Analyze iterated let-in and lambdas to find dead variables inside body.
@@ -646,28 +659,18 @@ Fixpoint analyze (state : analyze_state) (t : term) {struct t} : analyze_state :
       state
   | tCase (ind, npars) discr brs =>
     let state := analyze state discr in
-    match get_mib_masks state.2 (inductive_mind ind) with
-    | Some mm =>
-      let analyze_case c '(state, ctor_masks) (brs : list BasicAst.name * term) :=
-        let state := analyze (new_vars state #|brs.1|) brs.2 in
-        (remove_vars state #|brs.1|, ctor_masks) in
-        (* let mask := List.rev (firstn #|brs.1| state.1) in *)
-        (* (remove_vars state #|brs.1|, update_ind_ctor_mask (inductive_ind ind) c ctor_masks (bitmask_and mask)) in *)
-      let (state, ctor_masks) := fold_lefti analyze_case 0 brs (state, ctor_masks mm) in
-      let mm := {| param_mask := param_mask mm; ctor_masks := ctor_masks |} in
-      update_mib_masks state (inductive_mind ind) mm
-    | None => state
-    end
+    (** Arguments used in a branch are kept: the constructor mask is
+        restricted to the arguments that are dead in the branch. The masks
+        are read from the state after the branch, so that the refinements
+        made by nested matches are kept. *)
+    let analyze_case c state (br : list BasicAst.name * term) :=
+      let state := analyze (new_vars state #|br.1|) br.2 in
+      let mask := List.rev (firstn #|br.1| state.1) in
+      refine_ctor_mask (remove_vars state #|br.1|) ind c (bitmask_and mask) in
+    fold_lefti analyze_case 0 brs state
   | tProj (mkProjection ind npars arg) t =>
     let state := analyze state t in
-    match get_mib_masks state.2 (inductive_mind ind) with
-    | Some mm =>
-      let ctor_masks :=
-          update_ind_ctor_mask (inductive_ind ind) 0 (ctor_masks mm) (clear_bit arg) in
-      let mm := {| param_mask := param_mask mm; ctor_masks := ctor_masks |} in
-      update_mib_masks state (inductive_mind ind) mm
-    | None => state
-    end
+    refine_ctor_mask state ind 0 (clear_bit arg)
   | tFix defs _
   | tCoFix defs _ =>
     let state := new_vars state #|defs| in
@@ -741,6 +744,14 @@ Fixpoint analyze_env
     {| const_masks := consts; ind_masks := inds |}
   end.
 
+(** Analysis of a program: the environment, then the main term, whose
+    matches can also keep constructor arguments. *)
+Definition analyze_program
+           (overridden_masks : kername -> option bitmask)
+           (Σ : global_env) (t : term) : dearg_set :=
+  let (consts, inds) := analyze_env overridden_masks Σ in
+  {| const_masks := consts; ind_masks := (analyze ([], inds) t).2 |}.
+
 (** Remove trailing "false" bits in masks *)
 Definition trim_const_masks (cm : list (kername × bitmask)) :=
   map (on_snd (trim_end false)) cm.
@@ -766,7 +777,9 @@ Definition dearg_transform
            (overridden_masks : kername -> option bitmask)
            (** If true, trim ends of constant masks to avoid unnecessary eta expansion. *)
            (do_trim_const_masks : bool)
-           (** If true, trim ends of constructor masks to avoid unnecessary eta expansion. *)
+           (** If true, trim ends of constructor masks to avoid unnecessary eta expansion.
+               Incompatible with [check_valid_masks], which requires
+               constructor masks of the constructor's arity. *)
            (do_trim_ctor_masks : bool)
            (** Check if erased environment is closed *)
            (check_closed : bool)

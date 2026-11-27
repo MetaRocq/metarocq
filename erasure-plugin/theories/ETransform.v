@@ -882,7 +882,8 @@ Record dearging_config :=
 
 Definition check_dearging_precond (cf : dearging_config) Σ t :=
   if closed_env (trans_env Σ) then
-    match ExtractionCorrectness.compute_masks cf.(overridden_masks) cf.(do_trim_const_masks) cf.(do_trim_ctor_masks) Σ with
+    match ExtractionCorrectness.compute_program_masks cf.(overridden_masks)
+      cf.(do_trim_const_masks) cf.(do_trim_ctor_masks) Σ t with
     | ResultMonad.Ok masks =>
       if valid_cases (ind_masks masks) t && is_expanded (ind_masks masks) (const_masks masks) t then Some masks else None
     | _ => None
@@ -899,8 +900,8 @@ Lemma check_dearging_precond_spec cf env t d :
 Proof.
   unfold check_dearging_precond.
   destruct closed_env => //.
-  unfold ExtractionCorrectness.compute_masks, Utils.timed.
-  destruct analyze_env eqn:eqm => //.
+  unfold ExtractionCorrectness.compute_program_masks, Utils.timed.
+  destruct analyze_program eqn:eqm => //.
   destruct is_expanded_env eqn:isex => //.
   destruct valid_masks_env eqn:vm => //=.
   destruct valid_cases eqn:vc => //=.
@@ -978,24 +979,18 @@ Section Dearging.
     intros [ev].
     unfold dearg. rewrite he.
     destruct (check_dearging_precond) as [masks|] eqn:cpre.
-    * eapply (extract_correct_gen' _ _ _ masks cf.(overridden_masks) cf.(do_trim_const_masks) cf.(do_trim_ctor_masks)) in ev as ev'.
+    * have hspec := check_dearging_precond_spec _ _ _ _ cpre.
+      eapply (extract_program_correct _ _ _ masks cf.(overridden_masks)
+        cf.(do_trim_const_masks) cf.(do_trim_ctor_masks)) in ev as ev'.
       destruct ev' as [ev'].
       eexists. split. red. sq. cbn. exact ev'. auto.
       - destruct wfe. now eapply wellformed_closed_env.
       - destruct wfe. now eapply wellformed_closed.
       - move: cpre. unfold check_dearging_precond. destruct closed_env => //.
-        destruct ExtractionCorrectness.compute_masks => //.
+        destruct ExtractionCorrectness.compute_program_masks => //.
         destruct (_ && _) => //. congruence.
-      - move: cpre. rewrite /check_dearging_precond.
-        destruct closed_env => //.
-        destruct ExtractionCorrectness.compute_masks => //.
-        destruct valid_cases eqn:vc => //. cbn.
-        destruct is_expanded => //. now intros [= ->].
-      - move: cpre. rewrite /check_dearging_precond.
-        destruct closed_env => //.
-        destruct ExtractionCorrectness.compute_masks => //.
-        destruct valid_cases eqn:vc => //. cbn.
-        destruct is_expanded eqn:ise => //. now intros [= ->].
+      - apply hspec.
+      - apply hspec.
     * exists v. cbn. split => //.
   Qed.
 
