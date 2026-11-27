@@ -38,7 +38,9 @@ tLam "n"
                    inductive_mind :=
                      (MPfile ["Logic"; "Init"; "Corelib"], "eq");
                    inductive_ind := 0
-                 |} 0 [])
+                 |} 0
+                 [Universe.of_level
+                    (Level.level "MetaRocq.TestSuite.sprop_tests:78")])
               [tApp
                  (tInd
                     {|

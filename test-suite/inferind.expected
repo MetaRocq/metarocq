@@ -12,15 +12,13 @@
               {|
                 Universe.t_set :=
                   {|
-                    LevelExprSet.this :=
-                      [(Level.level "Corelib.Init.Datatypes:190", 0)];
+                    LevelExprSet.this := [(Level.lvar 0, 0)];
                     LevelExprSet.is_ok :=
-                      LevelExprSet.Raw.singleton_ok
-                        (Level.level "Corelib.Init.Datatypes:190", 0)
+                      LevelExprSet.Raw.singleton_ok (Level.lvar 0, 0)
                   |};
                 Universe.t_ne :=
                   Universes.Universe.NES.singleton_obligation_1
-                    (Level.level "Corelib.Init.Datatypes:190", 0)
+                    (Level.lvar 0, 0)
               |})
      |}];
   mind_entry_inds :=
@@ -50,8 +48,15 @@
             (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
                (tApp (tRel 2) [tRel 1]) (tApp (tRel 3) [tRel 2]))]
      |}];
-  mind_entry_universes := Monomorphic_entry;
+  mind_entry_universes :=
+    Polymorphic_entry
+      ([nAnon],
+       ([Level.lvar 0],
+        {|
+          UCS.this := UnivConstraintSet.Raw.Leaf;
+          UCS.is_ok := UnivConstraintSet.Raw.empty_ok
+        |}));
   mind_entry_template := false;
-  mind_entry_variance := None;
+  mind_entry_variance := Some [Some Variance.Irrelevant];
   mind_entry_private := None
 |}

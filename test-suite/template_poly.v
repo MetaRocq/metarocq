@@ -33,50 +33,50 @@ Definition set := Universe.of_level Level.lzero.
 (** Occurrences of template polymorphic inductive types. *)
 
 MetaRocq Quote Definition q_list_nat := (list nat).
-Check eq_refl : inst_of q_list_nat == Some [set] = true.
+Check eq_refl : (inst_of q_list_nat == Some [set]) = true.
 
 MetaRocq Quote Definition q_list_big := (list Type@{big}).
-Check eq_refl : inst_of q_list_big == Some [Universe.succ big_univ] = true.
+Check eq_refl : (inst_of q_list_big == Some [Universe.succ big_univ]) = true.
 
 MetaRocq Quote Definition q_prod := (prod nat Type@{big}).
-Check eq_refl : inst_of q_prod == Some [set; Universe.succ big_univ] = true.
+Check eq_refl : (inst_of q_prod == Some [set; Universe.succ big_univ]) = true.
 
 (* Without arguments, the default universes. *)
 MetaRocq Quote Definition q_list := list.
 Check eq_refl : option_map (@List.length _) (inst_of q_list) = Some 1.
-Check eq_refl : inst_of q_list == Some [set] = false.
+Check eq_refl : (inst_of q_list == Some [set]) = false.
 
 (** Constructors and pattern matchings. *)
 
 MetaRocq Quote Definition q_nil_big := (@nil Type@{big}).
-Check eq_refl : inst_of q_nil_big == Some [Universe.succ big_univ] = true.
+Check eq_refl : (inst_of q_nil_big == Some [Universe.succ big_univ]) = true.
 
 MetaRocq Quote Definition q_cons_nat := (cons 0 nil).
-Check eq_refl : inst_of q_cons_nat == Some [set] = true.
+Check eq_refl : (inst_of q_cons_nat == Some [set]) = true.
 
 MetaRocq Quote Definition q_match :=
   (fun x : list Type@{big} => match x with nil => 0 | cons _ _ => 1 end).
-Check eq_refl : inst_of q_match == Some [Universe.succ big_univ] = true.
+Check eq_refl : (inst_of q_match == Some [Universe.succ big_univ]) = true.
 
 (** Arguments in Prop or SProp: MetaRocq has no sort qualities, so their
     universe is Set. Hence [prod True True] lives in Set in MetaRocq, while
     it lives in Prop in Rocq. *)
 
 MetaRocq Quote Definition q_prod_prop := (prod True True).
-Check eq_refl : inst_of q_prod_prop == Some [set; set] = true.
+Check eq_refl : (inst_of q_prod_prop == Some [set; set]) = true.
 
 MetaRocq Quote Definition q_prod_prop_nat := (prod True nat).
-Check eq_refl : inst_of q_prod_prop_nat == Some [set; set] = true.
+Check eq_refl : (inst_of q_prod_prop_nat == Some [set; set]) = true.
 
 MetaRocq Quote Definition q_list_prop := (list True).
-Check eq_refl : inst_of q_list_prop == Some [set] = true.
+Check eq_refl : (inst_of q_list_prop == Some [set]) = true.
 
 (* Under binders, the universes of the sorts of the variables. *)
 MetaRocq Quote Definition q_prod_var := (fun A : Prop => prod A A).
-Check eq_refl : inst_of q_prod_var == Some [set; set] = true.
+Check eq_refl : (inst_of q_prod_var == Some [set; set]) = true.
 
 MetaRocq Quote Definition q_list_var := (fun A : Type@{big} => list A).
-Check eq_refl : inst_of q_list_var == Some [big_univ] = true.
+Check eq_refl : (inst_of q_list_var == Some [big_univ]) = true.
 
 (** Declarations: universe polymorphic over the template universes, with
     irrelevant variances. *)
