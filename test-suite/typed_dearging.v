@@ -184,3 +184,21 @@ Example prog3_dearged :
   | Err _ => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(** Extraction from within Rocq checks the expansion of the environment:
+    constant masks are cut there too, so the under-applied [k 0] does not
+    make it fail. *)
+Definition use_k := hd 0 (map (k 0) [1]).
+MetaRocq Quote Recursively Definition quse_k := use_k.
+
+Example extract_within_coq_underapplied :
+  match quse_k.2 with
+  | Ast.tConst kn _ =>
+    match extract_template_env_within_coq quse_k.1
+      (KernameSet.singleton kn) (fun _ => false) with
+    | Ok _ => true
+    | Err _ => false
+    end
+  | _ => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.

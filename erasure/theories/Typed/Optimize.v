@@ -854,6 +854,13 @@ Definition dearg_transform
     let (const_masks, ind_masks) := timed "Dearg analysis"%string
                                           (fun _ => analyze_env overridden_masks Σ) in
 
+    (* When the expansion is checked, cut constant masks at the smallest
+       application arity, so that under-applied constants keep arguments
+       instead of failing the check. *)
+    let const_masks :=
+      if check_expanded then
+        cap_const_masks (env_min_arities Σ EnvMap.EnvMap.empty) const_masks
+      else const_masks in
     let const_masks := (if do_trim_const_masks then trim_const_masks else id) const_masks in
     let ind_masks := (if do_trim_ctor_masks then trim_ind_masks else id) ind_masks in
 

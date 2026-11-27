@@ -5236,7 +5236,7 @@ Proof.
   destruct valid_masks_env eqn:valid; cbn in *; [|congruence].
   injection opt as <-.
   set (im := (if do_trim_ctor_masks then trim_ind_masks else id) ind_masks) in *; clearbody im.
-  set (cm := (if do_trim_const_masks then trim_const_masks else id) const_masks) in *; clearbody cm.
+  set (cm := (if do_trim_const_masks then trim_const_masks else id) _) in *; clearbody cm.
   apply eval_debox_env_types;eauto.
   eapply eval_const_construct_expanded in ev as expanded_const; eauto.
   eapply eval_is_expanded_aux in ev as empty_ctor_mask; eauto.
