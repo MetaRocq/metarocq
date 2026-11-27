@@ -121,9 +121,9 @@ with tsl_term  (fuel : nat) (Σ : global_env_ext) (E : tsl_table) (Γ : context)
                   A' <- tsl_ty_param fuel Σ E Γ A ;;
                   ret (tCast t' c A')
 
-  | tConst s univs => lookup_tsl_table' E (ConstRef s)
-  | tInd i univs => lookup_tsl_table' E (IndRef i)
-  | tConstruct i n univs => lookup_tsl_table' E (ConstructRef i n)
+  | tConst s univs => lookup_tsl_table_inst' E (ConstRef s) univs
+  | tInd i univs => lookup_tsl_table_inst' E (IndRef i) univs
+  | tConstruct i n univs => lookup_tsl_table_inst' E (ConstructRef i n) univs
   | t => match infer' Σ Γ t with
          | Checked typ => let typ := refresh_universes typ in
                          t1 <- tsl_rec fuel Σ E Γ true t ;;

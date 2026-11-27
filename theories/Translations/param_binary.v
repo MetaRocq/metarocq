@@ -97,19 +97,19 @@ Fixpoint tsl_rec1_app (app : list term) (E : tsl_table) (t : term) : term :=
       tCast t1 c (mkApps A1 [tCast t0 c A0])
 
   | tConst s univs =>
-    match lookup_tsl_table E (ConstRef s) with
+    match lookup_tsl_table_inst E (ConstRef s) univs with
     | Some t => t
     | None => debug "tConst" (string_of_kername s)
     end
 
   | tInd i univs =>
-    match lookup_tsl_table E (IndRef i) with
+    match lookup_tsl_table_inst E (IndRef i) univs with
     | Some t => t
     | None => debug "tInd" (match i with mkInd s _ => string_of_kername s end)
     end
 
   | tConstruct i n univs =>
-    match lookup_tsl_table E (ConstructRef i n) with
+    match lookup_tsl_table_inst E (ConstructRef i n) univs with
     | Some t => t
     | None => debug "tConstruct" (match i with mkInd s _ => string_of_kername s end)
     end
@@ -163,10 +163,10 @@ Proof.
   - refine (let kn' : kername := (mp, tsl_ident kn.2) in
             fold_left_i (fun E i ind => _ :: _ ++ E) mind.(ind_bodies) []).
     + (* ind *)
-      exact (IndRef (mkInd kn i), tInd (mkInd kn' i) []).
+      exact (IndRef (mkInd kn i), tInd (mkInd kn' i) (ind_abstract_instance mind)).
     + (* ctors *)
       refine (fold_left_i (fun E k _ => _ :: E) ind.(ind_ctors) []).
-      exact (ConstructRef (mkInd kn i) k, tConstruct (mkInd kn' i) k []).
+      exact (ConstructRef (mkInd kn i) k, tConstruct (mkInd kn' i) k (ind_abstract_instance mind)).
   - exact mind.(ind_finite).
   - (* params: 2 times the same parameters? Probably wrong *)
     refine (mind.(ind_params) ++ mind.(ind_params) ++ mind.(ind_params)).
@@ -182,7 +182,7 @@ Proof.
               ind_relevance := ind.(ind_relevance) |}. (* UGLY HACK!!! todo *)
     + (* arity  *)
       refine (let ar := subst_app (tsl_rec1 E ind.(ind_type))
-                                  [tInd (mkInd kn i) []; tInd (mkInd kn i) []] in
+                                  [tInd (mkInd kn i) (ind_abstract_instance mind); tInd (mkInd kn i) (ind_abstract_instance mind)] in
               ar).
     + (* constructors *)
       refine (mapi _ ind.(ind_ctors)).
@@ -191,11 +191,11 @@ Proof.
       refine (tsl_ident name).
       refine args.
       refine indices.
-      refine (subst_app _ [tConstruct (mkInd kn i) k []; tConstruct (mkInd kn i) k []]).
+      refine (subst_app _ [tConstruct (mkInd kn i) k (ind_abstract_instance mind); tConstruct (mkInd kn i) k (ind_abstract_instance mind)]).
       refine (fold_left_i (fun t0 i u => t0 {S i := u} {S i := u}) _ (tsl_rec1 E type)).
       (* [I_0; ... I_(n-1)] *)
 
-      refine (rev (mapi (fun i _ => tInd (mkInd kn i) [])
+      refine (rev (mapi (fun i _ => tInd (mkInd kn i) (ind_abstract_instance mind))
                               mind.(ind_bodies))).
       refine (3 * arity)%nat.
 
