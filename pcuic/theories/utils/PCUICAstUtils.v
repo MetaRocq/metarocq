@@ -107,6 +107,15 @@ Proof.
   elim: H. intros -> => //. auto.
 Qed.
 
+Fixpoint decompose_app_cps' (t : term) {A} (k : term -> list term -> A) :=
+  match t with
+  | tApp f a => decompose_app_cps' f (fun f l => k f (a :: l))
+  | _ => k t []
+  end.
+
+Definition decompose_app_cps (t : term) {A} (k : term * list term -> A)
+  := decompose_app_cps' t (fun f args => k (f, rev args)).
+
 Fixpoint decompose_app_rec (t : term) l :=
   match t with
   | tApp f a => decompose_app_rec f (a :: l)
@@ -114,6 +123,23 @@ Fixpoint decompose_app_rec (t : term) l :=
   end.
 
 Definition decompose_app t := decompose_app_rec t [].
+
+Lemma decompose_app_cps'_rec {A} t k k' l
+  : (forall f xs, k f xs = k' (f, rev xs ++ l))
+    -> decompose_app_cps' t k = k' (decompose_app_rec t l) :> A.
+Proof.
+  revert k l; induction t; intros ?? Hk;
+    cbn; rewrite ?Hk; try reflexivity; [].
+  match goal with H : _ |- _ => erewrite H; [ reflexivity | ] end.
+  intros; rewrite Hk rev_cons -app_assoc; cbn; reflexivity.
+Qed.
+
+Lemma decompose_app_cps_id {A} t k
+  : decompose_app_cps t k = k (decompose_app t) :> A.
+Proof.
+  rewrite /decompose_app/decompose_app_cps.
+  apply decompose_app_cps'_rec => *; rewrite app_nil_r //.
+Qed.
 
 Lemma mkApps_tApp f a l : mkApps (tApp f a) l = mkApps f (a :: l).
 Proof. reflexivity. Qed.
