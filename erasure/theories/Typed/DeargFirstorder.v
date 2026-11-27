@@ -71,6 +71,25 @@ Section AnalyzeOk.
     destruct (_ && _); cbn; rewrite ?hm ?hcms ?hf ?IH //.
   Qed.
 
+  Lemma no_true_bitmask_and m' m : no_true m -> no_true (bitmask_and m' m).
+  Proof.
+    rewrite /no_true.
+    induction m' in m |- *; destruct m as [|b m]; cbn => //.
+    move/andP=> [hb hm]. rewrite IHm' // andb_true_r.
+    destruct a, b => //.
+  Qed.
+
+  Lemma refine_ctor_mask_ok s ind c f :
+    (forall m, no_true m -> no_true (f m)) ->
+    inds_ok P s.2 -> inds_ok P (refine_ctor_mask s ind c f).2.
+  Proof.
+    intros hf ok. rewrite /refine_ctor_mask.
+    destruct get_mib_masks as [mm|] eqn:hmm => //.
+    apply update_mib_masks_ok => //. intros hp.
+    rewrite /mm_ok /=. apply update_ind_ctor_mask_ok => //.
+    exact (ok _ _ (get_mib_masks_In _ _ _ hmm) hp).
+  Qed.
+
   Lemma fold_left_ok {A} (f : analyze_state -> A -> analyze_state) l s :
     (forall s a, In a l -> inds_ok P s.2 -> inds_ok P (f s a).2) ->
     inds_ok P s.2 -> inds_ok P (fold_left f l s).2.
@@ -90,26 +109,18 @@ Section AnalyzeOk.
     - apply IHt2, IHt1, ok.
     - destruct p as [ind npars].
       have ok' := IHt s ok.
-      destruct get_mib_masks as [mm|] eqn:hmm => //.
-      set (f := fun c '(state, ctor_masks) => _).
-      have hfold : forall n s' cms,
-        inds_ok P s'.2 ->
-        let r := fold_lefti f n l (s', cms) in
-        inds_ok P r.1.2 /\ r.2 = cms.
+      set (f := fun c state br => _).
+      have hfold : forall n s',
+        inds_ok P s'.2 -> inds_ok P (fold_lefti f n l s').2.
       { clear -X. induction l as [|br l IHl]; cbn => //.
-        intros n s' cms ok. depelim X.
-        apply (IHl X (S n)). rewrite /remove_vars /=. apply i, ok. }
-      destruct (hfold 0 (analyze s t) (ctor_masks mm) ok') as [ok2 e].
-      destruct fold_lefti as [s' cms] eqn:hf. cbn in ok2, e. subst cms.
-      apply update_mib_masks_ok => //. intros hp.
-      exact (ok' _ _ (get_mib_masks_In _ _ _ hmm) hp).
+        intros n s' ok. depelim X.
+        apply (IHl X (S n)). apply refine_ctor_mask_ok.
+        - intros; now apply no_true_bitmask_and.
+        - rewrite /remove_vars /=. apply i, ok. }
+      exact (hfold 0 _ ok').
     - destruct s0 as [ind npars arg].
-      have ok' := IHt s ok.
-      destruct get_mib_masks as [mm|] eqn:hmm => //.
-      apply update_mib_masks_ok => //. intros hp.
-      rewrite /mm_ok /=. apply update_ind_ctor_mask_ok.
-      { intros; now apply no_true_clear_bit. }
-      exact (ok' _ _ (get_mib_masks_In _ _ _ hmm) hp).
+      apply refine_ctor_mask_ok; [|exact (IHt s ok)].
+      intros; now apply no_true_clear_bit.
     - rewrite /remove_vars /=. apply fold_left_ok => //.
       intros s' d hin ok'. eapply All_In in X; tea. destruct X as [X].
       now apply X.
@@ -174,6 +185,16 @@ Section AnalyzeOk.
       + intros kn' mm [[= <- <-]|hin] hp.
         * exact (hdecl kn b mib (or_introl eq_refl) hp).
         * exact (ok kn' mm hin hp).
+  Qed.
+
+  Lemma analyze_program_ok om (Σ : ExAst.global_env) t :
+    (forall kn b mib, In (kn, b, InductiveDecl mib) Σ -> P kn ->
+      mm_ok (init_mib_masks mib)) ->
+    inds_ok P (ind_masks (analyze_program om Σ t)).
+  Proof.
+    intros h. have := analyze_env_ok om Σ h.
+    rewrite /analyze_program. destruct analyze_env as [cms ims]; cbn.
+    apply (analyze_ok t ([], ims)).
   Qed.
 
   Lemma no_true_trim_end m : no_true m -> no_true (trim_end false m).

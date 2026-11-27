@@ -390,9 +390,10 @@ Proof.
   intros hc hinit kn mm hmm hp.
   move: hc. rewrite /check_dearging_precond.
   destruct EGlobalEnv.closed_env => //.
-  rewrite /ExtractionCorrectness.compute_masks /Utils.timed.
-  destruct Optimize.analyze_env as [cms ims] eqn:ha. cbn.
-  have hok := DeargFirstorder.analyze_env_ok P (overridden_masks cf) Σ hinit.
+  rewrite /ExtractionCorrectness.compute_program_masks /Utils.timed.
+  destruct Optimize.analyze_program as [cms ims] eqn:ha. cbn.
+  have hok :=
+    DeargFirstorder.analyze_program_ok P (overridden_masks cf) Σ t hinit.
   rewrite ha /= in hok.
   have hok' : DeargFirstorder.inds_ok P
     ((if do_trim_ctor_masks cf then Optimize.trim_ind_masks else id) ims).

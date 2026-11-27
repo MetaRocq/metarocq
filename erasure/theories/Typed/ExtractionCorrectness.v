@@ -612,6 +612,22 @@ Definition compute_masks overridden_masks do_trim_const_masks do_trim_ctor_masks
     "Analysis produced masks that ask to remove live arguments"%bs ;;
   Ok (Build_dearg_set const_masks ind_masks).
 
+(** Masks for a whole program: the main term is analyzed too, so that
+    constructor arguments used in its matches are kept. *)
+Definition compute_program_masks overridden_masks do_trim_const_masks
+  do_trim_ctor_masks Σ t : result dearg_set bytestring.string :=
+  let (const_masks, ind_masks) := Utils.timed "Dearg analysis"
+    (fun _ => analyze_program overridden_masks Σ t) in
+  let const_masks :=
+    (if do_trim_const_masks then trim_const_masks else id) const_masks in
+  let ind_masks :=
+    (if do_trim_ctor_masks then trim_ind_masks else id) ind_masks in
+  throwIf (negb (is_expanded_env ind_masks const_masks Σ))
+    "Erased environment is not expanded enough for dearging to be provably correct"%bs ;;
+  throwIf (negb (valid_masks_env ind_masks const_masks Σ))
+    "Analysis produced masks that ask to remove live arguments"%bs ;;
+  Ok (Build_dearg_set const_masks ind_masks).
+
 Import PCUICWfEnvImpl PCUICAst.PCUICEnvironment.
 
 Program Definition make_env {Σ} (wfΣ : ∥wf_ext Σ∥) :=
@@ -753,6 +769,32 @@ Proof.
   intros cle clt ev hmas vcs isexp.
   sq.
   eapply dearg_transform_gen_correct; eauto.
+Qed.
+
+Theorem extract_program_correct
+        (H := EWellformed.all_env_flags)
+        (wfl := opt_wcbv_flags)
+        (Σ : ExAst.global_env) t v masks
+        overridden_masks do_trim_const_masks do_trim_ctor_masks :
+  EGlobalEnv.closed_env (trans_env Σ) ->
+  ELiftSubst.closedn 0 t ->
+  trans_env Σ e⊢ t ⇓ v ->
+  compute_program_masks overridden_masks do_trim_const_masks
+    do_trim_ctor_masks Σ t = Ok masks ->
+  valid_cases (ind_masks masks) t ->
+  is_expanded (ind_masks masks) (const_masks masks) t ->
+  ∥ EWcbvEval.eval (trans_env (dearg_env masks Σ)) (dearg_term masks t)
+      (dearg_term masks v) ∥.
+Proof.
+  intros cle clt ev hmas vcs isexp.
+  sq.
+  unfold compute_program_masks, Utils.timed in hmas.
+  destruct analyze_program; cbn in *.
+  destruct is_expanded_env eqn:exp; cbn in *; [|congruence].
+  destruct valid_masks_env eqn:valid; cbn in *; [|congruence].
+  injection hmas as <-; cbn in *.
+  apply eval_debox_env_types; eauto.
+  apply dearg_correct; eauto.
 Qed.
 
 (* Print Assumptions extract_correct. *)
