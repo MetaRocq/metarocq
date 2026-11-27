@@ -61,6 +61,7 @@ theories/Typed/Erasure.v
 theories/Typed/ExAst.v
 theories/Typed/ExtractionCorrectness.v
 theories/Typed/OptimizeCorrectness.v
+theories/Typed/DeargFirstorder.v
 theories/Typed/OptimizePropDiscr.v
 theories/Typed/Optimize.v
 theories/Typed/Transform.v
