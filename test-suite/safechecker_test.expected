@@ -10,3 +10,4 @@ Environment is well-formed and Const(MetaRocq.TestSuite.hott_example.isequiv_adj
 isequiv_adjointify and all its dependencies are well-typed.
 Environment is well-formed and Ind(MetaRocq.TestSuite.hott_example.IsEquiv,0,[[MetaRocq.TestSuite.safechecker_test:92],[MetaRocq.TestSuite.safechecker_test:93]]) has type: Prod(A,Sort(Type([MetaRocq.TestSuite.safechecker_test:92])),Prod(B,Sort(Type([MetaRocq.TestSuite.safechecker_test:93])),Prod(f,Prod(_,Rel(1),Rel(1)),Sort(Type([MetaRocq.TestSuite.safechecker_test:92,MetaRocq.TestSuite.safechecker_test:93])))))
 IsEquiv and all its dependencies are well-typed.
+Environment is well-formed and Ind(MetaRocq.TestSuite.safechecker_test.quote_sort_K,0,[]) has type: Sort(Type([MetaRocq.TestSuite.safechecker_test:96]))
