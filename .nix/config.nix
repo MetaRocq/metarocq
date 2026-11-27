@@ -47,6 +47,28 @@
     coqPackages.coq.override.version = "master";
     coqPackages.stdlib.override.version = "master";
 
+    ## CertiRocq, the main client of the erasure pipeline, built from its
+    ## branch that follows Rocq master and MetaRocq main, using the overlay
+    ## in .nix/coq-overlays/CertiRocq, a copy of the one on that branch.
+    ## CompCert and WasmCert do not depend on MetaRocq: their own jobs build
+    ## (and cache) them in parallel with MetaRocq's.  Their other
+    ## dependencies are built inside these jobs.
+    rocqPackages.CertiRocq.override.version = "rocq-master";
+    rocqPackages.compcert.override.version = "master";
+    rocqPackages.wasmcert.override.version = "rocq-master";
+    rocqPackages.MenhirLib.job = false;
+    rocqPackages.MenhirLib.override.version = "master";
+    rocqPackages.flocq.job = false;
+    rocqPackages.flocq.override.version = "master";
+    rocqPackages.mathcomp.job = false;
+    rocqPackages.mathcomp.override.version = "master";
+    rocqPackages.parseque.job = false;
+    rocqPackages.parseque.override.version = "master";
+    rocqPackages.hierarchy-builder.job = false;
+    rocqPackages.hierarchy-builder.override.version = "master";
+    rocqPackages.rocq-elpi.job = false;
+    rocqPackages.rocq-elpi.override.version = "master";
+
     push-branches = ["main"];
     ## genNixActions makes the workflow run on pull_request_target, which
     ## GitHub always takes from the default branch (9.1), not from the PR's
@@ -54,6 +76,14 @@
     ## .github/workflows/nix-action-rocq-dev.yml, replace its pull_request and
     ## pull_request_target triggers by a plain, unfiltered pull_request one
     ## (fork PRs then cannot push to the metacoq cache, but are still built).
+    ## Then make the CertiRocq jobs optional on PRs that do not change the
+    ## erasure pipeline: copy the CertiRocq-changes job (which checks that)
+    ## and the CertiRocq-approval job (environment certirocq, whose required
+    ## reviewers approve it from the workflow run page, skipped when the
+    ## erasure pipeline changes) from the previous version of the workflow,
+    ## add CertiRocq-approval to the needs of compcert, which wasmcert and
+    ## CertiRocq need, and give compcert `if: ${{ !failure() && !cancelled() }}`
+    ## so that it runs when CertiRocq-approval is skipped.
   };
 
   ## Cachix caches to use in CI
