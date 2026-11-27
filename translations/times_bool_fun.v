@@ -78,9 +78,9 @@ Fixpoint tsl_rec (fuel : nat) (Σ : global_env_ext) (E : tsl_table) (Γ : contex
                 monad_fold_left (fun t u => u' <- tsl_rec fuel Σ E Γ u ;;
                                          ret (tApp (proj1 t) [u'])) us t'
 
-  | tConst s univs => lookup_tsl_table' E (ConstRef s)
-  | tInd i univs => lookup_tsl_table' E (IndRef i)
-  | tConstruct i n univs => lookup_tsl_table' E (ConstructRef i n)
+  | tConst s univs => lookup_tsl_table_inst' E (ConstRef s) univs
+  | tInd i univs => lookup_tsl_table_inst' E (IndRef i) univs
+  | tConstruct i n univs => lookup_tsl_table_inst' E (ConstructRef i n) univs
   | tProj p t => t' <- tsl_rec fuel Σ E Γ t ;;
                 ret (tProj p t')
 
@@ -183,7 +183,7 @@ Definition tsl_mind_body (ΣE : tsl_context) (mp : modpath) (kn : kername)
     intros k [name argctx indices typ nargs].
     simple refine (let ctor_type' := _ in
                    ((ConstructRef (mkInd kn i) k,
-                     pouet (tConstruct (mkInd kn' i) k []) _),
+                     pouet (tConstruct (mkInd kn' i) k (ind_abstract_instance mind)) _),
                     (Build_constructor_body (tsl_ident name) argctx indices ctor_type' nargs))).
     * refine (fold_left_i (fun t i _ => replace (proj1 (tRel i)) (tRel i) t)
                           mind.(ind_bodies) _).
@@ -197,10 +197,10 @@ Definition tsl_mind_body (ΣE : tsl_context) (mp : modpath) (kn : kername)
              | tApp t us => tApp t (List.map (tsl L') us)
              | _ as t => t
              end).
-    * refine (fold_left_i (fun t l _ => replace (tRel l) (tInd (mkInd kn' i) []) t)
+    * refine (fold_left_i (fun t l _ => replace (tRel l) (tInd (mkInd kn' i) (ind_abstract_instance mind)) t)
                           mind.(ind_bodies) ctor_type').
   + (* table *)
-    refine (IndRef (mkInd kn i), pouet (tInd (mkInd kn' i) []) ind_type').
+    refine (IndRef (mkInd kn i), pouet (tInd (mkInd kn' i) (ind_abstract_instance mind)) ind_type').
   + exact mind.(ind_finite).
   + (* parameters *)
     simple refine (List.fold_right _ [] (mind.(ind_params))).

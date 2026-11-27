@@ -69,10 +69,10 @@ Fixpoint tsl (ΣE : tsl_context) (Γ : context) (t : term) {struct t}
   (* | tFix : mfixpoint term -> nat -> term *)
   (* | tCoFix : mfixpoint term -> nat -> term *)
   | tConst s univs => Γ' <- tsl_ctx ΣE Γ ;;
-                     t' <- lookup_tsl_table' (snd ΣE) (ConstRef s) ;;
+                     t' <- lookup_tsl_table_inst' (snd ΣE) (ConstRef s) univs ;;
                      ret (tLambda (nNamed "γ") Γ' (subst_app t' [ttt]))
-  | tInd i univs => lookup_tsl_table' (snd ΣE) (IndRef i)
-  | tConstruct i n univs => lookup_tsl_table' (snd ΣE) (ConstructRef i n)
+  | tInd i univs => lookup_tsl_table_inst' (snd ΣE) (IndRef i) univs
+  | tConstruct i n univs => lookup_tsl_table_inst' (snd ΣE) (ConstructRef i n) univs
   | tProj p t => Γ' <- tsl_ctx ΣE Γ ;;
                 t' <- tsl ΣE Γ t ;;
                 ret (tLambda (nNamed "γ") Γ' (tProj p t'))
