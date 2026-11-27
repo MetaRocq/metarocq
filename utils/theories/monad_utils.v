@@ -7,6 +7,7 @@ Import ListNotations.
 
 Set Universe Polymorphism.
 Set Polymorphic Inductive Cumulativity.
+Unset Universe Minimization ToSet.
 
 Class Monad@{d c} (m : Type@{d} -> Type@{c}) : Type :=
 { ret : forall {t : Type@{d}}, t -> m t
@@ -70,6 +71,28 @@ Import MCMonadNotation.
 |}.
 
 Open Scope monad.
+
+(* state is underneath the other monad *)
+Definition StateT S M T := S -> M (T * S)%type.
+Definition StateT_Monad {S T} {TM : Monad T} : Monad (StateT S T) :=
+  {| ret A a st := ret (a, st) ;
+     bind A B m f st := '(m, st) <- m st;; f m st
+  |}.
+#[export] Hint Extern 1 (Monad (StateT ?S ?T)) => simple apply (@StateT_Monad S T) : typeclass_instances.
+
+Module State.
+  Definition get {S T} {TM : Monad T} : StateT S T S
+    := fun s => ret (s, s).
+  Definition update {S T} {TM : Monad T} (f : S -> S) : StateT S T unit
+    := fun s => ret (tt, f s).
+  Definition set {S T} {TM : Monad T} (s : S) : StateT S T unit
+    := update (fun _ => s).
+  Definition lift {S T} {TM : Monad T} {A} (m : T A) : StateT S T A
+    := fun s => v <- m;; ret (v, s).
+  Definition evalStateT {S T A} {TM : Monad T} (p : StateT S T A) (st : S) : T A
+    := '(v, st) <- p st;;
+       ret v.
+End State.
 
 Section MapOpt.
   Context {A} {B} (f : A -> option B).
