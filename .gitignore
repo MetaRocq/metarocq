@@ -22,3 +22,6 @@ _opam/
 .DS_Store
 *~
 \#*#
+
+# Cached nix-shell environment of .nix/vsrocqtop
+.nix/shell-env

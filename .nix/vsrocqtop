@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run vsrocqtop in the environment of the nix-shell of this repository
+# (shell.nix), e.g. from VS Code with "vsrocq.path": ".nix/vsrocqtop".
+# See .nix/env-exec; `.nix/vsrocqtop --update-env` recomputes the saved
+# environment.
+here="$(dirname "${BASH_SOURCE[0]}")"
+if [[ "${1-}" == "--update-env" ]]; then
+  exec "$here/env-exec" --update-env
+fi
+exec "$here/env-exec" vsrocqtop "$@"
