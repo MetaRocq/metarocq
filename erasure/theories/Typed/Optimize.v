@@ -6,6 +6,7 @@ From MetaRocq.Utils Require Import ResultMonad.
 From MetaRocq.Erasure.Typed Require Import Utils.
 From MetaRocq.Erasure Require Import EPrimitive ELiftSubst.
 From MetaRocq.Utils Require Import utils.
+From MetaRocq.Common Require EnvMap.
 
 Import Kernames.
 
@@ -744,13 +745,74 @@ Fixpoint analyze_env
     {| const_masks := consts; ind_masks := inds |}
   end.
 
+(** ** Application arities of constants
+
+    Dearging is only checked correct when each occurrence of a constant is
+    applied to at least as many arguments as its mask has bits (see
+    [is_expanded]), and constants are not eta-expanded. We record the
+    smallest number of arguments each constant is applied to, following
+    [is_expanded_aux], and cut its mask there: the arguments after it are
+    kept instead of making the check fail for the whole program. *)
+
+Definition arities := EnvMap.EnvMap.t nat.
+
+Definition record_arity (kn : kername) (n : nat) (ar : arities) : arities :=
+  match EnvMap.EnvMap.lookup kn ar with
+  | Some n' => EnvMap.EnvMap.add kn (Nat.min n n') ar
+  | None => EnvMap.EnvMap.add kn n ar
+  end.
+
+Fixpoint min_arities (nargs : nat) (ar : arities) (t : term) {struct t}
+  : arities :=
+  match t with
+  | tEvar _ ts => fold_left (min_arities 0) ts ar
+  | tLambda _ body => min_arities 0 ar body
+  | tLetIn _ val body => min_arities 0 (min_arities 0 ar val) body
+  | tApp hd arg => min_arities (S nargs) (min_arities 0 ar arg) hd
+  | tConst kn => record_arity kn nargs ar
+  | tCase _ discr brs =>
+    fold_left (fun ar br => min_arities 0 ar br.2) brs
+      (min_arities 0 ar discr)
+  | tProj _ t => min_arities 0 ar t
+  | tFix defs _
+  | tCoFix defs _ =>
+    fold_left (fun ar d => min_arities 0 ar (EAst.dbody d)) defs ar
+  | tPrim p => fold_prim (min_arities 0) p ar
+  | tLazy t => min_arities 0 ar t
+  | tForce t => min_arities 0 ar t
+  | _ => ar
+  end.
+
+Definition env_min_arities (Σ : global_env) (ar : arities) : arities :=
+  fold_left (fun ar '(_, _, decl) =>
+    match decl with
+    | ConstantDecl cst =>
+      match cst_body cst with
+      | Some body => min_arities 0 ar body
+      | None => ar
+      end
+    | _ => ar
+    end) Σ ar.
+
+(** Cut the mask of each constant at its smallest application arity. *)
+Definition cap_const_masks (ar : arities) (cm : list (kername × bitmask))
+  : list (kername × bitmask) :=
+  map (fun '(kn, mask) =>
+    match EnvMap.EnvMap.lookup kn ar with
+    | Some n => (kn, firstn n mask)
+    | None => (kn, mask)
+    end) cm.
+
 (** Analysis of a program: the environment, then the main term, whose
-    matches can also keep constructor arguments. *)
+    matches can also keep constructor arguments. Constant masks are cut at
+    the smallest application arity of the constant in the program. *)
 Definition analyze_program
            (overridden_masks : kername -> option bitmask)
            (Σ : global_env) (t : term) : dearg_set :=
   let (consts, inds) := analyze_env overridden_masks Σ in
-  {| const_masks := consts; ind_masks := (analyze ([], inds) t).2 |}.
+  let ar := min_arities 0 (env_min_arities Σ EnvMap.EnvMap.empty) t in
+  {| const_masks := cap_const_masks ar consts;
+     ind_masks := (analyze ([], inds) t).2 |}.
 
 (** Remove trailing "false" bits in masks *)
 Definition trim_const_masks (cm : list (kername × bitmask)) :=
@@ -792,6 +854,13 @@ Definition dearg_transform
     let (const_masks, ind_masks) := timed "Dearg analysis"%string
                                           (fun _ => analyze_env overridden_masks Σ) in
 
+    (* When the expansion is checked, cut constant masks at the smallest
+       application arity, so that under-applied constants keep arguments
+       instead of failing the check. *)
+    let const_masks :=
+      if check_expanded then
+        cap_const_masks (env_min_arities Σ EnvMap.EnvMap.empty) const_masks
+      else const_masks in
     let const_masks := (if do_trim_const_masks then trim_const_masks else id) const_masks in
     let ind_masks := (if do_trim_ctor_masks then trim_ind_masks else id) ind_masks in
 
