@@ -176,6 +176,9 @@ struct
     with e -> assert false
 
 
+  let quote_universe_instance us : quoted_univ_instance =
+    List.map quote_universe us
+
   let quote_univ_instance (i : UVars.Instance.t) : quoted_univ_instance =
     let qarr, uarr = UVars.Instance.to_array i in
     let () = if not (CArray.is_empty qarr) then

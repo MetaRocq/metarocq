@@ -6,6 +6,10 @@ Import MonadNotation.
 
 Set Universe Checking.
 
+(* [ImplementExisting] gives fresh universes to the universes of universe
+   polymorphic inductive types. *)
+#[export] Unset MetaRocq Strict Unquote Universe Mode.
+
 (* Should be in AstUtils probably *)
 Fixpoint subst_app (t : term) (us : list term) : term :=
   match t, us with
@@ -66,6 +70,32 @@ Definition lookup_tsl_table' E gr :=
   | Some t => ret t
   | None => raise (TranslationNotFound gr)
   end.
+
+(** The translation of a universe polymorphic inductive type (e.g. a template
+    polymorphic one, quoted as universe polymorphic over its template
+    universes) is universe polymorphic over the same universes: its table
+    entries are abstracted over them, and get the instance of each
+    occurrence. *)
+Definition ind_abstract_instance (mind : mutual_inductive_body) : Instance.t :=
+  abstract_instance mind.(ind_universes).
+
+(* Instances of universe polymorphic definitions are made of levels in Rocq,
+   while the instances of template polymorphic ones can contain algebraic
+   universes: those are replaced by fresh levels. *)
+Definition level_instance (u : Instance.t) : Instance.t :=
+  map (fun l => if Universe.is_level l then l else fresh_universe) u.
+
+Definition lookup_tsl_table_inst E gr (u : Instance.t) :=
+  option_map (subst_instance (level_instance u)) (lookup_tsl_table E gr).
+
+Definition lookup_tsl_table_inst' E gr (u : Instance.t) :=
+  t <- lookup_tsl_table' E gr ;;
+  ret (subst_instance (level_instance u) t).
+
+(** Fresh universes for the universes of a declaration, to declare a
+    monomorphic term from its types. *)
+Definition fresh_instance (u : universes_decl) : Instance.t :=
+  map (fun _ => fresh_universe) (abstract_instance u).
 
 
 
@@ -255,6 +285,7 @@ Definition ImplementExisting {tsl : Translation} (ΣE : tsl_context) (id : ident
       | None => fail_nf ("The declaration of "
                           ^ id ^ " has not enough bodies. This is a bug.")
       | Some {| ind_type := A |} =>
+      let A := subst_instance (fresh_instance d.(ind_universes)) A in
       tA' <- tmEval lazy (tsl_ty ΣE A) ;;
       match tA' with
       | Error e =>
@@ -285,7 +316,9 @@ Definition ImplementExisting {tsl : Translation} (ΣE : tsl_context) (id : ident
                           ^ id ^ " has not enough constructors. This is a bug.")
       | Some cstr =>  (* keep id? *)
         tmDebug "plop3" ;;
-        let A := subst0 (inds kn [] (* FIXME uctx *) (ind_bodies d)) cstr.(cstr_type) in
+        let A := subst0 (inds kn (ind_abstract_instance d) (ind_bodies d))
+                        cstr.(cstr_type) in
+        let A := subst_instance (fresh_instance d.(ind_universes)) A in
         tmDebug "plop4" ;;
         tA' <- tmEval lazy (tsl_ty ΣE A) ;;
         tmDebug "plop5" ;;

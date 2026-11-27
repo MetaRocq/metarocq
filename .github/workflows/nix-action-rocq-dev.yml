@@ -4,8 +4,9 @@ concurrency:
 jobs:
   # Added by hand after genNixActions: see the note in .nix/config.nix.
   # The CertiRocq jobs (and CompCert and WasmCert, which only they need) are
-  # long.  On pull requests, they run directly when the erasure pipeline (or
-  # the CertiRocq overlay) changes, and otherwise wait for an approval of
+  # long.  On pull requests, they run directly when the erasure pipeline, the
+  # quoter (which CertiRocq uses on every program) or the CertiRocq overlay
+  # changes, and otherwise wait for an approval of
   # CertiRocq-approval, given with "Review deployments" on the page of the
   # workflow run.
   CertiRocq-changes:
@@ -24,6 +25,7 @@ jobs:
       run: |
         if git diff --quiet ${{ github.event.pull_request.base.sha }}...HEAD -- \
              theories/Erasure theories/ErasurePlugin src/erasure-plugin \
+             src/template-src \
              rocq-metarocq-erasure.opam .nix/coq-overlays/CertiRocq
         then echo "erasure=false" >> $GITHUB_OUTPUT
         else echo "erasure=true" >> $GITHUB_OUTPUT
@@ -38,6 +40,7 @@ jobs:
     - name: CertiRocq jobs approved
       run: echo "Building CertiRocq"
   CertiRocq:
+    if: ${{ !failure() && !cancelled() }}
     needs:
     - rocq-core
     - wasmcert
@@ -1353,6 +1356,7 @@ jobs:
       run: NIXPKGS_ALLOW_UNFREE=1 nix-build --no-out-link --argstr bundle 
         "rocq-dev" --argstr job "stdlib"
   wasmcert:
+    if: ${{ !failure() && !cancelled() }}
     needs:
     - coq
     - ExtLib

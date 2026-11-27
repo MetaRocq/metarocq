@@ -62,9 +62,11 @@ let
 
   # The plugins are now part of the safechecker and erasure packages; the
   # attributes are kept for the users of the former plugin packages.
+  # nixpkgs' rocqPackages names the template package [template].
   aliases = {
     "safechecker-plugin" = "safechecker";
     "erasure-plugin" = "erasure";
+    "template" = "template-rocq";
   };
 
   metarocq_ =

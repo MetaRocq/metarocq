@@ -91,9 +91,9 @@ with tsl_term  (fuel : nat) (Σ : global_env) (G : universe_model) (E : tsl_tabl
   | tCast t c A => t' <- tsl_term fuel Σ G E Γ t ;;
                   A' <- tsl_ty_param fuel Σ G E Γ A ;;
                   ret (tCast t' c A')
-  | tConst s univs => lookup_tsl_table' E (ConstRef s)
-  | tInd i univs => lookup_tsl_table' E (IndRef i)
-  | tConstruct i n univs => lookup_tsl_table' E (ConstructRef i n)
+  | tConst s univs => lookup_tsl_table_inst' E (ConstRef s) univs
+  | tInd i univs => lookup_tsl_table_inst' E (IndRef i) univs
+  | tConstruct i n univs => lookup_tsl_table_inst' E (ConstructRef i n) univs
   | t => match infer Σ G Γ t with
         | Checked typ => let typ := refresh_universes typ in
                         let t1 := tsl_rec1 0 t in
@@ -174,7 +174,7 @@ Proof.
 
   - refine (let n := List.length arities - 1 in
             let L := List.combine arities arities2 in
-            List.rev (mapi (fun i '(a,a2) => pair a a2 (tInd (mkInd kn i) []) (tRel (n-i))) L)).
+            List.rev (mapi (fun i '(a,a2) => pair a a2 (tInd (mkInd kn i) (ind_abstract_instance mind)) (tRel (n-i))) L)).
 
   - (* inductive_body -> tsl_result inductive_body *)
     refine (monad_map_i _ mind.(ind_bodies)).
@@ -190,14 +190,14 @@ Proof.
                    ind_relevance := ind.(ind_relevance) |}).  (* TODO *)
     + (* arity  *)
       refine (t2 <- tsl2' ind.(ind_type) ;;
-              let i1 := tsl_rec1 0 (tInd (mkInd kn i) []) in
+              let i1 := tsl_rec1 0 (tInd (mkInd kn i) (ind_abstract_instance mind)) in
               ret (try_reduce (fst (fst ΣE)) [] fuel (mkApp t2 i1))).
     + (* constructors *)
       refine (monad_map_i _ ind.(ind_ctors)).
       intros k c.
       refine (t2 <- tsl2' c.(cstr_type) ;;
               let t2 := fold_left_i (fun t i u => replace u i t) L t2 in
-              let c1 := tsl_rec1 0 (tConstruct (mkInd kn i) k []) in
+              let c1 := tsl_rec1 0 (tConstruct (mkInd kn i) k (ind_abstract_instance mind)) in
               match reduce_opt RedFlags.default (fst (fst ΣE)) [] (* for debugging but we could use try_reduce *)
                                fuel (mkApp t2 c1) with
               | Some t' => ret
@@ -212,10 +212,10 @@ Proof.
   - refine (let L := List.combine mind.(ind_bodies) arities2 in
             fold_left_i (fun E i '(ind,a2) => _ :: _ ++ E) L []).
     + (* ind *)
-      refine (IndRef (mkInd kn i), pair ind.(ind_type) a2 (tInd (mkInd kn i) []) (tInd (mkInd kn' i) [])).
+      refine (IndRef (mkInd kn i), pair ind.(ind_type) a2 (tInd (mkInd kn i) (ind_abstract_instance mind)) (tInd (mkInd kn' i) (ind_abstract_instance mind))).
     + (* ctors *)
       refine (fold_left_i (fun E k _ => _ :: E) ind.(ind_ctors) []).
-      exact (ConstructRef (mkInd kn i) k, tConstruct (mkInd kn' i) k []).
+      exact (ConstructRef (mkInd kn i) k, tConstruct (mkInd kn' i) k (ind_abstract_instance mind)).
   - exact mind.(ind_finite).
   - (* FIXME don't know what to do *) refine (mind.(ind_params)).
 Defined.
