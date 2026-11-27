@@ -5653,11 +5653,65 @@ Qed.
     | eta_right na A t x : is_eta_conv x (tLambda na A t)
     | eta_none t1 t2 : ~~ isLambda t1 -> ~~ isLambda t2 -> is_eta_conv t1 t2.
 
-  Equations eta_conv_view (t1 t2 : term) : is_eta_conv t1 t2 :=
+  (* Distinct names in the second clause: Equations would otherwise capture
+     the binders of the first argument, once split. *)
+  Equations(noeqns) eta_conv_view (t1 t2 : term) : is_eta_conv t1 t2 :=
     | tLambda na A t, x := eta_left na A t x ;
-    | x, tLambda na A t := eta_right na A t x ;
+    | x, tLambda na' A' t' := eta_right na' A' t' x ;
     | t1, t2 := eta_none t1 t2 eq_refl eq_refl.
   Axiom with_eta_cheat : with_eta = true -> forall {A}, A.
+
+  (** Eta for primitive records, as in Rocq's kernel
+      ([Inductive.eta_expand_ind_stack]): when [t1] is the constructor of
+      a primitive record with eta, applied to its parameters [pars] and to
+      all its arguments, the stack of [t2] is replaced by
+      [pars ++ [proj_1 t2'; ...; proj_n t2']], with [t2'] the application
+      of [t2] to its stack, to be compared with the stack of [t1]. *)
+  Local Definition opt_guard (b : bool) : option unit :=
+    if b then Some tt else None.
+
+  Import MonadNotation.
+
+  Definition eta_record_stack (t1 : term) (π1 : stack) (t2 : term)
+    (π2 : stack) : option stack :=
+    match t1 with
+    | tConstruct ind 0 u =>
+      '(mdecl, idecl) <- lookup_inductive_gen (abstract_env_lookup X) ind ;;
+      let npars := mdecl.(ind_npars) in
+      let projs := idecl.(ind_projs) in
+      let args := (decompose_stack π1).1 in
+      opt_guard (mdecl.(ind_finite) == BiFinite) ;;
+      opt_guard (0 <? #|projs|) ;;
+      opt_guard (#|args| =? npars + #|projs|) ;;
+      let t2' := zipp t2 π2 in
+      let pargs :=
+        mapi (fun i _ => tProj (mkProjection ind npars i) t2') projs in
+      ret (appstack (firstn npars args ++ pargs) (decompose_stack π2).2)
+    | _ => None
+    end.
+
+  Equations? isconv_eta_record (Γ : context) (leq : conv_pb)
+            (t1 : term) (π1 : stack) (h1 : wtp Γ t1 π1)
+            (t2 : term) (π2 : stack) (h2 : wtp Γ t2 π2)
+            (hx : conv_stack_ctx Γ π1 π2)
+            (we : with_eta)
+            (aux : Aux Fallback Γ t1 π1 t2 π2 h2)
+            : ConversionResult (conv_term leq Γ t1 π1 t2 π2) :=
+    isconv_eta_record Γ leq t1 π1 h1 t2 π2 h2 hx we aux
+      with inspect (eta_record_stack t1 π1 t2 π2) := {
+      | exist (Some π2') _ := isconv_red leq t1 π1 t1 π2' aux ;
+      | exist None _ with inspect (eta_record_stack t2 π2 t1 π1) := {
+        | exist (Some π1') _ := isconv_red leq t2 π1' t2 π2 aux ;
+        | exist None _ :=
+          no (
+              HeadMismatch
+                leq
+                (Γ ,,, stack_context π1) t1
+                (Γ ,,, stack_context π2) t2
+            )
+        }
+      }.
+  Proof. all: exact (with_eta_cheat we). Defined.
 
   Equations? isconv_eta (Γ : context) (leq : conv_pb)
             (t1 : term) (π1 : stack) (h1 : wtp Γ t1 π1)
@@ -5673,12 +5727,7 @@ Qed.
     isconv_eta Γ leq t1 π1 h1 ?(tLambda na A t) π2 h2 ir1 ir2 hx we (eta_right na A t t1) aux :=
       isconv_red leq (tApp (lift 1 0 t1) (tRel 0)) (Lambda_bd na A :: π1) t (Lambda_bd na A :: π2) aux;
     isconv_eta Γ leq t1 π1 h1 t2 π2 h2 ir1 ir2 hx we (eta_none t1 t2 nlam1 nlam2) aux
-      := no (
-              HeadMismatch
-                leq
-                (Γ ,,, stack_context π1) t1
-                (Γ ,,, stack_context π2) t2
-            ).
+      := isconv_eta_record Γ leq t1 π1 h1 t2 π2 h2 hx we aux.
   Proof.
     all:clear aux. all: try specialize_Σ wfΣ.
     - destruct h1 as (?&?); auto.
@@ -5696,7 +5745,6 @@ Qed.
         now apply with_eta_cheat.
       + now apply with_eta_cheat.
     - now apply with_eta_cheat. (* Clearly false!*)
-    - now apply with_eta_cheat. (* Likely true !*)
     - now apply with_eta_cheat. (* Likely true !*)
     - now apply with_eta_cheat. (* Likely true !*)
     - now apply with_eta_cheat. (* Likely true !*)
