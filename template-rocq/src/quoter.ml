@@ -469,7 +469,10 @@ struct
     let pars = mib.mind_params_ctxt in
     let univs = universes_of_ctx pars in
       Array.fold_left (fun univs oib ->
-        let univsty = universes_of_ctx oib.mind_arity_ctxt in
+        (* The arity context does not contain the sort of the inductive, whose levels
+           may occur nowhere else *)
+        let univsty = Univ.Level.Set.union (universes_of_ctx oib.mind_arity_ctxt)
+          (Vars.universes_of_constr oib.mind_user_arity) in
         Array.fold_left (fun univs cty ->
           let univscty = Vars.universes_of_constr cty in
           Univ.Level.Set.union univs univscty)

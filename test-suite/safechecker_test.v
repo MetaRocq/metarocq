@@ -30,6 +30,11 @@ Definition bignat : nat := Nat.of_num_uint 10000%uint.
 MetaRocq SafeCheck bignat.
 MetaRocq RocqCheck bignat.
 
+(* A universe level that occurs only in the sort of an inductive must be quoted *)
+Universe quote_sort_u.
+Inductive quote_sort_K : Type@{quote_sort_u} := quote_sort_ck.
+MetaRocq SafeCheck quote_sort_K.
+
 Set Warnings "-notation-overriden".
 From MetaRocq.TestSuite Require Import hott_example.
 
