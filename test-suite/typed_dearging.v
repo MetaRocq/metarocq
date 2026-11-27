@@ -143,3 +143,44 @@ Example extract_within_coq_ok :
   | _ => false
   end = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(** Under-applied constants: [k] does not use [b], but [k 0] is passed to
+    [map]. Its mask is cut at one argument, so [b] is kept, and the rest of
+    the program is still dearged. *)
+Definition k (a b : nat) := a.
+Definition prog3 := poly nat (hd 0 (map (k 0) [1])).
+MetaRocq Erase -typed prog3.
+
+MetaRocq Quote Definition qk := k.
+MetaRocq Quote Definition qprog3 := prog3.
+MetaRocq Quote Recursively Definition qprog3_rec := prog3.
+Definition Σ3_full := erased_env qprog3_rec.
+Definition Σ3 :=
+  filter (fun '(kn, _, _) => negb (eq_kername kn (kn_of qprog3))) Σ3_full.
+Definition t3 :=
+  match ExAst.lookup_env Σ3_full (kn_of qprog3) with
+  | Some (ExAst.ConstantDecl {| ExAst.cst_body := Some t |}) => t
+  | _ => EAst.tBox
+  end.
+Definition ds3 := analyze_program (fun _ => None) Σ3 t3.
+
+Example prog3_env_k_mask :
+  get_const_mask (const_masks (analyze_env (fun _ => None) Σ3)) (kn_of qk)
+    = [false; true].
+Proof. vm_compute. reflexivity. Qed.
+
+Example prog3_k_mask : get_const_mask (const_masks ds3) (kn_of qk) = [false].
+Proof. vm_compute. reflexivity. Qed.
+
+Example prog3_poly_mask :
+  get_const_mask (const_masks ds3) (kn_of qpoly) = [true; false].
+Proof. vm_compute. reflexivity. Qed.
+
+Example prog3_dearged :
+  match compute_program_masks (fun _ => None) true false Σ3 t3 with
+  | Ok ds =>
+    andb (valid_cases (ind_masks ds) t3)
+      (is_expanded (ind_masks ds) (const_masks ds) t3)
+  | Err _ => false
+  end = true.
+Proof. vm_compute. reflexivity. Qed.
